@@ -1,17 +1,7 @@
 import { Gallery } from "../../types/datamodel";
-import { getServerUrl } from "../../utils";
+import { BaseAPI } from "../../utils/baseapi";
 
-export class GalleryAPI {
-  private getBaseUrl(): string {
-    return getServerUrl();
-  }
-
-  private getHeaders(): HeadersInit {
-    return {
-      "Content-Type": "application/json",
-    };
-  }
-
+export class GalleryAPI extends BaseAPI {
   async listGalleries(userId: string): Promise<Gallery[]> {
     const response = await fetch(
       `${this.getBaseUrl()}/gallery/?user_id=${userId}`,

@@ -93,7 +93,9 @@ class UISettings(BaseModel):
 
 class SettingsConfig(BaseModel):
     environment: List[EnvironmentVariable] = []
-    default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(model="gpt-4o-mini").dump_component()
+    default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(
+        model="gpt-4o-mini", api_key="your-api-key"
+    ).dump_component()
     ui: UISettings = UISettings()
 
 
