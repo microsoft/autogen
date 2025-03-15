@@ -7,8 +7,12 @@ myst:
 
 # AutoGen Studio
 
-[![PyPI version](https://badge.fury.io/py/autogenstudio.svg)](https://badge.fury.io/py/autogenstudio)
-[![Downloads](https://static.pepy.tech/badge/autogenstudio/week)](https://pepy.tech/project/autogenstudio)
+<a href="https://badge.fury.io/py/autogenstudio" aria-label="PyPI version">
+  <img src="https://badge.fury.io/py/autogenstudio.svg" alt="PyPI version">
+</a>
+<a href="https://pepy.tech/project/autogenstudio" aria-label="Downloads">
+  <img src="https://static.pepy.tech/badge/autogenstudio/week" alt="Downloads">
+</a>
 
 AutoGen Studio is a low-code interface built to help you rapidly prototype AI agents, enhance them with tools, compose them into teams and interact with them to accomplish tasks. It is built on [AutoGen AgentChat](https://microsoft.github.io/autogen) - a high-level API for building multi-agent applications.
 
