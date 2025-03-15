@@ -36,11 +36,11 @@ export const SessionManager: React.FC = () => {
   }, [isSidebarOpen]);
 
   const fetchSessions = useCallback(async () => {
-    if (!user?.email) return;
+    if (!user?.id) return;
 
     try {
       setIsLoading(true);
-      const data = await sessionAPI.listSessions(user.email);
+      const data = await sessionAPI.listSessions(user.id);
       setSessions(data);
 
       // Only set first session if there's no sessionId in URL
@@ -55,7 +55,7 @@ export const SessionManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.email, setSessions, session, setSession]);
+  }, [user?.id, setSessions, session, setSession]);
 
   // Handle initial URL params
   useEffect(() => {
@@ -83,21 +83,21 @@ export const SessionManager: React.FC = () => {
   }, [session]);
 
   const handleSaveSession = async (sessionData: Partial<Session>) => {
-    if (!user?.email) return;
+    if (!user?.id) return;
 
     try {
       if (sessionData.id) {
         const updated = await sessionAPI.updateSession(
           sessionData.id,
           sessionData,
-          user.email
+          user.id
         );
         setSessions(sessions.map((s) => (s.id === updated.id ? updated : s)));
         if (session?.id === updated.id) {
           setSession(updated);
         }
       } else {
-        const created = await sessionAPI.createSession(sessionData, user.email);
+        const created = await sessionAPI.createSession(sessionData, user.id);
         setSessions([created, ...sessions]);
         setSession(created);
       }
@@ -110,10 +110,10 @@ export const SessionManager: React.FC = () => {
   };
 
   const handleDeleteSession = async (sessionId: number) => {
-    if (!user?.email) return;
+    if (!user?.id) return;
 
     try {
-      const response = await sessionAPI.deleteSession(sessionId, user.email);
+      const response = await sessionAPI.deleteSession(sessionId, user.id);
       setSessions(sessions.filter((s) => s.id !== sessionId));
       if (session?.id === sessionId || sessions.length === 0) {
         setSession(sessions[0] || null);
@@ -127,7 +127,7 @@ export const SessionManager: React.FC = () => {
   };
 
   const handleQuickStart = async (teamId: number, teamName: string) => {
-    if (!user?.email) return;
+    if (!user?.id) return;
     try {
       const defaultName = `${teamName.substring(
         0,
@@ -138,7 +138,7 @@ export const SessionManager: React.FC = () => {
           name: defaultName,
           team_id: teamId,
         },
-        user.email
+        user.id
       );
 
       setSessions([created, ...sessions]);
@@ -150,11 +150,11 @@ export const SessionManager: React.FC = () => {
   };
 
   const handleSelectSession = async (selectedSession: Session) => {
-    if (!user?.email || !selectedSession.id) return;
+    if (!user?.id || !selectedSession.id) return;
 
     try {
       setIsLoading(true);
-      const data = await sessionAPI.getSession(selectedSession.id, user.email);
+      const data = await sessionAPI.getSession(selectedSession.id, user.id);
       if (!data) {
         // Session not found
         messageApi.error("Session not found");
@@ -188,16 +188,17 @@ export const SessionManager: React.FC = () => {
 
   // Add teams fetching
   const fetchTeams = useCallback(async () => {
-    if (!user?.email) return;
+    // console.log("Fetching teams", user);
+    if (!user?.id) return;
 
     try {
       setIsLoading(true);
-      const teamsData = await teamAPI.listTeams(user.email);
+      const teamsData = await teamAPI.listTeams(user.id);
       if (teamsData.length > 0) {
         setTeams(teamsData);
       } else {
         console.log("No teams found, creating default team");
-        await galleryStore.fetchGalleries(user.email);
+        await galleryStore.fetchGalleries(user.id);
         const defaultGallery = galleryStore.getSelectedGallery();
 
         const sampleTeam = defaultGallery?.config.components.teams[0];
@@ -207,7 +208,7 @@ export const SessionManager: React.FC = () => {
           const teamData: Team = {
             component: sampleTeam,
           };
-          const defaultTeam = await teamAPI.createTeam(teamData, user.email);
+          const defaultTeam = await teamAPI.createTeam(teamData, user.id);
           console.log("Default team created:", teamData);
 
           setTeams([defaultTeam]);
@@ -219,7 +220,7 @@ export const SessionManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.email, messageApi]);
+  }, [user?.id, messageApi]);
 
   // Fetch teams on mount
   useEffect(() => {

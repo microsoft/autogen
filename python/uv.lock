@@ -741,7 +741,7 @@ requires-dist = [
     { name = "json-schema-to-pydantic", marker = "extra == 'http-tool'", specifier = ">=0.2.0" },
     { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.2" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
-    { name = "llama-cpp-python", marker = "extra == 'llama-cpp'", specifier = ">=0.1.9" },
+    { name = "llama-cpp-python", marker = "extra == 'llama-cpp'", specifier = ">=0.3.8" },
     { name = "magika", marker = "extra == 'file-surfer'", specifier = ">=0.6.1rc2" },
     { name = "magika", marker = "extra == 'magentic-one'", specifier = ">=0.6.1rc2" },
     { name = "magika", marker = "extra == 'web-surfer'", specifier = ">=0.6.1rc2" },
@@ -3513,7 +3513,7 @@ wheels = [
 
 [[package]]
 name = "llama-cpp-python"
-version = "0.3.7"
+version = "0.3.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "diskcache" },
@@ -3521,7 +3521,7 @@ dependencies = [
     { name = "numpy" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a6/38/7a47b1fb1d83eaddd86ca8ddaf20f141cbc019faf7b425283d8e5ef710e5/llama_cpp_python-0.3.7.tar.gz", hash = "sha256:0566a0dcc0f38005c4093309a87f67c2452449522e3e17e15cd735a62957894c", size = 66715891 }
+sdist = { url = "https://files.pythonhosted.org/packages/95/4e/da912ff2bf9bf855c86e8b1ae9fe1eaedf47d75a66728896b533901c4610/llama_cpp_python-0.3.8.tar.gz", hash = "sha256:31c91323b555c025a76a30923cead9f5695da103dd68c15cdbb4509b17f0ed77", size = 67301056 }
 
 [[package]]
 name = "llama-index"

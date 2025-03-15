@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button, Dropdown, MenuProps, message, Select, Space } from "antd";
 import { Plus, InfoIcon, Bot, TextSearch, ChevronDown } from "lucide-react";
 import { Team } from "../../types/datamodel";
-import { truncateText } from "../../utils";
+import { truncateText } from "../../utils/utils";
 import Input from "antd/es/input/Input";
 
 interface NewSessionControlsProps {
