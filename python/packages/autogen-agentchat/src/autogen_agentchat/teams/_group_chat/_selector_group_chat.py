@@ -45,6 +45,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         allow_repeated_speaker: bool,
         selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None,
         max_selector_attempts: int,
+        candidate_func: Callable[[Sequence[AgentEvent | ChatMessage], List[str]], List[str]] | None,
     ) -> None:
         super().__init__(
             name,
@@ -63,6 +64,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
         self._max_selector_attempts = max_selector_attempts
+        self._candidate_func = candidate_func
 
     async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
         pass
@@ -142,6 +144,14 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         else:
             participants = list(self._participant_names)
         assert len(participants) > 0
+
+        # Use the candidate function to filter participants
+        if self._selector_func is None and self._candidate_func is not None:
+            participants = self._candidate_func(thread, participants)
+            if not participants:
+                raise ValueError(
+                    "Candidate function returned an empty list of participants."
+                )
 
         # Select the next speaker.
         if len(participants) > 1:
@@ -277,6 +287,11 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             function that takes the conversation history and returns the name of the next speaker.
             If provided, this function will be used to override the model to select the next speaker.
             If the function returns None, the model will be used to select the next speaker.
+        candidate_func (Callable[[Sequence[AgentEvent | ChatMessage], List[str]], List[str]], optional):
+            A custom function that takes the conversation history and a list of candidates,
+            returning a filtered list of candidates for the next speaker selection using model.
+            This function is only valid if `selector_func` is not set.
+            If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
 
 
     Raises:
@@ -417,6 +432,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         allow_repeated_speaker: bool = False,
         max_selector_attempts: int = 3,
         selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None = None,
+        candidate_func: Callable[[Sequence[AgentEvent | ChatMessage], List[str]], List[str]] | None = None,
     ):
         super().__init__(
             participants,
@@ -434,6 +450,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
         self._max_selector_attempts = max_selector_attempts
+        self._candidate_func = candidate_func
 
     def _create_group_chat_manager_factory(
         self,
@@ -462,6 +479,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._allow_repeated_speaker,
             self._selector_func,
             self._max_selector_attempts,
+            self._candidate_func
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:
