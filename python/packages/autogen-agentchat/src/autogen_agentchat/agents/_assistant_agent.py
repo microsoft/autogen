@@ -574,6 +574,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     "function_calling": False,
                     "json_output": False,
                     "family": ModelFamily.R1,
+                    "structured_output": True,
                 },
             )
 

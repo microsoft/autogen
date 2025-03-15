@@ -7,6 +7,7 @@ import os
 import re
 import warnings
 from asyncio import Task
+from dataclasses import dataclass
 from typing import (
     Any,
     AsyncGenerator,
@@ -69,7 +70,12 @@ from openai.types.chat import (
 )
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
-from openai.types.shared_params import FunctionDefinition, FunctionParameters
+from openai.types.shared_params import (
+    FunctionDefinition,
+    FunctionParameters,
+    ResponseFormatJSONObject,
+    ResponseFormatText,
+)
 from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
@@ -348,6 +354,14 @@ def assert_valid_name(name: str) -> str:
     return name
 
 
+@dataclass
+class CreateParams:
+    messages: List[ChatCompletionMessageParam]
+    tools: List[ChatCompletionToolParam]
+    response_format: Optional[Type[BaseModel]]
+    create_args: Dict[str, Any]
+
+
 class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
@@ -400,15 +414,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
         return OpenAIChatCompletionClient(**config)
 
-    async def create(
+    def _process_create_args(
         self,
         messages: Sequence[LLMMessage],
-        *,
-        tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
-        extra_create_args: Mapping[str, Any] = {},
-        cancellation_token: Optional[CancellationToken] = None,
-    ) -> CreateResult:
+        tools: Sequence[Tool | ToolSchema],
+        json_output: Optional[bool | type[BaseModel]],
+        extra_create_args: Mapping[str, Any],
+    ) -> CreateParams:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
@@ -418,23 +430,56 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        # Declare use_beta_client
-        use_beta_client: bool = False
+        # The response format value to use for the beta client.
         response_format_value: Optional[Type[BaseModel]] = None
 
         if "response_format" in create_args:
+            # Legacy support for getting beta client mode from response_format.
             value = create_args["response_format"]
-            # If value is a Pydantic model class, use the beta client
             if isinstance(value, type) and issubclass(value, BaseModel):
+                if self.model_info["structured_output"] is False:
+                    raise ValueError("Model does not support structured output.")
+                warnings.warn(
+                    "Using response_format to specify structured output type will be deprecated. "
+                    "Use json_output instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
                 response_format_value = value
-                use_beta_client = True
-            else:
-                # response_format_value is not a Pydantic model class
-                use_beta_client = False
-                response_format_value = None
+                # Remove response_format from create_args to prevent passing it twice.
+                del create_args["response_format"]
 
-        # Remove 'response_format' from create_args to prevent passing it twice
-        create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
+        if json_output is not None:
+            if self.model_info["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output.")
+            if json_output is True:
+                # JSON mode.
+                create_args["response_format"] = ResponseFormatJSONObject(type="json_object")
+            elif json_output is False:
+                # Text mode.
+                create_args["response_format"] = ResponseFormatText(type="text")
+            elif isinstance(json_output, type) and issubclass(json_output, BaseModel):
+                if self.model_info["structured_output"] is False:
+                    raise ValueError("Model does not support structured output.")
+                if response_format_value is not None:
+                    raise ValueError(
+                        "response_format and json_output cannot be set to a Pydantic model class at the same time."
+                    )
+                # Beta client mode with Pydantic model class.
+                response_format_value = json_output
+            else:
+                raise ValueError(f"json_output must be a boolean or a Pydantic model class, got {type(json_output)}")
+
+        if response_format_value is not None and "response_format" in create_args:
+            warnings.warn(
+                "response_format is found in extra_create_args while json_output is set to a Pydantic model class. "
+                "Skipping the response_format in extra_create_args in favor of the json_output. "
+                "Structured output will be used.",
+                UserWarning,
+                stacklevel=2,
+            )
+            # If using beta client, remove response_format from create_args to prevent passing it twice
+            del create_args["response_format"]
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
@@ -444,15 +489,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
-        if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output.")
-
-            if json_output is True:
-                create_args["response_format"] = {"type": "json_object"}
-            else:
-                create_args["response_format"] = {"type": "text"}
-
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
@@ -461,67 +497,57 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
+
+        converted_tools = convert_tools(tools)
+
+        return CreateParams(
+            messages=oai_messages,
+            tools=converted_tools,
+            response_format=response_format_value,
+            create_args=create_args,
+        )
+
+    async def create(
+        self,
+        messages: Sequence[LLMMessage],
+        *,
+        tools: Sequence[Tool | ToolSchema] = [],
+        json_output: Optional[bool | type[BaseModel]] = None,
+        extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
+    ) -> CreateResult:
+        create_params = self._process_create_args(
+            messages,
+            tools,
+            json_output,
+            extra_create_args,
+        )
         future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
-        if len(tools) > 0:
-            converted_tools = convert_tools(tools)
-            if use_beta_client:
-                # Pass response_format_value if it's not None
-                if response_format_value is not None:
-                    future = asyncio.ensure_future(
-                        self._client.beta.chat.completions.parse(
-                            messages=oai_messages,
-                            tools=converted_tools,
-                            response_format=response_format_value,
-                            **create_args_no_response_format,
-                        )
-                    )
-                else:
-                    future = asyncio.ensure_future(
-                        self._client.beta.chat.completions.parse(
-                            messages=oai_messages,
-                            tools=converted_tools,
-                            **create_args_no_response_format,
-                        )
-                    )
-            else:
-                future = asyncio.ensure_future(
-                    self._client.chat.completions.create(
-                        messages=oai_messages,
-                        stream=False,
-                        tools=converted_tools,
-                        **create_args,
-                    )
+        if create_params.response_format is not None:
+            # Use beta client if response_format is not None
+            future = asyncio.ensure_future(
+                self._client.beta.chat.completions.parse(
+                    messages=create_params.messages,
+                    tools=create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN,
+                    response_format=create_params.response_format,
+                    **create_params.create_args,
                 )
+            )
         else:
-            if use_beta_client:
-                if response_format_value is not None:
-                    future = asyncio.ensure_future(
-                        self._client.beta.chat.completions.parse(
-                            messages=oai_messages,
-                            response_format=response_format_value,
-                            **create_args_no_response_format,
-                        )
-                    )
-                else:
-                    future = asyncio.ensure_future(
-                        self._client.beta.chat.completions.parse(
-                            messages=oai_messages,
-                            **create_args_no_response_format,
-                        )
-                    )
-            else:
-                future = asyncio.ensure_future(
-                    self._client.chat.completions.create(
-                        messages=oai_messages,
-                        stream=False,
-                        **create_args,
-                    )
+            # Use the regular client
+            future = asyncio.ensure_future(
+                self._client.chat.completions.create(
+                    messages=create_params.messages,
+                    stream=False,
+                    tools=create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN,
+                    **create_params.create_args,
                 )
+            )
 
         if cancellation_token is not None:
             cancellation_token.link_future(future)
         result: Union[ParsedChatCompletion[BaseModel], ChatCompletion] = await future
-        if use_beta_client:
+        if create_params.response_format is not None:
             result = cast(ParsedChatCompletion[Any], result)
 
         usage = RequestUsage(
@@ -532,7 +558,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         logger.info(
             LLMCallEvent(
-                messages=cast(List[Dict[str, Any]], oai_messages),
+                messages=cast(List[Dict[str, Any]], create_params.messages),
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
@@ -627,7 +653,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
@@ -638,7 +664,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         Args:
             messages (Sequence[LLMMessage]): A sequence of messages to be processed.
             tools (Sequence[Tool | ToolSchema], optional): A sequence of tools to be used in the completion. Defaults to `[]`.
-            json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
+            json_output (Optional[bool | type[BaseModel]], optional): If True, the output will be in JSON format. If a Pydantic model class, the output will be in that format. Defaults to None.
             extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
             cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
             max_consecutive_empty_chunk_tolerance (int): [Deprecated] This parameter is deprecated, empty chunks will be skipped.
@@ -663,55 +689,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             - `frequency_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on their existing frequency in the text so far, decreasing the likelihood of repeated phrases.
             - `presence_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on whether they appear in the text so far, encouraging the model to talk about new topics.
         """
-        # Make sure all extra_create_args are valid
-        extra_create_args_keys = set(extra_create_args.keys())
-        if not create_kwargs.issuperset(extra_create_args_keys):
-            raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
-
-        # Copy the create args and overwrite anything in extra_create_args
-        create_args = self._create_args.copy()
-        create_args.update(extra_create_args)
-
-        # Declare use_beta_client
-        use_beta_client: bool = False
-        response_format_value: Optional[Type[BaseModel]] = None
-
-        if "response_format" in create_args:
-            value = create_args["response_format"]
-            # If value is a Pydantic model class, use the beta client
-            if isinstance(value, type) and issubclass(value, BaseModel):
-                response_format_value = value
-                use_beta_client = True
-            else:
-                # response_format_value is not a Pydantic model class
-                use_beta_client = False
-                response_format_value = None
-
-        # Remove 'response_format' from create_args to prevent passing it twice
-        create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
-
-        # TODO: allow custom handling.
-        # For now we raise an error if images are present and vision is not supported
-        if self.model_info["vision"] is False:
-            for message in messages:
-                if isinstance(message, UserMessage):
-                    if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
-                        raise ValueError("Model does not support vision and image was provided")
-
-        if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output")
-
-            if json_output is True:
-                create_args["response_format"] = {"type": "json_object"}
-            else:
-                create_args["response_format"] = {"type": "text"}
-
-        oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes) for m in messages]
-        oai_messages = [item for sublist in oai_messages_nested for item in sublist]
-
-        if self.model_info["function_calling"] is False and len(tools) > 0:
-            raise ValueError("Model does not support function calling")
+        create_params = self._process_create_args(
+            messages,
+            tools,
+            json_output,
+            extra_create_args,
+        )
 
         if max_consecutive_empty_chunk_tolerance != 0:
             warnings.warn(
@@ -720,22 +703,19 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 stacklevel=2,
             )
 
-        tool_params = convert_tools(tools)
-
-        # Get the async generator of chunks.
-        if use_beta_client:
+        if create_params.response_format is not None:
             chunks = self._create_stream_chunks_beta_client(
-                tool_params=tool_params,
-                oai_messages=oai_messages,
-                response_format=response_format_value,
-                create_args_no_response_format=create_args_no_response_format,
+                tool_params=create_params.tools,
+                oai_messages=create_params.messages,
+                response_format=create_params.response_format,
+                create_args_no_response_format=create_params.create_args,
                 cancellation_token=cancellation_token,
             )
         else:
             chunks = self._create_stream_chunks(
-                tool_params=tool_params,
-                oai_messages=oai_messages,
-                create_args=create_args,
+                tool_params=create_params.tools,
+                oai_messages=create_params.messages,
+                create_args=create_params.create_args,
                 cancellation_token=cancellation_token,
             )
 
@@ -762,7 +742,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 # Emit the start event.
                 logger.info(
                     LLMStreamStartEvent(
-                        messages=cast(List[Dict[str, Any]], oai_messages),
+                        messages=cast(List[Dict[str, Any]], create_params.messages),
                     )
                 )
             # Empty chunks has been observed when the endpoint is under heavy load.
@@ -839,7 +819,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             raise ValueError("Function calls are not supported in this context")
 
         # We need to get the model from the last chunk, if available.
-        model = maybe_model or create_args["model"]
+        model = maybe_model or create_params.create_args["model"]
         model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
 
         # Because the usage chunk is not guaranteed to be the last chunk, we need to check if it is available.
@@ -1151,6 +1131,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                     "function_calling": False,
                     "json_output": False,
                     "family": ModelFamily.R1,
+                    "structured_output": True,
                 },
             )
 
