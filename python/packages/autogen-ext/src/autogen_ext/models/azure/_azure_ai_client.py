@@ -288,15 +288,13 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if json_output is not None:
             if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
-            
+
             if isinstance(json_output, type):
                 # TODO: we should support this in the future.
                 raise ValueError("Structured output is not currently supported for AzureAIChatCompletionClient")
 
             if json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = "json_object"
-            
-
 
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
@@ -315,7 +313,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
             raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
-        
+
         # Copy the create args and overwrite anything in extra_create_args
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
@@ -408,7 +406,6 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
             raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
-
 
         create_args: Dict[str, Any] = self._create_args.copy()
         create_args.update(extra_create_args)

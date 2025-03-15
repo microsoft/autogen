@@ -150,7 +150,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
         """Creates a single response from the model.
-        
+
         Args:
             messages (Sequence[LLMMessage]): The messages to send to the model.
             tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
@@ -158,6 +158,9 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
                 for structured output. If set to a boolean, it will be used to determine whether to use JSON mode or not.
             extra_create_args (Mapping[str, Any], optional): Extra arguments to pass to the underlying client. Defaults to {}.
             cancellation_token (Optional[CancellationToken], optional): A token for cancellation. Defaults to None.
+
+        Returns:
+            CreateResult: The result of the model call.
         """
         ...
 
@@ -169,12 +172,12 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         tools: Sequence[Tool | ToolSchema] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
-        json_output: Optional[bool| type[BaseModel]] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """Creates a stream of string chunks from the model ending with a CreateResult.
-        
+
         Args:
             messages (Sequence[LLMMessage]): The messages to send to the model.
             tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
@@ -182,6 +185,9 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
                 for structured output. If set to a boolean, it will be used to determine whether to use JSON mode or not.
             extra_create_args (Mapping[str, Any], optional): Extra arguments to pass to the underlying client. Defaults to {}.
             cancellation_token (Optional[CancellationToken], optional): A token for cancellation. Defaults to None.
+
+        Returns:
+            AsyncGenerator[Union[str, CreateResult], None]: A generator that yields string chunks and ends with a :py:class:`CreateResult`.
         """
         ...
 

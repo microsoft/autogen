@@ -3,7 +3,15 @@ from typing import Any, List, Mapping
 import httpx
 import pytest
 import pytest_asyncio
-from autogen_core.models import CreateResult, UserMessage
+from autogen_core import FunctionCall
+from autogen_core.models import (
+    AssistantMessage,
+    CreateResult,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    UserMessage,
+)
+from autogen_core.tools import FunctionTool
 from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CREATE_KWARGS_KEYS
 from httpx import Response
@@ -118,7 +126,7 @@ async def test_ollama_create_structured_output(model: str, ollama_client: Ollama
                 source="user",
             ),
         ],
-        output_type=ResponseType,
+        json_output=ResponseType,
     )
     assert isinstance(create_result.content, str)
     assert len(create_result.content) > 0
@@ -136,7 +144,7 @@ async def test_ollama_create_structured_output(model: str, ollama_client: Ollama
                 source="user",
             ),
         ],
-        output_type=ResponseType,
+        json_output=ResponseType,
     ):
         chunks.append(chunk)
     assert len(chunks) > 0
@@ -146,3 +154,148 @@ async def test_ollama_create_structured_output(model: str, ollama_client: Ollama
     assert len(chunks[-1].content) > 0
     assert chunks[-1].usage is not None
     assert ResponseType.model_validate_json(chunks[-1].content)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b"])
+async def test_ollama_create_tools(model: str, ollama_client: OllamaChatCompletionClient) -> None:
+    def add(x: int, y: int) -> str:
+        return str(x + y)
+
+    add_tool = FunctionTool(add, description="Add two numbers")
+
+    create_result = await ollama_client.create(
+        messages=[
+            UserMessage(
+                content="What is 2 + 2? Use the add tool.",
+                source="user",
+            ),
+        ],
+        tools=[add_tool],
+    )
+    assert isinstance(create_result.content, list)
+    assert len(create_result.content) > 0
+    assert isinstance(create_result.content[0], FunctionCall)
+    assert create_result.content[0].name == add_tool.name
+    assert create_result.finish_reason == "function_calls"
+
+    execution_result = FunctionExecutionResult(
+        content="4",
+        name=add_tool.name,
+        call_id=create_result.content[0].id,
+        is_error=False,
+    )
+    create_result = await ollama_client.create(
+        messages=[
+            UserMessage(
+                content="What is 2 + 2? Use the add tool.",
+                source="user",
+            ),
+            AssistantMessage(
+                content=create_result.content,
+                source="assistant",
+            ),
+            FunctionExecutionResultMessage(
+                content=[execution_result],
+            ),
+        ],
+    )
+    assert isinstance(create_result.content, str)
+    assert len(create_result.content) > 0
+    assert create_result.finish_reason == "stop"
+
+
+@pytest.mark.skip("TODO: Does Ollama support structured outputs with tools?")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model", ["llama3.2:1b"])
+async def test_ollama_create_structured_output_with_tools(
+    model: str, ollama_client: OllamaChatCompletionClient
+) -> None:
+    class ResponseType(BaseModel):
+        calculation: str
+        result: str
+
+    def add(x: int, y: int) -> str:
+        return str(x + y)
+
+    add_tool = FunctionTool(add, description="Add two numbers")
+
+    create_result = await ollama_client.create(
+        messages=[
+            UserMessage(
+                content="What is 2 + 2? Use the add tool.",
+                source="user",
+            ),
+        ],
+        tools=[add_tool],
+        json_output=ResponseType,
+    )
+    assert isinstance(create_result.content, list)
+    assert len(create_result.content) > 0
+    assert isinstance(create_result.content[0], FunctionCall)
+    assert create_result.content[0].name == add_tool.name
+    assert create_result.finish_reason == "function_calls"
+    assert create_result.thought is not None
+    assert ResponseType.model_validate_json(create_result.thought)
+
+
+@pytest.mark.skip("TODO: Fix streaming with tools")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b"])
+async def test_ollama_create_stream_tools(model: str, ollama_client: OllamaChatCompletionClient) -> None:
+    def add(x: int, y: int) -> str:
+        return str(x + y)
+
+    add_tool = FunctionTool(add, description="Add two numbers")
+
+    stream = ollama_client.create_stream(
+        messages=[
+            UserMessage(
+                content="What is 2 + 2? Use the add tool.",
+                source="user",
+            ),
+        ],
+        tools=[add_tool],
+    )
+    chunks: List[str | CreateResult] = []
+    async for chunk in stream:
+        chunks.append(chunk)
+    assert len(chunks) > 0
+    assert isinstance(chunks[-1], CreateResult)
+    create_result = chunks[-1]
+    assert isinstance(create_result.content, list)
+    assert len(create_result.content) > 0
+    assert isinstance(create_result.content[0], FunctionCall)
+    assert create_result.content[0].name == add_tool.name
+    assert create_result.finish_reason == "function_calls"
+
+    execution_result = FunctionExecutionResult(
+        content="4",
+        name=add_tool.name,
+        call_id=create_result.content[0].id,
+        is_error=False,
+    )
+    stream = ollama_client.create_stream(
+        messages=[
+            UserMessage(
+                content="What is 2 + 2? Use the add tool.",
+                source="user",
+            ),
+            AssistantMessage(
+                content=create_result.content,
+                source="assistant",
+            ),
+            FunctionExecutionResultMessage(
+                content=[execution_result],
+            ),
+        ],
+    )
+    chunks = []
+    async for chunk in stream:
+        chunks.append(chunk)
+    assert len(chunks) > 0
+    assert isinstance(chunks[-1], CreateResult)
+    create_result = chunks[-1]
+    assert isinstance(create_result.content, str)
+    assert len(create_result.content) > 0
+    assert create_result.finish_reason == "stop"

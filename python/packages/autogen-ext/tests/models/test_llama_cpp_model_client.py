@@ -113,7 +113,7 @@ async def test_llama_cpp_create_structured_output(
             SystemMessage(content="Test system"),
             UserMessage(content="Test user", source="user"),
         ]
-        result = await client.create(messages=messages, json_output=True)
+        result = await client.create(messages=messages, json_output=AgentResponse)
         assert isinstance(result.content, str)
         assert AgentResponse.model_validate_json(result.content).thoughts == "Test thoughts"
         assert AgentResponse.model_validate_json(result.content).content == "Test content"
@@ -171,7 +171,12 @@ async def test_llama_cpp_integration_non_streaming() -> None:
     from autogen_ext.models.llama_cpp._llama_cpp_completion_client import LlamaCppChatCompletionClient
 
     client = LlamaCppChatCompletionClient(
-        repo_id="unsloth/phi-4-GGUF", filename="phi-4-Q2_K_L.gguf", n_gpu_layers=-1, seed=1337, n_ctx=5000
+        repo_id="unsloth/phi-4-GGUF",
+        filename="phi-4-Q2_K_L.gguf",
+        n_gpu_layers=-1,
+        seed=1337,
+        n_ctx=5000,
+        verbose=False,
     )
     messages: Sequence[Union[SystemMessage, UserMessage]] = [
         SystemMessage(content="You are a helpful assistant."),
@@ -179,6 +184,30 @@ async def test_llama_cpp_integration_non_streaming() -> None:
     ]
     result = await client.create(messages=messages)
     assert isinstance(result.content, str) and len(result.content.strip()) > 0
+
+
+@pytest.mark.asyncio
+async def test_llama_cpp_integration_non_streaming_structured_output() -> None:
+    if not ((hasattr(torch.backends, "mps") and torch.backends.mps.is_available()) or torch.cuda.is_available()):
+        pytest.skip("Skipping LlamaCpp integration tests: GPU not available not set")
+
+    from autogen_ext.models.llama_cpp._llama_cpp_completion_client import LlamaCppChatCompletionClient
+
+    client = LlamaCppChatCompletionClient(
+        repo_id="unsloth/phi-4-GGUF",
+        filename="phi-4-Q2_K_L.gguf",
+        n_gpu_layers=-1,
+        seed=1337,
+        n_ctx=5000,
+        verbose=False,
+    )
+    messages: Sequence[Union[SystemMessage, UserMessage]] = [
+        SystemMessage(content="You are a helpful assistant."),
+        UserMessage(content="Hello, how are you?", source="user"),
+    ]
+    result = await client.create(messages=messages, json_output=AgentResponse)
+    assert isinstance(result.content, str) and len(result.content.strip()) > 0
+    assert AgentResponse.model_validate_json(result.content)
 
 
 # Commmented out due to raising not implemented error will leave in case streaming is supported in the future.

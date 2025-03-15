@@ -596,7 +596,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
             if json_output is True:
                 create_args["response_format"] = {"type": "json_object"}
-            
+
             if isinstance(json_output, type):
                 raise ValueError("Structured output is currently not supported for Anthropic models")
 

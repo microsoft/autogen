@@ -290,6 +290,8 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             create_args["response_format"] = {"type": "json_object", "schema": json_output.model_json_schema()}
         elif json_output is True:
             create_args["response_format"] = {"type": "json_object"}
+        elif json_output is not False and json_output is not None:
+            raise ValueError("json_output must be a boolean, a BaseModel subclass or None.")
 
         if self.model_info["function_calling"]:
             # Run this in on the event loop to avoid blocking.
