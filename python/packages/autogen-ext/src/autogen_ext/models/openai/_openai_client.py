@@ -1132,7 +1132,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             print(result)
 
             # Close the client when done.
-            await openai_client.close()
+            # await openai_client.close()
 
         To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model info.
         For example, to use Ollama, you can use the following code snippet:
@@ -1155,7 +1155,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             )
 
             # Close the client when done.
-            await custom_model_client.close()
+            # await custom_model_client.close()
 
         To use streaming mode, you can use the following code snippet:
 
