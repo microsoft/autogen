@@ -76,7 +76,7 @@ from openai.types.shared_params import (
     ResponseFormatJSONObject,
     ResponseFormatText,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
 from .._utils.normalize_stop_reason import normalize_stop_reason
@@ -1274,6 +1274,11 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
     @classmethod
     def _from_config(cls, config: OpenAIClientConfigurationConfigModel) -> Self:
         copied_config = config.model_copy().model_dump(exclude_none=True)
+
+        # Handle api_key as SecretStr
+        if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
+            copied_config["api_key"] = config.api_key.get_secret_value()
+
         return cls(**copied_config)
 
 
@@ -1435,6 +1440,11 @@ class AzureOpenAIChatCompletionClient(
         from ...auth.azure import AzureTokenProvider
 
         copied_config = config.model_copy().model_dump(exclude_none=True)
+
+        # Handle api_key as SecretStr
+        if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
+            copied_config["api_key"] = config.api_key.get_secret_value()
+
         if "azure_ad_token_provider" in copied_config:
             copied_config["azure_ad_token_provider"] = AzureTokenProvider.load_component(
                 copied_config["azure_ad_token_provider"]

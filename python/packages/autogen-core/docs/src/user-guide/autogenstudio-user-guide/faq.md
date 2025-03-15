@@ -21,12 +21,14 @@ In the following sample, we will define an OpenAI, AzureOpenAI and a local model
 
 ```python
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_core.models import ModelInfo
 
 model_client=OpenAIChatCompletionClient(
             model="gpt-4o-mini",
         )
 print(model_client.dump_component().model_dump_json())
+
 
 az_model_client = AzureOpenAIChatCompletionClient(
     azure_deployment="{your-azure-deployment}",
@@ -36,6 +38,12 @@ az_model_client = AzureOpenAIChatCompletionClient(
     api_key="sk-...",
 )
 print(az_model_client.dump_component().model_dump_json())
+
+anthropic_client = AnthropicChatCompletionClient(
+        model="claude-3-sonnet-20240229",
+        api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
+    )
+print(anthropic_client.dump_component().model_dump_json())
 
 mistral_vllm_model = OpenAIChatCompletionClient(
         model="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
@@ -75,6 +83,25 @@ Azure OpenAI
     "azure_endpoint": "https://{your-custom-endpoint}.openai.azure.com/",
     "azure_deployment": "{your-azure-deployment}",
     "api_version": "2024-06-01"
+  }
+}
+```
+
+Anthropic
+
+```json
+{
+  "provider": "autogen_ext.models.anthropic.AnthropicChatCompletionClient",
+  "component_type": "model",
+  "version": 1,
+  "component_version": 1,
+  "description": "Chat completion client for Anthropic's Claude models.",
+  "label": "AnthropicChatCompletionClient",
+  "config": {
+    "model": "claude-3-sonnet-20240229",
+    "max_tokens": 4096,
+    "temperature": 1.0,
+    "api_key": "your-api-key"
   }
 }
 ```

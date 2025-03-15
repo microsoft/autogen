@@ -396,6 +396,7 @@ $functions"""
             )
             cancellation_token.link_future(task)
 
+            proc = None  # Track the process
             try:
                 proc = await task
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), self._timeout)
@@ -403,10 +404,16 @@ $functions"""
             except asyncio.TimeoutError:
                 logs_all += "\nTimeout"
                 exitcode = 124
+                if proc:
+                    proc.terminate()
+                    await proc.wait()  # Ensure process is fully dead
                 break
             except asyncio.CancelledError:
                 logs_all += "\nCancelled"
                 exitcode = 125
+                if proc:
+                    proc.terminate()
+                    await proc.wait()
                 break
 
             logs_all += stderr.decode()

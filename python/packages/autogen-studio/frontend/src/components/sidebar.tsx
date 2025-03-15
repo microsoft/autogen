@@ -105,7 +105,7 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
   return (
     <div
       className={classNames(
-        "flex grow border z-50  flex-col gap-y-5 overflow-y-auto border-r border-secondary bg-primary",
+        "flex grow   z-50  flex-col gap-y-5 overflow-y-auto border-r border-secondary bg-primary",
         "transition-all duration-300 ease-in-out",
         showFull ? "w-72 px-6" : "w-16 px-2"
       )}

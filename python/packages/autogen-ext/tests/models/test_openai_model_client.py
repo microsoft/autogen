@@ -190,6 +190,20 @@ async def test_openai_chat_completion_client_with_gemini_model() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_serialization() -> None:
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="sk-password")
+    assert client
+    config = client.dump_component()
+    assert config
+    assert "sk-password" not in str(config)
+    serialized_config = config.model_dump_json()
+    assert serialized_config
+    assert "sk-password" not in serialized_config
+    client2 = OpenAIChatCompletionClient.load_component(config)
+    assert client2
+
+
+@pytest.mark.asyncio
 async def test_openai_chat_completion_client_raise_on_unknown_model() -> None:
     with pytest.raises(ValueError, match="model_info is required"):
         _ = OpenAIChatCompletionClient(model="unknown", api_key="api_key")

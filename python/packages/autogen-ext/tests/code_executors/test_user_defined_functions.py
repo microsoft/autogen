@@ -72,7 +72,7 @@ print(data['name'][0])"""
             ],
             cancellation_token=cancellation_token,
         )
-        assert result.output == "John\n"
+        assert result.output == f"John{os.linesep}"
         assert result.exit_code == 0
 
 
@@ -121,7 +121,7 @@ print(add_two_numbers(1, 2))"""
             ],
             cancellation_token=cancellation_token,
         )
-        assert result.output == "3\n"
+        assert result.output == f"3{os.linesep}"
         assert result.exit_code == 0
 
 
@@ -181,7 +181,7 @@ print(add_two_numbers(1, 2))"""
             ],
             cancellation_token=cancellation_token,
         )
-        assert result.output == "3\n"
+        assert result.output == f"3{os.linesep}"
         assert result.exit_code == 0
 
 
