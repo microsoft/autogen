@@ -641,17 +641,22 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
             extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
             cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
-            max_consecutive_empty_chunk_tolerance (int): [Deprecated] The maximum number of consecutive empty chunks to tolerate before raising a ValueError. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0. This parameter is deprecated, empty chunks will be skipped.
+            max_consecutive_empty_chunk_tolerance (int): [Deprecated] This parameter is deprecated, empty chunks will be skipped.
 
         Yields:
             AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
 
-        In streaming, the default behaviour is not return token usage counts. See: [OpenAI API reference for possible args](https://platform.openai.com/docs/api-reference/chat/create).
-        However `extra_create_args={"stream_options": {"include_usage": True}}` will (if supported by the accessed API)
-        return a final chunk with usage set to a RequestUsage object having prompt and completion token counts,
-        all preceding chunks will have usage as None. See: [stream_options](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream_options).
+        In streaming, the default behaviour is not return token usage counts.
+        See: `OpenAI API reference for possible args <https://platform.openai.com/docs/api-reference/chat/create>`_.
 
-        Other examples of OPENAI supported arguments that can be included in `extra_create_args`:
+        You can set `extra_create_args={"stream_options": {"include_usage": True}}`
+        (if supported by the accessed API) to
+        return a final chunk with usage set to a :class:`~autogen_core.models.RequestUsage` object
+        with prompt and completion token counts,
+        all preceding chunks will have usage as `None`.
+        See: `OpenAI API reference for stream options <https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream_options>`_.
+
+        Other examples of supported arguments that can be included in `extra_create_args`:
             - `temperature` (float): Controls the randomness of the output. Higher values (e.g., 0.8) make the output more random, while lower values (e.g., 0.2) make it more focused and deterministic.
             - `max_tokens` (int): The maximum number of tokens to generate in the completion.
             - `top_p` (float): An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.
@@ -1126,6 +1131,8 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
             print(result)
 
+            # Close the client when done.
+            # await openai_client.close()
 
         To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model info.
         For example, to use Ollama, you can use the following code snippet:
@@ -1146,6 +1153,45 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                     "family": ModelFamily.R1,
                 },
             )
+
+            # Close the client when done.
+            # await custom_model_client.close()
+
+        To use streaming mode, you can use the following code snippet:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_core.models import UserMessage
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                # Similar for AzureOpenAIChatCompletionClient.
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")  # assuming OPENAI_API_KEY is set in the environment.
+
+                messages = [UserMessage(content="Write a very short story about a dragon.", source="user")]
+
+                # Create a stream.
+                stream = model_client.create_stream(messages=messages)
+
+                # Iterate over the stream and print the responses.
+                print("Streamed responses:")
+                async for response in stream:
+                    if isinstance(response, str):
+                        # A partial response is a string.
+                        print(response, flush=True, end="")
+                    else:
+                        # The last response is a CreateResult object with the complete message.
+                        print("\\n\\n------------\\n")
+                        print("The complete response:", flush=True)
+                        print(response.content, flush=True)
+
+                # Close the client when done.
+                await model_client.close()
+
+
+            asyncio.run(main())
 
         To use structured output as well as function calling, you can use the following code snippet:
 
@@ -1182,14 +1228,14 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             # which is required for structured output mode.
             tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
 
-            # Create an OpenAIChatCompletionClient instance.
-            model_client = OpenAIChatCompletionClient(
-                model="gpt-4o-mini",
-                response_format=AgentResponse,  # type: ignore
-            )
-
 
             async def main() -> None:
+                # Create an OpenAIChatCompletionClient instance.
+                model_client = OpenAIChatCompletionClient(
+                    model="gpt-4o-mini",
+                    response_format=AgentResponse,  # type: ignore
+                )
+
                 # Generate a response using the tool.
                 response1 = await model_client.create(
                     messages=[
@@ -1217,6 +1263,8 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                 # Should be a structured output.
                 # {"thoughts": "The user is happy.", "response": "happy"}
 
+                # Close the client when done.
+                await model_client.close()
 
             asyncio.run(main())
 
@@ -1311,6 +1359,12 @@ class AzureOpenAIChatCompletionClient(
 ):
     """Chat completion client for Azure OpenAI hosted models.
 
+    To use this client, you must install the `azure` and `openai` extensions:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[openai,azure]"
+
     Args:
 
         model (str): Which OpenAI model to use.
@@ -1337,36 +1391,34 @@ class AzureOpenAIChatCompletionClient(
         default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
 
 
-
-    To use this client, you must install the `azure` and `openai` extensions:
-
-        .. code-block:: bash
-
-            pip install "autogen-ext[openai,azure]"
-
-    To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint,
-    api version, and model capabilities.
+    To use the client, you need to provide your deployment name, Azure Cognitive Services endpoint, and api version.
     For authentication, you can either provide an API key or an Azure Active Directory (AAD) token credential.
 
     The following code snippet shows how to use AAD authentication.
     The identity used must be assigned the `Cognitive Services OpenAI User <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/role-based-access-control#cognitive-services-openai-user>`_ role.
 
-        .. code-block:: python
+    .. code-block:: python
 
-            from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
-            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+        from autogen_ext.auth.azure import AzureTokenProvider
+        from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
+        from azure.identity import DefaultAzureCredential
 
-            # Create the token provider
-            token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+        # Create the token provider
+        token_provider = AzureTokenProvider(
+            DefaultAzureCredential(),
+            "https://cognitiveservices.azure.com/.default",
+        )
 
-            az_model_client = AzureOpenAIChatCompletionClient(
-                azure_deployment="{your-azure-deployment}",
-                model="{deployed-model, such as 'gpt-4o'}",
-                api_version="2024-06-01",
-                azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
-                azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
-                # api_key="sk-...", # For key-based authentication. `AZURE_OPENAI_API_KEY` environment variable can also be used instead.
-            )
+        az_model_client = AzureOpenAIChatCompletionClient(
+            azure_deployment="{your-azure-deployment}",
+            model="{model-name, such as gpt-4o}",
+            api_version="2024-06-01",
+            azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
+            azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
+            # api_key="sk-...", # For key-based authentication.
+        )
+
+    See other usage examples in the :class:`OpenAIChatCompletionClient` class.
 
     To load the client that uses identity based aith from a configuration, you can use the `load_component` method:
 
@@ -1395,7 +1447,6 @@ class AzureOpenAIChatCompletionClient(
 
 
     To view the full list of available configuration options, see the :py:class:`AzureOpenAIClientConfigurationConfigModel` class.
-
 
     .. note::
 
