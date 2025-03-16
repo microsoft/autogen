@@ -1,14 +1,14 @@
 # validation/validation_service.py
-from calendar import c
 import importlib
+from calendar import c
 from typing import Any, Dict, List, Optional
 
-from autogen_core import ComponentModel, is_component_class 
-from pydantic import BaseModel 
+from autogen_core import ComponentModel, is_component_class
+from pydantic import BaseModel
 
 
 class ValidationRequest(BaseModel):
-    component:ComponentModel
+    component: ComponentModel
 
 
 class ValidationError(BaseModel):
@@ -21,6 +21,7 @@ class ValidationResponse(BaseModel):
     is_valid: bool
     errors: List[ValidationError] = []
     warnings: List[ValidationError] = []
+
 
 class ValidationService:
     @staticmethod
@@ -64,7 +65,7 @@ class ValidationService:
                 field="component_type",
                 error="Component type is missing",
                 suggestion="Add a component_type field to the component configuration",
-            ) 
+            )
 
     @staticmethod
     def validate_config_schema(component: ComponentModel) -> List[ValidationError]:
@@ -152,7 +153,7 @@ class ValidationService:
                 errors.append(inst_error)
 
         # Check for version warnings
-        if  not component.version:
+        if not component.version:
             warnings.append(
                 ValidationError(
                     field="version",
@@ -162,4 +163,3 @@ class ValidationService:
             )
 
         return ValidationResponse(is_valid=len(errors) == 0, errors=errors, warnings=warnings)
-
