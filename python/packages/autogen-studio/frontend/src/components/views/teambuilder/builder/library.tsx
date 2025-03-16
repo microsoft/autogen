@@ -103,7 +103,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = ({
         title: "Tools",
         type: "tool" as ComponentTypes,
         items: defaultGallery.config.components.tools.map((tool) => ({
-          label: tool.config.name,
+          label: tool.config?.name || tool.label,
           config: tool,
         })),
         icon: <Wrench className="w-4 h-4" />,

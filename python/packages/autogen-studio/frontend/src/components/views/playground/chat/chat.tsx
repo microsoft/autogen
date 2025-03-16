@@ -39,6 +39,7 @@ interface ChatViewProps {
   onExitCompare?: () => void;
   onSessionChange?: (session: Session) => void;
   availableSessions?: Session[];
+  showCompareButton?: boolean;
 }
 
 export default function ChatView({
@@ -49,6 +50,7 @@ export default function ChatView({
   onExitCompare,
   onSessionChange,
   availableSessions = [],
+  showCompareButton = true,
 }: ChatViewProps) {
   const serverUrl = getServerUrl();
   const [loading, setLoading] = React.useState(false);
@@ -550,7 +552,7 @@ export default function ChatView({
         </div>
 
         <div className="flex items-center gap-2">
-          {!isCompareMode && !isSecondaryView && (
+          {!isCompareMode && !isSecondaryView && showCompareButton && (
             <Button
               type="text"
               onClick={onCompareClick}

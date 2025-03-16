@@ -51,9 +51,10 @@ class ComponentTestService:
                 )
 
             # Test the agent with a simple message
+            test_question = "What is 2+2? Keep it brief."
             try:
                 response = await agent.on_messages(
-                    [TextMessage(content="What is 2+2? Keep it brief.", source="user")],
+                    [TextMessage(content=test_question, source="user")],
                     cancellation_token=CancellationToken(),
                 )
 
@@ -61,7 +62,7 @@ class ComponentTestService:
                 status = response and response.chat_message is not None
 
                 if status:
-                    logs.append(f"Agent responded with: {response.chat_message.content}")
+                    logs.append(f"Agent responded with: {response.chat_message.content} to the question : {test_question}")
                 else:
                     logs.append("Agent did not return a valid response")
 
@@ -93,7 +94,8 @@ class ComponentTestService:
             model = ChatCompletionClient.load_component(component)
 
             # Prepare a simple test message
-            messages = [UserMessage(content="what is 2+2. Give me only the answer", source="user")]
+            test_question = "What is 2+2? Give me only the answer."
+            messages = [UserMessage(content=test_question, source="user")]
 
             # Try to get a response
             response = await model.create(messages=messages)
@@ -103,7 +105,7 @@ class ComponentTestService:
 
             logs = ["Model component loaded successfully"]
             if status:
-                logs.append(f"Model responded with: {response.content}")
+                logs.append(f"Model responded with: {response.content} (Query:{test_question})")
             else:
                 logs.append("Model did not return a valid response")
 
