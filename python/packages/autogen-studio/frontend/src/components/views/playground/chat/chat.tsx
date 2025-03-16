@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button, Dropdown, message } from "antd";
+import { Button, Dropdown, message, Tooltip } from "antd";
 import { getServerUrl } from "../../../utils/utils";
 import { IStatus } from "../../../types/app";
 import {
@@ -530,28 +530,35 @@ export default function ChatView({
   return (
     <div className="text-primary h-[calc(100vh-165px)] bg-primary relative rounded flex-1 scroll">
       {contextHolder}
-      <div className="flex pt-2 items-center justify-between gap-2 text-sm">
-        <div className="flex items-center gap-2">
+      <div className="flex pt-2 items-center justify-between text-sm h-10">
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden flex-1 pr-4">
           {isCompareMode ? (
             <SessionDropdown
               session={session}
               availableSessions={availableSessions}
               onSessionChange={onSessionChange || (() => {})}
+              className="w-full"
             />
           ) : (
             <>
-              <span className="text-primary font-medium">Sessions</span>
+              <span className="text-primary font-medium whitespace-nowrap flex-shrink-0">
+                Sessions
+              </span>
               {session && (
                 <>
-                  <ChevronRight className="w-4 h-4 text-secondary" />
-                  <span className="text-secondary">{session.name}</span>
+                  <ChevronRight className="w-4 h-4 text-secondary flex-shrink-0" />
+                  <Tooltip title={session.name}>
+                    <span className="text-secondary truncate overflow-hidden">
+                      {session.name}
+                    </span>
+                  </Tooltip>
                 </>
               )}
             </>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
           {!isCompareMode && !isSecondaryView && showCompareButton && (
             <Button
               type="text"
@@ -564,11 +571,9 @@ export default function ChatView({
           {isCompareMode && isSecondaryView && (
             <Button
               type="text"
-              className="-mt-2 -mr-2"
               onClick={onExitCompare}
               icon={<X className="w-4 h-4" />}
             >
-              {" "}
               Exit Compare
             </Button>
           )}

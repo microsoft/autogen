@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Dropdown, Input, MenuProps } from "antd";
+import { Dropdown, Input, MenuProps, Tooltip } from "antd";
 import { ChevronDown, TextSearch } from "lucide-react";
 import { Session } from "../../../types/datamodel";
 import { getRelativeTimeString } from "../../atoms";
@@ -8,12 +8,14 @@ interface SessionDropdownProps {
   session: Session | null;
   availableSessions: Session[];
   onSessionChange: (session: Session) => void;
+  className?: string;
 }
 
 const SessionDropdown: React.FC<SessionDropdownProps> = ({
   session,
   availableSessions,
   onSessionChange,
+  className = "",
 }) => {
   const [search, setSearch] = React.useState<string>("");
 
@@ -64,11 +66,15 @@ const SessionDropdown: React.FC<SessionDropdownProps> = ({
 
   return (
     <Dropdown menu={{ items, onClick: handleMenuClick }} trigger={["click"]}>
-      <div className="cursor-pointer flex items-center gap-2">
-        <span className="text-primary font-medium">
-          {session?.name || "Select Session"}
-        </span>
-        <ChevronDown className="w-4 h-4 text-secondary" />
+      <div
+        className={`cursor-pointer flex items-center gap-2 min-w-0 ${className}`}
+      >
+        <Tooltip title={session?.name}>
+          <span className="text-primary font-medium truncate overflow-hidden">
+            {session?.name || "Select Session"}
+          </span>
+        </Tooltip>
+        <ChevronDown className="w-4 h-4 text-secondary flex-shrink-0" />
       </div>
     </Dropdown>
   );
