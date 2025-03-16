@@ -88,6 +88,7 @@ def azure_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient
                 "function_calling": False,
                 "vision": False,
                 "family": "unknown",
+                "structured_output": False,
             },
             model="model",
         )
@@ -101,6 +102,7 @@ def azure_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient
             "function_calling": False,
             "vision": False,
             "family": "unknown",
+            "structured_output": False,
         },
         model="model",
     )
@@ -117,6 +119,7 @@ async def test_azure_ai_chat_completion_client_validation() -> None:
                 "function_calling": False,
                 "vision": False,
                 "family": "unknown",
+                "structured_output": False,
             },
         )
 
@@ -129,6 +132,7 @@ async def test_azure_ai_chat_completion_client_validation() -> None:
                 "function_calling": False,
                 "vision": False,
                 "family": "unknown",
+                "structured_output": False,
             },
         )
 
@@ -141,6 +145,7 @@ async def test_azure_ai_chat_completion_client_validation() -> None:
                 "function_calling": False,
                 "vision": False,
                 "family": "unknown",
+                "structured_output": False,
             },
         )
 
@@ -267,6 +272,7 @@ def function_calling_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompl
             "function_calling": True,
             "vision": False,
             "family": "function_calling_model",
+            "structured_output": False,
         },
         model="model",
     )
@@ -354,6 +360,7 @@ async def test_multimodal_supported(monkeypatch: pytest.MonkeyPatch) -> None:
             "function_calling": False,
             "vision": True,
             "family": "vision_model",
+            "structured_output": False,
         },
         model="model",
     )
@@ -436,6 +443,7 @@ async def test_r1_content(monkeypatch: pytest.MonkeyPatch) -> None:
             "function_calling": False,
             "vision": True,
             "family": ModelFamily.R1,
+            "structured_output": False,
         },
         model="model",
     )

@@ -1,29 +1,25 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+build-backend="hatchling.build"
+requires     =[ "hatchling" ]
 
 [project]
-name = "autogen-test-utils"
-version = "0.0.0"
-license = {file = "LICENSE-CODE"}
-requires-python = ">=3.10"
-dependencies = [
-    "autogen-core",
-    "pytest",
-    "opentelemetry-sdk>=1.27.0",
-]
+dependencies   =[ "autogen-core", "opentelemetry-sdk>=1.27.0", "pytest" ]
+license        ={ file="LICENSE-CODE" }
+name           ="autogen-test-utils"
+requires-python=">=3.10"
+version        ="0.0.0"
 
 [tool.ruff]
-extend = "../../pyproject.toml"
-include = ["src/**"]
+extend ="../../pyproject.toml"
+include=[ "src/**" ]
 
 [tool.pyright]
-extends = "../../pyproject.toml"
-include = ["src"]
+extends="../../pyproject.toml"
+include=[ "src" ]
 
 [tool.poe]
-include = "../../shared_tasks.toml"
+include="../../shared_tasks.toml"
 
 [tool.poe.tasks]
-mypy = "mypy --config-file $POE_ROOT/../../pyproject.toml src"
-test = "true"
+mypy="mypy --config-file $POE_ROOT/../../pyproject.toml src"
+test="python -c \"import sys; sys.exit(0)\""

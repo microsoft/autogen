@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Microsoft.AutoGen.AgentChat.Tests;
 
+[Trait("Category", "UnitV2")]
 public class RunContextStackTests
 {
     public static IRunContextLayer CreateLayer(Action<Mock<IRunContextLayer>>? setupAction = null)

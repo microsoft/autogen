@@ -5,12 +5,13 @@ import logging
 import math
 import re
 import warnings
-from asyncio import Task
+from dataclasses import dataclass
 from typing import (
     Any,
     AsyncGenerator,
     Dict,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -48,6 +49,7 @@ from ollama import Image as OllamaImage
 from ollama import Tool as OllamaTool
 from ollama._types import ChatRequest
 from pydantic import BaseModel
+from pydantic.json_schema import JsonSchemaValue
 from typing_extensions import Self, Unpack
 
 from . import _model_info
@@ -328,11 +330,20 @@ def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
     stop_reason = stop_reason.lower()
 
     KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
+        "stop": "stop",
         "end_turn": "stop",
         "tool_calls": "function_calls",
     }
 
     return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
+
+
+@dataclass
+class CreateParams:
+    messages: Sequence[Message]
+    tools: Sequence[OllamaTool]
+    format: Optional[Union[Literal["", "json"], JsonSchemaValue]]
+    create_args: Dict[str, Any]
 
 
 class BaseOllamaChatCompletionClient(ChatCompletionClient):
@@ -390,39 +401,61 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
     def get_create_args(self) -> Mapping[str, Any]:
         return self._create_args
 
-    async def create(
+    def _process_create_args(
         self,
         messages: Sequence[LLMMessage],
-        *,
-        tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
-        extra_create_args: Mapping[str, Any] = {},
-        cancellation_token: Optional[CancellationToken] = None,
-    ) -> CreateResult:
-        # Make sure all extra_create_args are valid
-        # TODO: kwarg checking logic
-        # extra_create_args_keys = set(extra_create_args.keys())
-        # if not create_kwargs.issuperset(extra_create_args_keys):
-        #     raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
-
+        tools: Sequence[Tool | ToolSchema],
+        json_output: Optional[bool | type[BaseModel]],
+        extra_create_args: Mapping[str, Any],
+    ) -> CreateParams:
         # Copy the create args and overwrite anything in extra_create_args
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        response_format_value: Optional[Mapping[str, Any]] = None
+        response_format_value: JsonSchemaValue | Literal["json"] | None = None
 
         if "response_format" in create_args:
+            warnings.warn(
+                "Using response_format will be deprecated. Use json_output instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             value = create_args["response_format"]
-            # If value is a Pydantic model class, use the beta client
             if isinstance(value, type) and issubclass(value, BaseModel):
                 response_format_value = value.model_json_schema()
+                # Remove response_format from create_args to prevent passing it twice.
+                del create_args["response_format"]
             else:
-                # response_format_value is not a Pydantic model class
-                # TODO: Should this be an warning/error?
-                response_format_value = None
+                raise ValueError(f"response_format must be a Pydantic model class, not {type(value)}")
 
-        # Remove 'response_format' from create_args to prevent passing it twice
-        create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
+        if json_output is not None:
+            if self.model_info["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output.")
+            if json_output is True:
+                # JSON mode.
+                response_format_value = "json"
+            elif json_output is False:
+                # Text mode.
+                response_format_value = None
+            elif isinstance(json_output, type) and issubclass(json_output, BaseModel):
+                if response_format_value is not None:
+                    raise ValueError(
+                        "response_format and json_output cannot be set to a Pydantic model class at the same time. "
+                        "Use json_output instead."
+                    )
+                # Beta client mode with Pydantic model class.
+                response_format_value = json_output.model_json_schema()
+            else:
+                raise ValueError(f"json_output must be a boolean or a Pydantic model class, got {type(json_output)}")
+
+        if "format" in create_args:
+            # Handle the case where format is set from create_args.
+            if json_output is not None:
+                raise ValueError("json_output and format cannot be set at the same time. Use json_output instead.")
+            assert response_format_value is None
+            response_format_value = create_args["format"]
+            # Remove format from create_args to prevent passing it twice.
+            del create_args["format"]
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
@@ -432,15 +465,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
-        if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output.")
-
-            if json_output is True:
-                create_args["response_format"] = {"type": "json_object"}
-            else:
-                create_args["response_format"] = {"type": "text"}
-
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
@@ -448,30 +472,47 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         ollama_messages = [item for sublist in ollama_messages_nested for item in sublist]
 
         if self.model_info["function_calling"] is False and len(tools) > 0:
-            raise ValueError("Model does not support function calling")
-        future: Task[ChatResponse]
-        if len(tools) > 0:
-            converted_tools = convert_tools(tools)
-            future = asyncio.ensure_future(
-                self._client.chat(  # type: ignore
-                    # model=self._model_name,
-                    messages=ollama_messages,
-                    tools=converted_tools,
-                    stream=False,
-                    format=response_format_value,
-                    **create_args_no_response_format,
-                )
+            raise ValueError("Model does not support function calling and tools were provided")
+
+        converted_tools = convert_tools(tools)
+
+        return CreateParams(
+            messages=ollama_messages,
+            tools=converted_tools,
+            format=response_format_value,
+            create_args=create_args,
+        )
+
+    async def create(
+        self,
+        messages: Sequence[LLMMessage],
+        *,
+        tools: Sequence[Tool | ToolSchema] = [],
+        json_output: Optional[bool | type[BaseModel]] = None,
+        extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
+    ) -> CreateResult:
+        # Make sure all extra_create_args are valid
+        # TODO: kwarg checking logic
+        # extra_create_args_keys = set(extra_create_args.keys())
+        # if not create_kwargs.issuperset(extra_create_args_keys):
+        #     raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
+        create_params = self._process_create_args(
+            messages,
+            tools,
+            json_output,
+            extra_create_args,
+        )
+        future = asyncio.ensure_future(
+            self._client.chat(  # type: ignore
+                # model=self._model_name,
+                messages=create_params.messages,
+                tools=create_params.tools if len(create_params.tools) > 0 else None,
+                stream=False,
+                format=create_params.format,
+                **create_params.create_args,
             )
-        else:
-            future = asyncio.ensure_future(
-                self._client.chat(  # type: ignore
-                    # model=self._model_name,
-                    messages=ollama_messages,
-                    stream=False,
-                    format=response_format_value,
-                    **create_args_no_response_format,
-                )
-            )
+        )
         if cancellation_token is not None:
             cancellation_token.link_future(future)
         result: ChatResponse = await future
@@ -484,7 +525,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 
         logger.info(
             LLMCallEvent(
-                messages=[m.model_dump() for m in ollama_messages],
+                messages=[m.model_dump() for m in create_params.messages],
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
@@ -564,109 +605,31 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
-        max_consecutive_empty_chunk_tolerance: int = 0,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
-        """
-        Creates an AsyncGenerator that will yield a  stream of chat completions based on the provided messages and tools.
-
-        Args:
-            messages (Sequence[LLMMessage]): A sequence of messages to be processed.
-            tools (Sequence[Tool | ToolSchema], optional): A sequence of tools to be used in the completion. Defaults to `[]`.
-            json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
-            extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
-            cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
-            max_consecutive_empty_chunk_tolerance (int): The maximum number of consecutive empty chunks to tolerate before raising a ValueError. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0.
-
-        Yields:
-            AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
-
-        In streaming, the default behaviour is not return token usage counts. See: [OpenAI API reference for possible args](https://platform.openai.com/docs/api-reference/chat/create).
-        However `extra_create_args={"stream_options": {"include_usage": True}}` will (if supported by the accessed API)
-        return a final chunk with usage set to a RequestUsage object having prompt and completion token counts,
-        all preceding chunks will have usage as None. See: [stream_options](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream_options).
-
-        Other examples of OPENAI supported arguments that can be included in `extra_create_args`:
-            - `temperature` (float): Controls the randomness of the output. Higher values (e.g., 0.8) make the output more random, while lower values (e.g., 0.2) make it more focused and deterministic.
-            - `max_tokens` (int): The maximum number of tokens to generate in the completion.
-            - `top_p` (float): An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.
-            - `frequency_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on their existing frequency in the text so far, decreasing the likelihood of repeated phrases.
-            - `presence_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on whether they appear in the text so far, encouraging the model to talk about new topics.
-        """
         # Make sure all extra_create_args are valid
         # TODO: kwarg checking logic
         # extra_create_args_keys = set(extra_create_args.keys())
         # if not create_kwargs.issuperset(extra_create_args_keys):
         #     raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
-
-        # Copy the create args and overwrite anything in extra_create_args
-        create_args = self._create_args.copy()
-        create_args.update(extra_create_args)
-
-        response_format_value: Optional[Mapping[str, Any]] = None
-
-        if "response_format" in create_args:
-            value = create_args["response_format"]
-            # If value is a Pydantic model class, use the beta client
-            if isinstance(value, type) and issubclass(value, BaseModel):
-                response_format_value = value.model_json_schema()
-            else:
-                # response_format_value is not a Pydantic model class
-                response_format_value = None
-
-        # Remove 'response_format' from create_args to prevent passing it twice
-        create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
-
-        # TODO: allow custom handling.
-        # For now we raise an error if images are present and vision is not supported
-        if self.model_info["vision"] is False:
-            for message in messages:
-                if isinstance(message, UserMessage):
-                    if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
-                        raise ValueError("Model does not support vision and image was provided")
-
-        if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output.")
-
-            if json_output is True:
-                create_args["response_format"] = {"type": "json_object"}
-            else:
-                create_args["response_format"] = {"type": "text"}
-
-        if self.model_info["json_output"] is False and json_output is True:
-            raise ValueError("Model does not support JSON output.")
-
-        ollama_messages_nested = [to_ollama_type(m) for m in messages]
-        ollama_messages = [item for sublist in ollama_messages_nested for item in sublist]
-
-        if self.model_info["function_calling"] is False and len(tools) > 0:
-            raise ValueError("Model does not support function calling")
-
-        if len(tools) > 0:
-            converted_tools = convert_tools(tools)
-            stream_future = asyncio.ensure_future(
-                self._client.chat(  # type: ignore
-                    # model=self._model_name,
-                    messages=ollama_messages,
-                    tools=converted_tools,
-                    stream=True,
-                    format=response_format_value,
-                    **create_args_no_response_format,
-                )
+        create_params = self._process_create_args(
+            messages,
+            tools,
+            json_output,
+            extra_create_args,
+        )
+        stream_future = asyncio.ensure_future(
+            self._client.chat(  # type: ignore
+                # model=self._model_name,
+                messages=create_params.messages,
+                tools=create_params.tools if len(create_params.tools) > 0 else None,
+                stream=True,
+                format=create_params.format,
+                **create_params.create_args,
             )
-        else:
-            stream_future = asyncio.ensure_future(
-                self._client.chat(  # type: ignore
-                    # model=self._model_name,
-                    messages=ollama_messages,
-                    stream=True,
-                    format=response_format_value,
-                    **create_args_no_response_format,
-                )
-            )
+        )
         if cancellation_token is not None:
             cancellation_token.link_future(stream_future)
         stream = await stream_future
@@ -689,7 +652,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                     # Emit the start event.
                     logger.info(
                         LLMStreamStartEvent(
-                            messages=[m.model_dump() for m in ollama_messages],
+                            messages=[m.model_dump() for m in create_params.messages],
                         )
                     )
                 # set the stop_reason for the usage chunk to the prior stop_reason
