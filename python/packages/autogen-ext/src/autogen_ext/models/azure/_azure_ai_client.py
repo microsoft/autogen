@@ -52,6 +52,7 @@ from azure.ai.inference.models import (
 from azure.ai.inference.models import (
     UserMessage as AzureUserMessage,
 )
+from pydantic import BaseModel
 from typing_extensions import AsyncGenerator, Union, Unpack
 
 from autogen_ext.models.azure.config import (
@@ -226,6 +227,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                     "function_calling": False,
                     "vision": False,
                     "family": "unknown",
+                    "structured_output": False,
                 },
             )
 
@@ -263,6 +265,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                     "function_calling": False,
                     "vision": False,
                     "family": "unknown",
+                    "structured_output": False,
                 },
             )
 
@@ -323,7 +326,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
-        json_output: Optional[bool],
+        json_output: Optional[bool | type[BaseModel]],
         create_args: Dict[str, Any],
     ) -> None:
         if self.model_info["vision"] is False:
@@ -335,6 +338,10 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if json_output is not None:
             if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
+
+            if isinstance(json_output, type):
+                # TODO: we should support this in the future.
+                raise ValueError("Structured output is not currently supported for AzureAIChatCompletionClient")
 
             if json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = "json_object"
@@ -349,7 +356,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -442,7 +449,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:

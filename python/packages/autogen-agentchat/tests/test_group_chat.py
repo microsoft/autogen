@@ -259,7 +259,13 @@ async def test_round_robin_group_chat_with_tools(runtime: AgentRuntime | None) -
             "Hello",
             "TERMINATE",
         ],
-        model_info={"family": "gpt-4o", "function_calling": True, "json_output": True, "vision": True},
+        model_info={
+            "family": "gpt-4o",
+            "function_calling": True,
+            "json_output": True,
+            "vision": True,
+            "structured_output": True,
+        },
     )
     tool = FunctionTool(_pass_function, name="pass", description="pass function")
     tool_use_agent = AssistantAgent("tool_use_agent", model_client=model_client, tools=[tool])
@@ -805,7 +811,13 @@ async def test_swarm_handoff_using_tool_calls(runtime: AgentRuntime | None) -> N
             "Hello",
             "TERMINATE",
         ],
-        model_info={"family": "gpt-4o", "function_calling": True, "json_output": True, "vision": True},
+        model_info={
+            "family": "gpt-4o",
+            "function_calling": True,
+            "json_output": True,
+            "vision": True,
+            "structured_output": True,
+        },
     )
     agent1 = AssistantAgent(
         "agent1",
@@ -889,7 +901,13 @@ async def test_swarm_with_parallel_tool_calls(runtime: AgentRuntime | None) -> N
             "Hello",
             "TERMINATE",
         ],
-        model_info={"family": "gpt-4o", "function_calling": True, "json_output": True, "vision": True},
+        model_info={
+            "family": "gpt-4o",
+            "function_calling": True,
+            "json_output": True,
+            "vision": True,
+            "structured_output": True,
+        },
     )
 
     expected_handoff_context: List[LLMMessage] = [
