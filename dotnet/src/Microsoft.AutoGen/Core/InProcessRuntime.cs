@@ -43,28 +43,45 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         }
 
         TopicId topic = envelope.Topic.Value;
+        List<Exception> exceptions = new();
+
         foreach (var subscription in this.subscriptions.Values.Where(subscription => subscription.Matches(topic)))
         {
-            AgentId? sender = envelope.Sender;
-
-            CancellationTokenSource combinedSource = CancellationTokenSource.CreateLinkedTokenSource(envelope.Cancellation, deliveryToken);
-            MessageContext messageContext = new(envelope.MessageId, combinedSource.Token)
+            try
             {
-                Sender = sender,
-                Topic = topic,
-                IsRpc = false
-            };
+                deliveryToken.ThrowIfCancellationRequested();
 
-            AgentId agentId = subscription.MapToAgent(topic);
-            if (!this.DeliverToSelf && sender.HasValue && sender == agentId)
-            {
-                continue;
+                AgentId? sender = envelope.Sender;
+
+                CancellationTokenSource combinedSource = CancellationTokenSource.CreateLinkedTokenSource(envelope.Cancellation, deliveryToken);
+                MessageContext messageContext = new(envelope.MessageId, combinedSource.Token)
+                {
+                    Sender = sender,
+                    Topic = topic,
+                    IsRpc = false
+                };
+
+                AgentId agentId = subscription.MapToAgent(topic);
+                if (!this.DeliverToSelf && sender.HasValue && sender == agentId)
+                {
+                    continue;
+                }
+
+                IHostableAgent agent = await this.EnsureAgentAsync(agentId);
+
+                // TODO: Cancellation propagation!
+                await agent.OnMessageAsync(envelope.Message, messageContext);
             }
+            catch (Exception ex)
+            {
+                exceptions.Add(ex);
+            }
+        }
 
-            IHostableAgent agent = await this.EnsureAgentAsync(agentId);
-
-            // TODO: Cancellation propagation!
-            await agent.OnMessageAsync(envelope.Message, messageContext);
+        if (exceptions.Count > 0)
+        {
+            // TODO: Unwrap TargetInvocationException?
+            throw new AggregateException("One or more exceptions occurred while processing the message.", exceptions);
         }
     }
 
@@ -78,7 +95,7 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
 
             this.messageDeliveryQueue.Enqueue(delivery);
 
-            return ValueTask.CompletedTask;
+            return delivery.FutureNoResult;
         });
     }
 
@@ -286,7 +303,7 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
             }
         }
 
-        await Task.WhenAll(pendingTasks.Values.ToArray());
+        await Task.WhenAll(pendingTasks.Values.Where(t => t is not null).ToArray());
         await this.FinishAsync(this.finishSource?.Token ?? CancellationToken.None);
     }
 

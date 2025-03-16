@@ -1,6 +1,6 @@
 import * as React from "react";
 import { message } from "antd";
-import { getServerUrl } from "../../../utils";
+import { getServerUrl } from "../../../utils/utils";
 import { IStatus } from "../../../types/app";
 import {
   Run,
@@ -70,15 +70,15 @@ export default function ChatView({ session }: ChatViewProps) {
     config,
     session_id: sessionId,
     run_id: runId,
-    user_id: user?.email || undefined,
+    user_id: user?.id || undefined,
   });
 
   // Load existing runs when session changes
   const loadSessionRuns = async () => {
-    if (!session?.id || !user?.email) return;
+    if (!session?.id || !user?.id) return;
 
     try {
-      const response = await sessionAPI.getSessionRuns(session.id, user.email);
+      const response = await sessionAPI.getSessionRuns(session.id, user.id);
       setExistingRuns(response.runs);
     } catch (error) {
       console.error("Error loading session runs:", error);
@@ -98,9 +98,9 @@ export default function ChatView({ session }: ChatViewProps) {
 
   // Load team config
   React.useEffect(() => {
-    if (session?.team_id && user?.email) {
+    if (session?.team_id && user?.id) {
       teamAPI
-        .getTeam(session.team_id, user.email)
+        .getTeam(session.team_id, user.id)
         .then((team) => {
           setTeamConfig(team.component);
         })
@@ -135,24 +135,13 @@ export default function ChatView({ session }: ChatViewProps) {
   }, [activeSocket]);
 
   const createRun = async (sessionId: number): Promise<number> => {
-    const payload = { session_id: sessionId, user_id: user?.email || "" };
-    const response = await fetch(`${serverUrl}/runs/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to create run");
-    }
-
-    const data = await response.json();
-    return data.data.run_id;
+    return await sessionAPI.createRun(sessionId, user?.id || "");
   };
 
   const handleWebSocketMessage = (message: WebSocketMessage) => {
     setCurrentRun((current) => {
       if (!current || !session?.id) return null;
+      // console.log("WebSocket message:", message);
 
       switch (message.type) {
         case "error":
@@ -166,6 +155,16 @@ export default function ChatView({ session }: ChatViewProps) {
             activeSocketRef.current = null;
           }
           console.log("Error: ", message.error);
+
+          const updatedErrorRun = {
+            ...current,
+            status: "error" as RunStatus,
+            error_message: message.error || "An error occurred",
+          };
+
+          // Add to existing runs
+          setExistingRuns((prev) => [...prev, updatedErrorRun]);
+          return null; // Clear current run
 
         case "message_chunk":
           if (!message.data) return current;
@@ -434,7 +433,8 @@ export default function ChatView({ session }: ChatViewProps) {
 
     const baseUrl = getBaseUrl(serverUrl);
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${baseUrl}/api/ws/runs/${runId}`;
+    const auth_token = localStorage.getItem("auth_token");
+    const wsUrl = `${wsProtocol}//${baseUrl}/api/ws/runs/${runId}?token=${auth_token}`;
 
     const socket = new WebSocket(wsUrl);
 

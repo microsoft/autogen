@@ -190,6 +190,20 @@ async def test_openai_chat_completion_client_with_gemini_model() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_serialization() -> None:
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="sk-password")
+    assert client
+    config = client.dump_component()
+    assert config
+    assert "sk-password" not in str(config)
+    serialized_config = config.model_dump_json()
+    assert serialized_config
+    assert "sk-password" not in serialized_config
+    client2 = OpenAIChatCompletionClient.load_component(config)
+    assert client2
+
+
+@pytest.mark.asyncio
 async def test_openai_chat_completion_client_raise_on_unknown_model() -> None:
     with pytest.raises(ValueError, match="model_info is required"):
         _ = OpenAIChatCompletionClient(model="unknown", api_key="api_key")
@@ -204,7 +218,13 @@ async def test_custom_model_with_capabilities() -> None:
         model="dummy_model",
         base_url="https://api.dummy.com/v0",
         api_key="api_key",
-        model_info={"vision": False, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False,
+        },
     )
     assert client
 
@@ -217,7 +237,13 @@ async def test_azure_openai_chat_completion_client() -> None:
         api_key="api_key",
         api_version="2020-08-04",
         azure_endpoint="https://dummy.com",
-        model_info={"vision": True, "function_calling": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "vision": True,
+            "function_calling": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     assert client
 
@@ -433,6 +459,97 @@ def test_convert_tools_accepts_both_tool_and_schema() -> None:
 
 
 @pytest.mark.asyncio
+async def test_json_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-11-20"
+
+    called_args = {}
+
+    async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion:
+        # Capture the arguments passed to the function
+        called_args["kwargs"] = kwargs
+        return ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content=json.dumps({"thoughts": "happy", "response": "happy"}),
+                        role="assistant",
+                    ),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+        )
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
+    model_client = OpenAIChatCompletionClient(model=model, api_key="")
+
+    # Test that the openai client was called with the correct response format.
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")], json_output=True
+    )
+    assert isinstance(create_result.content, str)
+    response = json.loads(create_result.content)
+    assert response["thoughts"] == "happy"
+    assert response["response"] == "happy"
+    assert called_args["kwargs"]["response_format"] == {"type": "json_object"}
+
+    # Make sure that the response format is set to json_object when json_output is True, regardless of the extra_create_args.
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")],
+        json_output=True,
+        extra_create_args={"response_format": "json_object"},
+    )
+    assert isinstance(create_result.content, str)
+    response = json.loads(create_result.content)
+    assert response["thoughts"] == "happy"
+    assert response["response"] == "happy"
+    assert called_args["kwargs"]["response_format"] == {"type": "json_object"}
+
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")],
+        json_output=True,
+        extra_create_args={"response_format": "text"},
+    )
+    assert isinstance(create_result.content, str)
+    response = json.loads(create_result.content)
+    assert response["thoughts"] == "happy"
+    assert response["response"] == "happy"
+    # Check that the openai client was called with the correct response format.
+    assert called_args["kwargs"]["response_format"] == {"type": "json_object"}
+
+    # Make sure when json_output is set to False, the response format is always set to text.
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")],
+        json_output=False,
+        extra_create_args={"response_format": "text"},
+    )
+    assert called_args["kwargs"]["response_format"] == {"type": "text"}
+
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")],
+        json_output=False,
+        extra_create_args={"response_format": "json_object"},
+    )
+    assert called_args["kwargs"]["response_format"] == {"type": "text"}
+
+    # Make sure when response_format is set it is used when json_output is not set.
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")],
+        extra_create_args={"response_format": {"type": "json_object"}},
+    )
+    assert isinstance(create_result.content, str)
+    response = json.loads(create_result.content)
+    assert response["thoughts"] == "happy"
+    assert response["response"] == "happy"
+    assert called_args["kwargs"]["response_format"] == {"type": "json_object"}
+
+
+@pytest.mark.asyncio
 async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
     class AgentResponse(BaseModel):
         thoughts: str
@@ -469,11 +586,12 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
     model_client = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        response_format=AgentResponse,  # type: ignore
     )
 
     # Test that the openai client was called with the correct response format.
-    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")], json_output=AgentResponse
+    )
     assert isinstance(create_result.content, str)
     response = AgentResponse.model_validate(json.loads(create_result.content))
     assert (
@@ -481,6 +599,36 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
         == "The user explicitly states that they are happy without any indication of sadness or neutrality."
     )
     assert response.response == "happy"
+
+    # Test that a warning will be raise if response_format is set to a dict.
+    with pytest.warns(
+        UserWarning,
+        match="response_format is found in extra_create_args while json_output is set to a Pydantic model class.",
+    ):
+        create_result = await model_client.create(
+            messages=[UserMessage(content="I am happy.", source="user")],
+            json_output=AgentResponse,
+            extra_create_args={"response_format": {"type": "json_object"}},
+        )
+
+    # Test that a warning will be raised if response_format is set to a pydantic model.
+    with pytest.warns(
+        DeprecationWarning, match="Using response_format to specify structured output type will be deprecated."
+    ):
+        create_result = await model_client.create(
+            messages=[UserMessage(content="I am happy.", source="user")],
+            extra_create_args={"response_format": AgentResponse},
+        )
+
+    # Test that a ValueError will be raised if response_format and json_output are set to a pydantic model.
+    with pytest.raises(
+        ValueError, match="response_format and json_output cannot be set to a Pydantic model class at the same time."
+    ):
+        create_result = await model_client.create(
+            messages=[UserMessage(content="I am happy.", source="user")],
+            json_output=AgentResponse,
+            extra_create_args={"response_format": AgentResponse},
+        )
 
 
 @pytest.mark.asyncio
@@ -530,11 +678,12 @@ async def test_structured_output_with_tool_calls(monkeypatch: pytest.MonkeyPatch
     model_client = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        response_format=AgentResponse,  # type: ignore
     )
 
     # Test that the openai client was called with the correct response format.
-    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")], json_output=AgentResponse
+    )
     assert isinstance(create_result.content, list)
     assert len(create_result.content) == 1
     assert create_result.content[0] == FunctionCall(
@@ -603,12 +752,13 @@ async def test_structured_output_with_streaming(monkeypatch: pytest.MonkeyPatch)
     model_client = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        response_format=AgentResponse,  # type: ignore
     )
 
     # Test that the openai client was called with the correct response format.
     chunks: List[str | CreateResult] = []
-    async for chunk in model_client.create_stream(messages=[UserMessage(content="I am happy.", source="user")]):
+    async for chunk in model_client.create_stream(
+        messages=[UserMessage(content="I am happy.", source="user")], json_output=AgentResponse
+    ):
         chunks.append(chunk)
     assert len(chunks) > 0
     assert isinstance(chunks[-1], CreateResult)
@@ -712,12 +862,13 @@ async def test_structured_output_with_streaming_tool_calls(monkeypatch: pytest.M
     model_client = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        response_format=AgentResponse,  # type: ignore
     )
 
     # Test that the openai client was called with the correct response format.
     chunks: List[str | CreateResult] = []
-    async for chunk in model_client.create_stream(messages=[UserMessage(content="I am happy.", source="user")]):
+    async for chunk in model_client.create_stream(
+        messages=[UserMessage(content="I am happy.", source="user")], json_output=AgentResponse
+    ):
         chunks.append(chunk)
     assert len(chunks) > 0
     assert isinstance(chunks[-1], CreateResult)
@@ -787,7 +938,13 @@ async def test_r1_think_field(monkeypatch: pytest.MonkeyPatch) -> None:
     model_client = OpenAIChatCompletionClient(
         model="r1",
         api_key="",
-        model_info={"family": ModelFamily.R1, "vision": False, "function_calling": False, "json_output": False},
+        model_info={
+            "family": ModelFamily.R1,
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "structured_output": False,
+        },
     )
 
     # Successful completion with think field.
@@ -860,7 +1017,13 @@ async def test_r1_think_field_not_present(monkeypatch: pytest.MonkeyPatch) -> No
     model_client = OpenAIChatCompletionClient(
         model="r1",
         api_key="",
-        model_info={"family": ModelFamily.R1, "vision": False, "function_calling": False, "json_output": False},
+        model_info={
+            "family": ModelFamily.R1,
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "structured_output": False,
+        },
     )
 
     # Warning completion when think field is not present.
@@ -1324,11 +1487,12 @@ async def test_openai_structured_output() -> None:
     model_client = OpenAIChatCompletionClient(
         model="gpt-4o-mini",
         api_key=api_key,
-        response_format=AgentResponse,  # type: ignore
     )
 
     # Test that the openai client was called with the correct response format.
-    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")], json_output=AgentResponse
+    )
     assert isinstance(create_result.content, str)
     response = AgentResponse.model_validate(json.loads(create_result.content))
     assert response.thoughts
@@ -1348,11 +1512,12 @@ async def test_openai_structured_output_with_streaming() -> None:
     model_client = OpenAIChatCompletionClient(
         model="gpt-4o-mini",
         api_key=api_key,
-        response_format=AgentResponse,  # type: ignore
     )
 
     # Test that the openai client was called with the correct response format.
-    stream = model_client.create_stream(messages=[UserMessage(content="I am happy.", source="user")])
+    stream = model_client.create_stream(
+        messages=[UserMessage(content="I am happy.", source="user")], json_output=AgentResponse
+    )
     chunks: List[str | CreateResult] = []
     async for chunk in stream:
         chunks.append(chunk)
@@ -1383,7 +1548,6 @@ async def test_openai_structured_output_with_tool_calls() -> None:
     model_client = OpenAIChatCompletionClient(
         model="gpt-4o-mini",
         api_key=api_key,
-        response_format=AgentResponse,  # type: ignore
     )
 
     response1 = await model_client.create(
@@ -1393,6 +1557,7 @@ async def test_openai_structured_output_with_tool_calls() -> None:
         ],
         tools=[tool],
         extra_create_args={"tool_choice": "required"},
+        json_output=AgentResponse,
     )
     assert isinstance(response1.content, list)
     assert len(response1.content) == 1
@@ -1414,6 +1579,7 @@ async def test_openai_structured_output_with_tool_calls() -> None:
                 ]
             ),
         ],
+        json_output=AgentResponse,
     )
     assert isinstance(response2.content, str)
     parsed_response = AgentResponse.model_validate(json.loads(response2.content))
@@ -1440,7 +1606,6 @@ async def test_openai_structured_output_with_streaming_tool_calls() -> None:
     model_client = OpenAIChatCompletionClient(
         model="gpt-4o-mini",
         api_key=api_key,
-        response_format=AgentResponse,  # type: ignore
     )
 
     chunks1: List[str | CreateResult] = []
@@ -1451,6 +1616,7 @@ async def test_openai_structured_output_with_streaming_tool_calls() -> None:
         ],
         tools=[tool],
         extra_create_args={"tool_choice": "required"},
+        json_output=AgentResponse,
     )
     async for chunk in stream1:
         chunks1.append(chunk)
@@ -1477,6 +1643,7 @@ async def test_openai_structured_output_with_streaming_tool_calls() -> None:
                 ]
             ),
         ],
+        json_output=AgentResponse,
     )
     chunks2: List[str | CreateResult] = []
     async for chunk in stream2:
@@ -1518,6 +1685,7 @@ async def test_hugging_face() -> None:
             "json_output": False,
             "vision": False,
             "family": ModelFamily.UNKNOWN,
+            "structured_output": False,
         },
     )
 
@@ -1532,6 +1700,7 @@ async def test_ollama() -> None:
         "json_output": False,
         "vision": False,
         "family": ModelFamily.R1,
+        "structured_output": False,
     }
     # Check if the model is running locally.
     try:
