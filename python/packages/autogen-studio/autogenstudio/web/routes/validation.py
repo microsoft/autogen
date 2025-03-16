@@ -14,7 +14,6 @@ async def validate_component(request: ValidationRequest) -> ValidationResponse:
     try:
         return ValidationService.validate(request.component)
     except Exception as e:
-        print(f"Validation error: {str(e)}")
         return ValidationResponse(
             is_valid=False, errors=[ValidationError(field="validation", error=str(e))], warnings=[]
         )

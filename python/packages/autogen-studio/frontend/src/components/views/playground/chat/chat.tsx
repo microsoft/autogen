@@ -562,6 +562,7 @@ export default function ChatView({
           {isCompareMode && isSecondaryView && (
             <Button
               type="text"
+              className="-mt-2 -mr-2"
               onClick={onExitCompare}
               icon={<X className="w-4 h-4" />}
             >

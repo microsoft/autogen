@@ -83,8 +83,6 @@ export const SessionManager: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("sessionId");
 
-    console.log("Session ID from URL:", sessionId);
-
     if (sessionId && !session) {
       handleSelectSession({ id: parseInt(sessionId) } as Session);
     }
@@ -189,11 +187,6 @@ export const SessionManager: React.FC = () => {
         }
         return;
       }
-
-      // Reset compare mode when selecting from sidebar
-      setIsCompareMode(false);
-      setComparisonSession(null);
-
       setSession(data);
       window.history.pushState({}, "", `?sessionId=${selectedSession.id}`);
     } catch (error) {
