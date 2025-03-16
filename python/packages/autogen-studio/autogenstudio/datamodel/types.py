@@ -71,10 +71,7 @@ class GalleryConfig(BaseModel):
     components: GalleryComponents
 
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-            SecretStr: lambda v: v.get_secret_value()
-        }
+        json_encoders={datetime: lambda v: v.isoformat(), SecretStr: lambda v: v.get_secret_value()}
     )
 
 

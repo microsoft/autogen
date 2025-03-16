@@ -62,7 +62,9 @@ class ComponentTestService:
                 status = response and response.chat_message is not None
 
                 if status:
-                    logs.append(f"Agent responded with: {response.chat_message.content} to the question : {test_question}")
+                    logs.append(
+                        f"Agent responded with: {response.chat_message.content} to the question : {test_question}"
+                    )
                 else:
                     logs.append("Agent did not return a valid response")
 

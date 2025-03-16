@@ -9,11 +9,10 @@ from autogen_core import ComponentModel
 from autogen_core.models import ModelInfo
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai._openai_client import AzureOpenAIChatCompletionClient
 from autogen_ext.tools.code_execution import PythonCodeExecutionTool
-
-from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 
 from autogenstudio.datamodel import GalleryComponents, GalleryConfig, GalleryMetadata
 
@@ -152,29 +151,29 @@ def create_default_gallery() -> GalleryConfig:
     mistral_vllm_model = OpenAIChatCompletionClient(
         model="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
         base_url="http://localhost:1234/v1",
-        model_info=ModelInfo(vision=False, function_calling=True, json_output=False, family="unknown", structured_output=False),
+        model_info=ModelInfo(
+            vision=False, function_calling=True, json_output=False, family="unknown", structured_output=False
+        ),
     )
     builder.add_model(
         mistral_vllm_model.dump_component(),
         label="Mistral-7B Local",
         description="Local Mistral-7B model client for instruction-based generation (Ollama, LMStudio).",
     )
- 
 
-    anthropic_model = AnthropicChatCompletionClient(model="claude-3-7-sonnet-20250219") 
+    anthropic_model = AnthropicChatCompletionClient(model="claude-3-7-sonnet-20250219")
     builder.add_model(
         anthropic_model.dump_component(),
         label="Anthropic Claude-3-7",
         description="Anthropic Claude-3 model client.",
     )
- 
 
     # create an azure mode
     az_model_client = AzureOpenAIChatCompletionClient(
         azure_deployment="{your-azure-deployment}",
         model="gpt-4o-mini",
         api_version="2024-06-01",
-        azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/", 
+        azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
     )
     builder.add_model(
         az_model_client.dump_component(),

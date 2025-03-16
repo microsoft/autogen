@@ -46,7 +46,7 @@ async def list_gallery_entries(user_id: str, db: DatabaseManager = Depends(get_d
             db.upsert(default_gallery)
             result = db.get(Gallery, filters={"user_id": user_id})
         return result
-    except Exception as e: 
+    except Exception as e:
         return Response(status=False, data=[], message=f"Error retrieving gallery entries: {str(e)}")
 
 

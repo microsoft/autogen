@@ -170,7 +170,7 @@ class DatabaseManager:
                 session.commit()
                 session.refresh(model)
             except Exception as e:
-                session.rollback() 
+                session.rollback()
                 logger.error("Error while updating/creating " + str(model_class.__name__) + ": " + str(e))
                 status = False
 

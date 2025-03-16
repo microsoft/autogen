@@ -143,7 +143,7 @@ class Gallery(SQLModel, table=True):
 
     model_config = ConfigDict(
         json_encoders={
-            datetime: lambda v: v.isoformat(),  
+            datetime: lambda v: v.isoformat(),
             SecretStr: lambda v: v.get_secret_value(),  # Add this line
         }
     )  # type: ignore[call-arg]
