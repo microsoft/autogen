@@ -290,7 +290,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
         candidate_func (Callable[[Sequence[AgentEvent | ChatMessage]], List[str]], optional):
             A custom function that takes the conversation history and returns a filtered list of candidates for the next speaker
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
-            This function is only valid if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
+            This function is only used if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
 
 
     Raises:
