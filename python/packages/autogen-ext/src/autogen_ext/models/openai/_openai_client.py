@@ -617,6 +617,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         else:
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
+            if choice.message.model_extra['reasoning_content'] is not None:
+                thought = choice.message.model_extra['reasoning_content']
 
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
         if choice.logprobs and choice.logprobs.content:
@@ -630,8 +632,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 for x in choice.logprobs.content
             ]
 
-        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
-            thought, content = parse_r1_content(content)
+      
 
         response = CreateResult(
             finish_reason=normalize_stop_reason(finish_reason),
@@ -725,6 +726,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         stop_reason = None
         maybe_model = None
         content_deltas: List[str] = []
+        thought_deltas: List[str] = []
         full_tool_calls: Dict[int, FunctionCall] = {}
         completion_tokens = 0
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
@@ -784,7 +786,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 # NOTE: for OpenAI, tool_calls and content are mutually exclusive it seems, so we can skip the rest of the loop.
                 # However, this may not be the case for other APIs -- we should expect this may need to be updated.
                 continue
-
+            #thought: str | None = None
+            if choice.delta.model_extra['reasoning_content'] is not None:
+                thought_deltas.append(choice.delta.model_extra['reasoning_content'])              
+                yield choice.delta.model_extra['reasoning_content']
             # Otherwise, get tool calls
             if choice.delta.tool_calls is not None:
                 for tool_call_chunk in choice.delta.tool_calls:
@@ -837,22 +842,25 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         # Detect whether it is a function call or just text.
         content: Union[str, List[FunctionCall]]
         thought: str | None = None
+        # Determine the content and thought based on what was collected
         if full_tool_calls:
-            # This is a tool call.
+            # This is a tool call response
             content = list(full_tool_calls.values())
-            if len(content_deltas) > 1:
-                # Put additional text content in the thought field.
+            if content_deltas:
+                # Store any text alongside tool calls as thoughts
                 thought = "".join(content_deltas)
-        elif len(content_deltas) > 0:
-            # This is a text-only content.
-            content = "".join(content_deltas)
         else:
-            warnings.warn("No text content or tool calls are available. Model returned empty result.", stacklevel=2)
-            content = ""
+            # This is a text response (possibly with thoughts)
+            if content_deltas:
+                content = "".join(content_deltas)
+            else:
+                warnings.warn("No text content or tool calls are available. Model returned empty result.", stacklevel=2)
+                content = ""
+                
+        # Always set thoughts if we have any, regardless of other content types
+        if thought_deltas:
+            thought = "".join(thought_deltas)
 
-        # Parse R1 content if needed.
-        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
-            thought, content = parse_r1_content(content)
 
         # Create the result.
         result = CreateResult(
