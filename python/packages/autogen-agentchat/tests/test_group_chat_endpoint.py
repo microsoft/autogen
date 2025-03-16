@@ -32,7 +32,7 @@ async def _test_selector_group_chat_with_candidate_func(model_client: ChatComple
 
     filtered_participants = ['developer', 'tester']
 
-    def dummy_candidate_func(thread, participants):
+    def dummy_candidate_func(thread):
         # Dummy candidate function that will return
         # only return developer and reviewer
         return filtered_participants
