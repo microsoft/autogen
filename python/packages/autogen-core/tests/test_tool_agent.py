@@ -25,6 +25,7 @@ from autogen_core.tool_agent import (
     tool_agent_caller_loop,
 )
 from autogen_core.tools import FunctionTool, Tool, ToolSchema
+from pydantic import BaseModel
 
 logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.INFO)
 
@@ -101,7 +102,7 @@ async def test_caller_loop() -> None:
             messages: Sequence[LLMMessage],
             *,
             tools: Sequence[Tool | ToolSchema] = [],
-            json_output: Optional[bool] = None,
+            json_output: Optional[bool | type[BaseModel]] = None,
             extra_create_args: Mapping[str, Any] = {},
             cancellation_token: Optional[CancellationToken] = None,
         ) -> CreateResult:
@@ -126,7 +127,7 @@ async def test_caller_loop() -> None:
             messages: Sequence[LLMMessage],
             *,
             tools: Sequence[Tool | ToolSchema] = [],
-            json_output: Optional[bool] = None,
+            json_output: Optional[bool | type[BaseModel]] = None,
             extra_create_args: Mapping[str, Any] = {},
             cancellation_token: Optional[CancellationToken] = None,
         ) -> AsyncGenerator[Union[str, CreateResult], None]:
@@ -153,7 +154,13 @@ async def test_caller_loop() -> None:
 
         @property
         def model_info(self) -> ModelInfo:
-            return ModelInfo(vision=False, function_calling=True, json_output=False, family=ModelFamily.UNKNOWN)
+            return ModelInfo(
+                vision=False,
+                function_calling=True,
+                json_output=False,
+                family=ModelFamily.UNKNOWN,
+                structured_output=False,
+            )
 
     client = MockChatCompletionClient()
     tools: List[Tool] = [FunctionTool(_pass_function, name="pass", description="Pass function")]

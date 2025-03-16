@@ -52,6 +52,7 @@ from azure.ai.inference.models import (
 from azure.ai.inference.models import (
     UserMessage as AzureUserMessage,
 )
+from pydantic import BaseModel
 from typing_extensions import AsyncGenerator, Union, Unpack
 
 from autogen_ext.models.azure.config import (
@@ -197,40 +198,90 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         seed: (optional,int)
         model_extras: (optional,Dict[str, Any])
 
-    To use this client, you must install the `azure-ai-inference` extension:
+    To use this client, you must install the `azure` extra:
 
-        .. code-block:: bash
+    .. code-block:: bash
 
-            pip install "autogen-ext[azure]"
+        pip install "autogen-ext[azure]"
 
-    The following code snippet shows how to use the client:
+    The following code snippet shows how to use the client with GitHub Models:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            import asyncio
-            from azure.core.credentials import AzureKeyCredential
-            from autogen_ext.models.azure import AzureAIChatCompletionClient
-            from autogen_core.models import UserMessage
-
-
-            async def main():
-                client = AzureAIChatCompletionClient(
-                    endpoint="endpoint",
-                    credential=AzureKeyCredential("api_key"),
-                    model_info={
-                        "json_output": False,
-                        "function_calling": False,
-                        "vision": False,
-                        "family": "unknown",
-                    },
-                )
-
-                result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
-                print(result)
+        import asyncio
+        import os
+        from azure.core.credentials import AzureKeyCredential
+        from autogen_ext.models.azure import AzureAIChatCompletionClient
+        from autogen_core.models import UserMessage
 
 
-            if __name__ == "__main__":
-                asyncio.run(main())
+        async def main():
+            client = AzureAIChatCompletionClient(
+                model="Phi-4",
+                endpoint="https://models.inference.ai.azure.com",
+                # To authenticate with the model you will need to generate a personal access token (PAT) in your GitHub settings.
+                # Create your PAT token by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+                credential=AzureKeyCredential(os.environ["GITHUB_TOKEN"]),
+                model_info={
+                    "json_output": False,
+                    "function_calling": False,
+                    "vision": False,
+                    "family": "unknown",
+                    "structured_output": False,
+                },
+            )
+
+            result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
+            print(result)
+
+            # Close the client.
+            await client.close()
+
+
+        if __name__ == "__main__":
+            asyncio.run(main())
+
+    To use streaming, you can use the `create_stream` method:
+
+    .. code-block:: python
+
+        import asyncio
+        import os
+
+        from autogen_core.models import UserMessage
+        from autogen_ext.models.azure import AzureAIChatCompletionClient
+        from azure.core.credentials import AzureKeyCredential
+
+
+        async def main():
+            client = AzureAIChatCompletionClient(
+                model="Phi-4",
+                endpoint="https://models.inference.ai.azure.com",
+                # To authenticate with the model you will need to generate a personal access token (PAT) in your GitHub settings.
+                # Create your PAT token by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+                credential=AzureKeyCredential(os.environ["GITHUB_TOKEN"]),
+                model_info={
+                    "json_output": False,
+                    "function_calling": False,
+                    "vision": False,
+                    "family": "unknown",
+                    "structured_output": False,
+                },
+            )
+
+            # Create a stream.
+            stream = client.create_stream([UserMessage(content="Write a poem about the ocean", source="user")])
+            async for chunk in stream:
+                print(chunk, end="", flush=True)
+            print()
+
+            # Close the client.
+            await client.close()
+
+
+        if __name__ == "__main__":
+            asyncio.run(main())
+
 
     """
 
@@ -275,7 +326,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
-        json_output: Optional[bool],
+        json_output: Optional[bool | type[BaseModel]],
         create_args: Dict[str, Any],
     ) -> None:
         if self.model_info["vision"] is False:
@@ -287,6 +338,10 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if json_output is not None:
             if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
+
+            if isinstance(json_output, type):
+                # TODO: we should support this in the future.
+                raise ValueError("Structured output is not currently supported for AzureAIChatCompletionClient")
 
             if json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = "json_object"
@@ -301,7 +356,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -394,7 +449,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:

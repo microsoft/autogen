@@ -48,7 +48,7 @@ print(anthropic_client.dump_component().model_dump_json())
 mistral_vllm_model = OpenAIChatCompletionClient(
         model="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
         base_url="http://localhost:1234/v1",
-        model_info=ModelInfo(vision=False, function_calling=True, json_output=False, family="unknown"),
+        model_info=ModelInfo(vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True),
     )
 print(mistral_vllm_model.dump_component().model_dump_json())
 ```
@@ -122,7 +122,8 @@ Have a local model server like Ollama, vLLM or LMStudio that provide an OpenAI c
       "vision": false,
       "function_calling": true,
       "json_output": false,
-      "family": "unknown"
+      "family": "unknown",
+      "structured_output": true
     },
     "base_url": "http://localhost:1234/v1"
   }
