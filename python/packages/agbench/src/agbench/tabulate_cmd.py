@@ -203,9 +203,9 @@ def default_tabulate(
         print("\nSummary Statistics\n")
         score_columns = ["Trial " + str(i) + " Success" for i in range(num_instances)]
         # Count the number of successes when the value is True.
-        successes = df[score_columns].apply(lambda x: x == True).sum(axis=0)  # type: ignore
+        successes = df[score_columns].apply(lambda x: x is True).sum(axis=0)  # type: ignore
         # Count the number of failures when the value is False.
-        failures: pd.Series = df[score_columns].apply(lambda x: x == False).sum(axis=0)  # type: ignore
+        failures: pd.Series = df[score_columns].apply(lambda x: x is False).sum(axis=0)  # type: ignore
         # Count the number of missing
         missings = df[score_columns].isna().sum(axis=0)  # type: ignore
         # Count the total number of instances
@@ -236,9 +236,9 @@ def default_tabulate(
 
         # Aggregate statistics across tasks for all trials.
         # At least one success for each trial, averaged across tasks.
-        average_at_least_one_success = df[score_columns].any(axis=1).mean(skipna=True) # type: ignore
+        average_at_least_one_success = df[score_columns].any(axis=1).mean(skipna=True)  # type: ignore
         # All successes for each trial
-        average_all_successes = df[score_columns].all(axis=1).mean(skipna=True) # type: ignore
+        average_all_successes = df[score_columns].all(axis=1).mean(skipna=True)  # type: ignore
 
         # Create a dataframe
         trial_aggregated_df = pd.DataFrame(

@@ -30,8 +30,9 @@ async def main() -> None:
     coder_agent = MagenticOneCoderAgent(
         name="coder",
         model_client=model_client,
-        model_context=model_context,
     )
+    # Set model context.
+    coder_agent._model_context = model_context # type: ignore
 
     # Executor
     executor = CustomCodeExecutorAgent(
