@@ -10,13 +10,6 @@ from ._task import TaskRunner
 class Team(ABC, TaskRunner, ComponentBase[BaseModel]):
     component_type = "team"
 
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """The name of the team. This is used by team to uniquely identify
-        the team. It should be unique."""
-        ...
-
     @abstractmethod
     async def reset(self) -> None:
         """Reset the team and all its participants to its initial state."""

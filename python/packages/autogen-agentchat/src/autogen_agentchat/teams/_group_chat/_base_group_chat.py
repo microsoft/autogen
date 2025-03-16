@@ -111,12 +111,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         # Flag to track if the group chat is running.
         self._is_running = False
 
-    @property
-    def name(self) -> str:
-        """The name of the team. This is used by team to uniquely identify
-        the team. It should be unique."""
-        return self._team_id
-
     @abstractmethod
     def _create_group_chat_manager_factory(
         self,

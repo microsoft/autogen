@@ -35,6 +35,8 @@ class TaskRunnerToolState(BaseModel):
 class TaskRunnerToolConfig(BaseModel):
     """Configuration for the TaskRunnerTool."""
 
+    name: str
+    description: str
     task_runner: ComponentModel
 
 
@@ -51,13 +53,13 @@ class TaskRunnerTool(BaseToolWithState, Component[TaskRunnerToolConfig]):
     component_config_schema = TaskRunnerToolConfig
     component_provider_override = "autogen_ext.tools.TaskRunnerTool"
 
-    def __init__(self, agent: BaseGroupChat | BaseChatAgent, description: str) -> None:
-        self._task_runner = agent
+    def __init__(self, task_runner: BaseGroupChat | BaseChatAgent, name: str, description: str) -> None:
+        self._task_runner = task_runner
         super().__init__(
             args_type=TaskRunnerToolInput,
             return_type=str,
             state_type=TaskRunnerToolState,
-            name=self._task_runner.name,
+            name=name,
             description=description,
         )
 
@@ -112,15 +114,19 @@ class TaskRunnerTool(BaseToolWithState, Component[TaskRunnerToolConfig]):
     #     return "\n".join(formatted_response)
 
     def _to_config(self) -> TaskRunnerToolConfig:
-        return TaskRunnerToolConfig(task_runner=self._task_runner.dump_component())
+        return TaskRunnerToolConfig(
+            name=self.name,
+            description=self.description,
+            task_runner=self._task_runner.dump_component(),
+        )
 
     @classmethod
     def _from_config(cls, config: TaskRunnerToolConfig) -> Self:
         cmp = ComponentLoader.load_component(config.task_runner)
         if isinstance(cmp, BaseGroupChat):
-            return cls(cmp, "A tool that can be used to run a task.")
+            return cls(cmp, config.name, config.description)
         elif isinstance(cmp, BaseChatAgent):
-            return cls(cmp, "A tool that can be used to run a task.")
+            return cls(cmp, config.name, config.description)
         else:
             raise ValueError(f"Invalid task runner: {type(cmp)}")
 
