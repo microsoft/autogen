@@ -615,10 +615,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
             finish_reason = "tool_calls"
         else:
+            # if not tool_calls, then it is a text response and we populate the content and thought fields.
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
-            if choice.message.model_extra['reasoning_content'] is not None:
-                thought = choice.message.model_extra['reasoning_content']
+            # if there is a reasoning_content field, then we populate the thought field. This is for models such as R1.
+            if choice.message.model_extra.get('reasoning_content') is not None:
+                thought = choice.message.model_extra.get('reasoning_content')
 
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
         if choice.logprobs and choice.logprobs.content:
@@ -632,6 +634,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 for x in choice.logprobs.content
             ]
 
+        #   This is for local R1 models.     
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1 and thought is None:
+            thought, content = parse_r1_content(content)
       
 
         response = CreateResult(
@@ -786,10 +791,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 # NOTE: for OpenAI, tool_calls and content are mutually exclusive it seems, so we can skip the rest of the loop.
                 # However, this may not be the case for other APIs -- we should expect this may need to be updated.
                 continue
-            #thought: str | None = None
-            if choice.delta.model_extra['reasoning_content'] is not None:
-                thought_deltas.append(choice.delta.model_extra['reasoning_content'])              
-                yield choice.delta.model_extra['reasoning_content']
+            # if there is a reasoning_content field, then we populate the thought field. This is for models such as R1.            
+            reasoning_content = choice.delta.model_extra.get('reasoning_content')
+            if reasoning_content is not None:
+                thought_deltas.append(reasoning_content)              
+                yield reasoning_content
             # Otherwise, get tool calls
             if choice.delta.tool_calls is not None:
                 for tool_call_chunk in choice.delta.tool_calls:
@@ -860,7 +866,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         # Always set thoughts if we have any, regardless of other content types
         if thought_deltas:
             thought = "".join(thought_deltas)
-
+        
+        # This is for local R1 models.     
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1 and thought is None:
+            thought, content = parse_r1_content(content)
 
         # Create the result.
         result = CreateResult(
