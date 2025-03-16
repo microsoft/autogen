@@ -27,6 +27,7 @@ from ...messages import (
 )
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
+from ._context import AgentChatRuntimeContext
 from ._events import GroupChatPause, GroupChatReset, GroupChatResume, GroupChatStart, GroupChatTermination
 from ._sequential_routed_agent import SequentialRoutedAgent
 
@@ -92,16 +93,29 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             self._runtime = runtime
             self._embedded_runtime = False
         else:
-            # Use a embedded single-threaded runtime for the group chat.
-            # Background exceptions must not be ignored as it results in non-surfaced exceptions and early team termination.
-            self._runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
-            self._embedded_runtime = True
+            try:
+                # Use the runtime from the context if it is available.
+                self._runtime = AgentChatRuntimeContext.current_runtime()
+                # Use the global output channel from the context.
+                self._output_channel = AgentChatRuntimeContext.output_channel()
+                self._embedded_runtime = False
+            except RuntimeError:
+                # Use a embedded single-threaded runtime for the group chat.
+                # Background exceptions must not be ignored as it results in non-surfaced exceptions and early team termination.
+                self._runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
+                self._embedded_runtime = True
 
         # Flag to track if the group chat has been initialized.
         self._initialized = False
 
         # Flag to track if the group chat is running.
         self._is_running = False
+
+    @property
+    def name(self) -> str:
+        """The name of the team. This is used by team to uniquely identify
+        the team. It should be unique."""
+        return self._team_id
 
     @abstractmethod
     def _create_group_chat_manager_factory(
