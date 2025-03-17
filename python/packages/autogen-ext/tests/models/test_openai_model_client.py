@@ -906,7 +906,8 @@ async def test_r1_reasoning_content(monkeypatch: pytest.MonkeyPatch) -> None:
                     message=ChatCompletionMessage(
                         role="assistant",
                         content="This is the main content",
-                        reasoning_content="This is the reasoning content",
+                        # The reasoning content is included in model_extra for hosted R1 models.
+                        reasoning_content="This is the reasoning content",  # type: ignore
                     ),
                     finish_reason="stop",
                 )
@@ -960,7 +961,8 @@ async def test_r1_reasoning_content_streaming(monkeypatch: pytest.MonkeyPatch) -
                         index=0,
                         delta=ChoiceDelta(
                             content=contentChunks[i],
-                            reasoning_content=reasoningChunks[i],
+                            # The reasoning content is included in model_extra for hosted R1 models.
+                            reasoning_content=reasoningChunks[i],  # type: ignore
                             role="assistant",
                         ),
                     ),
