@@ -45,12 +45,12 @@ async def update_server(server_id: int, server: McpServer, user_id: str, db=Depe
     check_response = db.get(McpServer, filters={"id": server_id, "user_id": user_id})
     if not check_response.status or not check_response.data:
         raise HTTPException(status_code=404, detail="Server not found")
-    
+
     # Update the server
     server.id = server_id  # Ensure the ID is set correctly
     server.user_id = user_id  # Ensure the user_id is set correctly
     response = db.upsert(server)
-    
+
     if not response.status:
         raise HTTPException(status_code=400, detail=response.message)
     return {"status": True, "data": response.data}
@@ -60,12 +60,12 @@ async def update_server(server_id: int, server: McpServer, user_id: str, db=Depe
 async def delete_server(server_id: int, user_id: str, db=Depends(get_db)) -> Dict:
     # Get all tools associated with this server
     tools_response = db.get(Tool, filters={"server_id": server_id, "user_id": user_id})
-    
+
     # Delete the tools first
     if tools_response.status and tools_response.data:
         for tool in tools_response.data:
             db.delete(filters={"id": tool.id}, model_class=Tool)
-    
+
     # Then delete the server
     db.delete(filters={"id": server_id, "user_id": user_id}, model_class=McpServer)
     return {"status": True, "message": "Server and associated tools deleted successfully"}
@@ -77,7 +77,7 @@ async def get_server_tools(server_id: int, user_id: str, db=Depends(get_db)) -> 
     server_response = db.get(McpServer, filters={"id": server_id, "user_id": user_id})
     if not server_response.status or not server_response.data:
         raise HTTPException(status_code=404, detail="Server not found")
-    
+
     tools_response = db.get(Tool, filters={"server_id": server_id, "user_id": user_id})
     return {"status": True, "data": tools_response.data}
 
@@ -108,12 +108,11 @@ async def refresh_server_tools(server_id: int, user_id: str, db=Depends(get_db))
     config = server.component.get("config", {})
     server_params = config.get("server_params", {})
     if "command" in server_params:
-        print(f"Server params: {server_params}")
         params = McpToolParams(
             type="stdio",
             server_params=StdioServerParams(
                 command=server_params["command"],
-                args=server_params["args"], # []"args", []),
+                args=server_params["args"],
                 env=server_params["env"]
             )
         )
@@ -130,28 +129,23 @@ async def refresh_server_tools(server_id: int, user_id: str, db=Depends(get_db))
     try:
         # Use the same discovery logic as the tools endpoint
         tools_components = await discover_server_tools(params)
-                
+
         # Update server last_connected timestamp
         from datetime import datetime
         server.last_connected = datetime.now()
         db.upsert(server)
-        
+
         # Get existing tools for this server
         existing_tools_response = db.get(Tool, filters={"server_id": server_id, "user_id": user_id})
         existing_tools = existing_tools_response.data if existing_tools_response.status else []
-        
-        # Create a set of existing tool identifiers for quick lookup
-        for tool in existing_tools:
-            print(f"Existing tool: {type(tool.component)} {type(tool)}")
 
+        # Create a set of existing tool identifiers for quick lookup
         existing_tool_ids = {tool.component['provider'] for tool in existing_tools}
         
         # Add new tools that don't already exist
         new_tools_count = 0
         for tool_component in tools_components:
             provider = tool_component.provider
-            print(f"Tool provider: {provider}")
-            
             if provider not in existing_tool_ids:
                 new_tool = Tool(
                     user_id=user_id,
