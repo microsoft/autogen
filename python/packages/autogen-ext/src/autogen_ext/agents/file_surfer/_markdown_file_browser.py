@@ -207,7 +207,7 @@ class MarkdownFileBrowser:
         try:
             if os.path.isdir(path):  # TODO: Fix markdown_converter types
                 res = self._markdown_converter.convert_stream(  # type: ignore
-                    io.StringIO(self._fetch_local_dir(path)), file_extension=".txt"
+                    io.BytesIO(self._fetch_local_dir(path).encode("utf-8")), file_extension=".txt"
                 )
                 self.page_title = res.title
                 self._set_page_content(res.text_content, split_pages=False)
@@ -245,12 +245,22 @@ class MarkdownFileBrowser:
         for entry in os.listdir(local_path):
             size = ""
             full_path = os.path.join(local_path, entry)
-            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d %H:%M")
+
+            mtime = ""
+            try:
+                mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d %H:%M")
+            except Exception as e:
+                # Handles PermissionError, etc.
+                mtime = f"N/A: {type(e).__name__}"
 
             if os.path.isdir(full_path):
                 entry = entry + os.path.sep
             else:
-                size = str(os.path.getsize(full_path))
+                try:
+                    size = str(os.path.getsize(full_path))
+                except Exception as e:
+                    # Handles PermissionError, etc.
+                    size = f"N/A: {type(e).__name__}"
 
             listing += f"| {entry} | {size} | {mtime} |\n"
         return listing

@@ -1,7 +1,7 @@
 import * as React from "react";
 import Icon from "./icons";
 import { useConfigStore } from "../hooks/store";
-import { fetchVersion } from "./utils";
+import { fetchVersion } from "./utils/utils";
 
 const Footer = () => {
   const version = useConfigStore((state) => state.version);

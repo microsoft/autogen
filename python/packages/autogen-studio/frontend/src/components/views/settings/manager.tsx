@@ -25,7 +25,7 @@ export const SettingsManager: React.FC = () => {
   });
 
   const { user } = useContext(appContext);
-  const userId = user?.email || "";
+  const userId = user?.id || "";
 
   const { serverSettings, resetUISettings, initializeSettings, isLoading } =
     useSettingsStore();

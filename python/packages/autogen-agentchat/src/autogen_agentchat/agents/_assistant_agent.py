@@ -574,6 +574,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     "function_calling": False,
                     "json_output": False,
                     "family": ModelFamily.R1,
+                    "structured_output": True,
                 },
             )
 
@@ -784,6 +785,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             inner_messages=inner_messages,
             cancellation_token=cancellation_token,
             agent_name=agent_name,
+            system_messages=system_messages,
             model_context=model_context,
             tools=tools,
             handoff_tools=handoff_tools,
@@ -878,6 +880,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         inner_messages: List[AgentEvent | ChatMessage],
         cancellation_token: CancellationToken,
         agent_name: str,
+        system_messages: List[SystemMessage],
         model_context: ChatCompletionContext,
         tools: List[BaseTool[Any, Any]],
         handoff_tools: List[BaseTool[Any, Any]],
@@ -959,6 +962,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         # STEP 4D: Reflect or summarize tool results
         if reflect_on_tool_use:
             async for reflection_response in AssistantAgent._reflect_on_tool_use_flow(
+                system_messages=system_messages,
                 model_client=model_client,
                 model_client_stream=model_client_stream,
                 model_context=model_context,
@@ -1039,6 +1043,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     @classmethod
     async def _reflect_on_tool_use_flow(
         cls,
+        system_messages: List[SystemMessage],
         model_client: ChatCompletionClient,
         model_client_stream: bool,
         model_context: ChatCompletionContext,
@@ -1049,7 +1054,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         If reflect_on_tool_use=True, we do another inference based on tool results
         and yield the final text response (or streaming chunks).
         """
-        all_messages = await model_context.get_messages()
+        all_messages = system_messages + await model_context.get_messages()
         llm_messages = cls._get_compatible_context(model_client=model_client, messages=all_messages)
 
         reflection_result: Optional[CreateResult] = None

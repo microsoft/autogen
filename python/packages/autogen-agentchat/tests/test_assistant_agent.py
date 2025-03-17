@@ -25,6 +25,7 @@ from autogen_core.models import (
     AssistantMessage,
     CreateResult,
     FunctionExecutionResult,
+    FunctionExecutionResultMessage,
     LLMMessage,
     RequestUsage,
     SystemMessage,
@@ -67,7 +68,13 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
             "pass",
             "TERMINATE",
         ],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     agent = AssistantAgent(
         "tool_use_agent",
@@ -79,6 +86,15 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
         ],
     )
     result = await agent.run(task="task")
+
+    # Make sure the create call was made with the correct parameters.
+    assert len(model_client.create_calls) == 1
+    llm_messages = model_client.create_calls[0]["messages"]
+    assert len(llm_messages) == 2
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
 
     assert len(result.messages) == 5
     assert isinstance(result.messages[0], TextMessage)
@@ -140,7 +156,13 @@ async def test_run_with_tools_and_reflection() -> None:
                 cached=False,
             ),
         ],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     agent = AssistantAgent(
         "tool_use_agent",
@@ -149,6 +171,23 @@ async def test_run_with_tools_and_reflection() -> None:
         reflect_on_tool_use=True,
     )
     result = await agent.run(task="task")
+
+    # Make sure the create call was made with the correct parameters.
+    assert len(model_client.create_calls) == 2
+    llm_messages = model_client.create_calls[0]["messages"]
+    assert len(llm_messages) == 2
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
+    llm_messages = model_client.create_calls[1]["messages"]
+    assert len(llm_messages) == 4
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
+    assert isinstance(llm_messages[2], AssistantMessage)
+    assert isinstance(llm_messages[3], FunctionExecutionResultMessage)
 
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
@@ -209,7 +248,13 @@ async def test_run_with_parallel_tools() -> None:
             "pass",
             "TERMINATE",
         ],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     agent = AssistantAgent(
         "tool_use_agent",
@@ -288,7 +333,13 @@ async def test_run_with_parallel_tools_with_empty_call_ids() -> None:
             "pass",
             "TERMINATE",
         ],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     agent = AssistantAgent(
         "tool_use_agent",
@@ -362,7 +413,13 @@ async def test_handoffs() -> None:
                 cached=False,
             )
         ],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     tool_use_agent = AssistantAgent(
         "tool_use_agent",
@@ -420,7 +477,13 @@ async def test_invalid_model_capabilities() -> None:
     model_client = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        model_info={"vision": False, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False,
+        },
     )
 
     with pytest.raises(ValueError):
@@ -446,12 +509,24 @@ async def test_remove_images() -> None:
     model_client_1 = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        model_info={"vision": False, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False,
+        },
     )
     model_client_2 = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        model_info={"vision": True, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+        model_info={
+            "vision": True,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False,
+        },
     )
 
     img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
@@ -615,7 +690,13 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_assistant_agent_declarative() -> None:
     model_client = ReplayChatCompletionClient(
         ["Response to message 3"],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     model_context = BufferedChatCompletionContext(buffer_size=2)
     agent = AssistantAgent(

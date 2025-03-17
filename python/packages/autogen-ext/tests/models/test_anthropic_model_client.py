@@ -29,6 +29,25 @@ def _add_numbers(a: int, b: int) -> int:
 
 
 @pytest.mark.asyncio
+async def test_anthropic_serialization_api_key() -> None:
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",  # Use haiku for faster/cheaper testing
+        api_key="sk-password",
+        temperature=0.0,  # Added temperature param to test
+        stop_sequences=["STOP"],  # Added stop sequence
+    )
+    assert client
+    config = client.dump_component()
+    assert config
+    assert "sk-password" not in str(config)
+    serialized_config = config.model_dump_json()
+    assert serialized_config
+    assert "sk-password" not in serialized_config
+    client2 = AnthropicChatCompletionClient.load_component(config)
+    assert client2
+
+
+@pytest.mark.asyncio
 async def test_anthropic_basic_completion(caplog: pytest.LogCaptureFixture) -> None:
     """Test basic message completion with Claude."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
