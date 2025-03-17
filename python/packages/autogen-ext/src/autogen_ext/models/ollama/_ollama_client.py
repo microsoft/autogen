@@ -82,11 +82,19 @@ ollama_chat_request_fields: dict[str, Any] = [m for m in inspect.getmembers(Chat
     1
 ]
 OLLAMA_VALID_CREATE_KWARGS_KEYS = set(ollama_chat_request_fields.keys()) | set(
-    ("model", "messages", "tools", "stream", "format", "options", "keep_alive")
+    ("model", "messages", "tools", "stream", "format", "options", "keep_alive", "response_format")
 )
+# NOTE: "response_format" is a special case that we handle for backwards compatibility.
+# It is going to be deprecated in the future.
 
 
 def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
+    if "response_format" in config:
+        warnings.warn(
+            "Using response_format will be deprecated. Use json_output instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     create_args = {k.lower(): v for k, v in config.items() if k.lower() in OLLAMA_VALID_CREATE_KWARGS_KEYS}
     dropped_keys = [k for k in config.keys() if k.lower() not in OLLAMA_VALID_CREATE_KWARGS_KEYS]
     trace_logger.info(f"Dropped the following unrecognized keys from create_args: {dropped_keys}")
