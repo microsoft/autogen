@@ -158,8 +158,8 @@ class OrTerminationCondition(TerminationCondition, Component[OrTerminationCondit
             raise RuntimeError("Termination condition has already been reached")
         stop_messages = await asyncio.gather(*[condition(messages) for condition in self._conditions])
         if any(stop_message is not None for stop_message in stop_messages):
-            content = ", ".join(stop_message.content for stop_message in stop_messages if stop_message is not None)
-            source = ", ".join(stop_message.source for stop_message in stop_messages if stop_message is not None)
+            content = ", ".join(stop_message.content for stop_message in stop_messages)
+            source = ", ".join(stop_message.source for stop_message in stop_messages)
             return StopMessage(content=content, source=source)
         return None
 
