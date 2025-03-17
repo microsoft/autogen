@@ -1,5 +1,5 @@
 import * as React from "react";
-import { message } from "antd";
+import { Button, message, Tooltip } from "antd";
 import { getServerUrl } from "../../../utils/utils";
 import { IStatus } from "../../../types/app";
 import {
@@ -20,14 +20,36 @@ import { teamAPI } from "../../teambuilder/api";
 import { sessionAPI } from "../api";
 import RunView from "./runview";
 import { TIMEOUT_CONFIG } from "./types";
-import { ChevronRight, MessagesSquare } from "lucide-react";
+import {
+  ChevronRight,
+  MessagesSquare,
+  SplitSquareHorizontal,
+  X,
+} from "lucide-react";
+import SessionDropdown from "./sessiondropdown";
 const logo = require("../../../../images/landing/welcome.svg").default;
 
 interface ChatViewProps {
   session: Session | null;
+  isCompareMode?: boolean;
+  isSecondaryView?: boolean; // To know if this is the right panel
+  onCompareClick?: () => void;
+  onExitCompare?: () => void;
+  onSessionChange?: (session: Session) => void;
+  availableSessions?: Session[];
+  showCompareButton?: boolean;
 }
 
-export default function ChatView({ session }: ChatViewProps) {
+export default function ChatView({
+  session,
+  isCompareMode = false,
+  isSecondaryView = false,
+  onCompareClick,
+  onExitCompare,
+  onSessionChange,
+  availableSessions = [],
+  showCompareButton = true,
+}: ChatViewProps) {
   const serverUrl = getServerUrl();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<IStatus | null>({
@@ -506,14 +528,54 @@ export default function ChatView({ session }: ChatViewProps) {
   return (
     <div className="text-primary h-[calc(100vh-165px)] bg-primary relative rounded flex-1 scroll">
       {contextHolder}
-      <div className="flex pt-2 items-center gap-2  text-sm">
-        <span className="text-primary font-medium"> Sessions</span>
-        {session && (
-          <>
-            <ChevronRight className="w-4 h-4 text-secondary" />
-            <span className="text-secondary">{session.name}</span>
-          </>
-        )}
+      <div className="flex pt-2 items-center justify-between text-sm h-10">
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden flex-1 pr-4">
+          {isCompareMode ? (
+            <SessionDropdown
+              session={session}
+              availableSessions={availableSessions}
+              onSessionChange={onSessionChange || (() => {})}
+              className="w-full"
+            />
+          ) : (
+            <>
+              <span className="text-primary font-medium whitespace-nowrap flex-shrink-0">
+                Sessions
+              </span>
+              {session && (
+                <>
+                  <ChevronRight className="w-4 h-4 text-secondary flex-shrink-0" />
+                  <Tooltip title={session.name}>
+                    <span className="text-secondary truncate overflow-hidden">
+                      {session.name}
+                    </span>
+                  </Tooltip>
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
+          {!isCompareMode && !isSecondaryView && showCompareButton && (
+            <Button
+              type="text"
+              onClick={onCompareClick}
+              icon={<SplitSquareHorizontal className="w-4 h-4" />}
+            >
+              Compare
+            </Button>
+          )}
+          {isCompareMode && isSecondaryView && (
+            <Button
+              type="text"
+              onClick={onExitCompare}
+              icon={<X className="w-4 h-4" />}
+            >
+              Exit Compare
+            </Button>
+          )}
+        </div>
       </div>
       <div className="flex flex-col h-full">
         <div

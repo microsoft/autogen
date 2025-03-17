@@ -11,20 +11,16 @@ import {
   LucideIcon,
   Users,
   Wrench,
-  Settings,
   Brain,
   Timer,
   Trash2Icon,
   Edit,
   Bot,
 } from "lucide-react";
-import { NodeData, CustomNode } from "./types";
+import { CustomNode } from "./types";
 import {
   AgentConfig,
   TeamConfig,
-  ModelConfig,
-  ToolConfig,
-  TerminationConfig,
   ComponentTypes,
   Component,
   ComponentConfig,
@@ -34,13 +30,7 @@ import { TruncatableText } from "../../atoms";
 import { useTeamBuilderStore } from "./store";
 import {
   isAssistantAgent,
-  isAzureOpenAIModel,
-  isFunctionTool,
-  isMaxMessageTermination,
-  isOpenAIModel,
-  isOrTermination,
   isSelectorTeam,
-  isTextMentionTermination,
   isWebSurferAgent,
 } from "../../../types/guards";
 
