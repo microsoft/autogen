@@ -1,9 +1,10 @@
 import argparse
 import os
+import re
 import sys
-from copy import deepcopy
-from typing import Any, Callable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
+import pandas as pd
 import tabulate as tb
 
 from .load_module import load_module
@@ -24,6 +25,8 @@ COMPLETED_STRINGS = [
 ]
 
 EXCLUDE_DIR_NAMES = ["__pycache__"]
+
+TIMER_REGEX = r"RUNTIME:\s*([\d.]+) !#!#"
 
 
 def find_tabulate_module(search_dir: str, stop_dir: Optional[str] = None) -> Optional[str]:
@@ -84,12 +87,32 @@ def default_scorer(instance_dir: str, success_strings: List[str] = SUCCESS_STRIN
         return None
 
 
+def default_timer(instance_dir: str, timer_regex: str = TIMER_REGEX) -> Optional[float]:
+    console_log = os.path.join(instance_dir, "console_log.txt")
+    if os.path.isfile(console_log):
+        with open(console_log, "rt") as fh:
+            content = fh.read()
+
+            # It succeeded
+            m = re.search(timer_regex, content)
+            if m:
+                return float(m.group(1))
+            else:
+                return None
+    else:
+        return None
+
+
 ScorerFunc = Callable[[str], Optional[bool]]
+TimerFunc = Callable[[str], Optional[float]]
 
 
 def default_tabulate(
-    args: List[str], scorer: ScorerFunc = default_scorer, exclude_dir_names: List[str] = EXCLUDE_DIR_NAMES
-) -> Tuple[argparse.Namespace, List[List[Any]]]:
+    args: List[str],
+    scorer: ScorerFunc = default_scorer,
+    timer: TimerFunc = default_timer,
+    exclude_dir_names: List[str] = EXCLUDE_DIR_NAMES,
+) -> None:
     invocation_cmd = args[0]
     args = args[1:]
 
@@ -119,7 +142,7 @@ def default_tabulate(
     parsed_args = parser.parse_args(args)
     runlogs: str = parsed_args.runlogs
 
-    all_results: List[List[Any]] = list()
+    all_results: List[Dict[str, Any]] = list()
     max_instances = 0
 
     for task_id in sorted(
@@ -135,116 +158,101 @@ def default_tabulate(
             continue
 
         # Collect the results vector
-        results: List[Any] = [task_id]
+        results: Dict[str, Any] = {"Task Id": task_id}
 
-        instance = 0
-        instance_dir = os.path.join(task_path, str(instance))
-        while os.path.isdir(instance_dir):
-            results.append(scorer(instance_dir))
-            instance += 1
+        # Collect the results for each instance.
+        instance_dirs = sorted(
+            os.listdir(task_path),
+            key=lambda s: os.path.getmtime(os.path.join(task_path, s)),
+        )
+        instances = [int(d) for d in instance_dirs if d.isdigit()]
+
+        for instance in instances:
             instance_dir = os.path.join(task_path, str(instance))
+            results[f"Trial {instance} Success"] = scorer(instance_dir)
+            results[f"Trial {instance} Time"] = timer(instance_dir)
 
-        max_instances = max(max_instances, instance)
+        max_instances = max(instances)
 
         # Buffer the results
         all_results.append(results)
 
+    num_instances = max_instances + 1
+
+    # Pad the results to max_instances
+    for result in all_results:
+        for i in range(num_instances):
+            if f"Trial {i} Success" not in result:
+                result[f"Trial {i} Success"] = None
+            if f"Trial {i} Time" not in result:
+                result[f"Trial {i} Time"] = None
+
+    # Create dataframe from results.
+    df = pd.DataFrame(all_results)
+
     if parsed_args.csv:
-        # Create a header
-        header = ["Task Id"]
-        for i in range(0, max_instances):
-            header.append("Trial " + str(i) + " Success")
-
-        print(",".join(header))
-        for row in all_results:
-            str_row = [f"{v}" if v is not None else "" for v in row]
-            while len(str_row) < max_instances + 1:
-                str_row.append("")
-            print(",".join(str_row))
-
+        # Print out the dataframe in CSV format
+        print(df.to_csv(index=False))
         # Print out alpha-version warning
         sys.stderr.write("\n" + warning + "\n\n")
     else:
-        # Create a header
-        header = ["\nTask Id"]
-        for i in range(0, max_instances):
-            header.append("Trial " + str(i) + "\nSuccess")
+        # Tabulate the results.
+        print(tb.tabulate(df, headers="keys", tablefmt="simple"))  # type: ignore
 
-        # Create the footer
-        def _count_equals(value: Optional[bool], trial: int) -> int:
-            count = 0
-            for row in all_results:
-                is_answer_matched = row[trial + 1][0] if isinstance(row[trial + 1], tuple) else row[trial + 1]
+        # Aggregate statistics for all tasks for each trials.
+        print("\nSummary Statistics\n")
+        score_columns = ["Trial " + str(i) + " Success" for i in range(num_instances)]
+        # Count the number of successes when the value is True.
+        successes = df[score_columns].apply(lambda x: x is True).sum(axis=0)  # type: ignore
+        # Count the number of failures when the value is False.
+        failures: pd.Series = df[score_columns].apply(lambda x: x is False).sum(axis=0)  # type: ignore
+        # Count the number of missing
+        missings = df[score_columns].isna().sum(axis=0)  # type: ignore
+        # Count the total number of instances
+        totals = successes + failures + missings  # type: ignore
+        # Calculate the average success rates
+        avg_success_rates = successes / (successes + failures)  # type: ignore
+        time_columns = ["Trial " + str(i) + " Time" for i in range(num_instances)]  # type: ignore
+        # Count the total time of non-null values
+        total_times = df[time_columns].sum(axis=0, skipna=True)  # type: ignore
+        # Calculate the average time of non-null values
+        avg_times = df[time_columns].mean(axis=0, skipna=True)  # type: ignore
 
-                # Count missing
-                if value is None:
-                    if trial + 1 < len(row):
-                        if is_answer_matched is None:
-                            count += 1
-                    else:
-                        count += 1
-                # Count match
-                elif trial + 1 < len(row) and is_answer_matched == value:
-                    count += 1
-            return count
+        # Create a per-trial summary dataframe
+        trial_df = pd.DataFrame(
+            {
+                "Successes": list(successes),  # type: ignore
+                "Failures": list(failures),  # type: ignore
+                "Missing": list(missings),  # type: ignore
+                "Total": list(totals),  # type: ignore
+                "Average Success Rate": list(avg_success_rates),  # type: ignore
+                "Average Time": list(avg_times),  # type: ignore
+                "Total Time": list(total_times),  # type: ignore
+            },
+            index=[f"Trial {i}" for i in range(num_instances)],
+        )
+        # Print out the per-trial summary dataframe.
+        print(tb.tabulate(trial_df, headers="keys", tablefmt="simple"))  # type: ignore
 
-        footer: List[Any] = []
-        footer_row: List[Any] = ["Successes"]
-        for i in range(0, max_instances):
-            footer_row.append(_count_equals(True, i))
-        footer.append(footer_row)
+        # Aggregate statistics across tasks for all trials.
+        # At least one success for each trial, averaged across tasks.
+        average_at_least_one_success = df[score_columns].any(axis=1).mean(skipna=True)  # type: ignore
+        # All successes for each trial
+        average_all_successes = df[score_columns].all(axis=1).mean(skipna=True)  # type: ignore
 
-        footer_row = ["Failures"]
-        for i in range(0, max_instances):
-            # count how many are not True, and not None, could be False or any other value
-            failures = 0
-            for row in all_results:
-                if isinstance(row[i + 1], tuple):
-                    failures += row[i + 1][0] not in [1, None]
-                else:
-                    failures += row[i + 1] not in [1, None]
-            footer_row.append(failures)
-        footer.append(footer_row)
-
-        footer_row = ["Missing"]
-        for i in range(0, max_instances):
-            footer_row.append(_count_equals(None, i))
-        footer.append(footer_row)
-
-        footer_row = ["Total"]
-        for i in range(0, max_instances):
-            footer_row.append(footer[0][i + 1] + footer[1][i + 1] + footer[2][i + 1])
-        footer.append(footer_row)
-
-        footer_row = ["Average Success Rate"]
-        for i in range(0, max_instances):
-            footer_row.append(_count_equals(True, i) / (footer[0][i + 1] + footer[1][i + 1] + footer[2][i + 1]))
-        footer.append(footer_row)
-
-        footer_row = ["Average Score"]
-        for i in range(0, max_instances):
-            avg_score_trial = 0.0
-            for row in all_results:
-                if isinstance(row[i + 1], tuple):
-                    avg_score_trial += row[i + 1][0]
-            avg_score_trial = avg_score_trial / len(all_results)
-            footer_row.append(avg_score_trial)
-        footer.append(footer_row)
-
-        table = deepcopy(all_results)
-        for row in table:
-            for trial in range(0, max_instances):
-                if isinstance(row[trial + 1], tuple):
-                    row[trial + 1] = row[trial + 1][0]
-
-        table.append(tb.SEPARATING_LINE)  # type: ignore
-        table.extend(footer)
-
-        print(tb.tabulate(table, headers=header))
+        # Create a dataframe
+        trial_aggregated_df = pd.DataFrame(
+            {
+                "At Least One Success": [average_at_least_one_success],  # type: ignore
+                "All Successes": [average_all_successes],  # type: ignore
+            },
+            index=["Trial Aggregated"],
+        )
+        # Print out the trial-aggregated dataframe.
+        print(tb.tabulate(trial_aggregated_df, headers="keys", tablefmt="simple"))  # type: ignore
 
         # Print out alpha-version warning
         sys.stderr.write("\n" + warning + "\n\n")
-    return parsed_args, all_results
 
 
 def tabulate_cli(args: Sequence[str]) -> None:

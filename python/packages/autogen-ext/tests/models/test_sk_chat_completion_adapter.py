@@ -453,7 +453,9 @@ async def test_sk_chat_completion_default_model_info(sk_client: AzureChatComplet
 @pytest.mark.asyncio
 async def test_sk_chat_completion_custom_model_info(sk_client: AzureChatCompletion) -> None:
     # Create custom model info
-    custom_model_info = ModelInfo(vision=True, function_calling=True, json_output=True, family=ModelFamily.GPT_4)
+    custom_model_info = ModelInfo(
+        vision=True, function_calling=True, json_output=True, family=ModelFamily.GPT_4, structured_output=False
+    )
 
     # Create adapter with custom model_info
     adapter = SKChatCompletionAdapter(sk_client, model_info=custom_model_info)
@@ -522,7 +524,9 @@ async def test_sk_chat_completion_r1_content() -> None:
     adapter = SKChatCompletionAdapter(
         mock_client,
         kernel=kernel,
-        model_info=ModelInfo(vision=False, function_calling=False, json_output=False, family=ModelFamily.R1),
+        model_info=ModelInfo(
+            vision=False, function_calling=False, json_output=False, family=ModelFamily.R1, structured_output=False
+        ),
     )
 
     result = await adapter.create(messages=[UserMessage(content="Say hello!", source="user")])
