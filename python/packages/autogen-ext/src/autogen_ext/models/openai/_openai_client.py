@@ -996,9 +996,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     if isinstance(message, UserMessage) and isinstance(value, list):
                         typed_message_value = cast(List[ChatCompletionContentPartParam], value)
 
-                        assert len(typed_message_value) == len(message.content), (
-                            "Mismatch in message content and typed message value"
-                        )
+                        assert len(typed_message_value) == len(
+                            message.content
+                        ), "Mismatch in message content and typed message value"
 
                         # We need image properties that are only in the original message
                         for part, content_part in zip(typed_message_value, message.content, strict=False):
@@ -1177,9 +1177,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
             async def main() -> None:
                 # Similar for AzureOpenAIChatCompletionClient.
-                model_client = OpenAIChatCompletionClient(
-                    model="gpt-4o"
-                )  # assuming OPENAI_API_KEY is set in the environment.
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")  # assuming OPENAI_API_KEY is set in the environment.
 
                 messages = [UserMessage(content="Write a very short story about a dragon.", source="user")]
 

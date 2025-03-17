@@ -21,6 +21,13 @@ from autogen_core.models import (
 )
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import BaseTool, FunctionTool
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.openai._model_info import resolve_model
+from autogen_ext.models.openai._openai_client import (
+    calculate_vision_tokens,
+    convert_tools,
+    to_oai_type,
+)
 from openai.resources.beta.chat.completions import (  # type: ignore
     AsyncChatCompletionStreamManager as BetaAsyncChatCompletionStreamManager,  # type: ignore
 )
@@ -49,14 +56,6 @@ from openai.types.chat.parsed_chat_completion import ParsedChatCompletion, Parse
 from openai.types.chat.parsed_function_tool_call import ParsedFunction, ParsedFunctionToolCall
 from openai.types.completion_usage import CompletionUsage
 from pydantic import BaseModel, Field
-
-from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
-from autogen_ext.models.openai._model_info import resolve_model
-from autogen_ext.models.openai._openai_client import (
-    calculate_vision_tokens,
-    convert_tools,
-    to_oai_type,
-)
 
 ResponseFormatT = TypeVar("ResponseFormatT", bound=BaseModel)
 
