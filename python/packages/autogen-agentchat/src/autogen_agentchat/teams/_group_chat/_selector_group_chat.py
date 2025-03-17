@@ -97,7 +97,6 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         A key assumption is that the agent type is the same as the topic type, which we use as the agent name.
         """
 
-        participants = []
         # Use the selector function if provided.
         if self._selector_func is not None:
             speaker = self._selector_func(thread)
@@ -109,11 +108,17 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                     )
                 # Skip the model based selection.
                 return speaker
+
         # Use the candidate function to filter participants if provided
-        elif self._candidate_func is not None:
+        if self._candidate_func is not None:
             participants = self._candidate_func(thread)
             if not participants:
-                raise ValueError("Candidate function returned an empty list of participants.")
+                raise ValueError("Candidate function must return a non-empty list of participant names.")
+            if not all(p in self._participant_names for p in participants):
+                raise ValueError(
+                    f"Candidate function returned invalid participant names: {participants}. "
+                    f"Expected one of: {self._participant_names}."
+                )
         else:
             # Construct the candidate agent list to be selected from, skip the previous speaker if not allowed.
             if self._previous_speaker is not None and not self._allow_repeated_speaker:
