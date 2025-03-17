@@ -97,6 +97,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         A key assumption is that the agent type is the same as the topic type, which we use as the agent name.
         """
 
+        participants = []
         # Use the selector function if provided.
         if self._selector_func is not None:
             speaker = self._selector_func(thread)
@@ -112,9 +113,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         elif self._candidate_func is not None:
             participants = self._candidate_func(thread)
             if not participants:
-                raise ValueError(
-                    "Candidate function returned an empty list of participants."
-                )
+                raise ValueError("Candidate function returned an empty list of participants.")
         else:
             # Construct the candidate agent list to be selected from, skip the previous speaker if not allowed.
             if self._previous_speaker is not None and not self._allow_repeated_speaker:
@@ -478,7 +477,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._allow_repeated_speaker,
             self._selector_func,
             self._max_selector_attempts,
-            self._candidate_func
+            self._candidate_func,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:

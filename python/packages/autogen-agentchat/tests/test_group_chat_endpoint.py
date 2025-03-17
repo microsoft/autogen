@@ -1,12 +1,17 @@
 import os
+from typing import List, Sequence
 
 import pytest
 from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.base import TaskResult
+from autogen_agentchat.messages import (
+    AgentEvent,
+    ChatMessage,
+)
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core.models import ChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_agentchat.base import TaskResult
 
 
 async def _test_selector_group_chat(model_client: ChatCompletionClient) -> None:
@@ -29,10 +34,9 @@ async def _test_selector_group_chat(model_client: ChatCompletionClient) -> None:
 
 
 async def _test_selector_group_chat_with_candidate_func(model_client: ChatCompletionClient) -> None:
+    filtered_participants = ["developer", "tester"]
 
-    filtered_participants = ['developer', 'tester']
-
-    def dummy_candidate_func(thread):
+    def dummy_candidate_func(thread: Sequence[AgentEvent | ChatMessage]) -> List[str]:
         # Dummy candidate function that will return
         # only return developer and reviewer
         return filtered_participants
@@ -41,21 +45,21 @@ async def _test_selector_group_chat_with_candidate_func(model_client: ChatComple
         "developer",
         description="Writes and implements code based on requirements.",
         model_client=model_client,
-        system_message="You are a software developer working on a new feature."
+        system_message="You are a software developer working on a new feature.",
     )
 
     tester = AssistantAgent(
         "tester",
         description="Writes and executes test cases to validate the implementation.",
         model_client=model_client,
-        system_message="You are a software tester ensuring the feature works correctly."
+        system_message="You are a software tester ensuring the feature works correctly.",
     )
 
     project_manager = AssistantAgent(
         "project_manager",
         description="Oversees the project and ensures alignment with the broader goals.",
         model_client=model_client,
-        system_message="You are a project manager ensuring the team meets the project goals."
+        system_message="You are a project manager ensuring the team meets the project goals.",
     )
 
     team = SelectorGroupChat(
@@ -69,7 +73,7 @@ async def _test_selector_group_chat_with_candidate_func(model_client: ChatComple
 
     async for message in team.run_stream(task=task):
         if not isinstance(message, TaskResult):
-            if message.source == 'user':  # ignore the first 'user' message
+            if message.source == "user":  # ignore the first 'user' message
                 continue
             assert message.source in filtered_participants, "Candidate function didn't filter the participants"
 
