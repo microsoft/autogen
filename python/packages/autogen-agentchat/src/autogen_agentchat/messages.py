@@ -134,8 +134,9 @@ class MemoryQueryEvent(BaseAgentEvent):
 class ModelClientStreamingChunkEvent(BaseAgentEvent):
     """An event signaling a text output chunk from a model client in streaming mode."""
 
-    content: str
+    content: str | None = None
     """The partial text chunk."""
+    reasoning: str | None = None
 
     type: Literal["ModelClientStreamingChunkEvent"] = "ModelClientStreamingChunkEvent"
 

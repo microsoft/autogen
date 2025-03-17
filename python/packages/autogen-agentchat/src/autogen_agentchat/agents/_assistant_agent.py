@@ -864,7 +864,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     # output classification
                     if chunk.startswith("[Thought]"):
                         thought_content = chunk[len("[Thought]"):].strip()
-                        yield ThoughtEvent(content=thought_content, source=agent_name)
+                        yield ModelClientStreamingChunkEvent(reasoning=thought_content, source=agent_name)
                     else:
                         yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
                 else:
