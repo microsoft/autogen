@@ -198,16 +198,16 @@ def default_tabulate(
     else:
         # Tabulate the results.
         print(tb.tabulate(df, headers="keys", tablefmt="simple"))  # type: ignore
-        
-        def _check_true(x):
+
+        def _check_true(x: Any) -> Any:
             if isinstance(x, pd.Series):
-                return x.apply(lambda y: y is True)
+                return x.apply(lambda y: y is True)  # type: ignore
             else:
                 return x is True
 
-        def _check_false(x):
+        def _check_false(x: Any) -> Any:
             if isinstance(x, pd.Series):
-                return x.apply(lambda y: y is False)
+                return x.apply(lambda y: y is False)  # type: ignore
             else:
                 return x is False
 
