@@ -34,7 +34,7 @@ For common tasks that are helpful during development and run in CI, see [here](.
 
 ## Roadmap
 
-We use GitHub issues and milestones to track our roadmap. You can view the upcoming milestones [here]([Roadmap Issues](https://aka.ms/autogen-roadmap).
+We use GitHub issues and milestones to track our roadmap. You can view the upcoming milestones [here]([Roadmap Issues](https://aka.ms/autogen-roadmap)).
 
 ## Versioning
 
@@ -48,11 +48,11 @@ We will update verion numbers according to the following rules:
 ## Release process
 
 1. Create a PR that updates the version numbers across the codebase ([example](https://github.com/microsoft/autogen/pull/4359))
-    2. The docs CI will fail for the PR, but this is expected and will be resolved in the next step
-2. After merging the PR, create and push a tag that corresponds to the new verion. For example, for `0.4.0.dev13`:
+2. The docs CI will fail for the PR, but this is expected and will be resolved in the next step
+3. After merging the PR, create and push a tag that corresponds to the new verion. For example, for `0.4.0.dev13`:
     - `git tag v0.4.0.dev13 && git push origin v0.4.0.dev13`
-3. Restart the docs CI by finding the failed [job corresponding to the `push` event](https://github.com/microsoft/autogen/actions/workflows/docs.yml) and restarting all jobs
-4. Run [this](https://github.com/microsoft/autogen/actions/workflows/single-python-package.yml) workflow for each of the packages that need to be released and get an approval for the release for it to run
+4. Restart the docs CI by finding the failed [job corresponding to the `push` event](https://github.com/microsoft/autogen/actions/workflows/docs.yml) and restarting all jobs
+5. Run [this](https://github.com/microsoft/autogen/actions/workflows/single-python-package.yml) workflow for each of the packages that need to be released and get an approval for the release for it to run
 
 ## Triage process
 
