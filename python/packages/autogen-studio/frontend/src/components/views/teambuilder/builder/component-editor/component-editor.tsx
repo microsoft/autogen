@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from "react";
-import { Button, Breadcrumb } from "antd";
-import { ChevronLeft, Code, FormInput } from "lucide-react";
+import { Button, Breadcrumb, message, Tooltip } from "antd";
+import { ChevronLeft, Code, FormInput, PlayCircle } from "lucide-react";
 import { Component, ComponentConfig } from "../../../../types/datamodel";
 import {
   isTeamComponent,
@@ -16,7 +16,8 @@ import { ToolFields } from "./fields/tool-fields";
 import { TerminationFields } from "./fields/termination-fields";
 import debounce from "lodash.debounce";
 import { MonacoEditor } from "../../../monaco";
-
+import { ComponentTestResult, validationAPI } from "../../api";
+import TestDetails from "./testresults";
 export interface EditPath {
   componentType: string;
   id: string;
@@ -42,6 +43,12 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
     Object.assign({}, component)
   );
   const [isJsonEditing, setIsJsonEditing] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<ComponentTestResult | null>(
+    null
+  );
+
+  const [messageApi, contextHolder] = message.useMessage();
 
   const editorRef = useRef(null);
 
@@ -49,6 +56,7 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
   React.useEffect(() => {
     setWorkingCopy(component);
     setEditPath([]);
+    setTestResult(null);
   }, [component]);
 
   const getCurrentComponent = useCallback(
@@ -214,6 +222,32 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
 
   const currentComponent = getCurrentComponent(workingCopy) || workingCopy;
 
+  const handleTestComponent = async () => {
+    setTestLoading(true);
+    setTestResult(null);
+
+    try {
+      const result = await validationAPI.testComponent(currentComponent);
+      setTestResult(result);
+
+      if (result.status) {
+        messageApi.success("Component test passed!");
+      } else {
+        messageApi.error("Component test failed!");
+      }
+    } catch (error) {
+      console.error("Test component error:", error);
+      setTestResult({
+        status: false,
+        message: error instanceof Error ? error.message : "Test failed",
+        logs: [],
+      });
+      messageApi.error("Failed to test component");
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   const renderFields = useCallback(() => {
     const commonProps = {
       component: currentComponent,
@@ -278,8 +312,13 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
     onClose?.();
   }, [workingCopy, onChange, onClose]);
 
+  // show test button only for model component
+  const showTestButton = isModelComponent(currentComponent);
+
   return (
     <div className="flex flex-col h-full">
+      {contextHolder}
+
       <div className="flex items-center gap-4 mb-6">
         {navigationDepth && editPath.length > 0 && (
           <Button
@@ -291,24 +330,54 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
         <div className="flex-1">
           <Breadcrumb items={breadcrumbItems} />
         </div>
+
+        {/* Test Component Button */}
+        {showTestButton && (
+          <Tooltip title="Test Component">
+            <Button
+              onClick={handleTestComponent}
+              loading={testLoading}
+              type="default"
+              className="flex items-center gap-2 text-xs mr-0"
+              icon={
+                <div className="relative">
+                  <PlayCircle className="w-4 h-4 text-accent" />
+                  {testResult && (
+                    <div
+                      className={`absolute top-0 right-0 w-2 h-2 ${
+                        testResult.status ? "bg-green-500" : "bg-red-500"
+                      } rounded-full`}
+                    ></div>
+                  )}
+                </div>
+              }
+            >
+              Test
+            </Button>
+          </Tooltip>
+        )}
+
         <Button
           onClick={() => setIsJsonEditing((prev) => !prev)}
           type="default"
-          className="flex text-accent items-center gap-2 text-xs "
+          className="flex text-accent items-center gap-2 text-xs"
         >
           {isJsonEditing ? (
             <>
               <FormInput className="w-4 text-accent h-4 mr-1 inline-block" />
-              Switch to Form Editor
+              Form Editor
             </>
           ) : (
             <>
               <Code className="w-4 text-accent h-4 mr-1 inline-block" />
-              Switch to JSON Editor
+              JSON Editor
             </>
           )}
         </Button>
       </div>
+      {testResult && (
+        <TestDetails result={testResult} onClose={() => setTestResult(null)} />
+      )}
       {isJsonEditing ? (
         <div className="flex-1 overflow-y-auto">
           <MonacoEditor
