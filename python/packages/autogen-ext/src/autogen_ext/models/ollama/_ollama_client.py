@@ -411,6 +411,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         # Copy the create args and overwrite anything in extra_create_args
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
+        create_args = _create_args_from_config(create_args)
 
         response_format_value: JsonSchemaValue | Literal["json"] | None = None
 
