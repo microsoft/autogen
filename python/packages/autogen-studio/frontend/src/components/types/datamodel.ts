@@ -270,6 +270,10 @@ export interface OrTerminationConfig {
   conditions: Component<TerminationConfig>[];
 }
 
+export interface AndTerminationConfig {
+  conditions: Component<TerminationConfig>[];
+}
+
 export interface MaxMessageTerminationConfig {
   max_messages: number;
 }
@@ -297,6 +301,7 @@ export type ChatCompletionContextConfig = UnboundedChatCompletionContextConfig;
 
 export type TerminationConfig =
   | OrTerminationConfig
+  | AndTerminationConfig
   | MaxMessageTerminationConfig
   | TextMentionTerminationConfig;
 

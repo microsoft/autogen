@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button, Dropdown, message, Tooltip } from "antd";
+import { Button, message, Tooltip } from "antd";
 import { getServerUrl } from "../../../utils/utils";
 import { IStatus } from "../../../types/app";
 import {
@@ -21,13 +21,11 @@ import { sessionAPI } from "../api";
 import RunView from "./runview";
 import { TIMEOUT_CONFIG } from "./types";
 import {
-  ChevronDown,
   ChevronRight,
   MessagesSquare,
   SplitSquareHorizontal,
   X,
 } from "lucide-react";
-import { getRelativeTimeString } from "../../atoms";
 import SessionDropdown from "./sessiondropdown";
 const logo = require("../../../../images/landing/welcome.svg").default;
 
