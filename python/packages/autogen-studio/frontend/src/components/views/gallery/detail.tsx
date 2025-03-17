@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Tabs, Button, Tooltip, Drawer } from "antd";
+import { Tabs, Button, Tooltip, Drawer, Input } from "antd";
 import {
   Package,
   Users,
@@ -21,6 +21,7 @@ import {
   ComponentTypes,
   Gallery,
 } from "../../types/datamodel";
+import TextArea from "antd/es/input/TextArea";
 
 type CategoryKey = `${ComponentTypes}s`;
 
@@ -153,6 +154,11 @@ export const GalleryDetail: React.FC<{
     index: number;
   } | null>(null);
   const [activeTab, setActiveTab] = useState<ComponentTypes>("team");
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [tempName, setTempName] = useState(gallery.config.name);
+  const [tempDescription, setTempDescription] = useState(
+    gallery.config.metadata.description
+  );
 
   const updateGallery = (
     category: CategoryKey,
@@ -263,6 +269,23 @@ export const GalleryDetail: React.FC<{
     setEditingComponent(null);
   };
 
+  const handleDetailsSave = () => {
+    const updatedGallery = {
+      ...gallery,
+      config: {
+        ...gallery.config,
+        name: tempName,
+        metadata: {
+          ...gallery.config.metadata,
+          description: tempDescription,
+        },
+      },
+    };
+    onSave(updatedGallery);
+    onDirtyStateChange(true);
+    setIsEditingDetails(false);
+  };
+
   const tabItems = Object.entries(iconMap).map(([key, Icon]) => ({
     key,
     label: (
@@ -313,19 +336,57 @@ export const GalleryDetail: React.FC<{
         />
         <div className="relative z-10 p-6 h-full flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-medium text-primary">
-                {gallery.config.name}
-              </h1>
-              {gallery.config.url && (
-                <Tooltip title="Remote Gallery">
-                  <Globe className="w-5 h-5 text-secondary" />
-                </Tooltip>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {isEditingDetails ? (
+                  <Input
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    className="text-2xl font-medium bg-background/50 backdrop-blur px-2 py-1 rounded w-[400px]"
+                  />
+                ) : (
+                  <h1 className="text-2xl font-medium text-primary">
+                    {gallery.config.name}
+                  </h1>
+                )}
+                {gallery.config.url && (
+                  <Tooltip title="Remote Gallery">
+                    <Globe className="w-5 h-5 text-secondary" />
+                  </Tooltip>
+                )}
+              </div>
+              {!isEditingDetails ? (
+                <Button
+                  icon={<Edit className="w-4 h-4" />}
+                  onClick={() => setIsEditingDetails(true)}
+                  type="text"
+                  className="text-white hover:text-white/80"
+                >
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button onClick={() => setIsEditingDetails(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="primary" onClick={handleDetailsSave}>
+                    Save
+                  </Button>
+                </div>
               )}
             </div>
-            <p className="text-secondary w-1/2 mt-2 line-clamp-2">
-              {gallery.config.metadata.description}
-            </p>
+            {isEditingDetails ? (
+              <TextArea
+                value={tempDescription}
+                onChange={(e) => setTempDescription(e.target.value)}
+                className="w-1/2 bg-background/50 backdrop-blur px-2 py-1 rounded mt-2"
+                rows={2}
+              />
+            ) : (
+              <p className="text-secondary w-1/2 mt-2 line-clamp-2">
+                {gallery.config.metadata.description}
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
             <div className="bg-tertiary backdrop-blur rounded p-2 flex items-center gap-2">

@@ -14,6 +14,13 @@ export interface ValidationResponse {
   warnings: ValidationError[];
 }
 
+export interface ComponentTestResult {
+  status: boolean;
+  message: string;
+  data?: any;
+  logs: string[];
+}
+
 export class TeamAPI extends BaseAPI {
   async listTeams(userId: string): Promise<Team[]> {
     const response = await fetch(
@@ -66,20 +73,6 @@ export class TeamAPI extends BaseAPI {
     const data = await response.json();
     if (!data.status) throw new Error(data.message || "Failed to delete team");
   }
-
-  // Team-Agent Link Management
-  async linkAgent(teamId: number, agentId: number): Promise<void> {
-    const response = await fetch(
-      `${this.getBaseUrl()}/teams/${teamId}/agents/${agentId}`,
-      {
-        method: "POST",
-        headers: this.getHeaders(),
-      }
-    );
-    const data = await response.json();
-    if (!data.status)
-      throw new Error(data.message || "Failed to link agent to team");
-  }
 }
 
 // move validationapi to its own class
@@ -99,6 +92,27 @@ export class ValidationAPI extends BaseAPI {
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.message || "Failed to validate component");
+    }
+
+    return data;
+  }
+
+  async testComponent(
+    component: Component<ComponentConfig>,
+    timeout: number = 60
+  ): Promise<ComponentTestResult> {
+    const response = await fetch(`${this.getBaseUrl()}/validate/test`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        component: component,
+        timeout: timeout,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to test component");
     }
 
     return data;
