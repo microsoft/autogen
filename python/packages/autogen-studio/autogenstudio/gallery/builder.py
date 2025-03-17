@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from typing import List, Optional
 
@@ -134,6 +135,12 @@ class GalleryBuilder:
 def create_default_gallery() -> GalleryConfig:
     """Create a default gallery with all components including calculator and web surfer teams."""
 
+    # model clients require API keys to be set in the environment or passed in
+    # as arguments. For testing purposes, we set them to "test" if not already set.
+    for key in ["OPENAI_API_KEY", "AZURE_OPENAI_API_KEY", "ANTHROPIC_API_KEY"]:
+        if not os.environ.get(key):
+            os.environ[key] = "test"
+
     # url = "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/autogenstudio/gallery/default.json"
     builder = GalleryBuilder(id="gallery_default", name="Default Component Gallery")
 
@@ -174,6 +181,7 @@ def create_default_gallery() -> GalleryConfig:
         model="gpt-4o-mini",
         api_version="2024-06-01",
         azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
+        api_key="test",
     )
     builder.add_model(
         az_model_client.dump_component(),
