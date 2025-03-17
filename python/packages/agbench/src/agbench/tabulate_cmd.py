@@ -199,13 +199,25 @@ def default_tabulate(
         # Tabulate the results.
         print(tb.tabulate(df, headers="keys", tablefmt="simple"))  # type: ignore
 
+        def _check_true(x: Any) -> Any:
+            if isinstance(x, pd.Series):
+                return x.apply(lambda y: y is True)  # type: ignore
+            else:
+                return x is True
+
+        def _check_false(x: Any) -> Any:
+            if isinstance(x, pd.Series):
+                return x.apply(lambda y: y is False)  # type: ignore
+            else:
+                return x is False
+
         # Aggregate statistics for all tasks for each trials.
         print("\nSummary Statistics\n")
         score_columns = ["Trial " + str(i) + " Success" for i in range(num_instances)]
         # Count the number of successes when the value is True.
-        successes = df[score_columns].apply(lambda x: x is True).sum(axis=0)  # type: ignore
+        successes = df[score_columns].apply(_check_true).sum(axis=0)  # type: ignore
         # Count the number of failures when the value is False.
-        failures: pd.Series = df[score_columns].apply(lambda x: x is False).sum(axis=0)  # type: ignore
+        failures: pd.Series = df[score_columns].apply(_check_false).sum(axis=0)  # type: ignore
         # Count the number of missing
         missings = df[score_columns].isna().sum(axis=0)  # type: ignore
         # Count the total number of instances
@@ -218,16 +230,24 @@ def default_tabulate(
         # Calculate the average time of non-null values
         avg_times = df[time_columns].mean(axis=0, skipna=True)  # type: ignore
 
+        def _list(series: Any) -> List[Any]:
+            # If iteraable, convert to list
+            if hasattr(series, "__iter__") and not isinstance(series, str):
+                return list(series)
+            else:
+                # If not iterable, return the series
+                return [series]
+
         # Create a per-trial summary dataframe
         trial_df = pd.DataFrame(
             {
-                "Successes": list(successes),  # type: ignore
-                "Failures": list(failures),  # type: ignore
-                "Missing": list(missings),  # type: ignore
-                "Total": list(totals),  # type: ignore
-                "Average Success Rate": list(avg_success_rates),  # type: ignore
-                "Average Time": list(avg_times),  # type: ignore
-                "Total Time": list(total_times),  # type: ignore
+                "Successes": _list(successes),  # type: ignore
+                "Failures": _list(failures),  # type: ignore
+                "Missing": _list(missings),  # type: ignore
+                "Total": _list(totals),  # type: ignore
+                "Average Success Rate": _list(avg_success_rates),  # type: ignore
+                "Average Time": _list(avg_times),  # type: ignore
+                "Total Time": _list(total_times),  # type: ignore
             },
             index=[f"Trial {i}" for i in range(num_instances)],
         )
