@@ -844,7 +844,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         cancellation_token: CancellationToken,
-    ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent, ThoughtEvent], None]:
+    ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
         """
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
         """
