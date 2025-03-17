@@ -6,7 +6,7 @@ from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import BaseChatMessage
 from autogen_core import ComponentModel
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, SecretStr
 
 
 class MessageConfig(BaseModel):
@@ -71,9 +71,7 @@ class GalleryConfig(BaseModel):
     components: GalleryComponents
 
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-        }
+        json_encoders={datetime: lambda v: v.isoformat(), SecretStr: lambda v: v.get_secret_value()}
     )
 
 
