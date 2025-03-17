@@ -27,6 +27,25 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   });
+
+  // Set active TOCtree, version elements with aria-current=page
+  document.querySelectorAll('.active').forEach(function(element) {
+      element.setAttribute('aria-current', 'page');
+  });
+
+  // Set secondary navbar (in-page nagivation) active element with aria-current=page
+  document.addEventListener("activate.bs.scrollspy", function () {
+    const navLinks = document.querySelectorAll(".bd-toc-nav a");
+
+    navLinks.forEach((navLink) => {
+      navLink.parentElement.removeAttribute('aria-current');
+    });
+
+    const activeNavLinks = document.querySelectorAll(".bd-toc-nav a.active");
+    activeNavLinks.forEach((navLink) => {
+      navLink.parentElement.setAttribute('aria-current', 'page');
+    });
+  });
 });
 
 async function copyToClipboard(button) {
