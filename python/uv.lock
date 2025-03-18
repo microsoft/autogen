@@ -807,10 +807,10 @@ source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "aiofiles" },
     { name = "alembic" },
+    { name = "anthropic" },
     { name = "autogen-agentchat" },
     { name = "autogen-core" },
     { name = "autogen-ext", extra = ["azure", "magentic-one", "openai"] },
-    { name = "azure-identity" },
     { name = "fastapi", extra = ["standard"] },
     { name = "html2text" },
     { name = "loguru" },
@@ -837,10 +837,10 @@ web = [
 requires-dist = [
     { name = "aiofiles" },
     { name = "alembic" },
+    { name = "anthropic" },
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "autogen-ext", extras = ["azure", "magentic-one", "openai"], editable = "packages/autogen-ext" },
-    { name = "azure-identity" },
     { name = "fastapi", marker = "extra == 'web'" },
     { name = "fastapi", extras = ["standard"] },
     { name = "html2text" },
