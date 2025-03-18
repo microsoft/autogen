@@ -1,12 +1,12 @@
 
 from autogen_core import ComponentBase, Component
-from abc import ABC, abstractmethod
+from typing import Protocol
+from abc import ABC
 from pydantic import BaseModel
 
-
-class ToolServer(ABC, ComponentBase[BaseModel]):
-    component_type = "tool_server"
-
-    @abstractmethod
+class ToolServerDiscovery(Protocol):
     async def discover_tools(self) -> list[Component]:
         ...
+
+class ToolServer(ABC, ToolServerDiscovery, ComponentBase[BaseModel]):
+    component_type = "tool_server"
