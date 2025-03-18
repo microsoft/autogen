@@ -1,30 +1,10 @@
-from typing import Dict, Literal
-
-from autogen_ext.tools.mcp._config import SseServerParams, StdioServerParams
-from autogen_ext.tools.mcp._factory import mcp_server_tools
+from typing import Dict
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 
 from ...datamodel import Tool
 from ..deps import get_db
 
 router = APIRouter()
-
-
-class McpToolParams(BaseModel):
-    type: Literal["stdio", "sse"]
-    server_params: SseServerParams | StdioServerParams
-
-
-@router.post("/discover")
-async def resolve_mcp_tool(params: McpToolParams):
-    try:
-        tools = await mcp_server_tools(params.server_params)
-        if not tools:
-            raise HTTPException(status_code=400, detail="Failed to retrieve tools")
-        return [tool.dump_component() for tool in tools]
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/")
@@ -53,7 +33,7 @@ async def create_tool(tool: Tool, db=Depends(get_db)) -> Dict:
 async def create_tools(tools: list[Tool], db=Depends(get_db)) -> Dict:
     for tool in tools:
         db.upsert(tool)
-    return {"status": True, "message": "Tools created successfully"}
+    return {"status": True, "data": tools}
 
 
 @router.delete("/{tool_id}")

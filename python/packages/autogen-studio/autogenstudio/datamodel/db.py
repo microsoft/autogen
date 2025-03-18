@@ -133,8 +133,25 @@ class Tool(SQLModel, table=True):
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
     component: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
-    user_id: Optional[str] = None
 
+    server_id: Optional[int] = Field(default=None, foreign_key="toolserver.id", index=True)
+
+class ToolServer(SQLModel, table=True):
+    """Represents a tool server that provides tools"""
+
+    __table_args__ = {"sqlite_autoincrement": True}
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=datetime.now, sa_column=Column(DateTime(timezone=True), server_default=func.now())
+    )
+    updated_at: datetime = Field(
+        default_factory=datetime.now, sa_column=Column(DateTime(timezone=True), onupdate=func.now())
+    )
+    user_id: Optional[str] = None
+    last_connected: Optional[datetime] = None
+    version: Optional[str] = "0.0.1"
+    component: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
 
 class Gallery(SQLModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
