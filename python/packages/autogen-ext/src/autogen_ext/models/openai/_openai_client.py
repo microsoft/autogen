@@ -445,7 +445,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     raise ValueError("Model does not support structured output.")
                 warnings.warn(
                     "Using response_format to specify the BaseModel for structured output type will be deprecated. "
-                    "Use json_output instead.",
+                    "Use json_output in create and create_stream instead.",
                     DeprecationWarning,
                     stacklevel=2,
                 )

@@ -710,7 +710,7 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
     # Test that a warning will be raised if response_format is set to a pydantic model.
     with pytest.warns(
         DeprecationWarning,
-        match="Using response_format to specify the BaseModel structured output type will be deprecated.",
+        match="Using response_format to specify the BaseModel for structured output type will be deprecated.",
     ):
         create_result = await model_client.create(
             messages=[UserMessage(content="I am happy.", source="user")],
