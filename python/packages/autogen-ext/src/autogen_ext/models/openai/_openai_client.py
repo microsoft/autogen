@@ -444,7 +444,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 if self.model_info["structured_output"] is False:
                     raise ValueError("Model does not support structured output.")
                 warnings.warn(
-                    "Using response_format to specify structured output type will be deprecated. "
+                    "Using response_format to specify the BaseModel for structured output type will be deprecated. "
                     "Use json_output instead.",
                     DeprecationWarning,
                     stacklevel=2,
@@ -452,6 +452,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 response_format_value = value
                 # Remove response_format from create_args to prevent passing it twice.
                 del create_args["response_format"]
+            # In all other cases when response_format is set to something else, we will
+            # use the regular client.
 
         if json_output is not None:
             if self.model_info["json_output"] is False and json_output is True:
