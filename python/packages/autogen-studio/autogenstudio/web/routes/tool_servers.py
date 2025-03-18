@@ -6,8 +6,6 @@ from ...datamodel import ToolServer, Tool
 from ..deps import get_db
 from ...toolservermanager import ToolServerManager
 
-from autogen_ext.tool_servers import StdioMcpToolServer, StdioMcpToolServerConfig
-
 router = APIRouter()
 
 @router.get("/")
