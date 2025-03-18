@@ -1110,7 +1110,40 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         max_tokens (optional, int):
         n (optional, int):
         presence_penalty (optional, float):
-        response_format (optional, literal["json_object", "text"] | pydantic.BaseModel):
+        response_format (optional, Dict[str, Any]): the format of the response. Possible options are:
+
+            .. code-block:: python
+
+                # Text response, this is the default.
+                {"type": "text"}
+
+            .. code-block:: python
+
+                # JSON response, make sure to instruct the model to return JSON.
+                {"type": "json_object"}
+
+            .. code-block:: python
+
+                # Structured output response, with a pre-defined JSON schema.
+                {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "name of the schema, must be an identifier.",
+                        "description": "description for the model.",
+                        # You can convert a Pydantic (v2) model to JSON schema
+                        # using the `model_json_schema()` method.
+                        "schema": "<the JSON schema itself>",
+                        # Whether to enable strict schema adherence when
+                        # generating the output. If set to true, the model will
+                        # always follow the exact schema defined in the
+                        # `schema` field. Only a subset of JSON Schema is
+                        # supported when `strict` is `true`.
+                        # To learn more, read
+                        # https://platform.openai.com/docs/guides/structured-outputs.
+                        "strict": False,  # or True
+                    },
+                }
+
         seed (optional, int):
         stop (optional, str | List[str]):
         temperature (optional, float):
@@ -1393,7 +1426,40 @@ class AzureOpenAIChatCompletionClient(
         max_tokens (optional, int):
         n (optional, int):
         presence_penalty (optional, float):
-        response_format (optional, literal["json_object", "text"]):
+        response_format (optional, Dict[str, Any]): the format of the response. Possible options are:
+
+            .. code-block:: python
+
+                # Text response, this is the default.
+                {"type": "text"}
+
+            .. code-block:: python
+
+                # JSON response, make sure to instruct the model to return JSON.
+                {"type": "json_object"}
+
+            .. code-block:: python
+
+                # Structured output response, with a pre-defined JSON schema.
+                {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "name of the schema, must be an identifier.",
+                        "description": "description for the model.",
+                        # You can convert a Pydantic (v2) model to JSON schema
+                        # using the `model_json_schema()` method.
+                        "schema": "<the JSON schema itself>",
+                        # Whether to enable strict schema adherence when
+                        # generating the output. If set to true, the model will
+                        # always follow the exact schema defined in the
+                        # `schema` field. Only a subset of JSON Schema is
+                        # supported when `strict` is `true`.
+                        # To learn more, read
+                        # https://platform.openai.com/docs/guides/structured-outputs.
+                        "strict": False,  # or True
+                    },
+                }
+
         seed (optional, int):
         stop (optional, str | List[str]):
         temperature (optional, float):
