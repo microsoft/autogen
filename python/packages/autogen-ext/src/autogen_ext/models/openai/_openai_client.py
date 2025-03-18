@@ -671,19 +671,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
-        """
-        Creates an AsyncGenerator that will yield a  stream of chat completions based on the provided messages and tools.
+        """Create a stream of string chunks from the model ending with a :class:`~autogen_core.models.CreateResult`.
 
-        Args:
-            messages (Sequence[LLMMessage]): A sequence of messages to be processed.
-            tools (Sequence[Tool | ToolSchema], optional): A sequence of tools to be used in the completion. Defaults to `[]`.
-            json_output (Optional[bool | type[BaseModel]], optional): If True, the output will be in JSON format. If a Pydantic model class, the output will be in that format. Defaults to None.
-            extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
-            cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
-            max_consecutive_empty_chunk_tolerance (int): [Deprecated] This parameter is deprecated, empty chunks will be skipped.
-
-        Yields:
-            AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
+        Extends :meth:`autogen_core.models.ChatCompletionClient.create_stream` to support OpenAI API.
 
         In streaming, the default behaviour is not return token usage counts.
         See: `OpenAI API reference for possible args <https://platform.openai.com/docs/api-reference/chat/create>`_.
@@ -702,6 +692,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             - `frequency_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on their existing frequency in the text so far, decreasing the likelihood of repeated phrases.
             - `presence_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on whether they appear in the text so far, encouraging the model to talk about new topics.
         """
+
         create_params = self._process_create_args(
             messages,
             tools,
