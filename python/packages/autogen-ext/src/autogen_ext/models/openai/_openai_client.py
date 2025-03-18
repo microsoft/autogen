@@ -1144,6 +1144,13 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                     },
                 }
 
+            It is recommended to use the `json_output` parameter in
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create` or
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create_stream`
+            methods instead of `response_format` for structured output.
+            The `json_output` parameter is more flexible and allows you to
+            specify a Pydantic model class directly.
+
         seed (optional, int):
         stop (optional, str | List[str]):
         temperature (optional, float):
@@ -1275,10 +1282,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
             async def main() -> None:
                 # Create an OpenAIChatCompletionClient instance.
-                model_client = OpenAIChatCompletionClient(
-                    model="gpt-4o-mini",
-                    response_format=AgentResponse,  # type: ignore
-                )
+                model_client = OpenAIChatCompletionClient(model="gpt-4o-mini")
 
                 # Generate a response using the tool.
                 response1 = await model_client.create(
@@ -1302,6 +1306,8 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                             content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False, name="sentiment_analysis")]
                         ),
                     ],
+                    # Use the structured output format.
+                    json_output=AgentResponse,
                 )
                 print(response2.content)
                 # Should be a structured output.
@@ -1459,6 +1465,13 @@ class AzureOpenAIChatCompletionClient(
                         "strict": False,  # or True
                     },
                 }
+
+            It is recommended to use the `json_output` parameter in
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create` or
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create_stream`
+            methods instead of `response_format` for structured output.
+            The `json_output` parameter is more flexible and allows you to
+            specify a Pydantic model class directly.
 
         seed (optional, int):
         stop (optional, str | List[str]):
