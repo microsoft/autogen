@@ -52,7 +52,7 @@ from openai.types.beta.file_search_tool_param import FileSearchToolParam
 from openai.types.beta.function_tool_param import FunctionToolParam
 from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInterpreter
 from openai.types.beta.threads import Message, MessageDeleted, Run
-from openai.types.beta.vector_store import VectorStore
+from openai.types.vector_store import VectorStore
 from openai.types.shared_params.function_definition import FunctionDefinition
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
