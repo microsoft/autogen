@@ -1112,17 +1112,17 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         presence_penalty (optional, float):
         response_format (optional, Dict[str, Any]): the format of the response. Possible options are:
 
-            .. code-block:: python
+            .. code-block:: text
 
                 # Text response, this is the default.
                 {"type": "text"}
 
-            .. code-block:: python
+            .. code-block:: text
 
                 # JSON response, make sure to instruct the model to return JSON.
                 {"type": "json_object"}
 
-            .. code-block:: python
+            .. code-block:: text
 
                 # Structured output response, with a pre-defined JSON schema.
                 {
@@ -1434,17 +1434,17 @@ class AzureOpenAIChatCompletionClient(
         presence_penalty (optional, float):
         response_format (optional, Dict[str, Any]): the format of the response. Possible options are:
 
-            .. code-block:: python
+            .. code-block:: text
 
                 # Text response, this is the default.
                 {"type": "text"}
 
-            .. code-block:: python
+            .. code-block:: text
 
                 # JSON response, make sure to instruct the model to return JSON.
                 {"type": "json_object"}
 
-            .. code-block:: python
+            .. code-block:: text
 
                 # Structured output response, with a pre-defined JSON schema.
                 {
