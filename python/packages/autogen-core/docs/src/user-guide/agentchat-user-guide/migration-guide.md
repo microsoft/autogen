@@ -1003,7 +1003,7 @@ async def main() -> None:
         json.dump(state, f)
 
     # Create a new team with the same participants configuration.
-    group_chat = create_team()
+    group_chat = create_team(model_client)
 
     # Load the state of the group chat and all participants.
     with open("group_chat_state.json", "r") as f:
