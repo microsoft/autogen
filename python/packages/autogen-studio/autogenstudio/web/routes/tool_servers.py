@@ -101,20 +101,28 @@ async def refresh_server_tools(server_id: int, user_id: str, db=Depends(get_db))
             component_data = tool_component.dump_component().model_dump()
             
             # Check if the tool already exists based on id/name
-            tool_id = component_data.get("id", None)
-            tool_name = component_data.get("name", None)
+            component_config = component_data.get("config", {})
+            tool_config = component_config.get("tool", {})
+            tool_name = tool_config.get("name", None)
             
-            existing_tool_filters = {
+            # First get all tools for this server and user
+            existing_tool_response = db.get(Tool, filters={
                 "server_id": server_id,
                 "user_id": user_id
-            }
+            })
             
-            if tool_id:
-                existing_tool_filters["component.id"] = tool_id
-            elif tool_name:
-                existing_tool_filters["component.name"] = tool_name
+            matching_tools = []
+            if existing_tool_response.status and existing_tool_response.data:
+                for tool in existing_tool_response.data:
+                    try:
+                        tool_comp = tool.component
+                        if (tool_comp.get("config", {}).get("tool", {}).get("name") == tool_name):
+                            matching_tools.append(tool)
+                    except Exception as e:
+                        print(f"Error comparing tool names: {e}")
             
-            existing_tool_response = db.get(Tool, filters=existing_tool_filters)
+            # Update existing_tool_response to use our filtered results
+            existing_tool_response.data = matching_tools
             
             if existing_tool_response.status and existing_tool_response.data:
                 # Tool exists, update it
@@ -129,6 +137,7 @@ async def refresh_server_tools(server_id: int, user_id: str, db=Depends(get_db))
                     server_id=server_id,
                     component=component_data
                 )
+                # print(f"Creating new tool: {new_tool}")
                 db.upsert(new_tool)
                 created_count += 1
         
