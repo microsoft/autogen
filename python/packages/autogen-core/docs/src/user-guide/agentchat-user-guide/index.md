@@ -129,6 +129,7 @@ magentic-one
 memory
 logging
 serialize-components
+tracing
 
 ```
 
