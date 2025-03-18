@@ -134,10 +134,10 @@ class Tool(SQLModel, table=True):
     version: Optional[str] = "0.0.1"
     component: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
 
-    server_id: Optional[int] = Field(default=None, foreign_key="mcpserver.id", index=True)
+    server_id: Optional[int] = Field(default=None, foreign_key="toolserver.id", index=True)
 
-class McpServer(SQLModel, table=True):
-    """Represents an MCP server that provides tools"""
+class ToolServer(SQLModel, table=True):
+    """Represents a tool server that provides tools"""
 
     __table_args__ = {"sqlite_autoincrement": True}
 

@@ -13,7 +13,7 @@ from ..version import VERSION
 from .config import settings
 from .deps import cleanup_managers, init_managers
 from .initialization import AppInitializer
-from .routes import gallery, runs, sessions, settingsroute, teams, tools, validation, ws, mcp
+from .routes import gallery, runs, sessions, settingsroute, teams, tools, validation, ws, tool_servers
 
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -136,9 +136,9 @@ api.include_router(
 )
 
 api.include_router(
-    mcp.router,
-    prefix="/mcp",
-    tags=["mcp"],
+    tool_servers.router,
+    prefix="/toolservers",
+    tags=["tool servers"],
     responses={404: {"description": "Not found"}},
 )
 

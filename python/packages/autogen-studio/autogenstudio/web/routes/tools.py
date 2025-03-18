@@ -1,9 +1,5 @@
-from typing import Dict, Literal
-
-from autogen_ext.tools.mcp._config import SseServerParams, StdioServerParams
-from autogen_ext.tools.mcp._factory import mcp_server_tools
+from typing import Dict
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 
 from ...datamodel import Tool
 from ..deps import get_db
