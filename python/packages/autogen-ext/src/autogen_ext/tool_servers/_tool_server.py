@@ -4,9 +4,9 @@ from typing import Protocol
 from abc import ABC
 from pydantic import BaseModel
 
-class ToolServerDiscovery(Protocol):
+class ToolDiscovery(Protocol):
     async def discover_tools(self) -> list[Component]:
         ...
 
-class ToolServer(ABC, ToolServerDiscovery, ComponentBase[BaseModel]):
+class ToolServer(ABC, ToolDiscovery, ComponentBase[BaseModel]):
     component_type = "tool_server"

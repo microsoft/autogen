@@ -2,16 +2,18 @@ from typing import Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from ...datamodel import ToolServer, Tool
-from ..deps import get_db
+from ...datamodel import Tool, ToolServer
 from ...toolservermanager import ToolServerManager
+from ..deps import get_db
 
 router = APIRouter()
+
 
 @router.get("/")
 async def list_servers(user_id: str, db=Depends(get_db)) -> Dict:
     response = db.get(ToolServer, filters={"user_id": user_id})
     return {"status": True, "data": response.data}
+
 
 @router.get("/{server_id}")
 async def get_server(server_id: int, user_id: str, db=Depends(get_db)) -> Dict:
@@ -71,6 +73,7 @@ async def get_server_tools(server_id: int, user_id: str, db=Depends(get_db)) -> 
     tools_response = db.get(Tool, filters={"server_id": server_id, "user_id": user_id})
     return {"status": True, "data": tools_response.data}
 
+
 @router.post("/{server_id}/refresh")
 async def refresh_server_tools(server_id: int, user_id: str, db=Depends(get_db)) -> Dict:
     """Refresh tools for an existing server"""
@@ -88,40 +91,38 @@ async def refresh_server_tools(server_id: int, user_id: str, db=Depends(get_db))
 
         # Update server last_connected timestamp
         from datetime import datetime
+
         server.last_connected = datetime.now()
         db.upsert(server)
 
         updated_count = 0
         created_count = 0
-        
+
         for tool_component in tools_components:
             # Generate a unique identifier for the tool from its component
             component_data = tool_component.dump_component().model_dump()
-            
+
             # Check if the tool already exists based on id/name
             component_config = component_data.get("config", {})
             tool_config = component_config.get("tool", {})
             tool_name = tool_config.get("name", None)
-            
+
             # First get all tools for this server and user
-            existing_tool_response = db.get(Tool, filters={
-                "server_id": server_id,
-                "user_id": user_id
-            })
-            
+            existing_tool_response = db.get(Tool, filters={"server_id": server_id, "user_id": user_id})
+
             matching_tools = []
             if existing_tool_response.status and existing_tool_response.data:
                 for tool in existing_tool_response.data:
                     try:
                         tool_comp = tool.component
-                        if (tool_comp.get("config", {}).get("tool", {}).get("name") == tool_name):
+                        if tool_comp.get("config", {}).get("tool", {}).get("name") == tool_name:
                             matching_tools.append(tool)
-                    except Exception as e:
-                        print(f"Error comparing tool names: {e}")
-            
+                    except Exception:
+                        pass
+
             # Update existing_tool_response to use our filtered results
             existing_tool_response.data = matching_tools
-            
+
             if existing_tool_response.status and existing_tool_response.data:
                 # Tool exists, update it
                 existing_tool = existing_tool_response.data[0]
@@ -130,23 +131,19 @@ async def refresh_server_tools(server_id: int, user_id: str, db=Depends(get_db))
                 updated_count += 1
             else:
                 # Tool does not exist, create new
-                new_tool = Tool(
-                    user_id=user_id,
-                    server_id=server_id,
-                    component=component_data
-                )
+                new_tool = Tool(user_id=user_id, server_id=server_id, component=component_data)
                 # print(f"Creating new tool: {new_tool}")
                 db.upsert(new_tool)
                 created_count += 1
-        
+
         return {
-            "status": True, 
-            "message": f"Server refreshed successfully.",
+            "status": True,
+            "message": "Server refreshed successfully.",
             "data": {
                 "total_count": len(tools_components),
                 "updated_count": updated_count,
-                "created_count": created_count
-            }
+                "created_count": created_count,
+            },
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to refresh server: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to refresh server: {str(e)}") from e

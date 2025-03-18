@@ -1,7 +1,8 @@
-
 from typing import Union
-from autogen_core import ComponentModel, Component
+
+from autogen_core import Component, ComponentModel
 from autogen_ext.tool_servers import ToolServer
+
 
 class ToolServerManager:
     """ToolServerManager manages tool servers and tool discovery from those servers."""
@@ -23,7 +24,7 @@ class ToolServerManager:
             server = ToolServer.load_component(config)
             return server
         except Exception as e:
-            raise Exception(f"Failed to create tool server: {e}")
+            raise Exception(f"Failed to create tool server: {e}") from e
 
     async def discover_tools(self, tool_server_config: Union[dict, ComponentModel]) -> list[Component]:
         """Discover tools from the given tool server."""
@@ -31,4 +32,4 @@ class ToolServerManager:
             server = await self._create_tool_server(tool_server_config)
             return await server.discover_tools()
         except Exception as e:
-            raise Exception(f"Failed to discover tools: {e}")
+            raise Exception(f"Failed to discover tools: {e}") from e
