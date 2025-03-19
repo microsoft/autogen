@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import re
+import warnings
+from enum import Enum
 from typing import Any, Callable, Dict, List, Mapping, Sequence
 
 from autogen_core import AgentRuntime, Component, ComponentModel
@@ -177,10 +179,34 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             # Many other models need a UserMessage to respond to
             select_speaker_messages = [UserMessage(content=select_speaker_prompt, source="user")]
 
+        agent_name_map: Dict[str, str] = {agent.upper(): agent for agent in participants}
+        AgentName = Enum("AgentName", agent_name_map)  # type: ignore
+
+        class SpeakerSelectionFormat(BaseModel):
+            agent_name: AgentName
+
         num_attempts = 0
         while num_attempts < max_attempts:
             num_attempts += 1
-            response = await self._model_client.create(messages=select_speaker_messages)
+            if (
+                "structured_output" in self._model_client.model_info
+                and self._model_client.model_info["structured_output"]
+            ):
+                response = await self._model_client.create(
+                    messages=select_speaker_messages, json_output=SpeakerSelectionFormat
+                )
+                assert isinstance(response.content, str)
+                selection = SpeakerSelectionFormat.model_validate_json(response.content)
+                return str(selection.agent_name.value)
+            else:
+                warnings.warn(
+                    "The 'structured_output' key is missing from model_info. "
+                    "To enable structured outputs for better speaker selection, "
+                    "please update your model configuration if supported.",
+                    stacklevel=2,
+                )
+                response = await self._model_client.create(messages=select_speaker_messages)
+
             assert isinstance(response.content, str)
             select_speaker_messages.append(AssistantMessage(content=response.content, source="selector"))
             # NOTE: we use all participant names to check for mentions, even if the previous speaker is not allowed.
