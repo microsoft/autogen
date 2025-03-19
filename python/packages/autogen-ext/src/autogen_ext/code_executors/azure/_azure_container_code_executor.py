@@ -131,7 +131,7 @@ $functions"""
     # TODO: expiration?
     def _ensure_access_token(self) -> None:
         if not self._access_token:
-            scope = "https://dynamicsessions.io"
+            scope = "https://dynamicsessions.io/.default"
             self._access_token = self._credential.get_token(scope).token
 
     def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
