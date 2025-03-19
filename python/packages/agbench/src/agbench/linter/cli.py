@@ -38,9 +38,16 @@ def code_log(path: str) -> Optional[CodedDocument]:
 
 def print_coded_results(input_path: str, coded_doc: CodedDocument) -> None:
     num_errors: int = 0
+    # define map from severity to ANSI color
+    severity_color_map = {2: "\033[31m", 1: "\033[33m", 0: "\033[32m"}
 
-    for code in coded_doc.codes:
-        print(f"\033[31mCategory: {code.name}\033[0m: {code.definition}")
+    # sort the codes by severity with the most severe first
+    sorted_codes = sorted(coded_doc.codes, key=lambda x: x.severity, reverse=True)
+
+    for code in sorted_codes:
+        # select color based on severity, default to white if missing
+        color = severity_color_map.get(code.severity, "\033[37m")
+        print(f"{color}[{code.severity}]: {code.name}\033[0m: {code.definition}")
         for example in code.examples:
             print(f"\033[1m{input_path}\033[0m:{example.line}" f":{example.line_end}\t{example.reason}")
             num_errors += 1

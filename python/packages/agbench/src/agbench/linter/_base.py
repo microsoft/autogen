@@ -2,12 +2,12 @@ import json
 import hashlib
 import re
 from typing import Protocol, List, Set, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Document(BaseModel):
-    text: str
-    name: Optional[str] = None
+    text: str = Field(..., description="Text content of the document.")
+    name: Optional[str] = Field(None, description="Optional name of the document.")
 
     def __hash__(self) -> int:
         return int(hashlib.md5(self.text.encode("utf-8")).hexdigest(), 16)
@@ -16,35 +16,35 @@ class Document(BaseModel):
 class CodeExample(BaseModel):
     """
     Represents an example associated with a code.
-
-    Attributes:
-        line (int): The line number in the file where the code example starts.
-        line_end (int): The line number in the file  where the code example ends.
-        reason (str): A description explaining the purpose or context of the
-        code example.
     """
 
-    line: int
-    line_end: int
-    reason: str
+    reason: str = Field(
+        ..., description="A two sentence, human-readable explanation why this example and lines relate to the code."
+    )
+    line: int = Field(..., description="The most important line number where a human would say the error is.")
+    line_end: int = Field(..., description="Line number where the issue ends.")
 
 
 class Code(BaseModel):
-    name: str
-    definition: str
-    examples: List[CodeExample]  # changed from List[str]
-    id: Optional[int] = None
-    merged_from: Optional[List[int]] = None
+    name: str = Field(..., description="Normalized unique name for the code (lowercase, hyphen separated).")
+    definition: str = Field(..., description="Definition of the code.")
+    examples: List[CodeExample] = Field(..., description="List of code examples associated with the code.")
+    severity: int = Field(
+        ..., description="Severity rating of the error identified using the code. Valid values: 0, 1, 2."
+    )
+    id: Optional[int] = Field(None, description="Identifier computed using MD5 of name and definition.")
+    merged_from: Optional[List[int]] = Field(None, description="List of code ids from which this code is merged.")
 
     def __init__(
         self,
         name: str,
         definition: str,
         examples: List[CodeExample],
+        severity: int,
         id: Optional[int] = None,
         merged_from: Optional[List[int]] = None,
     ):
-        super().__init__(name=name, definition=definition, examples=examples)
+        super().__init__(name=name, definition=definition, examples=examples, severity=severity)
         self.name = re.sub(r"[^a-z-]", "", self.name.lower().replace(" ", "-"))
         self.id = int(hashlib.md5((self.name + self.definition).encode("utf-8")).hexdigest(), 16)
         self.merged_from = None
