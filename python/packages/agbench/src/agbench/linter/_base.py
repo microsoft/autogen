@@ -21,6 +21,9 @@ class CodeExample(BaseModel):
     reason: str = Field(
         ..., description="A two sentence, human-readable explanation why this example and lines relate to the code."
     )
+    line_content: str = Field(
+        ..., description="The exact content of the line where the error is found. This should be a single line."
+    )
     line: int = Field(..., description="The most important line number where a human would say the error is.")
     line_end: int = Field(..., description="Line number where the issue ends.")
 
@@ -28,7 +31,9 @@ class CodeExample(BaseModel):
 class Code(BaseModel):
     name: str = Field(..., description="Normalized unique name for the code (lowercase, hyphen separated).")
     definition: str = Field(..., description="Definition of the code.")
-    examples: List[CodeExample] = Field(..., description="List of code examples associated with the code.")
+    examples: List[CodeExample] = Field(
+        ..., description="List of code examples associated with the code. Cannot be empty."
+    )
     severity: int = Field(
         ..., description="Severity rating of the error identified using the code. Valid values: 0, 1, 2."
     )

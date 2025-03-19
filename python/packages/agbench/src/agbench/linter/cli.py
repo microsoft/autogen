@@ -1,6 +1,7 @@
 import os
 import argparse
 from typing import List, Sequence, Optional
+from openai import OpenAI
 from ._base import Document, CodedDocument
 from .coders.oai_coder import OAIQualitativeCoder
 
@@ -56,11 +57,28 @@ def print_coded_results(input_path: str, coded_doc: CodedDocument) -> None:
     print("\n")
 
 
+def get_log_summary(input_path: str) -> str:
+    """
+    Generate a single sentence of summary for the given log file.
+    """
+    client = OpenAI()
+
+    text = load_log_file(input_path, prepend_numbers=False).text
+
+    response = client.responses.create(
+        model="gpt-4o",
+        input=f"Summarize the following log file in one sentence.\n{text}",
+    )
+    return response.output_text
+
+
 def code_command(input_path: str) -> None:
     """
     Process the given input path by coding log files.
     """
     if os.path.isfile(input_path):
+        print(f"Processing file: {input_path}")
+        print(get_log_summary(input_path))
         coded_doc = code_log(input_path)
         if coded_doc is None:
             raise ValueError("Failed to code the document.")
