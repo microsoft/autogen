@@ -1,5 +1,6 @@
 import { Team, Component, ComponentConfig } from "../../types/datamodel";
-import { getServerUrl } from "../../utils";
+import { BaseAPI } from "../../utils/baseapi";
+import { getServerUrl } from "../../utils/utils";
 
 interface ValidationError {
   field: string;
@@ -13,17 +14,14 @@ export interface ValidationResponse {
   warnings: ValidationError[];
 }
 
-export class TeamAPI {
-  private getBaseUrl(): string {
-    return getServerUrl();
-  }
+export interface ComponentTestResult {
+  status: boolean;
+  message: string;
+  data?: any;
+  logs: string[];
+}
 
-  private getHeaders(): HeadersInit {
-    return {
-      "Content-Type": "application/json",
-    };
-  }
-
+export class TeamAPI extends BaseAPI {
   async listTeams(userId: string): Promise<Team[]> {
     const response = await fetch(
       `${this.getBaseUrl()}/teams/?user_id=${userId}`,
@@ -75,35 +73,11 @@ export class TeamAPI {
     const data = await response.json();
     if (!data.status) throw new Error(data.message || "Failed to delete team");
   }
-
-  // Team-Agent Link Management
-  async linkAgent(teamId: number, agentId: number): Promise<void> {
-    const response = await fetch(
-      `${this.getBaseUrl()}/teams/${teamId}/agents/${agentId}`,
-      {
-        method: "POST",
-        headers: this.getHeaders(),
-      }
-    );
-    const data = await response.json();
-    if (!data.status)
-      throw new Error(data.message || "Failed to link agent to team");
-  }
 }
 
 // move validationapi to its own class
 
-export class ValidationAPI {
-  private getBaseUrl(): string {
-    return getServerUrl();
-  }
-
-  private getHeaders(): HeadersInit {
-    return {
-      "Content-Type": "application/json",
-    };
-  }
-
+export class ValidationAPI extends BaseAPI {
   async validateComponent(
     component: Component<ComponentConfig>
   ): Promise<ValidationResponse> {
@@ -118,6 +92,27 @@ export class ValidationAPI {
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.message || "Failed to validate component");
+    }
+
+    return data;
+  }
+
+  async testComponent(
+    component: Component<ComponentConfig>,
+    timeout: number = 60
+  ): Promise<ComponentTestResult> {
+    const response = await fetch(`${this.getBaseUrl()}/validate/test`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        component: component,
+        timeout: timeout,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to test component");
     }
 
     return data;

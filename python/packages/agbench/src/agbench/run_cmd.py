@@ -284,14 +284,8 @@ def get_scenario_env(token_provider: Optional[Callable[[], str]] = None, env_fil
 
     ## Support Azure auth tokens
     azure_openai_ad_token = os.environ.get("AZURE_OPENAI_AD_TOKEN")
-    if not azure_openai_ad_token and token_provider:
+    if azure_openai_ad_token is None and token_provider is not None:
         azure_openai_ad_token = token_provider()
-    if not azure_openai_ad_token:
-        azure_token_provider = get_azure_token_provider()
-        if azure_token_provider:
-            azure_openai_ad_token = azure_token_provider()
-        else:
-            logging.warning("No Azure AD token provider found. Azure AD token not set.")
     if azure_openai_ad_token is not None and len(azure_openai_ad_token.strip()) > 0:
         env["AZURE_OPENAI_AD_TOKEN"] = azure_openai_ad_token
 
@@ -426,13 +420,17 @@ fi
 # Run the scenario
 pip install -r requirements.txt
 echo SCENARIO.PY STARTING !#!#
+start_time=$(date +%s)
 timeout --preserve-status --kill-after {timeout  + 30}s {timeout}s python scenario.py
+end_time=$(date +%s)
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
     echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
 else
     echo SCENARIO.PY COMPLETE !#!#
 fi
+elapsed_time=$((end_time - start_time))
+echo "SCENARIO.PY RUNTIME: $elapsed_time !#!#"
 
 # Clean up
 if [ -d .cache ] ; then
@@ -543,13 +541,17 @@ fi
 # Run the scenario
 pip install -r requirements.txt
 echo SCENARIO.PY STARTING !#!#
+start_time=$(date +%s)
 timeout --preserve-status --kill-after {timeout  + 30}s {timeout}s python scenario.py
+end_time=$(date +%s)
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
     echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
 else
     echo SCENARIO.PY COMPLETE !#!#
 fi
+elapsed_time=$((end_time - start_time))
+echo "SCENARIO.PY RUNTIME: $elapsed_time !#!#"
 
 # Clean up
 if [ -d .cache ] ; then
@@ -613,6 +615,7 @@ echo RUN.SH COMPLETE !#!#
         auto_remove=True,
         # Type hint of docker is wrong here
         volumes=volumes,  # type: ignore
+        network="host",  # Use the host network to avoid issues with localhost.
     )
 
     # Read the logs in a streaming fashion. Keep an eye on the time to make sure we don't need to stop.
@@ -880,6 +883,12 @@ def run_cli(args: Sequence[str]) -> None:
         default=1,
     )
     parser.add_argument(
+        "-a",
+        "--azure",
+        action="store_true",
+        help="Use Azure identity to pass an AZURE_OPENAI_AD_TOKEN to the task environment. This is necessary when using Azure-hosted OpenAI models rather than those hosted by OpenAI.",
+    )
+    parser.add_argument(
         "-e",
         "--env",
         type=str,
@@ -930,9 +939,6 @@ def run_cli(args: Sequence[str]) -> None:
         if IS_WIN32:
             sys.exit("Running scenarios with --native is not supported in Windows. Exiting.")
 
-        if parsed_args.requirements is not None:
-            sys.exit("--requirements is not compatible with --native. Exiting.")
-
         sys.stderr.write(
             "WARNING: Running natively, without Docker, not only poses the usual risks of executing arbitrary AI generated code on your machine, it also makes it impossible to ensure that each test starts from a known and consistent set of initial conditions. For example, if the agents spend time debugging and installing Python libraries to solve the task, then those libraries will be available to all other runs. In other words, earlier runs can influence later runs, leading to many confounds in testing.\n\n"
         )
@@ -966,7 +972,9 @@ def run_cli(args: Sequence[str]) -> None:
                 )
 
     # Get the Azure bearer token generator if a token wasn't provided and there's any evidence of using Azure
-    azure_token_provider = get_azure_token_provider()
+    azure_token_provider = None
+    if parsed_args.azure:
+        azure_token_provider = get_azure_token_provider()
 
     # Run the scenario
     if parsed_args.parallel > 1:

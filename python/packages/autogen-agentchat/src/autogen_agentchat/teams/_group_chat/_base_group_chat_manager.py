@@ -9,8 +9,10 @@ from ...messages import AgentEvent, ChatMessage, StopMessage
 from ._events import (
     GroupChatAgentResponse,
     GroupChatMessage,
+    GroupChatPause,
     GroupChatRequestPublish,
     GroupChatReset,
+    GroupChatResume,
     GroupChatStart,
     GroupChatTermination,
 )
@@ -41,7 +43,15 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
     ):
-        super().__init__(description="Group chat manager")
+        super().__init__(
+            description="Group chat manager",
+            sequential_message_types=[
+                GroupChatStart,
+                GroupChatAgentResponse,
+                GroupChatMessage,
+                GroupChatReset,
+            ],
+        )
         self._name = name
         self._group_topic_type = group_topic_type
         self._output_topic_type = output_topic_type
@@ -193,12 +203,24 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
 
     @event
     async def handle_group_chat_message(self, message: GroupChatMessage, ctx: MessageContext) -> None:
+        """Handle a group chat message by appending the content to its output message queue."""
         await self._output_message_queue.put(message.message)
 
     @rpc
     async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
-        # Reset the group chat manager.
+        """Reset the group chat manager. Calling :meth:`reset` to reset the group chat manager
+        and clear the message thread."""
         await self.reset()
+
+    @rpc
+    async def handle_pause(self, message: GroupChatPause, ctx: MessageContext) -> None:
+        """Pause the group chat manager. This is a no-op in the base class."""
+        pass
+
+    @rpc
+    async def handle_resume(self, message: GroupChatResume, ctx: MessageContext) -> None:
+        """Resume the group chat manager. This is a no-op in the base class."""
+        pass
 
     @abstractmethod
     async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:

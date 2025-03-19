@@ -1,11 +1,11 @@
 # /api/runs routes
 from typing import Dict
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from ...datamodel import Message, MessageConfig, Run, RunStatus, Session, Team
-from ..deps import get_db, get_team_manager, get_websocket_manager
+from ...datamodel import Message, Run, RunStatus, Session
+from ..deps import get_db
 
 router = APIRouter()
 
@@ -34,8 +34,8 @@ async def create_run(
                 session_id=request.session_id,
                 status=RunStatus.CREATED,
                 user_id=request.user_id,
-                task=None,  # Will be set when run starts
-                team_result=None,
+                task={},  # Will be set when run starts
+                team_result={},
             ),
             return_json=False,
         )

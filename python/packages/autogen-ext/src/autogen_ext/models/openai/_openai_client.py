@@ -7,6 +7,7 @@ import os
 import re
 import warnings
 from asyncio import Task
+from dataclasses import dataclass
 from typing import (
     Any,
     AsyncGenerator,
@@ -30,7 +31,7 @@ from autogen_core import (
     FunctionCall,
     Image,
 )
-from autogen_core.logging import LLMCallEvent
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -69,8 +70,13 @@ from openai.types.chat import (
 )
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
-from openai.types.shared_params import FunctionDefinition, FunctionParameters
-from pydantic import BaseModel
+from openai.types.shared_params import (
+    FunctionDefinition,
+    FunctionParameters,
+    ResponseFormatJSONObject,
+    ResponseFormatText,
+)
+from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
 from .._utils.normalize_stop_reason import normalize_stop_reason
@@ -348,6 +354,14 @@ def assert_valid_name(name: str) -> str:
     return name
 
 
+@dataclass
+class CreateParams:
+    messages: List[ChatCompletionMessageParam]
+    tools: List[ChatCompletionToolParam]
+    response_format: Optional[Type[BaseModel]]
+    create_args: Dict[str, Any]
+
+
 class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
@@ -368,7 +382,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         elif model_capabilities is not None and model_info is not None:
             raise ValueError("model_capabilities and model_info are mutually exclusive")
         elif model_capabilities is not None and model_info is None:
-            warnings.warn("model_capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "model_capabilities is deprecated, use model_info instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             info = cast(ModelInfo, model_capabilities)
             info["family"] = ModelFamily.UNKNOWN
             self._model_info = info
@@ -400,15 +418,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
         return OpenAIChatCompletionClient(**config)
 
-    async def create(
+    def _process_create_args(
         self,
         messages: Sequence[LLMMessage],
-        *,
-        tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
-        extra_create_args: Mapping[str, Any] = {},
-        cancellation_token: Optional[CancellationToken] = None,
-    ) -> CreateResult:
+        tools: Sequence[Tool | ToolSchema],
+        json_output: Optional[bool | type[BaseModel]],
+        extra_create_args: Mapping[str, Any],
+    ) -> CreateParams:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
@@ -418,23 +434,58 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        # Declare use_beta_client
-        use_beta_client: bool = False
+        # The response format value to use for the beta client.
         response_format_value: Optional[Type[BaseModel]] = None
 
         if "response_format" in create_args:
+            # Legacy support for getting beta client mode from response_format.
             value = create_args["response_format"]
-            # If value is a Pydantic model class, use the beta client
             if isinstance(value, type) and issubclass(value, BaseModel):
+                if self.model_info["structured_output"] is False:
+                    raise ValueError("Model does not support structured output.")
+                warnings.warn(
+                    "Using response_format to specify the BaseModel for structured output type will be deprecated. "
+                    "Use json_output in create and create_stream instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
                 response_format_value = value
-                use_beta_client = True
-            else:
-                # response_format_value is not a Pydantic model class
-                use_beta_client = False
-                response_format_value = None
+                # Remove response_format from create_args to prevent passing it twice.
+                del create_args["response_format"]
+            # In all other cases when response_format is set to something else, we will
+            # use the regular client.
 
-        # Remove 'response_format' from create_args to prevent passing it twice
-        create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
+        if json_output is not None:
+            if self.model_info["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output.")
+            if json_output is True:
+                # JSON mode.
+                create_args["response_format"] = ResponseFormatJSONObject(type="json_object")
+            elif json_output is False:
+                # Text mode.
+                create_args["response_format"] = ResponseFormatText(type="text")
+            elif isinstance(json_output, type) and issubclass(json_output, BaseModel):
+                if self.model_info["structured_output"] is False:
+                    raise ValueError("Model does not support structured output.")
+                if response_format_value is not None:
+                    raise ValueError(
+                        "response_format and json_output cannot be set to a Pydantic model class at the same time."
+                    )
+                # Beta client mode with Pydantic model class.
+                response_format_value = json_output
+            else:
+                raise ValueError(f"json_output must be a boolean or a Pydantic model class, got {type(json_output)}")
+
+        if response_format_value is not None and "response_format" in create_args:
+            warnings.warn(
+                "response_format is found in extra_create_args while json_output is set to a Pydantic model class. "
+                "Skipping the response_format in extra_create_args in favor of the json_output. "
+                "Structured output will be used.",
+                UserWarning,
+                stacklevel=2,
+            )
+            # If using beta client, remove response_format from create_args to prevent passing it twice
+            del create_args["response_format"]
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
@@ -444,15 +495,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
-        if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output.")
-
-            if json_output is True:
-                create_args["response_format"] = {"type": "json_object"}
-            else:
-                create_args["response_format"] = {"type": "text"}
-
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
@@ -461,67 +503,57 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
+
+        converted_tools = convert_tools(tools)
+
+        return CreateParams(
+            messages=oai_messages,
+            tools=converted_tools,
+            response_format=response_format_value,
+            create_args=create_args,
+        )
+
+    async def create(
+        self,
+        messages: Sequence[LLMMessage],
+        *,
+        tools: Sequence[Tool | ToolSchema] = [],
+        json_output: Optional[bool | type[BaseModel]] = None,
+        extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
+    ) -> CreateResult:
+        create_params = self._process_create_args(
+            messages,
+            tools,
+            json_output,
+            extra_create_args,
+        )
         future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
-        if len(tools) > 0:
-            converted_tools = convert_tools(tools)
-            if use_beta_client:
-                # Pass response_format_value if it's not None
-                if response_format_value is not None:
-                    future = asyncio.ensure_future(
-                        self._client.beta.chat.completions.parse(
-                            messages=oai_messages,
-                            tools=converted_tools,
-                            response_format=response_format_value,
-                            **create_args_no_response_format,
-                        )
-                    )
-                else:
-                    future = asyncio.ensure_future(
-                        self._client.beta.chat.completions.parse(
-                            messages=oai_messages,
-                            tools=converted_tools,
-                            **create_args_no_response_format,
-                        )
-                    )
-            else:
-                future = asyncio.ensure_future(
-                    self._client.chat.completions.create(
-                        messages=oai_messages,
-                        stream=False,
-                        tools=converted_tools,
-                        **create_args,
-                    )
+        if create_params.response_format is not None:
+            # Use beta client if response_format is not None
+            future = asyncio.ensure_future(
+                self._client.beta.chat.completions.parse(
+                    messages=create_params.messages,
+                    tools=(create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN),
+                    response_format=create_params.response_format,
+                    **create_params.create_args,
                 )
+            )
         else:
-            if use_beta_client:
-                if response_format_value is not None:
-                    future = asyncio.ensure_future(
-                        self._client.beta.chat.completions.parse(
-                            messages=oai_messages,
-                            response_format=response_format_value,
-                            **create_args_no_response_format,
-                        )
-                    )
-                else:
-                    future = asyncio.ensure_future(
-                        self._client.beta.chat.completions.parse(
-                            messages=oai_messages,
-                            **create_args_no_response_format,
-                        )
-                    )
-            else:
-                future = asyncio.ensure_future(
-                    self._client.chat.completions.create(
-                        messages=oai_messages,
-                        stream=False,
-                        **create_args,
-                    )
+            # Use the regular client
+            future = asyncio.ensure_future(
+                self._client.chat.completions.create(
+                    messages=create_params.messages,
+                    stream=False,
+                    tools=(create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN),
+                    **create_params.create_args,
                 )
+            )
 
         if cancellation_token is not None:
             cancellation_token.link_future(future)
         result: Union[ParsedChatCompletion[BaseModel], ChatCompletion] = await future
-        if use_beta_client:
+        if create_params.response_format is not None:
             result = cast(ParsedChatCompletion[Any], result)
 
         usage = RequestUsage(
@@ -532,7 +564,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         logger.info(
             LLMCallEvent(
-                messages=cast(List[Dict[str, Any]], oai_messages),
+                messages=cast(List[Dict[str, Any]], create_params.messages),
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
@@ -589,8 +621,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
             finish_reason = "tool_calls"
         else:
+            # if not tool_calls, then it is a text response and we populate the content and thought fields.
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
+            # if there is a reasoning_content field, then we populate the thought field. This is for models such as R1 - direct from deepseek api.
+            if choice.message.model_extra is not None:
+                reasoning_content = choice.message.model_extra.get("reasoning_content")
+                if reasoning_content is not None:
+                    thought = reasoning_content
 
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
         if choice.logprobs and choice.logprobs.content:
@@ -604,7 +642,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 for x in choice.logprobs.content
             ]
 
-        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+        #   This is for local R1 models.
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1 and thought is None:
             thought, content = parse_r1_content(content)
 
         response = CreateResult(
@@ -627,86 +666,39 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
-        """
-        Creates an AsyncGenerator that will yield a  stream of chat completions based on the provided messages and tools.
+        """Create a stream of string chunks from the model ending with a :class:`~autogen_core.models.CreateResult`.
 
-        Args:
-            messages (Sequence[LLMMessage]): A sequence of messages to be processed.
-            tools (Sequence[Tool | ToolSchema], optional): A sequence of tools to be used in the completion. Defaults to `[]`.
-            json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
-            extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
-            cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
-            max_consecutive_empty_chunk_tolerance (int): [Deprecated] The maximum number of consecutive empty chunks to tolerate before raising a ValueError. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0. This parameter is deprecated, empty chunks will be skipped.
+        Extends :meth:`autogen_core.models.ChatCompletionClient.create_stream` to support OpenAI API.
 
-        Yields:
-            AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
+        In streaming, the default behaviour is not return token usage counts.
+        See: `OpenAI API reference for possible args <https://platform.openai.com/docs/api-reference/chat/create>`_.
 
-        In streaming, the default behaviour is not return token usage counts. See: [OpenAI API reference for possible args](https://platform.openai.com/docs/api-reference/chat/create).
-        However `extra_create_args={"stream_options": {"include_usage": True}}` will (if supported by the accessed API)
-        return a final chunk with usage set to a RequestUsage object having prompt and completion token counts,
-        all preceding chunks will have usage as None. See: [stream_options](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream_options).
+        You can set `extra_create_args={"stream_options": {"include_usage": True}}`
+        (if supported by the accessed API) to
+        return a final chunk with usage set to a :class:`~autogen_core.models.RequestUsage` object
+        with prompt and completion token counts,
+        all preceding chunks will have usage as `None`.
+        See: `OpenAI API reference for stream options <https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream_options>`_.
 
-        Other examples of OPENAI supported arguments that can be included in `extra_create_args`:
+        Other examples of supported arguments that can be included in `extra_create_args`:
             - `temperature` (float): Controls the randomness of the output. Higher values (e.g., 0.8) make the output more random, while lower values (e.g., 0.2) make it more focused and deterministic.
             - `max_tokens` (int): The maximum number of tokens to generate in the completion.
             - `top_p` (float): An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass.
             - `frequency_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on their existing frequency in the text so far, decreasing the likelihood of repeated phrases.
             - `presence_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on whether they appear in the text so far, encouraging the model to talk about new topics.
         """
-        # Make sure all extra_create_args are valid
-        extra_create_args_keys = set(extra_create_args.keys())
-        if not create_kwargs.issuperset(extra_create_args_keys):
-            raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
 
-        # Copy the create args and overwrite anything in extra_create_args
-        create_args = self._create_args.copy()
-        create_args.update(extra_create_args)
-
-        # Declare use_beta_client
-        use_beta_client: bool = False
-        response_format_value: Optional[Type[BaseModel]] = None
-
-        if "response_format" in create_args:
-            value = create_args["response_format"]
-            # If value is a Pydantic model class, use the beta client
-            if isinstance(value, type) and issubclass(value, BaseModel):
-                response_format_value = value
-                use_beta_client = True
-            else:
-                # response_format_value is not a Pydantic model class
-                use_beta_client = False
-                response_format_value = None
-
-        # Remove 'response_format' from create_args to prevent passing it twice
-        create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
-
-        # TODO: allow custom handling.
-        # For now we raise an error if images are present and vision is not supported
-        if self.model_info["vision"] is False:
-            for message in messages:
-                if isinstance(message, UserMessage):
-                    if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
-                        raise ValueError("Model does not support vision and image was provided")
-
-        if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output")
-
-            if json_output is True:
-                create_args["response_format"] = {"type": "json_object"}
-            else:
-                create_args["response_format"] = {"type": "text"}
-
-        oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes) for m in messages]
-        oai_messages = [item for sublist in oai_messages_nested for item in sublist]
-
-        if self.model_info["function_calling"] is False and len(tools) > 0:
-            raise ValueError("Model does not support function calling")
+        create_params = self._process_create_args(
+            messages,
+            tools,
+            json_output,
+            extra_create_args,
+        )
 
         if max_consecutive_empty_chunk_tolerance != 0:
             warnings.warn(
@@ -715,22 +707,19 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 stacklevel=2,
             )
 
-        tool_params = convert_tools(tools)
-
-        # Get the async generator of chunks.
-        if use_beta_client:
+        if create_params.response_format is not None:
             chunks = self._create_stream_chunks_beta_client(
-                tool_params=tool_params,
-                oai_messages=oai_messages,
-                response_format=response_format_value,
-                create_args_no_response_format=create_args_no_response_format,
+                tool_params=create_params.tools,
+                oai_messages=create_params.messages,
+                response_format=create_params.response_format,
+                create_args_no_response_format=create_params.create_args,
                 cancellation_token=cancellation_token,
             )
         else:
             chunks = self._create_stream_chunks(
-                tool_params=tool_params,
-                oai_messages=oai_messages,
-                create_args=create_args,
+                tool_params=create_params.tools,
+                oai_messages=create_params.messages,
+                create_args=create_params.create_args,
                 cancellation_token=cancellation_token,
             )
 
@@ -740,6 +729,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         stop_reason = None
         maybe_model = None
         content_deltas: List[str] = []
+        thought_deltas: List[str] = []
         full_tool_calls: Dict[int, FunctionCall] = {}
         completion_tokens = 0
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
@@ -748,8 +738,18 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         empty_chunk_warning_threshold: int = 10
         empty_chunk_count = 0
 
+        first_chunk = True
+
         # Process the stream of chunks.
         async for chunk in chunks:
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=cast(List[Dict[str, Any]], create_params.messages),
+                    )
+                )
             # Empty chunks has been observed when the endpoint is under heavy load.
             #  https://github.com/microsoft/autogen/issues/4213
             if len(chunk.choices) == 0:
@@ -772,9 +772,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             choice = (
                 chunk.choices[0]
                 if len(chunk.choices) > 0
-                else choice
-                if chunk.usage is not None and stop_reason is not None
-                else cast(ChunkChoice, None)
+                else (choice if chunk.usage is not None and stop_reason is not None else cast(ChunkChoice, None))
             )
 
             # for liteLLM chunk usage, do the following hack keeping the pervious chunk.stop_reason (if set).
@@ -789,7 +787,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 # NOTE: for OpenAI, tool_calls and content are mutually exclusive it seems, so we can skip the rest of the loop.
                 # However, this may not be the case for other APIs -- we should expect this may need to be updated.
                 continue
-
+            # if there is a reasoning_content field, then we populate the thought field. This is for models such as R1.
+            if choice.delta.model_extra is not None:
+                reasoning_content = choice.delta.model_extra.get("reasoning_content")
+                if reasoning_content is not None:
+                    thought_deltas.append(reasoning_content)
+                    yield reasoning_content
             # Otherwise, get tool calls
             if choice.delta.tool_calls is not None:
                 for tool_call_chunk in choice.delta.tool_calls:
@@ -824,7 +827,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             raise ValueError("Function calls are not supported in this context")
 
         # We need to get the model from the last chunk, if available.
-        model = maybe_model or create_args["model"]
+        model = maybe_model or create_params.create_args["model"]
         model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
 
         # Because the usage chunk is not guaranteed to be the last chunk, we need to check if it is available.
@@ -842,21 +845,30 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         # Detect whether it is a function call or just text.
         content: Union[str, List[FunctionCall]]
         thought: str | None = None
+        # Determine the content and thought based on what was collected
         if full_tool_calls:
-            # This is a tool call.
+            # This is a tool call response
             content = list(full_tool_calls.values())
-            if len(content_deltas) > 1:
-                # Put additional text content in the thought field.
+            if content_deltas:
+                # Store any text alongside tool calls as thoughts
                 thought = "".join(content_deltas)
-        elif len(content_deltas) > 0:
-            # This is a text-only content.
-            content = "".join(content_deltas)
         else:
-            warnings.warn("No text content or tool calls are available. Model returned empty result.", stacklevel=2)
-            content = ""
+            # This is a text response (possibly with thoughts)
+            if content_deltas:
+                content = "".join(content_deltas)
+            else:
+                warnings.warn(
+                    "No text content or tool calls are available. Model returned empty result.",
+                    stacklevel=2,
+                )
+                content = ""
 
-        # Parse R1 content if needed.
-        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+        # Always set thoughts if we have any, regardless of other content types
+        if thought_deltas:
+            thought = "".join(thought_deltas)
+
+        # This is for local R1 models.
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1 and thought is None:
             thought, content = parse_r1_content(content)
 
         # Create the result.
@@ -867,6 +879,15 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             cached=False,
             logprobs=logprobs,
             thought=thought,
+        )
+
+        # Log the end of the stream.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
         )
 
         # Update the total usage.
@@ -915,7 +936,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         async with self._client.beta.chat.completions.stream(
             messages=oai_messages,
             tools=tool_params if len(tool_params) > 0 else NOT_GIVEN,
-            response_format=response_format if response_format is not None else NOT_GIVEN,
+            response_format=(response_format if response_format is not None else NOT_GIVEN),
             **create_args_no_response_format,
         ) as stream:
             while True:
@@ -1040,7 +1061,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
     @property
     def capabilities(self) -> ModelCapabilities:  # type: ignore
-        warnings.warn("capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "capabilities is deprecated, use model_info instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._model_info
 
     @property
@@ -1076,7 +1101,47 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         max_tokens (optional, int):
         n (optional, int):
         presence_penalty (optional, float):
-        response_format (optional, literal["json_object", "text"] | pydantic.BaseModel):
+        response_format (optional, Dict[str, Any]): the format of the response. Possible options are:
+
+            .. code-block:: text
+
+                # Text response, this is the default.
+                {"type": "text"}
+
+            .. code-block:: text
+
+                # JSON response, make sure to instruct the model to return JSON.
+                {"type": "json_object"}
+
+            .. code-block:: text
+
+                # Structured output response, with a pre-defined JSON schema.
+                {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "name of the schema, must be an identifier.",
+                        "description": "description for the model.",
+                        # You can convert a Pydantic (v2) model to JSON schema
+                        # using the `model_json_schema()` method.
+                        "schema": "<the JSON schema itself>",
+                        # Whether to enable strict schema adherence when
+                        # generating the output. If set to true, the model will
+                        # always follow the exact schema defined in the
+                        # `schema` field. Only a subset of JSON Schema is
+                        # supported when `strict` is `true`.
+                        # To learn more, read
+                        # https://platform.openai.com/docs/guides/structured-outputs.
+                        "strict": False,  # or True
+                    },
+                }
+
+            It is recommended to use the `json_output` parameter in
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create` or
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create_stream`
+            methods instead of `response_format` for structured output.
+            The `json_output` parameter is more flexible and allows you to
+            specify a Pydantic model class directly.
+
         seed (optional, int):
         stop (optional, str | List[str]):
         temperature (optional, float):
@@ -1107,6 +1172,8 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
             print(result)
 
+            # Close the client when done.
+            # await openai_client.close()
 
         To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model info.
         For example, to use Ollama, you can use the following code snippet:
@@ -1125,8 +1192,48 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                     "function_calling": False,
                     "json_output": False,
                     "family": ModelFamily.R1,
+                    "structured_output": True,
                 },
             )
+
+            # Close the client when done.
+            # await custom_model_client.close()
+
+        To use streaming mode, you can use the following code snippet:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_core.models import UserMessage
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                # Similar for AzureOpenAIChatCompletionClient.
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")  # assuming OPENAI_API_KEY is set in the environment.
+
+                messages = [UserMessage(content="Write a very short story about a dragon.", source="user")]
+
+                # Create a stream.
+                stream = model_client.create_stream(messages=messages)
+
+                # Iterate over the stream and print the responses.
+                print("Streamed responses:")
+                async for response in stream:
+                    if isinstance(response, str):
+                        # A partial response is a string.
+                        print(response, flush=True, end="")
+                    else:
+                        # The last response is a CreateResult object with the complete message.
+                        print("\\n\\n------------\\n")
+                        print("The complete response:", flush=True)
+                        print(response.content, flush=True)
+
+                # Close the client when done.
+                await model_client.close()
+
+
+            asyncio.run(main())
 
         To use structured output as well as function calling, you can use the following code snippet:
 
@@ -1163,14 +1270,11 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             # which is required for structured output mode.
             tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
 
-            # Create an OpenAIChatCompletionClient instance.
-            model_client = OpenAIChatCompletionClient(
-                model="gpt-4o-mini",
-                response_format=AgentResponse,  # type: ignore
-            )
-
 
             async def main() -> None:
+                # Create an OpenAIChatCompletionClient instance.
+                model_client = OpenAIChatCompletionClient(model="gpt-4o-mini")
+
                 # Generate a response using the tool.
                 response1 = await model_client.create(
                     messages=[
@@ -1193,11 +1297,15 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                             content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False, name="sentiment_analysis")]
                         ),
                     ],
+                    # Use the structured output format.
+                    json_output=AgentResponse,
                 )
                 print(response2.content)
                 # Should be a structured output.
                 # {"thoughts": "The user is happy.", "response": "happy"}
 
+                # Close the client when done.
+                await model_client.close()
 
             asyncio.run(main())
 
@@ -1279,6 +1387,11 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
     @classmethod
     def _from_config(cls, config: OpenAIClientConfigurationConfigModel) -> Self:
         copied_config = config.model_copy().model_dump(exclude_none=True)
+
+        # Handle api_key as SecretStr
+        if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
+            copied_config["api_key"] = config.api_key.get_secret_value()
+
         return cls(**copied_config)
 
 
@@ -1286,6 +1399,12 @@ class AzureOpenAIChatCompletionClient(
     BaseOpenAIChatCompletionClient, Component[AzureOpenAIClientConfigurationConfigModel]
 ):
     """Chat completion client for Azure OpenAI hosted models.
+
+    To use this client, you must install the `azure` and `openai` extensions:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[openai,azure]"
 
     Args:
 
@@ -1304,7 +1423,47 @@ class AzureOpenAIChatCompletionClient(
         max_tokens (optional, int):
         n (optional, int):
         presence_penalty (optional, float):
-        response_format (optional, literal["json_object", "text"]):
+        response_format (optional, Dict[str, Any]): the format of the response. Possible options are:
+
+            .. code-block:: text
+
+                # Text response, this is the default.
+                {"type": "text"}
+
+            .. code-block:: text
+
+                # JSON response, make sure to instruct the model to return JSON.
+                {"type": "json_object"}
+
+            .. code-block:: text
+
+                # Structured output response, with a pre-defined JSON schema.
+                {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "name of the schema, must be an identifier.",
+                        "description": "description for the model.",
+                        # You can convert a Pydantic (v2) model to JSON schema
+                        # using the `model_json_schema()` method.
+                        "schema": "<the JSON schema itself>",
+                        # Whether to enable strict schema adherence when
+                        # generating the output. If set to true, the model will
+                        # always follow the exact schema defined in the
+                        # `schema` field. Only a subset of JSON Schema is
+                        # supported when `strict` is `true`.
+                        # To learn more, read
+                        # https://platform.openai.com/docs/guides/structured-outputs.
+                        "strict": False,  # or True
+                    },
+                }
+
+            It is recommended to use the `json_output` parameter in
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create` or
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create_stream`
+            methods instead of `response_format` for structured output.
+            The `json_output` parameter is more flexible and allows you to
+            specify a Pydantic model class directly.
+
         seed (optional, int):
         stop (optional, str | List[str]):
         temperature (optional, float):
@@ -1313,36 +1472,34 @@ class AzureOpenAIChatCompletionClient(
         default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
 
 
-
-    To use this client, you must install the `azure` and `openai` extensions:
-
-        .. code-block:: bash
-
-            pip install "autogen-ext[openai,azure]"
-
-    To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint,
-    api version, and model capabilities.
+    To use the client, you need to provide your deployment name, Azure Cognitive Services endpoint, and api version.
     For authentication, you can either provide an API key or an Azure Active Directory (AAD) token credential.
 
     The following code snippet shows how to use AAD authentication.
     The identity used must be assigned the `Cognitive Services OpenAI User <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/role-based-access-control#cognitive-services-openai-user>`_ role.
 
-        .. code-block:: python
+    .. code-block:: python
 
-            from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
-            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+        from autogen_ext.auth.azure import AzureTokenProvider
+        from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
+        from azure.identity import DefaultAzureCredential
 
-            # Create the token provider
-            token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+        # Create the token provider
+        token_provider = AzureTokenProvider(
+            DefaultAzureCredential(),
+            "https://cognitiveservices.azure.com/.default",
+        )
 
-            az_model_client = AzureOpenAIChatCompletionClient(
-                azure_deployment="{your-azure-deployment}",
-                model="{deployed-model, such as 'gpt-4o'}",
-                api_version="2024-06-01",
-                azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
-                azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
-                # api_key="sk-...", # For key-based authentication. `AZURE_OPENAI_API_KEY` environment variable can also be used instead.
-            )
+        az_model_client = AzureOpenAIChatCompletionClient(
+            azure_deployment="{your-azure-deployment}",
+            model="{model-name, such as gpt-4o}",
+            api_version="2024-06-01",
+            azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
+            azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
+            # api_key="sk-...", # For key-based authentication.
+        )
+
+    See other usage examples in the :class:`OpenAIChatCompletionClient` class.
 
     To load the client that uses identity based aith from a configuration, you can use the `load_component` method:
 
@@ -1371,7 +1528,6 @@ class AzureOpenAIChatCompletionClient(
 
 
     To view the full list of available configuration options, see the :py:class:`AzureOpenAIClientConfigurationConfigModel` class.
-
 
     .. note::
 
@@ -1440,6 +1596,11 @@ class AzureOpenAIChatCompletionClient(
         from ...auth.azure import AzureTokenProvider
 
         copied_config = config.model_copy().model_dump(exclude_none=True)
+
+        # Handle api_key as SecretStr
+        if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
+            copied_config["api_key"] = config.api_key.get_secret_value()
+
         if "azure_ad_token_provider" in copied_config:
             copied_config["azure_ad_token_provider"] = AzureTokenProvider.load_component(
                 copied_config["azure_ad_token_provider"]

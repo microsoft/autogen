@@ -6,7 +6,7 @@ from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import BaseChatMessage
 from autogen_core import ComponentModel
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, SecretStr
 
 
 class MessageConfig(BaseModel):
@@ -71,9 +71,7 @@ class GalleryConfig(BaseModel):
     components: GalleryComponents
 
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-        }
+        json_encoders={datetime: lambda v: v.isoformat(), SecretStr: lambda v: v.get_secret_value()}
     )
 
 
@@ -93,7 +91,9 @@ class UISettings(BaseModel):
 
 class SettingsConfig(BaseModel):
     environment: List[EnvironmentVariable] = []
-    default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(model="gpt-4o-mini").dump_component()
+    default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(
+        model="gpt-4o-mini", api_key="your-api-key"
+    ).dump_component()
     ui: UISettings = UISettings()
 
 

@@ -10,6 +10,7 @@ import {
   isOrTermination,
   isMaxMessageTermination,
   isTextMentionTermination,
+  isCombinationTermination,
 } from "../../../../../types/guards";
 import { PROVIDERS } from "../../../../../types/guards";
 import DetailGroup from "../detailgroup";
@@ -93,7 +94,7 @@ export const TerminationFields: React.FC<TerminationFieldsProps> = ({
   };
 
   const handleAddCondition = () => {
-    if (!selectedConditionType || !isOrTermination(component)) return;
+    if (!selectedConditionType || !isCombinationTermination(component)) return;
 
     const newCondition = createNewCondition(selectedConditionType);
     const currentConditions = component.config.conditions || [];
@@ -109,7 +110,7 @@ export const TerminationFields: React.FC<TerminationFieldsProps> = ({
   };
 
   const handleRemoveCondition = (index: number) => {
-    if (!isOrTermination(component)) return;
+    if (!isCombinationTermination(component)) return;
 
     const currentConditions = [...component.config.conditions];
     currentConditions.splice(index, 1);
@@ -121,7 +122,7 @@ export const TerminationFields: React.FC<TerminationFieldsProps> = ({
     });
   };
 
-  if (isOrTermination(component)) {
+  if (isCombinationTermination(component)) {
     return (
       <DetailGroup title="Termination Conditions">
         <div className="space-y-4">

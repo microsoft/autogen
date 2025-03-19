@@ -45,7 +45,7 @@ from autogen_core import (
     FunctionCall,
     Image,
 )
-from autogen_core.logging import LLMCallEvent
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -61,6 +61,7 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
+from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
 from . import _model_info
@@ -412,7 +413,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -434,6 +435,8 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
             if json_output is True:
                 create_args["response_format"] = {"type": "json_object"}
+            elif isinstance(json_output, type):
+                raise ValueError("Structured output is currently not supported for Anthropic models")
 
         # Process system message separately
         system_message = None
@@ -567,7 +570,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
@@ -593,6 +596,9 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
             if json_output is True:
                 create_args["response_format"] = {"type": "json_object"}
+
+            if isinstance(json_output, type):
+                raise ValueError("Structured output is currently not supported for Anthropic models")
 
         # Process system message separately
         system_message = None
@@ -665,8 +671,18 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         output_tokens: int = 0
         stop_reason: Optional[str] = None
 
+        first_chunk = True
+
         # Process the stream
         async for chunk in stream:
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=cast(List[Dict[str, Any]], anthropic_messages),
+                    )
+                )
             # Handle different event types
             if chunk.type == "content_block_start":
                 if chunk.content_block.type == "tool_use":
@@ -759,6 +775,15 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+        )
+
+        # Emit the end event.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
         )
 
         # Update usage statistics
@@ -910,16 +935,23 @@ class AnthropicChatCompletionClient(
 
     .. code-block:: python
 
+        import asyncio
         from autogen_ext.models.anthropic import AnthropicChatCompletionClient
         from autogen_core.models import UserMessage
 
-        anthropic_client = AnthropicChatCompletionClient(
-            model="claude-3-sonnet-20240229",
-            api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
-        )
 
-        result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])
-        print(result)
+        async def main():
+            anthropic_client = AnthropicChatCompletionClient(
+                model="claude-3-sonnet-20240229",
+                api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
+            )
+
+            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            print(result)
+
+
+        if __name__ == "__main__":
+            asyncio.run(main())
 
     To load the client from a configuration:
 
@@ -933,25 +965,6 @@ class AnthropicChatCompletionClient(
         }
 
         client = ChatCompletionClient.load_component(config)
-
-    The client supports function calling with Claude models that have the capability:
-
-    .. code-block:: python
-
-        from autogen_core.tools import FunctionTool
-
-
-        def get_weather(location: str) -> str:
-            '''Get the weather for a location'''
-            return f"The weather in {location} is sunny."
-
-
-        tool = FunctionTool(get_weather)
-
-        result = await anthropic_client.create(
-            [UserMessage(content="What's the weather in Paris?", source="user")],
-            tools=[tool],
-        )
     """
 
     component_type = "model"
@@ -995,4 +1008,9 @@ class AnthropicChatCompletionClient(
     @classmethod
     def _from_config(cls, config: AnthropicClientConfigurationConfigModel) -> Self:
         copied_config = config.model_copy().model_dump(exclude_none=True)
+
+        # Handle api_key as SecretStr
+        if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
+            copied_config["api_key"] = config.api_key.get_secret_value()
+
         return cls(**copied_config)
