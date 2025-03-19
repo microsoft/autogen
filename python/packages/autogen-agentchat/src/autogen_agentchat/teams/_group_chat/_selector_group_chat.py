@@ -45,6 +45,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         allow_repeated_speaker: bool,
         selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None,
         max_selector_attempts: int,
+        candidate_func: Callable[[Sequence[AgentEvent | ChatMessage]], List[str]] | None,
     ) -> None:
         super().__init__(
             name,
@@ -63,6 +64,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
         self._max_selector_attempts = max_selector_attempts
+        self._candidate_func = candidate_func
 
     async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
         pass
@@ -107,6 +109,25 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 # Skip the model based selection.
                 return speaker
 
+        # Use the candidate function to filter participants if provided
+        if self._candidate_func is not None:
+            participants = self._candidate_func(thread)
+            if not participants:
+                raise ValueError("Candidate function must return a non-empty list of participant names.")
+            if not all(p in self._participant_names for p in participants):
+                raise ValueError(
+                    f"Candidate function returned invalid participant names: {participants}. "
+                    f"Expected one of: {self._participant_names}."
+                )
+        else:
+            # Construct the candidate agent list to be selected from, skip the previous speaker if not allowed.
+            if self._previous_speaker is not None and not self._allow_repeated_speaker:
+                participants = [p for p in self._participant_names if p != self._previous_speaker]
+            else:
+                participants = list(self._participant_names)
+
+        assert len(participants) > 0
+
         # Construct the history of the conversation.
         history_messages: List[str] = []
         for msg in thread:
@@ -135,13 +156,6 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         for topic_type, description in zip(self._participant_names, self._participant_descriptions, strict=True):
             roles += re.sub(r"\s+", " ", f"{topic_type}: {description}").strip() + "\n"
         roles = roles.strip()
-
-        # Construct the candidate agent list to be selected from, skip the previous speaker if not allowed.
-        if self._previous_speaker is not None and not self._allow_repeated_speaker:
-            participants = [p for p in self._participant_names if p != self._previous_speaker]
-        else:
-            participants = list(self._participant_names)
-        assert len(participants) > 0
 
         # Select the next speaker.
         if len(participants) > 1:
@@ -277,6 +291,10 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             function that takes the conversation history and returns the name of the next speaker.
             If provided, this function will be used to override the model to select the next speaker.
             If the function returns None, the model will be used to select the next speaker.
+        candidate_func (Callable[[Sequence[AgentEvent | ChatMessage]], List[str]], optional):
+            A custom function that takes the conversation history and returns a filtered list of candidates for the next speaker
+            selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
+            This function is only used if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
 
 
     Raises:
@@ -417,6 +435,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         allow_repeated_speaker: bool = False,
         max_selector_attempts: int = 3,
         selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None = None,
+        candidate_func: Callable[[Sequence[AgentEvent | ChatMessage]], List[str]] | None = None,
     ):
         super().__init__(
             participants,
@@ -434,6 +453,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
         self._max_selector_attempts = max_selector_attempts
+        self._candidate_func = candidate_func
 
     def _create_group_chat_manager_factory(
         self,
@@ -462,6 +482,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._allow_repeated_speaker,
             self._selector_func,
             self._max_selector_attempts,
+            self._candidate_func,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:
