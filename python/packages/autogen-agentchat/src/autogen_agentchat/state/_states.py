@@ -1,6 +1,7 @@
-from typing import Annotated, Any, Dict, List, Mapping, Optional, Self
+from typing import Annotated, Any, Dict, List, Mapping, Optional
 
 from pydantic import BaseModel, Field
+from typing_extensions import Self
 
 from ..messages import (
     AgentEvent,

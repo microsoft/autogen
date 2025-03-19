@@ -6,13 +6,13 @@ class and includes specific fields relevant to the type of message being sent.
 
 import importlib
 from abc import ABC
-from typing import Any, Dict, Generic, List, Literal, Self, TypeVar
+from typing import Any, Dict, Generic, List, Literal, TypeVar
 
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
 from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage
 from pydantic import BaseModel, ConfigDict, Field
-from typing_extensions import Annotated
+from typing_extensions import Annotated, Self
 
 
 class BaseMessage(BaseModel, ABC):

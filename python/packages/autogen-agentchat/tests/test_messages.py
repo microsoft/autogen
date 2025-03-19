@@ -9,7 +9,7 @@ class TestContent(BaseModel):
     field2: int
 
 
-def test_structured_message():
+def test_structured_message() -> None:
     # Create a structured message with the test content
     message = StructuredMessage[TestContent](
         source="test_agent",
