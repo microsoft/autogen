@@ -20,7 +20,7 @@ class MarkdownFileBrowser:
         self,
         viewport_size: Union[int, None] = 1024 * 8,
         base_path: str | None = os.getcwd(),
-        cwd: str = os.getcwd(),
+        cwd: str | None = None,
     ):
         """
         Instantiate a new MarkdownFileBrowser.
@@ -37,15 +37,26 @@ class MarkdownFileBrowser:
         self.viewport_pages: List[Tuple[int, int]] = list()
         self._markdown_converter = MarkItDown()
         self._base_path = None if base_path is None else os.path.realpath(base_path)
-        self._cwd = os.path.realpath(cwd)
         self._page_content: str = ""
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
 
-        if not self._validate_path(self._base_path):
-            raise ValueError(f"Working directory (cwd) '{self._cwd}' is not valid. It must be within the base path.")
+        # Set the working directory
+        if cwd is None:
+            if self._validate_path(os.getcwd()):
+                # Use the current working directory if it's in the base path
+                cwd = os.path.realpath(os.getcwd())
+            elif self._base_path is not None:
+                # Otherwise, use the base path
+                cwd = os.path.realpath(self._base_path)
+            else:
+                raise ValueError("No valid working directory (cwd) provided.")
+        elif not self._validate_path(cwd):
+            # A cwd was provided, but it is not valid
+            raise ValueError(f"Working directory (cwd) '{cwd}' is not valid. It must be within the base path.")
 
-        self.set_path(self._cwd)
+        # Populate the history with the current working directory
+        self.set_path(os.path.realpath(cwd))
 
     @property
     def path(self) -> str:
