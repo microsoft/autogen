@@ -52,8 +52,8 @@ from openai.types.beta.file_search_tool_param import FileSearchToolParam
 from openai.types.beta.function_tool_param import FunctionToolParam
 from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInterpreter
 from openai.types.beta.threads import Message, MessageDeleted, Run
-from openai.types.beta.vector_store import VectorStore
 from openai.types.shared_params.function_definition import FunctionDefinition
+from openai.types.vector_store import VectorStore
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -223,7 +223,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         tools (Optional[Iterable[Union[Literal["code_interpreter", "file_search"], Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]]]]): Tools the assistant can use
         assistant_id (Optional[str]): ID of existing assistant to use
         thread_id (Optional[str]): ID of existing thread to use
-        metadata (Optional[object]): Additional metadata for the assistant
+        metadata (Optional[Dict[str, str]]): Additional metadata for the assistant.
         response_format (Optional[AssistantResponseFormatOptionParam]): Response format settings
         temperature (Optional[float]): Temperature for response generation
         tool_resources (Optional[ToolResources]): Additional tool configuration
@@ -247,7 +247,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         ] = None,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        metadata: Optional[object] = None,
+        metadata: Optional[Dict[str, str]] = None,
         response_format: Optional["AssistantResponseFormatOptionParam"] = None,
         temperature: Optional[float] = None,
         tool_resources: Optional["ToolResources"] = None,
@@ -625,7 +625,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         # Create vector store if not already created
         if self._vector_store_id is None:
             vector_store: VectorStore = await cancellation_token.link_future(
-                asyncio.ensure_future(self._client.beta.vector_stores.create())
+                asyncio.ensure_future(self._client.vector_stores.create())
             )
             self._vector_store_id = vector_store.id
 
@@ -644,7 +644,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         # Create file batch with the file IDs
         await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._client.beta.vector_stores.file_batches.create_and_poll(
+                self._client.vector_stores.file_batches.create_and_poll(
                     vector_store_id=self._vector_store_id, file_ids=file_ids
                 )
             )
@@ -678,7 +678,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         if self._vector_store_id is not None:
             try:
                 await cancellation_token.link_future(
-                    asyncio.ensure_future(self._client.beta.vector_stores.delete(vector_store_id=self._vector_store_id))
+                    asyncio.ensure_future(self._client.vector_stores.delete(vector_store_id=self._vector_store_id))
                 )
                 self._vector_store_id = None
             except Exception as e:
