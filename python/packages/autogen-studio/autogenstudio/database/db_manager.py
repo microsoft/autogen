@@ -1,3 +1,4 @@
+import json
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -10,6 +11,13 @@ from sqlmodel import Session, SQLModel, and_, create_engine, select
 from ..datamodel import Response, Team
 from ..teammanager import TeamManager
 from .schema_manager import SchemaManager
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, "get_secret_value") and callable(obj.get_secret_value):
+            return obj.get_secret_value()
+        return super().default(obj)
 
 
 class DatabaseManager:
@@ -29,7 +37,9 @@ class DatabaseManager:
         if base_dir is not None and isinstance(base_dir, str):
             base_dir = Path(base_dir)
 
-        self.engine = create_engine(engine_uri, connect_args=connection_args)
+        self.engine = create_engine(
+            engine_uri, connect_args=connection_args, json_serializer=lambda obj: json.dumps(obj, cls=CustomJSONEncoder)
+        )
         self.schema_manager = SchemaManager(
             engine=self.engine,
             base_dir=base_dir,
@@ -163,7 +173,7 @@ class DatabaseManager:
                     model.updated_at = datetime.now()
                     for key, value in model.model_dump().items():
                         setattr(existing_model, key, value)
-                    model = existing_model  # Use the updated existing model
+                    model = existing_model
                     session.add(model)
                 else:
                     session.add(model)
