@@ -96,7 +96,7 @@ def scorer(instance_dir, benchmark_name):
         if not os.path.isfile(expected_answer_file):
             return None
 
-        with open(expected_answer_file, "rt") as fh:
+        with open(expected_answer_file, "rt",encoding='utf-8') as fh:
             expected_answer = fh.read().strip()
 
         # Read the console log
@@ -104,7 +104,7 @@ def scorer(instance_dir, benchmark_name):
         if not os.path.isfile(console_log_file):
             return None
 
-        with open(console_log_file, "rt") as fh:
+        with open(console_log_file, "rt",encoding='utf-8') as fh:
             console_log = fh.read()
             final_answer = None
             m = re.search(r"FINAL ANSWER:(.*?)\n", console_log, re.DOTALL)
@@ -125,7 +125,7 @@ def scorer(instance_dir, benchmark_name):
         if not os.path.isfile(console_log_file):
             return None
 
-        with open(console_log_file, "rt") as fh:
+        with open(console_log_file, "rt",encoding='utf-8') as fh:
             console_log = fh.read()
             final_score = None
             m = re.search(r"FINAL SCORE:(.*?)\n", console_log, re.DOTALL)
@@ -145,7 +145,7 @@ def get_number_of_chat_messages(chat_messages_dir):
     # Count the number of chat messages in the chat_messages_dir
     result = 0
     for file in glob.glob(f"{chat_messages_dir}/*_messages.json"):
-        with open(file, "r") as f:
+        with open(file, "r",encoding='utf-8') as f:
             content = json.load(f)
             for agent, messages in content.items():
                 result += len(messages)
@@ -158,7 +158,7 @@ def did_agent_stall(instance_dir):
     if not os.path.isfile(log_file_path):
         return None
     # Stalled.... Replanning...
-    with open(log_file_path, "r") as f:
+    with open(log_file_path, "r",encoding='utf-8') as f:
         for line in f:
             if "Stalled.... Replanning..." in line:
                 return True
@@ -172,7 +172,7 @@ def get_message_logs(instance_dir):
         return None
     messages = []
     # for each line, convert to dict, check if it has a message and source key, and append to messages
-    with open(log_file_path, "r") as f:
+    with open(log_file_path, "r",encoding='utf-8') as f:
         for line in f:
             line_dict = json.loads(line)
             if "message" in line_dict and "source" in line_dict:
@@ -186,13 +186,13 @@ def get_task_information(instance_dir, benchmark_name):
         prompt_file = os.path.join(instance_dir, "prompt.txt")
         if not os.path.isfile(prompt_file):
             return None
-        with open(prompt_file, "r") as f:
+        with open(prompt_file, "r",encoding='utf-8') as f:
             return f.read().strip()
     elif benchmark_name == "webarena":
         task_prompt_file = os.path.join(instance_dir, "task_prompt.json")
         if not os.path.isfile(task_prompt_file):
             return None
-        with open(task_prompt_file, "r") as f:
+        with open(task_prompt_file, "r",encoding='utf-8') as f:
             return json.load(f)["intent"]
     else:
         raise ValueError(f"Unsupported benchmark_name: {benchmark_name}")
@@ -204,7 +204,7 @@ def is_progress_not_being_made(instance_dir):
     log_file_path = os.path.join(instance_dir, "log.jsonl")
     if not os.path.isfile(log_file_path):
         return None
-    with open(log_file_path, "r") as f:
+    with open(log_file_path, "r",encoding='utf-8') as f:
         for line in f:
             line_dict = json.loads(line)
             if (

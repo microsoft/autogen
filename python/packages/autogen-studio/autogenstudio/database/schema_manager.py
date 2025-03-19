@@ -75,7 +75,7 @@ class SchemaManager:
 
         # Update alembic.ini
         config_content = self._generate_alembic_ini_content()
-        with open(self.alembic_ini_path, "w") as f:
+        with open(self.alembic_ini_path, "w",encoding='utf-8') as f:
             f.write(config_content)
 
         # Update env.py
@@ -115,7 +115,7 @@ class SchemaManager:
 
             # Create initial config file for alembic init
             config_content = self._generate_alembic_ini_content()
-            with open(self.alembic_ini_path, "w") as f:
+            with open(self.alembic_ini_path, "w",encoding='utf-8') as f:
                 f.write(config_content)
 
             # Use the config we just created
@@ -187,7 +187,7 @@ if context.is_offline_mode():
 else:
     run_migrations_online()"""
 
-        with open(env_path, "w") as f:
+        with open(env_path, "w",encoding='utf-8') as f:
             f.write(content)
 
     def _generate_alembic_ini_content(self) -> str:
@@ -239,7 +239,7 @@ datefmt = %H:%M:%S
         """Update the Alembic script template to include SQLModel."""
         template_path = self.alembic_dir / "script.py.mako"
         try:
-            with open(template_path, "r") as f:
+            with open(template_path, "r",encoding='utf-8') as f:
                 content = f.read()
 
             # Add sqlmodel import to imports section
@@ -248,7 +248,7 @@ datefmt = %H:%M:%S
 
             content = content.replace(import_section, new_imports)
 
-            with open(template_path, "w") as f:
+            with open(template_path, "w",encoding='utf-8') as f:
                 f.write(content)
 
             return True
@@ -265,7 +265,7 @@ datefmt = %H:%M:%S
             self._create_minimal_env_py(env_path)
             return
         try:
-            with open(env_path, "r") as f:
+            with open(env_path, "r",encoding='utf-8') as f:
                 content = f.read()
 
             # Add SQLModel import if not present
@@ -303,7 +303,7 @@ datefmt = %H:%M:%S
             )""",
             )
 
-            with open(env_path, "w") as f:
+            with open(env_path, "w",encoding='utf-8') as f:
                 f.write(content)
         except Exception as e:
             logger.error(f"Failed to update env.py: {e}")

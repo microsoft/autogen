@@ -131,7 +131,7 @@ def scorer(instance_dir):
         return None
 
     expected_answer = None
-    with open(expected_answer_file, "rt") as fh:
+    with open(expected_answer_file, "rt",encoding='utf-8') as fh:
         expected_answer = fh.read().strip()
 
     # Read the console
@@ -140,7 +140,7 @@ def scorer(instance_dir):
         return None
 
     console_log = ""
-    with open(console_log_file, "rt") as fh:
+    with open(console_log_file, "rt",encoding='utf-8') as fh:
         console_log = fh.read()
 
         final_answer = None 
