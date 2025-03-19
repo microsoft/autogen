@@ -20,6 +20,7 @@ from autogen_agentchat.messages import (
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
+    StructuredMessage,
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
@@ -44,6 +45,7 @@ from autogen_core.tools import FunctionTool
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
+from pydantic import BaseModel
 from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -120,6 +122,19 @@ class _StopAgent(_EchoAgent):
 
 def _pass_function(input: str) -> str:
     return "pass"
+
+
+class InputTask1(BaseModel):
+    task: str
+    data: List[str]
+
+
+class InputTask2(BaseModel):
+    task: str
+    data: str
+
+
+TaskType = str | List[ChatMessage] | ChatMessage
 
 
 @pytest_asyncio.fixture(params=["single_threaded", "embedded"])  # type: ignore
@@ -202,15 +217,32 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
         model_client.reset()
         index = 0
         await team.reset()
-        result_2 = await team.run(
-            task=MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")
-        )
-        assert result.messages[0].content == result_2.messages[0].content[0]
+        task = MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")
+        result_2 = await team.run(task=task)
+        assert result.messages[0].content == task.content[0]
         assert result.messages[1:] == result_2.messages[1:]
 
 
 @pytest.mark.asyncio
-async def test_round_robin_group_chat_state(runtime: AgentRuntime | None) -> None:
+@pytest.mark.parametrize(
+    "task",
+    [
+        "Write a program that prints 'Hello, world!'",
+        [TextMessage(content="Write a program that prints 'Hello, world!'", source="user")],
+        [MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")],
+        [
+            StructuredMessage[InputTask1](
+                content=InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+                source="user",
+            ),
+            StructuredMessage[InputTask2](
+                content=InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
+            ),
+        ],
+    ],
+    ids=["text", "text_message", "multi_modal_message", "structured_message"],
+)
+async def test_round_robin_group_chat_state(task: TaskType, runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient(
         ["No facts", "No plan", "print('Hello, world!')", "TERMINATE"],
     )
@@ -218,7 +250,7 @@ async def test_round_robin_group_chat_state(runtime: AgentRuntime | None) -> Non
     agent2 = AssistantAgent("agent2", model_client=model_client)
     termination = TextMentionTermination("TERMINATE")
     team1 = RoundRobinGroupChat(participants=[agent1, agent2], termination_condition=termination, runtime=runtime)
-    await team1.run(task="Write a program that prints 'Hello, world!'")
+    await team1.run(task=task)
     state = await team1.save_state()
 
     agent3 = AssistantAgent("agent1", model_client=model_client)
@@ -485,7 +517,25 @@ async def test_selector_group_chat(runtime: AgentRuntime | None) -> None:
 
 
 @pytest.mark.asyncio
-async def test_selector_group_chat_state(runtime: AgentRuntime | None) -> None:
+@pytest.mark.parametrize(
+    "task",
+    [
+        "Write a program that prints 'Hello, world!'",
+        [TextMessage(content="Write a program that prints 'Hello, world!'", source="user")],
+        [MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")],
+        [
+            StructuredMessage[InputTask1](
+                content=InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+                source="user",
+            ),
+            StructuredMessage[InputTask2](
+                content=InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
+            ),
+        ],
+    ],
+    ids=["text", "text_message", "multi_modal_message", "structured_message"],
+)
+async def test_selector_group_chat_state(task: TaskType, runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient(
         ["agent1", "No facts", "agent2", "No plan", "agent1", "print('Hello, world!')", "agent2", "TERMINATE"],
     )
@@ -498,7 +548,7 @@ async def test_selector_group_chat_state(runtime: AgentRuntime | None) -> None:
         model_client=model_client,
         runtime=runtime,
     )
-    await team1.run(task="Write a program that prints 'Hello, world!'")
+    await team1.run(task=task)
     state = await team1.save_state()
 
     agent3 = AssistantAgent("agent1", model_client=model_client)
@@ -835,6 +885,55 @@ async def test_swarm_handoff(runtime: AgentRuntime | None) -> None:
         AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
         SwarmGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
+    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
+    assert manager_1._current_speaker == manager_2._current_speaker  # pyright: ignore
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "task",
+    [
+        "Write a program that prints 'Hello, world!'",
+        [TextMessage(content="Write a program that prints 'Hello, world!'", source="user")],
+        [MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")],
+        [
+            StructuredMessage[InputTask1](
+                content=InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+                source="user",
+            ),
+            StructuredMessage[InputTask2](
+                content=InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
+            ),
+        ],
+    ],
+    ids=["text", "text_message", "multi_modal_message", "structured_message"],
+)
+async def test_swarm_handoff_state(task: TaskType, runtime: AgentRuntime | None) -> None:
+    first_agent = _HandOffAgent("first_agent", description="first agent", next_agent="second_agent")
+    second_agent = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
+    third_agent = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
+
+    termination = MaxMessageTermination(6)
+    team1 = Swarm([second_agent, first_agent, third_agent], termination_condition=termination, runtime=runtime)
+    await team1.run(task=task)
+    state = await team1.save_state()
+
+    first_agent2 = _HandOffAgent("first_agent", description="first agent", next_agent="second_agent")
+    second_agent2 = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
+    third_agent2 = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
+    team2 = Swarm([second_agent2, first_agent2, third_agent2], termination_condition=termination, runtime=runtime)
+    await team2.load_state(state)
+    state2 = await team2.save_state()
+    assert state == state2
+
+    manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team1._group_chat_manager_name}_{team1._team_id}", team1._team_id),  # pyright: ignore
+        SwarmGroupChatManager,  # pyright: ignore
+    )
+    manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
+        SwarmGroupChatManager,  # pyright: ignore
+    )
     assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
     assert manager_1._current_speaker == manager_2._current_speaker  # pyright: ignore
 

@@ -12,6 +12,7 @@ from autogen_agentchat.messages import (
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
+    StructuredMessage,
     TextMessage,
     ThoughtEvent,
     ToolCallExecutionEvent,
@@ -35,6 +36,7 @@ from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
+from pydantic import BaseModel
 from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -468,6 +470,23 @@ async def test_multi_modal_task(monkeypatch: pytest.MonkeyPatch) -> None:
     # Generate a random base64 image.
     img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
     result = await agent.run(task=MultiModalMessage(source="user", content=["Test", Image.from_base64(img_base64)]))
+    assert len(result.messages) == 2
+
+
+@pytest.mark.asyncio
+async def test_run_with_structured_task() -> None:
+    class InputTask(BaseModel):
+        input: str
+        data: List[str]
+
+    model_client = ReplayChatCompletionClient(["Hello"])
+    agent = AssistantAgent(
+        name="assistant",
+        model_client=model_client,
+    )
+
+    task = StructuredMessage[InputTask](content=InputTask(input="Test", data=["Test1", "Test2"]), source="user")
+    result = await agent.run(task=task)
     assert len(result.messages) == 2
 
 

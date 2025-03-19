@@ -26,14 +26,11 @@ from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
     AgentEvent,
     ChatMessage,
-    HandoffMessage,
-    MultiModalMessage,
-    StopMessage,
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
 )
-from autogen_core import CancellationToken, FunctionCall
+from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models._model_client import ChatCompletionClient
 from autogen_core.models._types import FunctionExecutionResult
 from autogen_core.tools import FunctionTool, Tool
@@ -52,6 +49,12 @@ from openai.types.beta.file_search_tool_param import FileSearchToolParam
 from openai.types.beta.function_tool_param import FunctionToolParam
 from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInterpreter
 from openai.types.beta.threads import Message, MessageDeleted, Run
+from openai.types.beta.threads.image_url_content_block_param import ImageURLContentBlockParam
+from openai.types.beta.threads.image_url_param import ImageURLParam
+from openai.types.beta.threads.message_content_part_param import (
+    MessageContentPartParam,
+)
+from openai.types.beta.threads.text_content_block_param import TextContentBlockParam
 from openai.types.beta.vector_store import VectorStore
 from openai.types.shared_params.function_definition import FunctionDefinition
 
@@ -406,10 +409,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
         # Process all messages in sequence
         for message in messages:
-            if isinstance(message, (TextMessage, MultiModalMessage)):
-                await self.handle_text_message(str(message.content), cancellation_token)
-            elif isinstance(message, (StopMessage, HandoffMessage)):
-                await self.handle_text_message(message.content, cancellation_token)
+            await self.handle_incoming_message(message, cancellation_token)
 
         # Inner messages for tool calls
         inner_messages: List[AgentEvent | ChatMessage] = []
@@ -519,8 +519,24 @@ class OpenAIAssistantAgent(BaseChatAgent):
         chat_message = TextMessage(source=self.name, content=text_content[0].text.value)
         yield Response(chat_message=chat_message, inner_messages=inner_messages)
 
-    async def handle_text_message(self, content: str, cancellation_token: CancellationToken) -> None:
+    async def handle_incoming_message(self, message: ChatMessage, cancellation_token: CancellationToken) -> None:
         """Handle regular text messages by adding them to the thread."""
+        content: str | List[MessageContentPartParam]
+        if isinstance(message.content, str):
+            content = message.content
+        elif isinstance(message.content, BaseModel):
+            content = message.content.model_dump_json()
+        elif isinstance(message.content, list):
+            content = []
+            for c in message.content:
+                if isinstance(c, str):
+                    content.append(TextContentBlockParam(text=c, type="text"))
+                elif isinstance(c, Image):
+                    content.append(ImageURLContentBlockParam(image_url=ImageURLParam(url=c.data_uri), type="image_url"))
+                else:
+                    raise ValueError(f"Unsupported content type: {type(c)} in {message.content}")
+        else:
+            raise ValueError(f"Unsupported content type: {type(message.content)} in {message}")
         await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._client.beta.threads.messages.create(

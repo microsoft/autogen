@@ -46,6 +46,7 @@ from ..messages import (
     HandoffMessage,
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
+    StructuredMessage,
     TextMessage,
     ThoughtEvent,
     ToolCallExecutionEvent,
@@ -810,7 +811,20 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 # Add handoff context to the model context.
                 for context_msg in msg.context:
                     await model_context.add_message(context_msg)
-            await model_context.add_message(UserMessage(content=msg.content, source=msg.source))
+                # Add the handoff message itself to the model context.
+                await model_context.add_message(UserMessage(content=msg.content, source=msg.source))
+            elif isinstance(msg, StructuredMessage):
+                # Add structured message to the model context by serializing it.
+                serialized_content = msg.content.model_dump_json()
+                await model_context.add_message(
+                    UserMessage(
+                        content=serialized_content,
+                        source=msg.source,
+                    )
+                )
+            else:
+                # Add the content as user message content.
+                await model_context.add_message(UserMessage(content=msg.content, source=msg.source))
 
     @staticmethod
     async def _update_model_context_with_memory(

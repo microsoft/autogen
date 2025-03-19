@@ -4,8 +4,9 @@ Each message type inherits either from the BaseChatMessage class or BaseAgentEve
 class and includes specific fields relevant to the type of message being sent.
 """
 
+import importlib
 from abc import ABC
-from typing import Dict, List, Literal
+from typing import Any, Dict, Generic, List, Literal, Self, TypeVar
 
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
@@ -39,6 +40,60 @@ class BaseAgentEvent(BaseMessage, ABC):
     """Base class for agent events."""
 
     pass
+
+
+ContentType = TypeVar("ContentType", bound=BaseModel, covariant=True)
+
+
+class StructuredMessage(BaseChatMessage, Generic[ContentType]):
+    """A structured message with a specific content type."""
+
+    content: ContentType
+    """The content of the message. Must be a subclass of
+    `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_."""
+
+    content_class_path: str | None = None
+    """The path to the content class. This is set automatically when the message is created."""
+
+    type: Literal["StructuredMessage"] = "StructuredMessage"
+
+    def __init__(self, **data: Any) -> None:
+        super().__init__(**data)
+        module_name = self.content.__class__.__module__
+        class_name = self.content.__class__.__qualname__
+        self.content_class_path = f"{module_name}.{class_name}"
+
+    def dump(self) -> Dict[str, Any]:
+        """Dump the message to a dictionary. This is used for serialization
+        and ensures that the content is serialized correctly."""
+        data = super().model_dump()
+        data["content"] = self.content.model_dump()
+        return data
+
+    @classmethod
+    def load(cls, obj: Dict[str, Any]) -> Self:
+        """Load the message from a dictionary. This is used for deserialization
+        and ensures that the content is deserialized correctly."""
+        content_class_path = obj["content_class_path"]
+        module_name, class_name = content_class_path.rsplit(".", 1)
+        try:
+            module = importlib.import_module(module_name)
+        except ImportError as e:
+            raise ImportError(
+                f"Could not import module {module_name} when loading content class {class_name} for StructuredMessage. Ensure it is installed."
+            ) from e
+        if not hasattr(module, class_name):
+            raise ValueError(
+                f"Could not find class {class_name} in module {module_name} when loading content class for StructuredMessage."
+            )
+        content_class = getattr(module, class_name)
+        if not issubclass(content_class, BaseModel):
+            raise ValueError(f"Invalid content class: {content_class}, must be a subclass of BaseModel")
+        content = content_class.model_validate(obj["content"])
+        instance = super().model_validate(obj)
+        instance.content = content  # type: ignore
+        instance.content_class_path = content_class_path
+        return instance
 
 
 class TextMessage(BaseChatMessage):
@@ -152,7 +207,13 @@ class ThoughtEvent(BaseAgentEvent):
 
 
 ChatMessage = Annotated[
-    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
+    StructuredMessage[BaseModel]
+    | TextMessage
+    | MultiModalMessage
+    | StopMessage
+    | ToolCallSummaryMessage
+    | HandoffMessage,
+    Field(discriminator="type"),
 ]
 """Messages for agent-to-agent communication only."""
 
@@ -173,6 +234,7 @@ __all__ = [
     "AgentEvent",
     "BaseMessage",
     "ChatMessage",
+    "StructuredMessage",
     "HandoffMessage",
     "MultiModalMessage",
     "StopMessage",

@@ -21,7 +21,9 @@ class CodeExecutorAgentConfig(BaseModel):
 
 
 class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
-    """An agent that extracts and executes code snippets found in received messages and returns the output.
+    """An agent that extracts and executes code snippets found in received
+    :class:`~autogen_agentchat.messages.TextMessage` messages and returns the output
+    of the code execution.
 
     It is typically used within a team with another agent that generates code snippets to be executed.
 

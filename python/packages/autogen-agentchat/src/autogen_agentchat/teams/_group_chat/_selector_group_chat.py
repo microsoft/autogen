@@ -16,6 +16,7 @@ from ...messages import (
     BaseAgentEvent,
     ChatMessage,
     MultiModalMessage,
+    StructuredMessage,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -143,6 +144,9 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                         message += f" {item}"
                     else:
                         message += " [Image]"
+            elif isinstance(msg, StructuredMessage):
+                serialized_content = msg.content.model_dump_json()
+                message += f" {serialized_content}"
             else:
                 raise ValueError(f"Unexpected message type in selector: {type(msg)}")
             history_messages.append(
