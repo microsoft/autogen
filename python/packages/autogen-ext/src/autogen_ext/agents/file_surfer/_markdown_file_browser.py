@@ -61,10 +61,8 @@ class MarkdownFileBrowser:
     @property
     def path(self) -> str:
         """Return the path of the current page."""
-        if len(self.history) == 0:
-            return self._base_path
-        else:
-            return self.history[-1][0]
+        assert len(self.history) > 0
+        return self.history[-1][0]
 
     def _validate_path(self, path: str) -> bool:
         """Validates the path to ensure it is within the base path.
