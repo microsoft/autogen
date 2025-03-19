@@ -24,7 +24,7 @@ import aiofiles
 import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, TextMessage
+from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, StructuredMessage, TextMessage
 from autogen_agentchat.utils import content_to_str, remove_images
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core import Image as AGImage
@@ -432,10 +432,22 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         for chat_message in messages:
-            if isinstance(chat_message, TextMessage | MultiModalMessage):
-                self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
+            if isinstance(chat_message, StructuredMessage):
+                serialized_content = chat_message.content.model_dump_json()
+                self._chat_history.append(
+                    UserMessage(
+                        content=serialized_content,
+                        source=chat_message.source,
+                    )
+                )
             else:
-                raise ValueError(f"Unexpected message in MultiModalWebSurfer: {chat_message}")
+                self._chat_history.append(
+                    UserMessage(
+                        content=chat_message.content,
+                        source=chat_message.source,
+                    )
+                )
+
         self.inner_messages: List[AgentEvent | ChatMessage] = []
         self.model_usage: List[RequestUsage] = []
         try:

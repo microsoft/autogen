@@ -14,6 +14,7 @@ from ..messages import (
     BaseChatMessage,
     ChatMessage,
     ModelClientStreamingChunkEvent,
+    StructuredMessage,
     TextMessage,
 )
 from ._base_chat_agent import BaseChatAgent
@@ -167,13 +168,13 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         else:
             # Generate a response using the model client.
             llm_messages: List[LLMMessage] = [SystemMessage(content=self._instruction)]
-            llm_messages.extend(
-                [
-                    UserMessage(content=message.content, source=message.source)
-                    for message in inner_messages
-                    if isinstance(message, BaseChatMessage)
-                ]
-            )
+            for message in messages:
+                if isinstance(message, BaseChatMessage):
+                    if isinstance(message, StructuredMessage):
+                        serialized_message = message.content.model_dump_json()
+                        llm_messages.append(UserMessage(content=serialized_message, source=message.source))
+                    else:
+                        llm_messages.append(UserMessage(content=message.content, source=message.source))
             llm_messages.append(SystemMessage(content=self._response_prompt))
             completion = await self._model_client.create(messages=llm_messages, cancellation_token=cancellation_token)
             assert isinstance(completion.content, str)

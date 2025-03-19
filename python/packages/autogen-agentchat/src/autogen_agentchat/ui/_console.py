@@ -15,6 +15,7 @@ from autogen_agentchat.messages import (
     ChatMessage,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
+    StructuredMessage,
     UserInputRequestedEvent,
 )
 
@@ -215,5 +216,8 @@ def _message_to_str(message: AgentEvent | ChatMessage, *, render_image_iterm: bo
                 else:
                     result.append("<image>")
         return "\n".join(result)
+    elif isinstance(message, StructuredMessage):
+        # If the message is a StructuredMessage, we want to print the content as JSON.
+        return message.content.model_dump_json(indent=2)
     else:
         return f"{message.content}"
