@@ -66,11 +66,12 @@ class MarkdownFileBrowser:
         if self._base_path is None:
             return True
 
-        # Normalize the path
+        # Normalize the paths
         path = os.path.realpath(path)
+        base = os.path.realpath(self._base_path)
 
         # Check if the path is within the base path
-        if os.path.commonpath([path, self._base_path]) != self._base_path:
+        if os.path.commonpath([path, base]) != base:
             return False
 
         return True
@@ -93,6 +94,7 @@ class MarkdownFileBrowser:
             # If neither a file or a directory, take it verbatim
 
         # Validating the path wrt. the base path is done in _open_path
+        path = os.path.realpath(path)
 
         self.history.append((path, time.time()))
         self._open_path(path)
