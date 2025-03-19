@@ -142,9 +142,7 @@ The above names are too high level and unclear. Please DO NOT use such names.
 
             message = completion.choices[0].message
             if message.parsed and len(message.parsed.code_list) > 0:
-                coded_document = CodedDocument(
-                    doc=doc, codes=set(message.parsed.code_list)
-                )
+                coded_document = CodedDocument(doc=doc, codes=set(message.parsed.code_list))
             else:
                 print(message.refusal)
                 raise ValueError("Error in coding document with OpenAI")
@@ -205,7 +203,7 @@ the context of the example.
 
         if coded_document is None:
             raise ValueError("Error in coding document with OpenAI")
-    
+
         if self.cache_enabled and cache_file:
             with open(cache_file, "w") as f:
                 f.write(coded_document.model_dump_json(indent=4))

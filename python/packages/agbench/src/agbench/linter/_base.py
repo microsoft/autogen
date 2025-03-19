@@ -46,9 +46,7 @@ class Code(BaseModel):
     ):
         super().__init__(name=name, definition=definition, examples=examples)
         self.name = re.sub(r"[^a-z-]", "", self.name.lower().replace(" ", "-"))
-        self.id = int(
-            hashlib.md5((self.name + self.definition).encode("utf-8")).hexdigest(), 16
-        )
+        self.id = int(hashlib.md5((self.name + self.definition).encode("utf-8")).hexdigest(), 16)
         self.merged_from = None
 
     def __hash__(self) -> int:
@@ -76,6 +74,4 @@ class CodedDocument(BaseModel):
 
 
 class BaseQualitativeCoder(Protocol):
-    def code_document(
-        self, doc: Document, code_set: Optional[Set[Code]]
-    ) -> Optional[CodedDocument]: ...
+    def code_document(self, doc: Document, code_set: Optional[Set[Code]]) -> Optional[CodedDocument]: ...

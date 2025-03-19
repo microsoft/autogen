@@ -38,14 +38,11 @@ def code_log(path: str) -> Optional[CodedDocument]:
 
 def print_coded_results(input_path: str, coded_doc: CodedDocument) -> None:
     num_errors: int = 0
-    
+
     for code in coded_doc.codes:
         print(f"\033[31mCategory: {code.name}\033[0m: {code.definition}")
         for example in code.examples:
-            print(
-                f"\033[1m{input_path}\033[0m:{example.line}"
-                f":{example.line_end}\t{example.reason}"
-            )
+            print(f"\033[1m{input_path}\033[0m:{example.line}" f":{example.line_end}\t{example.reason}")
             num_errors += 1
     print("\n")
     print(f"Found {num_errors} errors in {input_path}.")
@@ -66,21 +63,18 @@ def code_command(input_path: str) -> None:
 
 
 def lint_cli(args: Sequence[str]) -> None:
-    
     invocation_cmd = args[0]
-    
+
     args = args[1:]
-    
+
     parser = argparse.ArgumentParser(
         prog=invocation_cmd,
         description=f"{invocation_cmd} will analyze a console log."
-        " And detect errors/inefficiencies in the log files."
+        " And detect errors/inefficiencies in the log files.",
     )
 
-    parser.add_argument("logfile",
-                        type=str,
-                        help="Path to a log file.")
+    parser.add_argument("logfile", type=str, help="Path to a log file.")
 
     parsed_args = parser.parse_args(args)
-    
+
     code_command(parsed_args.logfile)
