@@ -17,7 +17,7 @@ Lastly, there is a helper class, {py:class}`~autogen_ext.teams.magentic_one.Mage
 
 Find additional information about Magentic-one in our [blog post](https://aka.ms/magentic-one-blog) and [technical report](https://arxiv.org/abs/2411.04468).
 
-![](../../images/autogen-magentic-one-example.png)
+![Autogen Magentic-One example](../../images/autogen-magentic-one-example.png)
 
 **Example**: The figure above illustrates Magentic-One multi-agent team completing a complex task from the GAIA benchmark. Magentic-One's Orchestrator agent creates a plan, delegates tasks to other agents, and tracks progress towards the goal, dynamically revising the plan as needed. The Orchestrator can delegate tasks to a FileSurfer agent to read and handle files, a WebSurfer agent to operate a web browser, or a Coder or Computer Terminal agent to write or execute code, respectively.
 
@@ -137,7 +137,7 @@ if __name__ == "__main__":
 
 ## Architecture
 
-![](../../images/autogen-magentic-one-agents.png)
+![Autogen Magentic-One architecture](../../images/autogen-magentic-one-agents.png)
 
 Magentic-One work is based on a multi-agent architecture where a lead Orchestrator agent is responsible for high-level planning, directing other agents and tracking task progress. The Orchestrator begins by creating a plan to tackle the task, gathering needed facts and educated guesses in a Task Ledger that is maintained. At each step of its plan, the Orchestrator creates a Progress Ledger where it self-reflects on task progress and checks whether the task is completed. If the task is not yet completed, it assigns one of Magentic-One other agents a subtask to complete. After the assigned agent completes its subtask, the Orchestrator updates the Progress Ledger and continues in this way until the task is complete. If the Orchestrator finds that progress is not being made for enough steps, it can update the Task Ledger and create a new plan. This is illustrated in the figure above; the Orchestrator work is thus divided into an outer loop where it updates the Task Ledger and an inner loop to update the Progress Ledger.
 
