@@ -10,11 +10,7 @@ from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import ChatCompletionClient
 
 
-def create_ai_player() -> AssistantAgent:
-    # Load the model client from config.
-    with open("model_config.yaml", "r") as f:
-        model_config = yaml.safe_load(f)
-    model_client = ChatCompletionClient.load_component(model_config)
+def create_ai_player(model_client: ChatCompletionClient) -> AssistantAgent:
     # Create an agent that can use the model client.
     player = AssistantAgent(
         name="ai_player",
@@ -101,7 +97,11 @@ async def get_ai_move(board: chess.Board, player: AssistantAgent, max_tries: int
 
 async def main(human_player: bool, max_tries: int) -> None:
     board = chess.Board()
-    player = create_ai_player()
+    # Load the model client from config.
+    with open("model_config.yaml", "r") as f:
+        model_config = yaml.safe_load(f)
+    model_client = ChatCompletionClient.load_component(model_config)
+    player = create_ai_player(model_client)
     while not board.is_game_over():
         # Get the AI's move.
         ai_move = await get_ai_move(board, player, max_tries)
@@ -125,6 +125,8 @@ async def main(human_player: bool, max_tries: int) -> None:
     result = "AI wins!" if board.result() == "1-0" else "User wins!" if board.result() == "0-1" else "Draw!"
     print("----------------")
     print(f"Game over! Result: {result}")
+
+    await model_client.close()
 
 
 if __name__ == "__main__":
