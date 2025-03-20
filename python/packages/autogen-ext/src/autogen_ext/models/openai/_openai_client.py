@@ -145,13 +145,13 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
         return "tool"
 
 
-def user_message_to_oai(message: UserMessage, prepend_name: bool = False) -> ChatCompletionUserMessageParam:
+def user_message_to_oai(message: UserMessage, prepend_name: bool = False, include_name_in_message: bool = True) -> ChatCompletionUserMessageParam:
     assert_valid_name(message.source)
     if isinstance(message.content, str):
         return ChatCompletionUserMessageParam(
             content=(f"{message.source} said:\n" if prepend_name else "") + message.content,
             role="user",
-            name=message.source,
+            name=message.source if include_name_in_message else None,
         )
     else:
         parts: List[ChatCompletionContentPartParam] = []
@@ -211,6 +211,7 @@ def tool_message_to_oai(
 
 def assistant_message_to_oai(
     message: AssistantMessage,
+    include_name_in_message: bool = True
 ) -> ChatCompletionAssistantMessageParam:
     assert_valid_name(message.source)
     if isinstance(message.content, list):
@@ -219,7 +220,7 @@ def assistant_message_to_oai(
                 content=message.thought,
                 tool_calls=[func_call_to_oai(x) for x in message.content],
                 role="assistant",
-                name=message.source,
+                name=message.source if include_name_in_message else None,
             )
         else:
             return ChatCompletionAssistantMessageParam(
@@ -371,7 +372,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model_capabilities: Optional[ModelCapabilities] = None,  # type: ignore
         model_info: Optional[ModelInfo] = None,
         add_name_prefixes: bool = False,
+        include_name_in_message: bool = True
     ):
+        self._include_name_in_message = include_name_in_message
         self._client = client
         self._add_name_prefixes = add_name_prefixes
         if model_capabilities is None and model_info is None:
@@ -1607,3 +1610,4 @@ class AzureOpenAIChatCompletionClient(
             )
 
         return cls(**copied_config)
+
