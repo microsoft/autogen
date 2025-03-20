@@ -11,8 +11,7 @@ import uuid
 from collections.abc import Sequence
 from hashlib import sha256
 from pathlib import Path
-from types import TracebackType
-from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Tuple, Type, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Tuple, Union
 
 from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import (
@@ -428,16 +427,6 @@ $functions"""
             raise ValueError(f"Failed to start container from image {self._image}. Logs: {logs_str}")
 
         self._running = True
-
-    async def __aenter__(self) -> Self:
-        await self.start()
-        return self
-
-    async def __aexit__(
-        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
-    ) -> Optional[bool]:
-        await self.stop()
-        return None
 
     def _to_config(self) -> DockerCommandLineCodeExecutorConfig:
         """(Experimental) Convert the component to a config object."""
