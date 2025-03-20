@@ -7,9 +7,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from types import TracebackType
 from typing import List, Optional, Type
-from typing_extensions import Self
 
 from pydantic import BaseModel
+from typing_extensions import Self
 
 from .._cancellation_token import CancellationToken
 from .._component_config import ComponentBase
@@ -43,7 +43,7 @@ class CodeExecutor(ABC, ComponentBase[BaseModel]):
     It is recommended for subclass to be used as a context manager to ensure
     that resources are cleaned up properly. To do this, implement the
     :meth:`~autogen_core.code_executor.CodeExecutor.start` and
-    :meth:`~autogen_core.code_executor.CodeExecutor.stop` methods 
+    :meth:`~autogen_core.code_executor.CodeExecutor.stop` methods
     that will be called when entering and exiting the context manager.
 
     """
@@ -70,12 +70,12 @@ class CodeExecutor(ABC, ComponentBase[BaseModel]):
             asyncio.CancelledError: CancellationToken evoked during execution
         """
         ...
-    
+
     @abstractmethod
     async def start(self) -> None:
         """Start the code executor."""
         ...
-    
+
     @abstractmethod
     async def stop(self) -> None:
         """Stop the code executor and release any resources."""
