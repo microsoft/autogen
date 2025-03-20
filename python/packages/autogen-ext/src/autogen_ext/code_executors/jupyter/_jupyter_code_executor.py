@@ -6,7 +6,6 @@ import sys
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from types import TracebackType
 
 from autogen_core import Component
 from pydantic import BaseModel
@@ -264,18 +263,6 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
     async def stop(self) -> None:
         """Stop the kernel."""
         await self.kernel_context.__aexit__(None, None, None)
-
-    async def __aenter__(self) -> Self:
-        await self.start()
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        await self.stop()
 
     def _to_config(self) -> JupyterCodeExecutorConfig:
         """Convert current instance to config object"""
