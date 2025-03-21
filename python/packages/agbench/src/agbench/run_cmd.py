@@ -604,8 +604,8 @@ echo RUN.SH COMPLETE !#!#
     if docker_host.startswith("unix://"):
         docker_socket = os.path.abspath(docker_host[7:])
         if os.path.exists(docker_socket):
-            mode = os.stat(docker_socket).st_mode
-            if stat.S_ISSOCK(mode):
+            st_mode = os.stat(docker_socket).st_mode
+            if stat.S_ISSOCK(st_mode):
                 volumes[docker_socket] = {"bind": "/var/run/docker.sock", "mode": "rw"}
 
                 # Update the environment variables so that the inner docker client can
