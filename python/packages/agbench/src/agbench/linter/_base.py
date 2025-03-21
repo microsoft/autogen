@@ -1,12 +1,14 @@
-import json
 import hashlib
+import json
 import re
-from typing import Protocol, List, Set, Optional
+from typing import List, Optional, Protocol, Set
+
 from pydantic import BaseModel, Field
 
 
 class Document(BaseModel):
     text: str = Field(..., description="Text content of the document.")
+    lines: List[str] = Field(..., description="List of lines in the document. This is a list of strings.")
     name: Optional[str] = Field(None, description="Optional name of the document.")
 
     def __hash__(self) -> int:

@@ -1,8 +1,10 @@
-import os
 import argparse
-from typing import List, Sequence, Optional
+import os
+from typing import List, Optional, Sequence
+
 from openai import OpenAI
-from ._base import Document, CodedDocument
+
+from ._base import CodedDocument, Document
 from .coders.oai_coder import OAIQualitativeCoder
 
 
@@ -22,8 +24,8 @@ def load_log_file(path: str, prepend_numbers: bool = False) -> Document:
     if prepend_numbers:
         lines = prepend_line_numbers(lines)
 
-    text = "".join(lines)
-    return Document(text=text, name=os.path.abspath(path))
+    text = "\n".join(lines)
+    return Document(text=text, lines=lines, name=os.path.abspath(path))
 
 
 def code_log(path: str) -> Optional[CodedDocument]:
