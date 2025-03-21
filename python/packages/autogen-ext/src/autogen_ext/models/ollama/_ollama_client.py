@@ -602,6 +602,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             logprobs=None,
+            request_id=response.get("request_id", None),
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)
@@ -737,6 +738,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             logprobs=None,
+            request_id=chunk.get("request_id", None),
         )
 
         # Emit the end event.
