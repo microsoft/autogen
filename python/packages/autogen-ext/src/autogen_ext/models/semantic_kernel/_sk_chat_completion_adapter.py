@@ -514,6 +514,10 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             thought, content = parse_r1_content(content)
         else:
             thought = None
+            
+        request_id = None
+        if result and hasattr(result[0], "metadata") and isinstance(result[0].metadata, dict):
+            request_id = result[0].metadata.get("request_id")
 
         return CreateResult(
             content=content,
@@ -521,6 +525,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
             cached=False,
             thought=thought,
+            request_id=request_id,
         )
 
     @staticmethod
@@ -671,11 +676,16 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                             )
                         )
                     # Yield all function calls in progress
+                    request_id = None
+                    if result and hasattr(result[0], "metadata") and isinstance(result[0].metadata, dict):
+                        request_id = result[0].metadata.get("request_id")
+                        
                     yield CreateResult(
                         content=calls_to_yield,
                         finish_reason="function_calls",
                         usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
                         cached=False,
+                        request_id=request_id,
                     )
                     return
 
@@ -691,6 +701,10 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         thought = None
         if isinstance(accumulated_text, str) and self._model_info["family"] == ModelFamily.R1:
             thought, accumulated_text = parse_r1_content(accumulated_text)
+        
+        request_id = None
+        if result and hasattr(result[0], "metadata") and isinstance(result[0].metadata, dict):
+            request_id = result[0].metadata.get("request_id")
 
         result = CreateResult(
             content=accumulated_text,
@@ -698,6 +712,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
             cached=False,
             thought=thought,
+            request_id=request_id,
         )
 
         # Emit the end event.
