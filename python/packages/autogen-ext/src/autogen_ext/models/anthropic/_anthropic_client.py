@@ -557,6 +557,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+            request_id=getattr(result, "request_id", None),
         )
 
         # Update usage statistics
@@ -775,6 +776,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+            request_id=getattr(result, "request_id", None),
         )
 
         # Emit the end event.
