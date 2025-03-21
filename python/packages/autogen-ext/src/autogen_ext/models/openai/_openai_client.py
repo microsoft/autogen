@@ -444,14 +444,16 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 if self.model_info["structured_output"] is False:
                     raise ValueError("Model does not support structured output.")
                 warnings.warn(
-                    "Using response_format to specify structured output type will be deprecated. "
-                    "Use json_output instead.",
+                    "Using response_format to specify the BaseModel for structured output type will be deprecated. "
+                    "Use json_output in create and create_stream instead.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
                 response_format_value = value
                 # Remove response_format from create_args to prevent passing it twice.
                 del create_args["response_format"]
+            # In all other cases when response_format is set to something else, we will
+            # use the regular client.
 
         if json_output is not None:
             if self.model_info["json_output"] is False and json_output is True:
@@ -669,19 +671,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
-        """
-        Creates an AsyncGenerator that will yield a  stream of chat completions based on the provided messages and tools.
+        """Create a stream of string chunks from the model ending with a :class:`~autogen_core.models.CreateResult`.
 
-        Args:
-            messages (Sequence[LLMMessage]): A sequence of messages to be processed.
-            tools (Sequence[Tool | ToolSchema], optional): A sequence of tools to be used in the completion. Defaults to `[]`.
-            json_output (Optional[bool | type[BaseModel]], optional): If True, the output will be in JSON format. If a Pydantic model class, the output will be in that format. Defaults to None.
-            extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
-            cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
-            max_consecutive_empty_chunk_tolerance (int): [Deprecated] This parameter is deprecated, empty chunks will be skipped.
-
-        Yields:
-            AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
+        Extends :meth:`autogen_core.models.ChatCompletionClient.create_stream` to support OpenAI API.
 
         In streaming, the default behaviour is not return token usage counts.
         See: `OpenAI API reference for possible args <https://platform.openai.com/docs/api-reference/chat/create>`_.
@@ -700,6 +692,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             - `frequency_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on their existing frequency in the text so far, decreasing the likelihood of repeated phrases.
             - `presence_penalty` (float): A value between -2.0 and 2.0 that penalizes new tokens based on whether they appear in the text so far, encouraging the model to talk about new topics.
         """
+
         create_params = self._process_create_args(
             messages,
             tools,
@@ -1108,7 +1101,47 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         max_tokens (optional, int):
         n (optional, int):
         presence_penalty (optional, float):
-        response_format (optional, literal["json_object", "text"] | pydantic.BaseModel):
+        response_format (optional, Dict[str, Any]): the format of the response. Possible options are:
+
+            .. code-block:: text
+
+                # Text response, this is the default.
+                {"type": "text"}
+
+            .. code-block:: text
+
+                # JSON response, make sure to instruct the model to return JSON.
+                {"type": "json_object"}
+
+            .. code-block:: text
+
+                # Structured output response, with a pre-defined JSON schema.
+                {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "name of the schema, must be an identifier.",
+                        "description": "description for the model.",
+                        # You can convert a Pydantic (v2) model to JSON schema
+                        # using the `model_json_schema()` method.
+                        "schema": "<the JSON schema itself>",
+                        # Whether to enable strict schema adherence when
+                        # generating the output. If set to true, the model will
+                        # always follow the exact schema defined in the
+                        # `schema` field. Only a subset of JSON Schema is
+                        # supported when `strict` is `true`.
+                        # To learn more, read
+                        # https://platform.openai.com/docs/guides/structured-outputs.
+                        "strict": False,  # or True
+                    },
+                }
+
+            It is recommended to use the `json_output` parameter in
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create` or
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create_stream`
+            methods instead of `response_format` for structured output.
+            The `json_output` parameter is more flexible and allows you to
+            specify a Pydantic model class directly.
+
         seed (optional, int):
         stop (optional, str | List[str]):
         temperature (optional, float):
@@ -1240,10 +1273,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
             async def main() -> None:
                 # Create an OpenAIChatCompletionClient instance.
-                model_client = OpenAIChatCompletionClient(
-                    model="gpt-4o-mini",
-                    response_format=AgentResponse,  # type: ignore
-                )
+                model_client = OpenAIChatCompletionClient(model="gpt-4o-mini")
 
                 # Generate a response using the tool.
                 response1 = await model_client.create(
@@ -1267,6 +1297,8 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                             content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False, name="sentiment_analysis")]
                         ),
                     ],
+                    # Use the structured output format.
+                    json_output=AgentResponse,
                 )
                 print(response2.content)
                 # Should be a structured output.
@@ -1391,7 +1423,47 @@ class AzureOpenAIChatCompletionClient(
         max_tokens (optional, int):
         n (optional, int):
         presence_penalty (optional, float):
-        response_format (optional, literal["json_object", "text"]):
+        response_format (optional, Dict[str, Any]): the format of the response. Possible options are:
+
+            .. code-block:: text
+
+                # Text response, this is the default.
+                {"type": "text"}
+
+            .. code-block:: text
+
+                # JSON response, make sure to instruct the model to return JSON.
+                {"type": "json_object"}
+
+            .. code-block:: text
+
+                # Structured output response, with a pre-defined JSON schema.
+                {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "name of the schema, must be an identifier.",
+                        "description": "description for the model.",
+                        # You can convert a Pydantic (v2) model to JSON schema
+                        # using the `model_json_schema()` method.
+                        "schema": "<the JSON schema itself>",
+                        # Whether to enable strict schema adherence when
+                        # generating the output. If set to true, the model will
+                        # always follow the exact schema defined in the
+                        # `schema` field. Only a subset of JSON Schema is
+                        # supported when `strict` is `true`.
+                        # To learn more, read
+                        # https://platform.openai.com/docs/guides/structured-outputs.
+                        "strict": False,  # or True
+                    },
+                }
+
+            It is recommended to use the `json_output` parameter in
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create` or
+            :meth:`~autogen_ext.models.openai.BaseOpenAIChatCompletionClient.create_stream`
+            methods instead of `response_format` for structured output.
+            The `json_output` parameter is more flexible and allows you to
+            specify a Pydantic model class directly.
+
         seed (optional, int):
         stop (optional, str | List[str]):
         temperature (optional, float):

@@ -80,7 +80,7 @@ async def main() -> None:
     user_proxy = UserProxyAgent("user_proxy")
     # The termination condition is set to end the conversation when the user types 'exit'.
     termination = TextMentionTermination("exit", sources=["user_proxy"])
-    # Web surfer and user proxy takes turns in a round-robin fashion.
+    # Web surfer and user proxy take turns in a round-robin fashion.
     team = RoundRobinGroupChat([web_surfer, user_proxy], termination_condition=termination)
     try:
         # Start the team and wait for it to terminate.
@@ -112,7 +112,7 @@ The AutoGen ecosystem provides everything you need to create AI agents, especial
 The _framework_ uses a layered and extensible design. Layers have clearly divided responsibilities and build on top of layers below. This design enables you to use the framework at different levels of abstraction, from high-level APIs to low-level components.
 
 - [Core API](./python/packages/autogen-core/) implements message passing, event-driven agents, and local and distributed runtime for flexibility and power. It also support cross-language support for .NET and Python.
-- [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API rapid for prototyping. This API is built on top of the Core API and is closest to what users of v0.2 are familiar with and supports familiar multi-agent patterns such as two-agent chat or group chats.
+- [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API for rapid prototyping. This API is built on top of the Core API and is closest to what users of v0.2 are familiar with and supports common multi-agent patterns such as two-agent chat or group chats.
 - [Extensions API](./python/packages/autogen-ext/) enables first- and third-party extensions continuously expanding framework capabilities. It support specific implementation of LLM clients (e.g., OpenAI, AzureOpenAI), and capabilities such as code execution.
 
 The ecosystem also supports two essential _developer tools_:
@@ -124,7 +124,7 @@ The ecosystem also supports two essential _developer tools_:
 - [AutoGen Studio](./python/packages/autogen-studio/) provides a no-code GUI for building multi-agent applications.
 - [AutoGen Bench](./python/packages/agbench/) provides a benchmarking suite for evaluating agent performance.
 
-You can use the AutoGen framework and developer tools to create applications for your domain. For example, [Magentic-One](./python/packages/magentic-one-cli/) is a state-of-art multi-agent team built using AgentChat API and Extensions API that can handle variety of tasks that require web browsing, code execution, and file handling.
+You can use the AutoGen framework and developer tools to create applications for your domain. For example, [Magentic-One](./python/packages/magentic-one-cli/) is a state-of-the-art multi-agent team built using AgentChat API and Extensions API that can handle a variety of tasks that require web browsing, code execution, and file handling.
 
 With AutoGen you get to join and contribute to a thriving ecosystem. We host weekly office hours and talks with maintainers and community. We also have a [Discord server](https://aka.ms/autogen-discord) for real-time chat, GitHub Discussions for Q&A, and a blog for tutorials and updates.
 
