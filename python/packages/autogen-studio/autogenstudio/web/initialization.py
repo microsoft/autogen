@@ -1,7 +1,6 @@
 # api/initialization.py
 import os
 from pathlib import Path
-from typing import Dict
 
 from dotenv import load_dotenv
 from loguru import logger
