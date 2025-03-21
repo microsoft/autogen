@@ -56,6 +56,8 @@ class BedrockClient:
         self._aws_session_token = kwargs.get("aws_session_token", None)
         self._aws_region = kwargs.get("aws_region", None)
         self._aws_profile_name = kwargs.get("aws_profile_name", None)
+        self._aws_read_timeout = kwargs.get("aws_read_timeout", 60)
+        self._aws_connect_timeout = kwargs.get("aws_connect_timeout", 60)
 
         if not self._aws_access_key:
             self._aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
@@ -77,6 +79,8 @@ class BedrockClient:
             region_name=self._aws_region,
             signature_version="v4",
             retries={"max_attempts": self._retries, "mode": "standard"},
+            read_timeout=self._aws_read_timeout,
+            connect_timeout=self._aws_connect_timeout,
         )
 
         session = boto3.Session(
