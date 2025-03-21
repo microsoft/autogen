@@ -961,7 +961,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # STEP 4D: Reflect or summarize tool results
         if reflect_on_tool_use:
-            async for reflection_response in AssistantAgent._reflect_on_tool_use_flow(
+            async for reflection_response in cls._reflect_on_tool_use_flow(
                 system_messages=system_messages,
                 model_client=model_client,
                 model_client_stream=model_client_stream,
@@ -971,7 +971,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             ):
                 yield reflection_response
         else:
-            yield AssistantAgent._summarize_tool_use(
+            yield cls._summarize_tool_use(
                 executed_calls_and_results=executed_calls_and_results,
                 inner_messages=inner_messages,
                 handoffs=handoffs,

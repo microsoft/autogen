@@ -41,6 +41,7 @@ async def main(model_config: Dict[str, Any]) -> None:
     print(f"\nQuery: {query}")
 
     await Console(assistant_agent.run_stream(task=query))
+    await model_client.close()
 
 
 if __name__ == "__main__":
