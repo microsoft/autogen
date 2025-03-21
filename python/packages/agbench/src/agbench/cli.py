@@ -7,6 +7,7 @@ from .remove_missing_cmd import remove_missing_cli
 from .run_cmd import run_cli
 from .tabulate_cmd import tabulate_cli
 from .version import __version__
+from .linter.cli import lint_cli
 
 
 class CommandSpec(TypedDict):
@@ -32,6 +33,11 @@ def main(args: Optional[List[str]] = None) -> None:
             "command": "tabulate",
             "description": "tabulate the results of a previous run",
             "function": tabulate_cli,
+        },
+        {
+            "command": "lint",
+            "description": "lint the benchmark configuration",
+            "function": lint_cli,
         },
         {
             "command": "remove_missing",
