@@ -1,13 +1,12 @@
 import os
 import re
+from typing import List, Optional, Set
 
-from typing import List, Set, Optional
-from pydantic import BaseModel
 import tiktoken
 from openai import OpenAI
+from pydantic import BaseModel
 
-from .._base import CodedDocument, Document, Code, CodeExample
-from .._base import BaseQualitativeCoder
+from .._base import BaseQualitativeCoder, Code, CodedDocument, CodeExample, Document
 from ._prompt import MAIN_PROMPT
 
 
@@ -321,7 +320,7 @@ Document:
         for code in coded_doc.codes:
             prompt += f"Code: {code.name}\n"
             prompt += f"Definition: {code.definition}\n"
-            prompt += f"Examples:\n"
+            prompt += "Examples:\n"
             for example in code.examples:
                 extracted_lines = self._extract_code_lines(coded_doc.doc, example)
                 prompt += f"- Does the text in the lines {example.line}:{example.line_end} shown below have enough information to justify the {code.name} error? "
