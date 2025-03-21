@@ -58,6 +58,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Enhance TOC sections for accessibility
+  document.querySelectorAll('.caption-text').forEach(caption => {
+    const sectionTitle = caption.textContent.trim();
+    const captionContainer = caption.closest('p.caption');
+    if (!captionContainer) return;
+
+    // Find and process navigation lists that belong to this section
+    findSectionNav(captionContainer, sectionTitle);
+  });
+
   // Version dropdown menu is dynamically generated after page load. Listen for changes to set aria-selected
   var observer = new MutationObserver(function () {
     document.querySelectorAll('.dropdown-item').forEach(function (element) {
@@ -109,4 +119,90 @@ function announceMessage(liveRegion, message) {
   setTimeout(() => {
     liveRegion.textContent = message;
   }, 50);
+}
+
+/**
+ * Find navigation lists belonging to a section and process them
+ */
+function findSectionNav(captionContainer, sectionTitle) {
+  let nextElement = captionContainer.nextElementSibling;
+
+  while (nextElement) {
+    if (nextElement.classList && nextElement.classList.contains('caption')) {
+      break;
+    }
+
+    if (nextElement.matches('ul.bd-sidenav')) {
+      enhanceNavList(nextElement, sectionTitle);
+    }
+
+    nextElement = nextElement.nextElementSibling;
+  }
+}
+
+/**
+ * Process a navigation list by enhancing its links for accessibility
+ */
+function enhanceNavList(navList, sectionTitle) {
+  const topLevelItems = navList.querySelectorAll(':scope > li');
+
+  topLevelItems.forEach(item => {
+    const link = item.querySelector(':scope > a.reference.internal');
+    if (!link) return;
+
+    const linkText = link.textContent.trim();
+    link.setAttribute('aria-label', `${sectionTitle}: ${linkText}`);
+
+    enhanceExpandableSections(item, link, linkText, sectionTitle);
+  });
+}
+
+/**
+ * Process expandable sections (details elements) within a navigation item
+ */
+function enhanceExpandableSections(item, parentLink, parentText, sectionTitle) {
+  const detailsElements = item.querySelectorAll('details');
+
+  detailsElements.forEach(details => {
+    enhanceToggleButton(details, parentText);
+    enhanceNestedLinks(details, parentLink, parentText, sectionTitle);
+  });
+}
+
+/**
+ * Make toggle buttons more accessible by adding appropriate aria labels
+ */
+function enhanceToggleButton(details, parentText) {
+  const summary = details.querySelector('summary');
+  if (!summary) return;
+
+  function updateToggleLabel() {
+    const isExpanded = details.hasAttribute('open');
+    const action = isExpanded ? 'Collapse' : 'Expand';
+    summary.setAttribute('aria-label', `${action} ${parentText} section`);
+  }
+
+  updateToggleLabel();
+
+  summary.addEventListener('click', () => {
+    setTimeout(updateToggleLabel, 10);
+  });
+}
+
+/**
+ * Enhance nested links with hierarchical aria-labels
+ */
+function enhanceNestedLinks(details, parentLink, parentText, sectionTitle) {
+  const nestedLinks = details.querySelectorAll('a.reference.internal');
+
+  nestedLinks.forEach(link => {
+    const linkText = link.textContent.trim();
+    const parentLabel = parentLink.getAttribute('aria-label');
+
+    if (parentLabel) {
+      link.setAttribute('aria-label', `${parentLabel}: ${linkText}`);
+    } else {
+      link.setAttribute('aria-label', `${sectionTitle}: ${parentText}: ${linkText}`);
+    }
+  });
 }
