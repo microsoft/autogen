@@ -148,10 +148,9 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
 def user_message_to_oai(message: UserMessage, prepend_name: bool = False, include_name_in_message: bool = True) -> ChatCompletionUserMessageParam:
     assert_valid_name(message.source)
     if isinstance(message.content, str):
-        return ChatCompletionUserMessageParam(
+        user_message = ChatCompletionUserMessageParam(
             content=(f"{message.source} said:\n" if prepend_name else "") + message.content,
-            role="user",
-            name=message.source if include_name_in_message else None,
+            role="user"
         )
     else:
         parts: List[ChatCompletionContentPartParam] = []
@@ -176,11 +175,15 @@ def user_message_to_oai(message: UserMessage, prepend_name: bool = False, includ
                 parts.append(cast(ChatCompletionContentPartImageParam, part.to_openai_format()))
             else:
                 raise ValueError(f"Unknown content type: {part}")
-        return ChatCompletionUserMessageParam(
+        user_message = ChatCompletionUserMessageParam(
             content=parts,
-            role="user",
-            name=message.source,
+            role="user"
         )
+        
+    if include_name_in_message:
+        user_message.name = message.source
+
+    return user_message
 
 
 def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessageParam:
@@ -214,35 +217,39 @@ def assistant_message_to_oai(
     include_name_in_message: bool = True
 ) -> ChatCompletionAssistantMessageParam:
     assert_valid_name(message.source)
+
     if isinstance(message.content, list):
         if message.thought is not None:
-            return ChatCompletionAssistantMessageParam(
+            assistant_message = ChatCompletionAssistantMessageParam(
                 content=message.thought,
                 tool_calls=[func_call_to_oai(x) for x in message.content],
                 role="assistant",
-                name=message.source if include_name_in_message else None,
             )
         else:
-            return ChatCompletionAssistantMessageParam(
+            assistant_message = ChatCompletionAssistantMessageParam(
                 tool_calls=[func_call_to_oai(x) for x in message.content],
                 role="assistant",
-                name=message.source,
             )
     else:
-        return ChatCompletionAssistantMessageParam(
+        assistant_message = ChatCompletionAssistantMessageParam(
             content=message.content,
             role="assistant",
-            name=message.source,
         )
 
+    if include_name_in_message:
+        assistant_message.name = message.source
 
-def to_oai_type(message: LLMMessage, prepend_name: bool = False) -> Sequence[ChatCompletionMessageParam]:
+    return assistant_message
+
+
+
+def to_oai_type(message: LLMMessage, prepend_name: bool = False, include_name_in_message: bool = True) -> Sequence[ChatCompletionMessageParam]:
     if isinstance(message, SystemMessage):
         return [system_message_to_oai(message)]
     elif isinstance(message, UserMessage):
-        return [user_message_to_oai(message, prepend_name)]
+        return [user_message_to_oai(message, prepend_name, include_name_in_message)]
     elif isinstance(message, AssistantMessage):
-        return [assistant_message_to_oai(message)]
+        return [assistant_message_to_oai(message, include_name_in_message)]
     else:
         return tool_message_to_oai(message)
 
@@ -501,7 +508,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
-        oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes) for m in messages]
+        oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes, include_name_in_message=self._include_name_in_message) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
         if self.model_info["function_calling"] is False and len(tools) > 0:
@@ -983,7 +990,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         # Message tokens.
         for message in messages:
             num_tokens += tokens_per_message
-            oai_message = to_oai_type(message, prepend_name=self._add_name_prefixes)
+            oai_message = to_oai_type(message, prepend_name=self._add_name_prefixes, include_name_in_message=self._include_name_in_message)
             for oai_message_part in oai_message:
                 for key, value in oai_message_part.items():
                     if value is None:
@@ -1610,4 +1617,3 @@ class AzureOpenAIChatCompletionClient(
             )
 
         return cls(**copied_config)
-
