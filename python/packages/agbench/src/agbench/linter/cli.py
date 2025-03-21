@@ -1,10 +1,8 @@
-import argparse
 import os
-from typing import List, Optional, Sequence
-
+import argparse
+from typing import List, Sequence, Optional
 from openai import OpenAI
-
-from ._base import CodedDocument, Document
+from ._base import Document, CodedDocument
 from .coders.oai_coder import OAIQualitativeCoder
 
 
