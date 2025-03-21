@@ -25,7 +25,8 @@ dependencies = [
     "tabulate",
     "azure-identity",
     "pandas",
-    "scipy"
+    "scipy",
+    "tiktoken"
 ]
 
 [dependency-groups]

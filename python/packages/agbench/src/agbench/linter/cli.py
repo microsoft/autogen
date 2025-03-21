@@ -22,8 +22,8 @@ def load_log_file(path: str, prepend_numbers: bool = False) -> Document:
     if prepend_numbers:
         lines = prepend_line_numbers(lines)
 
-    text = "".join(lines)
-    return Document(text=text, name=os.path.abspath(path))
+    text = "\n".join(lines)
+    return Document(text=text, lines=lines, name=os.path.abspath(path))
 
 
 def code_log(path: str) -> Optional[CodedDocument]:
