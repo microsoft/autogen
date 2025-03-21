@@ -20,6 +20,7 @@ from autogen_core.code_executor import (
     FunctionWithRequirements,
     FunctionWithRequirementsStr,
 )
+import tempfile
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -68,8 +69,8 @@ class DockerCommandLineCodeExecutorConfig(BaseModel):
     image: str = "python:3-slim"
     container_name: Optional[str] = None
     timeout: int = 60
-    work_dir: str = "."  # Stored as string, converted to Path
-    bind_dir: Optional[str] = None  # Stored as string, converted to Path
+    work_dir: Optional[str] = None  # Changed to None as default
+    bind_dir: Optional[str] = None  # Changed to None as default
     auto_remove: bool = True
     stop_container: bool = True
     functions_module: str = "functions"
@@ -152,8 +153,8 @@ $functions"""
         container_name: Optional[str] = None,
         *,
         timeout: int = 60,
-        work_dir: Union[Path, str] = Path("."),
-        bind_dir: Optional[Union[Path, str]] = None,
+        work_dir: Union[Path, str, None] = None,  # Default None
+        bind_dir: Optional[Union[Path, str]] = None,  # Default None
         auto_remove: bool = True,
         stop_container: bool = True,
         functions: Sequence[
@@ -186,8 +187,21 @@ $functions"""
             self.container_name = container_name
 
         self._timeout = timeout
-        self._work_dir: Path = work_dir
-        self._bind_dir: Path = bind_dir
+        self._user_work_dir: Optional[Path] = None
+        if work_dir is not None:
+            self._user_work_dir = Path(work_dir) if isinstance(work_dir, str) else work_dir
+            self._user_work_dir.mkdir(exist_ok=True, parents=True)
+        
+        # Handle bind_dir
+        self._user_bind_dir: Optional[Path] = None
+        if bind_dir is not None:
+            self._user_bind_dir = Path(bind_dir) if isinstance(bind_dir, str) else bind_dir
+        else:
+            self._user_bind_dir = self._user_work_dir  # Default to work_dir if not provided
+
+        # Track temporary directory
+        self._temp_dir: Optional[tempfile.TemporaryDirectory] = None
+        self._started = False
 
         self._auto_remove = auto_remove
         self._stop_container = stop_container
@@ -220,16 +234,16 @@ $functions"""
     @property
     def work_dir(self) -> Path:
         """(Experimental) The working directory for the code execution."""
-        return self._work_dir
+        return self.work_dir
 
     @property
     def bind_dir(self) -> Path:
         """(Experimental) The binding directory for the code execution container."""
-        return self._bind_dir
+        return self.bind_dir
 
     async def _setup_functions(self, cancellation_token: CancellationToken) -> None:
         func_file_content = build_python_functions_file(self._functions)
-        func_file = self._work_dir / f"{self._functions_module}.py"
+        func_file = self.work_dir / f"{self._functions_module}.py"
         func_file.write_text(func_file_content)
 
         # Collect requirements
@@ -303,7 +317,7 @@ $functions"""
 
             # Check if there is a filename comment
             try:
-                filename = get_file_name_from_content(code, self._work_dir)
+                filename = get_file_name_from_content(code, self.work_dir)
             except ValueError:
                 outputs.append("Filename is not in the workspace")
                 last_exit_code = 1
@@ -312,7 +326,7 @@ $functions"""
             if not filename:
                 filename = f"tmp_code_{sha256(code.encode()).hexdigest()}.{lang}"
 
-            code_path = self._work_dir / filename
+            code_path = self.work_dir / filename
             with code_path.open("w", encoding="utf-8") as fout:
                 fout.write(code)
             files.append(code_path)
@@ -327,6 +341,28 @@ $functions"""
 
         code_file = str(files[0]) if files else None
         return CommandLineCodeResult(exit_code=last_exit_code, output="".join(outputs), code_file=code_file)
+    
+    @property
+    def work_dir(self) -> Path:
+        if self._user_work_dir is not None:
+            return self._user_work_dir
+        elif self._started and self._temp_dir is not None:
+            return Path(self._temp_dir.name)
+        else:
+            warnings.warn(
+                "Using current directory as work_dir is deprecated. Call start() to use a temporary directory.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return Path.cwd()
+
+    @property
+    def bind_dir(self) -> Path:
+        if self._user_bind_dir is not None:
+            return self._user_bind_dir
+        else:
+            return self.work_dir  # Bind dir follows work_dir if not explicitly set
+
 
     async def execute_code_blocks(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
@@ -357,9 +393,13 @@ $functions"""
 
     async def stop(self) -> None:
         """(Experimental) Stop the code executor."""
-
         if not self._running:
             return
+        
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+            self._temp_dir = None
+
 
         client = docker.from_env()
         try:
@@ -374,6 +414,12 @@ $functions"""
             self._running = False
 
     async def start(self) -> None:
+        if self._user_work_dir is None and self._temp_dir is None:
+            self._temp_dir = tempfile.TemporaryDirectory()
+            self._temp_dir_path = Path(self._temp_dir.name)
+            self._temp_dir_path.mkdir(exist_ok=True)
+
+
         # Start a container from the image, read to exec commands later
         try:
             client = docker.from_env()
@@ -406,7 +452,7 @@ $functions"""
             tty=True,
             detach=True,
             auto_remove=self._auto_remove,
-            volumes={str(self._bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}, **self._extra_volumes},
+            volumes={str(self.bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}, **self._extra_volumes},
             working_dir="/workspace",
             extra_hosts=self._extra_hosts,
         )
@@ -437,8 +483,8 @@ $functions"""
             image=self._image,
             container_name=self.container_name,
             timeout=self._timeout,
-            work_dir=str(self._work_dir),
-            bind_dir=str(self._bind_dir) if self._bind_dir else None,
+            work_dir=str(self._user_work_dir) if self._user_work_dir else None,
+            bind_dir=str(self._user_bind_dir) if self._user_bind_dir else None,
             auto_remove=self._auto_remove,
             stop_container=self._stop_container,
             functions_module=self._functions_module,

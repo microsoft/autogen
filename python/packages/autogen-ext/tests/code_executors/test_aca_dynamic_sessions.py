@@ -33,6 +33,7 @@ async def test_execute_code() -> None:
     executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential()
     )
+    await executor.start()
 
     # Test single code block.
     code_blocks = [CodeBlock(code="import sys; print('hello world!')", language="python")]
@@ -59,6 +60,7 @@ async def test_execute_code() -> None:
     code_blocks = [CodeBlock(code="\n".join(file_lines), language="python")]
     code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
     assert code_result.exit_code == 0 and "hello world!" in code_result.output and "200" in code_result.output
+    await executor.close()
 
 
 @pytest.mark.skipif(
@@ -72,10 +74,11 @@ async def test_azure_container_code_executor_timeout() -> None:
     executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), timeout=1
     )
+    await executor.start()
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
     with pytest.raises(asyncio.TimeoutError):
         await executor.execute_code_blocks(code_blocks, cancellation_token)
-
+    await executor.close()
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -88,6 +91,7 @@ async def test_azure_container_code_executor_cancellation() -> None:
     executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential()
     )
+    await executor.start()
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
 
     coro = executor.execute_code_blocks(code_blocks, cancellation_token)
@@ -97,6 +101,7 @@ async def test_azure_container_code_executor_cancellation() -> None:
 
     with pytest.raises(asyncio.CancelledError):
         await coro
+    await executor.close()
 
 
 @pytest.mark.skipif(
@@ -116,6 +121,7 @@ async def test_upload_files() -> None:
         executor = ACADynamicSessionsCodeExecutor(
             pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), work_dir=temp_dir
         )
+        await executor.start()
 
         async with await open_file(os.path.join(temp_dir, test_file_1), "w") as f:
             await f.write(test_file_1_contents)
@@ -144,6 +150,8 @@ with open("{test_file_2}") as f:
     assert test_file_1_contents in code_result.output
     assert test_file_2_contents in code_result.output
 
+    await executor.close()
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -162,6 +170,7 @@ async def test_download_files() -> None:
         executor = ACADynamicSessionsCodeExecutor(
             pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), work_dir=temp_dir
         )
+        await executor.start()
 
         code_blocks = [
             CodeBlock(
@@ -191,3 +200,5 @@ with open("{test_file_2}", "w") as f:
         async with await open_file(os.path.join(temp_dir, test_file_2), "r") as f:
             content = await f.read()
             assert test_file_2_contents in content
+
+        await executor.close()

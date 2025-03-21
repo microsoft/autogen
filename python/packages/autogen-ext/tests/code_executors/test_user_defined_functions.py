@@ -59,6 +59,7 @@ async def test_can_load_function_with_reqs() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         cancellation_token = CancellationToken()
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[load_data])
+        await executor.start()
         code = f"""from {executor.functions_module} import load_data
 import polars
 
@@ -75,19 +76,24 @@ print(data['name'][0])"""
         assert result.output == f"John{os.linesep}"
         assert result.exit_code == 0
 
+        await executor.stop()
 
-def test_local_formatted_prompt() -> None:
+
+async def test_local_formatted_prompt() -> None:
     assert_str = '''def add_two_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
 '''
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[add_two_numbers])
+        await executor.start()
 
         result = executor.format_functions_for_prompt()
         assert assert_str in result
 
+        await executor.stop()
 
-def test_local_formatted_prompt_str_func() -> None:
+
+async def test_local_formatted_prompt_str_func() -> None:
     func = FunctionWithRequirements.from_str(
         '''
 def add_two_numbers(a: int, b: int) -> int:
@@ -102,9 +108,12 @@ def add_two_numbers(a: int, b: int) -> int:
 
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[func])
+        await executor.start()
 
         result = executor.format_functions_for_prompt()
         assert assert_str in result
+
+        await executor.stop()
 
 
 @pytest.mark.asyncio
@@ -112,6 +121,7 @@ async def test_can_load_function() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         cancellation_token = CancellationToken()
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[add_two_numbers])
+        await executor.start()
         code = f"""from {executor.functions_module} import add_two_numbers
 print(add_two_numbers(1, 2))"""
 
@@ -124,12 +134,17 @@ print(add_two_numbers(1, 2))"""
         assert result.output == f"3{os.linesep}"
         assert result.exit_code == 0
 
+        await executor.stop()
+
 
 @pytest.mark.asyncio
 async def test_fails_for_function_incorrect_import() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         cancellation_token = CancellationToken()
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[function_incorrect_import])
+
+        await executor.start()
+
         code = f"""from {executor.functions_module} import function_incorrect_import
 function_incorrect_import()"""
 
@@ -141,12 +156,17 @@ function_incorrect_import()"""
                 cancellation_token=cancellation_token,
             )
 
+        await executor.stop()
+
 
 @pytest.mark.asyncio
 async def test_fails_for_function_incorrect_dep() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         cancellation_token = CancellationToken()
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[function_incorrect_dep])
+
+        await executor.start()
+
         code = f"""from {executor.functions_module} import function_incorrect_dep
 function_incorrect_dep()"""
 
@@ -157,6 +177,8 @@ function_incorrect_dep()"""
                 ],
                 cancellation_token=cancellation_token,
             )
+
+        await executor.stop()
 
 
 @pytest.mark.asyncio
@@ -172,6 +194,8 @@ def add_two_numbers(a: int, b: int) -> int:
         cancellation_token = CancellationToken()
 
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[func])
+        await executor.start()
+
         code = f"""from {executor.functions_module} import add_two_numbers
 print(add_two_numbers(1, 2))"""
 
@@ -183,6 +207,8 @@ print(add_two_numbers(1, 2))"""
         )
         assert result.output == f"3{os.linesep}"
         assert result.exit_code == 0
+
+        await executor.stop()
 
 
 def test_cant_load_broken_str_function_with_reqs() -> None:
@@ -209,6 +235,8 @@ def add_two_numbers(a: int, b: int) -> int:
         cancellation_token = CancellationToken()
 
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[func])
+        await executor.start()
+
         code = f"""from {executor.functions_module} import add_two_numbers
 print(add_two_numbers(object(), False))"""
 
@@ -220,3 +248,5 @@ print(add_two_numbers(object(), False))"""
         )
         assert "TypeError: unsupported operand type(s) for +:" in result.output
         assert result.exit_code == 1
+
+        await executor.stop()

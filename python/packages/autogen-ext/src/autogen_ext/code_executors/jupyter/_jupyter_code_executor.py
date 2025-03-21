@@ -7,6 +7,9 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+import tempfile
+import warnings
+
 from autogen_core import Component
 from pydantic import BaseModel
 
@@ -21,6 +24,7 @@ from nbclient import NotebookClient
 from nbformat import NotebookNode
 from nbformat import v4 as nbformat
 from typing_extensions import Self
+from typing import Optional, Union
 
 from .._common import silence_pip
 
@@ -37,7 +41,7 @@ class JupyterCodeExecutorConfig(BaseModel):
 
     kernel_name: str = "python3"
     timeout: int = 60
-    output_dir: str = "."
+    output_dir: Optional[str] = None
 
 
 class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
@@ -121,7 +125,7 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
     Args:
         kernel_name (str): The kernel name to use. By default, "python3".
         timeout (int): The timeout for code execution, by default 60.
-        output_dir (Path): The directory to save output files, by default ".".
+        output_dir (Path): The directory to save output files, by default a created temporary directory.
     """
 
     component_config_schema = JupyterCodeExecutorConfig
@@ -131,14 +135,22 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         self,
         kernel_name: str = "python3",
         timeout: int = 60,
-        output_dir: Path = Path("."),
+        output_dir: Optional[Union[Path, str]] = None,
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
+        
+        self._user_output_dir: Optional[Path] = None
+        if output_dir is not None:
+            self._user_output_dir = Path(output_dir) if isinstance(output_dir, str) else output_dir
+            self._user_output_dir.mkdir(exist_ok=True)
+
+        self._temp_dir: Optional[tempfile.TemporaryDirectory] = None
+        self._started = False
+
 
         self._kernel_name = kernel_name
         self._timeout = timeout
-        self._output_dir = output_dir
         # TODO: Forward arguments perhaps?
         self._client = NotebookClient(
             nb=nbformat.new_notebook(),  # type: ignore
@@ -241,13 +253,13 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
     def _save_image(self, image_data_base64: str) -> Path:
         """Save image data to a file."""
         image_data = base64.b64decode(image_data_base64)
-        path = self._output_dir / f"{uuid.uuid4().hex}.png"
+        path = self.output_dir / f"{uuid.uuid4().hex}.png"
         path.write_bytes(image_data)
         return path.absolute()
 
     def _save_html(self, html_data: str) -> Path:
         """Save HTML data to a file."""
-        path = self._output_dir / f"{uuid.uuid4().hex}.html"
+        path = self.output_dir / f"{uuid.uuid4().hex}.html"
         path.write_text(html_data)
         return path.absolute()
 
@@ -257,18 +269,41 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         await self.start()
 
     async def start(self) -> None:
+        if self._user_output_dir is None and self._temp_dir is None:
+            self._temp_dir = tempfile.TemporaryDirectory()
+            Path(self._temp_dir.name).mkdir(exist_ok=True)
+        self._started = True
         self.kernel_context = self._client.async_setup_kernel()
         await self.kernel_context.__aenter__()
 
     async def stop(self) -> None:
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+            self._temp_dir = None
+        self._started = False
+
         """Stop the kernel."""
         await self.kernel_context.__aexit__(None, None, None)
 
     def _to_config(self) -> JupyterCodeExecutorConfig:
         """Convert current instance to config object"""
         return JupyterCodeExecutorConfig(
-            kernel_name=self._kernel_name, timeout=self._timeout, output_dir=str(self._output_dir)
+            kernel_name=self._kernel_name, timeout=self._timeout, output_dir=str(self.output_dir)
         )
+
+    @property
+    def output_dir(self) -> Path:
+        if self._user_output_dir is not None:
+            return self._user_output_dir
+        elif self._started and self._temp_dir is not None:
+            return Path(self._temp_dir.name)
+        else:
+            warnings.warn(
+                "Using current directory as output_dir is deprecated. Call start() to use a temporary directory.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return Path(".")
 
     @classmethod
     def _from_config(cls, config: JupyterCodeExecutorConfig) -> Self:
