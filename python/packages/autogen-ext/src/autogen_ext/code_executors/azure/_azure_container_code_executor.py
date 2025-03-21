@@ -458,3 +458,13 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
         self._access_token = None
         self._available_packages = None
         self._setup_cwd_complete = False
+
+    async def start(self) -> None:
+        """(Experimental) Start the code executor."""
+        # No setup needed for this executor
+        pass
+
+    async def stop(self) -> None:
+        """(Experimental) Stop the code executor."""
+        # No cleanup needed for this executor
+        pass
