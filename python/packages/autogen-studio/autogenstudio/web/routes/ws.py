@@ -98,6 +98,7 @@ async def run_websocket(
                 if message.get("type") == "start":
                     # Handle start message
                     logger.info(f"Received start request for run {run_id}")
+                     
                     task = message.get("task")
                     team_config = message.get("team_config")
                     if task and team_config:
