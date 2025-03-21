@@ -201,8 +201,8 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             else:
                 warnings.warn(
                     "The 'structured_output' key is missing from model_info. "
-                    "To enable structured outputs for better speaker selection, "
-                    "please update your model configuration if supported.",
+                    "To enable structured outputs for speaker selection, "
+                    "please update your model_info when creating your model client if supported.",
                     stacklevel=2,
                 )
                 response = await self._model_client.create(messages=select_speaker_messages)
