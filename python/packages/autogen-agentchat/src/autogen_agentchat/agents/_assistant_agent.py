@@ -73,6 +73,7 @@ class AssistantAgentConfig(BaseModel):
     model_client_stream: bool = False
     reflect_on_tool_use: bool
     tool_call_summary_format: str
+    metadata: Dict[str, str] | None = None
 
 
 class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
@@ -613,8 +614,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
         memory: Sequence[Memory] | None = None,
+        metadata: Dict[str, str] | None = None
     ):
         super().__init__(name=name, description=description)
+        self._metadata = metadata or {}
         if reflect_on_tool_use and ModelFamily.is_claude(model_client.model_info["family"]):
             warnings.warn(
                 "Claude models may not work with reflection on tool use because Claude requires that any requests including a previous tool use or tool result must include the original tools definition."
@@ -1207,6 +1210,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=self._model_client_stream,
             reflect_on_tool_use=self._reflect_on_tool_use,
             tool_call_summary_format=self._tool_call_summary_format,
+            metadata=self._metadata,
         )
 
     @classmethod
@@ -1224,4 +1228,5 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=config.model_client_stream,
             reflect_on_tool_use=config.reflect_on_tool_use,
             tool_call_summary_format=config.tool_call_summary_format,
+            metadata=config.metadata,
         )
