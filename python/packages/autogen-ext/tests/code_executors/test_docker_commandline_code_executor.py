@@ -1,4 +1,5 @@
 # mypy: disable-error-code="no-any-unimported"
+import asyncio
 import os
 import sys
 import tempfile
@@ -105,6 +106,33 @@ async def test_commandline_code_executor_timeout(executor_and_temp_dir: Executor
         code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
 
     assert code_result.exit_code and "Timeout" in code_result.output
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
+async def test_commandline_code_executor_cancellation(executor_and_temp_dir: ExecutorFixture) -> None:
+    _executor, temp_dir = executor_and_temp_dir
+    cancellation_token = CancellationToken()
+    # Write code that sleep for 10 seconds and then write "hello world!"
+    # to a file.
+    code = """import time
+time.sleep(10)
+with open("hello.txt", "w") as f:
+    f.write("hello world!")
+"""
+    code_blocks = [CodeBlock(code=code, language="python")]
+
+    task = asyncio.create_task(_executor.execute_code_blocks(code_blocks, cancellation_token))
+    # Cancel the task after 2 seconds
+    await asyncio.sleep(2)
+    cancellation_token.cancel()
+    code_result = await task
+
+    assert code_result.exit_code and "Code execution was cancelled" in code_result.output
+
+    # Check if the file was not created
+    hello_file_path = Path(temp_dir) / "hello.txt"
+    assert not hello_file_path.exists(), f"File {hello_file_path} should not exist after cancellation"
 
 
 @pytest.mark.asyncio

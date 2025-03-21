@@ -11,8 +11,7 @@ import uuid
 from collections.abc import Sequence
 from hashlib import sha256
 from pathlib import Path
-from types import TracebackType
-from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Type, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Tuple, Union
 
 from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import (
@@ -36,6 +35,17 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
+
+try:
+    import asyncio_atexit
+
+    import docker
+    from docker.errors import DockerException, ImageNotFound, NotFound
+    from docker.models.containers import Container
+except ImportError as e:
+    raise RuntimeError(
+        "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker' extra."
+    ) from e
 
 
 async def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
@@ -198,15 +208,9 @@ $functions"""
         else:
             self._setup_functions_complete = True
 
-        try:
-            from docker.models.containers import Container
-        except ImportError as e:
-            raise RuntimeError(
-                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker' extra."
-            ) from e
-
         self._container: Container | None = None
         self._running = False
+        self._cancellation_tasks: List[asyncio.Task[None]] = []
 
     @property
     def timeout(self) -> int:
@@ -256,6 +260,31 @@ $functions"""
 
         self._setup_functions_complete = True
 
+    async def _kill_running_command(self, command: List[str]) -> None:
+        if self._container is None or not self._running:
+            return
+        await asyncio.to_thread(self._container.exec_run, ["pkill", "-f", " ".join(command)])
+
+    async def _execute_command(self, command: List[str], cancellation_token: CancellationToken) -> Tuple[str, int]:
+        if self._container is None or not self._running:
+            raise ValueError("Container is not running. Must first be started with either start or a context manager.")
+
+        exec_task = asyncio.create_task(asyncio.to_thread(self._container.exec_run, command))
+        cancellation_token.link_future(exec_task)
+
+        # Wait for the exec task to finish.
+        try:
+            result = await exec_task
+            exit_code = result.exit_code
+            output = result.output.decode("utf-8")
+            if exit_code == 124:
+                output += "\n Timeout"
+            return output, exit_code
+        except asyncio.CancelledError:
+            # Schedule a task to kill the running command in the background.
+            self._cancellation_tasks.append(asyncio.create_task(self._kill_running_command(command)))
+            return "Code execution was cancelled.", 1
+
     async def _execute_code_dont_check_setup(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
     ) -> CommandLineCodeResult:
@@ -290,13 +319,8 @@ $functions"""
 
             command = ["timeout", str(self._timeout), lang_to_cmd(lang), filename]
 
-            result = await asyncio.to_thread(self._container.exec_run, command)  # type: ignore
-            exit_code = result.exit_code
-            output = result.output.decode("utf-8")
-            if exit_code == 124:
-                output += "\n Timeout"
+            output, exit_code = await self._execute_command(command, cancellation_token)
             outputs.append(output)
-
             last_exit_code = exit_code
             if exit_code != 0:
                 break
@@ -314,11 +338,6 @@ $functions"""
 
         Returns:
             CommandlineCodeResult: The result of the code execution."""
-
-        def raise_not_implemented() -> None:
-            raise NotImplementedError("Cancellation is not yet supported for DockerCommandLineCodeExecutor")
-
-        cancellation_token.add_callback(lambda: raise_not_implemented())
 
         if not self._setup_functions_complete:
             await self._setup_functions(cancellation_token)
@@ -342,17 +361,12 @@ $functions"""
         if not self._running:
             return
 
-        try:
-            import docker
-            from docker.errors import NotFound
-        except ImportError as e:
-            raise RuntimeError(
-                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker' extra."
-            ) from e
-
         client = docker.from_env()
         try:
             container = await asyncio.to_thread(client.containers.get, self.container_name)
+            # Wait for all cancellation tasks to finish before stopping the container.
+            await asyncio.gather(*self._cancellation_tasks)
+            # Stop the container.
             await asyncio.to_thread(container.stop)
         except NotFound:
             pass
@@ -360,16 +374,6 @@ $functions"""
             self._running = False
 
     async def start(self) -> None:
-        try:
-            import asyncio_atexit
-
-            import docker
-            from docker.errors import DockerException, ImageNotFound
-        except ImportError as e:
-            raise RuntimeError(
-                "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker' extra."
-            ) from e
-
         # Start a container from the image, read to exec commands later
         try:
             client = docker.from_env()
@@ -423,16 +427,6 @@ $functions"""
             raise ValueError(f"Failed to start container from image {self._image}. Logs: {logs_str}")
 
         self._running = True
-
-    async def __aenter__(self) -> Self:
-        await self.start()
-        return self
-
-    async def __aexit__(
-        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
-    ) -> Optional[bool]:
-        await self.stop()
-        return None
 
     def _to_config(self) -> DockerCommandLineCodeExecutorConfig:
         """(Experimental) Convert the component to a config object."""

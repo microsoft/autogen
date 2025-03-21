@@ -432,6 +432,16 @@ $functions"""
             stacklevel=2,
         )
 
+    async def start(self) -> None:
+        """(Experimental) Start the code executor."""
+        # No action needed for local command line executor
+        pass
+
+    async def stop(self) -> None:
+        """(Experimental) Stop the code executor."""
+        # No action needed for local command line executor
+        pass
+
     def _to_config(self) -> LocalCommandLineCodeExecutorConfig:
         if self._functions:
             logging.info("Functions will not be included in serialized configuration")
