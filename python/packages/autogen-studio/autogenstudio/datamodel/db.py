@@ -5,7 +5,7 @@ from enum import Enum
 from typing import List, Optional, Union
 
 from autogen_core import ComponentModel
-from pydantic import ConfigDict, SecretStr
+from pydantic import ConfigDict, SecretStr, field_validator
 from sqlalchemy import ForeignKey, Integer, String
 from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func
 
@@ -75,6 +75,13 @@ class Session(SQLModel, table=True):
     version: Optional[str] = "0.0.1"
     team_id: Optional[int] = Field(default=None, sa_column=Column(Integer, ForeignKey("team.id", ondelete="CASCADE")))
     name: Optional[str] = None
+
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def parse_datetime(cls, value: Union[str, datetime]) -> datetime:
+        if isinstance(value, str):
+            return datetime.fromisoformat(value.replace('Z', '+00:00'))
+        return value
 
 
 class RunStatus(str, Enum):
