@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { ChevronRight, TriangleAlert } from "lucide-react";
 import { LabsSidebar } from "./sidebar";
-import { Guide, defaultGuides } from "./types";
-import { GuideContent } from "./guides/guides";
+import { Lab, defaultLabs } from "./types";
+import { LabContent } from "./labs/guides";
 
 export const LabsManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [guides, setGuides] = useState<Guide[]>(defaultGuides);
-  const [currentGuide, setCurrentGuide] = useState<Guide | null>(null);
+  const [labs, setLabs] = useState<Lab[]>([]);
+  const [currentLab, setcurrentLab] = useState<Lab | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("labsSidebar");
@@ -25,10 +25,10 @@ export const LabsManager: React.FC = () => {
 
   // Set first guide as current if none selected
   useEffect(() => {
-    if (!currentGuide && guides.length > 0) {
-      setCurrentGuide(guides[0]);
+    if (!currentLab && labs.length > 0) {
+      setcurrentLab(labs[0]);
     }
-  }, [guides, currentGuide]);
+  }, [labs, currentLab]);
 
   return (
     <div className="relative    flex h-full w-full">
@@ -40,10 +40,10 @@ export const LabsManager: React.FC = () => {
       >
         <LabsSidebar
           isOpen={isSidebarOpen}
-          guides={guides}
-          currentGuide={currentGuide}
+          labs={labs}
+          currentLab={currentLab}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          onSelectGuide={setCurrentGuide}
+          onSelectLab={setcurrentLab}
           isLoading={isLoading}
         />
       </div>
@@ -57,11 +57,11 @@ export const LabsManager: React.FC = () => {
         <div className="p-4 pt-2">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 mb-4 text-sm">
-            <span className="text-primary font-medium">Deploy</span>
-            {currentGuide && (
+            <span className="text-primary font-medium">Labs</span>
+            {currentLab && (
               <>
                 <ChevronRight className="w-4 h-4 text-secondary" />
-                <span className="text-secondary">{currentGuide.title}</span>
+                <span className="text-secondary">{currentLab.title}</span>
               </>
             )}
           </div>
@@ -71,8 +71,8 @@ export const LabsManager: React.FC = () => {
             debugging multiagent applications.
           </div>
           {/* Content Area */}
-          {currentGuide ? (
-            <GuideContent guide={currentGuide} />
+          {currentLab ? (
+            <LabContent lab={currentLab} />
           ) : (
             <div className="flex items-center justify-center h-[calc(100vh-190px)] text-secondary">
               Select a lab from the sidebar to get started

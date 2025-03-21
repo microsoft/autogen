@@ -13,6 +13,7 @@ import {
   Rocket,
   Beaker,
   LucideBeaker,
+  FlaskConical,
 } from "lucide-react";
 import Icon from "./icons";
 import { BeakerIcon } from "@heroicons/react/24/outline";
@@ -50,7 +51,7 @@ const navigation: INavItem[] = [
   {
     name: "Labs",
     href: "/labs",
-    icon: BeakerIcon,
+    icon: FlaskConical,
     breadcrumbs: [{ name: "Labs", href: "/labs", current: true }],
   },
   {

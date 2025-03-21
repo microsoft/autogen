@@ -7,23 +7,23 @@ import {
   InfoIcon,
   RefreshCcw,
 } from "lucide-react";
-import type { Guide } from "./types";
+import type { Lab } from "./types";
 
 interface LabsSidebarProps {
   isOpen: boolean;
-  guides: Guide[];
-  currentGuide: Guide | null;
+  labs: Lab[];
+  currentLab: Lab | null;
   onToggle: () => void;
-  onSelectGuide: (guide: Guide) => void;
+  onSelectLab: (guide: Lab) => void;
   isLoading?: boolean;
 }
 
 export const LabsSidebar: React.FC<LabsSidebarProps> = ({
   isOpen,
-  guides,
-  currentGuide,
+  labs,
+  currentLab,
   onToggle,
-  onSelectGuide,
+  onSelectLab,
   isLoading = false,
 }) => {
   // Render collapsed state
@@ -73,34 +73,34 @@ export const LabsSidebar: React.FC<LabsSidebarProps> = ({
       )}
 
       {/* Empty State */}
-      {!isLoading && guides.length === 0 && (
-        <div className="p-2 m-2 text-center text-secondary text-sm border border-dashed rounded">
+      {!isLoading && labs.length === 0 && (
+        <div className="p-2 mt-2 mr-2 text-center text-secondary text-sm border border-dashed rounded">
           <InfoIcon className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-          No deployment guide available
+          No labs available. Please check back later.
         </div>
       )}
 
       {/* Guides List */}
       <div className="overflow-y-auto h-[calc(100%-64px)] mt-4">
-        {guides.map((guide) => (
-          <div key={guide.id} className="relative">
+        {labs.map((lab) => (
+          <div key={lab.id} className="relative">
             <div
               className={`absolute top-1 left-0.5 z-50 h-[calc(100%-8px)]
                w-1 bg-opacity-80 rounded ${
-                 currentGuide?.id === guide.id ? "bg-accent" : "bg-tertiary"
+                 currentLab?.id === lab.id ? "bg-accent" : "bg-tertiary"
                }`}
             />
             <div
               className={`group ml-1 flex flex-col p-2 rounded-l cursor-pointer hover:bg-secondary ${
-                currentGuide?.id === guide.id
+                currentLab?.id === lab.id
                   ? "border-accent bg-secondary"
                   : "border-transparent"
               }`}
-              onClick={() => onSelectGuide(guide)}
+              onClick={() => onSelectLab(lab)}
             >
               {/* Guide Title */}
               <div className="flex items-center justify-between">
-                <span className="text-sm truncate">{guide.title}</span>
+                <span className="text-sm truncate">{lab.title}</span>
               </div>
             </div>
           </div>
