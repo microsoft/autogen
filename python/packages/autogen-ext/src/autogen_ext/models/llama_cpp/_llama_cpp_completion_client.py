@@ -357,7 +357,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         if not response_tool_calls and not response_text:
             logger.debug("DEBUG: No response text found. Returning empty response.")
             return CreateResult(
-                content="", usage=RequestUsage(prompt_tokens=0, completion_tokens=0), finish_reason="stop", cached=False
+                content="", usage=RequestUsage(prompt_tokens=0, completion_tokens=0), finish_reason="stop", cached=False, request_id=response.get("request_id", None),
             )
 
         # Create a CreateResult object
@@ -373,6 +373,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             usage=cast(RequestUsage, response["usage"]),
             finish_reason=normalize_stop_reason(finish_reason),  # type: ignore
             cached=False,
+            request_id=response.get("request_id", None),
         )
 
         # If we are running in the context of a handler we can get the agent_id
