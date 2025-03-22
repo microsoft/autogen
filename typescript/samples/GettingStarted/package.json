@@ -1,0 +1,16 @@
+{
+  "name": "autogen-getting-started",
+  "version": "1.0.0",
+  "description": "AutoGen Getting Started Sample",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.2.1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
