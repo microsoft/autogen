@@ -170,6 +170,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             Available variables: `{tool_name}`, `{arguments}`, `{result}`.
             For example, `"{tool_name}: {result}"` will create a summary like `"tool_name: result"`.
         memory (Sequence[Memory] | None, optional): The memory store to use for the agent. Defaults to `None`.
+        metadata (Dict[str, str] | None, optional): Optional metadata for tracking.
 
     Raises:
         ValueError: If tool names are not unique.
