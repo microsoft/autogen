@@ -363,7 +363,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 model_client=model_client,
                 tools=[tool],
                 system_message="Use the tool to analyze sentiment.",
-                ouiput_format=AgentResponse,
+                output_format=AgentResponse,
                 reflect_on_tool_use=True,  # Use reflection to have the agent generate a formatted response.
             )
 
