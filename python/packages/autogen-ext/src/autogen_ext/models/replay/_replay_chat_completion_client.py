@@ -171,12 +171,13 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
             raise ValueError("No more mock responses available")
 
         response = self.chat_completions[self._current_index]
+        request_id = response.get("request_id", None) if isinstance(response, dict) else None
         _, prompt_token_count = self._tokenize(messages)
         if isinstance(response, str):
             _, output_token_count = self._tokenize(response)
             self._cur_usage = RequestUsage(prompt_tokens=prompt_token_count, completion_tokens=output_token_count)
             response = CreateResult(
-                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value
+                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value, request_id=request_id,
             )
         else:
             self._cur_usage = RequestUsage(
@@ -210,7 +211,9 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
             raise ValueError("No more mock responses available")
 
         response = self.chat_completions[self._current_index]
+        request_id = response.get("request_id", None) if isinstance(response, dict) else None
         _, prompt_token_count = self._tokenize(messages)
+        
         if isinstance(response, str):
             output_tokens, output_token_count = self._tokenize(response)
             self._cur_usage = RequestUsage(prompt_tokens=prompt_token_count, completion_tokens=output_token_count)
@@ -221,7 +224,7 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
                 else:
                     yield token
             yield CreateResult(
-                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value
+                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value, request_id=request_id,
             )
             self._update_total_usage()
         else:
@@ -310,3 +313,4 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
             chat_completions=config.chat_completions,
             model_info=config.model_info,
         )
+

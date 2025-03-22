@@ -125,3 +125,6 @@ class CreateResult(BaseModel):
     thought: Optional[str] = None
     """The reasoning text for the completion if available. Used for reasoning models
     and additional text content besides function calls."""
+
+    request_id: Optional[str] = None  
+    """The ID of the model API request, used for tracking model usage."""
