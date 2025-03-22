@@ -646,6 +646,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1 and thought is None:
             thought, content = parse_r1_content(content)
 
+        if not content:
+            content = " "
+
         response = CreateResult(
             finish_reason=normalize_stop_reason(finish_reason),
             content=content,
