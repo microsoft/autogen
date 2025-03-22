@@ -162,7 +162,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             messages as the model client produces chunks of response. Defaults to `False`.
         reflect_on_tool_use (bool, optional): If `True`, the agent will make another model inference using the tool call and result
             to generate a response. If `False`, the tool call result will be returned as the response. Defaults to `False`.
-        tool_call_summary_format (str, optional): The format string used to create a tool call summary for every tool call result.
+        output_format (type[BaseModel] | None, optional): The output format for :class:`~autogen_agentchat.messages.TextMessage` response as a Pydantic model.
+            This will be used with the model client to generate structured output. The resulting content will be a JSON formatted string.
+            This format is used during the first model client call as well as during reflection on tool use.
+            This does not apply to the tool call summary message.
+        tool_call_summary_format (str, optional): The format string used to create the content for a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` response.
+            The format string is used to format the tool call summary for every tool call result.
             Defaults to "{result}".
             When `reflect_on_tool_use` is `False`, a concatenation of all the tool call summaries, separated by a new line character ('\\n')
             will be returned as the response.
@@ -347,10 +352,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             # which is required for structured output mode.
             tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
 
-            # Create an OpenAIChatCompletionClient instance that uses the structured output format.
+            # Create an OpenAIChatCompletionClient instance that supports structured output.
             model_client = OpenAIChatCompletionClient(
                 model="gpt-4o-mini",
-                response_format=AgentResponse,  # type: ignore
             )
 
             # Create an AssistantAgent instance that uses the tool and model client.
@@ -359,6 +363,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 model_client=model_client,
                 tools=[tool],
                 system_message="Use the tool to analyze sentiment.",
+                ouiput_format=AgentResponse,
                 reflect_on_tool_use=True,  # Use reflection to have the agent generate a formatted response.
             )
 
@@ -612,6 +617,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool = False,
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
+        output_format: type[BaseModel] | None = None,
         memory: Sequence[Memory] | None = None,
     ):
         super().__init__(name=name, description=description)
@@ -627,6 +633,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             )
         self._model_client = model_client
         self._model_client_stream = model_client_stream
+        self._output_format = output_format
         self._memory = None
         if memory is not None:
             if isinstance(memory, list):
@@ -727,6 +734,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream = self._model_client_stream
         reflect_on_tool_use = self._reflect_on_tool_use
         tool_call_summary_format = self._tool_call_summary_format
+        output_format = self._output_format
 
         # STEP 1: Add new user/handoff messages to the model context
         await self._add_messages_to_context(
@@ -755,6 +763,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             handoff_tools=handoff_tools,
             agent_name=agent_name,
             cancellation_token=cancellation_token,
+            output_format=output_format,
         ):
             if isinstance(inference_output, CreateResult):
                 model_result = inference_output
@@ -794,6 +803,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=model_client_stream,
             reflect_on_tool_use=reflect_on_tool_use,
             tool_call_summary_format=tool_call_summary_format,
+            output_format=output_format,
         ):
             yield output_event
 
@@ -844,6 +854,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         cancellation_token: CancellationToken,
+        output_format: type[BaseModel] | None,
     ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
         """
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
@@ -856,7 +867,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         if model_client_stream:
             model_result: Optional[CreateResult] = None
             async for chunk in model_client.create_stream(
-                llm_messages, tools=all_tools, cancellation_token=cancellation_token
+                llm_messages,
+                tools=all_tools,
+                json_output=output_format,
+                cancellation_token=cancellation_token,
             ):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
@@ -869,7 +883,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             yield model_result
         else:
             model_result = await model_client.create(
-                llm_messages, tools=all_tools, cancellation_token=cancellation_token
+                llm_messages,
+                tools=all_tools,
+                cancellation_token=cancellation_token,
+                json_output=output_format,
             )
             yield model_result
 
@@ -889,6 +906,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool,
         reflect_on_tool_use: bool,
         tool_call_summary_format: str,
+        output_format: type[BaseModel] | None,
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """
         Handle final or partial responses from model_result, including tool calls, handoffs,
@@ -968,6 +986,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 model_context=model_context,
                 agent_name=agent_name,
                 inner_messages=inner_messages,
+                output_format=output_format,
             ):
                 yield reflection_response
         else:
@@ -1049,6 +1068,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_context: ChatCompletionContext,
         agent_name: str,
         inner_messages: List[AgentEvent | ChatMessage],
+        output_format: type[BaseModel] | None,
     ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent | ThoughtEvent, None]:
         """
         If reflect_on_tool_use=True, we do another inference based on tool results
@@ -1060,7 +1080,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflection_result: Optional[CreateResult] = None
 
         if model_client_stream:
-            async for chunk in model_client.create_stream(llm_messages):
+            async for chunk in model_client.create_stream(
+                llm_messages,
+                json_output=output_format,
+            ):
                 if isinstance(chunk, CreateResult):
                     reflection_result = chunk
                 elif isinstance(chunk, str):
@@ -1068,7 +1091,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
         else:
-            reflection_result = await model_client.create(llm_messages)
+            reflection_result = await model_client.create(llm_messages, json_output=output_format)
 
         if not reflection_result or not isinstance(reflection_result.content, str):
             raise RuntimeError("Reflect on tool use produced no valid text response.")
@@ -1193,6 +1216,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
 
+        if self._output_format:
+            raise ValueError("AssistantAgent with output_format does not support declarative config.")
+
         return AssistantAgentConfig(
             name=self.name,
             model_client=self._model_client.dump_component(),
@@ -1212,6 +1238,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     @classmethod
     def _from_config(cls, config: AssistantAgentConfig) -> Self:
         """Create an assistant agent from a declarative config."""
+
         return cls(
             name=config.name,
             model_client=ChatCompletionClient.load_component(config.model_client),

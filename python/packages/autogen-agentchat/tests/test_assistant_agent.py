@@ -35,6 +35,7 @@ from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
+from pydantic import BaseModel
 from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -397,6 +398,126 @@ async def test_run_with_parallel_tools_with_empty_call_ids() -> None:
     await agent2.load_state(state)
     state2 = await agent2.save_state()
     assert state == state2
+
+
+@pytest.mark.asyncio
+async def test_output_format() -> None:
+    class AgentResponse(BaseModel):
+        response: str
+        status: str
+
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="stop",
+                content=AgentResponse(response="Hello", status="success").model_dump_json(),
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+        ]
+    )
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=model_client,
+        output_format=AgentResponse,
+    )
+    result = await agent.run()
+    assert len(result.messages) == 1
+    assert isinstance(result.messages[0], TextMessage)
+    assert AgentResponse.model_validate_json(result.messages[0].content).response == "Hello"
+    assert AgentResponse.model_validate_json(result.messages[0].content).status == "success"
+    assert model_client.create_calls[0].get("json_output") == AgentResponse
+
+    # Test streaming.
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=model_client,
+        model_client_stream=True,
+        output_format=AgentResponse,
+    )
+    model_client.reset()
+    stream = agent.run_stream()
+    stream_result: TaskResult | None = None
+    async for message in stream:
+        if isinstance(message, TaskResult):
+            stream_result = message
+    assert stream_result is not None
+    assert len(stream_result.messages) == 1
+    assert isinstance(stream_result.messages[0], TextMessage)
+    assert AgentResponse.model_validate_json(stream_result.messages[0].content).response == "Hello"
+    assert AgentResponse.model_validate_json(stream_result.messages[0].content).status == "success"
+    assert model_client.create_calls[0].get("json_output") == AgentResponse
+
+
+@pytest.mark.asyncio
+async def test_reflection_output_format() -> None:
+    class AgentResponse(BaseModel):
+        response: str
+        status: str
+
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            AgentResponse(response="Hello", status="success").model_dump_json(),
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=model_client,
+        output_format=AgentResponse,
+        reflect_on_tool_use=True,
+        tools=[
+            _pass_function,
+            _fail_function,
+        ],
+    )
+    result = await agent.run()
+    assert len(result.messages) == 3
+    assert isinstance(result.messages[0], ToolCallRequestEvent)
+    assert isinstance(result.messages[1], ToolCallExecutionEvent)
+    assert isinstance(result.messages[2], TextMessage)
+    assert AgentResponse.model_validate_json(result.messages[2].content).response == "Hello"
+    assert AgentResponse.model_validate_json(result.messages[2].content).status == "success"
+    assert model_client.create_calls[1].get("json_output") == AgentResponse
+
+    # Test streaming.
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=model_client,
+        model_client_stream=True,
+        output_format=AgentResponse,
+        reflect_on_tool_use=True,
+        tools=[
+            _pass_function,
+            _fail_function,
+        ],
+    )
+    model_client.reset()
+    stream = agent.run_stream()
+    stream_result: TaskResult | None = None
+    async for message in stream:
+        if isinstance(message, TaskResult):
+            stream_result = message
+    assert stream_result is not None
+    assert len(stream_result.messages) == 3
+    assert isinstance(stream_result.messages[0], ToolCallRequestEvent)
+    assert isinstance(stream_result.messages[1], ToolCallExecutionEvent)
+    assert isinstance(stream_result.messages[2], TextMessage)
+    assert AgentResponse.model_validate_json(stream_result.messages[2].content).response == "Hello"
+    assert AgentResponse.model_validate_json(stream_result.messages[2].content).status == "success"
+    assert model_client.create_calls[1].get("json_output") == AgentResponse
 
 
 @pytest.mark.asyncio
