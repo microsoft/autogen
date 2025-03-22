@@ -2,12 +2,12 @@ from dataclasses import dataclass
 from typing import AsyncGenerator, Protocol, Sequence
 
 from autogen_core import CancellationToken
+from pydantic import BaseModel
 
 from ..messages import AgentEvent, ChatMessage
 
 
-@dataclass
-class TaskResult:
+class TaskResult(BaseModel):
     """Result of running a task."""
 
     messages: Sequence[AgentEvent | ChatMessage]

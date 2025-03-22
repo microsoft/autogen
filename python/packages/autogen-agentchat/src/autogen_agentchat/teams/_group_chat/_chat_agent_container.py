@@ -1,10 +1,13 @@
-from typing import Any, List, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
+from typing import Any, ClassVar, Generator, List, Mapping
 
-from autogen_core import DefaultTopicId, MessageContext, event, rpc
+from autogen_core import AgentId, AgentRuntime, DefaultTopicId, MessageContext, TopicId, event, rpc
 
 from ...base import ChatAgent, Response
 from ...messages import ChatMessage
 from ...state import ChatAgentContainerState
+from ._context import AgentChatRuntimeContext
 from ._events import (
     GroupChatAgentResponse,
     GroupChatMessage,
@@ -64,23 +67,26 @@ class ChatAgentContainer(SequentialRoutedAgent):
     async def handle_request(self, message: GroupChatRequestPublish, ctx: MessageContext) -> None:
         """Handle a content request event by passing the messages in the buffer
         to the delegate agent and publish the response."""
-        # Pass the messages in the buffer to the delegate agent.
-        response: Response | None = None
-        async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
-            if isinstance(msg, Response):
-                # Log the response.
-                await self.publish_message(
-                    GroupChatMessage(message=msg.chat_message),
-                    topic_id=DefaultTopicId(type=self._output_topic_type),
+        with AgentChatRuntimeContext.populate_context((self._runtime, DefaultTopicId(type=self._output_topic_type))):
+            # Pass the messages in the buffer to the delegate agent.
+            response: Response | None = None
+            async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
+                if isinstance(msg, Response):
+                    # Log the response.
+                    await self.publish_message(
+                        GroupChatMessage(message=msg.chat_message),
+                        topic_id=DefaultTopicId(type=self._output_topic_type),
+                    )
+                    response = msg
+                else:
+                    # Log the message.
+                    await self.publish_message(
+                        GroupChatMessage(message=msg), topic_id=DefaultTopicId(type=self._output_topic_type)
+                    )
+            if response is None:
+                raise ValueError(
+                    "The agent did not produce a final response. Check the agent's on_messages_stream method."
                 )
-                response = msg
-            else:
-                # Log the message.
-                await self.publish_message(
-                    GroupChatMessage(message=msg), topic_id=DefaultTopicId(type=self._output_topic_type)
-                )
-        if response is None:
-            raise ValueError("The agent did not produce a final response. Check the agent's on_messages_stream method.")
 
         # Publish the response to the group chat.
         self._message_buffer.clear()
@@ -105,7 +111,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
 
     async def save_state(self) -> Mapping[str, Any]:
         agent_state = await self._agent.save_state()
-        state = ChatAgentContainerState(agent_state=agent_state, message_buffer=list(self._message_buffer))
+        state = ChatAgentContainerState(agent_state=agent_state)
         return state.model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
