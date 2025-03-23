@@ -615,7 +615,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
         memory: Sequence[Memory] | None = None,
-        metadata: Dict[str, str] | None = None
+        metadata: Dict[str, str] | None = None,
     ):
         super().__init__(name=name, description=description)
         self._metadata = metadata or {}
@@ -1231,4 +1231,3 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tool_call_summary_format=config.tool_call_summary_format,
             metadata=config.metadata,
         )
-
