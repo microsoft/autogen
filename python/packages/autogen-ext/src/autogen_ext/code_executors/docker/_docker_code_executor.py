@@ -443,6 +443,13 @@ $functions"""
         shell_command = "/bin/sh"
         command = ["-c", f"{(self._init_command)};exec {shell_command}"] if self._init_command else None
 
+        # Check if a container with the same name already exists and remove it
+        try:
+            existing_container = await asyncio.to_thread(client.containers.get, self.container_name)
+            await asyncio.to_thread(existing_container.remove, force=True)
+        except NotFound:
+            pass
+
         self._container = await asyncio.to_thread(
             client.containers.create,
             self._image,
