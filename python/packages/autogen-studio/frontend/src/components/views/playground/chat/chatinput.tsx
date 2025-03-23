@@ -78,7 +78,12 @@ export default function ChatInput({
       !isInputDisabled
     ) {
       const query = textAreaRef.current?.value || "";
-      const files = fileList.map((file) => file.originFileObj as RcFile);
+
+      // Get all valid RcFile objects
+      const files = fileList
+        .filter((file) => file.originFileObj)
+        .map((file) => file.originFileObj as RcFile);
+
       onSubmit(query, files);
     }
   };
@@ -107,10 +112,17 @@ export default function ChatInput({
         return Upload.LIST_IGNORE;
       }
 
-      setFileList((prev) => [
-        ...prev,
-        { ...file, status: "done", uid: file.uid } as UploadFile,
-      ]);
+      // Correctly set the uploadFile with originFileObj property
+      const uploadFile: UploadFile = {
+        uid: file.uid,
+        name: file.name,
+        status: "done",
+        size: file.size,
+        type: file.type,
+        originFileObj: file,
+      };
+
+      setFileList((prev) => [...prev, uploadFile]);
       return false; // Prevent automatic upload
     },
     onRemove: (file) => {
@@ -173,7 +185,7 @@ export default function ChatInput({
             id="queryInput"
             name="queryInput"
             ref={textAreaRef}
-            defaultValue=""
+            defaultValue="What is the capital of France?"
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             className={`flex items-center w-full resize-none text-gray-600 rounded border border-accent bg-white p-2 pl-5 pr-16 ${
