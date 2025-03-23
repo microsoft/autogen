@@ -6,6 +6,7 @@
 
 :::{grid-item-card} {fas}`globe;pst-color-primary` <br> Ecosystem
 :link: https://github.com/topics/autogen
+:link-alt: Ecosystem: Find samples, services and other things that work with AutoGen
 :class-item: api-card
 :columns: 12
 
@@ -15,6 +16,7 @@ Find samples, services and other things that work with AutoGen
 
 :::{grid-item-card} {fas}`puzzle-piece;pst-color-primary` <br> Community Extensions
 :link: https://github.com/topics/autogen-extension
+:link-alt: Community Extensions: Find AutoGen extensions for 3rd party tools, components and services
 :class-item: api-card
 
 Find AutoGen extensions for 3rd party tools, components and services
@@ -23,6 +25,7 @@ Find AutoGen extensions for 3rd party tools, components and services
 
 :::{grid-item-card} {fas}`vial;pst-color-primary` <br> Community Samples
 :link: https://github.com/topics/autogen-sample
+:link-alt: Community Samples: Find community samples and examples of how to use AutoGen
 :class-item: api-card
 
 Find community samples and examples of how to use AutoGen
