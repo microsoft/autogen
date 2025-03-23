@@ -79,9 +79,14 @@ from openai.types.shared_params import (
 from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
+from autogen_ext.transformation import (
+    get_transformer,
+)
+
 from .._utils.normalize_stop_reason import normalize_stop_reason
 from .._utils.parse_r1_content import parse_r1_content
 from . import _model_info
+from ._utils import assert_valid_name, func_call_to_oai
 from .config import (
     AzureOpenAIClientConfiguration,
     AzureOpenAIClientConfigurationConfigModel,
@@ -190,7 +195,7 @@ def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessage
     )
 
 
-def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallParam:
+def _old_func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallParam:
     return ChatCompletionMessageToolCallParam(
         id=message.id,
         function={
@@ -235,7 +240,25 @@ def assistant_message_to_oai(
         )
 
 
-def to_oai_type(message: LLMMessage, prepend_name: bool = False) -> Sequence[ChatCompletionMessageParam]:
+def to_oai_type(
+    message: LLMMessage, prepend_name: bool = False, model_family: str = "gpt-4o"
+) -> Sequence[ChatCompletionMessageParam]:
+    context = {
+        "prepend_name": prepend_name,
+    }
+    transformers = get_transformer("openai", model_family)
+
+    def raise_value_error(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+        raise ValueError(f"Unknown message type: {type(message)}")
+
+    transformer = transformers.get(type(message), raise_value_error)
+    result = transformer(message, context)
+    if isinstance(result, list):
+        return result
+    return [result]
+
+
+def _old_to_oai_type(message: LLMMessage, prepend_name: bool = False) -> Sequence[ChatCompletionMessageParam]:
     if isinstance(message, SystemMessage):
         return [system_message_to_oai(message)]
     elif isinstance(message, UserMessage):
@@ -341,7 +364,7 @@ def normalize_name(name: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
 
 
-def assert_valid_name(name: str) -> str:
+def _old_assert_valid_name(name: str) -> str:
     """
     Ensure that configured names are valid, raises ValueError if not.
 
@@ -498,7 +521,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
-        oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes) for m in messages]
+        oai_messages_nested = [
+            to_oai_type(m, prepend_name=self._add_name_prefixes, model_family=create_args.get("model", "unknown"))
+            for m in messages
+        ]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
         if self.model_info["function_calling"] is False and len(tools) > 0:
