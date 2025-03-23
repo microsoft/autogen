@@ -702,6 +702,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             message_types.append(ToolCallSummaryMessage)
         return tuple(message_types)
 
+    @property
+    def model_context(self) -> ChatCompletionContext:
+        """
+        The model context in use by the agent.
+        """
+        return self._model_context
+
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
