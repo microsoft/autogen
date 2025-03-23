@@ -5,7 +5,7 @@ import pytest
 import pytest_asyncio
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import ChatMessage, TextMessage
+from autogen_agentchat.messages import BaseChatMessage, TextMessage
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_core import AgentRuntime, CancellationToken, SingleThreadedAgentRuntime
 
@@ -20,10 +20,10 @@ class TestAgent(BaseChatAgent):
         self.counter = 0
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return [TextMessage]
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         assert not self._is_paused, "Agent is paused"
 
         async def _process() -> None:

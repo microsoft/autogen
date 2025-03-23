@@ -31,7 +31,6 @@ from autogen_core.models import (
     LLMMessage,
     ModelFamily,
     SystemMessage,
-    UserMessage,
 )
 from autogen_core.tools import BaseTool, FunctionTool
 from pydantic import BaseModel
@@ -41,12 +40,11 @@ from .. import EVENT_LOGGER_NAME
 from ..base import Handoff as HandoffBase
 from ..base import Response
 from ..messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseChatMessage,
+    BaseMessage,
     HandoffMessage,
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
-    StructuredMessage,
     TextMessage,
     ThoughtEvent,
     ToolCallExecutionEvent,
@@ -695,8 +693,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         self._is_running = False
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
-        message_types: List[type[ChatMessage]] = [TextMessage]
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+        message_types: List[type[BaseChatMessage]] = [TextMessage]
         if self._handoffs:
             message_types.append(HandoffMessage)
         if self._tools:
@@ -710,15 +708,15 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         """
         return self._model_context
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
         raise AssertionError("The stream should have returned the final result.")
 
     async def on_messages_stream(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[BaseMessage | Response, None]:
         """
         Process the incoming messages with the assistant agent and yield events/responses as they happen.
         """
@@ -743,7 +741,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         )
 
         # STEP 2: Update model context with any relevant memory
-        inner_messages: List[AgentEvent | ChatMessage] = []
+        inner_messages: List[BaseMessage] = []
         for event_msg in await self._update_model_context_with_memory(
             memory=memory,
             model_context=model_context,
@@ -808,30 +806,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     @staticmethod
     async def _add_messages_to_context(
         model_context: ChatCompletionContext,
-        messages: Sequence[ChatMessage],
+        messages: Sequence[BaseChatMessage],
     ) -> None:
         """
-        Add incoming user (and possibly handoff) messages to the model context.
+        Add incoming messages to the model context.
         """
         for msg in messages:
-            if isinstance(msg, HandoffMessage):
-                # Add handoff context to the model context.
-                for context_msg in msg.context:
-                    await model_context.add_message(context_msg)
-                # Add the handoff message itself to the model context.
-                await model_context.add_message(UserMessage(content=msg.content, source=msg.source))
-            elif isinstance(msg, StructuredMessage):
-                # Add structured message to the model context by serializing it.
-                serialized_content = msg.content.model_dump_json()
-                await model_context.add_message(
-                    UserMessage(
-                        content=serialized_content,
-                        source=msg.source,
-                    )
-                )
-            else:
-                # Add the content as user message content.
-                await model_context.add_message(UserMessage(content=msg.content, source=msg.source))
+            for llm_msg in msg.to_llm_messages():
+                await model_context.add_message(llm_msg)
 
     @staticmethod
     async def _update_model_context_with_memory(
@@ -898,7 +880,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     async def _process_model_result(
         cls,
         model_result: CreateResult,
-        inner_messages: List[AgentEvent | ChatMessage],
+        inner_messages: List[BaseMessage],
         cancellation_token: CancellationToken,
         agent_name: str,
         system_messages: List[SystemMessage],
@@ -910,7 +892,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool,
         reflect_on_tool_use: bool,
         tool_call_summary_format: str,
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+    ) -> AsyncGenerator[BaseMessage | Response, None]:
         """
         Handle final or partial responses from model_result, including tool calls, handoffs,
         and reflection if needed.
@@ -1004,7 +986,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     def _check_and_handle_handoff(
         model_result: CreateResult,
         executed_calls_and_results: List[Tuple[FunctionCall, FunctionExecutionResult]],
-        inner_messages: List[AgentEvent | ChatMessage],
+        inner_messages: List[BaseMessage],
         handoffs: Dict[str, HandoffBase],
         agent_name: str,
     ) -> Optional[Response]:
@@ -1069,7 +1051,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool,
         model_context: ChatCompletionContext,
         agent_name: str,
-        inner_messages: List[AgentEvent | ChatMessage],
+        inner_messages: List[BaseMessage],
     ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent | ThoughtEvent, None]:
         """
         If reflect_on_tool_use=True, we do another inference based on tool results
@@ -1121,7 +1103,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     @staticmethod
     def _summarize_tool_use(
         executed_calls_and_results: List[Tuple[FunctionCall, FunctionExecutionResult]],
-        inner_messages: List[AgentEvent | ChatMessage],
+        inner_messages: List[BaseMessage],
         handoffs: Dict[str, HandoffBase],
         tool_call_summary_format: str,
         agent_name: str,

@@ -18,9 +18,9 @@ from pydantic import BaseModel, ValidationError
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import (
-    AgentEvent,
     BaseChatMessage,
-    ChatMessage,
+    BaseMessage,
+    MessageFactory,
     ModelClientStreamingChunkEvent,
     StopMessage,
     TextMessage,
@@ -50,6 +50,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
+        custom_message_types: List[type[BaseMessage]] | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -59,6 +60,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._base_group_chat_manager_class = group_chat_manager_class
         self._termination_condition = termination_condition
         self._max_turns = max_turns
+        self._message_factory = MessageFactory()
+        if custom_message_types is not None:
+            for message_type in custom_message_types:
+                self._message_factory.register(message_type)
 
         # The team ID is a UUID that is used to identify the team and its participants
         # in the agent runtime. It is used to create unique topic types for each participant.
@@ -85,7 +90,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._output_topic_type = f"output_topic_{self._team_id}"
 
         # The queue for collecting the output messages.
-        self._output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination] = asyncio.Queue()
+        self._output_message_queue: asyncio.Queue[BaseMessage | GroupChatTermination] = asyncio.Queue()
 
         # Create a runtime for the team.
         if runtime is not None:
@@ -112,9 +117,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        message_factory: MessageFactory,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
@@ -122,9 +128,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         parent_topic_type: str,
         output_topic_type: str,
         agent: ChatAgent,
+        message_factory: MessageFactory,
     ) -> Callable[[], ChatAgentContainer]:
         def _factory() -> ChatAgentContainer:
-            container = ChatAgentContainer(parent_topic_type, output_topic_type, agent)
+            container = ChatAgentContainer(parent_topic_type, output_topic_type, agent, message_factory)
             return container
 
         return _factory
@@ -140,7 +147,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             await ChatAgentContainer.register(
                 runtime,
                 type=agent_type,
-                factory=self._create_participant_factory(self._group_topic_type, self._output_topic_type, participant),
+                factory=self._create_participant_factory(
+                    self._group_topic_type, self._output_topic_type, participant, self._message_factory
+                ),
             )
             # Add subscriptions for the participant.
             # The participant should be able to receive messages from its own topic.
@@ -162,6 +171,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 output_message_queue=self._output_message_queue,
                 termination_condition=self._termination_condition,
                 max_turns=self._max_turns,
+                message_factory=self._message_factory,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -185,7 +195,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     async def run(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
@@ -287,9 +297,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
+    ) -> AsyncGenerator[BaseMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream. Once the
         team is stopped, the termination condition is reset.
@@ -388,7 +398,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         """
 
         # Create the messages list if the task is a string or a chat message.
-        messages: List[ChatMessage] | None = None
+        messages: List[BaseChatMessage] | None = None
         if task is None:
             pass
         elif isinstance(task, str):
@@ -448,7 +458,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 cancellation_token=cancellation_token,
             )
             # Collect the output messages in order.
-            output_messages: List[AgentEvent | ChatMessage] = []
+            output_messages: List[BaseMessage] = []
             stop_reason: str | None = None
             # Yield the messsages until the queue is empty.
             while True:

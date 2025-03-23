@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ..base import Response
-from ..messages import ChatMessage, TextMessage
+from ..messages import BaseChatMessage, TextMessage
 from ._base_chat_agent import BaseChatAgent
 
 
@@ -119,11 +119,11 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         self._sources = sources
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         """The types of messages that the code executor agent produces."""
         return (TextMessage,)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         # Extract code blocks from the messages.
         code_blocks: List[CodeBlock] = []
         for msg in messages:

@@ -11,7 +11,7 @@ from autogen_agentchat.agents import (
 )
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
-    ChatMessage,
+    BaseChatMessage,
     TextMessage,
 )
 from autogen_agentchat.teams import (
@@ -34,14 +34,14 @@ class _EchoAgent(BaseChatAgent):
         self._total_messages = 0
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 
     @property
     def total_messages(self) -> int:
         return self._total_messages
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) > 0:
             assert isinstance(messages[0], TextMessage)
             self._last_message = messages[0].content

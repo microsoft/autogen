@@ -4,19 +4,21 @@ Each message type inherits either from the BaseChatMessage class or BaseAgentEve
 class and includes specific fields relevant to the type of message being sent.
 """
 
-import importlib
-from abc import ABC
-from typing import Any, Dict, Generic, List, Literal, TypeVar
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
 
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
-from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage
-from pydantic import BaseModel, ConfigDict, Field
-from typing_extensions import Annotated, Self
+from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+from typing_extensions import Annotated
 
 
 class BaseMessage(BaseModel, ABC):
     """Base class for all message types."""
+
+    content: Any
+    """The content of the message."""
 
     source: str
     """The name of the agent that sent this message."""
@@ -29,80 +31,106 @@ class BaseMessage(BaseModel, ABC):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    @computed_field
+    def type(self) -> str:
+        """Get the class name."""
+        return self.__class__.__name__
+
+    @abstractmethod
+    def content_to_render(self) -> str:
+        """Convert the content of the message to a string-only representation.
+        This is used for rendering the message in the UI."""
+        ...
+
 
 class BaseChatMessage(BaseMessage, ABC):
-    """Base class for chat messages."""
+    """Base class for chat messages.
 
-    pass
+    This class is used for messages that are sent between agents in a chat
+    conversation. Agents are expected to use process the content of the
+    message using either models or code and return a response as another
+    chat message."""
 
+    @abstractmethod
+    def content_to_str(self) -> str:
+        """Convert the content of the message to a string-only representation.
+        This is used for creating a text-only content for models.
 
-class BaseAgentEvent(BaseMessage, ABC):
-    """Base class for agent events."""
+        This is not used for rendering the message in the UI. For that, use
+        :meth:`content_to_render`.
 
-    pass
+        The difference between this and :meth:`to_llm_messages` is that this
+        is used to construct parts of the a message for the model client,
+        while :meth:`to_llm_messages` is used to create complete messages
+        for the model client.
+        """
+        ...
 
-
-ContentType = TypeVar("ContentType", bound=BaseModel, covariant=True)
-
-
-class StructuredMessage(BaseChatMessage, Generic[ContentType]):
-    """A structured message with a specific content type."""
-
-    content: ContentType
-    """The content of the message. Must be a subclass of
-    `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_."""
-
-    content_class_path: str | None = None
-    """The path to the content class. This is set automatically when the message is created."""
-
-    type: Literal["StructuredMessage"] = "StructuredMessage"
-
-    def __init__(self, **data: Any) -> None:
-        super().__init__(**data)
-        module_name = self.content.__class__.__module__
-        class_name = self.content.__class__.__qualname__
-        self.content_class_path = f"{module_name}.{class_name}"
-
-    def dump(self) -> Dict[str, Any]:
-        """Dump the message to a dictionary. This is used for serialization
-        and ensures that the content is serialized correctly."""
-        data = super().model_dump()
-        data["content"] = self.content.model_dump()
-        return data
-
-    @classmethod
-    def load(cls, obj: Dict[str, Any]) -> Self:
-        """Load the message from a dictionary. This is used for deserialization
-        and ensures that the content is deserialized correctly."""
-        content_class_path = obj["content_class_path"]
-        module_name, class_name = content_class_path.rsplit(".", 1)
-        try:
-            module = importlib.import_module(module_name)
-        except ImportError as e:
-            raise ImportError(
-                f"Could not import module {module_name} when loading content class {class_name} for StructuredMessage. Ensure it is installed."
-            ) from e
-        if not hasattr(module, class_name):
-            raise ValueError(
-                f"Could not find class {class_name} in module {module_name} when loading content class for StructuredMessage."
-            )
-        content_class = getattr(module, class_name)
-        if not issubclass(content_class, BaseModel):
-            raise ValueError(f"Invalid content class: {content_class}, must be a subclass of BaseModel")
-        content = content_class.model_validate(obj["content"])
-        instance = super().model_validate(obj)
-        instance.content = content  # type: ignore
-        instance.content_class_path = content_class_path
-        return instance
+    @abstractmethod
+    def to_llm_messages(self) -> List[LLMMessage]:
+        """Convert the message to a list of :class:`~autogen_core.models.LLMMessage`
+        for use with the model client."""
+        ...
 
 
-class TextMessage(BaseChatMessage):
-    """A text message."""
+class BaseTextChatMessage(BaseChatMessage, ABC):
+    """Base class for all text-only chat message types."""
 
     content: str
     """The content of the message."""
 
-    type: Literal["TextMessage"] = "TextMessage"
+    def content_to_render(self) -> str:
+        return self.content
+
+    def content_to_str(self) -> str:
+        return self.content
+
+    def to_llm_messages(self) -> List[LLMMessage]:
+        return [UserMessage(content=self.content, source=self.source)]
+
+
+class BaseAgentEvent(BaseMessage, ABC):
+    """Base class for agent events.
+
+    Agent events are used to signal actions and thoughts produced by agents
+    and teams to user and applications. They are not used for agent-to-agent
+    communication and are not expected to be processed by other agents.
+    """
+
+    def content_to_render(self) -> str:
+        return str(self.content)
+
+
+StructuredContentType = TypeVar("StructuredContentType", bound=BaseModel, covariant=True)
+"""Type variable for structured content types."""
+
+
+class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
+    """A structured message with a specific content type."""
+
+    content: StructuredContentType
+    """The content of the message. Must be a subclass of
+    `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_."""
+
+    def content_to_render(self) -> str:
+        return self.content.model_dump_json(indent=2)
+
+    def content_to_str(self) -> str:
+        return self.content.model_dump_json()
+
+    def to_llm_messages(self) -> List[LLMMessage]:
+        return [
+            UserMessage(
+                content=self.content.model_dump_json(),
+                source=self.source,
+            )
+        ]
+
+
+class TextMessage(BaseTextChatMessage):
+    """A text message with string-only content."""
+
+    ...
 
 
 class MultiModalMessage(BaseChatMessage):
@@ -111,31 +139,63 @@ class MultiModalMessage(BaseChatMessage):
     content: List[str | Image]
     """The content of the message."""
 
-    type: Literal["MultiModalMessage"] = "MultiModalMessage"
+    def content_to_str(self, image_placeholder: str | None = None) -> str:
+        """Convert the content of the message to a string-only representation.
+        If an image is present, it will be replaced with the image placeholder
+        if provided, otherwise it will be a base64 string.
+        """
+        text = ""
+        for c in self.content:
+            if isinstance(c, str):
+                text += c
+            elif isinstance(c, Image):
+                if image_placeholder is not None:
+                    text += f" {image_placeholder}"
+                else:
+                    text += f" {c.to_base64()}"
+        return text
+
+    def content_to_render(self, iterm: bool = False) -> str:
+        result: List[str] = []
+        for c in self.content:
+            if isinstance(c, str):
+                result.append(c)
+            else:
+                if iterm:
+                    # iTerm2 image rendering protocol: https://iterm2.com/documentation-images.html
+                    image_data = c.to_base64()
+                    result.append(f"\033]1337;File=inline=1:{image_data}\a\n")
+                else:
+                    result.append("<image>")
+        return "\n".join(result)
+
+    def to_llm_messages(self) -> List[LLMMessage]:
+        return [UserMessage(content=self.content, source=self.source)]
 
 
-class StopMessage(BaseChatMessage):
+class StopMessage(BaseTextChatMessage):
     """A message requesting stop of a conversation."""
 
-    content: str
-    """The content for the stop message."""
-
-    type: Literal["StopMessage"] = "StopMessage"
+    ...
 
 
-class HandoffMessage(BaseChatMessage):
+class HandoffMessage(BaseTextChatMessage):
     """A message requesting handoff of a conversation to another agent."""
 
     target: str
     """The name of the target agent to handoff to."""
 
-    content: str
-    """The handoff message to the target agent."""
-
     context: List[LLMMessage] = []
     """The model context to be passed to the target agent."""
 
-    type: Literal["HandoffMessage"] = "HandoffMessage"
+    def to_llm_messages(self) -> List[LLMMessage]:
+        return [*self.context, UserMessage(content=self.content, source=self.source)]
+
+
+class ToolCallSummaryMessage(BaseTextChatMessage):
+    """A message signaling the summary of tool call results."""
+
+    ...
 
 
 class ToolCallRequestEvent(BaseAgentEvent):
@@ -144,25 +204,12 @@ class ToolCallRequestEvent(BaseAgentEvent):
     content: List[FunctionCall]
     """The tool calls."""
 
-    type: Literal["ToolCallRequestEvent"] = "ToolCallRequestEvent"
-
 
 class ToolCallExecutionEvent(BaseAgentEvent):
     """An event signaling the execution of tool calls."""
 
     content: List[FunctionExecutionResult]
     """The tool call results."""
-
-    type: Literal["ToolCallExecutionEvent"] = "ToolCallExecutionEvent"
-
-
-class ToolCallSummaryMessage(BaseChatMessage):
-    """A message signaling the summary of tool call results."""
-
-    content: str
-    """Summary of the the tool call results."""
-
-    type: Literal["ToolCallSummaryMessage"] = "ToolCallSummaryMessage"
 
 
 class UserInputRequestedEvent(BaseAgentEvent):
@@ -174,8 +221,6 @@ class UserInputRequestedEvent(BaseAgentEvent):
     content: Literal[""] = ""
     """Empty content for compat with consumers expecting a content field."""
 
-    type: Literal["UserInputRequestedEvent"] = "UserInputRequestedEvent"
-
 
 class MemoryQueryEvent(BaseAgentEvent):
     """An event signaling the results of memory queries."""
@@ -183,39 +228,28 @@ class MemoryQueryEvent(BaseAgentEvent):
     content: List[MemoryContent]
     """The memory query results."""
 
-    type: Literal["MemoryQueryEvent"] = "MemoryQueryEvent"
-
 
 class ModelClientStreamingChunkEvent(BaseAgentEvent):
     """An event signaling a text output chunk from a model client in streaming mode."""
 
     content: str
-    """The partial text chunk."""
-
-    type: Literal["ModelClientStreamingChunkEvent"] = "ModelClientStreamingChunkEvent"
+    """A string chunk from the model client."""
 
 
 class ThoughtEvent(BaseAgentEvent):
-    """An event signaling the thought process of an agent.
+    """An event signaling the thought process of a model.
     It is used to communicate the reasoning tokens generated by a reasoning model,
     or the extra text content generated by a function call."""
 
     content: str
-    """The thought process."""
-
-    type: Literal["ThoughtEvent"] = "ThoughtEvent"
+    """The thought process of the model."""
 
 
 ChatMessage = Annotated[
-    StructuredMessage[BaseModel]
-    | TextMessage
-    | MultiModalMessage
-    | StopMessage
-    | ToolCallSummaryMessage
-    | HandoffMessage,
+    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage,
     Field(discriminator="type"),
 ]
-"""Messages for agent-to-agent communication only."""
+"""Builtin chat message types for agent-to-agent communication only."""
 
 
 AgentEvent = Annotated[
@@ -227,7 +261,57 @@ AgentEvent = Annotated[
     | ThoughtEvent,
     Field(discriminator="type"),
 ]
-"""Events emitted by agents and teams when they work, not used for agent-to-agent communication."""
+"""Builtin agent events emitted by agents and teams when they work, not used for agent-to-agent communication."""
+
+
+class MessageFactory:
+    """A factory for creating messages from JSON-serializable dictionaries.
+
+    This is useful for deserializing messages from JSON data.
+    """
+
+    def __init__(self):
+        self._message_types: Dict[str, type[BaseMessage]] = {}
+        # Register all message types.
+        self._message_types[TextMessage.__name__] = TextMessage
+        self._message_types[MultiModalMessage.__name__] = MultiModalMessage
+        self._message_types[StopMessage.__name__] = StopMessage
+        self._message_types[ToolCallSummaryMessage.__name__] = ToolCallSummaryMessage
+        self._message_types[HandoffMessage.__name__] = HandoffMessage
+        self._message_types[ToolCallRequestEvent.__name__] = ToolCallRequestEvent
+        self._message_types[ToolCallExecutionEvent.__name__] = ToolCallExecutionEvent
+        self._message_types[MemoryQueryEvent.__name__] = MemoryQueryEvent
+        self._message_types[UserInputRequestedEvent.__name__] = UserInputRequestedEvent
+        self._message_types[ModelClientStreamingChunkEvent.__name__] = ModelClientStreamingChunkEvent
+        self._message_types[ThoughtEvent.__name__] = ThoughtEvent
+
+    def register(self, message_type: type[BaseMessage]) -> None:
+        """Register a new message type with the factory."""
+        if not issubclass(message_type, BaseMessage):
+            raise ValueError(f"Message type {message_type} must be a subclass of BaseMessage.")
+        # Get the class name of the
+        class_name = message_type.__name__
+        # Check if the class name is already registered.
+        if class_name in self._message_types:
+            raise ValueError(f"Message type {class_name} is already registered.")
+        # Register the message type.
+        self._message_types[class_name] = message_type
+
+    def create(self, data: Mapping[str, Any]) -> BaseMessage:
+        """Create a message from a dictionary of JSON-serializable data."""
+        # Get the type of the message from the dictionary.
+        message_type = data.get("type")
+        if message_type not in self._message_types:
+            raise ValueError(f"Unknown message type: {message_type}")
+        if not isinstance(message_type, str):
+            raise ValueError(f"Message type must be a string, got {type(message_type)}")
+
+        # Get the class for the message type.
+        message_class = self._message_types[message_type]
+
+        # Create an instance of the message class.
+        assert issubclass(message_class, BaseMessage)
+        return message_class.model_validate(data)
 
 
 __all__ = [
@@ -246,4 +330,5 @@ __all__ = [
     "UserInputRequestedEvent",
     "ModelClientStreamingChunkEvent",
     "ThoughtEvent",
+    "MessageFactory",
 ]

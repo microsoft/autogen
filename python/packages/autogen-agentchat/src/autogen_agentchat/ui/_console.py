@@ -5,17 +5,15 @@ import time
 from inspect import iscoroutinefunction
 from typing import AsyncGenerator, Awaitable, Callable, Dict, List, Optional, TypeVar, Union, cast
 
-from autogen_core import CancellationToken, Image
+from autogen_core import CancellationToken
 from autogen_core.models import RequestUsage
 
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseMessage,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
-    StructuredMessage,
     UserInputRequestedEvent,
 )
 
@@ -81,7 +79,7 @@ def aprint(output: str, end: str = "\n", flush: bool = False) -> Awaitable[None]
 
 
 async def Console(
-    stream: AsyncGenerator[AgentEvent | ChatMessage | T, None],
+    stream: AsyncGenerator[BaseMessage | T, None],
     *,
     no_inline_images: bool = False,
     output_stats: bool = False,
@@ -98,7 +96,7 @@ async def Console(
         It will be improved in future releases.
 
     Args:
-        stream (AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None] | AsyncGenerator[AgentEvent | ChatMessage | Response, None]): Message stream to render.
+        stream (AsyncGenerator[BaseMessage | TaskResult, None] | AsyncGenerator[BaseMessage | Response, None]): Message stream to render.
             This can be from :meth:`~autogen_agentchat.base.TaskRunner.run_stream` or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
         no_inline_images (bool, optional): If terminal is iTerm2 will render images inline. Use this to disable this behavior. Defaults to False.
         output_stats (bool, optional): (Experimental) If True, will output a summary of the messages and inline token usage info. Defaults to False.
@@ -136,7 +134,11 @@ async def Console(
             duration = time.time() - start_time
 
             # Print final response.
-            output = f"{'-' * 10} {message.chat_message.source} {'-' * 10}\n{_message_to_str(message.chat_message, render_image_iterm=render_image_iterm)}\n"
+            if isinstance(message.chat_message, MultiModalMessage):
+                final_content = message.chat_message.content_to_render(iterm=render_image_iterm)
+            else:
+                final_content = message.chat_message.content_to_render()
+            output = f"{'-' * 10} {message.chat_message.source} {'-' * 10}\n{final_content}\n"
             if message.chat_message.models_usage:
                 if output_stats:
                     output += f"[Prompt tokens: {message.chat_message.models_usage.prompt_tokens}, Completion tokens: {message.chat_message.models_usage.completion_tokens}]\n"
@@ -167,21 +169,22 @@ async def Console(
                 user_input_manager.notify_event_received(message.request_id)
         else:
             # Cast required for mypy to be happy
-            message = cast(AgentEvent | ChatMessage, message)  # type: ignore
+            message = cast(BaseMessage, message)  # type: ignore
             if not streaming_chunks:
                 # Print message sender.
                 await aprint(f"{'-' * 10} {message.source} {'-' * 10}", end="\n", flush=True)
             if isinstance(message, ModelClientStreamingChunkEvent):
-                await aprint(message.content, end="")
+                await aprint(message.content_to_render(), end="")
                 streaming_chunks.append(message.content)
             else:
                 if streaming_chunks:
                     streaming_chunks.clear()
                     # Chunked messages are already printed, so we just print a newline.
                     await aprint("", end="\n", flush=True)
+                elif isinstance(message, MultiModalMessage):
+                    await aprint(message.content_to_render(iterm=render_image_iterm), end="\n", flush=True)
                 else:
-                    # Print message content.
-                    await aprint(_message_to_str(message, render_image_iterm=render_image_iterm), end="\n", flush=True)
+                    await aprint(message.content_to_render(), end="\n", flush=True)
                 if message.models_usage:
                     if output_stats:
                         await aprint(
@@ -196,28 +199,3 @@ async def Console(
         raise ValueError("No TaskResult or Response was processed.")
 
     return last_processed
-
-
-# iTerm2 image rendering protocol: https://iterm2.com/documentation-images.html
-def _image_to_iterm(image: Image) -> str:
-    image_data = image.to_base64()
-    return f"\033]1337;File=inline=1:{image_data}\a\n"
-
-
-def _message_to_str(message: AgentEvent | ChatMessage, *, render_image_iterm: bool = False) -> str:
-    if isinstance(message, MultiModalMessage):
-        result: List[str] = []
-        for c in message.content:
-            if isinstance(c, str):
-                result.append(c)
-            else:
-                if render_image_iterm:
-                    result.append(_image_to_iterm(c))
-                else:
-                    result.append("<image>")
-        return "\n".join(result)
-    elif isinstance(message, StructuredMessage):
-        # If the message is a StructuredMessage, we want to print the content as JSON.
-        return message.content.model_dump_json(indent=2)
-    else:
-        return f"{message.content}"

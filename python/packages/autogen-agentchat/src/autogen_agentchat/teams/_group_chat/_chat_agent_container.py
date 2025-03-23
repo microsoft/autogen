@@ -2,8 +2,9 @@ from typing import Any, List, Mapping
 
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
+from autogen_agentchat.messages import BaseChatMessage, MessageFactory
+
 from ...base import ChatAgent, Response
-from ...messages import ChatMessage
 from ...state import ChatAgentContainerState
 from ._events import (
     GroupChatAgentResponse,
@@ -28,7 +29,9 @@ class ChatAgentContainer(SequentialRoutedAgent):
         agent (ChatAgent): The agent to delegate message handling to.
     """
 
-    def __init__(self, parent_topic_type: str, output_topic_type: str, agent: ChatAgent) -> None:
+    def __init__(
+        self, parent_topic_type: str, output_topic_type: str, agent: ChatAgent, message_factory: MessageFactory
+    ) -> None:
         super().__init__(
             description=agent.description,
             sequential_message_types=[
@@ -41,7 +44,8 @@ class ChatAgentContainer(SequentialRoutedAgent):
         self._parent_topic_type = parent_topic_type
         self._output_topic_type = output_topic_type
         self._agent = agent
-        self._message_buffer: List[ChatMessage] = []
+        self._message_buffer: List[BaseChatMessage] = []
+        self._message_factory = message_factory
 
     @event
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -105,10 +109,18 @@ class ChatAgentContainer(SequentialRoutedAgent):
 
     async def save_state(self) -> Mapping[str, Any]:
         agent_state = await self._agent.save_state()
-        state = ChatAgentContainerState(agent_state=agent_state, message_buffer=list(self._message_buffer))
+        state = ChatAgentContainerState(
+            agent_state=agent_state, message_buffer=[message.model_dump() for message in self._message_buffer]
+        )
         return state.model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         container_state = ChatAgentContainerState.model_validate(state)
-        self._message_buffer = list(container_state.message_buffer)
+        self._message_buffer = []
+        for message_data in container_state.message_buffer:
+            message = self._message_factory.create(message_data)
+            if isinstance(message, BaseChatMessage):
+                self._message_buffer.append(message)
+            else:
+                raise ValueError(f"Invalid message type in message buffer: {type(message)}")
         await self._agent.load_state(container_state.agent_state)

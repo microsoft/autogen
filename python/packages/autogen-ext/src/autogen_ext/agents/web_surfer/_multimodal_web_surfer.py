@@ -24,7 +24,7 @@ import aiofiles
 import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, StructuredMessage, TextMessage
+from autogen_agentchat.messages import BaseChatMessage, BaseMessage, MultiModalMessage, StructuredMessage, TextMessage
 from autogen_agentchat.utils import content_to_str, remove_images
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core import Image as AGImage
@@ -385,7 +385,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             )
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (MultiModalMessage,)
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
@@ -422,15 +422,15 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             )
         )
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
         raise AssertionError("The stream should have returned the final result.")
 
     async def on_messages_stream(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[BaseMessage | Response, None]:
         for chat_message in messages:
             if isinstance(chat_message, StructuredMessage):
                 serialized_content = chat_message.content.model_dump_json()
@@ -448,7 +448,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                     )
                 )
 
-        self.inner_messages: List[AgentEvent | ChatMessage] = []
+        self.inner_messages: List[BaseMessage] = []
         self.model_usage: List[RequestUsage] = []
         try:
             content = await self._generate_reply(cancellation_token=cancellation_token)

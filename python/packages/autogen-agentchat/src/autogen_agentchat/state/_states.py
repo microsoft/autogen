@@ -1,16 +1,6 @@
-from typing import Annotated, Any, Dict, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional
 
 from pydantic import BaseModel, Field
-from typing_extensions import Self
-
-from ..messages import (
-    AgentEvent,
-    ChatMessage,
-    StructuredMessage,
-)
-
-# Ensures pydantic can distinguish between types of events & messages.
-_AgentMessage = Annotated[AgentEvent | ChatMessage, Field(discriminator="type")]
 
 
 class BaseState(BaseModel):
@@ -37,61 +27,17 @@ class TeamState(BaseState):
 class BaseGroupChatManagerState(BaseState):
     """Base state for all group chat managers."""
 
-    message_thread: List[_AgentMessage] = Field(default_factory=list)
+    message_thread: List[Mapping[str, Any]] = Field(default_factory=list)
     current_turn: int = Field(default=0)
     type: str = Field(default="BaseGroupChatManagerState")
-
-    def model_dump(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
-        """Override model_dump to ensure StructuredMessage is handled properly."""
-        state = super().model_dump(*args, **kwargs)
-        for i, message in enumerate(self.message_thread):
-            if isinstance(message, StructuredMessage):
-                state["message_thread"][i] = message.dump()
-        return state
-
-    @classmethod
-    def model_validate(cls, obj: Any, **kwargs: Any) -> Self:
-        """Override model_validate to ensure message_thread is handled properly for StructuredMessage."""
-        messages = obj["message_thread"]
-        instance = super().model_validate(obj, **kwargs)
-        for i, message in enumerate(messages):
-            # For each message, check if it's a structured message and validate it
-            # If it is, replace it with the validated instance
-            # Otherwise, leave it as is.
-            if message["type"] == "StructuredMessage":
-                structured_message = StructuredMessage[BaseModel].load(message)
-                instance.message_thread[i] = structured_message
-        return instance
 
 
 class ChatAgentContainerState(BaseState):
     """State for a container of chat agents."""
 
     agent_state: Mapping[str, Any] = Field(default_factory=dict)
-    message_buffer: List[ChatMessage] = Field(default_factory=list)
+    message_buffer: List[Mapping[str, Any]] = Field(default_factory=list)
     type: str = Field(default="ChatAgentContainerState")
-
-    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
-        """Override model_dump to ensure StructuredMessage is handled properly."""
-        state = super().model_dump(*args, **kwargs)
-        for i, message in enumerate(self.message_buffer):
-            if isinstance(message, StructuredMessage):
-                state["message_buffer"][i] = message.dump()
-        return state
-
-    @classmethod
-    def model_validate(cls, obj: Any, **kwargs: Any) -> Self:
-        """Override model_validate to ensure message_buffer is handled properly for StructuredMessage."""
-        messages = obj["message_buffer"]
-        instance = super().model_validate(obj, **kwargs)
-        for i, message in enumerate(messages):
-            # For each message, check if it's a structured message and validate it
-            # If it is, replace it with the validated instance
-            # Otherwise, leave it as is.
-            if message["type"] == "StructuredMessage":
-                structured_message = StructuredMessage[BaseModel].load(message)
-                instance.message_buffer[i] = structured_message
-        return instance
 
 
 class RoundRobinManagerState(BaseGroupChatManagerState):
