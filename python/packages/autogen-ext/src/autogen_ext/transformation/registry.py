@@ -1,10 +1,9 @@
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Type
+from typing import Any, Callable, Dict, List
 
-from autogen_core.models import LLMMessage, ModelFamily
+from autogen_core.models import LLMMessage
 
 from .types import (
-    BuilderMap,
     TransformerFunc,
     TransformerMap,
 )
@@ -12,7 +11,6 @@ from .types import (
 # Global registry of model family → message transformer map
 # Each model family (e.g. "gpt-4o", "gemini-1.5-flash") maps to a dict of LLMMessage type → transformer function
 MESSAGE_TRANSFORMERS: Dict[str, Dict[str, TransformerMap]] = defaultdict(dict)
-MESSAGE_BUILDERS: Dict[str, BuilderMap] = {}
 
 
 def build_transformer_func(
@@ -69,7 +67,7 @@ def build_conditional_transformer_func(
     return transformer
 
 
-def register_transformer(api: str, model_family: str, transformer_map: TransformerMap):
+def register_transformer(api: str, model_family: str, transformer_map: TransformerMap) -> None:
     """
     Registers a transformer map for a given model family.
 
@@ -80,6 +78,17 @@ def register_transformer(api: str, model_family: str, transformer_map: Transform
         })
     """
     MESSAGE_TRANSFORMERS[api][model_family] = transformer_map
+
+
+def _find_model_family(api: str, model: str) -> str:
+    """
+    Finds the best matching model family for the given model.
+    Search via prefix matching (e.g. "gpt-4o" → "gpt-4o-1.0").
+    """
+    for family in MESSAGE_TRANSFORMERS[api].keys():
+        if model.startswith(family):
+            return family
+    return "default"
 
 
 def get_transformer(api: str, model_family: str) -> TransformerMap:
@@ -95,9 +104,10 @@ def get_transformer(api: str, model_family: str) -> TransformerMap:
 
     Keeping this as a function (instead of direct dict access) improves long-term flexibility.
     """
-    transformer = MESSAGE_TRANSFORMERS.get(api, {}).get(model_family, {})
-    if not transformer:
-        transformer = MESSAGE_TRANSFORMERS.get("default", {}).get("default", {})
+
+    model = _find_model_family(api, model_family)
+
+    transformer = MESSAGE_TRANSFORMERS.get(api, {}).get(model, {})
 
     if not transformer:
         raise ValueError(f"No transformer found for model family '{model_family}'")

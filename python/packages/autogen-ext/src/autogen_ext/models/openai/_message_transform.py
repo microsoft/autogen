@@ -30,15 +30,17 @@ from autogen_ext.transformation import (
 
 from ._utils import assert_valid_name, func_call_to_oai
 
+EMPTY: Dict[str, Any] = {}
+
 
 # ===Mini Transformers===
-def _assert_valid_name(message: LLMMessage, context: Dict[str, Any]):
+def _assert_valid_name(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+    assert isinstance(message, (UserMessage, AssistantMessage))
     assert_valid_name(message.source)
-    result: Dict[str, Any] = {}
-    return result
+    return EMPTY
 
 
-def _set_role(role: str):
+def _set_role(role: str) -> Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]:
     def inner(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
         return {"role": role}
 
@@ -46,6 +48,7 @@ def _set_role(role: str):
 
 
 def _set_name(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+    assert isinstance(message, (UserMessage, AssistantMessage))
     assert_valid_name(message.source)
     return {"name": message.source}
 
@@ -54,13 +57,16 @@ def _set_content_direct(message: LLMMessage, context: Dict[str, Any]) -> Dict[st
     return {"content": message.content}
 
 
-def _set_prepend_text_content(message: UserMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_prepend_text_content(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+    assert isinstance(message, (UserMessage, AssistantMessage))
+    assert isinstance(message.content, str)
     prepend = context.get("prepend_name", False)
     prefix = f"{message.source} said:\n" if prepend else ""
     return {"content": prefix + message.content}
 
 
-def _set_multimodal_content(message: UserMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_multimodal_content(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+    assert isinstance(message, (UserMessage, AssistantMessage))
     prepend = context.get("prepend_name", False)
     parts: List[ChatCompletionContentPartParam] = []
 
@@ -79,13 +85,16 @@ def _set_multimodal_content(message: UserMessage, context: Dict[str, Any]) -> Di
     return {"content": parts}
 
 
-def _set_tool_calls(message: AssistantMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_tool_calls(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+    assert isinstance(message.content, list)
+    assert isinstance(message, AssistantMessage)
     return {
         "tool_calls": [func_call_to_oai(x) for x in message.content],
     }
 
 
-def _set_thought_as_content(message: AssistantMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_thought_as_content(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+    assert isinstance(message, AssistantMessage)
     return {"content": message.thought}
 
 
@@ -187,6 +196,7 @@ assistant_transformer_constructors: Dict[str, Callable[..., Any]] = {
 
 
 def assistant_condition(message: LLMMessage, context: Dict[str, Any]) -> str:
+    assert isinstance(message, AssistantMessage)
     if isinstance(message.content, list):
         if message.thought is not None:
             return "thought"
@@ -208,13 +218,19 @@ assistant_transformer_funcs_gemini: Dict[str, List[Callable[[LLMMessage, Dict[st
 }
 
 
-def function_execution_result_message(message: LLMMessage, context: Dict[str, Any]) -> List[Dict[str, Any]]:
+def function_execution_result_message(
+    message: LLMMessage, context: Dict[str, Any]
+) -> list[ChatCompletionToolMessageParam]:
+    assert isinstance(message, FunctionExecutionResultMessage)
     return [
         ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id) for x in message.content
     ]
 
 
-def function_execution_result_message_gemini(message: LLMMessage, context: Dict[str, Any]) -> List[Dict[str, Any]]:
+def function_execution_result_message_gemini(
+    message: LLMMessage, context: Dict[str, Any]
+) -> list[ChatCompletionToolMessageParam]:
+    assert isinstance(message, FunctionExecutionResultMessage)
     return [
         ChatCompletionToolMessageParam(content=x.content if x.content else " ", role="tool", tool_call_id=x.call_id)
         for x in message.content
@@ -282,4 +298,4 @@ for model in __gemini_models:
 for model in __unknown_models:
     register_transformer("openai", model, __BASE_TRANSFORMER_MAP)
 
-register_transformer("openai", "default", __BASE_TRANSFORMER_MAP)
+# register_transformer("openai", "default", __BASE_TRANSFORMER_MAP)

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import (
     Any,
     AsyncGenerator,
+    Callable,
     Dict,
     List,
     Mapping,
@@ -58,7 +59,6 @@ from openai.types.chat import (
     ChatCompletionContentPartParam,
     ChatCompletionContentPartTextParam,
     ChatCompletionMessageParam,
-    ChatCompletionMessageToolCallParam,
     ChatCompletionRole,
     ChatCompletionSystemMessageParam,
     ChatCompletionToolMessageParam,
@@ -195,17 +195,6 @@ def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessage
     )
 
 
-def _old_func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallParam:
-    return ChatCompletionMessageToolCallParam(
-        id=message.id,
-        function={
-            "arguments": message.arguments,
-            "name": message.name,
-        },
-        type="function",
-    )
-
-
 def tool_message_to_oai(
     message: FunctionExecutionResultMessage,
 ) -> Sequence[ChatCompletionToolMessageParam]:
@@ -248,25 +237,16 @@ def to_oai_type(
     }
     transformers = get_transformer("openai", model_family)
 
-    def raise_value_error(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+    def raise_value_error(message: LLMMessage, context: Dict[str, Any]) -> ChatCompletionMessageParam:
         raise ValueError(f"Unknown message type: {type(message)}")
 
-    transformer = transformers.get(type(message), raise_value_error)
+    transformer: Callable[
+        [LLMMessage, Dict[str, Any]], Union[ChatCompletionMessageParam, Sequence[ChatCompletionMessageParam]]
+    ] = transformers.get(type(message), raise_value_error)
     result = transformer(message, context)
     if isinstance(result, list):
-        return result
-    return [result]
-
-
-def _old_to_oai_type(message: LLMMessage, prepend_name: bool = False) -> Sequence[ChatCompletionMessageParam]:
-    if isinstance(message, SystemMessage):
-        return [system_message_to_oai(message)]
-    elif isinstance(message, UserMessage):
-        return [user_message_to_oai(message, prepend_name)]
-    elif isinstance(message, AssistantMessage):
-        return [assistant_message_to_oai(message)]
-    else:
-        return tool_message_to_oai(message)
+        return cast(List[ChatCompletionMessageParam], result)
+    return cast(List[ChatCompletionMessageParam], [result])
 
 
 def calculate_vision_tokens(image: Image, detail: str = "auto") -> int:
@@ -362,19 +342,6 @@ def normalize_name(name: str) -> str:
     Prefer _assert_valid_name for validating user configuration or input
     """
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
-
-
-def _old_assert_valid_name(name: str) -> str:
-    """
-    Ensure that configured names are valid, raises ValueError if not.
-
-    For munging LLM responses use _normalize_name to ensure LLM specified names don't break the API.
-    """
-    if not re.match(r"^[a-zA-Z0-9_-]+$", name):
-        raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
-    if len(name) > 64:
-        raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
-    return name
 
 
 @dataclass
