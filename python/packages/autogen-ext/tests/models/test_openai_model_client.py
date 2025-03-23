@@ -2047,4 +2047,57 @@ async def test_add_name_prefixes(monkeypatch: pytest.MonkeyPatch) -> None:
     assert str(converted_mm["content"][0]["text"]) == "Adam said:\n" + str(oai_mm["content"][0]["text"])
 
 
+def noop(input: str) -> str:
+    return "done"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model", ["gemini-1.5-flash"])
+async def test_empty_assistant_content_with_gemini(model: str, openai_client: OpenAIChatCompletionClient) -> None:
+    # Test tool calling
+    tool = FunctionTool(noop, name="noop", description="No-op tool")
+    messages: List[LLMMessage] = [UserMessage(content="Call noop", source="user")]
+    result = await openai_client.create(messages=messages, tools=[tool])
+    assert isinstance(result.content, list)
+    tool_call = result.content[0]
+    assert isinstance(tool_call, FunctionCall)
+
+    # reply with empty string as thought (== content)
+    messages.append(AssistantMessage(content=result.content, thought="", source="assistant"))
+    messages.append(
+        FunctionExecutionResultMessage(
+            content=[
+                FunctionExecutionResult(
+                    content="done",
+                    call_id=tool_call.id,
+                    is_error=False,
+                    name=tool_call.name,
+                )
+            ]
+        )
+    )
+
+    # This will crash if _set_empty_to_whitespace is not applied to "thought"
+    result = await openai_client.create(messages=messages)
+    assert isinstance(result.content, str)
+    assert result.content.strip() != "" or result.content == " "
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model", ["gemini-1.5-flash"])
+async def test_empty_assistant_content_string_with_gemini(
+    model: str, openai_client: OpenAIChatCompletionClient
+) -> None:
+    # message: assistant is response empty content
+    messages: list[LLMMessage] = [
+        UserMessage(content="Say something", source="user"),
+        AssistantMessage(content="", source="assistant"),
+    ]
+
+    # This will crash if _set_empty_to_whitespace is not applied to "content"
+    result = await openai_client.create(messages=messages)
+    assert isinstance(result.content, str)
+    assert result.content.strip() != "" or result.content == " "
+
+
 # TODO: add integration tests for Azure OpenAI using AAD token.
