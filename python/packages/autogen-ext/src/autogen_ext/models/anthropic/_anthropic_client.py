@@ -25,6 +25,7 @@ from typing import (
 import tiktoken
 from anthropic import AsyncAnthropic, AsyncStream
 from anthropic.types import (
+    Base64ImageSourceParam,
     ContentBlock,
     ImageBlockParam,
     Message,
@@ -36,7 +37,6 @@ from anthropic.types import (
     ToolResultBlockParam,
     ToolUseBlock,
 )
-from anthropic.types.image_block_param import Source
 from autogen_core import (
     EVENT_LOGGER_NAME,
     TRACE_LOGGER_NAME,
@@ -160,7 +160,7 @@ def user_message_to_anthropic(message: UserMessage) -> MessageParam:
                 blocks.append(
                     ImageBlockParam(
                         type="image",
-                        source=Source(
+                        source=Base64ImageSourceParam(
                             type="base64",
                             media_type=get_mime_type_from_image(part),
                             data=part.to_base64(),
