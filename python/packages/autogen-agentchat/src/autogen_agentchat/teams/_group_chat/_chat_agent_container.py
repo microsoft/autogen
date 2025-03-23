@@ -13,6 +13,8 @@ from ._events import (
     GroupChatReset,
     GroupChatResume,
     GroupChatStart,
+    GroupChatError,
+    SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
 
@@ -64,31 +66,43 @@ class ChatAgentContainer(SequentialRoutedAgent):
     async def handle_request(self, message: GroupChatRequestPublish, ctx: MessageContext) -> None:
         """Handle a content request event by passing the messages in the buffer
         to the delegate agent and publish the response."""
-        # Pass the messages in the buffer to the delegate agent.
-        response: Response | None = None
-        async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
-            if isinstance(msg, Response):
-                # Log the response.
-                await self.publish_message(
-                    GroupChatMessage(message=msg.chat_message),
-                    topic_id=DefaultTopicId(type=self._output_topic_type),
-                )
-                response = msg
-            else:
-                # Log the message.
-                await self.publish_message(
-                    GroupChatMessage(message=msg), topic_id=DefaultTopicId(type=self._output_topic_type)
-                )
-        if response is None:
-            raise ValueError("The agent did not produce a final response. Check the agent's on_messages_stream method.")
+        try:
+            # Pass the messages in the buffer to the delegate agent.
+            response: Response | None = None
+            async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
+                if isinstance(msg, Response):
+                    # Log the response.
+                    await self.publish_message(
+                        GroupChatMessage(message=msg.chat_message),
+                        topic_id=DefaultTopicId(type=self._output_topic_type),
+                    )
+                    response = msg
+                else:
+                    # Log the message.
+                    await self.publish_message(
+                        GroupChatMessage(message=msg), topic_id=DefaultTopicId(type=self._output_topic_type)
+                    )
+            if response is None:
+                raise ValueError("The agent did not produce a final response. Check the agent's on_messages_stream method.")
 
-        # Publish the response to the group chat.
-        self._message_buffer.clear()
-        await self.publish_message(
-            GroupChatAgentResponse(agent_response=response),
-            topic_id=DefaultTopicId(type=self._parent_topic_type),
-            cancellation_token=ctx.cancellation_token,
-        )
+            # Publish the response to the group chat.
+            self._message_buffer.clear()
+            await self.publish_message(
+                GroupChatAgentResponse(agent_response=response),
+                topic_id=DefaultTopicId(type=self._parent_topic_type),
+                cancellation_token=ctx.cancellation_token,
+            )
+        except Exception as e:
+            # Publish the error to the group chat.
+            error_message = SerializableException.from_exception(e)
+            await self.publish_message(
+                GroupChatError(error=error_message),
+                topic_id=DefaultTopicId(type=self._parent_topic_type),
+                cancellation_token=ctx.cancellation_token,
+            )
+            # Raise the error to the runtime.
+            raise e
+
 
     @rpc
     async def handle_pause(self, message: GroupChatPause, ctx: MessageContext) -> None:
