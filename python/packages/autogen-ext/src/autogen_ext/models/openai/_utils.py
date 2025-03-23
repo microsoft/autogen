@@ -1,8 +1,5 @@
 import re
 
-from autogen_core import FunctionCall
-from openai.types.chat import ChatCompletionMessageToolCallParam
-
 
 def assert_valid_name(name: str) -> str:
     """
@@ -15,14 +12,3 @@ def assert_valid_name(name: str) -> str:
     if len(name) > 64:
         raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
     return name
-
-
-def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallParam:
-    return ChatCompletionMessageToolCallParam(
-        id=message.id,
-        function={
-            "arguments": message.arguments,
-            "name": message.name,
-        },
-        type="function",
-    )

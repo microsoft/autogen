@@ -1,6 +1,7 @@
 from typing import Any, Callable, Dict, List, cast, get_args
 
 from autogen_core import (
+    FunctionCall,
     Image,
 )
 from autogen_core.models import (
@@ -16,6 +17,7 @@ from openai.types.chat import (
     ChatCompletionContentPartImageParam,
     ChatCompletionContentPartParam,
     ChatCompletionContentPartTextParam,
+    ChatCompletionMessageToolCallParam,
     ChatCompletionSystemMessageParam,
     ChatCompletionToolMessageParam,
     ChatCompletionUserMessageParam,
@@ -28,9 +30,20 @@ from autogen_ext.transformation import (
     register_transformer,
 )
 
-from ._utils import assert_valid_name, func_call_to_oai
+from ._utils import assert_valid_name
 
 EMPTY: Dict[str, Any] = {}
+
+
+def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallParam:
+    return ChatCompletionMessageToolCallParam(
+        id=message.id,
+        function={
+            "arguments": message.arguments,
+            "name": message.name,
+        },
+        type="function",
+    )
 
 
 # ===Mini Transformers===
@@ -98,6 +111,11 @@ def _set_thought_as_content(message: LLMMessage, context: Dict[str, Any]) -> Dic
     return {"content": message.thought}
 
 
+def _set_thought_as_content_gemini(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+    assert isinstance(message, AssistantMessage)
+    return {"content": message.thought or " "}
+
+
 def _set_empty_to_whitespace(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
     return {"content": message.content or " "}
 
@@ -161,6 +179,13 @@ thought_assistant_transformer_funcs: List[Callable[[LLMMessage, Dict[str, Any]],
     ]
 )
 
+thought_assistant_transformer_funcs_gemini: List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]] = (
+    tools_assistant_transformer_funcs
+    + [
+        _set_thought_as_content_gemini,
+    ]
+)
+
 
 # === Specific message param functions ===
 
@@ -213,8 +238,8 @@ user_transformer_funcs_gemini: Dict[str, List[Callable[[LLMMessage, Dict[str, An
 
 assistant_transformer_funcs_gemini: Dict[str, List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]]] = {
     "text": single_assistant_transformer_funcs + [_set_empty_to_whitespace],
-    "tools": tools_assistant_transformer_funcs + [_set_empty_to_whitespace],
-    "thought": thought_assistant_transformer_funcs + [_set_empty_to_whitespace],
+    "tools": tools_assistant_transformer_funcs,  # that case, message.content is a list of FunctionCall
+    "thought": thought_assistant_transformer_funcs_gemini,  # that case, message.content is a list of FunctionCall
 }
 
 
@@ -272,7 +297,7 @@ __GEMINI_TRANSFORMER_MAP: TransformerMap = {
         message_param_func_map=assistant_transformer_constructors,
         condition_func=assistant_condition,
     ),
-    FunctionExecutionResultMessage: function_execution_result_message_gemini,
+    FunctionExecutionResultMessage: function_execution_result_message,
 }
 
 
@@ -298,4 +323,4 @@ for model in __gemini_models:
 for model in __unknown_models:
     register_transformer("openai", model, __BASE_TRANSFORMER_MAP)
 
-# register_transformer("openai", "default", __BASE_TRANSFORMER_MAP)
+register_transformer("openai", "default", __BASE_TRANSFORMER_MAP)

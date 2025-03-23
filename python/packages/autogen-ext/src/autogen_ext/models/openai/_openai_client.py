@@ -38,7 +38,6 @@ from autogen_core.models import (
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
     CreateResult,
-    FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,  # type: ignore
     ModelFamily,
@@ -53,17 +52,11 @@ from autogen_core.tools import Tool, ToolSchema
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
-    ChatCompletionAssistantMessageParam,
     ChatCompletionChunk,
-    ChatCompletionContentPartImageParam,
     ChatCompletionContentPartParam,
-    ChatCompletionContentPartTextParam,
     ChatCompletionMessageParam,
     ChatCompletionRole,
-    ChatCompletionSystemMessageParam,
-    ChatCompletionToolMessageParam,
     ChatCompletionToolParam,
-    ChatCompletionUserMessageParam,
     ParsedChatCompletion,
     ParsedChoice,
     completion_create_params,
@@ -86,7 +79,7 @@ from autogen_ext.transformation import (
 from .._utils.normalize_stop_reason import normalize_stop_reason
 from .._utils.parse_r1_content import parse_r1_content
 from . import _model_info
-from ._utils import assert_valid_name, func_call_to_oai
+from ._utils import assert_valid_name
 from .config import (
     AzureOpenAIClientConfiguration,
     AzureOpenAIClientConfigurationConfigModel,
@@ -148,85 +141,6 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
         return "assistant"
     else:
         return "tool"
-
-
-def user_message_to_oai(message: UserMessage, prepend_name: bool = False) -> ChatCompletionUserMessageParam:
-    assert_valid_name(message.source)
-    if isinstance(message.content, str):
-        return ChatCompletionUserMessageParam(
-            content=(f"{message.source} said:\n" if prepend_name else "") + message.content,
-            role="user",
-            name=message.source,
-        )
-    else:
-        parts: List[ChatCompletionContentPartParam] = []
-        for part in message.content:
-            if isinstance(part, str):
-                if prepend_name:
-                    # Append the name to the first text part
-                    oai_part = ChatCompletionContentPartTextParam(
-                        text=f"{message.source} said:\n" + part,
-                        type="text",
-                    )
-                    prepend_name = False
-                else:
-                    oai_part = ChatCompletionContentPartTextParam(
-                        text=part,
-                        type="text",
-                    )
-                parts.append(oai_part)
-            elif isinstance(part, Image):
-                # TODO: support url based images
-                # TODO: support specifying details
-                parts.append(cast(ChatCompletionContentPartImageParam, part.to_openai_format()))
-            else:
-                raise ValueError(f"Unknown content type: {part}")
-        return ChatCompletionUserMessageParam(
-            content=parts,
-            role="user",
-            name=message.source,
-        )
-
-
-def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessageParam:
-    return ChatCompletionSystemMessageParam(
-        content=message.content,
-        role="system",
-    )
-
-
-def tool_message_to_oai(
-    message: FunctionExecutionResultMessage,
-) -> Sequence[ChatCompletionToolMessageParam]:
-    return [
-        ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id) for x in message.content
-    ]
-
-
-def assistant_message_to_oai(
-    message: AssistantMessage,
-) -> ChatCompletionAssistantMessageParam:
-    assert_valid_name(message.source)
-    if isinstance(message.content, list):
-        if message.thought is not None:
-            return ChatCompletionAssistantMessageParam(
-                content=message.thought,
-                tool_calls=[func_call_to_oai(x) for x in message.content],
-                role="assistant",
-                name=message.source,
-            )
-        else:
-            return ChatCompletionAssistantMessageParam(
-                tool_calls=[func_call_to_oai(x) for x in message.content],
-                role="assistant",
-                name=message.source,
-            )
-    else:
-        return ChatCompletionAssistantMessageParam(
-            content=message.content,
-            role="assistant",
-            name=message.source,
-        )
 
 
 def to_oai_type(
