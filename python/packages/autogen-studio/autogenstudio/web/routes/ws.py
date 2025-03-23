@@ -11,7 +11,8 @@ from ...datamodel import Run, RunStatus
 from ..auth.dependencies import get_ws_auth_manager
 from ..auth.wsauth import WebSocketAuthHandler
 from ..deps import get_db, get_websocket_manager
-from ..managers import WebSocketManager
+from ..managers.connection import WebSocketManager
+from ...utils.utils import construct_task
 
 router = APIRouter()
 
@@ -26,20 +27,7 @@ async def run_websocket(
 ):
     """WebSocket endpoint for run communication"""
 
-    async def start_stream_wrapper(run_id, task, team_config):
-        try:
-            await ws_manager.start_stream(run_id, task, team_config)
-        except Exception as e:
-            logger.error(f"Error in start_stream for run {run_id}: {str(e)}")
-            # Optionally notify the client about the error
-            if websocket.client_state == WebSocketState.CONNECTED:
-                await websocket.send_json(
-                    {
-                        "type": "error",
-                        "error": f"Stream processing error: {str(e)}",
-                        "timestamp": datetime.utcnow().isoformat(),
-                    }
-                )
+    
 
     try:
         # Verify run exists before connecting
@@ -95,15 +83,18 @@ async def run_websocket(
                 raw_message = await websocket.receive_text()
                 message = json.loads(raw_message)
 
+              
+
                 if message.get("type") == "start":
                     # Handle start message
                     logger.info(f"Received start request for run {run_id}")
-                     
-                    task = message.get("task")
+                    task = construct_task(query=message.get("task"), files=message.get("files")) 
+                    
+
                     team_config = message.get("team_config")
                     if task and team_config:
                         # Start the stream in a separate task
-                        asyncio.create_task(start_stream_wrapper(run_id, task, team_config))
+                        asyncio.create_task(ws_manager.start_stream(run_id, task, team_config))
                     else:
                         logger.warning(f"Invalid start message format for run {run_id}")
                         await websocket.send_json(
