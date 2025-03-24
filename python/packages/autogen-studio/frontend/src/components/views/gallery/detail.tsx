@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, Button, Tooltip, Drawer, Input } from "antd";
 import {
   Package,
@@ -160,6 +160,13 @@ export const GalleryDetail: React.FC<{
   const [tempDescription, setTempDescription] = useState(
     gallery.config.metadata.description
   );
+
+  useEffect(() => {
+    setTempName(gallery.config.name);
+    setTempDescription(gallery.config.metadata.description);
+    setActiveTab("team");
+    setEditingComponent(null);
+  }, [gallery.id]);
 
   const updateGallery = (
     category: CategoryKey,
