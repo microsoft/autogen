@@ -59,18 +59,8 @@ def count_chat_tokens(messages: list, model: str = "gpt-4o") -> int:
     except KeyError:
         encoding = tiktoken.get_encoding("cl100k_base")
 
-    if model.startswith("gpt-3.5") or model.startswith("gpt-4"):
-        tokens_per_message = 3
-        tokens_per_name = 1
-    else:
-        raise NotImplementedError(f"Token counting not implemented for model {model}")
-
     total_tokens = 0
     for message in messages:
-        total_tokens += tokens_per_message
-        total_tokens += len(encoding.encode(message.get("content", "")))
-        if "name" in message:
-            total_tokens += tokens_per_name
+        total_tokens += len(encoding.encode(message.content))
 
-    total_tokens += 3  # Priming tokens for assistant reply
     return total_tokens
