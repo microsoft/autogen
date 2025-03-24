@@ -108,7 +108,6 @@ class TeamManager:
         start_time = time.time()
         team = None
 
-
         # Setup logger correctly
         logger = logging.getLogger(EVENT_LOGGER_NAME)
         logger.setLevel(logging.INFO)
