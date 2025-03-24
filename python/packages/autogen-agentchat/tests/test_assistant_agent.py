@@ -615,6 +615,8 @@ async def test_model_context(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     await agent.run(task=messages)
 
+    # Check that the model_context property returns the correct internal context
+    assert agent.model_context == model_context
     # Check if the mock client is called with only the last two messages.
     assert len(model_client.create_calls) == 1
     # 2 message from the context + 1 system message
