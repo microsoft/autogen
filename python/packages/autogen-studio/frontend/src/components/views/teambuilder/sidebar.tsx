@@ -16,6 +16,8 @@ import type { Gallery, Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
 import { GalleryAPI } from "../gallery/api";
 import { appContext } from "../../../hooks/provider";
+import { Link } from "gatsby";
+import { getLocalStorage, setLocalStorage } from "../../utils/utils";
 
 interface TeamSidebarProps {
   isOpen: boolean;
@@ -61,7 +63,18 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       const galleryAPI = new GalleryAPI();
       const data = await galleryAPI.listGalleries(user.id);
       setGalleries(data);
-      if (!selectedGallery && data.length > 0) {
+
+      // Check localStorage for a previously saved gallery ID
+      const savedGalleryId = getLocalStorage(`selectedGalleryId_${user.id}`);
+
+      if (savedGalleryId && data.length > 0) {
+        const savedGallery = data.find((g) => g.id === savedGalleryId);
+        if (savedGallery) {
+          setSelectedGallery(savedGallery);
+        } else if (!selectedGallery && data.length > 0) {
+          setSelectedGallery(data[0]);
+        }
+      } else if (!selectedGallery && data.length > 0) {
         setSelectedGallery(data[0]);
       }
     } catch (error) {
@@ -289,10 +302,10 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
             <div className="my-2 mb-3 text-xs">
               {" "}
               Select a{" "}
-              <span role="button" className="text-accent">
-                gallery
-              </span>{" "}
-              and use its components as templates
+              <Link to="/gallery" className="text-accent">
+                <span className="font-medium">gallery</span>
+              </Link>{" "}
+              to view its components as templates
             </div>
             <Select
               className="w-full mb-4"
@@ -302,6 +315,11 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                 const gallery = galleries.find((g) => g.id === value);
                 if (gallery) {
                   setSelectedGallery(gallery);
+
+                  // Save the selected gallery ID to localStorage
+                  if (user?.id) {
+                    setLocalStorage(`selectedGalleryId_${user.id}`, value);
+                  }
                 }
               }}
               options={galleries.map((gallery) => ({
