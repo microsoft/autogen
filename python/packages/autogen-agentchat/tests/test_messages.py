@@ -18,7 +18,7 @@ def test_structured_message() -> None:
     )
 
     # Check that the message type is correct
-    assert message.type == "StructuredMessage[TestContent]"
+    assert message.type == "StructuredMessage[TestContent]"  # type: ignore
 
     # Check that the content is of the correct type
     assert isinstance(message.content, TestContent)
@@ -50,7 +50,7 @@ def test_message_factory() -> None:
     assert isinstance(text_message, TextMessage)
     assert text_message.source == "test_agent"
     assert text_message.content == "Hello, world!"
-    assert text_message.type == "TextMessage"
+    assert text_message.type == "TextMessage"  # type: ignore
 
     # Handoff message data
     handoff_data = {
@@ -66,7 +66,7 @@ def test_message_factory() -> None:
     assert handoff_message.source == "test_agent"
     assert handoff_message.content == "handoff to another agent"
     assert handoff_message.target == "target_agent"
-    assert handoff_message.type == "HandoffMessage"
+    assert handoff_message.type == "HandoffMessage"  # type: ignore
 
     # Structured message data
     structured_data = {
@@ -90,4 +90,4 @@ def test_message_factory() -> None:
     assert structured_message.source == "test_agent"
     assert structured_message.content.field1 == "test"
     assert structured_message.content.field2 == 42
-    assert structured_message.type == "StructuredMessage[TestContent]"
+    assert structured_message.type == "StructuredMessage[TestContent]"  # type: ignore

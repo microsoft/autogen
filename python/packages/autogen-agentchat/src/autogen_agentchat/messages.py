@@ -270,7 +270,7 @@ class MessageFactory:
     This is useful for deserializing messages from JSON data.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._message_types: Dict[str, type[BaseMessage]] = {}
         # Register all message types.
         self._message_types[TextMessage.__name__] = TextMessage
@@ -285,15 +285,22 @@ class MessageFactory:
         self._message_types[ModelClientStreamingChunkEvent.__name__] = ModelClientStreamingChunkEvent
         self._message_types[ThoughtEvent.__name__] = ThoughtEvent
 
+    def is_registered(self, message_type: type[BaseMessage]) -> bool:
+        """Check if a message type is registered with the factory."""
+        # Get the class name of the message type.
+        class_name = message_type.__name__
+        # Check if the class name is already registered.
+        return class_name in self._message_types
+
     def register(self, message_type: type[BaseMessage]) -> None:
         """Register a new message type with the factory."""
+        if self.is_registered(message_type):
+            raise ValueError(f"Message type {message_type} is already registered.")
         if not issubclass(message_type, BaseMessage):
             raise ValueError(f"Message type {message_type} must be a subclass of BaseMessage.")
         # Get the class name of the
         class_name = message_type.__name__
         # Check if the class name is already registered.
-        if class_name in self._message_types:
-            raise ValueError(f"Message type {class_name} is already registered.")
         # Register the message type.
         self._message_types[class_name] = message_type
 

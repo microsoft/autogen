@@ -203,7 +203,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         Once the team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | Sequence[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
+            task (str | BaseChatMessage | Sequence[BaseChatMessage] | None): The task to run the team with. Can be a string, a single :class:`BaseChatMessage` , or a list of :class:`BaseChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -311,14 +311,14 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             :attr:`~autogen_agentchat.base.TaskResult.messages`.
 
         Args:
-            task (str | ChatMessage | Sequence[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
+            task (str | BaseChatMessage | Sequence[BaseChatMessage] | None): The task to run the team with. Can be a string, a single :class:`BaseChatMessage` , or a list of :class:`BaseChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
                 To gracefully stop the team, use :class:`~autogen_agentchat.conditions.ExternalTermination` instead.
 
         Returns:
-            stream: an :class:`~collections.abc.AsyncGenerator` that yields :class:`~autogen_agentchat.messages.AgentEvent`, :class:`~autogen_agentchat.messages.ChatMessage`, and the final result :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream.
+            stream: an :class:`~collections.abc.AsyncGenerator` that yields :class:`~autogen_agentchat.messages.AgentEvent`, :class:`~autogen_agentchat.messages.BaseChatMessage`, and the final result :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream.
 
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
@@ -405,14 +405,25 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             messages = [TextMessage(content=task, source="user")]
         elif isinstance(task, BaseChatMessage):
             messages = [task]
-        else:
+        elif isinstance(task, list):
             if not task:
                 raise ValueError("Task list cannot be empty.")
             messages = []
             for msg in task:
                 if not isinstance(msg, BaseChatMessage):
-                    raise ValueError("All messages in task list must be valid ChatMessage types")
+                    raise ValueError("All messages in task list must be valid BaseChatMessage types")
                 messages.append(msg)
+        else:
+            raise ValueError("Task must be a string, a BaseChatMessage, or a list of BaseChatMessage.")
+        # Check if the messages types are registered with the message factory.
+        if messages is not None:
+            for msg in messages:
+                if not self._message_factory.is_registered(msg.__class__):
+                    raise ValueError(
+                        f"Message type {msg.__class__} is not registered with the message factory. "
+                        "Please register it with the message factory by adding it to the "
+                        "custom_message_types list when creating the team."
+                    )
 
         if self._is_running:
             raise ValueError("The team is already running, it cannot run again until it is stopped.")

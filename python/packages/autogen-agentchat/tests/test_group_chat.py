@@ -103,6 +103,32 @@ class _FlakyAgent(BaseChatAgent):
         self._last_message = None
 
 
+class _UnknownMessageType(BaseChatMessage):
+    def to_llm_messages(self) -> List[LLMMessage]:
+        raise NotImplementedError("This message type is not supported.")
+
+    def content_to_str(self) -> str:
+        raise NotImplementedError("This message type is not supported.")
+
+    def content_to_render(self) -> str:
+        raise NotImplementedError("This message type is not supported.")
+
+
+class _UnknownMessageTypeAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str) -> None:
+        super().__init__(name, description)
+
+    @property
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+        return (_UnknownMessageType,)
+
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+        return Response(chat_message=_UnknownMessageType(content="Unknown message type", source=self.name))
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        pass
+
+
 class _StopAgent(_EchoAgent):
     def __init__(self, name: str, description: str, *, stop_at: int = 1) -> None:
         super().__init__(name, description)
@@ -124,12 +150,12 @@ def _pass_function(input: str) -> str:
     return "pass"
 
 
-class InputTask1(BaseModel):
+class _InputTask1(BaseModel):
     task: str
     data: List[str]
 
 
-class InputTask2(BaseModel):
+class _InputTask2(BaseModel):
     task: str
     data: str
 
@@ -224,6 +250,38 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
 
 
 @pytest.mark.asyncio
+async def test_round_robin_group_chat_unknown_task_message_type(runtime: AgentRuntime | None) -> None:
+    model_client = ReplayChatCompletionClient([])
+    agent1 = AssistantAgent("agent1", model_client=model_client)
+    agent2 = AssistantAgent("agent2", model_client=model_client)
+    termination = TextMentionTermination("TERMINATE")
+    team1 = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=termination,
+        runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask2]],
+    )
+    with pytest.raises(ValueError, match=r"Message type .*StructuredMessage\[_InputTask1\].* is not registered"):
+        await team1.run(
+            task=StructuredMessage[_InputTask1](
+                content=_InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+                source="user",
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_unknown_agent_message_type() -> None:
+    model_client = ReplayChatCompletionClient(["Hello"])
+    agent1 = AssistantAgent("agent1", model_client=model_client)
+    agent2 = _UnknownMessageTypeAgent("agent2", "I am an unknown message type agent")
+    termination = TextMentionTermination("TERMINATE")
+    team1 = RoundRobinGroupChat(participants=[agent1, agent2], termination_condition=termination)
+    with pytest.raises(ValueError, match="Message type .*UnknownMessageType.* not registered"):
+        await team1.run(task=TextMessage(content="Write a program that prints 'Hello, world!'", source="user"))
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "task",
     [
@@ -231,12 +289,12 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
         [TextMessage(content="Write a program that prints 'Hello, world!'", source="user")],
         [MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")],
         [
-            StructuredMessage[InputTask1](
-                content=InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+            StructuredMessage[_InputTask1](
+                content=_InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
                 source="user",
             ),
-            StructuredMessage[InputTask2](
-                content=InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
+            StructuredMessage[_InputTask2](
+                content=_InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
             ),
         ],
     ],
@@ -249,13 +307,23 @@ async def test_round_robin_group_chat_state(task: TaskType, runtime: AgentRuntim
     agent1 = AssistantAgent("agent1", model_client=model_client)
     agent2 = AssistantAgent("agent2", model_client=model_client)
     termination = TextMentionTermination("TERMINATE")
-    team1 = RoundRobinGroupChat(participants=[agent1, agent2], termination_condition=termination, runtime=runtime)
+    team1 = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=termination,
+        runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
+    )
     await team1.run(task=task)
     state = await team1.save_state()
 
     agent3 = AssistantAgent("agent1", model_client=model_client)
     agent4 = AssistantAgent("agent2", model_client=model_client)
-    team2 = RoundRobinGroupChat(participants=[agent3, agent4], termination_condition=termination, runtime=runtime)
+    team2 = RoundRobinGroupChat(
+        participants=[agent3, agent4],
+        termination_condition=termination,
+        runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
+    )
     await team2.load_state(state)
     state2 = await team2.save_state()
     assert state == state2
@@ -524,12 +592,12 @@ async def test_selector_group_chat(runtime: AgentRuntime | None) -> None:
         [TextMessage(content="Write a program that prints 'Hello, world!'", source="user")],
         [MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")],
         [
-            StructuredMessage[InputTask1](
-                content=InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+            StructuredMessage[_InputTask1](
+                content=_InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
                 source="user",
             ),
-            StructuredMessage[InputTask2](
-                content=InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
+            StructuredMessage[_InputTask2](
+                content=_InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
             ),
         ],
     ],
@@ -547,6 +615,7 @@ async def test_selector_group_chat_state(task: TaskType, runtime: AgentRuntime |
         termination_condition=termination,
         model_client=model_client,
         runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
     )
     await team1.run(task=task)
     state = await team1.save_state()
@@ -554,7 +623,10 @@ async def test_selector_group_chat_state(task: TaskType, runtime: AgentRuntime |
     agent3 = AssistantAgent("agent1", model_client=model_client)
     agent4 = AssistantAgent("agent2", model_client=model_client)
     team2 = SelectorGroupChat(
-        participants=[agent3, agent4], termination_condition=termination, model_client=model_client
+        participants=[agent3, agent4],
+        termination_condition=termination,
+        model_client=model_client,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
     )
     await team2.load_state(state)
     state2 = await team2.save_state()
@@ -897,12 +969,12 @@ async def test_swarm_handoff(runtime: AgentRuntime | None) -> None:
         [TextMessage(content="Write a program that prints 'Hello, world!'", source="user")],
         [MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")],
         [
-            StructuredMessage[InputTask1](
-                content=InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+            StructuredMessage[_InputTask1](
+                content=_InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
                 source="user",
             ),
-            StructuredMessage[InputTask2](
-                content=InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
+            StructuredMessage[_InputTask2](
+                content=_InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
             ),
         ],
     ],
@@ -914,14 +986,24 @@ async def test_swarm_handoff_state(task: TaskType, runtime: AgentRuntime | None)
     third_agent = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
 
     termination = MaxMessageTermination(6)
-    team1 = Swarm([second_agent, first_agent, third_agent], termination_condition=termination, runtime=runtime)
+    team1 = Swarm(
+        [second_agent, first_agent, third_agent],
+        termination_condition=termination,
+        runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
+    )
     await team1.run(task=task)
     state = await team1.save_state()
 
     first_agent2 = _HandOffAgent("first_agent", description="first agent", next_agent="second_agent")
     second_agent2 = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
     third_agent2 = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
-    team2 = Swarm([second_agent2, first_agent2, third_agent2], termination_condition=termination, runtime=runtime)
+    team2 = Swarm(
+        [second_agent2, first_agent2, third_agent2],
+        termination_condition=termination,
+        runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
+    )
     await team2.load_state(state)
     state2 = await team2.save_state()
     assert state == state2

@@ -2,7 +2,7 @@ from typing import Any, List, Mapping
 
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
-from autogen_agentchat.messages import BaseChatMessage, MessageFactory
+from autogen_agentchat.messages import BaseChatMessage, BaseMessage, MessageFactory
 
 from ...base import ChatAgent, Response
 from ...state import ChatAgentContainerState
@@ -27,6 +27,8 @@ class ChatAgentContainer(SequentialRoutedAgent):
         parent_topic_type (str): The topic type of the parent orchestrator.
         output_topic_type (str): The topic type for the output.
         agent (ChatAgent): The agent to delegate message handling to.
+        message_factory (MessageFactory): The message factory to use for
+            creating messages from JSON data.
     """
 
     def __init__(
@@ -51,12 +53,13 @@ class ChatAgentContainer(SequentialRoutedAgent):
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle a start event by appending the content to the buffer."""
         if message.messages is not None:
-            self._message_buffer.extend(message.messages)
+            for msg in message.messages:
+                self._buffer_message(msg)
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
         """Handle an agent response event by appending the content to the buffer."""
-        self._message_buffer.append(message.agent_response.chat_message)
+        self._buffer_message(message.agent_response.chat_message)
 
     @rpc
     async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
@@ -72,17 +75,10 @@ class ChatAgentContainer(SequentialRoutedAgent):
         response: Response | None = None
         async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
             if isinstance(msg, Response):
-                # Log the response.
-                await self.publish_message(
-                    GroupChatMessage(message=msg.chat_message),
-                    topic_id=DefaultTopicId(type=self._output_topic_type),
-                )
+                await self._log_message(msg.chat_message)
                 response = msg
             else:
-                # Log the message.
-                await self.publish_message(
-                    GroupChatMessage(message=msg), topic_id=DefaultTopicId(type=self._output_topic_type)
-                )
+                await self._log_message(msg)
         if response is None:
             raise ValueError("The agent did not produce a final response. Check the agent's on_messages_stream method.")
 
@@ -92,6 +88,21 @@ class ChatAgentContainer(SequentialRoutedAgent):
             GroupChatAgentResponse(agent_response=response),
             topic_id=DefaultTopicId(type=self._parent_topic_type),
             cancellation_token=ctx.cancellation_token,
+        )
+
+    def _buffer_message(self, message: BaseChatMessage) -> None:
+        if not self._message_factory.is_registered(message.__class__):
+            raise ValueError(f"Message type {message.__class__} is not registered.")
+        # Buffer the message.
+        self._message_buffer.append(message)
+
+    async def _log_message(self, message: BaseMessage) -> None:
+        if not self._message_factory.is_registered(message.__class__):
+            raise ValueError(f"Message type {message.__class__} is not registered.")
+        # Log the message.
+        await self.publish_message(
+            GroupChatMessage(message=message),
+            topic_id=DefaultTopicId(type=self._output_topic_type),
         )
 
     @rpc
