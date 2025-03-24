@@ -462,10 +462,18 @@ async def test_custom_handoffs() -> None:
     name = "transfer_to_agent2"
     description = "Handoff to agent2."
     next_action = "next_action"
-    def _next_action(action: str) -> str:
-        """Returns the action you want the user to perform"""
-        return action
-    handoff = Handoff(name = name, description = description, target="agent2", tool_func=_next_action)
+    class TextCommandHandOff(Handoff):
+        @property
+        def handoff_tool(self):
+            """Create a handoff tool from this handoff configuration."""
+
+            def _next_action(action: str) -> str:
+                """Returns the action you want the user to perform"""
+                return action
+
+            return FunctionTool(_next_action, name=self.name, description=self.description, strict=True)
+
+    handoff = TextCommandHandOff(name = name, description = description, target="agent2")
     model_client = ReplayChatCompletionClient(
         [
             CreateResult(
@@ -528,10 +536,18 @@ async def test_custom_object_handoffs() -> None:
     name = "transfer_to_agent2"
     description = "Handoff to agent2."
     next_action = {"action": "next_action"} # using a map, not a str
-    def _next_action(action : str) -> object:
-        """Returns the action you want the user to perform"""
-        return {"action": action} # return a map
-    handoff = Handoff(name = name, description = description, target="agent2", tool_func=_next_action)
+
+    class DictCommandHandOff(Handoff):
+        @property
+        def handoff_tool(self):
+            """Create a handoff tool from this handoff configuration."""
+
+            def _next_action(action: str) -> dict:
+                """Returns the action you want the user to perform"""
+                return {"action": action}
+
+            return FunctionTool(_next_action, name=self.name, description=self.description, strict=True)
+    handoff = DictCommandHandOff(name = name, description = description, target="agent2")
     model_client = ReplayChatCompletionClient(
         [
             CreateResult(
@@ -573,6 +589,7 @@ async def test_custom_object_handoffs() -> None:
     assert isinstance(result.messages[2], ToolCallExecutionEvent)
     assert result.messages[2].models_usage is None
     assert isinstance(result.messages[3], HandoffMessage)
+    # the content will return as a string, because the function call will convert to string
     assert result.messages[3].content == str(next_action)
     assert result.messages[3].target == handoff.target
 

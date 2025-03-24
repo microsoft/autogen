@@ -27,12 +27,6 @@ class Handoff(BaseModel):
     By default, it will be the result for the handoff tool.
     If not provided, it is generated from the target agent's name."""
 
-    tool_func: Callable[..., Any]
-    """
-        The tool that can be used to handoff to the target agent.
-        Typically, the results of the tool's execution are provided to the target agent.
-    """
-
     @model_validator(mode="before")
     @classmethod
     def set_defaults(cls, values: Dict[str, Any]) -> Dict[str, Any]:
@@ -51,14 +45,19 @@ class Handoff(BaseModel):
             values["message"] = (
                 f"Transferred to {values['target']}, adopting the role of {values['target']} immediately."
             )
-        if not values.get("tool_func"):
-            def _handoff_tool() -> str:
-                return values["message"]
-            values["tool_func"] = _handoff_tool
         return values
 
     @property
     def handoff_tool(self) -> BaseTool[BaseModel, BaseModel]:
         """Create a handoff tool from this handoff configuration."""
-        return FunctionTool(self.tool_func, name=self.name, description=self.description, strict=True)
+
+        def _handoff_tool() -> str:
+            return self.message
+
+        return FunctionTool(_handoff_tool, name=self.name, description=self.description, strict=True)
+
+    """
+    The tool that can be used to handoff to the target agent.
+    Typically, the results of the tool's execution are provided to the target agent.
+    """
 
