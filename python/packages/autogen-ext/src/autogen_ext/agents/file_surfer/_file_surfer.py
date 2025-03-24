@@ -6,8 +6,7 @@ from typing import List, Sequence, Tuple
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
-    ChatMessage,
-    StructuredMessage,
+    BaseChatMessage,
     TextMessage,
 )
 from autogen_agentchat.utils import remove_images
@@ -85,27 +84,12 @@ class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
         self._browser = MarkdownFileBrowser(viewport_size=1024 * 5, base_path=base_path)
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         for chat_message in messages:
-            if isinstance(chat_message, StructuredMessage):
-                serialized_content = chat_message.content.model_dump_json()
-                self._chat_history.append(
-                    UserMessage(
-                        content=serialized_content,
-                        source=chat_message.source,
-                    )
-                )
-            else:
-                self._chat_history.append(
-                    UserMessage(
-                        content=chat_message.content,
-                        source=chat_message.source,
-                    )
-                )
-
+            self._chat_history.append(chat_message.content_to_model_message())
         try:
             _, content = await self._generate_reply(cancellation_token=cancellation_token)
             self._chat_history.append(AssistantMessage(content=content, source=self.name))

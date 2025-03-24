@@ -121,7 +121,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
     async def save_state(self) -> Mapping[str, Any]:
         agent_state = await self._agent.save_state()
         state = ChatAgentContainerState(
-            agent_state=agent_state, message_buffer=[message.model_dump() for message in self._message_buffer]
+            agent_state=agent_state, message_buffer=[message.dump() for message in self._message_buffer]
         )
         return state.model_dump()
 

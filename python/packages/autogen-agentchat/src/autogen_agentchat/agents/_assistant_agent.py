@@ -812,8 +812,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         Add incoming messages to the model context.
         """
         for msg in messages:
-            for llm_msg in msg.to_llm_messages():
-                await model_context.add_message(llm_msg)
+            if isinstance(msg, HandoffMessage):
+                for llm_msg in msg.context:
+                    await model_context.add_message(llm_msg)
+            await model_context.add_message(msg.content_to_model_message())
 
     @staticmethod
     async def _update_model_context_with_memory(

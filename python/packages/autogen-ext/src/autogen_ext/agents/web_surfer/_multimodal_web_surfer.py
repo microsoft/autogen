@@ -24,7 +24,7 @@ import aiofiles
 import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import BaseChatMessage, BaseMessage, MultiModalMessage, StructuredMessage, TextMessage
+from autogen_agentchat.messages import BaseChatMessage, BaseMessage, MultiModalMessage, TextMessage
 from autogen_agentchat.utils import content_to_str, remove_images
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core import Image as AGImage
@@ -432,21 +432,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[BaseMessage | Response, None]:
         for chat_message in messages:
-            if isinstance(chat_message, StructuredMessage):
-                serialized_content = chat_message.content.model_dump_json()
-                self._chat_history.append(
-                    UserMessage(
-                        content=serialized_content,
-                        source=chat_message.source,
-                    )
-                )
-            else:
-                self._chat_history.append(
-                    UserMessage(
-                        content=chat_message.content,
-                        source=chat_message.source,
-                    )
-                )
+            self._chat_history.append(chat_message.content_to_model_message())
 
         self.inner_messages: List[BaseMessage] = []
         self.model_usage: List[RequestUsage] = []

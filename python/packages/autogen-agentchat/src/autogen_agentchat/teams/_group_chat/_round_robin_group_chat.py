@@ -55,7 +55,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
 
     async def save_state(self) -> Mapping[str, Any]:
         state = RoundRobinManagerState(
-            message_thread=[message.model_dump() for message in self._message_thread],
+            message_thread=[message.dump() for message in self._message_thread],
             current_turn=self._current_turn,
             next_speaker_index=self._next_speaker_index,
         )

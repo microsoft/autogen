@@ -206,7 +206,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def save_state(self) -> Mapping[str, Any]:
         state = MagenticOneOrchestratorState(
-            message_thread=[msg.model_dump() for msg in self._message_thread],
+            message_thread=[msg.dump() for msg in self._message_thread],
             current_turn=self._current_turn,
             task=self._task,
             facts=self._facts,

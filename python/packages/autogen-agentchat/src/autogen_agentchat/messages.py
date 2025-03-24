@@ -11,14 +11,23 @@ from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
 from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from typing_extensions import Annotated
+from typing_extensions import Annotated, Self
 
 
 class BaseMessage(BaseModel, ABC):
-    """Base class for all message types."""
+    """Base class for all message types in AgentChat.
+
+    .. warning::
+
+        If you want to create a new message type, do not inherit from this class.
+        Instead, inherit from :class:`BaseChatMessage` or :class:`BaseAgentEvent`
+        to clarify the purpose of the message type.
+
+    """
 
     content: Any
-    """The content of the message."""
+    """The content of the message. The type is expected to be specified by the
+    subclass."""
 
     source: str
     """The name of the agent that sent this message."""
@@ -33,48 +42,78 @@ class BaseMessage(BaseModel, ABC):
 
     @computed_field
     def type(self) -> str:
-        """Get the class name."""
+        """The class name of this message."""
         return self.__class__.__name__
 
     @abstractmethod
     def content_to_render(self) -> str:
         """Convert the content of the message to a string-only representation.
-        This is used for rendering the message in the UI."""
+        This is used for rendering the message in console or user interface."""
         ...
+
+    def dump(self) -> Mapping[str, Any]:
+        """Convert the message to a JSON-serializable dictionary.
+
+        The default implementation uses the Pydantic model's `model_dump` method.
+
+        If you want to customize the serialization, override this method.
+        """
+        return self.model_dump()
+
+    @classmethod
+    def load(cls, data: Mapping[str, Any]) -> Self:
+        """Create a message from a dictionary of JSON-serializable data.
+
+        The default implementation uses the Pydantic model's `model_validate` method.
+        If you want to customize the deserialization, override this method.
+        """
+        return cls.model_validate(data)
 
 
 class BaseChatMessage(BaseMessage, ABC):
     """Base class for chat messages.
 
+    .. note::
+
+        If you want to create a new message type that is used for agent-to-agent
+        communication, inherit from this class, or simply use
+        :class:`StructuredMessage` if your content type is a subclass of
+        Pydantic BaseModel.
+
     This class is used for messages that are sent between agents in a chat
-    conversation. Agents are expected to use process the content of the
-    message using either models or code and return a response as another
-    chat message."""
+    conversation. Agents are expected to process the content of the
+    message using models and return a response as another :class:`BaseChatMessage`.
+    """
 
     @abstractmethod
     def content_to_str(self) -> str:
         """Convert the content of the message to a string-only representation.
         This is used for creating a text-only content for models.
 
-        This is not used for rendering the message in the UI. For that, use
-        :meth:`content_to_render`.
+        This is not used for rendering the message in console. For that, use
+        :meth:`~BaseMessage.content_to_render`.
 
-        The difference between this and :meth:`to_llm_messages` is that this
+        The difference between this and :meth:`content_to_model_message` is that this
         is used to construct parts of the a message for the model client,
-        while :meth:`to_llm_messages` is used to create complete messages
+        while :meth:`content_to_model_message` is used to create a complete message
         for the model client.
         """
         ...
 
     @abstractmethod
-    def to_llm_messages(self) -> List[LLMMessage]:
-        """Convert the message to a list of :class:`~autogen_core.models.LLMMessage`
-        for use with the model client."""
+    def content_to_model_message(self) -> UserMessage:
+        """Convert the message content to a :class:`~autogen_core.models.UserMessage`
+        for use with model client, e.g., :class:`~autogen_core.models.ChatCompletionClient`."""
         ...
 
 
 class BaseTextChatMessage(BaseChatMessage, ABC):
-    """Base class for all text-only chat message types."""
+    """Base class for all text-only :class:`BaseChatMessage` types.
+    It has implementations for :meth:`content_to_str`, :meth:`content_to_render`,
+    :meth:`content_to_model_message` methods.
+
+    Inherit from this class if your message content type is a string.
+    """
 
     content: str
     """The content of the message."""
@@ -85,16 +124,24 @@ class BaseTextChatMessage(BaseChatMessage, ABC):
     def content_to_str(self) -> str:
         return self.content
 
-    def to_llm_messages(self) -> List[LLMMessage]:
-        return [UserMessage(content=self.content, source=self.source)]
+    def content_to_model_message(self) -> UserMessage:
+        return UserMessage(content=self.content, source=self.source)
 
 
 class BaseAgentEvent(BaseMessage, ABC):
     """Base class for agent events.
 
+    .. note::
+
+        If you want to create a new message type for signaling observable events
+        to user and application, inherit from this class.
+
     Agent events are used to signal actions and thoughts produced by agents
     and teams to user and applications. They are not used for agent-to-agent
     communication and are not expected to be processed by other agents.
+
+    You should override the :meth:`content_to_render` method if you want to provide
+    a custom rendering of the content.
     """
 
     def content_to_render(self) -> str:
@@ -106,7 +153,30 @@ StructuredContentType = TypeVar("StructuredContentType", bound=BaseModel, covari
 
 
 class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
-    """A structured message with a specific content type."""
+    """A :class:`BaseChatMessage` type with an unspecified content type.
+
+    To create a new structured message type, specify the content type
+    as a subclass of `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_.
+
+    .. code-block:: python
+
+        from pydantic import BaseModel
+        from autogen_agentchat.messages import StructuredMessage
+
+
+        class MyMessageContent(BaseModel):
+            text: str
+            number: int
+
+
+        message = StructuredMessage[MyMessageContent](
+            content=MyMessageContent(text="Hello", number=42),
+            source="agent1",
+        )
+
+        print(message.content_to_str())  # {"text": "Hello", "number": 42}
+
+    """
 
     content: StructuredContentType
     """The content of the message. Must be a subclass of
@@ -118,13 +188,11 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
     def content_to_str(self) -> str:
         return self.content.model_dump_json()
 
-    def to_llm_messages(self) -> List[LLMMessage]:
-        return [
-            UserMessage(
-                content=self.content.model_dump_json(),
-                source=self.source,
-            )
-        ]
+    def content_to_model_message(self) -> UserMessage:
+        return UserMessage(
+            content=self.content.model_dump_json(),
+            source=self.source,
+        )
 
 
 class TextMessage(BaseTextChatMessage):
@@ -169,8 +237,8 @@ class MultiModalMessage(BaseChatMessage):
                     result.append("<image>")
         return "\n".join(result)
 
-    def to_llm_messages(self) -> List[LLMMessage]:
-        return [UserMessage(content=self.content, source=self.source)]
+    def content_to_model_message(self) -> UserMessage:
+        return UserMessage(content=self.content, source=self.source)
 
 
 class StopMessage(BaseTextChatMessage):
@@ -187,9 +255,6 @@ class HandoffMessage(BaseTextChatMessage):
 
     context: List[LLMMessage] = []
     """The model context to be passed to the target agent."""
-
-    def to_llm_messages(self) -> List[LLMMessage]:
-        return [*self.context, UserMessage(content=self.content, source=self.source)]
 
 
 class ToolCallSummaryMessage(BaseTextChatMessage):
@@ -249,7 +314,7 @@ ChatMessage = Annotated[
     TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage,
     Field(discriminator="type"),
 ]
-"""Builtin chat message types for agent-to-agent communication only."""
+"""Union of built-in :class:`BaseChatMessage`. This does not include the :class:`StructuredMessage` class."""
 
 
 AgentEvent = Annotated[
@@ -261,11 +326,13 @@ AgentEvent = Annotated[
     | ThoughtEvent,
     Field(discriminator="type"),
 ]
-"""Builtin agent events emitted by agents and teams when they work, not used for agent-to-agent communication."""
+"""Union of built-in :class:`BaseAgentEvent`."""
 
 
 class MessageFactory:
-    """A factory for creating messages from JSON-serializable dictionaries.
+    """:meta private:
+
+    A factory for creating messages from JSON-serializable dictionaries.
 
     This is useful for deserializing messages from JSON data.
     """
@@ -318,13 +385,17 @@ class MessageFactory:
 
         # Create an instance of the message class.
         assert issubclass(message_class, BaseMessage)
-        return message_class.model_validate(data)
+        return message_class.load(data)
 
 
 __all__ = [
     "AgentEvent",
     "BaseMessage",
+    "BaseChatMessage",
+    "BaseAgentEvent",
+    "BaseTextChatMessage",
     "ChatMessage",
+    "StructuredContentType",
     "StructuredMessage",
     "HandoffMessage",
     "MultiModalMessage",

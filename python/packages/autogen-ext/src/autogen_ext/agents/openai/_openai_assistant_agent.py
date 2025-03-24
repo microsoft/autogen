@@ -31,8 +31,7 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
 )
 from autogen_core import CancellationToken, FunctionCall, Image
-from autogen_core.models._model_client import ChatCompletionClient
-from autogen_core.models._types import FunctionExecutionResult
+from autogen_core.models import ChatCompletionClient, FunctionExecutionResult
 from autogen_core.tools import FunctionTool, Tool
 from pydantic import BaseModel, Field
 
@@ -521,22 +520,19 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def handle_incoming_message(self, message: BaseChatMessage, cancellation_token: CancellationToken) -> None:
         """Handle regular text messages by adding them to the thread."""
-        content: str | List[MessageContentPartParam]
-        if isinstance(message.content, str):
-            content = message.content
-        elif isinstance(message.content, BaseModel):
-            content = message.content.model_dump_json()
-        elif isinstance(message.content, list):
+        content: str | List[MessageContentPartParam] | None = None
+        llm_message = message.content_to_model_message()
+        if isinstance(llm_message.content, str):
+            content = llm_message.content
+        else:
             content = []
-            for c in message.content:
+            for c in llm_message.content:
                 if isinstance(c, str):
                     content.append(TextContentBlockParam(text=c, type="text"))
                 elif isinstance(c, Image):
                     content.append(ImageURLContentBlockParam(image_url=ImageURLParam(url=c.data_uri), type="image_url"))
                 else:
                     raise ValueError(f"Unsupported content type: {type(c)} in {message.content}")
-        else:
-            raise ValueError(f"Unsupported content type: {type(message.content)} in {message}")
         await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._client.beta.threads.messages.create(

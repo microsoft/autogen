@@ -9,7 +9,6 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
-    cast,
 )
 
 from autogen_agentchat.base import Response, TaskResult
@@ -60,7 +59,7 @@ def _extract_message_content(message: BaseMessage) -> Tuple[List[str], List[Imag
         text_parts = [item for item in message.content if isinstance(item, str)]
         image_parts = [item for item in message.content if isinstance(item, Image)]
     else:
-        text_parts = [str(message.content)]
+        text_parts = [message.content_to_render()]
         image_parts = []
     return text_parts, image_parts
 
@@ -189,9 +188,6 @@ async def RichConsole(
             # TODO: Handle model client streaming chunk events.
             pass
         else:
-            # Cast required for mypy to be happy
-            message = cast(BaseMessage, message)  # type: ignore
-
             text_parts, image_parts = _extract_message_content(message)
             # Add usage stats if needed
             if message.models_usage:

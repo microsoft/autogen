@@ -168,7 +168,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
             llm_messages: List[LLMMessage] = [SystemMessage(content=self._instruction)]
             for message in messages:
                 if isinstance(message, BaseChatMessage):
-                    llm_messages.extend(message.to_llm_messages())
+                    llm_messages.append(message.content_to_model_message())
             llm_messages.append(SystemMessage(content=self._response_prompt))
             completion = await self._model_client.create(messages=llm_messages, cancellation_token=cancellation_token)
             assert isinstance(completion.content, str)
