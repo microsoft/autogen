@@ -27,7 +27,7 @@ const ALLOWED_FILE_TYPES = [
 ];
 
 // Threshold for large text files (in characters)
-const LARGE_TEXT_THRESHOLD = 1000;
+const LARGE_TEXT_THRESHOLD = 1500;
 
 interface ChatInputProps {
   onSubmit: (text: string, files: RcFile[]) => void;
@@ -122,57 +122,64 @@ export default function ChatInput({
             item.getAsString((text) => {
               // Only process for large text
               if (text.length > LARGE_TEXT_THRESHOLD) {
+                // We need to prevent the default paste behavior
+                // But since we're in an async callback, we need to
+                // manually clear the textarea's selection value
+                setTimeout(() => {
+                  if (textAreaRef.current) {
+                    const currentValue = textAreaRef.current.value;
+                    const selectionStart =
+                      textAreaRef.current.selectionStart || 0;
+                    const selectionEnd = textAreaRef.current.selectionEnd || 0;
+
+                    // Remove the pasted text from the textarea
+                    const newValue =
+                      currentValue.substring(0, selectionStart - text.length) +
+                      currentValue.substring(selectionEnd);
+
+                    // Update the textarea
+                    textAreaRef.current.value = newValue;
+                    // Trigger the onChange event manually
+                    setText(newValue);
+                  }
+                }, 0);
+
+                // Prevent default paste for large text
+                e.preventDefault();
+
+                // Create a text file from the pasted content
+                const blob = new Blob([text], { type: "text/plain" });
+                const file = new File(
+                  [blob],
+                  `pasted-text-${new Date().getTime()}.txt`,
+                  { type: "text/plain" }
+                );
+
+                // Add to file list
+                const uploadFile: UploadFile = {
+                  uid: `paste-${Date.now()}`,
+                  name: file.name,
+                  status: "done",
+                  size: file.size,
+                  type: file.type,
+                  originFileObj: file as RcFile,
+                };
+
+                setFileList((prev) => [...prev, uploadFile]);
+
+                // Notify user about the conversion
                 notificationApi.info({
-                  message: <span className="text-sm">Large Text Detected</span>,
-                  description: (
-                    <div>
-                      <span className="text-sm text-secondary">
-                        Would you like to convert this to a file attachment?
-                      </span>
-                      <div className="mt-2">
-                        <Button
-                          size="small"
-                          onClick={() => {
-                            // Create a text file from the pasted content
-                            const blob = new Blob([text], {
-                              type: "text/plain",
-                            });
-                            const file = new File(
-                              [blob],
-                              `pasted-text-${new Date().getTime()}.txt`,
-                              { type: "text/plain" }
-                            );
-
-                            // Add to file list
-                            const uploadFile: UploadFile = {
-                              uid: `paste-${Date.now()}`,
-                              name: file.name,
-                              status: "done",
-                              size: file.size,
-                              type: file.type,
-                              originFileObj: file as RcFile,
-                            };
-
-                            setFileList((prev) => [...prev, uploadFile]);
-                            notificationApi.destroy(); // Close the notification
-                          }}
-                          type="primary"
-                          className="mr-2"
-                        >
-                          Yes
-                        </Button>
-                        <Button
-                          size="small"
-                          onClick={() => {
-                            notificationApi.destroy(); // Close the notification
-                          }}
-                        >
-                          No
-                        </Button>
-                      </div>
-                    </div>
+                  message: (
+                    <span className="text-sm">
+                      Large Text Converted to File
+                    </span>
                   ),
-                  duration: 0, // Don't auto-close
+                  description: (
+                    <span className="text-sm text-secondary">
+                      Your pasted text has been attached as a file.
+                    </span>
+                  ),
+                  duration: 3,
                 });
               }
             });
