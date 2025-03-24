@@ -8,11 +8,11 @@ from fastapi.websockets import WebSocketState
 from loguru import logger
 
 from ...datamodel import Run, RunStatus
+from ...utils.utils import construct_task
 from ..auth.dependencies import get_ws_auth_manager
 from ..auth.wsauth import WebSocketAuthHandler
 from ..deps import get_db, get_websocket_manager
 from ..managers.connection import WebSocketManager
-from ...utils.utils import construct_task
 
 router = APIRouter()
 
@@ -26,8 +26,6 @@ async def run_websocket(
     auth_manager=Depends(get_ws_auth_manager),
 ):
     """WebSocket endpoint for run communication"""
-
-    
 
     try:
         # Verify run exists before connecting
@@ -83,13 +81,10 @@ async def run_websocket(
                 raw_message = await websocket.receive_text()
                 message = json.loads(raw_message)
 
-              
-
                 if message.get("type") == "start":
                     # Handle start message
                     logger.info(f"Received start request for run {run_id}")
-                    task = construct_task(query=message.get("task"), files=message.get("files")) 
-                    
+                    task = construct_task(query=message.get("task"), files=message.get("files"))
 
                     team_config = message.get("team_config")
                     if task and team_config:

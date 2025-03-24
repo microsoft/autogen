@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, SecretStr
 
 
 class MessageConfig(BaseModel):
-    source: str  
+    source: str
     content: str | ChatMessage | Sequence[ChatMessage] | None
     message_type: Optional[str] = "text"
 

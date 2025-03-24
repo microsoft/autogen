@@ -108,7 +108,6 @@ class TeamManager:
         start_time = time.time()
         team = None
 
-        print("Run Context - run id", RunContext.current_run_id())
 
         # Setup logger correctly
         logger = logging.getLogger(EVENT_LOGGER_NAME)

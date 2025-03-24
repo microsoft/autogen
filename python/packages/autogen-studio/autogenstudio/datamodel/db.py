@@ -76,11 +76,11 @@ class Session(SQLModel, table=True):
     team_id: Optional[int] = Field(default=None, sa_column=Column(Integer, ForeignKey("team.id", ondelete="CASCADE")))
     name: Optional[str] = None
 
-    @field_validator('created_at', 'updated_at', mode='before')
+    @field_validator("created_at", "updated_at", mode="before")
     @classmethod
     def parse_datetime(cls, value: Union[str, datetime]) -> datetime:
         if isinstance(value, str):
-            return datetime.fromisoformat(value.replace('Z', '+00:00'))
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
         return value
 
 

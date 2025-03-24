@@ -3,7 +3,6 @@ import logging
 import traceback
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional, Sequence, Union
-from .run_context import RunContext
 
 from autogen_agentchat.base._task import TaskResult
 from autogen_agentchat.messages import (
@@ -19,7 +18,8 @@ from autogen_agentchat.messages import (
 )
 from autogen_core import CancellationToken
 from autogen_core import Image as AGImage
-from fastapi import WebSocket, WebSocketDisconnect 
+from fastapi import WebSocket, WebSocketDisconnect
+
 from ...database import DatabaseManager
 from ...datamodel import (
     LLMCallEventMessage,
@@ -32,6 +32,7 @@ from ...datamodel import (
     TeamResult,
 )
 from ...teammanager import TeamManager
+from .run_context import RunContext
 
 logger = logging.getLogger(__name__)
 
@@ -79,11 +80,13 @@ class WebSocketManager:
             logger.error(f"Connection error for run {run_id}: {e}")
             return False
 
-    async def start_stream(self, run_id: int, task: str | ChatMessage | Sequence[ChatMessage] | None, team_config: Dict) -> None:
+    async def start_stream(
+        self, run_id: int, task: str | ChatMessage | Sequence[ChatMessage] | None, team_config: Dict
+    ) -> None:
         """Start streaming task execution with proper run management"""
         if run_id not in self._connections or run_id in self._closed_connections:
             raise ValueError(f"No active connection for run {run_id}")
-            
+
         with RunContext.populate_context(run_id=run_id):
             team_manager = TeamManager()
             cancellation_token = CancellationToken()
@@ -94,7 +97,7 @@ class WebSocketManager:
                 # Update run with task and status
                 run = await self._get_run(run_id)
                 # get user Settings
-                user_settings = await self._get_settings(run.user_id )
+                user_settings = await self._get_settings(run.user_id)
                 env_vars = SettingsConfig(**user_settings.config).environment if user_settings else None
                 if run:
                     run.task = MessageConfig(content=task, source="user").model_dump()
@@ -329,18 +332,20 @@ class WebSocketManager:
         try:
             if isinstance(message, MultiModalMessage):
                 message_dump = message.model_dump()
-                
+
                 message_content = []
                 for row in message_dump["content"]:
                     if "data" in row:
-                        message_content.append({
-                            "url": f"data:image/png;base64,{row['data']}",
-                            "alt": "WebSurfer Screenshot",
-                        })
+                        message_content.append(
+                            {
+                                "url": f"data:image/png;base64,{row['data']}",
+                                "alt": "WebSurfer Screenshot",
+                            }
+                        )
                     else:
                         message_content.append(row)
                 message_dump["content"] = message_content
-               
+
                 return {"type": "message", "data": message_dump}
 
             elif isinstance(message, TeamResult):

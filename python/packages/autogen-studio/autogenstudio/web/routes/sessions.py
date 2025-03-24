@@ -2,11 +2,10 @@
 import re
 from typing import Dict
 
-from fastapi import APIRouter, Depends, HTTPException 
+from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 
-from ...datamodel import Message, Run, Session
-from ...datamodel import Response
+from ...datamodel import Message, Response, Run, Session
 from ..deps import get_db
 
 router = APIRouter()
