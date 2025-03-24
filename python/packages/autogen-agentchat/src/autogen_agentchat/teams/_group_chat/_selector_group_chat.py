@@ -159,7 +159,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 continue
             message = f"{msg.source}:"
             if isinstance(msg, MultiModalMessage):
-                message += f" {msg.content_to_str(image_placeholder="[image]")}"
+                message += f" {msg.content_to_str(image_placeholder='[image]')}"
             else:
                 message += f" {msg.content_to_str()}"
             history_messages.append(
