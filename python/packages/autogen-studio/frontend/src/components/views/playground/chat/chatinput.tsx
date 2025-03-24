@@ -26,6 +26,9 @@ const ALLOWED_FILE_TYPES = [
   "image/svg+xml",
 ];
 
+// Threshold for large text files (in characters)
+const LARGE_TEXT_THRESHOLD = 1000;
+
 interface ChatInputProps {
   onSubmit: (text: string, files: RcFile[]) => void;
   loading: boolean;
@@ -66,6 +69,126 @@ export default function ChatInput({
     }
     setPreviousLoading(loading);
   }, [loading, error, previousLoading]);
+
+  // Add paste event listener
+  React.useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (isInputDisabled) return;
+
+      // Handle image paste
+      if (e.clipboardData?.items) {
+        let hasImageItem = false;
+
+        for (let i = 0; i < e.clipboardData.items.length; i++) {
+          const item = e.clipboardData.items[i];
+
+          // Handle image items
+          if (item.type.indexOf("image/") === 0) {
+            hasImageItem = true;
+            const file = item.getAsFile();
+
+            if (file && file.size <= MAX_FILE_SIZE) {
+              // Prevent the default paste behavior for images
+              e.preventDefault();
+
+              // Create a unique file name
+              const fileName = `pasted-image-${new Date().getTime()}.png`;
+
+              // Create a new File with a proper name
+              const namedFile = new File([file], fileName, { type: file.type });
+
+              // Convert to the expected UploadFile format
+              const uploadFile: UploadFile = {
+                uid: `paste-${Date.now()}`,
+                name: fileName,
+                status: "done",
+                size: namedFile.size,
+                type: namedFile.type,
+                originFileObj: namedFile as RcFile,
+              };
+
+              // Add to file list
+              setFileList((prev) => [...prev, uploadFile]);
+
+              // Show successful paste notification
+              message.success(`Image pasted successfully`);
+            } else if (file && file.size > MAX_FILE_SIZE) {
+              message.error(`Pasted image is too large. Maximum size is 5MB.`);
+            }
+          }
+
+          // Handle text items - only if there's a large amount of text
+          if (item.type === "text/plain" && !hasImageItem) {
+            item.getAsString((text) => {
+              // Only process for large text
+              if (text.length > LARGE_TEXT_THRESHOLD) {
+                notificationApi.info({
+                  message: <span className="text-sm">Large Text Detected</span>,
+                  description: (
+                    <div>
+                      <span className="text-sm text-secondary">
+                        Would you like to convert this to a file attachment?
+                      </span>
+                      <div className="mt-2">
+                        <Button
+                          size="small"
+                          onClick={() => {
+                            // Create a text file from the pasted content
+                            const blob = new Blob([text], {
+                              type: "text/plain",
+                            });
+                            const file = new File(
+                              [blob],
+                              `pasted-text-${new Date().getTime()}.txt`,
+                              { type: "text/plain" }
+                            );
+
+                            // Add to file list
+                            const uploadFile: UploadFile = {
+                              uid: `paste-${Date.now()}`,
+                              name: file.name,
+                              status: "done",
+                              size: file.size,
+                              type: file.type,
+                              originFileObj: file as RcFile,
+                            };
+
+                            setFileList((prev) => [...prev, uploadFile]);
+                            notificationApi.destroy(); // Close the notification
+                          }}
+                          type="primary"
+                          className="mr-2"
+                        >
+                          Yes
+                        </Button>
+                        <Button
+                          size="small"
+                          onClick={() => {
+                            notificationApi.destroy(); // Close the notification
+                          }}
+                        >
+                          No
+                        </Button>
+                      </div>
+                    </div>
+                  ),
+                  duration: 0, // Don't auto-close
+                });
+              }
+            });
+          }
+        }
+      }
+    };
+
+    // Add the paste event listener to the document
+    document.addEventListener("paste", handlePaste);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener("paste", handlePaste);
+    };
+  }, [isInputDisabled, notificationApi]);
 
   const resetInput = () => {
     if (textAreaRef.current) {
