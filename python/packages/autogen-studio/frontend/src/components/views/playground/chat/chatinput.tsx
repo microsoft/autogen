@@ -5,9 +5,15 @@ import {
 } from "@heroicons/react/24/outline";
 import * as React from "react";
 import { IStatus } from "../../../types/app";
-import { Upload, message, Button, Tooltip } from "antd";
+import { Upload, message, Button, Tooltip, notification } from "antd";
 import type { UploadFile, UploadProps, RcFile } from "antd/es/upload/interface";
-import { FileTextIcon, ImageIcon, Paperclip, XIcon } from "lucide-react";
+import {
+  FileTextIcon,
+  ImageIcon,
+  Paperclip,
+  UploadIcon,
+  XIcon,
+} from "lucide-react";
 
 // Maximum file size in bytes (5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -35,9 +41,11 @@ export default function ChatInput({
 }: ChatInputProps) {
   const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
   const [previousLoading, setPreviousLoading] = React.useState(loading);
-  const [text, setText] = React.useState("");
+  const [text, setText] = React.useState("What is the capital of France?");
   const [fileList, setFileList] = React.useState<UploadFile[]>([]);
   const [dragOver, setDragOver] = React.useState(false);
+  const [notificationApi, notificationContextHolder] =
+    notification.useNotification();
 
   const textAreaDefaultHeight = "64px";
   const isInputDisabled = disabled || loading;
@@ -108,7 +116,17 @@ export default function ChatInput({
 
       // Check file type
       if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-        message.error(`${file.name} is not a supported file type.`);
+        notificationApi.warning({
+          message: <span className="text-sm">Unsupported File Type</span>,
+          description: (
+            <span className="text-sm text-secondary">
+              Please upload only text (.txt) or images (.jpg, .png, .gif, .svg)
+              files.
+            </span>
+          ),
+          showProgress: true,
+          duration: 8.5,
+        });
         return Upload.LIST_IGNORE;
       }
 
@@ -145,13 +163,14 @@ export default function ChatInput({
 
   return (
     <div className="mt-2 w-full">
+      {notificationContextHolder}
       {/* File previews */}
       {fileList.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2">
+        <div className="-mb-2 mx-1 bg-tertiary rounded-t border-b-0 p-2 flex bodrder flex-wrap gap-2">
           {fileList.map((file) => (
             <div
               key={file.uid}
-              className="flex items-center gap-1 bg-tertiary rounded px-2 py-1 text-xs"
+              className="flex items-center gap-1 bg-secondary rounded px-2 py-1 text-xs"
             >
               {getFileIcon(file)}
               <span className="truncate max-w-[150px]">{file.name}</span>
@@ -185,7 +204,7 @@ export default function ChatInput({
             id="queryInput"
             name="queryInput"
             ref={textAreaRef}
-            defaultValue="What is the capital of France?"
+            defaultValue={text}
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             className={`flex items-center w-full resize-none text-gray-600 rounded border border-accent bg-white p-2 pl-5 pr-16 ${
@@ -202,14 +221,22 @@ export default function ChatInput({
             disabled={isInputDisabled}
           />
           <div className="absolute right-3 bottom-2 flex gap-2">
-            <Upload className="w-14 h-8" {...uploadProps}>
-              <Button type="text" disabled={isInputDisabled} className="   ">
-                <Paperclip
-                  strokeWidth={1}
-                  size={24}
-                  className="inline-block  text-accent"
-                />
-              </Button>
+            <Upload className="zero-padding-upload  " {...uploadProps}>
+              <Tooltip
+                title=<span className="text-sm">
+                  Upload File{" "}
+                  <span className="text-secondary text-xs">(max 5mb)</span>
+                </span>
+                placement="top"
+              >
+                <Button type="text" disabled={isInputDisabled} className=" ">
+                  <UploadIcon
+                    strokeWidth={2}
+                    size={26}
+                    className="p-1 inline-block w-8 text-accent"
+                  />
+                </Button>
+              </Tooltip>
             </Upload>
 
             <button
