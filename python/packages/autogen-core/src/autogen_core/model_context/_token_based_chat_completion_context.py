@@ -38,7 +38,9 @@ class TokenBasedChatCompletionContext(ChatCompletionContext, Component[TokenBase
         """Get at most `token_limit` tokens in recent messages."""
         token_count = count_chat_tokens(self._messages, self._model_family)
         while token_count > self._token_limit:
-            self._messages.pop(0)
+            middle_index = len(self._messages) // 2
+            self._messages.pop(middle_index)
+            token_count = count_chat_tokens(self._messages, self._model_family)
         messages = self._messages
         # Handle the first message is a function call result message.
         if messages and isinstance(messages[0], FunctionExecutionResultMessage):
