@@ -191,7 +191,7 @@ In responding to every user message, you follow the same multi-step process give
         # Get the agent's response to the task.
         task_result: TaskResult = await assistant_agent.run(task=TextMessage(content=task, source="User"))
         messages: Sequence[AgentEvent | ChatMessage] = task_result.messages
-        message = messages[-1]
+        message: AgentEvent | ChatMessage = messages[-1]
         response_str = message.content
 
         # Log the model call
