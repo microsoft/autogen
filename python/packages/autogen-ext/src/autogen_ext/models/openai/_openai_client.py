@@ -69,7 +69,6 @@ from openai.types.chat import (
     completion_create_params,
 )
 from openai.types.chat.chat_completion import Choice
-from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
 from openai.types.shared_params import (
     FunctionDefinition,
     FunctionParameters,
@@ -724,14 +723,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             )
 
         # Prepare data to process streaming chunks.
-        choice: Union[ParsedChoice[Any], ParsedChoice[BaseModel], ChunkChoice] = cast(ChunkChoice, None)
-        chunk = None
+        chunk: ChatCompletionChunk | None = None
         stop_reason = None
         maybe_model = None
         content_deltas: List[str] = []
         thought_deltas: List[str] = []
         full_tool_calls: Dict[int, FunctionCall] = {}
-        completion_tokens = 0
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
 
         empty_chunk_warning_has_been_issued: bool = False
@@ -750,6 +747,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                         messages=cast(List[Dict[str, Any]], create_params.messages),
                     )
                 )
+
+            # Set the model from the lastest chunk.
+            maybe_model = chunk.model
+
             # Empty chunks has been observed when the endpoint is under heavy load.
             #  https://github.com/microsoft/autogen/issues/4213
             if len(chunk.choices) == 0:
@@ -764,39 +765,40 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             else:
                 empty_chunk_count = 0
 
-            # to process usage chunk in streaming situations
-            # add    stream_options={"include_usage": True} in the initialization of OpenAIChatCompletionClient(...)
-            # However the different api's
-            # OPENAI api usage chunk produces no choices so need to check if there is a choice
-            # liteLLM api usage chunk does produce choices
-            choice = (
-                chunk.choices[0]
-                if len(chunk.choices) > 0
-                else (choice if chunk.usage is not None and stop_reason is not None else cast(ChunkChoice, None))
-            )
+            if len(chunk.choices) > 1:
+                # This is a multi-choice chunk, we need to warn the user.
+                warnings.warn(
+                    f"Received a chunk with {len(chunk.choices)} choices. Only the first choice will be used.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+            # Set the choice to the first choice in the chunk.
+            choice = chunk.choices[0]
 
             # for liteLLM chunk usage, do the following hack keeping the pervious chunk.stop_reason (if set).
             # set the stop_reason for the usage chunk to the prior stop_reason
             stop_reason = choice.finish_reason if chunk.usage is None and stop_reason is None else stop_reason
             maybe_model = chunk.model
 
-            # if there is a reasoning_content field, then we populate the thought field. This is for models such as R1.
-            if (hasattr(choice.delta, 'reasoning_content') and choice.delta.reasoning_content is not None and
-                    choice.delta.reasoning_content != ""):
-                reasoning_content = choice.delta.reasoning_content
+            reasoning_content: str | None = None
+            if choice.delta.model_extra is not None and "reasoning_content" in choice.delta.model_extra:
+                # If there is a reasoning_content field, then we populate the thought field. This is for models such as R1.
+                reasoning_content = choice.delta.model_extra.get("reasoning_content")
+
+            if isinstance(reasoning_content, str) and len(reasoning_content) > 0:
                 if not is_reasoning:
+                    # Enter reasoning mode.
                     reasoning_content = "<think>" + reasoning_content
                     is_reasoning = True
-                if len(reasoning_content) > 0:
-                    thought_deltas.append(reasoning_content)
-                    yield reasoning_content
-                continue
-            if is_reasoning:
+                thought_deltas.append(reasoning_content)
+                yield reasoning_content
+            elif is_reasoning:
+                # Exit reasoning mode.
                 reasoning_content = "</think>"
                 thought_deltas.append(reasoning_content)
                 is_reasoning = False
                 yield reasoning_content
-                continue
 
             # First try get content
             if choice.delta.content:
@@ -876,11 +878,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
                 content = ""
 
-                # Always set thoughts if we have any, regardless of other content types
+            # Set thoughts if we have any reasoning content.
             if thought_deltas:
-                thought = "".join(thought_deltas)
+                thought = "".join(thought_deltas).lstrip("<think>").rstrip("</think>")
 
-                # This is for local R1 models.
+            # This is for local R1 models whose reasoning content is within the content string.
             if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1 and thought is None:
                 thought, content = parse_r1_content(content)
 

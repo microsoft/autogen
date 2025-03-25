@@ -1090,13 +1090,14 @@ async def test_r1_reasoning_content_streaming(monkeypatch: pytest.MonkeyPatch) -
 
     # Verify that the chunks first stream the reasoning content and then the main content
     # Then verify that the final result has the correct content and thought
-    assert len(chunks) == 4
-    assert chunks[0] == "This is the reasoning content 1"
+    assert len(chunks) == 5
+    assert chunks[0] == "<think>This is the reasoning content 1"
     assert chunks[1] == "This is the reasoning content 2"
-    assert chunks[2] == "This is the main content"
-    assert isinstance(chunks[3], CreateResult)
-    assert chunks[3].content == "This is the main content"
-    assert chunks[3].thought == "This is the reasoning content 1This is the reasoning content 2"
+    assert chunks[2] == "</think>"
+    assert chunks[3] == "This is the main content"
+    assert isinstance(chunks[4], CreateResult)
+    assert chunks[4].content == "This is the main content"
+    assert chunks[4].thought == "This is the reasoning content 1This is the reasoning content 2"
 
 
 @pytest.mark.asyncio
