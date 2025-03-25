@@ -992,11 +992,11 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     @staticmethod
     def _check_and_handle_handoff(
-            model_result: CreateResult,
-            executed_calls_and_results: List[Tuple[FunctionCall, FunctionExecutionResult]],
-            inner_messages: List[AgentEvent | ChatMessage],
-            handoffs: Dict[str, HandoffBase],
-            agent_name: str,
+        model_result: CreateResult,
+        executed_calls_and_results: List[Tuple[FunctionCall, FunctionExecutionResult]],
+        inner_messages: List[AgentEvent | ChatMessage],
+        handoffs: Dict[str, HandoffBase],
+        agent_name: str,
     ) -> Optional[Response]:
         """
         Detect handoff calls, generate the HandoffMessage if needed, and return a Response.

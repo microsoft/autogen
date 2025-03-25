@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import List
+from typing import Dict, List
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
@@ -32,9 +32,10 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.models._model_client import ModelFamily
-from autogen_core.tools import FunctionTool
+from autogen_core.tools import BaseTool, FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
+from pydantic import BaseModel
 from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -457,14 +458,16 @@ async def test_handoffs() -> None:
             assert message == result.messages[index]
         index += 1
 
+
 @pytest.mark.asyncio
 async def test_custom_handoffs() -> None:
     name = "transfer_to_agent2"
     description = "Handoff to agent2."
     next_action = "next_action"
+
     class TextCommandHandOff(Handoff):
         @property
-        def handoff_tool(self):
+        def handoff_tool(self) -> BaseTool[BaseModel, BaseModel]:
             """Create a handoff tool from this handoff configuration."""
 
             def _next_action(action: str) -> str:
@@ -473,13 +476,13 @@ async def test_custom_handoffs() -> None:
 
             return FunctionTool(_next_action, name=self.name, description=self.description, strict=True)
 
-    handoff = TextCommandHandOff(name = name, description = description, target="agent2")
+    handoff = TextCommandHandOff(name=name, description=description, target="agent2")
     model_client = ReplayChatCompletionClient(
         [
             CreateResult(
                 finish_reason="function_calls",
                 content=[
-                    FunctionCall(id="1", arguments=json.dumps({'action': next_action}), name=handoff.name),
+                    FunctionCall(id="1", arguments=json.dumps({"action": next_action}), name=handoff.name),
                 ],
                 usage=RequestUsage(prompt_tokens=42, completion_tokens=43),
                 cached=False,
@@ -530,24 +533,26 @@ async def test_custom_handoffs() -> None:
             assert message == result.messages[index]
         index += 1
 
+
 @pytest.mark.asyncio
 async def test_custom_object_handoffs() -> None:
     """test handoff tool return a object"""
     name = "transfer_to_agent2"
     description = "Handoff to agent2."
-    next_action = {"action": "next_action"} # using a map, not a str
+    next_action = {"action": "next_action"}  # using a map, not a str
 
     class DictCommandHandOff(Handoff):
         @property
-        def handoff_tool(self):
+        def handoff_tool(self) -> BaseTool[BaseModel, BaseModel]:
             """Create a handoff tool from this handoff configuration."""
 
-            def _next_action(action: str) -> dict:
+            def _next_action(action: str) -> Dict[str, str]:
                 """Returns the action you want the user to perform"""
                 return {"action": action}
 
             return FunctionTool(_next_action, name=self.name, description=self.description, strict=True)
-    handoff = DictCommandHandOff(name = name, description = description, target="agent2")
+
+    handoff = DictCommandHandOff(name=name, description=description, target="agent2")
     model_client = ReplayChatCompletionClient(
         [
             CreateResult(
@@ -604,6 +609,7 @@ async def test_custom_object_handoffs() -> None:
         else:
             assert message == result.messages[index]
         index += 1
+
 
 @pytest.mark.asyncio
 async def test_multi_modal_task(monkeypatch: pytest.MonkeyPatch) -> None:

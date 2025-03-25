@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Callable
+from typing import Any, Dict
 
 from autogen_core.tools import BaseTool, FunctionTool
 from pydantic import BaseModel, Field, model_validator
@@ -60,4 +60,3 @@ class Handoff(BaseModel):
     The tool that can be used to handoff to the target agent.
     Typically, the results of the tool's execution are provided to the target agent.
     """
-
