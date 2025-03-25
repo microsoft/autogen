@@ -5,7 +5,7 @@ class and includes specific fields relevant to the type of message being sent.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
+from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar, Optional
 
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
@@ -198,16 +198,23 @@ class StructuredMessage(ChatMessage, Generic[StructuredContentType]):
     content: StructuredContentType
     """The content of the message. Must be a subclass of
     `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_."""
+    format_string: Optional[str] = None
 
     def content_to_text(self) -> str:
+        if self.format_string is not None:
+            print("here")
+            return self.format_string.format(**self.content.dict())
+        
         return self.content.model_dump_json(indent=2)
 
     def content_to_model_text(self) -> str:
+        if self.format_string is not None:
+            return self.format_string.format(**self.content.dict())
         return self.content.model_dump_json()
 
     def content_to_model_message(self) -> UserMessage:
         return UserMessage(
-            content=self.content.model_dump_json(),
+            content=self.content_to_model_text(),
             source=self.source,
         )
 
