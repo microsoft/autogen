@@ -65,10 +65,6 @@ class ChatMessage(BaseMessage, ABC):
     message using models and return a response as another :class:`ChatMessage`.
     """
 
-    content: Any
-    """The content of the message. This can be any type, but it is expected to be
-    specified in the derived class."""
-
     source: str
     """The name of the agent that sent this message."""
 
@@ -147,10 +143,6 @@ class AgentEvent(BaseMessage, ABC):
     You should override the :meth:`content_to_text` method if you want to provide
     a custom rendering of the content.
     """
-
-    content: Any
-    """The content of the message. This can be any type, but it is expected to be
-    specified in the derived class."""
 
     source: str
     """The name of the agent that sent this message."""

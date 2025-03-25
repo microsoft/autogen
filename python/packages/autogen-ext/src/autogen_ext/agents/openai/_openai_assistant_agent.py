@@ -532,7 +532,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 elif isinstance(c, Image):
                     content.append(ImageURLContentBlockParam(image_url=ImageURLParam(url=c.data_uri), type="image_url"))
                 else:
-                    raise ValueError(f"Unsupported content type: {type(c)} in {message.content}")
+                    raise ValueError(f"Unsupported content type: {type(c)} in {message}")
         await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._client.beta.threads.messages.create(
