@@ -49,11 +49,14 @@ class TokenBasedChatCompletionContext(ChatCompletionContext, Component[TokenBase
         return messages
 
     def _to_config(self) -> TokenBasedChatCompletionContextConfig:
-        return TokenBasedChatCompletionContextConfig(token_limit=self._token_limit, model_family=self._model_family, initial_messages=self._messages)
+        return TokenBasedChatCompletionContextConfig(
+            token_limit=self._token_limit, model_family=self._model_family, initial_messages=self._messages
+        )
 
     @classmethod
     def _from_config(cls, config: TokenBasedChatCompletionContextConfig) -> Self:
         return cls(**config.model_dump())
+
 
 # Rough estimate of token count for a list of messages
 def count_chat_tokens(messages: list, model: str = "gpt-4o") -> int:
