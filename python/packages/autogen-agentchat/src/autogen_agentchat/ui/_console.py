@@ -136,9 +136,9 @@ async def Console(
 
             # Print final response.
             if isinstance(message.chat_message, MultiModalMessage):
-                final_content = message.chat_message.content_to_text(iterm=render_image_iterm)
+                final_content = message.chat_message.to_text(iterm=render_image_iterm)
             else:
-                final_content = message.chat_message.content_to_text()
+                final_content = message.chat_message.to_text()
             output = f"{'-' * 10} {message.chat_message.source} {'-' * 10}\n{final_content}\n"
             if message.chat_message.models_usage:
                 if output_stats:
@@ -175,7 +175,7 @@ async def Console(
                 # Print message sender.
                 await aprint(f"{'-' * 10} {message.source} {'-' * 10}", end="\n", flush=True)
             if isinstance(message, ModelClientStreamingChunkEvent):
-                await aprint(message.content_to_text(), end="")
+                await aprint(message.to_text(), end="")
                 streaming_chunks.append(message.content)
             else:
                 if streaming_chunks:
@@ -183,9 +183,9 @@ async def Console(
                     # Chunked messages are already printed, so we just print a newline.
                     await aprint("", end="\n", flush=True)
                 elif isinstance(message, MultiModalMessage):
-                    await aprint(message.content_to_text(iterm=render_image_iterm), end="\n", flush=True)
+                    await aprint(message.to_text(iterm=render_image_iterm), end="\n", flush=True)
                 else:
-                    await aprint(message.content_to_text(), end="\n", flush=True)
+                    await aprint(message.to_text(), end="\n", flush=True)
                 if message.models_usage:
                     if output_stats:
                         await aprint(

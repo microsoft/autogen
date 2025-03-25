@@ -89,7 +89,7 @@ class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         for chat_message in messages:
-            self._chat_history.append(chat_message.content_to_model_message())
+            self._chat_history.append(chat_message.to_model_message())
         try:
             _, content = await self._generate_reply(cancellation_token=cancellation_token)
             self._chat_history.append(AssistantMessage(content=content, source=self.name))

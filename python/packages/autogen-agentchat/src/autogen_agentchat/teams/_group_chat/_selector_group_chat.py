@@ -156,7 +156,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             if not isinstance(msg, ChatMessage):
                 # Only process chat messages.
                 continue
-            message = f"{msg.source}: {msg.content_to_model_text()}"
+            message = f"{msg.source}: {msg.to_model_text()}"
             history_messages.append(
                 message.rstrip() + "\n\n"
             )  # Create some consistency for how messages are separated in the transcript

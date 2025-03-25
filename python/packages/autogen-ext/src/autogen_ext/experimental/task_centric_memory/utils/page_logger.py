@@ -345,7 +345,7 @@ class PageLogger:
 
         messages: Sequence[AgentEvent | ChatMessage] = task_result.messages
         message = messages[-1]
-        response_str = message.content_to_text()
+        response_str = message.to_text()
         if not isinstance(response_str, str):
             response_str = "??"
 

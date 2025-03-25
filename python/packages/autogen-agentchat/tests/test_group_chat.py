@@ -106,13 +106,13 @@ class _FlakyAgent(BaseChatAgent):
 class _UnknownMessageType(ChatMessage):
     content: str
 
-    def content_to_model_message(self) -> UserMessage:
+    def to_model_message(self) -> UserMessage:
         raise NotImplementedError("This message type is not supported.")
 
-    def content_to_model_text(self) -> str:
+    def to_model_text(self) -> str:
         raise NotImplementedError("This message type is not supported.")
 
-    def content_to_text(self) -> str:
+    def to_text(self) -> str:
         raise NotImplementedError("This message type is not supported.")
 
 
