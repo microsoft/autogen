@@ -521,7 +521,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
     async def handle_incoming_message(self, message: ChatMessage, cancellation_token: CancellationToken) -> None:
         """Handle regular text messages by adding them to the thread."""
         content: str | List[MessageContentPartParam] | None = None
-        llm_message = message.content_to_model_message()
+        llm_message = message.to_model_message()
         if isinstance(llm_message.content, str):
             content = llm_message.content
         else:

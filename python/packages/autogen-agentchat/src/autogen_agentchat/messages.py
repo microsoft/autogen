@@ -78,31 +78,31 @@ class ChatMessage(BaseMessage, ABC):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @abstractmethod
-    def content_to_text(self) -> str:
+    def to_text(self) -> str:
         """Convert the content of the message to a string-only representation
-        that can be rendered in the console and inspected by the user.
+        that can be rendered in the console and inspected by the user or conditions.
 
         This is not used for creating text-only content for models.
-        For :class:`ChatMessage` types, use :meth:`content_to_model_text` instead."""
+        For :class:`ChatMessage` types, use :meth:`to_model_text` instead."""
         ...
 
     @abstractmethod
-    def content_to_model_text(self) -> str:
+    def to_model_text(self) -> str:
         """Convert the content of the message to text-only representation.
         This is used for creating text-only content for models.
 
         This is not used for rendering the message in console. For that, use
-        :meth:`~BaseMessage.content_to_text`.
+        :meth:`~BaseMessage.to_text`.
 
-        The difference between this and :meth:`content_to_model_message` is that this
+        The difference between this and :meth:`to_model_message` is that this
         is used to construct parts of the a message for the model client,
-        while :meth:`content_to_model_message` is used to create a complete message
+        while :meth:`to_model_message` is used to create a complete message
         for the model client.
         """
         ...
 
     @abstractmethod
-    def content_to_model_message(self) -> UserMessage:
+    def to_model_message(self) -> UserMessage:
         """Convert the message content to a :class:`~autogen_core.models.UserMessage`
         for use with model client, e.g., :class:`~autogen_core.models.ChatCompletionClient`."""
         ...
@@ -110,8 +110,8 @@ class ChatMessage(BaseMessage, ABC):
 
 class TextChatMessage(ChatMessage, ABC):
     """Base class for all text-only :class:`ChatMessage` types.
-    It has implementations for :meth:`content_to_text`, :meth:`content_to_model_text`,
-    and :meth:`content_to_model_message` methods.
+    It has implementations for :meth:`to_text`, :meth:`to_model_text`,
+    and :meth:`to_model_message` methods.
 
     Inherit from this class if your message content type is a string.
     """
@@ -119,13 +119,13 @@ class TextChatMessage(ChatMessage, ABC):
     content: str
     """The content of the message."""
 
-    def content_to_text(self) -> str:
+    def to_text(self) -> str:
         return self.content
 
-    def content_to_model_text(self) -> str:
+    def to_model_text(self) -> str:
         return self.content
 
-    def content_to_model_message(self) -> UserMessage:
+    def to_model_message(self) -> UserMessage:
         return UserMessage(content=self.content, source=self.source)
 
 
@@ -141,7 +141,7 @@ class AgentEvent(BaseMessage, ABC):
     and teams to user and applications. They are not used for agent-to-agent
     communication and are not expected to be processed by other agents.
 
-    You should override the :meth:`content_to_text` method if you want to provide
+    You should override the :meth:`to_text` method if you want to provide
     a custom rendering of the content.
     """
 
@@ -157,12 +157,12 @@ class AgentEvent(BaseMessage, ABC):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @abstractmethod
-    def content_to_text(self) -> str:
+    def to_text(self) -> str:
         """Convert the content of the message to a string-only representation
         that can be rendered in the console and inspected by the user.
 
         This is not used for creating text-only content for models.
-        For :class:`ChatMessage` types, use :meth:`content_to_model_text` instead."""
+        For :class:`ChatMessage` types, use :meth:`to_model_text` instead."""
         ...
 
 
@@ -192,7 +192,7 @@ class StructuredMessage(ChatMessage, Generic[StructuredContentType]):
             source="agent1",
         )
 
-        print(message.content_to_text())  # {"text": "Hello", "number": 42}
+        print(message.to_text())  # {"text": "Hello", "number": 42}
 
     """
 
@@ -201,18 +201,13 @@ class StructuredMessage(ChatMessage, Generic[StructuredContentType]):
     `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_."""
     format_string: Optional[str] = None
 
-    def content_to_text(self) -> str:
-        if self.format_string is not None:
-            return self.format_string.format(**self.content.dict())
-        
+    def to_text(self) -> str:
         return self.content.model_dump_json(indent=2)
 
-    def content_to_model_text(self) -> str:
-        if self.format_string is not None:
-            return self.format_string.format(**self.content.dict())
+    def to_model_text(self) -> str:
         return self.content.model_dump_json()
 
-    def content_to_model_message(self) -> UserMessage:
+    def to_model_message(self) -> UserMessage:
         return UserMessage(
             content=self.content_to_model_text(),
             source=self.source,
@@ -270,7 +265,7 @@ class MultiModalMessage(ChatMessage):
     content: List[str | Image]
     """The content of the message."""
 
-    def content_to_model_text(self, image_placeholder: str | None = "[image]") -> str:
+    def to_model_text(self, image_placeholder: str | None = "[image]") -> str:
         """Convert the content of the message to a string-only representation.
         If an image is present, it will be replaced with the image placeholder
         by default, otherwise it will be a base64 string when set to None.
@@ -286,7 +281,7 @@ class MultiModalMessage(ChatMessage):
                     text += f" {c.to_base64()}"
         return text
 
-    def content_to_text(self, iterm: bool = False) -> str:
+    def to_text(self, iterm: bool = False) -> str:
         result: List[str] = []
         for c in self.content:
             if isinstance(c, str):
@@ -300,7 +295,7 @@ class MultiModalMessage(ChatMessage):
                     result.append("<image>")
         return "\n".join(result)
 
-    def content_to_model_message(self) -> UserMessage:
+    def to_model_message(self) -> UserMessage:
         return UserMessage(content=self.content, source=self.source)
 
 
@@ -332,7 +327,7 @@ class ToolCallRequestEvent(AgentEvent):
     content: List[FunctionCall]
     """The tool calls."""
 
-    def content_to_text(self) -> str:
+    def to_text(self) -> str:
         return str(self.content)
 
 
@@ -342,7 +337,7 @@ class ToolCallExecutionEvent(AgentEvent):
     content: List[FunctionExecutionResult]
     """The tool call results."""
 
-    def content_to_text(self) -> str:
+    def to_text(self) -> str:
         return str(self.content)
 
 
@@ -355,7 +350,7 @@ class UserInputRequestedEvent(AgentEvent):
     content: Literal[""] = ""
     """Empty content for compat with consumers expecting a content field."""
 
-    def content_to_text(self) -> str:
+    def to_text(self) -> str:
         return str(self.content)
 
 
@@ -365,7 +360,7 @@ class MemoryQueryEvent(AgentEvent):
     content: List[MemoryContent]
     """The memory query results."""
 
-    def content_to_text(self) -> str:
+    def to_text(self) -> str:
         return str(self.content)
 
 
@@ -375,7 +370,7 @@ class ModelClientStreamingChunkEvent(AgentEvent):
     content: str
     """A string chunk from the model client."""
 
-    def content_to_text(self) -> str:
+    def to_text(self) -> str:
         return self.content
 
 
@@ -387,7 +382,7 @@ class ThoughtEvent(AgentEvent):
     content: str
     """The thought process of the model."""
 
-    def content_to_text(self) -> str:
+    def to_text(self) -> str:
         return self.content
 
 

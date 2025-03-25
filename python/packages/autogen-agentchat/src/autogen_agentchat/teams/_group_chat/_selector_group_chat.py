@@ -156,7 +156,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             if not isinstance(msg, ChatMessage):
                 # Only process chat messages.
                 continue
-            message = f"{msg.source}: {msg.content_to_model_text()}"
+            message = f"{msg.source}: {msg.to_model_text()}"
             history_messages.append(
                 message.rstrip() + "\n\n"
             )  # Create some consistency for how messages are separated in the transcript
@@ -405,7 +405,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
                 )
 
                 def selector_func(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
-                    if len(messages) == 1 or messages[-1].content_to_text() == "Incorrect!":
+                    if len(messages) == 1 or messages[-1].to_text() == "Incorrect!":
                         return "Agent1"
                     if messages[-1].source == "Agent1":
                         return "Agent2"

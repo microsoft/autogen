@@ -150,7 +150,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         # Create the initial task ledger
         #################################
         # Combine all message contents for task
-        self._task = " ".join([msg.content_to_model_text() for msg in message.messages])
+        self._task = " ".join([msg.to_model_text() for msg in message.messages])
         planning_conversation: List[LLMMessage] = []
 
         # 1. GATHER FACTS
