@@ -15,44 +15,21 @@ from typing_extensions import Self
 
 
 class BaseMessage(BaseModel, ABC):
-    """Base class for all message types in AgentChat.
+    """Base class for all message types in AgentChat. This is an abstract class
+    with default implementations for serialization and deserialization.
 
     .. warning::
 
         If you want to create a new message type, do not inherit from this class.
-        Instead, inherit from :class:`ChatMessage` or :class:`BaseAgentEvent`
+        Instead, inherit from :class:`ChatMessage` or :class:`AgentEvent`
         to clarify the purpose of the message type.
 
     """
-
-    content: Any
-    """The content of the message. This can be any type, but it is expected to be
-    specified in the derived class."""
-
-    source: str
-    """The name of the agent that sent this message."""
-
-    models_usage: RequestUsage | None = None
-    """The model client usage incurred when producing this message."""
-
-    metadata: Dict[str, str] = {}
-    """Additional metadata about the message."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @computed_field
     def type(self) -> str:
         """The class name of this message."""
         return self.__class__.__name__
-
-    @abstractmethod
-    def content_to_text(self) -> str:
-        """Convert the content of the message to a string-only representation
-        that can be rendered in the console and inspected by the user.
-
-        This is not used for creating text-only content for models.
-        For :class:`ChatMessage` types, use :meth:`content_to_model_text` instead."""
-        ...
 
     def dump(self) -> Mapping[str, Any]:
         """Convert the message to a JSON-serializable dictionary.
@@ -87,6 +64,30 @@ class ChatMessage(BaseMessage, ABC):
     conversation. Agents are expected to process the content of the
     message using models and return a response as another :class:`ChatMessage`.
     """
+
+    content: Any
+    """The content of the message. This can be any type, but it is expected to be
+    specified in the derived class."""
+
+    source: str
+    """The name of the agent that sent this message."""
+
+    models_usage: RequestUsage | None = None
+    """The model client usage incurred when producing this message."""
+
+    metadata: Dict[str, str] = {}
+    """Additional metadata about the message."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @abstractmethod
+    def content_to_text(self) -> str:
+        """Convert the content of the message to a string-only representation
+        that can be rendered in the console and inspected by the user.
+
+        This is not used for creating text-only content for models.
+        For :class:`ChatMessage` types, use :meth:`content_to_model_text` instead."""
+        ...
 
     @abstractmethod
     def content_to_model_text(self) -> str:
@@ -147,7 +148,29 @@ class AgentEvent(BaseMessage, ABC):
     a custom rendering of the content.
     """
 
-    ...
+    content: Any
+    """The content of the message. This can be any type, but it is expected to be
+    specified in the derived class."""
+
+    source: str
+    """The name of the agent that sent this message."""
+
+    models_usage: RequestUsage | None = None
+    """The model client usage incurred when producing this message."""
+
+    metadata: Dict[str, str] = {}
+    """Additional metadata about the message."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @abstractmethod
+    def content_to_text(self) -> str:
+        """Convert the content of the message to a string-only representation
+        that can be rendered in the console and inspected by the user.
+
+        This is not used for creating text-only content for models.
+        For :class:`ChatMessage` types, use :meth:`content_to_model_text` instead."""
+        ...
 
 
 StructuredContentType = TypeVar("StructuredContentType", bound=BaseModel, covariant=True)
@@ -387,6 +410,7 @@ class MessageFactory:
         # Create an instance of the message class.
         assert issubclass(message_class, ChatMessage) or issubclass(message_class, AgentEvent)
         return message_class.load(data)
+
 
 # For backward compatibility
 BaseAgentEvent = AgentEvent
