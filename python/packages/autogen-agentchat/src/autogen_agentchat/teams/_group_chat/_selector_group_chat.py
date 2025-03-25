@@ -405,7 +405,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
                 )
 
                 def selector_func(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
-                    if len(messages) == 1 or messages[-1].content_to_text() == "Incorrect!":
+                    if len(messages) == 1 or messages[-1].to_text() == "Incorrect!":
                         return "Agent1"
                     if messages[-1].source == "Agent1":
                         return "Agent2"

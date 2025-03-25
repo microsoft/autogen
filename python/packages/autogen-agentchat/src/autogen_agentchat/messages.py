@@ -109,8 +109,8 @@ class ChatMessage(BaseMessage, ABC):
 
 class TextChatMessage(ChatMessage, ABC):
     """Base class for all text-only :class:`ChatMessage` types.
-    It has implementations for :meth:`content_to_text`, :meth:`content_to_model_text`,
-    and :meth:`content_to_model_message` methods.
+    It has implementations for :meth:`to_text`, :meth:`to_model_text`,
+    and :meth:`to_model_message` methods.
 
     Inherit from this class if your message content type is a string.
     """
@@ -140,7 +140,7 @@ class AgentEvent(BaseMessage, ABC):
     and teams to user and applications. They are not used for agent-to-agent
     communication and are not expected to be processed by other agents.
 
-    You should override the :meth:`content_to_text` method if you want to provide
+    You should override the :meth:`to_text` method if you want to provide
     a custom rendering of the content.
     """
 
@@ -191,7 +191,7 @@ class StructuredMessage(ChatMessage, Generic[StructuredContentType]):
             source="agent1",
         )
 
-        print(message.content_to_text())  # {"text": "Hello", "number": 42}
+        print(message.to_text())  # {"text": "Hello", "number": 42}
 
     """
 
