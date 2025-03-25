@@ -176,7 +176,7 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
             source="agent1",
         )
 
-        print(message.content_to_str())  # {"text": "Hello", "number": 42}
+        print(message.content_to_text())  # {"text": "Hello", "number": 42}
 
     """
 
