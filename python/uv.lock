@@ -780,7 +780,7 @@ requires-dist = [
     { name = "tiktoken", marker = "extra == 'ollama'", specifier = ">=0.8.0" },
     { name = "tiktoken", marker = "extra == 'openai'", specifier = ">=0.8.0" },
 ]
-provides-extras = ["langchain", "azure", "docker", "ollama", "openai", "file-surfer", "llama-cpp", "graphrag", "chromadb", "web-surfer", "magentic-one", "video-surfer", "diskcache", "redis", "grpc", "jupyter-executor", "task-centric-memory", "semantic-kernel-core", "gemini", "semantic-kernel-google", "semantic-kernel-hugging-face", "semantic-kernel-mistralai", "semantic-kernel-ollama", "semantic-kernel-onnx", "semantic-kernel-anthropic", "semantic-kernel-pandas", "semantic-kernel-aws", "semantic-kernel-dapr", "http-tool", "semantic-kernel-all", "rich", "mcp"]
+provides-extras = ["anthropic", "langchain", "azure", "docker", "ollama", "openai", "file-surfer", "llama-cpp", "graphrag", "chromadb", "web-surfer", "magentic-one", "video-surfer", "diskcache", "redis", "grpc", "jupyter-executor", "task-centric-memory", "semantic-kernel-core", "gemini", "semantic-kernel-google", "semantic-kernel-hugging-face", "semantic-kernel-mistralai", "semantic-kernel-ollama", "semantic-kernel-onnx", "semantic-kernel-anthropic", "semantic-kernel-pandas", "semantic-kernel-aws", "semantic-kernel-dapr", "http-tool", "semantic-kernel-all", "rich", "mcp"]
 
 [package.metadata.requires-dev]
 dev = [
