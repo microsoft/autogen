@@ -143,7 +143,7 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
     )
     with tempfile.TemporaryDirectory() as temp_dir:
         code_executor_agent = CodeExecutorAgent(
-            "code_executor", code_executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)
+            "code_executor", code_executor=LocalCommandLineCodeExecutor(work_dir=temp_dir), model_client=model_client
         )
         coding_assistant_agent = AssistantAgent(
             "coding_assistant",
