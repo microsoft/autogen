@@ -134,8 +134,8 @@ async def test_magentic_one_group_chat_basic(runtime: AgentRuntime | None) -> No
     )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 5
-    assert result.messages[2].content_to_render() == "Continue task"
-    assert result.messages[4].content_to_render() == "print('Hello, world!')"
+    assert result.messages[2].content_to_text() == "Continue task"
+    assert result.messages[4].content_to_text() == "print('Hello, world!')"
     assert result.stop_reason is not None and result.stop_reason == "Because"
 
     # Test save and load.

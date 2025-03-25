@@ -82,7 +82,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
                         cancellation_token=CancellationToken(),
                     )
                 )
-                print(f"Your name is {response.chat_message.content}")
+                print(f"Your name is {response.chat_message.content_to_text()}")
 
     Example:
         Cancellable usage case::
@@ -117,7 +117,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
                         )
                     )
                     response = await agent_task
-                    print(f"Your name is {response.chat_message.content}")
+                    print(f"Your name is {response.chat_message.content_to_text()}")
                 except Exception as e:
                     print(f"Exception: {e}")
                 except BaseException as e:

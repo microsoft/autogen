@@ -134,7 +134,7 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
             if self._sources is not None and message.source not in self._sources:
                 continue
 
-            content = message.content_to_render()
+            content = message.content_to_text()
             if self._termination_text in content:
                 self._terminated = True
                 return StopMessage(

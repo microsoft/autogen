@@ -112,7 +112,7 @@ class _UnknownMessageType(BaseChatMessage):
     def content_to_model_text(self) -> str:
         raise NotImplementedError("This message type is not supported.")
 
-    def content_to_render(self) -> str:
+    def content_to_text(self) -> str:
         raise NotImplementedError("This message type is not supported.")
 
 
@@ -208,9 +208,9 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
             "TERMINATE",
         ]
         for i in range(len(expected_messages)):
-            message = result.messages[i]
-            assert isinstance(message, TextMessage)
-            content = message.content.replace("\r\n", "\n").rstrip("\n")
+            produced_message = result.messages[i]
+            assert isinstance(produced_message, TextMessage)
+            content = produced_message.content.replace("\r\n", "\n").rstrip("\n")
             assert content == expected_messages[i]
 
         assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"

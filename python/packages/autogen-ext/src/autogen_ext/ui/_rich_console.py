@@ -59,7 +59,7 @@ def _extract_message_content(message: BaseMessage) -> Tuple[List[str], List[Imag
         text_parts = [item for item in message.content if isinstance(item, str)]
         image_parts = [item for item in message.content if isinstance(item, Image)]
     else:
-        text_parts = [message.content_to_render()]
+        text_parts = [message.content_to_text()]
         image_parts = []
     return text_parts, image_parts
 
