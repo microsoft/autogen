@@ -9,6 +9,7 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
+    cast,
 )
 
 from autogen_agentchat.base import Response, TaskResult
@@ -55,12 +56,12 @@ def aprint(output: str, end: str = "\n") -> Awaitable[None]:
     return asyncio.to_thread(print, output, end=end)
 
 
-def _extract_message_content(message: ChatMessage | AgentEvent) -> Tuple[List[str], List[Image]]:
+def _extract_message_content(message: AgentEvent | ChatMessage) -> Tuple[List[str], List[Image]]:
     if isinstance(message, MultiModalMessage):
         text_parts = [item for item in message.content if isinstance(item, str)]
         image_parts = [item for item in message.content if isinstance(item, Image)]
     else:
-        text_parts = [message.content_to_text()]
+        text_parts = [str(message.content)]
         image_parts = []
     return text_parts, image_parts
 
@@ -99,7 +100,7 @@ async def _aprint_message_content(
 
 
 async def RichConsole(
-    stream: AsyncGenerator[ChatMessage | AgentEvent | T, None],
+    stream: AsyncGenerator[AgentEvent | ChatMessage | T, None],
     *,
     no_inline_images: bool = False,
     output_stats: bool = False,
@@ -116,7 +117,7 @@ async def RichConsole(
         It will be improved in future releases.
 
     Args:
-        stream (AsyncGenerator[ChatMessage | AgentEvent | TaskResult, None] | AsyncGenerator[ChatMessage | AgentEvent | Response, None]): Message stream to render.
+        stream (AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None] | AsyncGenerator[AgentEvent | ChatMessage | Response, None]): Message stream to render.
             This can be from :meth:`~autogen_agentchat.base.TaskRunner.run_stream` or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
         no_inline_images (bool, optional): If terminal is iTerm2 will render images inline. Use this to disable this behavior. Defaults to False.
         output_stats (bool, optional): (Experimental) If True, will output a summary of the messages and inline token usage info. Defaults to False.
@@ -189,6 +190,9 @@ async def RichConsole(
             # TODO: Handle model client streaming chunk events.
             pass
         else:
+            # Cast required for mypy to be happy
+            message = cast(AgentEvent | ChatMessage, message)  # type: ignore
+
             text_parts, image_parts = _extract_message_content(message)
             # Add usage stats if needed
             if message.models_usage:

@@ -388,11 +388,17 @@ class MessageFactory:
         assert issubclass(message_class, ChatMessage) or issubclass(message_class, AgentEvent)
         return message_class.load(data)
 
+# For backward compatibility
+BaseAgentEvent = AgentEvent
+BaseChatMessage = ChatMessage
+
 
 __all__ = [
     "AgentEvent",
     "BaseMessage",
     "ChatMessage",
+    "BaseChatMessage",
+    "BaseAgentEvent",
     "AgentEvent",
     "TextChatMessage",
     "ChatMessage",

@@ -78,7 +78,8 @@ async def get_ai_move(board: chess.Board, player: AssistantAgent, max_tries: int
     while count < max_tries:
         result = await Console(player.run_stream(task=task))
         count += 1
-        response = result.messages[-1].content_to_text()
+        response = result.messages[-1].content
+        assert isinstance(response, str)
         # Check if the response is a valid UC move.
         try:
             move = chess.Move.from_uci(extract_move(response))

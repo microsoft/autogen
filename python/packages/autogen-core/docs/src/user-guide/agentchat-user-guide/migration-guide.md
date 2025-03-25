@@ -691,7 +691,7 @@ async def main() -> None:
         if user_input == "exit":
             break
         response = await assistant.on_messages([TextMessage(content=user_input, source="user")], CancellationToken())
-        print("Assistant:", response.chat_message.content_to_text())
+        print("Assistant:", response.chat_message.content)
     await model_client.close()
 
 asyncio.run(main())
@@ -742,7 +742,8 @@ You can use the following conversion functions to convert between a v0.4 message
 from typing import Any, Dict, List, Literal
 
 from autogen_agentchat.messages import (
-    BaseMessage,
+    AgentEvent,
+    ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
@@ -756,14 +757,14 @@ from autogen_core.models import FunctionExecutionResult
 
 
 def convert_to_v02_message(
-    message: BaseMessage,
+    message: AgentEvent | ChatMessage,
     role: Literal["assistant", "user", "tool"],
     image_detail: Literal["auto", "high", "low"] = "auto",
 ) -> Dict[str, Any]:
     """Convert a v0.4 AgentChat message to a v0.2 message.
 
     Args:
-        message (BaseMessage): The message to convert.
+        message (AgentEvent | ChatMessage): The message to convert.
         role (Literal["assistant", "user", "tool"]): The role of the message.
         image_detail (Literal["auto", "high", "low"], optional): The detail level of image content in multi-modal message. Defaults to "auto".
 
@@ -809,7 +810,7 @@ def convert_to_v02_message(
     return v02_message
 
 
-def convert_to_v04_message(message: Dict[str, Any]) -> BaseMessage:
+def convert_to_v04_message(message: Dict[str, Any]) -> AgentEvent | ChatMessage:
     """Convert a v0.2 message to a v0.4 AgentChat message."""
     if "tool_calls" in message:
         tool_calls: List[FunctionCall] = []
@@ -1064,7 +1065,7 @@ import asyncio
 from typing import Sequence
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
-from autogen_agentchat.messages import BaseMessage
+from autogen_agentchat.messages import AgentEvent, ChatMessage
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -1140,7 +1141,7 @@ def create_team(model_client : OpenAIChatCompletionClient) -> SelectorGroupChat:
 
     # The selector function is a function that takes the current message thread of the group chat
     # and returns the next speaker's name. If None is returned, the LLM-based selection method will be used.
-    def selector_func(messages: Sequence[BaseMessage]) -> str | None:
+    def selector_func(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
         if messages[-1].source != planning_agent.name:
             return planning_agent.name # Always return to the planning agent after the other agents have spoken.
         return None
@@ -1330,7 +1331,7 @@ async def main() -> None:
         if user_input == "exit":
             break
         response = await assistant.on_messages([TextMessage(content=user_input, source="user")], CancellationToken())
-        print("Assistant:", response.chat_message.content_to_text())
+        print("Assistant:", response.chat_message.content)
     
     await model_client.close()
 
