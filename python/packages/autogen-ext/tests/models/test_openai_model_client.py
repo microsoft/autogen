@@ -1784,7 +1784,10 @@ async def test_openai_structured_output_with_streaming(model: str, openai_client
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    [
+        "gpt-4o-mini",
+        # "gemini-1.5-flash", # Gemini models do not support structured output with tool calls from model client.
+    ],
 )
 async def test_openai_structured_output_with_tool_calls(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     class AgentResponse(BaseModel):
@@ -1797,13 +1800,15 @@ async def test_openai_structured_output_with_tool_calls(model: str, openai_clien
 
     tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
 
+    extra_create_args = {"tool_choice": "required"}
+
     response1 = await openai_client.create(
         messages=[
             SystemMessage(content="Analyze input text sentiment using the tool provided."),
             UserMessage(content="I am happy.", source="user"),
         ],
         tools=[tool],
-        extra_create_args={"tool_choice": "required"},
+        extra_create_args=extra_create_args,
         json_output=AgentResponse,
     )
     assert isinstance(response1.content, list)
@@ -1837,7 +1842,10 @@ async def test_openai_structured_output_with_tool_calls(model: str, openai_clien
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    [
+        "gpt-4o-mini",
+        # "gemini-1.5-flash", # Gemini models do not support structured output with tool calls from model client.
+    ],
 )
 async def test_openai_structured_output_with_streaming_tool_calls(
     model: str, openai_client: OpenAIChatCompletionClient
@@ -1852,6 +1860,8 @@ async def test_openai_structured_output_with_streaming_tool_calls(
 
     tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
 
+    extra_create_args = {"tool_choice": "required"}
+
     chunks1: List[str | CreateResult] = []
     stream1 = openai_client.create_stream(
         messages=[
@@ -1859,7 +1869,7 @@ async def test_openai_structured_output_with_streaming_tool_calls(
             UserMessage(content="I am happy.", source="user"),
         ],
         tools=[tool],
-        extra_create_args={"tool_choice": "required"},
+        extra_create_args=extra_create_args,
         json_output=AgentResponse,
     )
     async for chunk in stream1:
