@@ -1,5 +1,5 @@
 import pytest
-from autogen_agentchat.messages import HandoffMessage, MessageFactory, StructuredMessage, TextMessage
+from autogen_agentchat.messages import HandoffMessage, MessageFactory, StructuredMessage, TextMessage, StructuredMessageComponent
 from pydantic import BaseModel
 
 
@@ -33,6 +33,25 @@ def test_structured_message() -> None:
     assert dumped_message["content"]["field1"] == "test"
     assert dumped_message["content"]["field2"] == 42
     assert dumped_message["type"] == "StructuredMessage[TestContent]"
+
+
+def test_structured_message_component() -> None:
+    # Create a structured message with the test contentformat_string="this is a string {field1} and this is an int {field2}"
+    format_string="this is a string {field1} and this is an int {field2}"
+    s_m = StructuredMessageComponent(input_model=TestContent, format_string=format_string)
+    config = s_m._to_config()
+    s_m_dyn = StructuredMessageComponent._from_config(config)
+    message = s_m_dyn.StructuredMessage(source="test_agent", content=s_m_dyn.ContentModel(field1="test", field2=42), format_string=s_m_dyn.format_string)
+
+    assert isinstance(message.content, s_m_dyn.ContentModel)
+    assert message.content.field1 == "test"
+    assert message.content.field2 == 42
+
+    dumped_message = message.model_dump()
+    assert dumped_message["source"] == "test_agent"
+    assert dumped_message["content"]["field1"] == "test"
+    assert dumped_message["content"]["field2"] == 42
+    assert message.content_to_text() == format_string.format(field1="test", field2=42)
 
 
 def test_message_factory() -> None:

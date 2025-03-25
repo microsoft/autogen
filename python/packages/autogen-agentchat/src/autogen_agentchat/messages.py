@@ -5,14 +5,15 @@ class and includes specific fields relevant to the type of message being sent.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar, Optional
+from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar, Optional, Type, ClassVar
 
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
 from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
 from pydantic import BaseModel, ConfigDict, computed_field
 from typing_extensions import Self
-
+from autogen_core import Component, ComponentBase
+from autogen_agentchat.utils import JSONSchemaToPydantic
 
 class BaseMessage(BaseModel, ABC):
     """Base class for all message types in AgentChat. This is an abstract class
@@ -202,7 +203,6 @@ class StructuredMessage(ChatMessage, Generic[StructuredContentType]):
 
     def content_to_text(self) -> str:
         if self.format_string is not None:
-            print("here")
             return self.format_string.format(**self.content.dict())
         
         return self.content.model_dump_json(indent=2)
@@ -216,6 +216,45 @@ class StructuredMessage(ChatMessage, Generic[StructuredContentType]):
         return UserMessage(
             content=self.content_to_model_text(),
             source=self.source,
+        )
+
+
+class StructureMessageConfig(BaseModel):
+    """The declarative configuration for the structured input."""
+    json_schema: dict
+    format_string: Optional[str] = None
+
+class StructuredMessageComponent(ComponentBase[StructureMessageConfig], Component[StructureMessageConfig]):
+    """A component that processes structured input and generates a ChatMessage.
+    """
+    component_config_schema = StructureMessageConfig
+    component_provider_override = "autogen_agentchat.messages.StructuredMessageComponent"
+    component_type = "structured_message"
+
+    def __init__(self, json_schema: Optional[str]=None, input_model: Optional[Type[BaseModel]] = None, format_string: Optional[str] = None):
+        self.format_string = format_string
+        
+        if not json_schema and not input_model:
+            raise ValueError("Either `input_json_schema` or `input_model` must be provided.")
+        
+        if input_model:
+            self.ContentModel = input_model
+        else:
+            self.ContentModel = JSONSchemaToPydantic().json_schema_to_pydantic(json_schema)
+        
+        self.StructuredMessage = StructuredMessage[self.ContentModel]
+            
+    def _to_config(self) -> StructureMessageConfig:
+        return StructureMessageConfig(
+            json_schema=self.ContentModel.model_json_schema(),
+            format_string=self.format_string
+        )
+
+    @classmethod
+    def _from_config(cls, config: StructureMessageConfig) -> "StructuredMessageComponent":
+        return cls(
+            json_schema=config.json_schema,
+            format_string=config.format_string
         )
 
 
