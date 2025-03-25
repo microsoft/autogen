@@ -10,7 +10,7 @@ import aiofiles
 import yaml
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import BaseMessage
+from autogen_agentchat.messages import AgentEvent, ChatMessage
 from autogen_agentchat.teams import BaseGroupChat
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, ComponentModel
 from autogen_core.logging import LLMCallEvent
@@ -102,7 +102,7 @@ class TeamManager:
         input_func: Optional[Callable] = None,
         cancellation_token: Optional[CancellationToken] = None,
         env_vars: Optional[List[EnvironmentVariable]] = None,
-    ) -> AsyncGenerator[Union[BaseMessage | LLMCallEvent, TeamResult], None]:
+    ) -> AsyncGenerator[Union[ChatMessage | AgentEvent | LLMCallEvent, TeamResult], None]:
         """Stream team execution results"""
         start_time = time.time()
         team = None

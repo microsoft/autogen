@@ -3,14 +3,14 @@ from typing import AsyncGenerator, Protocol, Sequence
 
 from autogen_core import CancellationToken
 
-from ..messages import BaseChatMessage, BaseMessage
+from ..messages import AgentEvent, ChatMessage
 
 
 @dataclass
 class TaskResult:
     """Result of running a task."""
 
-    messages: Sequence[BaseMessage]
+    messages: Sequence[ChatMessage | AgentEvent]
     """Messages produced by the task."""
 
     stop_reason: str | None = None
@@ -23,7 +23,7 @@ class TaskRunner(Protocol):
     async def run(
         self,
         *,
-        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
+        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the task and return the result.
@@ -38,9 +38,9 @@ class TaskRunner(Protocol):
     def run_stream(
         self,
         *,
-        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
+        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[BaseMessage | TaskResult, None]:
+    ) -> AsyncGenerator[ChatMessage | AgentEvent | TaskResult, None]:
         """Run the task and produces a stream of messages and the final result
         :class:`TaskResult` as the last item in the stream.
 

@@ -1,6 +1,6 @@
 import yaml
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.messages import BaseTextChatMessage, TextMessage
+from autogen_agentchat.messages import TextChatMessage, TextMessage
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 
@@ -22,5 +22,5 @@ class Agent:
             [TextMessage(content=prompt, source="user")],
             CancellationToken(),
         )
-        assert isinstance(response.chat_message, BaseTextChatMessage)
+        assert isinstance(response.chat_message, TextChatMessage)
         return response.chat_message.content

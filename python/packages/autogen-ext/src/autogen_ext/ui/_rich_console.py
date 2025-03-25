@@ -13,7 +13,8 @@ from typing import (
 
 from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.messages import (
-    BaseMessage,
+    AgentEvent,
+    ChatMessage,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
     UserInputRequestedEvent,
@@ -54,7 +55,7 @@ def aprint(output: str, end: str = "\n") -> Awaitable[None]:
     return asyncio.to_thread(print, output, end=end)
 
 
-def _extract_message_content(message: BaseMessage) -> Tuple[List[str], List[Image]]:
+def _extract_message_content(message: ChatMessage | AgentEvent) -> Tuple[List[str], List[Image]]:
     if isinstance(message, MultiModalMessage):
         text_parts = [item for item in message.content if isinstance(item, str)]
         image_parts = [item for item in message.content if isinstance(item, Image)]
@@ -98,7 +99,7 @@ async def _aprint_message_content(
 
 
 async def RichConsole(
-    stream: AsyncGenerator[BaseMessage | T, None],
+    stream: AsyncGenerator[ChatMessage | AgentEvent | T, None],
     *,
     no_inline_images: bool = False,
     output_stats: bool = False,
@@ -115,7 +116,7 @@ async def RichConsole(
         It will be improved in future releases.
 
     Args:
-        stream (AsyncGenerator[BaseMessage | TaskResult, None] | AsyncGenerator[BaseMessage | Response, None]): Message stream to render.
+        stream (AsyncGenerator[ChatMessage | AgentEvent | TaskResult, None] | AsyncGenerator[ChatMessage | AgentEvent | Response, None]): Message stream to render.
             This can be from :meth:`~autogen_agentchat.base.TaskRunner.run_stream` or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
         no_inline_images (bool, optional): If terminal is iTerm2 will render images inline. Use this to disable this behavior. Defaults to False.
         output_stats (bool, optional): (Experimental) If True, will output a summary of the messages and inline token usage info. Defaults to False.

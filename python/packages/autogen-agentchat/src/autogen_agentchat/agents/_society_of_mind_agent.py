@@ -10,8 +10,8 @@ from autogen_agentchat.state import SocietyOfMindAgentState
 
 from ..base import TaskResult, Team
 from ..messages import (
-    BaseChatMessage,
-    BaseMessage,
+    AgentEvent,
+    ChatMessage,
     ModelClientStreamingChunkEvent,
     TextMessage,
 )
@@ -122,10 +122,10 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         self._response_prompt = response_prompt
 
     @property
-    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         return (TextMessage,)
 
-    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         # Call the stream method and collect the messages.
         response: Response | None = None
         async for msg in self.on_messages_stream(messages, cancellation_token):
@@ -135,14 +135,14 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         return response
 
     async def on_messages_stream(
-        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[BaseMessage | Response, None]:
+        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[ChatMessage | AgentEvent | Response, None]:
         # Prepare the task for the team of agents.
         task = list(messages)
 
         # Run the team of agents.
         result: TaskResult | None = None
-        inner_messages: List[BaseMessage] = []
+        inner_messages: List[ChatMessage | AgentEvent] = []
         count = 0
         async for inner_msg in self._team.run_stream(task=task, cancellation_token=cancellation_token):
             if isinstance(inner_msg, TaskResult):
@@ -167,7 +167,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
             # Generate a response using the model client.
             llm_messages: List[LLMMessage] = [SystemMessage(content=self._instruction)]
             for message in messages:
-                if isinstance(message, BaseChatMessage):
+                if isinstance(message, ChatMessage):
                     llm_messages.append(message.content_to_model_message())
             llm_messages.append(SystemMessage(content=self._response_prompt))
             completion = await self._model_client.create(messages=llm_messages, cancellation_token=cancellation_token)

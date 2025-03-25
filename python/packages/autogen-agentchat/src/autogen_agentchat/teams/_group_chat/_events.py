@@ -3,13 +3,13 @@ from typing import List
 from pydantic import BaseModel
 
 from ...base import Response
-from ...messages import BaseChatMessage, BaseMessage, StopMessage
+from ...messages import AgentEvent, ChatMessage, StopMessage
 
 
 class GroupChatStart(BaseModel):
     """A request to start a group chat."""
 
-    messages: List[BaseChatMessage] | None = None
+    messages: List[ChatMessage] | None = None
     """An optional list of messages to start the group chat."""
 
 
@@ -29,7 +29,7 @@ class GroupChatRequestPublish(BaseModel):
 class GroupChatMessage(BaseModel):
     """A message from a group chat."""
 
-    message: BaseMessage
+    message: ChatMessage | AgentEvent
     """The message that was published."""
 
 

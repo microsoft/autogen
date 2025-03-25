@@ -14,7 +14,7 @@ from autogen_core.models import ChatCompletionClient
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_agentchat.agents import CodeExecutorAgent
-from autogen_agentchat.messages import BaseMessage, TextMessage, MultiModalMessage, StopMessage
+from autogen_agentchat.messages import ChatMessage, AgentEvent, TextMessage, MultiModalMessage, StopMessage
 from autogen_core.models import LLMMessage, UserMessage
 
 # Suppress warnings about the requests.Session() not being closed
@@ -139,7 +139,7 @@ class LLMTermination(TerminationCondition):
     def terminated(self) -> bool:
         return self._terminated
 
-    async def __call__(self, messages: Sequence[BaseMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[ChatMessage | AgentEvent]) -> StopMessage | None:
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
 

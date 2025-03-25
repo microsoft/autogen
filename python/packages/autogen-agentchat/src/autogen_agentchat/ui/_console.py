@@ -11,7 +11,8 @@ from autogen_core.models import RequestUsage
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.messages import (
-    BaseMessage,
+    AgentEvent,
+    ChatMessage,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
     UserInputRequestedEvent,
@@ -79,7 +80,7 @@ def aprint(output: str, end: str = "\n", flush: bool = False) -> Awaitable[None]
 
 
 async def Console(
-    stream: AsyncGenerator[BaseMessage | T, None],
+    stream: AsyncGenerator[ChatMessage | AgentEvent | T, None],
     *,
     no_inline_images: bool = False,
     output_stats: bool = False,
@@ -96,7 +97,7 @@ async def Console(
         It will be improved in future releases.
 
     Args:
-        stream (AsyncGenerator[BaseMessage | TaskResult, None] | AsyncGenerator[BaseMessage | Response, None]): Message stream to render.
+        stream (AsyncGenerator[ChatMessage | AgentEvent | TaskResult, None] | AsyncGenerator[ChatMessage | AgentEvent | Response, None]): Message stream to render.
             This can be from :meth:`~autogen_agentchat.base.TaskRunner.run_stream` or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
         no_inline_images (bool, optional): If terminal is iTerm2 will render images inline. Use this to disable this behavior. Defaults to False.
         output_stats (bool, optional): (Experimental) If True, will output a summary of the messages and inline token usage info. Defaults to False.
@@ -169,7 +170,7 @@ async def Console(
                 user_input_manager.notify_event_received(message.request_id)
         else:
             # Cast required for mypy to be happy
-            message = cast(BaseMessage, message)  # type: ignore
+            message = cast(ChatMessage | AgentEvent, message)  # type: ignore
             if not streaming_chunks:
                 # Print message sender.
                 await aprint(f"{'-' * 10} {message.source} {'-' * 10}", end="\n", flush=True)

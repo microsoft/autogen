@@ -462,18 +462,18 @@ and implement the `on_messages`, `on_reset`, and `produced_message_types` method
 from typing import Sequence
 from autogen_core import CancellationToken
 from autogen_agentchat.agents import BaseChatAgent
-from autogen_agentchat.messages import TextMessage, BaseChatMessage
+from autogen_agentchat.messages import TextMessage, ChatMessage
 from autogen_agentchat.base import Response
 
 class CustomAgent(BaseChatAgent):
-    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         return Response(chat_message=TextMessage(content="Custom reply", source=self.name))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         pass
 
     @property
-    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         return (TextMessage,)
 ```
 
@@ -1189,12 +1189,12 @@ from typing import Sequence
 from autogen_core import CancellationToken
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_agentchat.messages import TextMessage, BaseChatMessage
+from autogen_agentchat.messages import TextMessage, ChatMessage
 from autogen_agentchat.base import Response
 
 class CountingAgent(BaseChatAgent):
     """An agent that returns a new number by adding 1 to the last number in the input messages."""
-    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) == 0:
             last_number = 0 # Start from 0 if no messages are given.
         else:
@@ -1206,7 +1206,7 @@ class CountingAgent(BaseChatAgent):
         pass
 
     @property
-    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         return (TextMessage,)
 
 class NestedCountingAgent(BaseChatAgent):
@@ -1216,7 +1216,7 @@ class NestedCountingAgent(BaseChatAgent):
         super().__init__(name, description="An agent that counts numbers.")
         self._counting_team = counting_team
 
-    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         # Run the inner team with the given messages and returns the last message produced by the team.
         result = await self._counting_team.run(task=messages, cancellation_token=cancellation_token)
         # To stream the inner messages, implement `on_messages_stream` and use that to implement `on_messages`.
@@ -1228,7 +1228,7 @@ class NestedCountingAgent(BaseChatAgent):
         await self._counting_team.reset()
 
     @property
-    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         return (TextMessage,)
 
 async def main() -> None:

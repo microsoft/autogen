@@ -6,7 +6,7 @@ from typing import List, Sequence, Tuple
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
-    BaseChatMessage,
+    ChatMessage,
     TextMessage,
 )
 from autogen_agentchat.utils import remove_images
@@ -84,10 +84,10 @@ class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
         self._browser = MarkdownFileBrowser(viewport_size=1024 * 5, base_path=base_path)
 
     @property
-    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         return (TextMessage,)
 
-    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         for chat_message in messages:
             self._chat_history.append(chat_message.content_to_model_message())
         try:
