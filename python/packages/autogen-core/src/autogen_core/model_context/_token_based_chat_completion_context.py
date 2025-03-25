@@ -55,6 +55,7 @@ class TokenBasedChatCompletionContext(ChatCompletionContext, Component[TokenBase
     def _from_config(cls, config: TokenBasedChatCompletionContextConfig) -> Self:
         return cls(**config.model_dump())
 
+# Rough estimate of token count for a list of messages
 def count_chat_tokens(messages: list, model: str = "gpt-4o") -> int:
     try:
         encoding = tiktoken.encoding_for_model(model)
