@@ -169,6 +169,11 @@ class JSONSchemaToPydantic:
 
                 field_type = Union[tuple(sub_models)] if key in required_fields else Optional[Union[tuple(sub_models)]]
 
+            elif "anyOf" in value or "oneOf" in value:
+                raise NotImplementedError(
+                    f"[ERROR] `anyOf` or `oneOf` is not yet implemented"
+                )
+
             elif json_type == "object" and "properties" in value:
                 field_type = self.json_schema_to_pydantic_no_refs(value, f"{model_name}_{key}", root_schema)
 
