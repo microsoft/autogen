@@ -131,7 +131,7 @@ $functions"""
     # TODO: expiration?
     def _ensure_access_token(self) -> None:
         if not self._access_token:
-            scope = "https://dynamicsessions.io"
+            scope = "https://dynamicsessions.io/.default"
             self._access_token = self._credential.get_token(scope).token
 
     def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
@@ -458,3 +458,13 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
         self._access_token = None
         self._available_packages = None
         self._setup_cwd_complete = False
+
+    async def start(self) -> None:
+        """(Experimental) Start the code executor."""
+        # No setup needed for this executor
+        pass
+
+    async def stop(self) -> None:
+        """(Experimental) Stop the code executor."""
+        # No cleanup needed for this executor
+        pass

@@ -98,7 +98,14 @@ async def test_commandline_code_executor_cancellation() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         cancellation_token = CancellationToken()
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
-        code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
+        # Write code that sleep for 10 seconds and then write "hello world!"
+        # to a file.
+        code = """import time
+time.sleep(10)
+with open("hello.txt", "w") as f:
+    f.write("hello world!")
+"""
+        code_blocks = [CodeBlock(code=code, language="python")]
 
         coro = executor.execute_code_blocks(code_blocks, cancellation_token)
 
@@ -107,6 +114,10 @@ async def test_commandline_code_executor_cancellation() -> None:
         code_result = await coro
 
         assert code_result.exit_code and "Cancelled" in code_result.output
+
+        # Check if the file is not created.
+        hello_file = Path(temp_dir) / "hello.txt"
+        assert not hello_file.exists()
 
 
 @pytest.mark.asyncio
