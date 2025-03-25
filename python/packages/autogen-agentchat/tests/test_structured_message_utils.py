@@ -68,7 +68,6 @@ def sample_json_schema_complex():
     return ComplexModel.model_json_schema()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "schema_fixture, model_name, expected_fields",
     [
@@ -78,17 +77,16 @@ def sample_json_schema_complex():
         (sample_json_schema_complex, "ComplexModel", ["user", "extra_info", "sub_items"]),
     ],
 )
-async def test_json_schema_to_pydantic(converter, schema_fixture, model_name, expected_fields, request):
+def test_json_schema_to_pydantic(converter, schema_fixture, model_name, expected_fields, request):
     """Test conversion of JSON Schema to Pydantic model using the class instance."""
     schema = request.getfixturevalue(schema_fixture.__name__)
-    Model = await converter.json_schema_to_pydantic(schema, model_name)
+    Model = converter.json_schema_to_pydantic(schema, model_name)
 
     for field in expected_fields:
         assert field in Model.__annotations__, f"Expected '{field}' missing in {model_name}Model"
 
 
 # ✅ **Valid Data Tests**
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "schema_fixture, model_name, valid_data",
     [
@@ -152,17 +150,16 @@ async def test_json_schema_to_pydantic(converter, schema_fixture, model_name, ex
         ),
     ],
 )
-async def test_valid_data_model(converter, schema_fixture, model_name, valid_data, request):
+def test_valid_data_model(converter, schema_fixture, model_name, valid_data, request):
     """Test that valid data is accepted by the generated model."""
     schema = request.getfixturevalue(schema_fixture.__name__)
-    Model = await converter.json_schema_to_pydantic(schema, model_name)
+    Model = converter.json_schema_to_pydantic(schema, model_name)
 
     instance = Model(**valid_data)
     assert instance
 
 
 # ✅ **Invalid Data Tests**
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "schema_fixture, model_name, invalid_data",
     [
@@ -226,10 +223,10 @@ async def test_valid_data_model(converter, schema_fixture, model_name, valid_dat
         ),
     ],
 )
-async def test_invalid_data_model(converter, schema_fixture, model_name, invalid_data, request):
+def test_invalid_data_model(converter, schema_fixture, model_name, invalid_data, request):
     """Test that invalid data raises ValidationError."""
     schema = request.getfixturevalue(schema_fixture.__name__)
-    Model = await converter.json_schema_to_pydantic(schema, model_name)
+    Model = converter.json_schema_to_pydantic(schema, model_name)
 
     with pytest.raises(ValidationError):
         Model(**invalid_data)
@@ -271,7 +268,6 @@ def sample_json_schema_nested_list():
     return NestedListModel.model_json_schema()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "schema_fixture, model_name, expected_fields",
     [
@@ -280,17 +276,16 @@ def sample_json_schema_nested_list():
         (sample_json_schema_nested_list, "NestedListModel", ["matrix"]),
     ],
 )
-async def test_json_schema_to_pydantic_nested(converter, schema_fixture, model_name, expected_fields, request):
+def test_json_schema_to_pydantic_nested(converter, schema_fixture, model_name, expected_fields, request):
     """Test conversion of JSON Schema to Pydantic model using the class instance."""
     schema = request.getfixturevalue(schema_fixture.__name__)
-    Model = await converter.json_schema_to_pydantic(schema, model_name)
+    Model = converter.json_schema_to_pydantic(schema, model_name)
 
     for field in expected_fields:
         assert field in Model.__annotations__, f"Expected '{field}' missing in {model_name}Model"
 
 
 # ✅ **Valid Data Tests**
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "schema_fixture, model_name, valid_data",
     [
@@ -322,17 +317,16 @@ async def test_json_schema_to_pydantic_nested(converter, schema_fixture, model_n
         ),
     ],
 )
-async def test_valid_data_model_nested(converter, schema_fixture, model_name, valid_data, request):
+def test_valid_data_model_nested(converter, schema_fixture, model_name, valid_data, request):
     """Test that valid data is accepted by the generated model."""
     schema = request.getfixturevalue(schema_fixture.__name__)
-    Model = await converter.json_schema_to_pydantic(schema, model_name)
+    Model = converter.json_schema_to_pydantic(schema, model_name)
 
     instance = Model(**valid_data)
     assert instance
 
 
 # ✅ **Invalid Data Tests**
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "schema_fixture, model_name, invalid_data",
     [
@@ -359,10 +353,10 @@ async def test_valid_data_model_nested(converter, schema_fixture, model_name, va
         ),
     ],
 )
-async def test_invalid_data_model_nested(converter, schema_fixture, model_name, invalid_data, request):
+def test_invalid_data_model_nested(converter, schema_fixture, model_name, invalid_data, request):
     """Test that invalid data raises ValidationError."""
     schema = request.getfixturevalue(schema_fixture.__name__)
-    Model = await converter.json_schema_to_pydantic(schema, model_name)
+    Model = converter.json_schema_to_pydantic(schema, model_name)
 
     with pytest.raises(ValidationError):
         Model(**invalid_data)

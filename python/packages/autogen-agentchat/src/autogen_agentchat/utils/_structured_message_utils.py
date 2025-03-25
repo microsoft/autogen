@@ -100,7 +100,7 @@ class JSONSchemaToPydantic:
 
         return self._model_cache[ref_name]
 
-    async def _process_definitions(self, root_schema: Dict[str, Any]):
+    def _process_definitions(self, root_schema: Dict[str, Any]):
         """Preprocess all `$defs` models to ensure they are available before field processing."""
         if "$defs" in root_schema:
             for model_name, _ in root_schema["$defs"].items():
@@ -111,12 +111,12 @@ class JSONSchemaToPydantic:
             for model_name, model_schema in root_schema["$defs"].items():
                 if self._model_cache[model_name] is None:  # Only process if not fully created
                     logger.debug(f"[DEBUG] Processing `$defs` model `{model_name}`")
-                    self._model_cache[model_name] = await self.json_schema_to_pydantic(
+                    self._model_cache[model_name] = self.json_schema_to_pydantic(
                         model_schema, model_name, root_schema
                     )
                     logger.debug(f"[DEBUG] Completed `$defs` model `{model_name}`")
 
-    async def json_schema_to_pydantic(
+    def json_schema_to_pydantic(
         self, schema: Dict[str, Any], model_name: str = "GeneratedModel", root_schema: Dict[str, Any] = None
     ) -> Type[BaseModel]:
         """Converts JSON Schema into a Pydantic model."""
@@ -125,14 +125,14 @@ class JSONSchemaToPydantic:
         if root_schema is None:
             root_schema = schema
             logger.debug("[DEBUG] Processing `$defs` before handling fields...")
-            await self._process_definitions(root_schema)
+            self._process_definitions(root_schema)
 
         if "$ref" in schema:
             schema = self._resolve_ref(schema["$ref"], root_schema)
 
-        return await self.json_schema_to_pydantic_no_refs(schema, model_name, root_schema)
+        return self.json_schema_to_pydantic_no_refs(schema, model_name, root_schema)
 
-    async def json_schema_to_pydantic_no_refs(
+    def json_schema_to_pydantic_no_refs(
         self, schema: Dict[str, Any], model_name: str, root_schema: Dict[str, Any]
     ) -> Type[BaseModel]:
         """Processes schema **without resolving `$ref` dynamically**, ensuring all `$defs` are preprocessed first."""
@@ -170,7 +170,7 @@ class JSONSchemaToPydantic:
                 field_type = Union[tuple(sub_models)] if key in required_fields else Optional[Union[tuple(sub_models)]]
 
             elif json_type == "object" and "properties" in value:
-                field_type = await self.json_schema_to_pydantic_no_refs(value, f"{model_name}_{key}", root_schema)
+                field_type = self.json_schema_to_pydantic_no_refs(value, f"{model_name}_{key}", root_schema)
 
             elif json_type == "array" and "items" in value:
                 item_schema = value["items"]
