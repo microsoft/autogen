@@ -2,7 +2,7 @@ import asyncio
 import logging
 import traceback
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Union
 
 from autogen_agentchat.base._task import TaskResult
 from autogen_agentchat.messages import (
@@ -17,6 +17,7 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
 )
 from autogen_core import CancellationToken
+from autogen_core import Image as AGImage
 from fastapi import WebSocket, WebSocketDisconnect
 
 from ...database import DatabaseManager
@@ -159,7 +160,7 @@ class WebSocketManager:
         finally:
             self._cancellation_tokens.pop(run_id, None)
 
-    async def _save_message(self, run_id: int, message: AgentEvent | ChatMessage) -> None:
+    async def _save_message(self, run_id: int, message: Union[AgentEvent | ChatMessage, ChatMessage]) -> None:
         """Save a message to the database"""
 
         run = await self._get_run(run_id)
