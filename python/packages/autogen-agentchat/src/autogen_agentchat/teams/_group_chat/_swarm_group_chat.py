@@ -23,7 +23,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[ChatMessage | AgentEvent | GroupChatTermination],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
@@ -77,7 +77,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             await self._termination_condition.reset()
         self._current_speaker = self._participant_names[0]
 
-    async def select_speaker(self, thread: List[ChatMessage | AgentEvent]) -> str:
+    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Select a speaker from the participants based on handoff message.
         Looks for the last handoff message in the thread to determine the next speaker."""
         if len(thread) == 0:
@@ -212,7 +212,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
-        custom_message_types: List[type[ChatMessage | AgentEvent]] | None = None,
+        custom_message_types: List[type[AgentEvent | ChatMessage]] | None = None,
     ) -> None:
         super().__init__(
             participants,
@@ -236,7 +236,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[ChatMessage | AgentEvent | GroupChatTermination],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,

@@ -343,7 +343,7 @@ class PageLogger:
         if self.level > self.levels["INFO"]:
             return None
 
-        messages: Sequence[ChatMessage | AgentEvent] = task_result.messages
+        messages: Sequence[AgentEvent | ChatMessage] = task_result.messages
         message = messages[-1]
         response_str = message.content
         if not isinstance(response_str, str):

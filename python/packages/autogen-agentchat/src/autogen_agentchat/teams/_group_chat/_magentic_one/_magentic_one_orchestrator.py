@@ -66,7 +66,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         model_client: ChatCompletionClient,
         max_stalls: int,
         final_answer_prompt: str,
-        output_message_queue: asyncio.Queue[ChatMessage | AgentEvent | GroupChatTermination],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
     ):
         super().__init__(
@@ -184,7 +184,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:  # type: ignore
-        delta: List[ChatMessage | AgentEvent] = []
+        delta: List[AgentEvent | ChatMessage] = []
         if message.agent_response.inner_messages is not None:
             for inner_message in message.agent_response.inner_messages:
                 delta.append(inner_message)
@@ -226,7 +226,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._n_rounds = orchestrator_state.n_rounds
         self._n_stalls = orchestrator_state.n_stalls
 
-    async def select_speaker(self, thread: List[ChatMessage | AgentEvent]) -> str:
+    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Not used in this orchestrator, we select next speaker in _orchestrate_step."""
         return ""
 

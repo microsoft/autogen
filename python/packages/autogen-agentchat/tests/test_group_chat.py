@@ -821,7 +821,7 @@ async def test_selector_group_chat_custom_selector(runtime: AgentRuntime | None)
     agent3 = _EchoAgent("agent3", description="echo agent 3")
     agent4 = _EchoAgent("agent4", description="echo agent 4")
 
-    def _select_agent(messages: Sequence[ChatMessage | AgentEvent]) -> str | None:
+    def _select_agent(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
         if len(messages) == 0:
             return "agent1"
         elif messages[-1].source == "agent1":
@@ -862,7 +862,7 @@ async def test_selector_group_chat_custom_candidate_func(runtime: AgentRuntime |
     agent3 = _EchoAgent("agent3", description="echo agent 3")
     agent4 = _EchoAgent("agent4", description="echo agent 4")
 
-    def _candidate_func(messages: Sequence[ChatMessage | AgentEvent]) -> List[str]:
+    def _candidate_func(messages: Sequence[AgentEvent | ChatMessage]) -> List[str]:
         if len(messages) == 0:
             return ["agent1"]
         elif messages[-1].source == "agent1":

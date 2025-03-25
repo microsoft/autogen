@@ -339,7 +339,7 @@ class MessageFactory:
     """
 
     def __init__(self) -> None:
-        self._message_types: Dict[str, type[ChatMessage | AgentEvent]] = {}
+        self._message_types: Dict[str, type[AgentEvent | ChatMessage]] = {}
         # Register all message types.
         self._message_types[TextMessage.__name__] = TextMessage
         self._message_types[MultiModalMessage.__name__] = MultiModalMessage
@@ -353,14 +353,14 @@ class MessageFactory:
         self._message_types[ModelClientStreamingChunkEvent.__name__] = ModelClientStreamingChunkEvent
         self._message_types[ThoughtEvent.__name__] = ThoughtEvent
 
-    def is_registered(self, message_type: type[ChatMessage | AgentEvent]) -> bool:
+    def is_registered(self, message_type: type[AgentEvent | ChatMessage]) -> bool:
         """Check if a message type is registered with the factory."""
         # Get the class name of the message type.
         class_name = message_type.__name__
         # Check if the class name is already registered.
         return class_name in self._message_types
 
-    def register(self, message_type: type[ChatMessage | AgentEvent]) -> None:
+    def register(self, message_type: type[AgentEvent | ChatMessage]) -> None:
         """Register a new message type with the factory."""
         if self.is_registered(message_type):
             raise ValueError(f"Message type {message_type} is already registered.")
@@ -372,7 +372,7 @@ class MessageFactory:
         # Register the message type.
         self._message_types[class_name] = message_type
 
-    def create(self, data: Mapping[str, Any]) -> ChatMessage | AgentEvent:
+    def create(self, data: Mapping[str, Any]) -> AgentEvent | ChatMessage:
         """Create a message from a dictionary of JSON-serializable data."""
         # Get the type of the message from the dictionary.
         message_type = data.get("type")

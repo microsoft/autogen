@@ -50,7 +50,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
-        custom_message_types: List[type[ChatMessage | AgentEvent]] | None = None,
+        custom_message_types: List[type[AgentEvent | ChatMessage]] | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -90,7 +90,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._output_topic_type = f"output_topic_{self._team_id}"
 
         # The queue for collecting the output messages.
-        self._output_message_queue: asyncio.Queue[ChatMessage | AgentEvent | GroupChatTermination] = asyncio.Queue()
+        self._output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination] = asyncio.Queue()
 
         # Create a runtime for the team.
         if runtime is not None:
@@ -117,7 +117,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[ChatMessage | AgentEvent | GroupChatTermination],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
@@ -299,7 +299,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         *,
         task: str | ChatMessage | Sequence[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[ChatMessage | AgentEvent | TaskResult, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream. Once the
         team is stopped, the termination condition is reset.
@@ -469,7 +469,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 cancellation_token=cancellation_token,
             )
             # Collect the output messages in order.
-            output_messages: List[ChatMessage | AgentEvent] = []
+            output_messages: List[AgentEvent | ChatMessage] = []
             stop_reason: str | None = None
             # Yield the messsages until the queue is empty.
             while True:

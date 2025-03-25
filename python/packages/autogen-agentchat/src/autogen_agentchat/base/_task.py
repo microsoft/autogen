@@ -10,7 +10,7 @@ from ..messages import AgentEvent, ChatMessage
 class TaskResult:
     """Result of running a task."""
 
-    messages: Sequence[ChatMessage | AgentEvent]
+    messages: Sequence[AgentEvent | ChatMessage]
     """Messages produced by the task."""
 
     stop_reason: str | None = None
@@ -40,7 +40,7 @@ class TaskRunner(Protocol):
         *,
         task: str | ChatMessage | Sequence[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[ChatMessage | AgentEvent | TaskResult, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the task and produces a stream of messages and the final result
         :class:`TaskResult` as the last item in the stream.
 

@@ -16,7 +16,7 @@ class Response:
     chat_message: ChatMessage
     """A chat message produced by the agent as the response."""
 
-    inner_messages: Sequence[ChatMessage | AgentEvent] | None = None
+    inner_messages: Sequence[AgentEvent | ChatMessage] | None = None
     """Inner messages produced by the agent."""
 
 
@@ -55,7 +55,7 @@ class ChatAgent(ABC, TaskRunner, ComponentBase[BaseModel]):
     @abstractmethod
     def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[ChatMessage | AgentEvent | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """Handles incoming messages and returns a stream of inner messages and
         and the final item is the response."""
         ...

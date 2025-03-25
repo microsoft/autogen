@@ -207,7 +207,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[ChatMessage | AgentEvent | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """Handle incoming messages by requesting user input."""
         try:
             # Check for handoff first

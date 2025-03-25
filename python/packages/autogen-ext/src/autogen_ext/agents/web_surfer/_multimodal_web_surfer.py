@@ -430,11 +430,11 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[ChatMessage | AgentEvent | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         for chat_message in messages:
             self._chat_history.append(chat_message.content_to_model_message())
 
-        self.inner_messages: List[ChatMessage | AgentEvent] = []
+        self.inner_messages: List[AgentEvent | ChatMessage] = []
         self.model_usage: List[RequestUsage] = []
         try:
             content = await self._generate_reply(cancellation_token=cancellation_token)

@@ -402,7 +402,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[ChatMessage | AgentEvent | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """Handle incoming messages and return a response."""
         await self._ensure_initialized()
 
@@ -411,7 +411,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
             await self.handle_incoming_message(message, cancellation_token)
 
         # Inner messages for tool calls
-        inner_messages: List[ChatMessage | AgentEvent] = []
+        inner_messages: List[AgentEvent | ChatMessage] = []
 
         # Create and start a run
         run: Run = await cancellation_token.link_future(

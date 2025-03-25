@@ -29,7 +29,7 @@ class GroupChatRequestPublish(BaseModel):
 class GroupChatMessage(BaseModel):
     """A message from a group chat."""
 
-    message: ChatMessage | AgentEvent
+    message: AgentEvent | ChatMessage
     """The message that was published."""
 
 

@@ -96,7 +96,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
         # Buffer the message.
         self._message_buffer.append(message)
 
-    async def _log_message(self, message: ChatMessage | AgentEvent) -> None:
+    async def _log_message(self, message: AgentEvent | ChatMessage) -> None:
         if not self._message_factory.is_registered(message.__class__):
             raise ValueError(f"Message type {message.__class__} is not registered.")
         # Log the message.

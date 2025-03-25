@@ -33,7 +33,7 @@ async def _test_selector_group_chat(model_client: ChatCompletionClient) -> None:
 async def _test_selector_group_chat_with_candidate_func(model_client: ChatCompletionClient) -> None:
     filtered_participants = ["developer", "tester"]
 
-    def dummy_candidate_func(thread: Sequence[ChatMessage | AgentEvent]) -> List[str]:
+    def dummy_candidate_func(thread: Sequence[AgentEvent | ChatMessage]) -> List[str]:
         # Dummy candidate function that will return
         # only return developer and reviewer
         return filtered_participants
