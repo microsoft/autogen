@@ -53,7 +53,7 @@ def test_structured_message_component() -> None:
     assert dumped_message["source"] == "test_agent"
     assert dumped_message["content"]["field1"] == "test"
     assert dumped_message["content"]["field2"] == 42
-    assert message.content_to_text() == format_string.format(field1="test", field2=42)
+    assert message.to_model_text() == format_string.format(field1="test", field2=42)
 
 
 def test_message_factory() -> None:

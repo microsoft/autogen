@@ -202,14 +202,20 @@ class StructuredMessage(ChatMessage, Generic[StructuredContentType]):
     format_string: Optional[str] = None
 
     def to_text(self) -> str:
+        if self.format_string is not None:
+            return self.format_string.format(**self.content.model_dump())
+
         return self.content.model_dump_json(indent=2)
 
     def to_model_text(self) -> str:
+        if self.format_string is not None:
+            return self.format_string.format(**self.content.model_dump())
+        
         return self.content.model_dump_json()
 
     def to_model_message(self) -> UserMessage:
         return UserMessage(
-            content=self.content_to_model_text(),
+            content=self.to_model_text(),
             source=self.source,
         )
 
