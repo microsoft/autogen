@@ -1,11 +1,13 @@
 import os
 import re
-from typing import List, Optional, Set
 
-from openai import OpenAI
+from typing import List, Set, Optional
 from pydantic import BaseModel
 
-from .._base import BaseQualitativeCoder, Code, CodedDocument, Document
+from openai import OpenAI
+
+from .._base import CodedDocument, Document, Code
+from .._base import BaseQualitativeCoder
 
 
 class CodeList(BaseModel):

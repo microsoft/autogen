@@ -2,20 +2,22 @@ import asyncio
 import os
 import yaml
 import warnings
-from typing import List, Sequence
+from typing import Sequence
 from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.conditions import MaxMessageTermination
 from autogen_agentchat.ui import Console
 from autogen_agentchat.utils import content_to_str
+from autogen_core.models import ModelFamily
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.base import TerminationCondition, TerminatedException
 from autogen_core.models import ChatCompletionClient
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_agentchat.agents import CodeExecutorAgent
-from autogen_agentchat.messages import ChatMessage, AgentEvent, TextMessage, MultiModalMessage, StopMessage
-from autogen_core.models import LLMMessage, UserMessage
+from autogen_agentchat.messages import TextMessage, AgentEvent, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage
+from autogen_core.models import LLMMessage, UserMessage, AssistantMessage
 
 # Suppress warnings about the requests.Session() not being closed
 warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
@@ -90,7 +92,7 @@ If so, reply "TERMINATE", otherwise reply "CONTINUE"
     result = await Console(stream)
 
     # Do one more inference to format the results
-    final_context: List[LLMMessage] = []
+    final_context: Sequence[LLMMessage] = []
     for message in result.messages:
         if isinstance(message, TextMessage):
             final_context.append(UserMessage(content=message.content, source=message.source))
@@ -133,13 +135,13 @@ class LLMTermination(TerminationCondition):
         self._model_client = model_client
         self._termination_phrase = termination_phrase
         self._terminated = False
-        self._context: List[LLMMessage] = []
+        self._context: Sequence[LLMMessage] = []
 
     @property
     def terminated(self) -> bool:
         return self._terminated
 
-    async def __call__(self, messages: Sequence[ChatMessage | AgentEvent]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
 
