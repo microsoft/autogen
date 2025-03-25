@@ -10,7 +10,6 @@ from ..messages import (
     BaseChatMessage,
     BaseMessage,
     HandoffMessage,
-    MultiModalMessage,
     StopMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -109,8 +108,7 @@ class TextMentionTerminationConfig(BaseModel):
 
 
 class TextMentionTermination(TerminationCondition, Component[TextMentionTerminationConfig]):
-    """Terminate the conversation if a specific text is mentioned.
-
+    """Terminate the conversation if a specific text is mentioned in any :class:`~autogen_agentchat.messages.BaseChatMessage`.
 
     Args:
         text: The text to look for in the messages.
@@ -136,18 +134,12 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
             if self._sources is not None and message.source not in self._sources:
                 continue
 
-            if isinstance(message.content, str) and self._termination_text in message.content:
+            content = message.content_to_render()
+            if self._termination_text in content:
                 self._terminated = True
                 return StopMessage(
                     content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination"
                 )
-            elif isinstance(message, MultiModalMessage):
-                for item in message.content:
-                    if isinstance(item, str) and self._termination_text in item:
-                        self._terminated = True
-                        return StopMessage(
-                            content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination"
-                        )
         return None
 
     async def reset(self) -> None:

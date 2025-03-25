@@ -762,6 +762,7 @@ async def test_model_client_stream() -> None:
     chunks: List[str] = []
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
             assert message.messages[-1].content == "Response to message 3"
         elif isinstance(message, ModelClientStreamingChunkEvent):
             chunks.append(message.content)
@@ -795,11 +796,14 @@ async def test_model_client_stream_with_tool_calls() -> None:
     chunks: List[str] = []
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
+            assert isinstance(message.messages[1], ToolCallRequestEvent)
             assert message.messages[-1].content == "Example response 2 to task"
             assert message.messages[1].content == [
                 FunctionCall(id="1", name="_pass_function", arguments=r'{"input": "task"}'),
                 FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
             ]
+            assert isinstance(message.messages[2], ToolCallExecutionEvent)
             assert message.messages[2].content == [
                 FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="_pass_function"),
                 FunctionExecutionResult(call_id="3", content="task", is_error=False, name="_echo_function"),

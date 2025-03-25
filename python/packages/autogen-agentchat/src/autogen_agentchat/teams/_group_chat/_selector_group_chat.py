@@ -16,7 +16,6 @@ from ...messages import (
     BaseChatMessage,
     BaseMessage,
     MessageFactory,
-    MultiModalMessage,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -157,11 +156,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             if not isinstance(msg, BaseChatMessage):
                 # Only process chat messages.
                 continue
-            message = f"{msg.source}:"
-            if isinstance(msg, MultiModalMessage):
-                message += f" {msg.content_to_str(image_placeholder='[image]')}"
-            else:
-                message += f" {msg.content_to_str()}"
+            message = f"{msg.source}: {msg.content_to_model_text()}"
             history_messages.append(
                 message.rstrip() + "\n\n"
             )  # Create some consistency for how messages are separated in the transcript
