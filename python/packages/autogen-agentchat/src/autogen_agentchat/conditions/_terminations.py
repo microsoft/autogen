@@ -8,8 +8,10 @@ from typing_extensions import Self
 from ..base import TerminatedException, TerminationCondition
 from ..messages import (
     AgentEvent,
+    BaseChatMessage,
     ChatMessage,
     HandoffMessage,
+    MultiModalMessage,
     StopMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -82,7 +84,7 @@ class MaxMessageTermination(TerminationCondition, Component[MaxMessageTerminatio
     async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self.terminated:
             raise TerminatedException("Termination condition has already been reached")
-        self._message_count += len([m for m in messages if self._include_agent_event or isinstance(m, ChatMessage)])
+        self._message_count += len([m for m in messages if self._include_agent_event or isinstance(m, BaseChatMessage)])
         if self._message_count >= self._max_messages:
             return StopMessage(
                 content=f"Maximum number of messages {self._max_messages} reached, current message count: {self._message_count}",
@@ -108,7 +110,8 @@ class TextMentionTerminationConfig(BaseModel):
 
 
 class TextMentionTermination(TerminationCondition, Component[TextMentionTerminationConfig]):
-    """Terminate the conversation if a specific text is mentioned in any :class:`~autogen_agentchat.messages.ChatMessage`.
+    """Terminate the conversation if a specific text is mentioned.
+
 
     Args:
         text: The text to look for in the messages.
@@ -134,12 +137,18 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
             if self._sources is not None and message.source not in self._sources:
                 continue
 
-            content = message.content_to_text()
-            if self._termination_text in content:
+            if isinstance(message.content, str) and self._termination_text in message.content:
                 self._terminated = True
                 return StopMessage(
                     content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination"
                 )
+            elif isinstance(message, MultiModalMessage):
+                for item in message.content:
+                    if isinstance(item, str) and self._termination_text in item:
+                        self._terminated = True
+                        return StopMessage(
+                            content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination"
+                        )
         return None
 
     async def reset(self) -> None:

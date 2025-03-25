@@ -17,7 +17,8 @@ class Response:
     """A chat message produced by the agent as the response."""
 
     inner_messages: Sequence[AgentEvent | ChatMessage] | None = None
-    """Inner messages produced by the agent."""
+    """Inner messages produced by the agent, they can be :class:`AgentEvent`
+    or :class:`ChatMessage`."""
 
 
 class ChatAgent(ABC, TaskRunner, ComponentBase[BaseModel]):
