@@ -135,7 +135,6 @@ class ModelClientStreamingChunkEvent(BaseAgentEvent):
     """An event signaling a text output chunk from a model client in streaming mode."""
 
     content: str | None = None
-    reasoning: str | None = None
     """The partial text chunk."""
 
     type: Literal["ModelClientStreamingChunkEvent"] = "ModelClientStreamingChunkEvent"

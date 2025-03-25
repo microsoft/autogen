@@ -873,11 +873,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     model_result = chunk
                 elif isinstance(chunk, str):
                     # output classification
-                    if chunk.startswith("[Thought]"):
-                        thought_content = chunk[len("[Thought]"):].strip()
-                        yield ModelClientStreamingChunkEvent(reasoning=thought_content, source=agent_name)
-                    else:
-                        yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:

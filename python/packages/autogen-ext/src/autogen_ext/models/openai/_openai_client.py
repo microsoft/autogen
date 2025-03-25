@@ -729,7 +729,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         stop_reason = None
         maybe_model = None
         content_deltas: List[str] = []
-        reasoning_deltas: List[str] = []
+        thought_deltas: List[str] = []
         full_tool_calls: Dict[int, FunctionCall] = {}
         completion_tokens = 0
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
@@ -780,40 +780,28 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             stop_reason = choice.finish_reason if chunk.usage is None and stop_reason is None else stop_reason
             maybe_model = chunk.model
 
-            def process_reasoning(reasoning_deltas, content):
-                reasoning_deltas.append(content)
-                return "[Thought]" + content
+            # if there is a reasoning_content field, then we populate the thought field. This is for models such as R1.
+            if (hasattr(choice.delta, 'reasoning_content') and choice.delta.reasoning_content is not None and
+                    choice.delta.reasoning_content != ""):
+                reasoning_content = choice.delta.reasoning_content
+                if not is_reasoning:
+                    reasoning_content = "<think>" + reasoning_content
+                    is_reasoning = True
+                if len(reasoning_content) > 0:
+                    thought_deltas.append(reasoning_content)
+                    yield reasoning_content
+                continue
+            if is_reasoning:
+                reasoning_content = "</think>"
+                thought_deltas.append(reasoning_content)
+                is_reasoning = False
+                yield reasoning_content
+                continue
 
             # First try get content
-            # Separate field acquisition reasoning process
-            if self._model_info["family"] == ModelFamily.R1:
-                if choice.delta.model_extra.get("reasoning_content"):
-                    if len(choice.delta.reasoning_content) > 0:
-                        yield process_reasoning(reasoning_deltas, choice.delta.reasoning_content)
-                    continue
-
             if choice.delta.content:
-                # intercept reasoning process
-                if self._model_info["family"] == ModelFamily.R1:
-                    if choice.delta.content.startswith("<think>"):
-                        is_reasoning = True
-                        choice.delta.content = choice.delta.content[len("<think>"):].strip()
-                        if len(choice.delta.content) > 0:
-                            yield process_reasoning(reasoning_deltas, choice.delta.content)
-                        continue
-                    elif choice.delta.content.endswith("</think>"):
-                        is_reasoning = False
-                        choice.delta.content = choice.delta.content[:-len("</think>")].strip()
-                        if len(choice.delta.content) > 0:
-                            yield process_reasoning(reasoning_deltas, choice.delta.content)
-                        continue
-                    elif is_reasoning:
-                        if len(choice.delta.content) > 0:
-                            yield process_reasoning(reasoning_deltas, choice.delta.content)
-                        continue
-
+                content_deltas.append(choice.delta.content)
                 if len(choice.delta.content) > 0:
-                    content_deltas.append(choice.delta.content)
                     yield choice.delta.content
                 # NOTE: for OpenAI, tool_calls and content are mutually exclusive it seems, so we can skip the rest of the loop.
                 # However, this may not be the case for other APIs -- we should expect this may need to be updated.
@@ -888,10 +876,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
                 content = ""
 
-        # Parse R1 content if needed.
-        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
-            if len(content_deltas) > 0:
-                thought = "".join(reasoning_deltas)
+                # Always set thoughts if we have any, regardless of other content types
+            if thought_deltas:
+                thought = "".join(thought_deltas)
+
+                # This is for local R1 models.
+            if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1 and thought is None:
+                thought, content = parse_r1_content(content)
+
         # Create the result.
         result = CreateResult(
             finish_reason=normalize_stop_reason(stop_reason),
