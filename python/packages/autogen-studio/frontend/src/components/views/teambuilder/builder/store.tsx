@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { isEqual } from "lodash";
+import { clone, isEqual } from "lodash";
 import {
   CustomNode,
   CustomEdge,
@@ -161,8 +161,10 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
               targetNode.data.component.config.tools = [];
             }
             const toolName = getUniqueName(
-              clonedComponent.config.name,
-              targetNode.data.component.config.tools.map((t) => t.config.name)
+              clonedComponent.config.name || clonedComponent.label || "tool",
+              targetNode.data.component.config.tools.map(
+                (t) => t.config.name || t.label || "tool"
+              )
             );
             clonedComponent.config.name = toolName;
             targetNode.data.component.config.tools.push(clonedComponent);

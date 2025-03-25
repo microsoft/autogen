@@ -137,18 +137,26 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       {/* Tab Navigation */}
       <div className="flex border-b border-secondary">
         <button
-          className={`flex items-center px-2 py-1 text-sm font-medium ${
+          style={{ width: "110px" }}
+          className={`flex items-center  px-2 py-1 text-sm font-medium ${
             activeTab === "recent"
               ? "text-accent border-b-2 border-accent"
               : "text-secondary hover:text-primary"
           }`}
           onClick={() => setActiveTab("recent")}
         >
-          <History className="w-4 h-4 mr-1.5" />
-          Recents
-          <span className="ml-1 text-xs">({teams.length})</span>
+          {!isLoading && (
+            <>
+              {" "}
+              <History className="w-4 h-4 mr-1.5" /> Recents{" "}
+              <span className="ml-1 text-xs">({teams.length})</span>
+            </>
+          )}
+
           {isLoading && activeTab === "recent" && (
-            <RefreshCcw className="w-4 h-4 ml-2 animate-spin" />
+            <>
+              Loading <RefreshCcw className="w-4 h-4 ml-2 animate-spin" />
+            </>
           )}
         </button>
         <button

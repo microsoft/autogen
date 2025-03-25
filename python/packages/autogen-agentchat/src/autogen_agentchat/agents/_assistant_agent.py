@@ -73,6 +73,7 @@ class AssistantAgentConfig(BaseModel):
     model_client_stream: bool = False
     reflect_on_tool_use: bool
     tool_call_summary_format: str
+    metadata: Dict[str, str] | None = None
 
 
 class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
@@ -169,6 +170,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             Available variables: `{tool_name}`, `{arguments}`, `{result}`.
             For example, `"{tool_name}: {result}"` will create a summary like `"tool_name: result"`.
         memory (Sequence[Memory] | None, optional): The memory store to use for the agent. Defaults to `None`.
+        metadata (Dict[str, str] | None, optional): Optional metadata for tracking.
 
     Raises:
         ValueError: If tool names are not unique.
@@ -613,8 +615,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
         memory: Sequence[Memory] | None = None,
+        metadata: Dict[str, str] | None = None,
     ):
         super().__init__(name=name, description=description)
+        self._metadata = metadata or {}
         if reflect_on_tool_use and ModelFamily.is_claude(model_client.model_info["family"]):
             warnings.warn(
                 "Claude models may not work with reflection on tool use because Claude requires that any requests including a previous tool use or tool result must include the original tools definition."
@@ -701,6 +705,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         if self._tools:
             message_types.append(ToolCallSummaryMessage)
         return tuple(message_types)
+
+    @property
+    def model_context(self) -> ChatCompletionContext:
+        """
+        The model context in use by the agent.
+        """
+        return self._model_context
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
@@ -961,7 +972,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # STEP 4D: Reflect or summarize tool results
         if reflect_on_tool_use:
-            async for reflection_response in AssistantAgent._reflect_on_tool_use_flow(
+            async for reflection_response in cls._reflect_on_tool_use_flow(
                 system_messages=system_messages,
                 model_client=model_client,
                 model_client_stream=model_client_stream,
@@ -971,7 +982,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             ):
                 yield reflection_response
         else:
-            yield AssistantAgent._summarize_tool_use(
+            yield cls._summarize_tool_use(
                 executed_calls_and_results=executed_calls_and_results,
                 inner_messages=inner_messages,
                 handoffs=handoffs,
@@ -1207,6 +1218,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=self._model_client_stream,
             reflect_on_tool_use=self._reflect_on_tool_use,
             tool_call_summary_format=self._tool_call_summary_format,
+            metadata=self._metadata,
         )
 
     @classmethod
@@ -1224,4 +1236,5 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=config.model_client_stream,
             reflect_on_tool_use=config.reflect_on_tool_use,
             tool_call_summary_format=config.tool_call_summary_format,
+            metadata=config.metadata,
         )

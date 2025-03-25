@@ -154,8 +154,11 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         Args:
             messages (Sequence[LLMMessage]): The messages to send to the model.
             tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
-            json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither. Defaults to None. If set to a type, it will be used as the output type
-                for structured output. If set to a boolean, it will be used to determine whether to use JSON mode or not.
+            json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither.
+                Defaults to None. If set to a `Pydantic BaseModel <https://docs.pydantic.dev/latest/usage/models/#model>`_ type,
+                it will be used as the output type for structured output.
+                If set to a boolean, it will be used to determine whether to use JSON mode or not.
+                If set to `True`, make sure to instruct the model to produce JSON output in the instruction or prompt.
             extra_create_args (Mapping[str, Any], optional): Extra arguments to pass to the underlying client. Defaults to {}.
             cancellation_token (Optional[CancellationToken], optional): A token for cancellation. Defaults to None.
 
@@ -181,8 +184,11 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         Args:
             messages (Sequence[LLMMessage]): The messages to send to the model.
             tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
-            json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither. Defaults to None. If set to a type, it will be used as the output type
-                for structured output. If set to a boolean, it will be used to determine whether to use JSON mode or not.
+            json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither.
+                Defaults to None. If set to a `Pydantic BaseModel <https://docs.pydantic.dev/latest/usage/models/#model>`_ type,
+                it will be used as the output type for structured output.
+                If set to a boolean, it will be used to determine whether to use JSON mode or not.
+                If set to `True`, make sure to instruct the model to produce JSON output in the instruction or prompt.
             extra_create_args (Mapping[str, Any], optional): Extra arguments to pass to the underlying client. Defaults to {}.
             cancellation_token (Optional[CancellationToken], optional): A token for cancellation. Defaults to None.
 

@@ -19,6 +19,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+anthropic = ["anthropic>=0.48"]
 langchain = ["langchain_core~= 0.3.3"]
 azure = [
     "azure-ai-inference>=1.0.0b7",
@@ -27,7 +28,7 @@ azure = [
 ]
 docker = ["docker~=7.0", "asyncio_atexit>=1.0.1"]
 ollama = ["ollama>=0.4.7", "tiktoken>=0.8.0"]
-openai = ["openai>=1.52.2", "tiktoken>=0.8.0", "aiofiles"]
+openai = ["openai>=1.66.5", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
     "autogen-agentchat==0.4.9",
     "magika>=0.6.1rc2",
