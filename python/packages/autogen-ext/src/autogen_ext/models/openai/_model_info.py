@@ -271,6 +271,13 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gemini-1.5-flash-8b": 1048576,
     "gemini-1.5-pro": 2097152,
     "gemini-2.0-flash": 1048576,
+    "gemini-2.0-flash-lite-preview-02-05": 1048576,
+    "claude-3-haiku-20240307": 50000,
+    "claude-3-sonnet-20240229": 40000,
+    "claude-3-opus-20240229": 20000,
+    "claude-3-5-haiku-20241022": 50000,
+    "claude-3-5-sonnet-20241022": 40000,
+    "claude-3-7-sonnet-20250219": 20000,
 }
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
