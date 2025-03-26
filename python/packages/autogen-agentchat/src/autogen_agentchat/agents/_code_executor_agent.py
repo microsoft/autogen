@@ -149,8 +149,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_context: ChatCompletionContext | None = None,
         model_client_stream: bool = False,
         description: str = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks).",
-        system_message: str
-        | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+        system_message: str | None = "You are a Code Execution Agent. Your role is to generate and execute Python code based on user instructions, ensuring correctness, efficiency, and minimal errors. Handle edge cases gracefully.",
         sources: Sequence[str] | None = None,
     ) -> None:
         super().__init__(name=name, description=description)
