@@ -445,8 +445,16 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
-                    raise ValueError("Multiple system messages are not supported")
-                system_message = to_anthropic_type(message)
+                    if isinstance(system_message, str) and isinstance(message.content, str):
+                        # When system_message is not none, merge them
+                        current_system_message = to_anthropic_type(message)
+                        system_message += "\n" + current_system_message
+                    else:
+                        # However system_message is multimodal, do not supported
+                        raise ValueError("Multiple multimodal system messages are not supported")
+                else:
+                    # Setting new system_message
+                    system_message = to_anthropic_type(message)
             else:
                 anthropic_message = to_anthropic_type(message)
                 if isinstance(anthropic_message, list):
@@ -607,8 +615,16 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
-                    raise ValueError("Multiple system messages are not supported")
-                system_message = to_anthropic_type(message)
+                    if isinstance(system_message, str) and isinstance(message.content, str):
+                        # When system_message is not none, merge them
+                        current_system_message = to_anthropic_type(message)
+                        system_message += "\n" + current_system_message
+                    else:
+                        # However system_message is multimodal, do not supported
+                        raise ValueError("Multiple multimodal system messages are not supported")
+                else:
+                    # Setting new system_message
+                    system_message = to_anthropic_type(message)
             else:
                 anthropic_message = to_anthropic_type(message)
                 if isinstance(anthropic_message, list):
