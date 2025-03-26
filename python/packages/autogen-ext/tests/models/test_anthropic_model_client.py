@@ -357,5 +357,9 @@ async def test_anthropic_muliple_system_message() -> None:
     ]
 
     result = await client.create(messages=messages)
-    assert result.content[:3] == "FOO"
-    assert result.content[-3:] == "BAR"
+    result_content = result.content
+    assert isinstance(result_content, str)
+    result_content = result_content.strip()
+    assert result_content[:3] == "FOO"
+    assert result_content[-3:] == "BAR"
+
