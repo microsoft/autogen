@@ -2,7 +2,6 @@ import os
 import re
 from typing import List, Optional, Set
 
-import tiktoken
 from openai import OpenAI
 from pydantic import BaseModel
 
@@ -20,20 +19,6 @@ def remove_control_characters(text: str) -> str:
     """
     return re.sub(r"[\x00-\x1F\x7F]", "", text)
 
-
-def count_tokens(text: str, model_name: str = "gpt-3.5-turbo"):  # Or another model
-    """Counts tokens using tiktoken for a given model.
-    Args:
-        text: The input text string.
-        model_name: The name of the OpenAI model.
-    Returns:
-        The number of tokens in the text.
-    """
-    encoding = tiktoken.encoding_for_model(model_name)  # Load the appropriate encoding
-    tokens = encoding.encode(text)  # Turn the text into tokens
-    return len(tokens)  # Return the count of tokens
-
-
 class OAIQualitativeCoder(BaseQualitativeCoder):
     DEFAULT_MODEL = "gpt-4o"
     MAIN_PROMPT = MAIN_PROMPT
@@ -45,8 +30,6 @@ class OAIQualitativeCoder(BaseQualitativeCoder):
         self.cache_enabled = cache_enabled
 
     def code_document(self, doc: Document, code_set: Optional[Set[Code]] = None) -> Optional[CodedDocument]:
-        if self._is_long_document(doc):
-            raise ValueError("Document is too long for OpenAI to process")
 
         coded_doc = self._code_document(doc)
         if coded_doc is None:
@@ -64,17 +47,6 @@ class OAIQualitativeCoder(BaseQualitativeCoder):
         coded_doc = self._code_document_with_feedback(coded_doc, feedback)
 
         return coded_doc
-
-    def _is_long_document(self, doc: Document) -> bool:
-        """
-        Check if the document is too long for OpenAI to process.
-        """
-        # Define a threshold for the maximum number of tokens
-        max_tokens = 100000
-        num_tokens = count_tokens(doc.text)
-        if num_tokens > max_tokens:
-            return True
-        return False
 
     def _code_document_with_feedback(self, coded_doc: CodedDocument, feedback: str) -> Optional[CodedDocument]:
         """
