@@ -7,7 +7,7 @@ from pydantic import BaseModel
 class StdioServerParams(StdioServerParameters):
     """Parameters for connecting to an MCP server over STDIO."""
 
-    pass
+    read_timeout_seconds: float = 5
 
 
 class SseServerParams(BaseModel):
