@@ -1,14 +1,6 @@
-from typing import Annotated, Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional
 
 from pydantic import BaseModel, Field
-
-from ..messages import (
-    AgentEvent,
-    ChatMessage,
-)
-
-# Ensures pydantic can distinguish between types of events & messages.
-_AgentMessage = Annotated[AgentEvent | ChatMessage, Field(discriminator="type")]
 
 
 class BaseState(BaseModel):
@@ -35,7 +27,7 @@ class TeamState(BaseState):
 class BaseGroupChatManagerState(BaseState):
     """Base state for all group chat managers."""
 
-    message_thread: List[_AgentMessage] = Field(default_factory=list)
+    message_thread: List[Mapping[str, Any]] = Field(default_factory=list)
     current_turn: int = Field(default=0)
     type: str = Field(default="BaseGroupChatManagerState")
 
@@ -44,7 +36,7 @@ class ChatAgentContainerState(BaseState):
     """State for a container of chat agents."""
 
     agent_state: Mapping[str, Any] = Field(default_factory=dict)
-    message_buffer: List[ChatMessage] = Field(default_factory=list)
+    message_buffer: List[Mapping[str, Any]] = Field(default_factory=list)
     type: str = Field(default="ChatAgentContainerState")
 
 

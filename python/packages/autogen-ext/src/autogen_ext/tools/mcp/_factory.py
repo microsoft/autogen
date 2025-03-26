@@ -105,7 +105,7 @@ async def mcp_server_tools(
 
                 # Let the agent fetch the content of a URL and summarize it.
                 result = await agent.run(task="Summarize the content of https://en.wikipedia.org/wiki/Seattle")
-                print(result.messages[-1].content)
+                print(result.messages[-1])
 
 
             asyncio.run(main())
