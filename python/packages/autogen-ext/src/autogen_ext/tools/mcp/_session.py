@@ -19,7 +19,7 @@ async def create_mcp_server_session(
             async with ClientSession(
                 read_stream=read,
                 write_stream=write,
-                read_timeout_seconds=timedelta(seconds=server_params.read_timeout),
+                read_timeout_seconds=timedelta(seconds=server_params.read_timeout_seconds),
             ) as session:
                 yield session
     elif isinstance(server_params, SseServerParams):
