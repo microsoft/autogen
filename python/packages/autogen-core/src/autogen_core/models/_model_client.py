@@ -17,7 +17,7 @@ class ModelFamily:
     """A model family is a group of models that share similar characteristics from a capabilities perspective. This is different to discrete supported features such as vision, function calling, and JSON output.
 
     This namespace class holds constants for the model families that AutoGen understands. Other families definitely exist and can be represented by a string, however, AutoGen will treat them as unknown."""
-
+    GPT_45 = "gpt-45"
     GPT_4O = "gpt-4o"
     O1 = "o1"
     O3 = "o3"
@@ -36,6 +36,7 @@ class ModelFamily:
     UNKNOWN = "unknown"
 
     ANY: TypeAlias = Literal[
+        "gpt-45",
         "gpt-4o",
         "o1",
         "o3",
