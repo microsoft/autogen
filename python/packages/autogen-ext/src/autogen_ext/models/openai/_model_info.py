@@ -18,12 +18,12 @@ _MODEL_POINTERS = {
     "gpt-4-32k": "gpt-4-32k-0613",
     "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
     "gpt-3.5-turbo-16k": "gpt-3.5-turbo-16k-0613",
-    "claude-3-haiku":"claude-3-haiku-20240307",
-    "claude-3-sonnet":"claude-3-sonnet-20240229",
-    "claude-3-opus":"claude-3-opus-20240229",
-    "claude-3.5-haiku":"claude-3-5-haiku-20241022",
-    "claude-3.5-sonnet":"claude-3-5-sonnet-20241022",
-    "claude-3.7-sonnet":"claude-3-7-sonnet-20250219",
+    "claude-3-haiku": "claude-3-haiku-20240307",
+    "claude-3-sonnet": "claude-3-sonnet-20240229",
+    "claude-3-opus": "claude-3-opus-20240229",
+    "claude-3.5-haiku": "claude-3-5-haiku-20241022",
+    "claude-3.5-sonnet": "claude-3-5-sonnet-20241022",
+    "claude-3.7-sonnet": "claude-3-7-sonnet-20250219",
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
@@ -205,45 +205,45 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
     "claude-3-haiku-20240307": {
         "vision": True,
         "function_calling": True,
-        "json_output": False, # Update this when Anthropic supports structured output
+        "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_HAIKU,
         "structured_output": False,
     },
     "claude-3-sonnet-20240229": {
         "vision": True,
         "function_calling": True,
-        "json_output": False, # Update this when Anthropic supports structured output
+        "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_SONNET,
         "structured_output": False,
     },
     "claude-3-opus-20240229": {
         "vision": True,
         "function_calling": True,
-        "json_output": False, # Update this when Anthropic supports structured output
+        "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_OPUS,
         "structured_output": False,
     },
     "claude-3-5-haiku-20241022": {
         "vision": True,
         "function_calling": True,
-        "json_output": False, # Update this when Anthropic supports structured output
+        "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_5_HAIKU,
         "structured_output": False,
     },
     "claude-3-5-sonnet-20241022": {
         "vision": True,
         "function_calling": True,
-        "json_output": False, # Update this when Anthropic supports structured output
+        "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_5_SONNET,
         "structured_output": False,
     },
     "claude-3-7-sonnet-20250219": {
         "vision": True,
         "function_calling": True,
-        "json_output": False, # Update this when Anthropic supports structured output
+        "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_7_SONNET,
         "structured_output": False,
-    }
+    },
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
