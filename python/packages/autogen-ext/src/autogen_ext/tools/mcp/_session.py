@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+from datetime import timedelta
 
 from mcp import ClientSession
 from mcp.client.sse import sse_client
@@ -18,7 +19,7 @@ async def create_mcp_server_session(
             async with ClientSession(
                 read_stream=read,
                 write_stream=write,
-                read_timeout_seconds=server_params.stdio_read_timeout,
+                read_timeout_seconds=timedelta(seconds=server_params.read_timeout),
             ) as session:
                 yield session
     elif isinstance(server_params, SseServerParams):

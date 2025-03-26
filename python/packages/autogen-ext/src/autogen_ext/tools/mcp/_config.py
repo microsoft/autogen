@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import Any, TypeAlias
 
 from mcp import StdioServerParameters
@@ -8,7 +7,7 @@ from pydantic import BaseModel
 class StdioServerParams(StdioServerParameters):
     """Parameters for connecting to an MCP server over STDIO."""
 
-    stdio_read_timeout: timedelta = timedelta(seconds=10)
+    read_timeout: int = 10
 
 
 class SseServerParams(BaseModel):
