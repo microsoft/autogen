@@ -99,7 +99,6 @@ dependencies = [
     { name = "pandas" },
     { name = "scipy" },
     { name = "tabulate" },
-    { name = "tiktoken" },
 ]
 
 [package.dev-dependencies]
@@ -117,7 +116,6 @@ requires-dist = [
     { name = "pandas" },
     { name = "scipy" },
     { name = "tabulate" },
-    { name = "tiktoken" },
 ]
 
 [package.metadata.requires-dev]
