@@ -72,7 +72,7 @@ from openai.types.shared_params import (
 from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
-from autogen_ext.transformation import (
+from ._transformation import (
     get_transformer,
 )
 

@@ -23,7 +23,7 @@ from openai.types.chat import (
     ChatCompletionUserMessageParam,
 )
 
-from autogen_ext.transformation import (
+from ._transformation import (
     TransformerMap,
     build_conditional_transformer_func,
     build_transformer_func,
