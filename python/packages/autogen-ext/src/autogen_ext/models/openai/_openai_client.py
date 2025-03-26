@@ -497,14 +497,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
-        if create_args.get("model", "unknown").startswith('gemini-'):
+        if create_args.get("model", "unknown").startswith("gemini-"):
             # Gemini models accept only one system message(else, it will read only the last one)
             # So, merge system messages into one
             content = ""
             _messages: List[LLMMessage] = []
             for message in messages:
                 if isinstance(message, SystemMessage):
-                    content += message.content +"\n"
+                    content += message.content + "\n"
                 else:
                     _messages.append(message)
             content = content.strip()

@@ -362,4 +362,3 @@ async def test_anthropic_muliple_system_message() -> None:
     result_content = result_content.strip()
     assert result_content[:3] == "FOO"
     assert result_content[-3:] == "BAR"
-

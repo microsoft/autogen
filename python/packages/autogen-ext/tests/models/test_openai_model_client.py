@@ -2067,9 +2067,7 @@ async def test_add_name_prefixes(monkeypatch: pytest.MonkeyPatch) -> None:
         # TODO: Add anthropic models when available.
     ],
 )
-async def test_muliple_system_message(
-    model: str, openai_client: OpenAIChatCompletionClient
-) -> None:
+async def test_muliple_system_message(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     """Test multiple system messages in a single request."""
 
     # Test multiple system messages
@@ -2085,5 +2083,6 @@ async def test_muliple_system_message(
     result_content = result_content.strip()
     assert result_content[:3] == "FOO"
     assert result_content[-3:] == "BAR"
+
 
 # TODO: add integration tests for Azure OpenAI using AAD token.
