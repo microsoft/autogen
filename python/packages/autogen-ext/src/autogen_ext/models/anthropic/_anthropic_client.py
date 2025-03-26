@@ -444,17 +444,17 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         for message in messages:
             if isinstance(message, SystemMessage):
+                current_system_message = to_anthropic_type(message)
                 if system_message is not None:
-                    if isinstance(system_message, str) and isinstance(message.content, str):
+                    if isinstance(system_message, str) and isinstance(current_system_message, str):
                         # When system_message is not none, merge them
-                        current_system_message = to_anthropic_type(message)
                         system_message += "\n" + current_system_message
                     else:
                         # However system_message is multimodal, do not supported
                         raise ValueError("Multiple multimodal system messages are not supported")
                 else:
                     # Setting new system_message
-                    system_message = to_anthropic_type(message)
+                    system_message = current_system_message
             else:
                 anthropic_message = to_anthropic_type(message)
                 if isinstance(anthropic_message, list):
@@ -614,17 +614,17 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         for message in messages:
             if isinstance(message, SystemMessage):
+                current_system_message = to_anthropic_type(message)
                 if system_message is not None:
-                    if isinstance(system_message, str) and isinstance(message.content, str):
+                    if isinstance(system_message, str) and isinstance(current_system_message, str):
                         # When system_message is not none, merge them
-                        current_system_message = to_anthropic_type(message)
                         system_message += "\n" + current_system_message
                     else:
                         # However system_message is multimodal, do not supported
                         raise ValueError("Multiple multimodal system messages are not supported")
                 else:
                     # Setting new system_message
-                    system_message = to_anthropic_type(message)
+                    system_message = current_system_message
             else:
                 anthropic_message = to_anthropic_type(message)
                 if isinstance(anthropic_message, list):

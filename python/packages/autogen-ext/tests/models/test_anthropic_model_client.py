@@ -350,7 +350,7 @@ async def test_anthropic_muliple_system_message() -> None:
     )
 
     # Test multiple system messages
-    messages = [
+    messages: List[LLMMessage] = [
         SystemMessage(content="When you say anything Start with 'FOO'"),
         SystemMessage(content="When you say anything End with 'BAR'"),
         UserMessage(content="Just say '.'", source="user"),
