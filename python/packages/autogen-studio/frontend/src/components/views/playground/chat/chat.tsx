@@ -667,7 +667,10 @@ export default function ChatView({
               onSubmit={runTask}
               loading={loading}
               error={error}
-              disabled={currentRun?.status === "awaiting_input"}
+              disabled={
+                currentRun?.status === "awaiting_input" ||
+                currentRun?.status === "active"
+              }
             />
           </div>
         )}

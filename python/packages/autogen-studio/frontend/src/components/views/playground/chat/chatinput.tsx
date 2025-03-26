@@ -14,6 +14,7 @@ import {
   UploadIcon,
   XIcon,
 } from "lucide-react";
+import { truncateText } from "../../../utils/utils";
 
 // Maximum file size in bytes (5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -291,6 +292,67 @@ export default function ChatInput({
     return <FileTextIcon className="w-4 h-4" />;
   };
 
+  // Add these new event handler functions to the component
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isInputDisabled) {
+      setDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+
+    if (isInputDisabled) return;
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+
+    droppedFiles.forEach((file) => {
+      // Check file size
+      if (file.size > MAX_FILE_SIZE) {
+        message.error(`${file.name} is too large. Maximum size is 5MB.`);
+        return;
+      }
+
+      // Check file type
+      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+        notificationApi.warning({
+          message: <span className="text-sm">Unsupported File Type</span>,
+          description: (
+            <span className="text-sm text-secondary">
+              Please upload only text (.txt) or images (.jpg, .png, .gif, .svg)
+              files.
+            </span>
+          ),
+          showProgress: true,
+          duration: 8.5,
+        });
+        return;
+      }
+
+      // Add to file list
+      const uploadFile: UploadFile = {
+        uid: `file-${Date.now()}-${file.name}`,
+        name: file.name,
+        status: "done",
+        size: file.size,
+        type: file.type,
+        originFileObj: file as RcFile,
+      };
+
+      setFileList((prev) => [...prev, uploadFile]);
+    });
+  };
+
   return (
     <div className="mt-2 w-full">
       {notificationContextHolder}
@@ -303,7 +365,9 @@ export default function ChatInput({
               className="flex items-center gap-1 bg-secondary rounded px-2 py-1 text-xs"
             >
               {getFileIcon(file)}
-              <span className="truncate max-w-[150px]">{file.name}</span>
+              <span className="truncate max-w-[150px]">
+                {truncateText(file.name, 20)}
+              </span>
               <Button
                 type="text"
                 size="small"
@@ -319,9 +383,12 @@ export default function ChatInput({
       )}
 
       <div
-        className={`mt-2 rounded shadow-sm flex mb-1 ${
-          isInputDisabled ? "opacity-50" : ""
-        }`}
+        className={`mt-2 rounded shadow-sm flex mb-1 transition-all duration-200 ${
+          dragOver ? "ring-2 ring-blue-400" : ""
+        } ${isInputDisabled ? "opacity-50" : ""}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <form
           className="flex-1 relative"
@@ -330,6 +397,14 @@ export default function ChatInput({
             handleSubmit();
           }}
         >
+          {dragOver && (
+            <div className="absolute inset-0 bg-blue-100 bg-opacity-60 flex items-center justify-center rounded z-10 pointer-events-none">
+              <div className="text-accent tex-xs   items-center">
+                <UploadIcon className="h-4 w-4 mr-2  inline-block" />
+                <span className="text-xs  inline-block">Drop files here</span>
+              </div>
+            </div>
+          )}
           <textarea
             id="queryInput"
             name="queryInput"
@@ -337,37 +412,49 @@ export default function ChatInput({
             defaultValue={text}
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
-            className={`flex items-center w-full resize-none text-gray-600 rounded border border-accent bg-white p-2 pl-5 pr-16 ${
-              isInputDisabled ? "cursor-not-allowed" : ""
-            }`}
+            className={`flex items-center w-full resize-none text-gray-600 rounded ${
+              dragOver
+                ? "border-2 border-blue-500 bg-blue-50"
+                : "border border-accent bg-white"
+            } p-2 pl-5 pr-16 ${isInputDisabled ? "cursor-not-allowed" : ""}`}
             style={{
               maxHeight: "120px",
               overflowY: "auto",
               minHeight: "50px",
+              transition: "all 0.2s ease-in-out",
             }}
             placeholder={
               dragOver ? "Drop files here..." : "Type your message here..."
             }
             disabled={isInputDisabled}
           />
-          <div className="absolute right-3 bottom-2 flex gap-2">
-            <Upload className="zero-padding-upload  " {...uploadProps}>
-              <Tooltip
-                title=<span className="text-sm">
-                  Upload File{" "}
-                  <span className="text-secondary text-xs">(max 5mb)</span>
-                </span>
-                placement="top"
-              >
-                <Button type="text" disabled={isInputDisabled} className=" ">
-                  <UploadIcon
-                    strokeWidth={2}
-                    size={26}
-                    className="p-1 inline-block w-8 text-accent"
-                  />
-                </Button>
-              </Tooltip>
-            </Upload>
+          <div className={`absolute right-3 bottom-2 flex gap-2`}>
+            <div
+              className={`   ${
+                disabled || isInputDisabled
+                  ? "  opacity-50 pointer-events-none "
+                  : ""
+              }`}
+            >
+              {" "}
+              <Upload className="zero-padding-upload  " {...uploadProps}>
+                <Tooltip
+                  title=<span className="text-sm">
+                    Upload File{" "}
+                    <span className="text-secondary text-xs">(max 5mb)</span>
+                  </span>
+                  placement="top"
+                >
+                  <Button type="text" disabled={isInputDisabled} className=" ">
+                    <UploadIcon
+                      strokeWidth={2}
+                      size={26}
+                      className="p-1 inline-block w-8 text-accent"
+                    />
+                  </Button>
+                </Tooltip>
+              </Upload>
+            </div>
 
             <button
               type="button"
