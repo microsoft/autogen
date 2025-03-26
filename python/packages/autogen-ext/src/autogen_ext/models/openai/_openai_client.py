@@ -71,13 +71,12 @@ from openai.types.shared_params import (
 from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
-from ._transformation import (
-    get_transformer,
-)
-
 from .._utils.normalize_stop_reason import normalize_stop_reason
 from .._utils.parse_r1_content import parse_r1_content
 from . import _model_info
+from ._transformation import (
+    get_transformer,
+)
 from ._utils import assert_valid_name
 from .config import (
     AzureOpenAIClientConfiguration,

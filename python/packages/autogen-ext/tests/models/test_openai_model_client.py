@@ -2095,8 +2095,9 @@ async def test_empty_assistant_content_with_gemini(model: str, openai_client: Op
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("model", ["gemini-1.5-flash"])
-async def test_empty_assistant_content_string_with_gemini(
+# @pytest.mark.parametrize("model", ["gemini-1.5-flash", "claude-3-5-haiku-latest"]) #
+@pytest.mark.parametrize("model", ["gemini-1.5-flash"])  # before add claude-3-5-haiku-latest at openai/_model_info.py
+async def test_empty_assistant_content_string_with_some_model(
     model: str, openai_client: OpenAIChatCompletionClient
 ) -> None:
     # message: assistant is response empty content

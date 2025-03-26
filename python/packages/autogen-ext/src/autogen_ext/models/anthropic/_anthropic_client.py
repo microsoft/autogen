@@ -12,6 +12,7 @@ from typing import (
     AsyncGenerator,
     Coroutine,
     Dict,
+    Iterable,
     List,
     Literal,
     Mapping,
@@ -142,20 +143,33 @@ def get_mime_type_from_image(image: Image) -> Literal["image/jpeg", "image/png",
         return "image/jpeg"
 
 
+def __empty_content_to_whitespace(
+    content: Union[str, List[Union[str, Image]]],
+) -> Union[str, Iterable[Any]]:
+    if isinstance(content, str) and not content.strip():
+        return " "
+    elif isinstance(content, list) and not any(isinstance(x, str) and not x.strip() for x in content):
+        for idx, message in enumerate(content):
+            if isinstance(message, str) and not message.strip():
+                content[idx] = " "
+
+    return content
+
+
 def user_message_to_anthropic(message: UserMessage) -> MessageParam:
     assert_valid_name(message.source)
 
     if isinstance(message.content, str):
         return {
             "role": "user",
-            "content": message.content,
+            "content": __empty_content_to_whitespace(message.content),
         }
     else:
         blocks: List[Union[TextBlockParam, ImageBlockParam]] = []
 
         for part in message.content:
             if isinstance(part, str):
-                blocks.append(TextBlockParam(type="text", text=part))
+                blocks.append(TextBlockParam(type="text", text=cast(str, __empty_content_to_whitespace(part))))
             elif isinstance(part, Image):
                 blocks.append(
                     ImageBlockParam(
@@ -177,7 +191,7 @@ def user_message_to_anthropic(message: UserMessage) -> MessageParam:
 
 
 def system_message_to_anthropic(message: SystemMessage) -> str:
-    return message.content
+    return cast(str, __empty_content_to_whitespace(message.content))
 
 
 def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
@@ -190,6 +204,7 @@ def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
         for func_call in message.content:
             # Parse the arguments and convert to dict if it's a JSON string
             args = func_call.arguments
+            args = cast(str, __empty_content_to_whitespace(args))
             if isinstance(args, str):
                 try:
                     args_dict = json.loads(args)

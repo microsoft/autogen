@@ -29,7 +29,6 @@ from ._transformation import (
     build_transformer_func,
     register_transformer,
 )
-
 from ._utils import assert_valid_name
 
 EMPTY: Dict[str, Any] = {}
@@ -236,7 +235,21 @@ user_transformer_funcs_gemini: Dict[str, List[Callable[[LLMMessage, Dict[str, An
     "multimodal": multimodal_user_transformer_funcs + [_set_empty_to_whitespace],
 }
 
+
 assistant_transformer_funcs_gemini: Dict[str, List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]]] = {
+    "text": single_assistant_transformer_funcs + [_set_empty_to_whitespace],
+    "tools": tools_assistant_transformer_funcs,  # that case, message.content is a list of FunctionCall
+    "thought": thought_assistant_transformer_funcs_gemini,  # that case, message.content is a list of FunctionCall
+}
+
+
+user_transformer_funcs_claude: Dict[str, List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]]] = {
+    "text": single_user_transformer_funcs + [_set_empty_to_whitespace],
+    "multimodal": multimodal_user_transformer_funcs + [_set_empty_to_whitespace],
+}
+
+
+assistant_transformer_funcs_claude: Dict[str, List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]]] = {
     "text": single_assistant_transformer_funcs + [_set_empty_to_whitespace],
     "tools": tools_assistant_transformer_funcs,  # that case, message.content is a list of FunctionCall
     "thought": thought_assistant_transformer_funcs_gemini,  # that case, message.content is a list of FunctionCall
@@ -249,16 +262,6 @@ def function_execution_result_message(
     assert isinstance(message, FunctionExecutionResultMessage)
     return [
         ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id) for x in message.content
-    ]
-
-
-def function_execution_result_message_gemini(
-    message: LLMMessage, context: Dict[str, Any]
-) -> list[ChatCompletionToolMessageParam]:
-    assert isinstance(message, FunctionExecutionResultMessage)
-    return [
-        ChatCompletionToolMessageParam(content=x.content if x.content else " ", role="tool", tool_call_id=x.call_id)
-        for x in message.content
     ]
 
 
@@ -294,6 +297,24 @@ __GEMINI_TRANSFORMER_MAP: TransformerMap = {
     ),
     AssistantMessage: build_conditional_transformer_func(
         funcs_map=assistant_transformer_funcs_gemini,
+        message_param_func_map=assistant_transformer_constructors,
+        condition_func=assistant_condition,
+    ),
+    FunctionExecutionResultMessage: function_execution_result_message,
+}
+
+__CLAUDE_TRANSFORMER_MAP: TransformerMap = {
+    SystemMessage: build_transformer_func(
+        funcs=system_message_transformers + [_set_empty_to_whitespace],
+        message_param_func=ChatCompletionSystemMessageParam,
+    ),
+    UserMessage: build_conditional_transformer_func(
+        funcs_map=user_transformer_funcs_claude,
+        message_param_func_map=user_transformer_constructors,
+        condition_func=user_condition,
+    ),
+    AssistantMessage: build_conditional_transformer_func(
+        funcs_map=assistant_transformer_funcs_claude,
         message_param_func_map=assistant_transformer_constructors,
         condition_func=assistant_condition,
     ),
