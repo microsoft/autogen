@@ -19,6 +19,7 @@ def remove_control_characters(text: str) -> str:
     """
     return re.sub(r"[\x00-\x1F\x7F]", "", text)
 
+
 class OAIQualitativeCoder(BaseQualitativeCoder):
     DEFAULT_MODEL = "gpt-4o"
     MAIN_PROMPT = MAIN_PROMPT
@@ -30,7 +31,6 @@ class OAIQualitativeCoder(BaseQualitativeCoder):
         self.cache_enabled = cache_enabled
 
     def code_document(self, doc: Document, code_set: Optional[Set[Code]] = None) -> Optional[CodedDocument]:
-
         coded_doc = self._code_document(doc)
         if coded_doc is None:
             raise ValueError("Error in coding document with OpenAI")
