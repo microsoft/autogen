@@ -2058,4 +2058,32 @@ async def test_add_name_prefixes(monkeypatch: pytest.MonkeyPatch) -> None:
     assert str(converted_mm["content"][0]["text"]) == "Adam said:\n" + str(oai_mm["content"][0]["text"])
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gpt-4o-mini",
+        "gemini-1.5-flash",
+        # TODO: Add anthropic models when available.
+    ],
+)
+async def test_muliple_system_message(
+    model: str, openai_client: OpenAIChatCompletionClient
+) -> None:
+    """Test multiple system messages in a single request."""
+
+    # Test multiple system messages
+    messages: List[LLMMessage] = [
+        SystemMessage(content="When you say anything Start with 'FOO'"),
+        SystemMessage(content="When you say anything End with 'BAR'"),
+        UserMessage(content="Just say '.'", source="user"),
+    ]
+
+    result = await openai_client.create(messages=messages)
+    result_content = result.content
+    assert isinstance(result_content, str)
+    result_content = result_content.strip()
+    assert result_content[:3] == "FOO"
+    assert result_content[-3:] == "BAR"
+
 # TODO: add integration tests for Azure OpenAI using AAD token.
