@@ -109,7 +109,7 @@ try:
     version_info = version("autogen-ext")
 except PackageNotFoundError:
     version_info = "dev"
-AUTOGEN_USER_AGENT = f"autogen-python/{version_info}"
+AZURE_OPENAI_USER_AGENT = f"autogen-python/{version_info}"
 
 
 def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpenAI:
@@ -123,9 +123,9 @@ def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpe
         azure_config[DEFAULT_HEADERS_KEY] = {}
 
     azure_config[DEFAULT_HEADERS_KEY][USER_AGENT_HEADER_NAME] = (
-        f"{AUTOGEN_USER_AGENT} {azure_config[DEFAULT_HEADERS_KEY][USER_AGENT_HEADER_NAME]}"
+        f"{AZURE_OPENAI_USER_AGENT} {azure_config[DEFAULT_HEADERS_KEY][USER_AGENT_HEADER_NAME]}"
         if USER_AGENT_HEADER_NAME in azure_config[DEFAULT_HEADERS_KEY]
-        else AUTOGEN_USER_AGENT
+        else AZURE_OPENAI_USER_AGENT
     )
 
     return AsyncAzureOpenAI(**azure_config)
@@ -1568,6 +1568,10 @@ class AzureOpenAIChatCompletionClient(
     .. note::
 
         Right now only `DefaultAzureCredential` is supported with no additional args passed to it.
+
+    .. note::
+
+        The Azure OpenAI client by default sets the User-Agent header to `autogen-python/{version}`. To override this, you can set the variable `autogen_ext.models.openai.AZURE_OPENAI_USER_AGENT` environment variable to an empty string.
 
     See `here <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity#chat-completions>`_ for how to use the Azure client directly or for more info.
 
