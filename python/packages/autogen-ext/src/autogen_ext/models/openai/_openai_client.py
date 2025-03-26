@@ -87,6 +87,8 @@ from .config import (
     OpenAIClientConfiguration,
     OpenAIClientConfigurationConfigModel,
 )
+from importlib.metadata import PackageNotFoundError, version
+
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -101,12 +103,31 @@ create_kwargs = set(completion_create_params.CompletionCreateParamsBase.__annota
 disallowed_create_args = set(["stream", "messages", "function_call", "functions", "n"])
 required_create_args: Set[str] = set(["model"])
 
+USER_AGENT_HEADER_NAME = "User-Agent"
+
+try:
+    version_info = version("autogen-ext")
+except PackageNotFoundError:
+    version_info = "dev"
+AZURE_OPENAI_USER_AGENT = f"autogen-python/{version_info}"
+
 
 def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpenAI:
     # Take a copy
     copied_config = dict(config).copy()
     # Shave down the config to just the AzureOpenAIChatCompletionClient kwargs
     azure_config = {k: v for k, v in copied_config.items() if k in aopenai_init_kwargs}
+
+    DEFAULT_HEADERS_KEY = "default_headers"
+    if DEFAULT_HEADERS_KEY not in azure_config:
+        azure_config[DEFAULT_HEADERS_KEY] = {}
+
+    azure_config[DEFAULT_HEADERS_KEY][USER_AGENT_HEADER_NAME] = (
+        f"{AZURE_OPENAI_USER_AGENT} {azure_config[DEFAULT_HEADERS_KEY][USER_AGENT_HEADER_NAME]}"
+        if USER_AGENT_HEADER_NAME in azure_config[DEFAULT_HEADERS_KEY]
+        else AZURE_OPENAI_USER_AGENT
+    )
+
     return AsyncAzureOpenAI(**azure_config)
 
 
@@ -1547,6 +1568,10 @@ class AzureOpenAIChatCompletionClient(
     .. note::
 
         Right now only `DefaultAzureCredential` is supported with no additional args passed to it.
+
+    .. note::
+
+        The Azure OpenAI client by default sets the User-Agent header to `autogen-python/{version}`. To override this, you can set the variable `autogen_ext.models.openai.AZURE_OPENAI_USER_AGENT` environment variable to an empty string.
 
     See `here <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity#chat-completions>`_ for how to use the Azure client directly or for more info.
 
