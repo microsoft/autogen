@@ -334,3 +334,28 @@ async def test_anthropic_serialization() -> None:
     loaded_model_client = AnthropicChatCompletionClient.load_component(model_client_config)
     assert loaded_model_client is not None
     assert isinstance(loaded_model_client, AnthropicChatCompletionClient)
+
+
+@pytest.mark.asyncio
+async def test_anthropic_muliple_system_message() -> None:
+    """Test multiple system messages in a single request."""
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
+
+    # Test multiple system messages
+    messages = [
+        SystemMessage(content="When you say anything Start with 'FOO'"),
+        SystemMessage(content="When you say anything End with 'BAR'"),
+        UserMessage(content="Just say '.'", source="user"),
+    ]
+
+    result = await client.create(messages=messages)
+    assert result.content[:3] == "FOO"
+    assert result.content[-3:] == "BAR"
