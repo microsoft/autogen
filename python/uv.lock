@@ -752,7 +752,7 @@ requires-dist = [
     { name = "markitdown", extras = ["all"], marker = "extra == 'file-surfer'", specifier = "~=0.1.0a3" },
     { name = "markitdown", extras = ["all"], marker = "extra == 'magentic-one'", specifier = "~=0.1.0a3" },
     { name = "markitdown", extras = ["all"], marker = "extra == 'web-surfer'", specifier = "~=0.1.0a3" },
-    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.1.3" },
+    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.5.0" },
     { name = "nbclient", marker = "extra == 'jupyter-executor'", specifier = ">=0.10.2" },
     { name = "ollama", marker = "extra == 'ollama'", specifier = ">=0.4.7" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.66.5" },
@@ -4147,19 +4147,21 @@ wheels = [
 
 [[package]]
 name = "mcp"
-version = "1.1.3"
+version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "httpx" },
     { name = "httpx-sse" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "sse-starlette" },
     { name = "starlette" },
+    { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/60/66ebfd280b197f9a9d074c9e46cb1ac3186a32d12e6bd0425c24fe7cf7e8/mcp-1.1.3.tar.gz", hash = "sha256:af11018b8e9153cdd25f3722ec639fe7a462c00213a330fd6f593968341a9883", size = 57903 }
+sdist = { url = "https://files.pythonhosted.org/packages/6d/c9/c55764824e893fdebe777ac7223200986a275c3191dba9169f8eb6d7c978/mcp-1.5.0.tar.gz", hash = "sha256:5b2766c05e68e01a2034875e250139839498c61792163a7b221fc170c12f5aa9", size = 159128 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/08/cfcfa13e41f8d27503c51a8cbf1939d720073ace92469d08655bb5de1b24/mcp-1.1.3-py3-none-any.whl", hash = "sha256:71462d6cd7c06c14689dfcf110ff22286ba1b608cfc3515c0a5cbe33d131731a", size = 36997 },
+    { url = "https://files.pythonhosted.org/packages/c1/d1/3ff566ecf322077d861f1a68a1ff025cad337417bd66ad22a7c6f7dfcfaf/mcp-1.5.0-py3-none-any.whl", hash = "sha256:51c3f35ce93cb702f7513c12406bbea9665ef75a08db909200b07da9db641527", size = 73734 },
 ]
 
 [[package]]

@@ -22,5 +22,5 @@ class Agent:
             [TextMessage(content=prompt, source="user")],
             CancellationToken(),
         )
-        assert isinstance(response.chat_message.content, str)
+        assert isinstance(response.chat_message, TextMessage)
         return response.chat_message.content
