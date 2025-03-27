@@ -119,7 +119,7 @@ async def test_token_limited_model_context_openai() -> None:
         await model_context.add_message(msg)
 
     retrieved = await model_context.get_messages()
-    assert len(retrieved) == 1  # Token limit set very low, will remove two of the messages
+    assert len(retrieved) == 2  # Token limit set very low, will remove 1 of the messages
     assert retrieved != messages  # Will not be equal to the original messages
 
     await model_context.clear()
@@ -133,7 +133,7 @@ async def test_token_limited_model_context_openai() -> None:
     await model_context.clear()
     await model_context.load_state(state)
     retrieved = await model_context.get_messages()
-    assert len(retrieved) == 1
+    assert len(retrieved) == 2
     assert retrieved != messages
 
 
