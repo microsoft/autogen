@@ -136,6 +136,7 @@ async def test_token_limited_model_context_openai() -> None:
     assert len(retrieved) == 1
     assert retrieved != messages
 
+
 @pytest.mark.asyncio
 async def test_token_limited_model_context_ollama() -> None:
     model_context = TokenLimitedChatCompletionContext(token_limit=20, model="llama2-7b")
