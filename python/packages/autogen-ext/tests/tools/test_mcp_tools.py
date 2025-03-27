@@ -330,7 +330,8 @@ async def test_mcp_server_git() -> None:
     tools = [tool for tool in tools if tool.name == "git_log"]
     assert len(tools) == 1
     tool = tools[0]
-    result = await tool.run_json({"repo_path": "."}, CancellationToken())
+    repo_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
+    result = await tool.run_json({"repo_path": repo_path}, CancellationToken())
     assert result is not None
 
 
