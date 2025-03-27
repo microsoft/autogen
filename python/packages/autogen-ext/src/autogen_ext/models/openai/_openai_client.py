@@ -521,20 +521,26 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if create_args.get("model", "unknown").startswith("gemini-"):
             # Gemini models accept only one system message(else, it will read only the last one)
             # So, merge system messages into one
-            content = ""
+            system_message_content = ""
             _messages: List[LLMMessage] = []
             _first_system_message_idx = -1
+            _last_system_message_idx = -1
             # Index of the first system message for adding the merged system message at the correct position
             for idx, message in enumerate(messages):
                 if isinstance(message, SystemMessage):
                     if _first_system_message_idx == -1:
                         _first_system_message_idx = idx
-                    content += message.content + "\n"
+                    elif _last_system_message_idx + 1 != idx:
+                        # That case, system message is not continuous
+                        # Merge system messages only contiues system messages
+                        raise ValueError("Multiple and Not continuous system messages are not supported")
+                    system_message_content += message.content + "\n"
+                    _last_system_message_idx = idx
                 else:
                     _messages.append(message)
-            content = content.strip()
-            if content:
-                system_message = SystemMessage(content=content)
+            system_message_content = system_message_content.strip()
+            if system_message_content != "":
+                system_message = SystemMessage(content=system_message_content)
                 _messages.insert(_first_system_message_idx, system_message)
             messages = _messages
 
