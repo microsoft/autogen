@@ -543,11 +543,3 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     @property
     def capabilities(self) -> ModelInfo:
         return self.model_info
-
-    def __del__(self) -> None:
-        # TODO: This is a hack to close the open client
-        if hasattr(self, "_client"):
-            try:
-                asyncio.get_running_loop().create_task(self._client.close())
-            except RuntimeError:
-                asyncio.run(self._client.close())
