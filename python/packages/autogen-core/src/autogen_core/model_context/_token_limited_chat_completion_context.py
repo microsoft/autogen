@@ -20,6 +20,7 @@ from openai.types.chat import ChatCompletionContentPartParam
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 
+
 class TokenLimitedChatCompletionContextConfig(BaseModel):
     token_limit: int
     model: str
@@ -68,7 +69,10 @@ class TokenLimitedChatCompletionContext(ChatCompletionContext, Component[TokenLi
     def _from_config(cls, config: TokenLimitedChatCompletionContextConfig) -> Self:
         return cls(**config.model_dump())
 
-def count_chat_tokens(messages: Sequence[LLMMessage], model: str = "gpt-4o", *, tools: Sequence[Tool | ToolSchema] = []) -> int:
+
+def count_chat_tokens(
+    messages: Sequence[LLMMessage], model: str = "gpt-4o", *, tools: Sequence[Tool | ToolSchema] = []
+) -> int:
     """Count tokens for a list of messages using the appropriate client based on the model."""
     try:
         # Check if the model is an OpenAI model
