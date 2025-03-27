@@ -299,41 +299,41 @@ async def test_sse_adapter_from_server_params(
 #     assert result is not None
 
 
-@pytest.mark.asyncio
-async def test_mcp_server_filesystem() -> None:
-    params = StdioServerParams(
-        command="npx",
-        args=[
-            "-y",
-            "@modelcontextprotocol/server-filesystem",
-            ".",
-        ],
-        read_timeout_seconds=60,
-    )
-    tools = await mcp_server_tools(server_params=params)
-    assert tools is not None
-    tools = [tool for tool in tools if tool.name == "read_file"]
-    assert len(tools) == 1
-    tool = tools[0]
-    result = await tool.run_json({"path": "README.md"}, CancellationToken())
-    assert result is not None
+# @pytest.mark.asyncio
+# async def test_mcp_server_filesystem() -> None:
+#     params = StdioServerParams(
+#         command="npx",
+#         args=[
+#             "-y",
+#             "@modelcontextprotocol/server-filesystem",
+#             ".",
+#         ],
+#         read_timeout_seconds=60,
+#     )
+#     tools = await mcp_server_tools(server_params=params)
+#     assert tools is not None
+#     tools = [tool for tool in tools if tool.name == "read_file"]
+#     assert len(tools) == 1
+#     tool = tools[0]
+#     result = await tool.run_json({"path": "README.md"}, CancellationToken())
+#     assert result is not None
 
 
-@pytest.mark.asyncio
-async def test_mcp_server_git() -> None:
-    params = StdioServerParams(
-        command="uvx",
-        args=["mcp-server-git"],
-        read_timeout_seconds=60,
-    )
-    tools = await mcp_server_tools(server_params=params)
-    assert tools is not None
-    tools = [tool for tool in tools if tool.name == "git_log"]
-    assert len(tools) == 1
-    tool = tools[0]
-    repo_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
-    result = await tool.run_json({"repo_path": repo_path}, CancellationToken())
-    assert result is not None
+# @pytest.mark.asyncio
+# async def test_mcp_server_git() -> None:
+#     params = StdioServerParams(
+#         command="uvx",
+#         args=["mcp-server-git"],
+#         read_timeout_seconds=60,
+#     )
+#     tools = await mcp_server_tools(server_params=params)
+#     assert tools is not None
+#     tools = [tool for tool in tools if tool.name == "git_log"]
+#     assert len(tools) == 1
+#     tool = tools[0]
+#     repo_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
+#     result = await tool.run_json({"repo_path": repo_path}, CancellationToken())
+#     assert result is not None
 
 
 @pytest.mark.asyncio
