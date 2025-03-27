@@ -881,8 +881,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 if inspect.isawaitable(agent):
                     agent = cast(T, await agent)
 
-                await agent.init(runtime=self, agent_id=agent_id)
-
                 return agent
 
             except BaseException as e:

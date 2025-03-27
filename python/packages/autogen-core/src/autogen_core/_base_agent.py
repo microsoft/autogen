@@ -10,6 +10,7 @@ from typing_extensions import Self
 
 from ._agent import Agent
 from ._agent_id import AgentId
+from ._agent_instantiation import AgentInstantiationContext
 from ._agent_metadata import AgentMetadata
 from ._agent_runtime import AgentRuntime
 from ._agent_type import AgentType
@@ -81,6 +82,9 @@ class BaseAgent(ABC, Agent):
         return AgentMetadata(key=self._id.key, type=self._id.type, description=self._description)
 
     def __init__(self, description: str) -> None:
+        if AgentInstantiationContext.is_in_runtime():
+            self._runtime: AgentRuntime = AgentInstantiationContext.current_runtime()
+            self._id = AgentInstantiationContext.current_agent_id()
         if not isinstance(description, str):
             raise ValueError("Agent description must be a string")
         self._description = description
