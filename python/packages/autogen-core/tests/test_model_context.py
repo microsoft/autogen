@@ -109,7 +109,7 @@ async def test_unbounded_model_context() -> None:
 
 @pytest.mark.asyncio
 async def test_token_based_model_context() -> None:
-    model_context = TokenBasedChatCompletionContext(token_limit=5, model_family="gpt-4o")
+    model_context = TokenBasedChatCompletionContext(token_limit=5, model="gpt-4o")
     messages: List[LLMMessage] = [
         UserMessage(content="Hello!", source="user"),
         AssistantMessage(content="What can I do for you?", source="assistant"),

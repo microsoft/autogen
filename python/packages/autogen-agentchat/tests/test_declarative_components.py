@@ -105,7 +105,7 @@ async def test_chat_completion_context_declarative() -> None:
     unbounded_context = UnboundedChatCompletionContext()
     buffered_context = BufferedChatCompletionContext(buffer_size=5)
     head_tail_context = HeadAndTailChatCompletionContext(head_size=3, tail_size=2)
-    token_based_context = TokenBasedChatCompletionContext(5, "gpt-4o")
+    token_based_context = TokenBasedChatCompletionContext(token_limit=5, model="gpt-4o")
 
     # Test serialization
     unbounded_config = unbounded_context.dump_component()
@@ -123,7 +123,7 @@ async def test_chat_completion_context_declarative() -> None:
     token_based_config = token_based_context.dump_component()
     assert token_based_config.provider == "autogen_core.model_context.TokenBasedChatCompletionContext"
     assert token_based_config.config["token_limit"] == 5
-    assert token_based_config.config["model_family"] == "gpt-4o"
+    assert token_based_config.config["model"] == "gpt-4o"
 
     # Test deserialization
     loaded_unbounded = ComponentLoader.load_component(unbounded_config, UnboundedChatCompletionContext)
