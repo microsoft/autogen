@@ -7,6 +7,7 @@ from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+import pytest_asyncio
 from autogen_core import CancellationToken
 from autogen_ext.tools.mcp import (
     SseMcpToolAdapter,
@@ -17,7 +18,6 @@ from autogen_ext.tools.mcp import (
 )
 from json_schema_to_pydantic import create_model
 from mcp import ClientSession, Tool
-import pytest_asyncio
 
 
 @pytest.fixture
@@ -319,7 +319,7 @@ async def test_mcp_server_filesystem() -> None:
     tools = [tool for tool in tools if tool.name == "read_file"]
     assert len(tools) == 1
     tool = tools[0]
-    result = await tools[0].run_json({"path": "README.md"}, CancellationToken())
+    result = await tool.run_json({"path": "README.md"}, CancellationToken())
     assert result is not None
 
 
@@ -335,7 +335,7 @@ async def test_mcp_server_git() -> None:
     tools = [tool for tool in tools if tool.name == "git_log"]
     assert len(tools) == 1
     tool = tools[0]
-    result = await tools[0].run_json({"repo_path": "."}, CancellationToken())
+    result = await tool.run_json({"repo_path": "."}, CancellationToken())
     assert result is not None
 
 
@@ -358,7 +358,7 @@ async def test_mcp_server_github() -> None:
     tools = [tool for tool in tools if tool.name == "get_file_contents"]
     assert len(tools) == 1
     tool = tools[0]
-    result = await tools[0].run_json(
+    result = await tool.run_json(
         {"owner": "microsoft", "repo": "autogen", "path": "python", "branch": "main"}, CancellationToken()
     )
     assert result is not None
