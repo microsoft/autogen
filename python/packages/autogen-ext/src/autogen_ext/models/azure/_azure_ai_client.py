@@ -440,6 +440,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+            request_id=getattr(result, "request_id", None),
         )
 
         self.add_usage(usage)
@@ -566,6 +567,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+            request_id=getattr(result, "request_id", None),
         )
 
         # Log the end of the stream.
@@ -611,3 +613,4 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 asyncio.get_running_loop().create_task(self._client.close())
             except RuntimeError:
                 asyncio.run(self._client.close())
+
