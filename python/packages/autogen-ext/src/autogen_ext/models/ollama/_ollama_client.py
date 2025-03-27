@@ -73,10 +73,29 @@ ollama_init_kwargs = set(["host"])
 def _ollama_client_from_config(config: Mapping[str, Any]) -> AsyncClient:
     # Take a copy
     copied_config = dict(config).copy()
-    # Shave down the config to just the AzureOpenAIChatCompletionClient kwargs
+    # Shave down the config to just the AsyncClient kwargs
     ollama_config = {k: v for k, v in copied_config.items() if k in ollama_init_kwargs}
     return AsyncClient(**ollama_config)
 
+
+LLM_CONTROL_PARAMS = {
+    "temperature",
+    "top_p",
+    "top_k",
+    "repeat_penalty",
+    "frequency_penalty",
+    "presence_penalty",
+    "mirostat",
+    "mirostat_eta",
+    "mirostat_tau",
+    "seed",
+    "num_ctx",
+    "num_predict",
+    "num_gpu",
+    "stop",
+    "tfs_z",
+    "typical_p",
+}
 
 ollama_chat_request_fields: dict[str, Any] = [m for m in inspect.getmembers(ChatRequest) if m[0] == "model_fields"][0][
     1
@@ -95,18 +114,31 @@ def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
             DeprecationWarning,
             stacklevel=2,
         )
-    create_args = {k.lower(): v for k, v in config.items() if k.lower() in OLLAMA_VALID_CREATE_KWARGS_KEYS}
-    dropped_keys = [k for k in config.keys() if k.lower() not in OLLAMA_VALID_CREATE_KWARGS_KEYS]
-    trace_logger.info(f"Dropped the following unrecognized keys from create_args: {dropped_keys}")
+
+    create_args: Dict[str, Any] = {}
+    options_dict: Dict[str, Any] = {}
+
+    if "options" in config:
+        if isinstance(config["options"], Mapping):
+            options_map: Mapping[str, Any] = config["options"]
+            options_dict = dict(options_map)
+        else:
+            options_dict = {}
+
+    for k, v in config.items():
+        k_lower = k.lower()
+        if k_lower in OLLAMA_VALID_CREATE_KWARGS_KEYS:
+            create_args[k_lower] = v
+        elif k_lower in LLM_CONTROL_PARAMS:
+            options_dict[k_lower] = v
+            trace_logger.info(f"Moving LLM control parameter '{k}' to options dict")
+        else:
+            trace_logger.info(f"Dropped unrecognized key from create_args: {k}")
+
+    if options_dict:
+        create_args["options"] = options_dict
 
     return create_args
-    # create_args = {k: v for k, v in config.items() if k in create_kwargs}
-    # create_args_keys = set(create_args.keys())
-    # if not required_create_args.issubset(create_args_keys):
-    #     raise ValueError(f"Required create args are missing: {required_create_args - create_args_keys}")
-    # if disallowed_create_args.intersection(create_args_keys):
-    #     raise ValueError(f"Disallowed create args are present: {disallowed_create_args.intersection(create_args_keys)}")
-    # return create_args
 
 
 # TODO check types
@@ -552,6 +584,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         # Detect whether it is a function call or not.
         # We don't rely on choice.finish_reason as it is not always accurate, depending on the API used.
         content: Union[str, List[FunctionCall]]
+        thought: Optional[str] = None
         if result.message.tool_calls is not None:
             # TODO: What are possible values for done_reason?
             if result.done_reason != "tool_calls":
@@ -561,13 +594,8 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                     "This may be due to the API used that is not returning the correct finish reason.",
                     stacklevel=2,
                 )
-            # TODO: Is this still an error condition?
             if result.message.content is not None and result.message.content != "":
-                warnings.warn(
-                    "Both tool_calls and content are present in the message. "
-                    "This is unexpected. content will be ignored, tool_calls will be used.",
-                    stacklevel=2,
-                )
+                thought = result.message.content
             # NOTE: If OAI response type changes, this will need to be updated
             content = [
                 FunctionCall(
@@ -602,6 +630,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             logprobs=None,
+            thought=thought,
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)
@@ -711,7 +740,16 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             raise ValueError("Function calls are not supported in this context")
 
         content: Union[str, List[FunctionCall]]
-        if len(content_chunks) > 1:
+        thought: Optional[str] = None
+
+        if len(content_chunks) > 0 and len(full_tool_calls) > 0:
+            content = full_tool_calls
+            thought = "".join(content_chunks)
+            if chunk and chunk.eval_count:
+                completion_tokens = chunk.eval_count
+            else:
+                completion_tokens = 0
+        elif len(content_chunks) > 1:
             content = "".join(content_chunks)
             if chunk and chunk.eval_count:
                 completion_tokens = chunk.eval_count
@@ -719,11 +757,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                 completion_tokens = 0
         else:
             completion_tokens = 0
-            # TODO: fix assumption that dict values were added in order and actually order by int index
-            # for tool_call in full_tool_calls.values():
-            #     # value = json.dumps(tool_call)
-            #     # completion_tokens += count_token(value, model=model)
-            #     completion_tokens += 0
             content = full_tool_calls
 
         usage = RequestUsage(
@@ -737,6 +770,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             logprobs=None,
+            thought=thought,
         )
 
         # Emit the end event.
