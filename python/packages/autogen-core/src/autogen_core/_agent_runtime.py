@@ -132,9 +132,57 @@ class AgentRuntime(Protocol):
 
     async def register_agent_instance(
         self,
-        agent_id: AgentId,
         agent_instance: T | Awaitable[T],
-    ) -> AgentId: ...
+    ) -> AgentId:
+        """Register an agent instance with the runtime. The type may be reused, but each agent_id must be unique. All agent instances within a type must be of the same object type. This API does not add any subscriptions.
+
+        .. note::
+
+            This is a low level API and usually the agent class's `register_instance` method should be used instead, as this also handles subscriptions automatically.
+
+        Example:
+
+        .. code-block:: python
+
+            from dataclasses import dataclass
+
+            from autogen_core import AgentId, AgentRuntime, MessageContext, RoutedAgent, event
+            from autogen_core.models import UserMessage
+
+
+            @dataclass
+            class MyMessage:
+                content: str
+
+
+            class MyAgent(RoutedAgent):
+                def __init__(self) -> None:
+                    super().__init__("My core agent")
+
+                @event
+                async def handler(self, message: UserMessage, context: MessageContext) -> None:
+                    print("Event received: ", message.content)
+
+
+            async def my_agent_factory():
+                return MyAgent()
+
+
+            async def main() -> None:
+                runtime: AgentRuntime = ...  # type: ignore
+                await runtime.register_agent_instance(runtime=runtime, agent_id=AgentId(type="my_agent", key="default"))
+
+
+            import asyncio
+
+            asyncio.run(main())
+
+
+        Args:
+            agent_id (AgentId): The agent's identifier. The agent's type is `agent_id.type`.
+            agent_instance (T | Awaitable[T]): A concrete instance of the agent.
+        """
+        ...
 
     # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
     async def try_get_underlying_agent_instance(self, id: AgentId, type: Type[T] = Agent) -> T:  # type: ignore[assignment]

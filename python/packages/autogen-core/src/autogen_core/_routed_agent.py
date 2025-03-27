@@ -7,6 +7,7 @@ from typing import (
     DefaultDict,
     List,
     Literal,
+    Optional,
     Protocol,
     Sequence,
     Tuple,
@@ -18,6 +19,8 @@ from typing import (
     runtime_checkable,
 )
 
+from ._agent_id import AgentId
+from ._agent_runtime import AgentRuntime
 from ._base_agent import BaseAgent
 from ._message_context import MessageContext
 from ._serialization import MessageSerializer, try_get_known_serializers_for_type
@@ -457,7 +460,9 @@ class RoutedAgent(BaseAgent):
                 return Response()
     """
 
-    def __init__(self, description: str) -> None:
+    def __init__(
+        self, description: str, runtime: Optional[AgentRuntime] = None, agent_id: Optional[AgentId] = None
+    ) -> None:
         # Self is already bound to the handlers
         self._handlers: DefaultDict[
             Type[Any],
@@ -469,7 +474,7 @@ class RoutedAgent(BaseAgent):
             for target_type in message_handler.target_types:
                 self._handlers[target_type].append(message_handler)
 
-        super().__init__(description)
+        super().__init__(description, runtime, agent_id)
 
     async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any | None:
         """Handle a message by routing it to the appropriate message handler.

@@ -85,29 +85,18 @@ async def test_agent_type_must_be_unique() -> None:
 @pytest.mark.asyncio
 async def test_agent_type_register_instance() -> None:
     runtime = SingleThreadedAgentRuntime()
-    agent1 = NoopAgent()
-    agent2 = NoopAgent()
     agent1_id = AgentId(type="name", key="default")
-    agentdup_id = AgentId(type="name", key="duplicate")
     agent2_id = AgentId(type="name", key="notdefault")
-    await agent1.register_instance(runtime, agent1_id)
-    await agent1.register_instance(runtime, agentdup_id)
-    await agent2.register_instance(runtime, agent2_id)
+    agent1 = NoopAgent(runtime=runtime, agent_id=agent1_id)
+    agent1_dup = NoopAgent(runtime=runtime, agent_id=agent1_id)
+    agent2 = NoopAgent(runtime=runtime, agent_id=agent2_id)
+    await agent1.register_instance()
+    await agent2.register_instance()
 
     assert await runtime.try_get_underlying_agent_instance(agent1_id, type=NoopAgent) == agent1
     assert await runtime.try_get_underlying_agent_instance(agent2_id, type=NoopAgent) == agent2
-    assert await runtime.try_get_underlying_agent_instance(agentdup_id, type=NoopAgent) == agent1
-
-
-@pytest.mark.asyncio
-async def test_agent_type_register_instance_duplicate_ids() -> None:
-    runtime = SingleThreadedAgentRuntime()
-    agent_id = AgentId(type="name", key="default")
-    agent1 = NoopAgent()
-    agent2 = NoopAgent()
-    await agent1.register_instance(runtime, agent_id)
     with pytest.raises(ValueError):
-        await agent2.register_instance(runtime, agent_id)
+        await agent1_dup.register_instance()
 
 
 @pytest.mark.asyncio
@@ -115,19 +104,19 @@ async def test_agent_type_register_instance_different_types() -> None:
     runtime = SingleThreadedAgentRuntime()
     agent_id1 = AgentId(type="name", key="noop")
     agent_id2 = AgentId(type="name", key="loopback")
-    agent1 = NoopAgent()
-    agent2 = LoopbackAgent()
-    await agent1.register_instance(runtime, agent_id1)
+    agent1 = NoopAgent(runtime=runtime, agent_id=agent_id1)
+    agent2 = LoopbackAgent(runtime=runtime, agent_id=agent_id2)
+    await agent1.register_instance()
     with pytest.raises(ValueError):
-        await agent2.register_instance(runtime, agent_id2)
+        await agent2.register_instance()
 
 
 @pytest.mark.asyncio
 async def test_agent_type_register_instance_publish_new_source() -> None:
     runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
     agent_id = AgentId(type="name", key="default")
-    agent1 = LoopbackAgent()
-    await agent1.register_instance(runtime, agent_id)
+    agent1 = LoopbackAgent(runtime=runtime, agent_id=agent_id)
+    await agent1.register_instance()
     await runtime.add_subscription(TypeSubscription("notdefault", "name"))
 
     with pytest.raises(RuntimeError):
@@ -139,9 +128,9 @@ async def test_agent_type_register_instance_publish_new_source() -> None:
 @pytest.mark.asyncio
 async def test_register_instance_factory() -> None:
     runtime = SingleThreadedAgentRuntime()
-    agent1 = NoopAgent()
     agent1_id = AgentId(type="name", key="default")
-    await agent1.register_instance(runtime, agent1_id)
+    agent1 = NoopAgent(runtime=runtime, agent_id=agent1_id)
+    await agent1.register_instance()
     with pytest.raises(ValueError):
         await NoopAgent.register(runtime, "name", lambda: NoopAgent())
 

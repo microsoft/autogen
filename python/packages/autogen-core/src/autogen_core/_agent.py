@@ -17,10 +17,6 @@ class Agent(Protocol):
         """ID of the agent."""
         ...
 
-    async def init(self, **kwargs: Any) -> None:
-        """Function for Agents requiring a two-phase initialization process."""
-        pass
-
     async def on_message(self, message: Any, ctx: MessageContext) -> Any:
         """Message handler for the agent. This should only be called by the runtime, not by other agents.
 

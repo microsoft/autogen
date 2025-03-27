@@ -34,6 +34,7 @@ from ._agent_instantiation import AgentInstantiationContext
 from ._agent_metadata import AgentMetadata
 from ._agent_runtime import AgentRuntime
 from ._agent_type import AgentType
+from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 from ._intervention import DropMessage, InterventionHandler
 from ._message_context import MessageContext
@@ -833,17 +834,22 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     async def register_agent_instance(
         self,
-        agent_id: AgentId,
         agent_instance: T | Awaitable[T],
     ) -> AgentId:
         def agent_factory() -> T:
             raise RuntimeError("Agent factory should not be called when registering an agent instance.")
 
-        if agent_id in self._instantiated_agents:
-            raise ValueError(f"Agent with id {agent_id} already exists.")
-
         if inspect.isawaitable(agent_instance):
             agent_instance = await agent_instance
+
+        # Agent type does not have the concept of a runtime
+        if isinstance(agent_instance, BaseAgent):
+            if agent_instance.runtime is not self:
+                raise ValueError("Agent instance is associated with a different runtime.")
+        agent_id = agent_instance.id
+
+        if agent_id in self._instantiated_agents:
+            raise ValueError(f"Agent with id {agent_id} already exists.")
 
         if agent_id.type not in self._agent_factories:
             self._agent_factories[agent_id.type] = agent_factory
@@ -854,7 +860,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             if self._agent_instance_types[agent_id.type] != type_func_alias(agent_instance):
                 raise ValueError("Agent instances must be the same object type.")
 
-        await agent_instance.init(runtime=self, agent_id=agent_id)
         self._instantiated_agents[agent_id] = agent_instance
         return agent_id
 
