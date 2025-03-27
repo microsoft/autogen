@@ -1,11 +1,12 @@
 import asyncio
+import builtins
 from abc import ABC
 from typing import Any, Generic, Type, TypeVar
 
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 from json_schema_to_pydantic import create_model
-from mcp import McpError, Tool
+from mcp import Tool
 from pydantic import BaseModel
 
 from ._config import McpServerParams
@@ -74,7 +75,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 if result.isError:
                     raise Exception(f"MCP tool execution failed: {result.content}")
                 return result.content
-        except* Exception as e:
+        except Exception as e:
             error_message = self._format_errors(e)
             raise Exception(error_message) from e
 
@@ -110,9 +111,11 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         """Recursively format errors into a string."""
 
         error_message = ""
-        if isinstance(error, ExceptionGroup):
-            for sub_exception in error.exceptions:
-                error_message += self._format_errors(sub_exception)
+        if hasattr(builtins, "ExceptionGroup") and isinstance(error, builtins.ExceptionGroup):
+            # ExceptionGroup is available in Python 3.11+.
+            # TODO: how to make this compatible with Python 3.10?
+            for sub_exception in error.exceptions:  # type: ignore
+                error_message += self._format_errors(sub_exception)  # type: ignore
         else:
             error_message += f"{str(error)}\n"
         return error_message
