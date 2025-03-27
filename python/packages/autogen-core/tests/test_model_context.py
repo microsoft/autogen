@@ -138,7 +138,7 @@ async def test_token_limited_model_context_openai() -> None:
 
 
 @pytest.mark.asyncio
-async def test_token_limited_model_context_ollama() -> None:
+async def test_token_limited_model_context_llama() -> None:
     model_context = TokenLimitedChatCompletionContext(token_limit=20, model="llama2-7b")
     messages: List[LLMMessage] = [
         UserMessage(content="Hello!", source="user"),
