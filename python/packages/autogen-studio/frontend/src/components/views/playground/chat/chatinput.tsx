@@ -57,7 +57,9 @@ export default function ChatInput({
   // Handle textarea auto-resize
   React.useEffect(() => {
     if (textAreaRef.current) {
-      textAreaRef.current.style.height = textAreaDefaultHeight;
+      // Temporarily set height to auto to get proper scrollHeight
+      textAreaRef.current.style.height = "auto";
+      // Then set to the scroll height
       const scrollHeight = textAreaRef.current.scrollHeight;
       textAreaRef.current.style.height = `${scrollHeight}px`;
     }
@@ -409,7 +411,7 @@ export default function ChatInput({
             id="queryInput"
             name="queryInput"
             ref={textAreaRef}
-            defaultValue={text}
+            value={text}
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             className={`flex items-center w-full resize-none text-gray-600 rounded ${

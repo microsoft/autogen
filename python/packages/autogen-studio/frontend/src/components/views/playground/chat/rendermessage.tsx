@@ -101,6 +101,18 @@ export const messageUtils = {
     );
   },
 
+  isNestedMessageContent(content: unknown): content is AgentMessageConfig[] {
+    if (!Array.isArray(content)) return false;
+    return content.every(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        "source" in item &&
+        "content" in item &&
+        "type" in item
+    );
+  },
+
   isMultiModalContent(content: unknown): content is (string | ImageContent)[] {
     if (!Array.isArray(content)) return false;
     return content.every(
@@ -135,6 +147,34 @@ interface MessageProps {
   isLast?: boolean;
   className?: string;
 }
+
+export const RenderNestedMessages: React.FC<{
+  content: AgentMessageConfig[];
+}> = ({ content }) => (
+  <div className="space-y-4">
+    {content.map((item, index) => (
+      <div
+        key={index}
+        className={`${
+          index > 0 ? "border border-secondary rounded p-2 bg-secondary/30" : ""
+        }`}
+      >
+        {typeof item.content === "string" ? (
+          <TruncatableText
+            content={item.content}
+            className={`break-all ${index === 0 ? "text-base" : "text-sm"}`}
+          />
+        ) : messageUtils.isMultiModalContent(item.content) ? (
+          <RenderMultiModal content={item.content} />
+        ) : (
+          <pre className="text-xs whitespace-pre-wrap overflow-x-auto">
+            {JSON.stringify(item.content, null, 2)}
+          </pre>
+        )}
+      </div>
+    ))}
+  </div>
+);
 
 export const RenderMessage: React.FC<MessageProps> = ({
   message,
@@ -187,6 +227,8 @@ export const RenderMessage: React.FC<MessageProps> = ({
               <RenderToolCall content={content} />
             ) : messageUtils.isMultiModalContent(content) ? (
               <RenderMultiModal content={content} />
+            ) : messageUtils.isNestedMessageContent(content) ? (
+              <RenderNestedMessages content={content} />
             ) : messageUtils.isFunctionExecutionResult(content) ? (
               <RenderToolResult content={content} />
             ) : message.source === "llm_call_event" ? (
@@ -198,7 +240,6 @@ export const RenderMessage: React.FC<MessageProps> = ({
               />
             )}
           </div>
-
           {message.models_usage && (
             <div className="text-xs text-secondary mt-1">
               Tokens:{" "}
