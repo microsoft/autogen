@@ -373,7 +373,14 @@ def assert_valid_name(name: str) -> str:
         raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
     return name
 
-def count_tokens_openai(messages: Sequence[LLMMessage], model: str, *, add_name_prefixes: bool = False, tools: Sequence[Tool | ToolSchema] = []) -> int:
+
+def count_tokens_openai(
+    messages: Sequence[LLMMessage],
+    model: str,
+    *,
+    add_name_prefixes: bool = False,
+    tools: Sequence[Tool | ToolSchema] = [],
+) -> int:
     try:
         encoding = tiktoken.encoding_for_model(model)
     except KeyError:
@@ -460,6 +467,7 @@ def count_tokens_openai(messages: Sequence[LLMMessage], model: str, *, add_name_
         num_tokens += tool_tokens
     num_tokens += 12
     return num_tokens
+
 
 @dataclass
 class CreateParams:

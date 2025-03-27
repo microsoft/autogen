@@ -377,6 +377,7 @@ def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
 
     return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
 
+
 # TODO: probably needs work
 def count_tokens_ollama(messages: Sequence[LLMMessage], model: str, *, tools: Sequence[Tool | ToolSchema] = []) -> int:
     try:
@@ -435,6 +436,7 @@ def count_tokens_ollama(messages: Sequence[LLMMessage], model: str, *, tools: Se
         num_tokens += tool_tokens
     num_tokens += 12
     return num_tokens
+
 
 @dataclass
 class CreateParams:
