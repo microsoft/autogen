@@ -1098,7 +1098,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         return self._total_usage
 
     def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
-        return count_tokens_openai(messages, self._create_args["model"], self._add_name_prefixes, tools)
+        return count_tokens_openai(
+            messages,
+            self._create_args["model"],
+            add_name_prefixes=self._add_name_prefixes,
+            tools=tools,
+        )
 
     def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         token_limit = _model_info.get_token_limit(self._create_args["model"])
