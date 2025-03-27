@@ -42,6 +42,12 @@ from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
+DEFAULT_TERMINAL_DESCRIPTION = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)."
+
+DEFAULT_AGENT_DESCRIPTION = "A Code Execution Agent that generates and executes Python and shell scripts based on user instructions. Python code should be provided in ```python code blocks, and sh shell scripts should be provided in ```sh code blocks for execution. It ensures correctness, efficiency, and minimal errors while gracefully handling edge cases."
+
+DEFAULT_SYSTEM_MESSAGE = "You are a Code Execution Agent. Your role is to generate and execute Python code based on user instructions, ensuring correctness, efficiency, and minimal errors. Handle edge cases gracefully."
+
 
 class CodeExecutorAgentConfig(BaseModel):
     """Configuration for CodeExecutorAgent"""
@@ -49,7 +55,7 @@ class CodeExecutorAgentConfig(BaseModel):
     name: str
     code_executor: ComponentModel
     model_client: ComponentModel | None
-    description: str = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)."
+    description: str | None = None
     sources: List[str] | None = None
     system_message: str | None = None
     model_client_stream: bool = False
@@ -148,10 +154,16 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_client: ChatCompletionClient | None = None,
         model_context: ChatCompletionContext | None = None,
         model_client_stream: bool = False,
-        description: str = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks).",
-        system_message: str | None = "You are a Code Execution Agent. Your role is to generate and execute Python code based on user instructions, ensuring correctness, efficiency, and minimal errors. Handle edge cases gracefully.",
+        description: str | None = None,
+        system_message: str | None = DEFAULT_SYSTEM_MESSAGE,
         sources: Sequence[str] | None = None,
     ) -> None:
+        if description is None:
+            if model_client is None:
+                description = DEFAULT_TERMINAL_DESCRIPTION
+            else:
+                description = DEFAULT_AGENT_DESCRIPTION
+
         super().__init__(name=name, description=description)
         self._code_executor = code_executor
         self._sources = sources
