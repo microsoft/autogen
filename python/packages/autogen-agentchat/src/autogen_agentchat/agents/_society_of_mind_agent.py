@@ -1,7 +1,7 @@
 from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
 from autogen_core import CancellationToken, Component, ComponentModel
-from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -11,7 +11,6 @@ from autogen_agentchat.state import SocietyOfMindAgentState
 from ..base import TaskResult, Team
 from ..messages import (
     AgentEvent,
-    BaseChatMessage,
     ChatMessage,
     ModelClientStreamingChunkEvent,
     TextMessage,
@@ -167,13 +166,9 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         else:
             # Generate a response using the model client.
             llm_messages: List[LLMMessage] = [SystemMessage(content=self._instruction)]
-            llm_messages.extend(
-                [
-                    UserMessage(content=message.content, source=message.source)
-                    for message in inner_messages
-                    if isinstance(message, BaseChatMessage)
-                ]
-            )
+            for message in messages:
+                if isinstance(message, ChatMessage):
+                    llm_messages.append(message.to_model_message())
             llm_messages.append(SystemMessage(content=self._response_prompt))
             completion = await self._model_client.create(messages=llm_messages, cancellation_token=cancellation_token)
             assert isinstance(completion.content, str)

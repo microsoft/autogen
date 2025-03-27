@@ -31,7 +31,6 @@ from autogen_core.models import (
     LLMMessage,
     ModelFamily,
     SystemMessage,
-    UserMessage,
 )
 from autogen_core.tools import BaseTool, FunctionTool
 from pydantic import BaseModel
@@ -814,14 +813,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         messages: Sequence[ChatMessage],
     ) -> None:
         """
-        Add incoming user (and possibly handoff) messages to the model context.
+        Add incoming messages to the model context.
         """
         for msg in messages:
             if isinstance(msg, HandoffMessage):
-                # Add handoff context to the model context.
-                for context_msg in msg.context:
-                    await model_context.add_message(context_msg)
-            await model_context.add_message(UserMessage(content=msg.content, source=msg.source))
+                for llm_msg in msg.context:
+                    await model_context.add_message(llm_msg)
+            await model_context.add_message(msg.to_model_message())
 
     @staticmethod
     async def _update_model_context_with_memory(

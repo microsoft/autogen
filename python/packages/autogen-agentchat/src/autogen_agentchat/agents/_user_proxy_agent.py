@@ -82,6 +82,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
                         cancellation_token=CancellationToken(),
                     )
                 )
+                assert isinstance(response.chat_message, TextMessage)
                 print(f"Your name is {response.chat_message.content}")
 
     Example:
@@ -117,6 +118,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
                         )
                     )
                     response = await agent_task
+                    assert isinstance(response.chat_message, TextMessage)
                     print(f"Your name is {response.chat_message.content}")
                 except Exception as e:
                     print(f"Exception: {e}")
