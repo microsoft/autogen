@@ -15,6 +15,7 @@ from autogen_core.model_context import (
     BufferedChatCompletionContext,
     HeadAndTailChatCompletionContext,
     UnboundedChatCompletionContext,
+    TokenLimitedChatCompletionContext,
 )
 
 
@@ -104,6 +105,7 @@ async def test_chat_completion_context_declarative() -> None:
     unbounded_context = UnboundedChatCompletionContext()
     buffered_context = BufferedChatCompletionContext(buffer_size=5)
     head_tail_context = HeadAndTailChatCompletionContext(head_size=3, tail_size=2)
+    token_limited_context = TokenLimitedChatCompletionContext(token_limit=5, model="gpt-4o")
 
     # Test serialization
     unbounded_config = unbounded_context.dump_component()
@@ -118,6 +120,11 @@ async def test_chat_completion_context_declarative() -> None:
     assert head_tail_config.config["head_size"] == 3
     assert head_tail_config.config["tail_size"] == 2
 
+    token_limited_config = token_limited_context.dump_component()
+    assert token_limited_config.provider == "autogen_core.model_context.TokenLimitedChatCompletionContext"
+    assert token_limited_config.config["token_limit"] == 5
+    assert token_limited_config.config["model"] == "gpt-4o"
+
     # Test deserialization
     loaded_unbounded = ComponentLoader.load_component(unbounded_config, UnboundedChatCompletionContext)
     assert isinstance(loaded_unbounded, UnboundedChatCompletionContext)
@@ -129,3 +136,6 @@ async def test_chat_completion_context_declarative() -> None:
     loaded_head_tail = ComponentLoader.load_component(head_tail_config, HeadAndTailChatCompletionContext)
 
     assert isinstance(loaded_head_tail, HeadAndTailChatCompletionContext)
+
+    loaded_token_limited = ComponentLoader.load_component(token_limited_config, TokenLimitedChatCompletionContext)
+    assert isinstance(loaded_token_limited, TokenLimitedChatCompletionContext)

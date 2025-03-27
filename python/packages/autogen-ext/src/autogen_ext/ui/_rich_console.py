@@ -61,7 +61,7 @@ def _extract_message_content(message: AgentEvent | ChatMessage) -> Tuple[List[st
         text_parts = [item for item in message.content if isinstance(item, str)]
         image_parts = [item for item in message.content if isinstance(item, Image)]
     else:
-        text_parts = [str(message.content)]
+        text_parts = [message.to_text()]
         image_parts = []
     return text_parts, image_parts
 
