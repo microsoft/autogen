@@ -210,81 +210,81 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_client = self._model_client
         model_client_stream = self._model_client_stream
 
-        if model_client is not None:
-            # STEP 1: Add new user/handoff messages to the model context
-            await self._add_messages_to_context(
-                model_context=model_context,
-                messages=messages,
-            )
-
-            # STEP 2: Update model context with any relevant memory
-            inner_messages: List[AgentEvent | ChatMessage] = []
-            for event_msg in await self._update_model_context_with_memory(
-                memory=None,
-                model_context=model_context,
-                agent_name=agent_name,
-            ):
-                inner_messages.append(event_msg)
-                yield event_msg
-
-            # STEP 3: Run the first inference
-            model_result = None
-            async for inference_output in self._call_llm(
-                model_client=model_client,
-                model_client_stream=model_client_stream,
-                system_messages=system_messages,
-                model_context=model_context,
-                agent_name=agent_name,
-                cancellation_token=cancellation_token,
-            ):
-                if isinstance(inference_output, CreateResult):
-                    model_result = inference_output
-                else:
-                    # Streaming chunk event
-                    yield inference_output
-
-            assert model_result is not None, "No model result was produced."
-
-            # --- NEW: If the model produced a hidden "thought," yield it as an event ---
-            if model_result.thought:
-                thought_event = ThoughtEvent(content=model_result.thought, source=agent_name)
-                yield thought_event
-                inner_messages.append(thought_event)
-
-            # Add the assistant message to the model context (including thought if present)
-            await model_context.add_message(
-                AssistantMessage(
-                    content=model_result.content,
-                    source=agent_name,
-                    thought=getattr(model_result, "thought", None),
-                )
-            )
-
-            # NOTE: error: Argument of type "str | List[FunctionCall]" cannot be assigned to parameter "content" of type "str" in function "__init__".
-            #       For now we can assume that there are no FunctionCalls in the response because we are not providing tools to the CodeExecutorAgent.
-            #       So, for now we cast model_result.content to string
-            inferred_text_message: TextMessage = TextMessage(content=str(model_result.content), source=agent_name)
-
-            # execute generated code if present
-            execution_result: Response = await self.execute_code_block([inferred_text_message], cancellation_token)
-
-            # TODO: need a better way to bypass yielding in case there are no code blocks from the code executor.
-            if (
-                execution_result.chat_message.to_text()
-                != "No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks)."
-            ):
-                # if code block present then yield inferred_text_message as TextMessage
-                # and execution_result as Response
-                yield inferred_text_message
-                yield execution_result
-            else:
-                # else yield inferred_text_message as Response
-                yield Response(chat_message=inferred_text_message)
-
-        else:  # default behaviour for backward compatibility
+        if model_client is None:  # default behaviour for backward compatibility
             # execute generated code if present
             execution_result = await self.execute_code_block(messages, cancellation_token)
             yield execution_result
+            return
+
+        # STEP 1: Add new user/handoff messages to the model context
+        await self._add_messages_to_context(
+            model_context=model_context,
+            messages=messages,
+        )
+
+        # STEP 2: Update model context with any relevant memory
+        inner_messages: List[AgentEvent | ChatMessage] = []
+        for event_msg in await self._update_model_context_with_memory(
+            memory=None,
+            model_context=model_context,
+            agent_name=agent_name,
+        ):
+            inner_messages.append(event_msg)
+            yield event_msg
+
+        # STEP 3: Run the first inference
+        model_result = None
+        async for inference_output in self._call_llm(
+            model_client=model_client,
+            model_client_stream=model_client_stream,
+            system_messages=system_messages,
+            model_context=model_context,
+            agent_name=agent_name,
+            cancellation_token=cancellation_token,
+        ):
+            if isinstance(inference_output, CreateResult):
+                model_result = inference_output
+            else:
+                # Streaming chunk event
+                yield inference_output
+
+        assert model_result is not None, "No model result was produced."
+
+        # --- NEW: If the model produced a hidden "thought," yield it as an event ---
+        if model_result.thought:
+            thought_event = ThoughtEvent(content=model_result.thought, source=agent_name)
+            yield thought_event
+            inner_messages.append(thought_event)
+
+        # Add the assistant message to the model context (including thought if present)
+        await model_context.add_message(
+            AssistantMessage(
+                content=model_result.content,
+                source=agent_name,
+                thought=getattr(model_result, "thought", None),
+            )
+        )
+
+        # NOTE: error: Argument of type "str | List[FunctionCall]" cannot be assigned to parameter "content" of type "str" in function "__init__".
+        #       For now we can assume that there are no FunctionCalls in the response because we are not providing tools to the CodeExecutorAgent.
+        #       So, for now we cast model_result.content to string
+        inferred_text_message: TextMessage = TextMessage(content=str(model_result.content), source=agent_name)
+
+        # execute generated code if present
+        execution_result: Response = await self.execute_code_block([inferred_text_message], cancellation_token)
+
+        # TODO: need a better way to bypass yielding in case there are no code blocks from the code executor.
+        if (
+            execution_result.chat_message.to_text()
+            != "No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks)."
+        ):
+            # if code block present then yield inferred_text_message as TextMessage
+            # and execution_result as Response
+            yield inferred_text_message
+            yield execution_result
+        else:
+            # else yield inferred_text_message as Response
+            yield Response(chat_message=inferred_text_message)
 
     async def execute_code_block(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
