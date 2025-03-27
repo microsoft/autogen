@@ -129,7 +129,7 @@ def count_chat_tokens(
             return num_tokens
 
         # Check if the model is an Ollama model
-        elif "ollama" in model.lower():
+        elif "llama" in model.lower():
             try:
                 encoding = tiktoken.encoding_for_model(model)
             except KeyError:

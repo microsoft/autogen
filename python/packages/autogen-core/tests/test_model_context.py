@@ -108,8 +108,37 @@ async def test_unbounded_model_context() -> None:
 
 
 @pytest.mark.asyncio
-async def test_token_limited_model_context() -> None:
+async def test_token_limited_model_context_openai() -> None:
     model_context = TokenLimitedChatCompletionContext(token_limit=20, model="gpt-4o")
+    messages: List[LLMMessage] = [
+        UserMessage(content="Hello!", source="user"),
+        AssistantMessage(content="What can I do for you?", source="assistant"),
+        UserMessage(content="Tell what are some fun things to do in seattle.", source="user"),
+    ]
+    for msg in messages:
+        await model_context.add_message(msg)
+
+    retrieved = await model_context.get_messages()
+    assert len(retrieved) == 1  # Token limit set very low, will remove two of the messages
+    assert retrieved != messages  # Will not be equal to the original messages
+
+    await model_context.clear()
+    retrieved = await model_context.get_messages()
+    assert len(retrieved) == 0
+
+    # Test saving and loading state.
+    for msg in messages:
+        await model_context.add_message(msg)
+    state = await model_context.save_state()
+    await model_context.clear()
+    await model_context.load_state(state)
+    retrieved = await model_context.get_messages()
+    assert len(retrieved) == 1
+    assert retrieved != messages
+
+@pytest.mark.asyncio
+async def test_token_limited_model_context_ollama() -> None:
+    model_context = TokenLimitedChatCompletionContext(token_limit=20, model="llama2-7b")
     messages: List[LLMMessage] = [
         UserMessage(content="Hello!", source="user"),
         AssistantMessage(content="What can I do for you?", source="assistant"),
