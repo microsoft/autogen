@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import aiofiles
 import pytest
-from autogen_agentchat.messages import ChatMessage, TextMessage
+from autogen_agentchat.messages import ChatMessage, TextMessage, ToolCallRequestEvent
 from autogen_core import CancellationToken
 from autogen_core.tools._base import BaseTool, Tool
 from autogen_ext.agents.openai import OpenAIAssistantAgent
@@ -250,8 +250,7 @@ async def test_file_retrieval(
     message = TextMessage(source="user", content="What is the first sentence of the jungle scout book?")
     response = await agent.on_messages([message], cancellation_token)
 
-    assert response.chat_message.content is not None
-    assert isinstance(response.chat_message.content, str)
+    assert isinstance(response.chat_message, TextMessage)
     assert len(response.chat_message.content) > 0
 
     await agent.delete_uploaded_files(cancellation_token)
@@ -271,8 +270,7 @@ async def test_code_interpreter(
     message = TextMessage(source="user", content="I need to solve the equation `3x + 11 = 14`. Can you help me?")
     response = await agent.on_messages([message], cancellation_token)
 
-    assert response.chat_message.content is not None
-    assert isinstance(response.chat_message.content, str)
+    assert isinstance(response.chat_message, TextMessage)
     assert len(response.chat_message.content) > 0
     assert "x = 1" in response.chat_message.content.lower()
 
@@ -326,12 +324,11 @@ async def test_quiz_creation(
     response = await agent.on_messages([message], cancellation_token)
 
     # Check that the final response has non-empty inner messages (i.e. tool call events).
-    assert response.chat_message.content is not None
-    assert isinstance(response.chat_message.content, str)
+    assert isinstance(response.chat_message, TextMessage)
     assert len(response.chat_message.content) > 0
     assert isinstance(response.inner_messages, list)
     # Ensure that at least one inner message has non-empty content.
-    assert any(hasattr(tool_msg, "content") and tool_msg.content for tool_msg in response.inner_messages)
+    assert any(isinstance(msg, ToolCallRequestEvent) for msg in response.inner_messages)
 
     await agent.delete_assistant(cancellation_token)
 
@@ -357,14 +354,14 @@ async def test_on_reset_behavior(client: AsyncOpenAI, cancellation_token: Cancel
 
     message1 = TextMessage(source="user", content="What is my name?")
     response1 = await agent.on_messages([message1], cancellation_token)
-    assert isinstance(response1.chat_message.content, str)
+    assert isinstance(response1.chat_message, TextMessage)
     assert "john" in response1.chat_message.content.lower()
 
     await agent.on_reset(cancellation_token)
 
     message2 = TextMessage(source="user", content="What is my name?")
     response2 = await agent.on_messages([message2], cancellation_token)
-    assert isinstance(response2.chat_message.content, str)
+    assert isinstance(response2.chat_message, TextMessage)
     assert "john" in response2.chat_message.content.lower()
 
     await agent.delete_assistant(cancellation_token)

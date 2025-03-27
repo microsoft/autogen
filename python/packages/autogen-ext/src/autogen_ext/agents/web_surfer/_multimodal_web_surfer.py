@@ -432,10 +432,8 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         for chat_message in messages:
-            if isinstance(chat_message, TextMessage | MultiModalMessage):
-                self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
-            else:
-                raise ValueError(f"Unexpected message in MultiModalWebSurfer: {chat_message}")
+            self._chat_history.append(chat_message.to_model_message())
+
         self.inner_messages: List[AgentEvent | ChatMessage] = []
         self.model_usage: List[RequestUsage] = []
         try:
