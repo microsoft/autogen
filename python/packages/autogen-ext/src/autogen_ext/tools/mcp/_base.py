@@ -107,7 +107,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
         return cls(server_params=server_params, tool=matching_tool)
 
-    def _format_errors(self, error: Exception | ExceptionGroup) -> str:
+    def _format_errors(self, error: Exception) -> str:
         """Recursively format errors into a string."""
 
         error_message = ""
