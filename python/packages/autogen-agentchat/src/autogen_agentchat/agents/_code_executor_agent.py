@@ -157,6 +157,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_client_stream: bool = False,
         description: str | None = None,
         system_message: str | None = DEFAULT_SYSTEM_MESSAGE,
+        reflect_on_code_block_results: bool = False,
         sources: Sequence[str] | None = None,
     ) -> None:
         if description is None:
@@ -185,6 +186,8 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         else:
             self._system_messages = [SystemMessage(content=system_message)]
 
+        self._reflect_on_code_block_results = reflect_on_code_block_results
+
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the code executor agent produces."""
@@ -209,11 +212,13 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         system_messages = self._system_messages
         model_client = self._model_client
         model_client_stream = self._model_client_stream
+        reflect_on_code_block_results = self._reflect_on_code_block_results
 
+        execution_result: TextMessage | None = None
         if model_client is None:  # default behaviour for backward compatibility
             # execute generated code if present
             execution_result = await self.execute_code_block(messages, cancellation_token)
-            yield execution_result
+            yield Response(chat_message=execution_result)
             return
 
         # STEP 1: Add new user/handoff messages to the model context
@@ -271,24 +276,51 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         inferred_text_message: TextMessage = TextMessage(content=str(model_result.content), source=agent_name)
 
         # execute generated code if present
-        execution_result: Response = await self.execute_code_block([inferred_text_message], cancellation_token)
+        execution_result = await self.execute_code_block([inferred_text_message], cancellation_token)
 
         # TODO: need a better way to bypass yielding in case there are no code blocks from the code executor.
         if (
-            execution_result.chat_message.to_text()
-            != "No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks)."
+            execution_result.content
+            == "No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks)."
         ):
-            # if code block present then yield inferred_text_message as TextMessage
-            # and execution_result as Response
-            yield inferred_text_message
-            yield execution_result
-        else:
-            # else yield inferred_text_message as Response
+            # yield inferred_text_message as Response and return
             yield Response(chat_message=inferred_text_message)
+            return
+
+        # if code block present then yield inferred_text_message as TextMessage
+        # and execution_result as Response
+        yield inferred_text_message
+
+        # Add the code execution result to the model context, keeping thought=None since the execution result doesn't have any associated thought.
+        await model_context.add_message(
+            AssistantMessage(
+                content=execution_result.content,
+                source=agent_name,
+                thought=None,
+            )
+        )
+
+        # changed return type of execute_code_block from `Response` to `TextMessage`, so that yielding execution_result doesn't terminate the function and we can proceed to reflection
+        # yield execution_result as Response if reflect_on_code_block_results=False, else yield it as TextMessage so that we can yield reflection as a Response object.
+
+        # reflect on the execution result if reflect_on_code_block_results=True
+        if reflect_on_code_block_results:
+            yield execution_result
+            async for reflection_response in CodeExecutorAgent._reflect_on_code_block_results_flow(
+                system_messages=system_messages,
+                model_client=model_client,
+                model_client_stream=model_client_stream,
+                model_context=model_context,
+                agent_name=agent_name,
+                inner_messages=inner_messages,
+            ):
+                yield reflection_response  # last reflection_response is of type Response so it will finish the routine
+        else:
+            yield Response(chat_message=execution_result)
 
     async def execute_code_block(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> Response:
+    ) -> TextMessage:
         # Extract code blocks from the messages.
         code_blocks: List[CodeBlock] = []
         for msg in messages:
@@ -307,13 +339,11 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 # Error
                 code_output = f"The script ran, then exited with an error (POSIX exit code: {result.exit_code})\nIts output was:\n{result.output}"
 
-            return Response(chat_message=TextMessage(content=code_output, source=self.name))
+            return TextMessage(content=code_output, source=self.name)
         else:
-            return Response(
-                chat_message=TextMessage(
-                    content="No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks).",
-                    source=self.name,
-                )
+            return TextMessage(
+                content="No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks).",
+                source=self.name,
             )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
@@ -435,3 +465,60 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 for llm_msg in msg.context:
                     await model_context.add_message(llm_msg)
             await model_context.add_message(msg.to_model_message())
+
+    @classmethod
+    async def _reflect_on_code_block_results_flow(
+        cls,
+        system_messages: List[SystemMessage],
+        model_client: ChatCompletionClient,
+        model_client_stream: bool,
+        model_context: ChatCompletionContext,
+        agent_name: str,
+        inner_messages: List[AgentEvent | ChatMessage],
+    ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent | ThoughtEvent, None]:
+        """
+        If reflect_on_code_block_results=True, we do another inference based on tool results
+        and yield the final text response (or streaming chunks).
+        """
+        all_messages = system_messages + await model_context.get_messages()
+        llm_messages = cls._get_compatible_context(model_client=model_client, messages=all_messages)
+
+        reflection_result: Optional[CreateResult] = None
+
+        if model_client_stream:
+            async for chunk in model_client.create_stream(llm_messages):
+                if isinstance(chunk, CreateResult):
+                    reflection_result = chunk
+                elif isinstance(chunk, str):
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                else:
+                    raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
+        else:
+            reflection_result = await model_client.create(llm_messages)
+
+        if not reflection_result or not isinstance(reflection_result.content, str):
+            raise RuntimeError("Reflect on tool use produced no valid text response.")
+
+        # --- NEW: If the reflection produced a thought, yield it ---
+        if reflection_result.thought:
+            thought_event = ThoughtEvent(content=reflection_result.thought, source=agent_name)
+            yield thought_event
+            inner_messages.append(thought_event)
+
+        # Add to context (including thought if present)
+        await model_context.add_message(
+            AssistantMessage(
+                content=reflection_result.content,
+                source=agent_name,
+                thought=getattr(reflection_result, "thought", None),
+            )
+        )
+
+        yield Response(
+            chat_message=TextMessage(
+                content=reflection_result.content,
+                source=agent_name,
+                models_usage=reflection_result.usage,
+            ),
+            inner_messages=inner_messages,
+        )
