@@ -11,7 +11,6 @@ from ..messages import (
     BaseChatMessage,
     ChatMessage,
     HandoffMessage,
-    MultiModalMessage,
     StopMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -137,18 +136,12 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
             if self._sources is not None and message.source not in self._sources:
                 continue
 
-            if isinstance(message.content, str) and self._termination_text in message.content:
+            content = message.to_text()
+            if self._termination_text in content:
                 self._terminated = True
                 return StopMessage(
                     content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination"
                 )
-            elif isinstance(message, MultiModalMessage):
-                for item in message.content:
-                    if isinstance(item, str) and self._termination_text in item:
-                        self._terminated = True
-                        return StopMessage(
-                            content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination"
-                        )
         return None
 
     async def reset(self) -> None:

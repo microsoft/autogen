@@ -4,10 +4,7 @@ from typing import List, Sequence
 import pytest
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import (
-    AgentEvent,
-    ChatMessage,
-)
+from autogen_agentchat.messages import AgentEvent, ChatMessage
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core.models import ChatCompletionClient

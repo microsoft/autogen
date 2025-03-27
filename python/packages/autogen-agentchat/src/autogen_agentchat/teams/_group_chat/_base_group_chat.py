@@ -19,8 +19,8 @@ from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import (
     AgentEvent,
-    BaseChatMessage,
     ChatMessage,
+    MessageFactory,
     ModelClientStreamingChunkEvent,
     StopMessage,
     TextMessage,
@@ -50,6 +50,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
+        custom_message_types: List[type[AgentEvent | ChatMessage]] | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -59,6 +60,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._base_group_chat_manager_class = group_chat_manager_class
         self._termination_condition = termination_condition
         self._max_turns = max_turns
+        self._message_factory = MessageFactory()
+        if custom_message_types is not None:
+            for message_type in custom_message_types:
+                self._message_factory.register(message_type)
 
         # The team ID is a UUID that is used to identify the team and its participants
         # in the agent runtime. It is used to create unique topic types for each participant.
@@ -115,6 +120,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        message_factory: MessageFactory,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
@@ -122,9 +128,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         parent_topic_type: str,
         output_topic_type: str,
         agent: ChatAgent,
+        message_factory: MessageFactory,
     ) -> Callable[[], ChatAgentContainer]:
         def _factory() -> ChatAgentContainer:
-            container = ChatAgentContainer(parent_topic_type, output_topic_type, agent)
+            container = ChatAgentContainer(parent_topic_type, output_topic_type, agent, message_factory)
             return container
 
         return _factory
@@ -140,7 +147,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             await ChatAgentContainer.register(
                 runtime,
                 type=agent_type,
-                factory=self._create_participant_factory(self._group_topic_type, self._output_topic_type, participant),
+                factory=self._create_participant_factory(
+                    self._group_topic_type, self._output_topic_type, participant, self._message_factory
+                ),
             )
             # Add subscriptions for the participant.
             # The participant should be able to receive messages from its own topic.
@@ -162,6 +171,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 output_message_queue=self._output_message_queue,
                 termination_condition=self._termination_condition,
                 max_turns=self._max_turns,
+                message_factory=self._message_factory,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -393,16 +403,27 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             pass
         elif isinstance(task, str):
             messages = [TextMessage(content=task, source="user")]
-        elif isinstance(task, BaseChatMessage):
+        elif isinstance(task, ChatMessage):
             messages = [task]
-        else:
+        elif isinstance(task, list):
             if not task:
                 raise ValueError("Task list cannot be empty.")
             messages = []
             for msg in task:
-                if not isinstance(msg, BaseChatMessage):
+                if not isinstance(msg, ChatMessage):
                     raise ValueError("All messages in task list must be valid ChatMessage types")
                 messages.append(msg)
+        else:
+            raise ValueError("Task must be a string, a ChatMessage, or a list of ChatMessage.")
+        # Check if the messages types are registered with the message factory.
+        if messages is not None:
+            for msg in messages:
+                if not self._message_factory.is_registered(msg.__class__):
+                    raise ValueError(
+                        f"Message type {msg.__class__} is not registered with the message factory. "
+                        "Please register it with the message factory by adding it to the "
+                        "custom_message_types list when creating the team."
+                    )
 
         if self._is_running:
             raise ValueError("The team is already running, it cannot run again until it is stopped.")
