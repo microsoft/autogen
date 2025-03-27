@@ -12,6 +12,7 @@ from autogen_agentchat.messages import (
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
+    StructuredMessage,
     TextMessage,
     ThoughtEvent,
     ToolCallExecutionEvent,
@@ -625,6 +626,23 @@ async def test_multi_modal_task(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_run_with_structured_task() -> None:
+    class InputTask(BaseModel):
+        input: str
+        data: List[str]
+
+    model_client = ReplayChatCompletionClient(["Hello"])
+    agent = AssistantAgent(
+        name="assistant",
+        model_client=model_client,
+    )
+
+    task = StructuredMessage[InputTask](content=InputTask(input="Test", data=["Test1", "Test2"]), source="user")
+    result = await agent.run(task=task)
+    assert len(result.messages) == 2
+
+
+@pytest.mark.asyncio
 async def test_invalid_model_capabilities() -> None:
     model = "random-model"
     model_client = OpenAIChatCompletionClient(
@@ -896,6 +914,7 @@ async def test_model_client_stream() -> None:
     chunks: List[str] = []
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
             assert message.messages[-1].content == "Response to message 3"
         elif isinstance(message, ModelClientStreamingChunkEvent):
             chunks.append(message.content)
@@ -929,11 +948,14 @@ async def test_model_client_stream_with_tool_calls() -> None:
     chunks: List[str] = []
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
+            assert isinstance(message.messages[1], ToolCallRequestEvent)
             assert message.messages[-1].content == "Example response 2 to task"
             assert message.messages[1].content == [
                 FunctionCall(id="1", name="_pass_function", arguments=r'{"input": "task"}'),
                 FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
             ]
+            assert isinstance(message.messages[2], ToolCallExecutionEvent)
             assert message.messages[2].content == [
                 FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="_pass_function"),
                 FunctionExecutionResult(call_id="3", content="task", is_error=False, name="_echo_function"),

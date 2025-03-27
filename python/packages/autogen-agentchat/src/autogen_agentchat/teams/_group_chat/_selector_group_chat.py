@@ -14,9 +14,8 @@ from ...agents import BaseChatAgent
 from ...base import ChatAgent, TerminationCondition
 from ...messages import (
     AgentEvent,
-    BaseAgentEvent,
     ChatMessage,
-    MultiModalMessage,
+    MessageFactory,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -49,6 +48,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        message_factory: MessageFactory,
         model_client: ChatCompletionClient,
         selector_prompt: str,
         allow_repeated_speaker: bool,
@@ -66,6 +66,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             output_message_queue,
             termination_condition,
             max_turns,
+            message_factory,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -89,7 +90,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
     async def save_state(self) -> Mapping[str, Any]:
         state = SelectorManagerState(
-            message_thread=list(self._message_thread),
+            message_thread=[msg.dump() for msg in self._message_thread],
             current_turn=self._current_turn,
             previous_speaker=self._previous_speaker,
         )
@@ -97,7 +98,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         selector_state = SelectorManagerState.model_validate(state)
-        self._message_thread = list(selector_state.message_thread)
+        self._message_thread = [self._message_factory.create(msg) for msg in selector_state.message_thread]
         self._current_turn = selector_state.current_turn
         self._previous_speaker = selector_state.previous_speaker
 
@@ -152,20 +153,10 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         # Construct the history of the conversation.
         history_messages: List[str] = []
         for msg in thread:
-            if isinstance(msg, BaseAgentEvent):
-                # Ignore agent events.
+            if not isinstance(msg, ChatMessage):
+                # Only process chat messages.
                 continue
-            message = f"{msg.source}:"
-            if isinstance(msg.content, str):
-                message += f" {msg.content}"
-            elif isinstance(msg, MultiModalMessage):
-                for item in msg.content:
-                    if isinstance(item, str):
-                        message += f" {item}"
-                    else:
-                        message += " [Image]"
-            else:
-                raise ValueError(f"Unexpected message type in selector: {type(msg)}")
+            message = f"{msg.source}: {msg.to_model_text()}"
             history_messages.append(
                 message.rstrip() + "\n\n"
             )  # Create some consistency for how messages are separated in the transcript
@@ -414,7 +405,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
                 )
 
                 def selector_func(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
-                    if len(messages) == 1 or messages[-1].content == "Incorrect!":
+                    if len(messages) == 1 or messages[-1].to_text() == "Incorrect!":
                         return "Agent1"
                     if messages[-1].source == "Agent1":
                         return "Agent2"
@@ -457,6 +448,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         max_selector_attempts: int = 3,
         selector_func: Optional[SelectorFuncType] = None,
         candidate_func: Optional[CandidateFuncType] = None,
+        custom_message_types: List[type[AgentEvent | ChatMessage]] | None = None,
     ):
         super().__init__(
             participants,
@@ -465,6 +457,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             termination_condition=termination_condition,
             max_turns=max_turns,
             runtime=runtime,
+            custom_message_types=custom_message_types,
         )
         # Validate the participants.
         if len(participants) < 2:
@@ -487,6 +480,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        message_factory: MessageFactory,
     ) -> Callable[[], BaseGroupChatManager]:
         return lambda: SelectorGroupChatManager(
             name,
@@ -498,6 +492,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             output_message_queue,
             termination_condition,
             max_turns,
+            message_factory,
             self._model_client,
             self._selector_prompt,
             self._allow_repeated_speaker,
