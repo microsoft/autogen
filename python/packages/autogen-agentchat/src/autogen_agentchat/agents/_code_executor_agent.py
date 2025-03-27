@@ -168,11 +168,11 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         super().__init__(name=name, description=description)
         self._code_executor = code_executor
         self._sources = sources
+        self._model_client_stream = model_client_stream
 
         self._model_client = None
         if model_client is not None:
             self._model_client = model_client
-            self._model_client_stream = model_client_stream
 
         if model_context is not None:
             self._model_context = model_context
