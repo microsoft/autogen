@@ -21,7 +21,6 @@ from autogen_core.models import (
     CreateResult,
     LLMMessage,
     SystemMessage,
-    UserMessage,
 )
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -271,7 +270,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
             # TODO: need a better way to bypass yielding in case there are no code blocks from the code executor.
             if (
-                execution_result.chat_message.content
+                execution_result.chat_message.to_text()
                 != "No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks)."
             ):
                 # if code block present then yield inferred_text_message as TextMessage
@@ -429,11 +428,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         messages: Sequence[ChatMessage],
     ) -> None:
         """
-        Add incoming user (and possibly handoff) messages to the model context.
+        Add incoming messages to the model context.
         """
         for msg in messages:
             if isinstance(msg, HandoffMessage):
-                # Add handoff context to the model context.
-                for context_msg in msg.context:
-                    await model_context.add_message(context_msg)
-            await model_context.add_message(UserMessage(content=msg.content, source=msg.source))
+                for llm_msg in msg.context:
+                    await model_context.add_message(llm_msg)
+            await model_context.add_message(msg.to_model_message())
