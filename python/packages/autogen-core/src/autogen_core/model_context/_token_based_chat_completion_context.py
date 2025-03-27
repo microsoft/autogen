@@ -59,7 +59,7 @@ class TokenBasedChatCompletionContext(ChatCompletionContext, Component[TokenBase
 
 
 # Rough estimate of token count for a list of messages
-def count_chat_tokens(messages: list, model: str = "gpt-4o") -> int:
+def count_chat_tokens(messages: List[LLMMessage], model: str = "gpt-4o") -> int:
     try:
         encoding = tiktoken.encoding_for_model(model)
     except KeyError:
@@ -67,6 +67,6 @@ def count_chat_tokens(messages: list, model: str = "gpt-4o") -> int:
 
     total_tokens = 0
     for message in messages:
-        total_tokens += len(encoding.encode(message.content))
+        total_tokens += len(encoding.encode(str(message.content)))
 
     return total_tokens
