@@ -612,8 +612,13 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         system_message = None
         anthropic_messages: List[MessageParam] = []
 
+        before_message: Union[LLMMessage, None] = None
         for message in messages:
+            before_message = message
             if isinstance(message, SystemMessage):
+                if before_message is not None and isinstance(before_message, SystemMessage):
+                    raise ValueError("Multiple and Not continuous system messages are not supported")
+                    
                 current_system_message = to_anthropic_type(message)
                 if system_message is not None:
                     if isinstance(system_message, str) and isinstance(current_system_message, str):
