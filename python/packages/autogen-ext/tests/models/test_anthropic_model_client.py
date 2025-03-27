@@ -334,3 +334,40 @@ async def test_anthropic_serialization() -> None:
     loaded_model_client = AnthropicChatCompletionClient.load_component(model_client_config)
     assert loaded_model_client is not None
     assert isinstance(loaded_model_client, AnthropicChatCompletionClient)
+
+
+@pytest.mark.asyncio
+async def test_anthropic_message_serialization_with_tools(caplog: pytest.LogCaptureFixture) -> None:
+    """Test that complex messages with tool calls are properly serialized in logs."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    # Create client
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
+
+    # Use existing tools from the test file
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    # Set up logging capture - capture all loggers
+    with caplog.at_level(logging.INFO):
+        # Make a request that should trigger a tool call
+        await client.create(
+            messages=[
+                SystemMessage(content="Use the tools available to help the user."),
+                UserMessage(content="Process the text 'hello world' using the process_text tool.", source="user"),
+            ],
+            tools=[pass_tool, add_tool],
+        )
+
+        # Look for any log containing serialized messages, not just with 'LLMCallEvent'
+        serialized_message_logs = [
+            record for record in caplog.records if '"messages":' in str(record.msg) or "messages" in str(record.msg)
+        ]
+
+        # Verify we have at least one log with serialized messages
+        assert len(serialized_message_logs) > 0, "No logs with serialized messages found"
