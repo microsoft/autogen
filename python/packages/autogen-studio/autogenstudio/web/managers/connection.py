@@ -335,7 +335,8 @@ class WebSocketManager:
 
                 message_content = []
                 for row in message_dump["content"]:
-                    if "data" in row:
+                    if isinstance(row, dict) and "data" in row:
+                         
                         message_content.append(
                             {
                                 "url": f"data:image/png;base64,{row['data']}",
