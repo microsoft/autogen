@@ -502,15 +502,19 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # So, merge system messages into one
             content = ""
             _messages: List[LLMMessage] = []
-            for message in messages:
+            _first_system_message_idx = -1
+            # Index of the first system message for adding the merged system message at the correct position
+            for idx, message in enumerate(messages):
                 if isinstance(message, SystemMessage):
+                    if _first_system_message_idx == -1:
+                        _first_system_message_idx = idx
                     content += message.content + "\n"
                 else:
                     _messages.append(message)
             content = content.strip()
             if content:
                 system_message = SystemMessage(content=content)
-                _messages.insert(0, system_message)
+                _messages.insert(_first_system_message_idx, system_message)
             messages = _messages
 
         oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes) for m in messages]
