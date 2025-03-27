@@ -1,10 +1,5 @@
-from typing import List, Sequence, cast
-import logging
-import json
+from typing import List, Sequence
 from autogen_core.tools import Tool, ToolSchema
-from autogen_core import Image
-from autogen_core.models import UserMessage
-from autogen_core import TRACE_LOGGER_NAME
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -16,10 +11,6 @@ from ._chat_completion_context import ChatCompletionContext
 
 from autogen_ext.models.ollama._ollama_client import count_tokens_ollama
 from autogen_ext.models.openai._openai_client import count_tokens_openai
-from autogen_ext.models.openai._openai_client import to_oai_type
-from openai.types.chat import ChatCompletionContentPartParam
-
-trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 
 
 class TokenLimitedChatCompletionContextConfig(BaseModel):
@@ -75,24 +66,18 @@ def count_chat_tokens(
     messages: Sequence[LLMMessage], model: str = "gpt-4o", *, tools: Sequence[Tool | ToolSchema] = []
 ) -> int:
     """Count tokens for a list of messages using the appropriate client based on the model."""
-    try:
-        # Check if the model is an OpenAI model
-        if "openai" in model.lower():
-            return count_tokens_openai(messages, model)
+    # Check if the model is an OpenAI model
+    if "openai" in model.lower():
+        return count_tokens_openai(messages, model)
 
-        # Check if the model is an Ollama model
-        elif "llama" in model.lower():
-            return count_tokens_ollama(messages, model)
+    # Check if the model is an Ollama model
+    elif "llama" in model.lower():
+        return count_tokens_ollama(messages, model)
 
-        # Fallback to cl100k_base encoding if the model is unrecognized
-        else:
-            encoding = tiktoken.get_encoding("cl100k_base")
-            total_tokens = 0
-            for message in messages:
-                total_tokens += len(encoding.encode(str(message.content)))
-            return total_tokens
-
-    except Exception as e:
-        # Log the error and re-raise
-        trace_logger.error(f"Error counting tokens: {e}")
-        raise
+    # Fallback to cl100k_base encoding if the model is unrecognized
+    else:
+        encoding = tiktoken.get_encoding("cl100k_base")
+        total_tokens = 0
+        for message in messages:
+            total_tokens += len(encoding.encode(str(message.content)))
+        return total_tokens
