@@ -119,7 +119,7 @@ async def test_chat_completion_context_declarative() -> None:
     assert head_tail_config.provider == "autogen_core.model_context.HeadAndTailChatCompletionContext"
     assert head_tail_config.config["head_size"] == 3
     assert head_tail_config.config["tail_size"] == 2
-    
+
     token_based_config = token_based_context.dump_component()
     assert token_based_config.provider == "autogen_core.model_context.TokenBasedChatCompletionContext"
     assert token_based_config.config["token_limit"] == 5
@@ -136,6 +136,6 @@ async def test_chat_completion_context_declarative() -> None:
     loaded_head_tail = ComponentLoader.load_component(head_tail_config, HeadAndTailChatCompletionContext)
 
     assert isinstance(loaded_head_tail, HeadAndTailChatCompletionContext)
-    
+
     loaded_token_based = ComponentLoader.load_component(token_based_config, TokenBasedChatCompletionContext)
     assert isinstance(loaded_token_based, TokenBasedChatCompletionContext)

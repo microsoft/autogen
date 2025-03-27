@@ -105,7 +105,8 @@ async def test_unbounded_model_context() -> None:
     retrieved = await model_context.get_messages()
     assert len(retrieved) == 3
     assert retrieved == messages
-    
+
+
 @pytest.mark.asyncio
 async def test_token_based_model_context() -> None:
     model_context = TokenBasedChatCompletionContext(token_limit=5, model_family="gpt-4o")
@@ -118,8 +119,8 @@ async def test_token_based_model_context() -> None:
         await model_context.add_message(msg)
 
     retrieved = await model_context.get_messages()
-    assert len(retrieved) == 1 # Token limit set very low, will remove two of the messages
-    assert retrieved != messages # Will not be equal to the original messages
+    assert len(retrieved) == 1  # Token limit set very low, will remove two of the messages
+    assert retrieved != messages  # Will not be equal to the original messages
 
     await model_context.clear()
     retrieved = await model_context.get_messages()
