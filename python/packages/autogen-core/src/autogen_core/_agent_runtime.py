@@ -130,6 +130,12 @@ class AgentRuntime(Protocol):
         """
         ...
 
+    async def register_agent_instance(
+        self,
+        agent_id: AgentId,
+        agent_instance: T | Awaitable[T],
+    ) -> AgentId: ...
+
     # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
     async def try_get_underlying_agent_instance(self, id: AgentId, type: Type[T] = Agent) -> T:  # type: ignore[assignment]
         """Try to get the underlying agent instance by name and namespace. This is generally discouraged (hence the long name), but can be useful in some cases.

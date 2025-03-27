@@ -737,6 +737,13 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         )
         return type
 
+    async def register_agent_instance(
+        self,
+        agent_id: AgentId,
+        agent_instance: T | Awaitable[T],
+    ) -> AgentId:
+        return agent_id
+
     async def _invoke_agent_factory(
         self,
         agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
