@@ -31,7 +31,6 @@ from autogen_core.models import (
     LLMMessage,
     ModelFamily,
     SystemMessage,
-    UserMessage,
 )
 from autogen_core.tools import BaseTool, FunctionTool
 from pydantic import BaseModel
@@ -814,14 +813,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         messages: Sequence[ChatMessage],
     ) -> None:
         """
-        Add incoming user (and possibly handoff) messages to the model context.
+        Add incoming messages to the model context.
         """
         for msg in messages:
             if isinstance(msg, HandoffMessage):
-                # Add handoff context to the model context.
-                for context_msg in msg.context:
-                    await model_context.add_message(context_msg)
-            await model_context.add_message(UserMessage(content=msg.content, source=msg.source))
+                for llm_msg in msg.context:
+                    await model_context.add_message(llm_msg)
+            await model_context.add_message(msg.to_model_message())
 
     @staticmethod
     async def _update_model_context_with_memory(
@@ -1022,10 +1020,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             # Collect normal tool calls (not handoff) into the handoff context
             tool_calls: List[FunctionCall] = []
             tool_call_results: List[FunctionExecutionResult] = []
+            # Collect the results returned by handoff_tool. By default, the message attribute will returned.
+            selected_handoff_message = selected_handoff.message
             for exec_call, exec_result in executed_calls_and_results:
                 if exec_call.name not in handoffs:
                     tool_calls.append(exec_call)
                     tool_call_results.append(exec_result)
+                elif exec_call.name == selected_handoff.name:
+                    selected_handoff_message = exec_result.content
 
             handoff_context: List[LLMMessage] = []
             if len(tool_calls) > 0:
@@ -1042,7 +1044,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             # Return response for the first handoff
             return Response(
                 chat_message=HandoffMessage(
-                    content=selected_handoff.message,
+                    content=selected_handoff_message,
                     target=selected_handoff.target,
                     source=agent_name,
                     context=handoff_context,
