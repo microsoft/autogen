@@ -5,7 +5,7 @@ from autogen_core.model_context import (
     BufferedChatCompletionContext,
     HeadAndTailChatCompletionContext,
     UnboundedChatCompletionContext,
-    TokenBasedChatCompletionContext,
+    TokenLimitedChatCompletionContext,
 )
 from autogen_core.models import AssistantMessage, LLMMessage, UserMessage
 
@@ -108,8 +108,8 @@ async def test_unbounded_model_context() -> None:
 
 
 @pytest.mark.asyncio
-async def test_token_based_model_context() -> None:
-    model_context = TokenBasedChatCompletionContext(token_limit=20, model="gpt-4o")
+async def test_token_limited_model_context() -> None:
+    model_context = TokenLimitedChatCompletionContext(token_limit=20, model="gpt-4o")
     messages: List[LLMMessage] = [
         UserMessage(content="Hello!", source="user"),
         AssistantMessage(content="What can I do for you?", source="assistant"),

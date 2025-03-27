@@ -20,13 +20,13 @@ from openai.types.chat import ChatCompletionContentPartParam
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 
-class TokenBasedChatCompletionContextConfig(BaseModel):
+class TokenLimitedChatCompletionContextConfig(BaseModel):
     token_limit: int
     model: str
     initial_messages: List[LLMMessage] | None = None
 
 
-class TokenBasedChatCompletionContext(ChatCompletionContext, Component[TokenBasedChatCompletionContextConfig]):
+class TokenLimitedChatCompletionContext(ChatCompletionContext, Component[TokenLimitedChatCompletionContextConfig]):
     """A token based chat completion context maintains a view of the context up to a token limit,
     where n is the token limit. The token limit is set at initialization.
 
@@ -35,8 +35,8 @@ class TokenBasedChatCompletionContext(ChatCompletionContext, Component[TokenBase
         initial_messages (List[LLMMessage] | None): The initial messages.
     """
 
-    component_config_schema = TokenBasedChatCompletionContextConfig
-    component_provider_override = "autogen_core.model_context.TokenBasedChatCompletionContext"
+    component_config_schema = TokenLimitedChatCompletionContextConfig
+    component_provider_override = "autogen_core.model_context.TokenLimitedChatCompletionContext"
 
     def __init__(self, token_limit: int, model: str, initial_messages: List[LLMMessage] | None = None) -> None:
         super().__init__(initial_messages)
@@ -59,13 +59,13 @@ class TokenBasedChatCompletionContext(ChatCompletionContext, Component[TokenBase
             messages = messages[1:]
         return messages
 
-    def _to_config(self) -> TokenBasedChatCompletionContextConfig:
-        return TokenBasedChatCompletionContextConfig(
+    def _to_config(self) -> TokenLimitedChatCompletionContextConfig:
+        return TokenLimitedChatCompletionContextConfig(
             token_limit=self._token_limit, model=self._model, initial_messages=self._messages
         )
 
     @classmethod
-    def _from_config(cls, config: TokenBasedChatCompletionContextConfig) -> Self:
+    def _from_config(cls, config: TokenLimitedChatCompletionContextConfig) -> Self:
         return cls(**config.model_dump())
 
 def count_chat_tokens(messages: Sequence[LLMMessage], model: str = "gpt-4o", *, tools: Sequence[Tool | ToolSchema] = []) -> int:
