@@ -8,6 +8,7 @@ import re
 import warnings
 from asyncio import Task
 from dataclasses import dataclass
+from importlib.metadata import PackageNotFoundError, version
 from typing import (
     Any,
     AsyncGenerator,
@@ -87,8 +88,6 @@ from .config import (
     OpenAIClientConfiguration,
     OpenAIClientConfigurationConfigModel,
 )
-from importlib.metadata import PackageNotFoundError, version
-
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
