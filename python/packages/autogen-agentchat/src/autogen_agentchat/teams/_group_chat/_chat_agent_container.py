@@ -1,6 +1,6 @@
-from typing import Any, List, Mapping
+from typing import Any, List, Mapping, Optional
 
-from autogen_core import DefaultTopicId, MessageContext, event, rpc
+from autogen_core import DefaultTopicId, MessageContext, event, rpc, AgentId
 
 from autogen_agentchat.messages import AgentEvent, ChatMessage, MessageFactory
 
@@ -29,10 +29,11 @@ class ChatAgentContainer(SequentialRoutedAgent):
         agent (ChatAgent): The agent to delegate message handling to.
         message_factory (MessageFactory): The message factory to use for
             creating messages from JSON data.
+        sender_filter (List[AgentId] | None): A list of agent IDs to filter messages by sender.
     """
 
     def __init__(
-        self, parent_topic_type: str, output_topic_type: str, agent: ChatAgent, message_factory: MessageFactory
+        self, parent_topic_type: str, output_topic_type: str, agent: ChatAgent, message_factory: MessageFactory, sender_filter: Optional[List[AgentId]] = None
     ) -> None:
         super().__init__(
             description=agent.description,
@@ -48,6 +49,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
         self._agent = agent
         self._message_buffer: List[ChatMessage] = []
         self._message_factory = message_factory
+        self._sender_filter = sender_filter
 
     @event
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -93,8 +95,10 @@ class ChatAgentContainer(SequentialRoutedAgent):
     def _buffer_message(self, message: ChatMessage) -> None:
         if not self._message_factory.is_registered(message.__class__):
             raise ValueError(f"Message type {message.__class__} is not registered.")
+        
         # Buffer the message.
-        self._message_buffer.append(message)
+        if self._sender_filter is None or message.sender in self._sender_filter:
+            self._message_buffer.append(message)
 
     async def _log_message(self, message: AgentEvent | ChatMessage) -> None:
         if not self._message_factory.is_registered(message.__class__):
