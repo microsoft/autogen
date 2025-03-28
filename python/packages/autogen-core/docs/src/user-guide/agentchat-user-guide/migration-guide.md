@@ -691,7 +691,7 @@ async def main() -> None:
         if user_input == "exit":
             break
         response = await assistant.on_messages([TextMessage(content=user_input, source="user")], CancellationToken())
-        print("Assistant:", response.chat_message.content)
+        print("Assistant:", response.chat_message.to_text())
     await model_client.close()
 
 asyncio.run(main())
@@ -1331,7 +1331,7 @@ async def main() -> None:
         if user_input == "exit":
             break
         response = await assistant.on_messages([TextMessage(content=user_input, source="user")], CancellationToken())
-        print("Assistant:", response.chat_message.content)
+        print("Assistant:", response.chat_message.to_text())
     
     await model_client.close()
 

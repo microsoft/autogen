@@ -134,8 +134,8 @@ async def test_magentic_one_group_chat_basic(runtime: AgentRuntime | None) -> No
     )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 5
-    assert result.messages[2].content == "Continue task"
-    assert result.messages[4].content == "print('Hello, world!')"
+    assert result.messages[2].to_text() == "Continue task"
+    assert result.messages[4].to_text() == "print('Hello, world!')"
     assert result.stop_reason is not None and result.stop_reason == "Because"
 
     # Test save and load.
@@ -214,8 +214,8 @@ async def test_magentic_one_group_chat_with_stalls(runtime: AgentRuntime | None)
     )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 6
-    assert isinstance(result.messages[1].content, str)
+    assert isinstance(result.messages[1], TextMessage)
     assert result.messages[1].content.startswith("\nWe are working to address the following user request:")
-    assert isinstance(result.messages[4].content, str)
+    assert isinstance(result.messages[4], TextMessage)
     assert result.messages[4].content.startswith("\nWe are working to address the following user request:")
     assert result.stop_reason is not None and result.stop_reason == "test"

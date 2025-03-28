@@ -408,9 +408,10 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         )
 
         choice = result.choices[0]
+        thought = None
+
         if choice.finish_reason == CompletionsFinishReason.TOOL_CALLS:
             assert choice.message.tool_calls is not None
-
             content: Union[str, List[FunctionCall]] = [
                 FunctionCall(
                     id=x.id,
@@ -420,6 +421,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 for x in choice.message.tool_calls
             ]
             finish_reason = "function_calls"
+
+            if choice.message.content:
+                thought = choice.message.content
         else:
             if isinstance(choice.finish_reason, CompletionsFinishReason):
                 finish_reason = choice.finish_reason.value
@@ -429,8 +433,6 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
             thought, content = parse_r1_content(content)
-        else:
-            thought = None
 
         response = CreateResult(
             finish_reason=finish_reason,  # type: ignore
@@ -486,6 +488,8 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         chunk: Optional[StreamingChatCompletionsUpdate] = None
         choice: Optional[StreamingChatChoiceUpdate] = None
         first_chunk = True
+        thought = None
+
         async for chunk in await task:  # type: ignore
             if first_chunk:
                 first_chunk = False
@@ -545,6 +549,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         else:
             content = list(full_tool_calls.values())
 
+            if len(content_deltas) > 0:
+                thought = "".join(content_deltas)
+
         usage = RequestUsage(
             completion_tokens=completion_tokens,
             prompt_tokens=prompt_tokens,
@@ -552,8 +559,6 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
             thought, content = parse_r1_content(content)
-        else:
-            thought = None
 
         result = CreateResult(
             finish_reason=finish_reason,
@@ -598,11 +603,3 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     @property
     def capabilities(self) -> ModelInfo:
         return self.model_info
-
-    def __del__(self) -> None:
-        # TODO: This is a hack to close the open client
-        if hasattr(self, "_client"):
-            try:
-                asyncio.get_running_loop().create_task(self._client.close())
-            except RuntimeError:
-                asyncio.run(self._client.close())
