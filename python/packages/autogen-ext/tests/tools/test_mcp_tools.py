@@ -1,4 +1,5 @@
 import logging
+import os
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -8,6 +9,7 @@ from autogen_ext.tools.mcp import (
     SseServerParams,
     StdioMcpToolAdapter,
     StdioServerParams,
+    mcp_server_tools,
 )
 from json_schema_to_pydantic import create_model
 from mcp import ClientSession, Tool
@@ -280,3 +282,85 @@ async def test_sse_adapter_from_server_params(
         params_schema["properties"]["test_param"]["type"]
         == sample_sse_tool.inputSchema["properties"]["test_param"]["type"]
     )
+
+
+# TODO: why is this test not working in CI?
+@pytest.mark.skip(reason="Skipping test_mcp_server_fetch due to CI issues.")
+@pytest.mark.asyncio
+async def test_mcp_server_fetch() -> None:
+    params = StdioServerParams(
+        command="uvx",
+        args=["mcp-server-fetch"],
+        read_timeout_seconds=60,
+    )
+    tools = await mcp_server_tools(server_params=params)
+    assert tools is not None
+    assert tools[0].name == "fetch"
+    result = await tools[0].run_json({"url": "https://github.com/"}, CancellationToken())
+    assert result is not None
+
+
+# TODO: why is this test not working in CI?
+@pytest.mark.skip(reason="Skipping due to CI issues.")
+@pytest.mark.asyncio
+async def test_mcp_server_filesystem() -> None:
+    params = StdioServerParams(
+        command="npx",
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            ".",
+        ],
+        read_timeout_seconds=60,
+    )
+    tools = await mcp_server_tools(server_params=params)
+    assert tools is not None
+    tools = [tool for tool in tools if tool.name == "read_file"]
+    assert len(tools) == 1
+    tool = tools[0]
+    result = await tool.run_json({"path": "README.md"}, CancellationToken())
+    assert result is not None
+
+
+# TODO: why is this test not working in CI?
+@pytest.mark.skip(reason="Skipping due to CI issues.")
+@pytest.mark.asyncio
+async def test_mcp_server_git() -> None:
+    params = StdioServerParams(
+        command="uvx",
+        args=["mcp-server-git"],
+        read_timeout_seconds=60,
+    )
+    tools = await mcp_server_tools(server_params=params)
+    assert tools is not None
+    tools = [tool for tool in tools if tool.name == "git_log"]
+    assert len(tools) == 1
+    tool = tools[0]
+    repo_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
+    result = await tool.run_json({"repo_path": repo_path}, CancellationToken())
+    assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_mcp_server_github() -> None:
+    # Check if GITHUB_TOKEN is set.
+    if "GITHUB_TOKEN" not in os.environ:
+        pytest.skip("GITHUB_TOKEN environment variable is not set. Skipping test.")
+    params = StdioServerParams(
+        command="npx",
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-github",
+        ],
+        env={"GITHUB_PERSONAL_ACCESS_TOKEN": os.environ["GITHUB_TOKEN"]},
+        read_timeout_seconds=60,
+    )
+    tools = await mcp_server_tools(server_params=params)
+    assert tools is not None
+    tools = [tool for tool in tools if tool.name == "get_file_contents"]
+    assert len(tools) == 1
+    tool = tools[0]
+    result = await tool.run_json(
+        {"owner": "microsoft", "repo": "autogen", "path": "python", "branch": "main"}, CancellationToken()
+    )
+    assert result is not None

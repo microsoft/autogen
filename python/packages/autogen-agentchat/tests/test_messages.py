@@ -1,7 +1,13 @@
 import pytest
+<<<<<<< HEAD
 from autogen_agentchat.messages import HandoffMessage, MessageFactory, StructuredMessage, TextMessage, StructuredMessageComponent, StructureMessageConfig
 from pydantic import BaseModel
 import json
+=======
+from autogen_agentchat.messages import HandoffMessage, MessageFactory, StructuredMessage, TextMessage
+from pydantic import BaseModel
+
+>>>>>>> upstream/main
 
 class TestContent(BaseModel):
     """Test content model."""
@@ -35,6 +41,7 @@ def test_structured_message() -> None:
     assert dumped_message["type"] == "StructuredMessage[TestContent]"
 
 
+<<<<<<< HEAD
 def test_structured_message_component() -> None:
     # Create a structured message with the test contentformat_string="this is a string {field1} and this is an int {field2}"
     format_string="this is a string {field1} and this is an int {field2}"
@@ -56,6 +63,8 @@ def test_structured_message_component() -> None:
     assert message.to_model_text() == format_string.format(field1="test", field2=42)
 
 
+=======
+>>>>>>> upstream/main
 def test_message_factory() -> None:
     factory = MessageFactory()
 
