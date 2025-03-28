@@ -41,12 +41,6 @@ from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
-DEFAULT_TERMINAL_DESCRIPTION = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)."
-
-DEFAULT_AGENT_DESCRIPTION = "A Code Execution Agent that generates and executes Python and shell scripts based on user instructions. Python code should be provided in ```python code blocks, and sh shell scripts should be provided in ```sh code blocks for execution. It ensures correctness, efficiency, and minimal errors while gracefully handling edge cases."
-
-DEFAULT_SYSTEM_MESSAGE = "You are a Code Execution Agent. Your role is to generate and execute Python code based on user instructions, ensuring correctness, efficiency, and minimal errors. Handle edge cases gracefully."
-
 
 class CodeExecutorAgentConfig(BaseModel):
     """Configuration for CodeExecutorAgent"""
@@ -144,6 +138,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
     """
 
+    DEFAULT_TERMINAL_DESCRIPTION = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)."
+    DEFAULT_AGENT_DESCRIPTION = "A Code Execution Agent that generates and executes Python and shell scripts based on user instructions. Python code should be provided in ```python code blocks, and sh shell scripts should be provided in ```sh code blocks for execution. It ensures correctness, efficiency, and minimal errors while gracefully handling edge cases."
+    DEFAULT_SYSTEM_MESSAGE = "You are a Code Execution Agent. Your role is to generate and execute Python code based on user instructions, ensuring correctness, efficiency, and minimal errors. Handle edge cases gracefully."
+
     component_config_schema = CodeExecutorAgentConfig
     component_provider_override = "autogen_agentchat.agents.CodeExecutorAgent"
 
@@ -156,15 +154,15 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_context: ChatCompletionContext | None = None,
         model_client_stream: bool = False,
         description: str | None = None,
-        system_message: str | None = DEFAULT_SYSTEM_MESSAGE,
+        system_message: str | None = None,
         reflect_on_code_block_results: bool = False,
         sources: Sequence[str] | None = None,
     ) -> None:
         if description is None:
             if model_client is None:
-                description = DEFAULT_TERMINAL_DESCRIPTION
+                description = CodeExecutorAgent.DEFAULT_TERMINAL_DESCRIPTION
             else:
-                description = DEFAULT_AGENT_DESCRIPTION
+                description = CodeExecutorAgent.DEFAULT_AGENT_DESCRIPTION
 
         super().__init__(name=name, description=description)
         self._code_executor = code_executor
@@ -182,7 +180,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
         self._system_messaages: List[SystemMessage] = []
         if system_message is None:
-            self._system_messages = []
+            self._system_messages = [SystemMessage(content=CodeExecutorAgent.DEFAULT_SYSTEM_MESSAGE)]
         else:
             self._system_messages = [SystemMessage(content=system_message)]
 
