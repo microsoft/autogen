@@ -169,16 +169,14 @@ def to_oai_type(
     }
     transformers = get_transformer("openai", model_family)
 
-    def raise_value_error(message: LLMMessage, context: Dict[str, Any]) -> ChatCompletionMessageParam:
+    def raise_value_error(message: LLMMessage, context: Dict[str, Any]) -> Sequence[ChatCompletionMessageParam]:
         raise ValueError(f"Unknown message type: {type(message)}")
 
-    transformer: Callable[
-        [LLMMessage, Dict[str, Any]], Union[ChatCompletionMessageParam, Sequence[ChatCompletionMessageParam]]
-    ] = transformers.get(type(message), raise_value_error)
+    transformer: Callable[[LLMMessage, Dict[str, Any]], Sequence[ChatCompletionMessageParam]] = transformers.get(
+        type(message), raise_value_error
+    )
     result = transformer(message, context)
-    if isinstance(result, list):
-        return cast(List[ChatCompletionMessageParam], result)
-    return cast(List[ChatCompletionMessageParam], [result])
+    return result
 
 
 def calculate_vision_tokens(image: Image, detail: str = "auto") -> int:
@@ -276,19 +274,6 @@ def normalize_name(name: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
 
 
-def assert_valid_name(name: str) -> str:
-    """
-    Ensure that configured names are valid, raises ValueError if not.
-
-    For munging LLM responses use _normalize_name to ensure LLM specified names don't break the API.
-    """
-    if not re.match(r"^[a-zA-Z0-9_-]+$", name):
-        raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
-    if len(name) > 64:
-        raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
-    return name
-
-
 def count_tokens_openai(
     messages: Sequence[LLMMessage],
     model: str,
@@ -308,7 +293,7 @@ def count_tokens_openai(
     # Message tokens.
     for message in messages:
         num_tokens += tokens_per_message
-        oai_message = to_oai_type(message, prepend_name=add_name_prefixes)
+        oai_message = to_oai_type(message, prepend_name=add_name_prefixes, model_family=model)
         for oai_message_part in oai_message:
             for key, value in oai_message_part.items():
                 if value is None:

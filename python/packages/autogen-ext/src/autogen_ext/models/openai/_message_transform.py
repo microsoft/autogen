@@ -25,6 +25,7 @@ from openai.types.chat import (
 
 from ._transformation import (
     TransformerMap,
+    TrasformerReturnType,
     build_conditional_transformer_func,
     build_transformer_func,
     register_transformer,
@@ -256,9 +257,7 @@ assistant_transformer_funcs_claude: Dict[str, List[Callable[[LLMMessage, Dict[st
 }
 
 
-def function_execution_result_message(
-    message: LLMMessage, context: Dict[str, Any]
-) -> list[ChatCompletionToolMessageParam]:
+def function_execution_result_message(message: LLMMessage, context: Dict[str, Any]) -> TrasformerReturnType:
     assert isinstance(message, FunctionExecutionResultMessage)
     return [
         ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id) for x in message.content

@@ -33,7 +33,7 @@ def build_transformer_func(
         kwargs: Dict[str, Any] = {}
         for func in funcs:
             kwargs.update(func(message, context))
-        return message_param_func(**kwargs)
+        return [message_param_func(**kwargs)]
 
     return transformer_func
 
@@ -58,11 +58,11 @@ def build_conditional_transformer_func(
 
     def transformer(message: LLMMessage, context: Dict[str, Any]) -> Any:
         condition = condition_func(message, context)
-        constructor = message_param_func_map[condition]
+        message_param_func = message_param_func_map[condition]
         kwargs: Dict[str, Any] = {}
         for func in funcs_map[condition]:
             kwargs.update(func(message, context))
-        return constructor(**kwargs)
+        return [message_param_func(**kwargs)]
 
     return transformer
 

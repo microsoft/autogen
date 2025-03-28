@@ -6,8 +6,10 @@ from .registry import (
     register_transformer,
 )
 from .types import (
+    MessageParam,
     TransformerFunc,
     TransformerMap,
+    TrasformerReturnType,
 )
 
 __all__ = [
@@ -18,4 +20,6 @@ __all__ = [
     "MESSAGE_TRANSFORMERS",
     "TransformerMap",
     "TransformerFunc",
+    "MessageParam",
+    "TrasformerReturnType",
 ]
