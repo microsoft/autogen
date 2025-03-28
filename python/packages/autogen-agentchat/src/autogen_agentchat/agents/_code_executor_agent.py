@@ -155,7 +155,6 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_client_stream: bool = False,
         description: str | None = None,
         system_message: str | None = None,
-        reflect_on_code_block_results: bool = False,
         sources: Sequence[str] | None = None,
     ) -> None:
         if description is None:
@@ -184,8 +183,6 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         else:
             self._system_messages = [SystemMessage(content=system_message)]
 
-        self._reflect_on_code_block_results = reflect_on_code_block_results
-
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the code executor agent produces."""
@@ -210,7 +207,6 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         system_messages = self._system_messages
         model_client = self._model_client
         model_client_stream = self._model_client_stream
-        reflect_on_code_block_results = self._reflect_on_code_block_results
 
         execution_result: TextMessage | None = None
         if model_client is None:  # default behaviour for backward compatibility
@@ -299,22 +295,17 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         )
 
         # changed return type of execute_code_block from `Response` to `TextMessage`, so that yielding execution_result doesn't terminate the function and we can proceed to reflection
-        # yield execution_result as Response if reflect_on_code_block_results=False, else yield it as TextMessage so that we can yield reflection as a Response object.
-
-        # reflect on the execution result if reflect_on_code_block_results=True
-        if reflect_on_code_block_results:
-            yield execution_result
-            async for reflection_response in CodeExecutorAgent._reflect_on_code_block_results_flow(
-                system_messages=system_messages,
-                model_client=model_client,
-                model_client_stream=model_client_stream,
-                model_context=model_context,
-                agent_name=agent_name,
-                inner_messages=inner_messages,
-            ):
-                yield reflection_response  # last reflection_response is of type Response so it will finish the routine
-        else:
-            yield Response(chat_message=execution_result)
+        # always reflect on the execution result
+        yield execution_result
+        async for reflection_response in CodeExecutorAgent._reflect_on_code_block_results_flow(
+            system_messages=system_messages,
+            model_client=model_client,
+            model_client_stream=model_client_stream,
+            model_context=model_context,
+            agent_name=agent_name,
+            inner_messages=inner_messages,
+        ):
+            yield reflection_response  # last reflection_response is of type Response so it will finish the routine
 
     async def execute_code_block(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
