@@ -158,11 +158,11 @@ export const TruncatableText = memo(
 
         {isFullscreen && (
           <div
-            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+            className="fixed inset-0 dark:bg-black/80 bg-black/10 z-50 flex items-center justify-center"
             onClick={() => setIsFullscreen(false)}
           >
             <div
-              className="relative bg-secondary scroll w-full h-full md:w-4/5 md:h-4/5 md:rounded-lg p-8 overflow-auto"
+              className="relative bg-primary scroll w-full h-full md:w-4/5 md:h-4/5 md:rounded-lg p-8 overflow-auto"
               style={{ opacity: 0.95 }}
               onClick={(e) => e.stopPropagation()}
             >
