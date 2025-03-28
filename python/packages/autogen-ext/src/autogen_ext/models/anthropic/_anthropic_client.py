@@ -613,7 +613,6 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         """
         Creates an AsyncGenerator that yields a stream of completions based on the provided messages and tools.
         """
-        raise NotImplementedError("create_stream is not implemented for Anthropic models")
         # Copy create args and update with extra args
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)

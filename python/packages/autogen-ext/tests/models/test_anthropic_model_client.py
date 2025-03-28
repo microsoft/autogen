@@ -4,6 +4,8 @@ import os
 from typing import List, Sequence
 
 import pytest
+from unittest.mock import MagicMock, patch
+
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models import (
     AssistantMessage,
@@ -362,3 +364,186 @@ async def test_anthropic_muliple_system_message() -> None:
     result_content = result_content.strip()
     assert result_content[:3] == "FOO"
     assert result_content[-3:] == "BAR"
+
+
+@pytest.mark.parametrize(
+    "messages,expected_count,expected_content",
+    [
+        # 테스트 케이스 1: 연속된 시스템 메시지 - 병합됨
+        (
+            [
+                SystemMessage(content="System instruction 1"),
+                SystemMessage(content="System instruction 2"),
+                UserMessage(content="User question", source="user"),
+            ],
+            2,  # 병합 후 예상 메시지 개수: 시스템 1개 + 사용자 1개
+            "System instruction 1\nSystem instruction 2",  # 병합된 내용
+        ),
+        # 테스트 케이스 2: 단일 시스템 메시지 - 변경 없음
+        (
+            [
+                SystemMessage(content="Single system instruction"),
+                UserMessage(content="User question", source="user"),
+            ],
+            2,  # 메시지 개수 변화 없음
+            "Single system instruction",  # 원본 내용 유지
+        ),
+        # 테스트 케이스 3: 시스템 메시지 없음
+        (
+            [
+                UserMessage(content="User question without system", source="user"),
+            ],
+            1,  # 메시지 개수 변화 없음
+            None,  # 시스템 메시지 없음
+        ),
+        # 테스트 케이스 4: 여러 그룹의 연속된 시스템 메시지
+        (
+            [
+                SystemMessage(content="First group 1"),
+                SystemMessage(content="First group 2"),
+                UserMessage(content="Middle user message", source="user"),
+                SystemMessage(content="Second group 1"),
+                SystemMessage(content="Second group 2"),
+            ],
+            3,  # 병합 후: 시스템(병합) + 사용자 + 시스템(병합)
+            None,  # 두 그룹 모두 병합되지만 연속적이지 않아 ValueError 발생 예상
+        ),
+    ],
+)
+def test_merge_system_messages(messages, expected_count, expected_content):
+    """Test the _merge_system_messages method directly"""
+    
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key="fake-api-key"
+    )
+    
+    # 연속되지 않은 시스템 메시지 케이스는 예외가 발생해야 함
+    if expected_content is None and len(messages) > 1:
+        with pytest.raises(ValueError, match="Multiple and Not continuous system messages are not supported"):
+            merged_messages = client._merge_system_messages(messages)
+        return
+    
+    # 그 외 케이스는 정상 병합
+    merged_messages = client._merge_system_messages(messages)
+    
+    # 메시지 개수 확인
+    assert len(merged_messages) == expected_count
+    
+    # 시스템 메시지 내용 확인 (있는 경우)
+    if expected_content is not None:
+        system_messages = [msg for msg in merged_messages if isinstance(msg, SystemMessage)]
+        if system_messages:
+            assert system_messages[0].content == expected_content
+        else:
+            assert expected_content is None
+
+@pytest.mark.asyncio
+async def test_anthropic_multiple_system_messages_api_call():
+    """Test multiple system messages are correctly merged in API calls"""
+    
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+    
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key
+    )
+    
+    # 시스템 메시지 병합 호출 모킹
+    original_merge = client._merge_system_messages
+    merge_called = False
+    merged_content = None
+    
+    def mock_merge(messages):
+        nonlocal merge_called, merged_content
+        merge_called = True
+        result = original_merge(messages)
+        
+        # 병합된 시스템 메시지의 내용 저장
+        for msg in result:
+            if isinstance(msg, SystemMessage):
+                merged_content = msg.content
+                break
+        
+        return result
+    
+    # 패치 적용
+    with patch.object(client, '_merge_system_messages', side_effect=mock_merge):
+        messages = [
+            SystemMessage(content="First instruction: be concise"),
+            SystemMessage(content="Second instruction: use simple words"),
+            UserMessage(content="Explain what a computer is", source="user"),
+        ]
+        
+        # API 호출
+        result = await client.create(messages=messages)
+        
+        # 검증
+        assert merge_called, "System message merge function was not called"
+        assert merged_content == "First instruction: be concise\nSecond instruction: use simple words"
+        
+        # 응답이 지시사항을 따랐는지 확인 (간결하고 단순한 언어)
+        assert isinstance(result.content, str)
+        assert len(result.content) < 500  # 간결함 확인 (임의 기준)
+
+@pytest.mark.asyncio
+async def test_anthropic_merge_error_propagation():
+    """Test that merge errors properly propagate through the create method"""
+    
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+    
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key
+    )
+    
+    # 연속되지 않은 시스템 메시지
+    messages = [
+        SystemMessage(content="System instruction 1"),
+        UserMessage(content="User interruption", source="user"),
+        SystemMessage(content="System instruction 2"),
+    ]
+    
+    # create 메서드에서도 에러가 발생하는지 확인
+    with pytest.raises(ValueError, match="Multiple and Not continuous system messages are not supported"):
+        await client.create(messages=messages)
+
+@pytest.mark.asyncio
+async def test_anthropic_merge_with_multimodal():
+    """Test system message merge with multimodal content"""
+    
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+    
+    # Skip if PIL is not available
+    try:
+        from autogen_core import Image
+        from PIL import Image as PILImage
+    except ImportError:
+        pytest.skip("PIL or other dependencies not installed")
+    
+    client = AnthropicChatCompletionClient(
+        model="claude-3-sonnet-20240229",  # 비전 지원 모델
+        api_key=api_key
+    )
+    
+    # 간단한 이미지 생성
+    width, height = 100, 100
+    color = (255, 0, 0)  # Red
+    pil_image = PILImage.new("RGB", (width, height), color)
+    img = Image(pil_image)
+    
+    # 멀티모달 시스템 메시지와 일반 시스템 메시지 조합
+    with pytest.raises(ValueError):  # 멀티모달 시스템 메시지는 지원되지 않을 것임
+        await client.create(
+            messages=[
+                SystemMessage(content="Text system message"),
+                SystemMessage(content=[img]),  # 멀티모달 시스템 메시지
+                UserMessage(content="What do you see?", source="user"),
+            ]
+        )
