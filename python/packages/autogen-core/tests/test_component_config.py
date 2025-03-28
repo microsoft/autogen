@@ -361,7 +361,6 @@ async def test_function_tool() -> None:
         await loaded_async.run_json({"x": 1.0, "y": 2.0}, cancelled_token)
 
 
-@pytest.mark.asyncio
 def test_component_descriptions() -> None:
     """Test different ways of setting component descriptions."""
     assert MyComponent("test").dump_component().description is None
