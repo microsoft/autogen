@@ -5,23 +5,15 @@ class and includes specific fields relevant to the type of message being sent.
 """
 
 from abc import ABC, abstractmethod
-<<<<<<< HEAD
 from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar, Optional, Type, ClassVar
-=======
-from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
->>>>>>> upstream/main
 
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
 from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
 from pydantic import BaseModel, ConfigDict, computed_field
 from typing_extensions import Self
-<<<<<<< HEAD
 from autogen_core import Component, ComponentBase
 from autogen_agentchat.utils import JSONSchemaToPydantic
-=======
-
->>>>>>> upstream/main
 
 class BaseMessage(BaseModel, ABC):
     """Base class for all message types in AgentChat. This is an abstract class
@@ -207,7 +199,6 @@ class StructuredMessage(ChatMessage, Generic[StructuredContentType]):
     content: StructuredContentType
     """The content of the message. Must be a subclass of
     `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_."""
-<<<<<<< HEAD
     format_string: Optional[str] = None
 
     def to_text(self) -> str:
@@ -220,27 +211,15 @@ class StructuredMessage(ChatMessage, Generic[StructuredContentType]):
         if self.format_string is not None:
             return self.format_string.format(**self.content.model_dump())
         
-=======
-
-    def to_text(self) -> str:
-        return self.content.model_dump_json(indent=2)
-
-    def to_model_text(self) -> str:
->>>>>>> upstream/main
         return self.content.model_dump_json()
 
     def to_model_message(self) -> UserMessage:
         return UserMessage(
-<<<<<<< HEAD
             content=self.to_model_text(),
-=======
-            content=self.content.model_dump_json(),
->>>>>>> upstream/main
             source=self.source,
         )
 
 
-<<<<<<< HEAD
 class StructureMessageConfig(BaseModel):
     """The declarative configuration for the structured input."""
     json_schema: dict
@@ -280,8 +259,6 @@ class StructuredMessageComponent(ComponentBase[StructureMessageConfig], Componen
         )
 
 
-=======
->>>>>>> upstream/main
 class TextMessage(TextChatMessage):
     """A text message with string-only content."""
 
