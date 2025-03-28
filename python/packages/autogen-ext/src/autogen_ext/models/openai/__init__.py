@@ -1,3 +1,4 @@
+from . import _message_transform
 from ._openai_client import (
     AZURE_OPENAI_USER_AGENT,
     AzureOpenAIChatCompletionClient,
@@ -20,4 +21,5 @@ __all__ = [
     "BaseOpenAIClientConfigurationConfigModel",
     "CreateArgumentsConfigModel",
     "AZURE_OPENAI_USER_AGENT",
+    "_message_transform",
 ]
