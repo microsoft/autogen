@@ -6,9 +6,10 @@ from pydantic import BaseModel
 from ...base import Response
 from ...messages import AgentEvent, ChatMessage, StopMessage
 
+
 class SerializableException(BaseModel):
     """A serializable exception."""
-    
+
     error_type: str
     """The type of error that occurred."""
 
@@ -26,13 +27,12 @@ class SerializableException(BaseModel):
             error_message=str(exc),
             traceback="\n".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
         )
-    
+
     def __str__(self) -> str:
         """Return a string representation of the error, including the traceback if available."""
         if self.traceback:
             return f"{self.error_type}: {self.error_message}\nTraceback:\n{self.traceback}"
         return f"{self.error_type}: {self.error_message}"
-
 
 
 class GroupChatStart(BaseModel):

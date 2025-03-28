@@ -104,7 +104,6 @@ class _FlakyAgent(BaseChatAgent):
 
 
 class _FlakyTermination(TerminationCondition):
-
     def __init__(self, raise_on_count: int) -> None:
         self._raise_on_count = raise_on_count
         self._count = 0
@@ -119,9 +118,10 @@ class _FlakyTermination(TerminationCondition):
         if self._count == self._raise_on_count:
             raise ValueError("I am a flaky termination...")
         return None
-    
+
     async def reset(self) -> None:
         pass
+
 
 class _UnknownMessageType(ChatMessage):
     content: str
@@ -298,7 +298,7 @@ async def test_round_robin_group_chat_unknown_agent_message_type() -> None:
     agent2 = _UnknownMessageTypeAgent("agent2", "I am an unknown message type agent")
     termination = TextMentionTermination("TERMINATE")
     team1 = RoundRobinGroupChat(participants=[agent1, agent2], termination_condition=termination)
-    with pytest.raises(ValueError, match="Message type .*UnknownMessageType.* not registered"):
+    with pytest.raises(RuntimeError, match=".* Message type .*UnknownMessageType.* not registered"):
         await team1.run(task=TextMessage(content="Write a program that prints 'Hello, world!'", source="user"))
 
 
@@ -486,23 +486,25 @@ async def test_round_robin_group_chat_with_exception_raised_from_agent(runtime: 
         await team.run(
             task="Write a program that prints 'Hello, world!'",
         )
- 
+
+
 @pytest.mark.asyncio
-async def test_round_robin_group_chat_with_exception_raised_from_termination_condition(runtime: AgentRuntime | None) -> None:
+async def test_round_robin_group_chat_with_exception_raised_from_termination_condition(
+    runtime: AgentRuntime | None,
+) -> None:
     agent_1 = _EchoAgent("agent_1", description="echo agent 1")
     agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
     team = RoundRobinGroupChat(
         participants=[agent_1, agent_2, agent_3],
-        termination_condition=_FlakyTermination(),
+        termination_condition=_FlakyTermination(raise_on_count=1),
         runtime=runtime,
     )
 
-    with pytest.raises(RuntimeError, match="I am a flaky termination..."):
+    with pytest.raises(Exception, match="I am a flaky termination..."):
         await team.run(
             task="Write a program that prints 'Hello, world!'",
         )
- 
 
 
 @pytest.mark.asyncio

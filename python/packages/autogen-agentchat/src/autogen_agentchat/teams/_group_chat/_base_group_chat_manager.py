@@ -8,6 +8,7 @@ from ...base import TerminationCondition
 from ...messages import AgentEvent, ChatMessage, MessageFactory, StopMessage
 from ._events import (
     GroupChatAgentResponse,
+    GroupChatError,
     GroupChatMessage,
     GroupChatPause,
     GroupChatRequestPublish,
@@ -15,7 +16,6 @@ from ._events import (
     GroupChatResume,
     GroupChatStart,
     GroupChatTermination,
-    GroupChatError,
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -211,10 +211,11 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         )
         # Put the termination event in the output message queue.
         await self._output_message_queue.put(termination_event)
-    
+
     async def _signal_termination_with_error(self, error: SerializableException) -> None:
-        termination_event = GroupChatTermination(message=StopMessage(content="An error occurred in the group chat.", source=self._name),
-                                                  error=error)
+        termination_event = GroupChatTermination(
+            message=StopMessage(content="An error occurred in the group chat.", source=self._name), error=error
+        )
         # Log the termination event.
         await self.publish_message(
             termination_event,
@@ -227,7 +228,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
     async def handle_group_chat_message(self, message: GroupChatMessage, ctx: MessageContext) -> None:
         """Handle a group chat message by appending the content to its output message queue."""
         await self._output_message_queue.put(message.message)
-    
+
     @event
     async def handle_group_chat_error(self, message: GroupChatError, ctx: MessageContext) -> None:
         """Handle a group chat error by logging the error and signaling termination."""

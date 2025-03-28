@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
@@ -26,9 +25,15 @@ from ...messages import (
 )
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
-from ._events import GroupChatPause, GroupChatReset, GroupChatResume, GroupChatStart, GroupChatTermination, SerializableException
+from ._events import (
+    GroupChatPause,
+    GroupChatReset,
+    GroupChatResume,
+    GroupChatStart,
+    GroupChatTermination,
+    SerializableException,
+)
 from ._sequential_routed_agent import SequentialRoutedAgent
-
 
 
 class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
@@ -447,7 +452,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                     # but not due to an exception.
                     await self._output_message_queue.put(
                         GroupChatTermination(
-                            message=StopMessage(content="The group chat is stopped.", source=self._group_chat_manager_name)
+                            message=StopMessage(
+                                content="The group chat is stopped.", source=self._group_chat_manager_name
+                            )
                         )
                     )
                 except Exception as e:
@@ -457,8 +464,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                     # This may not be necessary if the group chat manager is able to handle the exception and put the event in the queue.
                     await self._output_message_queue.put(
                         GroupChatTermination(
-                            message=StopMessage(content="An exception occurred in the runtime.", source=self._group_chat_manager_name),
-                            error=SerializableException.from_exception(e)
+                            message=StopMessage(
+                                content="An exception occurred in the runtime.", source=self._group_chat_manager_name
+                            ),
+                            error=SerializableException.from_exception(e),
                         )
                     )
 

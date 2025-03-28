@@ -8,13 +8,13 @@ from ...base import ChatAgent, Response
 from ...state import ChatAgentContainerState
 from ._events import (
     GroupChatAgentResponse,
+    GroupChatError,
     GroupChatMessage,
     GroupChatPause,
     GroupChatRequestPublish,
     GroupChatReset,
     GroupChatResume,
     GroupChatStart,
-    GroupChatError,
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -83,7 +83,9 @@ class ChatAgentContainer(SequentialRoutedAgent):
                 else:
                     await self._log_message(msg)
             if response is None:
-                raise ValueError("The agent did not produce a final response. Check the agent's on_messages_stream method.")
+                raise ValueError(
+                    "The agent did not produce a final response. Check the agent's on_messages_stream method."
+                )
             # Publish the response to the group chat.
             self._message_buffer.clear()
             await self.publish_message(
