@@ -24,6 +24,7 @@ from openai.types.chat import (
 )
 
 from ._transformation import (
+    LLMMessageContent,
     TransformerMap,
     TrasformerReturnType,
     build_conditional_transformer_func,
@@ -47,30 +48,30 @@ def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallPara
 
 
 # ===Mini Transformers===
-def _assert_valid_name(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _assert_valid_name(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, None]:
     assert isinstance(message, (UserMessage, AssistantMessage))
     assert_valid_name(message.source)
     return EMPTY
 
 
-def _set_role(role: str) -> Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]:
-    def inner(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_role(role: str) -> Callable[[LLMMessage, Dict[str, Any]], Dict[str, str]]:
+    def inner(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, str]:
         return {"role": role}
 
     return inner
 
 
-def _set_name(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_name(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, str]:
     assert isinstance(message, (UserMessage, AssistantMessage))
     assert_valid_name(message.source)
     return {"name": message.source}
 
 
-def _set_content_direct(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_content_direct(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, LLMMessageContent]:
     return {"content": message.content}
 
 
-def _set_prepend_text_content(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_prepend_text_content(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, str]:
     assert isinstance(message, (UserMessage, AssistantMessage))
     assert isinstance(message.content, str)
     prepend = context.get("prepend_name", False)
@@ -78,7 +79,9 @@ def _set_prepend_text_content(message: LLMMessage, context: Dict[str, Any]) -> D
     return {"content": prefix + message.content}
 
 
-def _set_multimodal_content(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_multimodal_content(
+    message: LLMMessage, context: Dict[str, Any]
+) -> Dict[str, List[ChatCompletionContentPartParam]]:
     assert isinstance(message, (UserMessage, AssistantMessage))
     prepend = context.get("prepend_name", False)
     parts: List[ChatCompletionContentPartParam] = []
@@ -98,7 +101,9 @@ def _set_multimodal_content(message: LLMMessage, context: Dict[str, Any]) -> Dic
     return {"content": parts}
 
 
-def _set_tool_calls(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_tool_calls(
+    message: LLMMessage, context: Dict[str, Any]
+) -> Dict[str, List[ChatCompletionMessageToolCallParam]]:
     assert isinstance(message.content, list)
     assert isinstance(message, AssistantMessage)
     return {
@@ -106,17 +111,17 @@ def _set_tool_calls(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, A
     }
 
 
-def _set_thought_as_content(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_thought_as_content(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, str | None]:
     assert isinstance(message, AssistantMessage)
     return {"content": message.thought}
 
 
-def _set_thought_as_content_gemini(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_thought_as_content_gemini(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, str | None]:
     assert isinstance(message, AssistantMessage)
     return {"content": message.thought or " "}
 
 
-def _set_empty_to_whitespace(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
+def _set_empty_to_whitespace(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, LLMMessageContent]:
     return {"content": message.content or " "}
 
 

@@ -6,6 +6,7 @@ from .registry import (
     register_transformer,
 )
 from .types import (
+    LLMMessageContent,
     MessageParam,
     TransformerFunc,
     TransformerMap,
@@ -21,5 +22,6 @@ __all__ = [
     "TransformerMap",
     "TransformerFunc",
     "MessageParam",
+    "LLMMessageContent",
     "TrasformerReturnType",
 ]
