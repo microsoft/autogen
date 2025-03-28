@@ -947,7 +947,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             if output_content_type:
                 content = output_content_type.model_validate_json(model_result.content)
                 yield Response(
-                    chat_message=StructuredMessage[output_content_type](  # type: ignore[name-defined]
+                    chat_message=StructuredMessage[output_content_type](  # type: ignore[valid-type]
                         content=content,
                         source=agent_name,
                         models_usage=model_result.usage,
@@ -1158,7 +1158,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         if output_content_type:
             content = output_content_type.model_validate_json(reflection_result.content)
             yield Response(
-                chat_message=StructuredMessage[output_content_type](  # type: ignore[name-defined]
+                chat_message=StructuredMessage[output_content_type](  # type: ignore[valid-type]
                     content=content,
                     source=agent_name,
                     models_usage=reflection_result.usage,
