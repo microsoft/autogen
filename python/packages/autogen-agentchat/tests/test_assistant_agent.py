@@ -420,21 +420,24 @@ async def test_output_format() -> None:
     agent = AssistantAgent(
         "test_agent",
         model_client=model_client,
-        output_format=AgentResponse,
+        output_content_type=AgentResponse,
     )
+    assert StructuredMessage[AgentResponse] in agent.produced_message_types
+    assert TextMessage not in agent.produced_message_types
+
     result = await agent.run()
     assert len(result.messages) == 1
-    assert isinstance(result.messages[0], TextMessage)
-    assert AgentResponse.model_validate_json(result.messages[0].content).response == "Hello"
-    assert AgentResponse.model_validate_json(result.messages[0].content).status == "success"
-    assert model_client.create_calls[0].get("json_output") == AgentResponse
+    assert isinstance(result.messages[0], StructuredMessage)
+    assert isinstance(result.messages[0].content, AgentResponse)  # type: ignore[reportUnknownMemberType]
+    assert result.messages[0].content.response == "Hello"
+    assert result.messages[0].content.status == "success"
 
     # Test streaming.
     agent = AssistantAgent(
         "test_agent",
         model_client=model_client,
         model_client_stream=True,
-        output_format=AgentResponse,
+        output_content_type=AgentResponse,
     )
     model_client.reset()
     stream = agent.run_stream()
@@ -444,10 +447,10 @@ async def test_output_format() -> None:
             stream_result = message
     assert stream_result is not None
     assert len(stream_result.messages) == 1
-    assert isinstance(stream_result.messages[0], TextMessage)
-    assert AgentResponse.model_validate_json(stream_result.messages[0].content).response == "Hello"
-    assert AgentResponse.model_validate_json(stream_result.messages[0].content).status == "success"
-    assert model_client.create_calls[0].get("json_output") == AgentResponse
+    assert isinstance(stream_result.messages[0], StructuredMessage)
+    assert isinstance(stream_result.messages[0].content, AgentResponse)  # type: ignore[reportUnknownMemberType]
+    assert stream_result.messages[0].content.response == "Hello"
+    assert stream_result.messages[0].content.status == "success"
 
 
 @pytest.mark.asyncio
@@ -477,8 +480,8 @@ async def test_reflection_output_format() -> None:
     agent = AssistantAgent(
         "test_agent",
         model_client=model_client,
-        output_format=AgentResponse,
-        reflect_on_tool_use=True,
+        output_content_type=AgentResponse,
+        # reflect_on_tool_use=True,
         tools=[
             _pass_function,
             _fail_function,
@@ -488,18 +491,18 @@ async def test_reflection_output_format() -> None:
     assert len(result.messages) == 3
     assert isinstance(result.messages[0], ToolCallRequestEvent)
     assert isinstance(result.messages[1], ToolCallExecutionEvent)
-    assert isinstance(result.messages[2], TextMessage)
-    assert AgentResponse.model_validate_json(result.messages[2].content).response == "Hello"
-    assert AgentResponse.model_validate_json(result.messages[2].content).status == "success"
-    assert model_client.create_calls[1].get("json_output") == AgentResponse
+    assert isinstance(result.messages[2], StructuredMessage)
+    assert isinstance(result.messages[2].content, AgentResponse)  # type: ignore[reportUnknownMemberType]
+    assert result.messages[2].content.response == "Hello"
+    assert result.messages[2].content.status == "success"
 
     # Test streaming.
     agent = AssistantAgent(
         "test_agent",
         model_client=model_client,
         model_client_stream=True,
-        output_format=AgentResponse,
-        reflect_on_tool_use=True,
+        output_content_type=AgentResponse,
+        # reflect_on_tool_use=True,
         tools=[
             _pass_function,
             _fail_function,
@@ -515,10 +518,28 @@ async def test_reflection_output_format() -> None:
     assert len(stream_result.messages) == 3
     assert isinstance(stream_result.messages[0], ToolCallRequestEvent)
     assert isinstance(stream_result.messages[1], ToolCallExecutionEvent)
-    assert isinstance(stream_result.messages[2], TextMessage)
-    assert AgentResponse.model_validate_json(stream_result.messages[2].content).response == "Hello"
-    assert AgentResponse.model_validate_json(stream_result.messages[2].content).status == "success"
-    assert model_client.create_calls[1].get("json_output") == AgentResponse
+    assert isinstance(stream_result.messages[2], StructuredMessage)
+    assert isinstance(stream_result.messages[2].content, AgentResponse)  # type: ignore[reportUnknownMemberType]
+    assert stream_result.messages[2].content.response == "Hello"
+    assert stream_result.messages[2].content.status == "success"
+
+    # Test when reflect_on_tool_use is False
+    model_client.reset()
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=model_client,
+        output_content_type=AgentResponse,
+        reflect_on_tool_use=False,
+        tools=[
+            _pass_function,
+            _fail_function,
+        ],
+    )
+    result = await agent.run()
+    assert len(result.messages) == 3
+    assert isinstance(result.messages[0], ToolCallRequestEvent)
+    assert isinstance(result.messages[1], ToolCallExecutionEvent)
+    assert isinstance(result.messages[2], ToolCallSummaryMessage)
 
 
 @pytest.mark.asyncio
