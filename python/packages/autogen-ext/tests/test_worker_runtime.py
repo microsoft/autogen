@@ -577,6 +577,103 @@ async def test_grpc_max_message_size() -> None:
         await host.stop()
 
 
+@pytest.mark.grpc
+@pytest.mark.asyncio
+async def test_agent_type_register_instance() -> None:
+    host_address = "localhost:50051"
+    agent1_id = AgentId(type="name", key="default")
+    agentdup_id = AgentId(type="name", key="default")
+    agent2_id = AgentId(type="name", key="notdefault")
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
+    host.start()
+
+    worker = GrpcWorkerAgentRuntime(host_address=host_address)
+    agent1 = NoopAgent(runtime=worker, agent_id=agent1_id)
+    agent2 = NoopAgent(runtime=worker, agent_id=agent2_id)
+    agentdup = NoopAgent(runtime=worker, agent_id=agentdup_id)
+    await worker.start()
+
+    await worker.register_agent_instance(agent1)
+    await worker.register_agent_instance(agent2)
+
+    with pytest.raises(ValueError):
+        await worker.register_agent_instance(agentdup)
+
+    assert await worker.try_get_underlying_agent_instance(agent1_id, type=NoopAgent) == agent1
+    assert await worker.try_get_underlying_agent_instance(agent2_id, type=NoopAgent) == agent2
+
+    await worker.stop()
+    await host.stop()
+
+
+@pytest.mark.grpc
+@pytest.mark.asyncio
+async def test_agent_type_register_instance_different_types() -> None:
+    host_address = "localhost:50051"
+    agent1_id = AgentId(type="name", key="noop")
+    agent2_id = AgentId(type="name", key="loopback")
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
+    host.start()
+
+    worker = GrpcWorkerAgentRuntime(host_address=host_address)
+    agent1 = NoopAgent(runtime=worker, agent_id=agent1_id)
+    agent2 = LoopbackAgent(runtime=worker, agent_id=agent2_id)
+    await worker.start()
+
+    await worker.register_agent_instance(agent1)
+    with pytest.raises(ValueError):
+        await worker.register_agent_instance(agent2)
+
+    await worker.stop()
+    await host.stop()
+
+
+@pytest.mark.grpc
+@pytest.mark.asyncio
+async def test_register_instance_factory() -> None:
+    host_address = "localhost:50051"
+    agent1_id = AgentId(type="name", key="default")
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
+    host.start()
+
+    worker = GrpcWorkerAgentRuntime(host_address=host_address)
+    agent1 = NoopAgent(runtime=worker, agent_id=agent1_id)
+    await worker.start()
+
+    await agent1.register_instance()
+
+    with pytest.raises(ValueError):
+        await NoopAgent.register(runtime=worker, type="name", factory=lambda: NoopAgent())
+
+    await worker.stop()
+    await host.stop()
+
+
+# GrpcWorkerAgentRuntimeHost eats exceptions in the main loop
+# @pytest.mark.grpc
+# @pytest.mark.asyncio
+# async def test_agent_type_register_instance_publish_new_source() -> None:
+#     host_address = "localhost:50056"
+#     agent_id = AgentId(type="name", key="default")
+#     agent1 = LoopbackAgent()
+#     host = GrpcWorkerAgentRuntimeHost(address=host_address)
+#     host.start()
+#     worker = GrpcWorkerAgentRuntime(host_address=host_address)
+#     await worker.start()
+#     publisher = GrpcWorkerAgentRuntime(host_address=host_address)
+#     publisher.add_message_serializer(try_get_known_serializers_for_type(MessageType))
+#     await publisher.start()
+
+#     await agent1.register_instance(worker, agent_id=agent_id)
+#     await worker.add_subscription(TypeSubscription("notdefault", "name"))
+
+#     with pytest.raises(RuntimeError):
+#         await worker.publish_message(MessageType(), TopicId("notdefault", "notdefault"))
+#         await asyncio.sleep(2)
+
+#     await worker.stop()
+#     await host.stop()
+
 if __name__ == "__main__":
     os.environ["GRPC_VERBOSITY"] = "DEBUG"
     os.environ["GRPC_TRACE"] = "all"

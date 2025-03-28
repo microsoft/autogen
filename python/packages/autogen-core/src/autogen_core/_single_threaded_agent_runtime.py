@@ -34,6 +34,7 @@ from ._agent_instantiation import AgentInstantiationContext
 from ._agent_metadata import AgentMetadata
 from ._agent_runtime import AgentRuntime
 from ._agent_type import AgentType
+from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 from ._intervention import DropMessage, InterventionHandler
 from ._message_context import MessageContext
@@ -265,6 +266,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._serialization_registry = SerializationRegistry()
         self._ignore_unhandled_handler_exceptions = ignore_unhandled_exceptions
         self._background_exception: BaseException | None = None
+        self._agent_instance_types: Dict[str, Type[Agent]] = {}
 
     @property
     def unprocessed_messages_count(
@@ -830,6 +832,37 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         return type
 
+    async def register_agent_instance(
+        self,
+        agent_instance: T | Awaitable[T],
+    ) -> AgentId:
+        def agent_factory() -> T:
+            raise RuntimeError("Agent factory should not be called when registering an agent instance.")
+
+        if inspect.isawaitable(agent_instance):
+            agent_instance = await agent_instance
+
+        # Agent type does not have the concept of a runtime
+        if isinstance(agent_instance, BaseAgent):
+            if agent_instance.runtime is not self:
+                raise ValueError("Agent instance is associated with a different runtime.")
+        agent_id = agent_instance.id
+
+        if agent_id in self._instantiated_agents:
+            raise ValueError(f"Agent with id {agent_id} already exists.")
+
+        if agent_id.type not in self._agent_factories:
+            self._agent_factories[agent_id.type] = agent_factory
+            self._agent_instance_types[agent_id.type] = type_func_alias(agent_instance)
+        else:
+            if self._agent_factories[agent_id.type].__code__ != agent_factory.__code__:
+                raise ValueError("Agent factories and agent instances cannot be registered to the same type.")
+            if self._agent_instance_types[agent_id.type] != type_func_alias(agent_instance):
+                raise ValueError("Agent instances must be the same object type.")
+
+        self._instantiated_agents[agent_id] = agent_instance
+        return agent_id
+
     async def _invoke_agent_factory(
         self,
         agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
@@ -851,7 +884,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     raise ValueError("Agent factory must take 0 or 2 arguments.")
 
                 if inspect.isawaitable(agent):
-                    return cast(T, await agent)
+                    agent = cast(T, await agent)
 
                 return agent
 

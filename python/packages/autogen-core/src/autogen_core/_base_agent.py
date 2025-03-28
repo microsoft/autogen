@@ -4,7 +4,7 @@ import inspect
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Type, TypeVar, final
+from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, Tuple, Type, TypeVar, final
 
 from typing_extensions import Self
 
@@ -81,17 +81,33 @@ class BaseAgent(ABC, Agent):
         assert self._id is not None
         return AgentMetadata(key=self._id.key, type=self._id.type, description=self._description)
 
-    def __init__(self, description: str) -> None:
-        try:
-            runtime = AgentInstantiationContext.current_runtime()
-            id = AgentInstantiationContext.current_agent_id()
-        except LookupError as e:
-            raise RuntimeError(
-                "BaseAgent must be instantiated within the context of an AgentRuntime. It cannot be directly instantiated."
-            ) from e
+    def __init__(
+        self, description: str, runtime: Optional[AgentRuntime] = None, agent_id: Optional[AgentId] = None
+    ) -> None:
+        param_count = 0
+        if runtime is not None:
+            param_count += 1
+        if agent_id is not None:
+            param_count += 1
+
+        if param_count != 0 and param_count != 2:
+            raise ValueError("BaseAgent must be instantiated with both runtime and agent_id or neither.")
+        if param_count == 0:
+            try:
+                runtime = AgentInstantiationContext.current_runtime()
+                agent_id = AgentInstantiationContext.current_agent_id()
+            except LookupError as e:
+                raise RuntimeError(
+                    "BaseAgent must be instantiated within the context of an AgentRuntime. It cannot be directly instantiated."
+                ) from e
+        else:
+            if not isinstance(runtime, AgentRuntime):
+                raise ValueError("Agent must be initialized with runtime of type AgentRuntime")
+            if not isinstance(agent_id, AgentId):
+                raise ValueError("Agent must be initialized with agent_id of type AgentId")
 
         self._runtime: AgentRuntime = runtime
-        self._id: AgentId = id
+        self._id: AgentId = agent_id
         if not isinstance(description, str):
             raise ValueError("Agent description must be a string")
         self._description = description
@@ -154,6 +170,52 @@ class BaseAgent(ABC, Agent):
 
     async def close(self) -> None:
         pass
+
+    async def register_instance(
+        self,
+        *,
+        skip_class_subscriptions: bool = False,
+        skip_direct_message_subscription: bool = False,
+    ) -> AgentId:
+        runtime = self.runtime
+        agent_id = await runtime.register_agent_instance(agent_instance=self)
+        if not skip_class_subscriptions:
+            with SubscriptionInstantiationContext.populate_context(AgentType(agent_id.type)):
+                subscriptions: List[Subscription] = []
+                for unbound_subscription in self._unbound_subscriptions():
+                    subscriptions_list_result = unbound_subscription()
+                    if inspect.isawaitable(subscriptions_list_result):
+                        subscriptions_list = await subscriptions_list_result
+                    else:
+                        subscriptions_list = subscriptions_list_result
+
+                    subscriptions.extend(subscriptions_list)
+            try:
+                for subscription in subscriptions:
+                    await runtime.add_subscription(subscription)
+            except ValueError:
+                # We don't care if the subscription already exists
+                pass
+
+        if not skip_direct_message_subscription:
+            # Additionally adds a special prefix subscription for this agent to receive direct messages
+            try:
+                await runtime.add_subscription(
+                    TypePrefixSubscription(
+                        # The prefix MUST include ":" to avoid collisions with other agents
+                        topic_type_prefix=agent_id.type + ":",
+                        agent_type=agent_id.type,
+                    )
+                )
+            except ValueError:
+                # We don't care if the subscription already exists
+                pass
+
+        # TODO: deduplication
+        for _message_type, serializer in self._handles_types():
+            runtime.add_message_serializer(serializer)
+
+        return agent_id
 
     @classmethod
     async def register(
