@@ -2104,7 +2104,7 @@ async def test_system_message_merge_for_gemini_models() -> None:
     )
 
     # Create two system messages
-    messages = [
+    messages: List[LLMMessage] = [
         SystemMessage(content="I am system message 1"),
         SystemMessage(content="I am system message 2"),
         UserMessage(content="Hello", source="user"),
@@ -2152,7 +2152,7 @@ async def test_system_message_merge_with_non_continuous_messages() -> None:
     )
 
     # Create non-continuous system messages
-    messages = [
+    messages: List[LLMMessage] = [
         SystemMessage(content="I am system message 1"),
         UserMessage(content="Hello", source="user"),
         SystemMessage(content="I am system message 2"),
@@ -2188,7 +2188,7 @@ async def test_system_message_not_merged_for_non_gemini_models() -> None:
     )
 
     # Create two system messages
-    messages = [
+    messages: List[LLMMessage] = [
         SystemMessage(content="I am system message 1"),
         SystemMessage(content="I am system message 2"),
         UserMessage(content="Hello", source="user"),
@@ -2232,7 +2232,10 @@ async def test_no_system_messages_for_gemini_model() -> None:
     )
 
     # Create messages with no system message
-    messages = [UserMessage(content="Hello", source="user"), AssistantMessage(content="Hi there", source="assistant")]
+    messages: List[LLMMessage] = [
+        UserMessage(content="Hello", source="user"),
+        AssistantMessage(content="Hi there", source="assistant"),
+    ]
 
     # Process the messages
     # pylint: disable=protected-access
@@ -2276,7 +2279,10 @@ async def test_single_system_message_for_gemini_model() -> None:
     )
 
     # Create messages with a single system message
-    messages = [SystemMessage(content="I am the only system message"), UserMessage(content="Hello", source="user")]
+    messages: List[LLMMessage] = [
+        SystemMessage(content="I am the only system message"),
+        UserMessage(content="Hello", source="user"),
+    ]
 
     # Process the messages
     # pylint: disable=protected-access
