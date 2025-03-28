@@ -537,7 +537,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     _last_system_message_idx = idx
                 else:
                     _messages.append(message)
-            system_message_content = system_message_content.strip()
+            system_message_content = system_message_content.rstrip()
             if system_message_content != "":
                 system_message = SystemMessage(content=system_message_content)
                 _messages.insert(_first_system_message_idx, system_message)

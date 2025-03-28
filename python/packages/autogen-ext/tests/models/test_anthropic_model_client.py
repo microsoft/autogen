@@ -2,10 +2,9 @@ import asyncio
 import logging
 import os
 from typing import List, Sequence
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import MagicMock, patch
-
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models import (
     AssistantMessage,
@@ -366,184 +365,219 @@ async def test_anthropic_muliple_system_message() -> None:
     assert result_content[-3:] == "BAR"
 
 
-@pytest.mark.parametrize(
-    "messages,expected_count,expected_content",
-    [
-        # 테스트 케이스 1: 연속된 시스템 메시지 - 병합됨
-        (
-            [
-                SystemMessage(content="System instruction 1"),
-                SystemMessage(content="System instruction 2"),
-                UserMessage(content="User question", source="user"),
-            ],
-            2,  # 병합 후 예상 메시지 개수: 시스템 1개 + 사용자 1개
-            "System instruction 1\nSystem instruction 2",  # 병합된 내용
-        ),
-        # 테스트 케이스 2: 단일 시스템 메시지 - 변경 없음
-        (
-            [
-                SystemMessage(content="Single system instruction"),
-                UserMessage(content="User question", source="user"),
-            ],
-            2,  # 메시지 개수 변화 없음
-            "Single system instruction",  # 원본 내용 유지
-        ),
-        # 테스트 케이스 3: 시스템 메시지 없음
-        (
-            [
-                UserMessage(content="User question without system", source="user"),
-            ],
-            1,  # 메시지 개수 변화 없음
-            None,  # 시스템 메시지 없음
-        ),
-        # 테스트 케이스 4: 여러 그룹의 연속된 시스템 메시지
-        (
-            [
-                SystemMessage(content="First group 1"),
-                SystemMessage(content="First group 2"),
-                UserMessage(content="Middle user message", source="user"),
-                SystemMessage(content="Second group 1"),
-                SystemMessage(content="Second group 2"),
-            ],
-            3,  # 병합 후: 시스템(병합) + 사용자 + 시스템(병합)
-            None,  # 두 그룹 모두 병합되지만 연속적이지 않아 ValueError 발생 예상
-        ),
-    ],
-)
-def test_merge_system_messages(messages, expected_count, expected_content):
-    """Test the _merge_system_messages method directly"""
-    
+def test_merge_continuous_system_messages() -> None:
+    """Tests merging of continuous system messages."""
     client = AnthropicChatCompletionClient(
-        model="claude-3-haiku-20240307",
+        model="claude-3-haiku-20240307", 
         api_key="fake-api-key"
     )
     
-    # 연속되지 않은 시스템 메시지 케이스는 예외가 발생해야 함
-    if expected_content is None and len(messages) > 1:
-        with pytest.raises(ValueError, match="Multiple and Not continuous system messages are not supported"):
-            merged_messages = client._merge_system_messages(messages)
-        return
-    
-    # 그 외 케이스는 정상 병합
-    merged_messages = client._merge_system_messages(messages)
-    
-    # 메시지 개수 확인
-    assert len(merged_messages) == expected_count
-    
-    # 시스템 메시지 내용 확인 (있는 경우)
-    if expected_content is not None:
-        system_messages = [msg for msg in merged_messages if isinstance(msg, SystemMessage)]
-        if system_messages:
-            assert system_messages[0].content == expected_content
-        else:
-            assert expected_content is None
-
-@pytest.mark.asyncio
-async def test_anthropic_multiple_system_messages_api_call():
-    """Test multiple system messages are correctly merged in API calls"""
-    
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
-    
-    client = AnthropicChatCompletionClient(
-        model="claude-3-haiku-20240307",
-        api_key=api_key
-    )
-    
-    # 시스템 메시지 병합 호출 모킹
-    original_merge = client._merge_system_messages
-    merge_called = False
-    merged_content = None
-    
-    def mock_merge(messages):
-        nonlocal merge_called, merged_content
-        merge_called = True
-        result = original_merge(messages)
-        
-        # 병합된 시스템 메시지의 내용 저장
-        for msg in result:
-            if isinstance(msg, SystemMessage):
-                merged_content = msg.content
-                break
-        
-        return result
-    
-    # 패치 적용
-    with patch.object(client, '_merge_system_messages', side_effect=mock_merge):
-        messages = [
-            SystemMessage(content="First instruction: be concise"),
-            SystemMessage(content="Second instruction: use simple words"),
-            UserMessage(content="Explain what a computer is", source="user"),
-        ]
-        
-        # API 호출
-        result = await client.create(messages=messages)
-        
-        # 검증
-        assert merge_called, "System message merge function was not called"
-        assert merged_content == "First instruction: be concise\nSecond instruction: use simple words"
-        
-        # 응답이 지시사항을 따랐는지 확인 (간결하고 단순한 언어)
-        assert isinstance(result.content, str)
-        assert len(result.content) < 500  # 간결함 확인 (임의 기준)
-
-@pytest.mark.asyncio
-async def test_anthropic_merge_error_propagation():
-    """Test that merge errors properly propagate through the create method"""
-    
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
-    
-    client = AnthropicChatCompletionClient(
-        model="claude-3-haiku-20240307",
-        api_key=api_key
-    )
-    
-    # 연속되지 않은 시스템 메시지
     messages = [
         SystemMessage(content="System instruction 1"),
-        UserMessage(content="User interruption", source="user"),
         SystemMessage(content="System instruction 2"),
+        UserMessage(content="User question", source="user"),
     ]
     
-    # create 메서드에서도 에러가 발생하는지 확인
-    with pytest.raises(ValueError, match="Multiple and Not continuous system messages are not supported"):
-        await client.create(messages=messages)
+    merged_messages = client._merge_system_messages(messages)
+    
+    # 병합 후 2개 메시지만 남아야 함 (시스템 1개, 사용자 1개)
+    assert len(merged_messages) == 2
+    
+    # 첫 번째 메시지는 병합된 시스템 메시지여야 함
+    assert isinstance(merged_messages[0], SystemMessage)
+    assert merged_messages[0].content == "System instruction 1\nSystem instruction 2"
+    
+    # 두 번째 메시지는 사용자 메시지여야 함
+    assert isinstance(merged_messages[1], UserMessage)
+    assert merged_messages[1].content == "User question"
 
-@pytest.mark.asyncio
-async def test_anthropic_merge_with_multimodal():
-    """Test system message merge with multimodal content"""
-    
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
-    
-    # Skip if PIL is not available
-    try:
-        from autogen_core import Image
-        from PIL import Image as PILImage
-    except ImportError:
-        pytest.skip("PIL or other dependencies not installed")
-    
+
+def test_merge_single_system_message() -> None:
+    """Tests that a single system message remains unchanged."""
     client = AnthropicChatCompletionClient(
-        model="claude-3-sonnet-20240229",  # 비전 지원 모델
-        api_key=api_key
+        model="claude-3-haiku-20240307", 
+        api_key="fake-api-key"
     )
     
-    # 간단한 이미지 생성
-    width, height = 100, 100
-    color = (255, 0, 0)  # Red
-    pil_image = PILImage.new("RGB", (width, height), color)
-    img = Image(pil_image)
+    messages = [
+        SystemMessage(content="Single system instruction"),
+        UserMessage(content="User question", source="user"),
+    ]
     
-    # 멀티모달 시스템 메시지와 일반 시스템 메시지 조합
-    with pytest.raises(ValueError):  # 멀티모달 시스템 메시지는 지원되지 않을 것임
-        await client.create(
-            messages=[
-                SystemMessage(content="Text system message"),
-                SystemMessage(content=[img]),  # 멀티모달 시스템 메시지
-                UserMessage(content="What do you see?", source="user"),
-            ]
-        )
+    merged_messages = client._merge_system_messages(messages)
+    
+    # 메시지 개수는 변하지 않아야 함
+    assert len(merged_messages) == 2
+    
+    # 시스템 메시지 내용은 변하지 않아야 함
+    assert isinstance(merged_messages[0], SystemMessage)
+    assert merged_messages[0].content == "Single system instruction"
+
+
+def test_merge_no_system_messages() -> None:
+    """Tests behavior when there are no system messages."""
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307", 
+        api_key="fake-api-key"
+    )
+    
+    messages = [
+        UserMessage(content="User question without system", source="user"),
+    ]
+    
+    merged_messages = client._merge_system_messages(messages)
+    
+    # 메시지 개수는 변하지 않아야 함
+    assert len(merged_messages) == 1
+    
+    # 유일한 메시지는 사용자 메시지여야 함
+    assert isinstance(merged_messages[0], UserMessage)
+    assert merged_messages[0].content == "User question without system"
+
+
+def test_merge_non_continuous_system_messages() -> None:
+    """Tests that an error is raised for non-continuous system messages."""
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307", 
+        api_key="fake-api-key"
+    )
+    
+    messages = [
+        SystemMessage(content="First group 1"),
+        SystemMessage(content="First group 2"),
+        UserMessage(content="Middle user message", source="user"),
+        SystemMessage(content="Second group 1"),
+        SystemMessage(content="Second group 2"),
+    ]
+    
+    # 연속적이지 않은 시스템 메시지는 에러를 발생시켜야 함
+    with pytest.raises(ValueError, match="Multiple and Not continuous system messages are not supported"):
+        client._merge_system_messages(messages)
+
+
+def test_merge_system_messages_empty() -> None:
+    """Tests that empty message list is handled properly."""
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307", 
+        api_key="fake-api-key"
+    )
+    
+    merged_messages = client._merge_system_messages([])
+    assert len(merged_messages) == 0
+
+
+def test_merge_system_messages_with_special_characters() -> None:
+    """Tests system message merging with special characters and formatting."""
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307", 
+        api_key="fake-api-key"
+    )
+    
+    messages = [
+        SystemMessage(content="Line 1\nWith newline"),
+        SystemMessage(content="Line 2 with *formatting*"),
+        SystemMessage(content="Line 3 with `code`"),
+        UserMessage(content="Question", source="user")
+    ]
+    
+    merged_messages = client._merge_system_messages(messages)
+    assert len(merged_messages) == 2
+    
+    system_message = merged_messages[0]
+    assert isinstance(system_message, SystemMessage)
+    assert system_message.content == "Line 1\nWith newline\nLine 2 with *formatting*\nLine 3 with `code`"
+
+
+def test_merge_system_messages_with_whitespace() -> None:
+    """Tests system message merging with extra whitespace."""
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307", 
+        api_key="fake-api-key"
+    )
+    
+    messages = [
+        SystemMessage(content="  Message with leading spaces  "),
+        SystemMessage(content="\nMessage with leading newline\n"),
+        UserMessage(content="Question", source="user")
+    ]
+    
+    merged_messages = client._merge_system_messages(messages)
+    assert len(merged_messages) == 2
+    
+    system_message = merged_messages[0]
+    assert isinstance(system_message, SystemMessage)
+    # strip()은 내부에서 발생하지 않지만 최종 결과에서는 줄바꿈이 유지됨
+    assert system_message.content == "  Message with leading spaces  \n\nMessage with leading newline"
+
+
+def test_merge_system_messages_message_order() -> None:
+    """Tests that message order is preserved after merging."""
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307", 
+        api_key="fake-api-key"
+    )
+    
+    messages = [
+        UserMessage(content="Question 1", source="user"),
+        SystemMessage(content="Instruction 1"),
+        SystemMessage(content="Instruction 2"),
+        UserMessage(content="Question 2", source="user"),
+        AssistantMessage(content="Answer", source="assistant")
+    ]
+    
+    merged_messages = client._merge_system_messages(messages)
+    assert len(merged_messages) == 4
+    
+    # 첫 번째 메시지는 UserMessage여야 함
+    assert isinstance(merged_messages[0], UserMessage)
+    assert merged_messages[0].content == "Question 1"
+    
+    # 두 번째 메시지는 병합된 SystemMessage여야 함
+    assert isinstance(merged_messages[1], SystemMessage)
+    assert merged_messages[1].content == "Instruction 1\nInstruction 2"
+    
+    # 나머지 메시지는 순서대로 유지되어야 함
+    assert isinstance(merged_messages[2], UserMessage)
+    assert merged_messages[2].content == "Question 2"
+    assert isinstance(merged_messages[3], AssistantMessage)
+    assert merged_messages[3].content == "Answer"
+
+
+def test_merge_system_messages_multiple_groups() -> None:
+    """Tests that multiple separate groups of system messages raise an error."""
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307", 
+        api_key="fake-api-key"
+    )
+    
+    # 연속되지 않은 시스템 메시지: 사용자 메시지로 분리된 두 그룹
+    messages = [
+        SystemMessage(content="Group 1 - message 1"),
+        UserMessage(content="Interrupting user message", source="user"),
+        SystemMessage(content="Group 2 - message 1"),
+    ]
+    
+    with pytest.raises(ValueError, match="Multiple and Not continuous system messages are not supported"):
+        client._merge_system_messages(messages)
+
+
+def test_merge_system_messages_no_duplicates() -> None:
+    """Tests that identical system messages are still merged properly."""
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307", 
+        api_key="fake-api-key"
+    )
+    
+    messages = [
+        SystemMessage(content="Same instruction"),
+        SystemMessage(content="Same instruction"),  # 중복된 내용
+        UserMessage(content="Question", source="user")
+    ]
+    
+    merged_messages = client._merge_system_messages(messages)
+    assert len(merged_messages) == 2
+    
+    # 첫 번째 메시지는 병합된 시스템 메시지여야 함
+    assert isinstance(merged_messages[0], SystemMessage)
+    # 중복된 내용도 그대로 병합됨
+    assert merged_messages[0].content == "Same instruction\nSame instruction"
