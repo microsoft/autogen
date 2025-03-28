@@ -106,7 +106,7 @@ async def test_chat_completion_context_declarative() -> None:
     unbounded_context = UnboundedChatCompletionContext()
     buffered_context = BufferedChatCompletionContext(buffer_size=5)
     head_tail_context = HeadAndTailChatCompletionContext(head_size=3, tail_size=2)
-    model_client = OpenAIChatCompletionClient(model="gpt-4o")
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", api_key="test_key")
     token_limited_context = TokenLimitedChatCompletionContext(model_client=model_client, token_limit=5)
 
     # Test serialization
