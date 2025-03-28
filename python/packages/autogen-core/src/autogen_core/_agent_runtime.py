@@ -145,6 +145,7 @@ class AgentRuntime(Protocol):
         .. code-block:: python
 
             from dataclasses import dataclass
+            from typing import Optional
 
             from autogen_core import AgentId, AgentRuntime, MessageContext, RoutedAgent, event
             from autogen_core.models import UserMessage
@@ -156,21 +157,18 @@ class AgentRuntime(Protocol):
 
 
             class MyAgent(RoutedAgent):
-                def __init__(self) -> None:
-                    super().__init__("My core agent")
+                def __init__(self, runtime: Optional[AgentRuntime] = None, agent_id: Optional[AgentId] = None) -> None:
+                    super().__init__("My core agent", runtime, agent_id)
 
                 @event
                 async def handler(self, message: UserMessage, context: MessageContext) -> None:
                     print("Event received: ", message.content)
 
 
-            async def my_agent_factory():
-                return MyAgent()
-
-
             async def main() -> None:
                 runtime: AgentRuntime = ...  # type: ignore
-                await runtime.register_agent_instance(runtime=runtime, agent_id=AgentId(type="my_agent", key="default"))
+                agent = MyAgent(runtime=runtime, agent_id=AgentId(type="my_agent", key="default"))
+                await runtime.register_agent_instance(agent)
 
 
             import asyncio
@@ -179,7 +177,6 @@ class AgentRuntime(Protocol):
 
 
         Args:
-            agent_id (AgentId): The agent's identifier. The agent's type is `agent_id.type`.
             agent_instance (T | Awaitable[T]): A concrete instance of the agent.
         """
         ...
