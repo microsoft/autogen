@@ -3,6 +3,7 @@
 
 import os
 import tempfile
+from pathlib import Path
 
 import polars
 import pytest
@@ -286,3 +287,16 @@ async def test_deprecated_warning() -> None:
         assert "hello word" in result.output
 
         await executor.stop()
+
+
+@pytest.mark.asyncio
+async def test_default_work_dir_is_temp() -> None:
+    executor = LocalCommandLineCodeExecutor(functions=[])
+    await executor.start()
+
+    assert executor.work_dir != Path(".")
+
+    system_temp = tempfile.gettempdir()
+    assert system_temp in str(executor.work_dir)
+
+    await executor.stop()
