@@ -35,7 +35,7 @@ def test_structured_message() -> None:
     )
 
     # Check that the message class_name is correct
-    assert message.class_name == "StructuredMessage[TestContent]"  # class_name: ignore
+    assert message.class_name == "StructuredMessage[TestContent]"  # type: ignore[comparison-overlap]
 
     # Check that the content is of the correct class_name
     assert isinstance(message.content, TestContent)
@@ -67,7 +67,7 @@ def test_message_factory() -> None:
     assert isinstance(text_message, TextMessage)
     assert text_message.source == "test_agent"
     assert text_message.content == "Hello, world!"
-    assert text_message.class_name == "TextMessage"  # class_name: ignore
+    assert text_message.class_name == "TextMessage"  # type: ignore[comparison-overlap]
 
     # Handoff message data
     handoff_data = {
@@ -83,7 +83,7 @@ def test_message_factory() -> None:
     assert handoff_message.source == "test_agent"
     assert handoff_message.content == "handoff to another agent"
     assert handoff_message.target == "target_agent"
-    assert handoff_message.class_name == "HandoffMessage"  # class_name: ignore
+    assert handoff_message.class_name == "HandoffMessage"  # type: ignore[comparison-overlap]
 
     # Structured message data
     structured_data = {
@@ -107,7 +107,7 @@ def test_message_factory() -> None:
     assert structured_message.source == "test_agent"
     assert structured_message.content.field1 == "test"
     assert structured_message.content.field2 == 42
-    assert structured_message.class_name == "StructuredMessage[TestContent]"
+    assert structured_message.class_name == "StructuredMessage[TestContent]"  # type: ignore[comparison-overlap]
 
 
 class TestContainer(BaseModel):
