@@ -28,7 +28,9 @@ async def executor_and_temp_dir(
     request: pytest.FixtureRequest,
 ) -> AsyncGenerator[tuple[LocalCommandLineCodeExecutor, str], None]:
     with tempfile.TemporaryDirectory() as temp_dir:
-        yield LocalCommandLineCodeExecutor(work_dir=temp_dir), temp_dir
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
+        await executor.start()
+        yield executor, temp_dir
 
 
 ExecutorFixture: TypeAlias = tuple[LocalCommandLineCodeExecutor, str]
@@ -98,6 +100,7 @@ async def test_commandline_code_executor_cancellation() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         cancellation_token = CancellationToken()
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
+        await executor.start()
         # Write code that sleep for 10 seconds and then write "hello world!"
         # to a file.
         code = """import time
@@ -173,6 +176,8 @@ async def test_local_executor_with_custom_venv() -> None:
         env_builder_context = env_builder.ensure_directories(temp_dir)
 
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, virtual_env_context=env_builder_context)
+        await executor.start()
+
         code_blocks = [
             # https://stackoverflow.com/questions/1871549/how-to-determine-if-python-is-running-inside-a-virtualenv
             CodeBlock(code="import sys; print(sys.prefix != sys.base_prefix)", language="python"),
@@ -197,6 +202,8 @@ async def test_local_executor_with_custom_venv_in_local_relative_path() -> None:
         env_builder_context = env_builder.ensure_directories(env_path)
 
         executor = LocalCommandLineCodeExecutor(work_dir=relative_folder_path, virtual_env_context=env_builder_context)
+        await executor.start()
+
         code_blocks = [
             CodeBlock(code="import sys; print(sys.executable)", language="python"),
         ]
@@ -213,12 +220,18 @@ async def test_local_executor_with_custom_venv_in_local_relative_path() -> None:
             shutil.rmtree(relative_folder_path)
 
 
-def test_serialize_deserialize() -> None:
+@pytest.mark.asyncio
+async def test_serialize_deserialize() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
+        await executor.start()
         executor_config = executor.dump_component()
         loaded_executor = LocalCommandLineCodeExecutor.load_component(executor_config)
+        await loaded_executor.start()
         assert executor.work_dir == loaded_executor.work_dir
+
+        await executor.stop()
+        await loaded_executor.stop()
 
 
 @pytest.mark.asyncio
