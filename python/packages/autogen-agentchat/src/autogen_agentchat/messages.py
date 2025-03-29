@@ -10,13 +10,12 @@ from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
 from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
-from pydantic import BaseModel, ConfigDict, Field, computed_field
-from typing_extensions import Self, Annotated
+from pydantic import BaseModel, Field, computed_field
+from typing_extensions import Annotated, Self
 
 
 class BaseMessage(BaseModel, ABC):
-    """Base class for all message types in AgentChat. This is an abstract class
-    with default implementations for serialization and deserialization.
+    """Abstract base class for all message types in AgentChat.
 
     .. warning::
 
@@ -28,29 +27,25 @@ class BaseMessage(BaseModel, ABC):
 
     @computed_field
     def class_name(self) -> str:
-        """The class name of this message."""
+        """The name of the class of this message. This is a computed field
+        used for serialization and deserialization of the message."""
         return self.__class__.__name__
 
     @abstractmethod
-    def dump(self) -> Mapping[str, Any]:
+    def to_text(self) -> str:
+        """Convert the message content to a string-only representation
+        that can be rendered in the console and inspected by the user or conditions.
+        This is not used for creating text-only content for models.
+        For :class:`BaseChatMessage` types, use :meth:`to_model_text` instead."""
         ...
-
-    @classmethod
-    @abstractmethod
-    def load(cls, data: Mapping[str, Any]) -> Self:
-        ...
-
-
-class DefaultSerializableMixIn(BaseModel):
-    """A mixin class that provides default serialization and deserialization
-    methods."""
 
     def dump(self) -> Mapping[str, Any]:
         """Convert the message to a JSON-serializable dictionary.
 
-        The default implementation uses the Pydantic model's `model_dump` method.
-
-        If you want to customize the serialization, override this method.
+        The default implementation uses the Pydantic model's
+        :meth:`model_dump` method to convert the message to a dictionary.
+        Override this method if you want to customize the serialization
+        process or add additional fields to the output.
         """
         return self.model_dump()
 
@@ -58,14 +53,15 @@ class DefaultSerializableMixIn(BaseModel):
     def load(cls, data: Mapping[str, Any]) -> Self:
         """Create a message from a dictionary of JSON-serializable data.
 
-        The default implementation uses the Pydantic model's `model_validate` method.
-        If you want to customize the deserialization, override this method.
-        """
+        The default implementation uses the Pydantic model's
+        :meth:`model_validate` method to create the message from the data.
+        Override this method if you want to customize the deserialization
+        process or add additional fields to the input data."""
         return cls.model_validate(data)
 
 
 class BaseChatMessage(BaseMessage, ABC):
-    """Base class for chat messages.
+    """Abstract base class for chat messages.
 
     .. note::
 
@@ -87,17 +83,6 @@ class BaseChatMessage(BaseMessage, ABC):
 
     metadata: Dict[str, str] = {}
     """Additional metadata about the message."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    @abstractmethod
-    def to_text(self) -> str:
-        """Convert the content of the message to a string-only representation
-        that can be rendered in the console and inspected by the user or conditions.
-
-        This is not used for creating text-only content for models.
-        For :class:`BaseChatMessage` types, use :meth:`to_model_text` instead."""
-        ...
 
     @abstractmethod
     def to_model_text(self) -> str:
@@ -167,23 +152,12 @@ class BaseAgentEvent(BaseMessage, ABC):
     metadata: Dict[str, str] = {}
     """Additional metadata about the message."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    @abstractmethod
-    def to_text(self) -> str:
-        """Convert the content of the message to a string-only representation
-        that can be rendered in the console and inspected by the user.
-
-        This is not used for creating text-only content for models.
-        For :class:`BaseChatMessage` types, use :meth:`to_model_text` instead."""
-        ...
-
 
 StructuredContentType = TypeVar("StructuredContentType", bound=BaseModel, covariant=True)
 """Type variable for structured content types."""
 
 
-class StructuredMessage(BaseChatMessage, Generic[StructuredContentType], DefaultSerializableMixIn):
+class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
     """A :class:`BaseChatMessage` type with an unspecified content type.
 
     To create a new structured message type, specify the content type
@@ -226,17 +200,19 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType], Default
         )
 
 
-class TextMessage(BaseTextChatMessage, DefaultSerializableMixIn):
+class TextMessage(BaseTextChatMessage):
     """A text message with string-only content."""
 
-    ...
+    type: Literal["TextMessage"] = "TextMessage"
 
 
-class MultiModalMessage(BaseChatMessage, DefaultSerializableMixIn):
+class MultiModalMessage(BaseChatMessage):
     """A multimodal message."""
 
     content: List[str | Image]
     """The content of the message."""
+
+    type: Literal["MultiModalMessage"] = "MultiModalMessage"
 
     def to_model_text(self, image_placeholder: str | None = "[image]") -> str:
         """Convert the content of the message to a string-only representation.
@@ -272,13 +248,13 @@ class MultiModalMessage(BaseChatMessage, DefaultSerializableMixIn):
         return UserMessage(content=self.content, source=self.source)
 
 
-class StopMessage(BaseTextChatMessage, DefaultSerializableMixIn):
+class StopMessage(BaseTextChatMessage):
     """A message requesting stop of a conversation."""
 
-    ...
+    type: Literal["StopMessage"] = "StopMessage"
 
 
-class HandoffMessage(BaseTextChatMessage, DefaultSerializableMixIn):
+class HandoffMessage(BaseTextChatMessage):
     """A message requesting handoff of a conversation to another agent."""
 
     target: str
@@ -287,34 +263,40 @@ class HandoffMessage(BaseTextChatMessage, DefaultSerializableMixIn):
     context: List[LLMMessage] = []
     """The model context to be passed to the target agent."""
 
+    type: Literal["HandoffMessage"] = "HandoffMessage"
 
-class ToolCallSummaryMessage(BaseTextChatMessage, DefaultSerializableMixIn):
+
+class ToolCallSummaryMessage(BaseTextChatMessage):
     """A message signaling the summary of tool call results."""
 
-    ...
+    type: Literal["ToolCallSummaryMessage"] = "ToolCallSummaryMessage"
 
 
-class ToolCallRequestEvent(BaseAgentEvent, DefaultSerializableMixIn):
+class ToolCallRequestEvent(BaseAgentEvent):
     """An event signaling a request to use tools."""
 
     content: List[FunctionCall]
     """The tool calls."""
 
+    type: Literal["ToolCallRequestEvent"] = "ToolCallRequestEvent"
+
     def to_text(self) -> str:
         return str(self.content)
 
 
-class ToolCallExecutionEvent(BaseAgentEvent, DefaultSerializableMixIn):
+class ToolCallExecutionEvent(BaseAgentEvent):
     """An event signaling the execution of tool calls."""
 
     content: List[FunctionExecutionResult]
     """The tool call results."""
 
+    type: Literal["ToolCallExecutionEvent"] = "ToolCallExecutionEvent"
+
     def to_text(self) -> str:
         return str(self.content)
 
 
-class UserInputRequestedEvent(BaseAgentEvent, DefaultSerializableMixIn):
+class UserInputRequestedEvent(BaseAgentEvent):
     """An event signaling a that the user proxy has requested user input. Published prior to invoking the input callback."""
 
     request_id: str
@@ -323,37 +305,45 @@ class UserInputRequestedEvent(BaseAgentEvent, DefaultSerializableMixIn):
     content: Literal[""] = ""
     """Empty content for compat with consumers expecting a content field."""
 
+    type: Literal["UserInputRequestedEvent"] = "UserInputRequestedEvent"
+
     def to_text(self) -> str:
         return str(self.content)
 
 
-class MemoryQueryEvent(BaseAgentEvent, DefaultSerializableMixIn):
+class MemoryQueryEvent(BaseAgentEvent):
     """An event signaling the results of memory queries."""
 
     content: List[MemoryContent]
     """The memory query results."""
 
+    type: Literal["MemoryQueryEvent"] = "MemoryQueryEvent"
+
     def to_text(self) -> str:
         return str(self.content)
 
 
-class ModelClientStreamingChunkEvent(BaseAgentEvent, DefaultSerializableMixIn):
+class ModelClientStreamingChunkEvent(BaseAgentEvent):
     """An event signaling a text output chunk from a model client in streaming mode."""
 
     content: str
     """A string chunk from the model client."""
 
+    type: Literal["ModelClientStreamingChunkEvent"] = "ModelClientStreamingChunkEvent"
+
     def to_text(self) -> str:
         return self.content
 
 
-class ThoughtEvent(BaseAgentEvent, DefaultSerializableMixIn):
+class ThoughtEvent(BaseAgentEvent):
     """An event signaling the thought process of a model.
     It is used to communicate the reasoning tokens generated by a reasoning model,
     or the extra text content generated by a function call."""
 
     content: str
     """The thought process of the model."""
+
+    type: Literal["ThoughtEvent"] = "ThoughtEvent"
 
     def to_text(self) -> str:
         return self.content

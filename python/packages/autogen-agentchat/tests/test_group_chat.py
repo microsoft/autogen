@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import tempfile
-from typing import AsyncGenerator, List, Sequence
+from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
 import pytest
 import pytest_asyncio
@@ -114,6 +114,13 @@ class _UnknownMessageType(BaseChatMessage):
 
     def to_text(self) -> str:
         raise NotImplementedError("This message type is not supported.")
+
+    def dump(self) -> Mapping[str, Any]:
+        return {}
+
+    @classmethod
+    def load(cls, data: Mapping[str, Any]) -> "_UnknownMessageType":
+        return cls(**data)
 
 
 class _UnknownMessageTypeAgent(BaseChatAgent):

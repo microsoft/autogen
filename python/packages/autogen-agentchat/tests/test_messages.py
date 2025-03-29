@@ -1,7 +1,20 @@
 import json
 from typing import List
+
 import pytest
-from autogen_agentchat.messages import HandoffMessage, MessageFactory, StructuredMessage, TextMessage, ChatMessage, AgentEvent, MultiModalMessage, StopMessage, ModelClientStreamingChunkEvent, ToolCallRequestEvent, ToolCallExecutionEvent
+from autogen_agentchat.messages import (
+    AgentEvent,
+    ChatMessage,
+    HandoffMessage,
+    MessageFactory,
+    ModelClientStreamingChunkEvent,
+    MultiModalMessage,
+    StopMessage,
+    StructuredMessage,
+    TextMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
+)
 from autogen_core import FunctionCall
 from autogen_core.models import FunctionExecutionResult
 from pydantic import BaseModel
@@ -21,10 +34,10 @@ def test_structured_message() -> None:
         content=TestContent(field1="test", field2=42),
     )
 
-    # Check that the message type is correct
-    assert message.class_name == "StructuredMessage[TestContent]"  # type: ignore
+    # Check that the message class_name is correct
+    assert message.class_name == "StructuredMessage[TestContent]"  # class_name: ignore
 
-    # Check that the content is of the correct type
+    # Check that the content is of the correct class_name
     assert isinstance(message.content, TestContent)
 
     # Check that the content fields are set correctly
@@ -36,7 +49,7 @@ def test_structured_message() -> None:
     assert dumped_message["source"] == "test_agent"
     assert dumped_message["content"]["field1"] == "test"
     assert dumped_message["content"]["field2"] == 42
-    assert dumped_message["type"] == "StructuredMessage[TestContent]"
+    assert dumped_message["class_name"] == "StructuredMessage[TestContent]"
 
 
 def test_message_factory() -> None:
@@ -44,7 +57,7 @@ def test_message_factory() -> None:
 
     # Text message data
     text_data = {
-        "type": "TextMessage",
+        "class_name": "TextMessage",
         "source": "test_agent",
         "content": "Hello, world!",
     }
@@ -54,11 +67,11 @@ def test_message_factory() -> None:
     assert isinstance(text_message, TextMessage)
     assert text_message.source == "test_agent"
     assert text_message.content == "Hello, world!"
-    assert text_message.class_name == "TextMessage"  # type: ignore
+    assert text_message.class_name == "TextMessage"  # class_name: ignore
 
     # Handoff message data
     handoff_data = {
-        "type": "HandoffMessage",
+        "class_name": "HandoffMessage",
         "source": "test_agent",
         "content": "handoff to another agent",
         "target": "target_agent",
@@ -70,40 +83,41 @@ def test_message_factory() -> None:
     assert handoff_message.source == "test_agent"
     assert handoff_message.content == "handoff to another agent"
     assert handoff_message.target == "target_agent"
-    assert handoff_message.class_name == "HandoffMessage"  # type: ignore
+    assert handoff_message.class_name == "HandoffMessage"  # class_name: ignore
 
     # Structured message data
     structured_data = {
-        "type": "StructuredMessage[TestContent]",
+        "class_name": "StructuredMessage[TestContent]",
         "source": "test_agent",
         "content": {
             "field1": "test",
             "field2": 42,
         },
     }
-    # Create a StructuredMessage instance -- this will fail because the type
+    # Create a StructuredMessage instance -- this will fail because the class_name
     # is not registered in the factory.
     with pytest.raises(ValueError):
         structured_message = factory.create(structured_data)
-    # Register the StructuredMessage type in the factory
+    # Register the StructuredMessage class_name in the factory
     factory.register(StructuredMessage[TestContent])
     # Create a StructuredMessage instance
     structured_message = factory.create(structured_data)
     assert isinstance(structured_message, StructuredMessage)
-    assert isinstance(structured_message.content, TestContent)  # type: ignore
+    assert isinstance(structured_message.content, TestContent)  # type: ignore[reportUnkownMemberType]
     assert structured_message.source == "test_agent"
     assert structured_message.content.field1 == "test"
     assert structured_message.content.field2 == 42
-    assert structured_message.class_name == "StructuredMessage[TestContent]"  # type: ignore
+    assert structured_message.class_name == "StructuredMessage[TestContent]"
 
 
 class TestContainer(BaseModel):
     chat_messages: List[ChatMessage]
     agent_events: List[AgentEvent]
 
+
 def test_union_types() -> None:
     # Create a few messages.
-    chat_messages : List[ChatMessage] = [
+    chat_messages: List[ChatMessage] = [
         TextMessage(source="user", content="Hello!"),
         MultiModalMessage(source="user", content=["Hello!", "World!"]),
         HandoffMessage(source="user", content="handoff to another agent", target="target_agent"),
@@ -111,11 +125,17 @@ def test_union_types() -> None:
     ]
 
     # Create a few agent events.
-    agent_events : List[AgentEvent] = [
+    agent_events: List[AgentEvent] = [
         ModelClientStreamingChunkEvent(source="user", content="Hello!"),
-        ToolCallRequestEvent(content=[FunctionCall(id="1", name="test_function", arguments=json.dumps({"arg1": "value1", "arg2": "value2"}))],
-        source="user"),
-        ToolCallExecutionEvent(content=[FunctionExecutionResult(call_id="1", content="result", name="test")], source="user"),
+        ToolCallRequestEvent(
+            content=[
+                FunctionCall(id="1", name="test_function", arguments=json.dumps({"arg1": "value1", "arg2": "value2"}))
+            ],
+            source="user",
+        ),
+        ToolCallExecutionEvent(
+            content=[FunctionExecutionResult(call_id="1", content="result", name="test")], source="user"
+        ),
     ]
 
     # Create a container with the messages.
