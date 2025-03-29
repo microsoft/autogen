@@ -22,8 +22,7 @@ class TeamResult(BaseModel):
 
 
 class LLMCallEventMessage(TextChatMessage):
-    source: str = "llm_call_event"
-    content: str
+    source: str = "llm_call_event" 
 
 
 class MessageMeta(BaseModel):

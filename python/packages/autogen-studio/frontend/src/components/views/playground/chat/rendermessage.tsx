@@ -143,7 +143,7 @@ export const messageUtils = {
 };
 
 interface MessageProps {
-  message: AgentMessageConfig;
+  message: AgentMessageConfig | AgentMessageConfig[];
   isLast?: boolean;
   className?: string;
 }
