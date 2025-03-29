@@ -34,10 +34,10 @@ def test_structured_message() -> None:
         content=TestContent(field1="test", field2=42),
     )
 
-    # Check that the message class_name is correct
-    assert message.class_name == "StructuredMessage[TestContent]"  # type: ignore[comparison-overlap]
+    # Check that the message type is correct
+    assert message.type == "StructuredMessage[TestContent]"  # type: ignore[comparison-overlap]
 
-    # Check that the content is of the correct class_name
+    # Check that the content is of the correct type
     assert isinstance(message.content, TestContent)
 
     # Check that the content fields are set correctly
@@ -49,7 +49,7 @@ def test_structured_message() -> None:
     assert dumped_message["source"] == "test_agent"
     assert dumped_message["content"]["field1"] == "test"
     assert dumped_message["content"]["field2"] == 42
-    assert dumped_message["class_name"] == "StructuredMessage[TestContent]"
+    assert dumped_message["type"] == "StructuredMessage[TestContent]"
 
 
 def test_message_factory() -> None:
@@ -57,7 +57,7 @@ def test_message_factory() -> None:
 
     # Text message data
     text_data = {
-        "class_name": "TextMessage",
+        "type": "TextMessage",
         "source": "test_agent",
         "content": "Hello, world!",
     }
@@ -67,11 +67,11 @@ def test_message_factory() -> None:
     assert isinstance(text_message, TextMessage)
     assert text_message.source == "test_agent"
     assert text_message.content == "Hello, world!"
-    assert text_message.class_name == "TextMessage"  # type: ignore[comparison-overlap]
+    assert text_message.type == "TextMessage"  # type: ignore[comparison-overlap]
 
     # Handoff message data
     handoff_data = {
-        "class_name": "HandoffMessage",
+        "type": "HandoffMessage",
         "source": "test_agent",
         "content": "handoff to another agent",
         "target": "target_agent",
@@ -83,22 +83,22 @@ def test_message_factory() -> None:
     assert handoff_message.source == "test_agent"
     assert handoff_message.content == "handoff to another agent"
     assert handoff_message.target == "target_agent"
-    assert handoff_message.class_name == "HandoffMessage"  # type: ignore[comparison-overlap]
+    assert handoff_message.type == "HandoffMessage"  # type: ignore[comparison-overlap]
 
     # Structured message data
     structured_data = {
-        "class_name": "StructuredMessage[TestContent]",
+        "type": "StructuredMessage[TestContent]",
         "source": "test_agent",
         "content": {
             "field1": "test",
             "field2": 42,
         },
     }
-    # Create a StructuredMessage instance -- this will fail because the class_name
+    # Create a StructuredMessage instance -- this will fail because the type
     # is not registered in the factory.
     with pytest.raises(ValueError):
         structured_message = factory.create(structured_data)
-    # Register the StructuredMessage class_name in the factory
+    # Register the StructuredMessage type in the factory
     factory.register(StructuredMessage[TestContent])
     # Create a StructuredMessage instance
     structured_message = factory.create(structured_data)
@@ -107,7 +107,7 @@ def test_message_factory() -> None:
     assert structured_message.source == "test_agent"
     assert structured_message.content.field1 == "test"
     assert structured_message.content.field2 == 42
-    assert structured_message.class_name == "StructuredMessage[TestContent]"  # type: ignore[comparison-overlap]
+    assert structured_message.type == "StructuredMessage[TestContent]"  # type: ignore[comparison-overlap]
 
 
 class TestContainer(BaseModel):

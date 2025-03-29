@@ -25,12 +25,6 @@ class BaseMessage(BaseModel, ABC):
 
     """
 
-    @computed_field
-    def class_name(self) -> str:
-        """The name of the class of this message. This is a computed field
-        used for serialization and deserialization of the message."""
-        return self.__class__.__name__
-
     @abstractmethod
     def to_text(self) -> str:
         """Convert the message content to a string-only representation
@@ -186,6 +180,10 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
     content: StructuredContentType
     """The content of the message. Must be a subclass of
     `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_."""
+
+    @computed_field
+    def type(self) -> str:
+        return self.__class__.__name__
 
     def to_text(self) -> str:
         return self.content.model_dump_json(indent=2)
@@ -394,7 +392,9 @@ class MessageFactory:
     def create(self, data: Mapping[str, Any]) -> BaseAgentEvent | BaseChatMessage:
         """Create a message from a dictionary of JSON-serializable data."""
         # Get the type of the message from the dictionary.
-        message_type = data.get("class_name")
+        message_type = data.get("type")
+        if message_type is None:
+            raise ValueError("Field 'type' is required in the message data to recover the message type.")
         if message_type not in self._message_types:
             raise ValueError(f"Unknown message type: {message_type}")
         if not isinstance(message_type, str):
