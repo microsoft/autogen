@@ -61,7 +61,7 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
     @abstractmethod
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         """The types of messages that the agent produces in the
-        :attr:`Response.chat_message` field. They must be :class:`ChatMessage` types."""
+        :attr:`Response.chat_message` field. They must be :class:`BaseChatMessage` types."""
         ...
 
     @abstractmethod

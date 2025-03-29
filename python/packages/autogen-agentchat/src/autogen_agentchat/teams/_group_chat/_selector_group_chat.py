@@ -299,11 +299,11 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
         max_selector_attempts (int, optional): The maximum number of attempts to select a speaker using the model. Defaults to 3.
             If the model fails to select a speaker after the maximum number of attempts, the previous speaker will be used if available,
             otherwise the first participant will be used.
-        selector_func (Callable[[Sequence[AgentEvent | ChatMessage]], str | None], Callable[[Sequence[AgentEvent | ChatMessage]], Awaitable[str | None]], optional): A custom selector
+        selector_func (Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], str | None], Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[str | None]], optional): A custom selector
             function that takes the conversation history and returns the name of the next speaker.
             If provided, this function will be used to override the model to select the next speaker.
             If the function returns None, the model will be used to select the next speaker.
-        candidate_func (Callable[[Sequence[AgentEvent | ChatMessage]], List[str]], Callable[[Sequence[AgentEvent | ChatMessage]], Awaitable[List[str]]], optional):
+        candidate_func (Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], List[str]], Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[List[str]]], optional):
             A custom function that takes the conversation history and returns a filtered list of candidates for the next speaker
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
             This function is only used if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
@@ -378,7 +378,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             from autogen_agentchat.teams import SelectorGroupChat
             from autogen_agentchat.conditions import TextMentionTermination
             from autogen_agentchat.ui import Console
-            from autogen_agentchat.messages import AgentEvent, ChatMessage
+            from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 
 
             async def main() -> None:
@@ -404,7 +404,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
                     system_message="Check the answer and respond with 'Correct!' or 'Incorrect!'",
                 )
 
-                def selector_func(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
+                def selector_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str | None:
                     if len(messages) == 1 or messages[-1].to_text() == "Incorrect!":
                         return "Agent1"
                     if messages[-1].source == "Agent1":
@@ -525,7 +525,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             selector_prompt=config.selector_prompt,
             allow_repeated_speaker=config.allow_repeated_speaker,
             max_selector_attempts=config.max_selector_attempts,
-            # selector_func=ComponentLoader.load_component(config.selector_func, Callable[[Sequence[AgentEvent | ChatMessage]], str | None])
+            # selector_func=ComponentLoader.load_component(config.selector_func, Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], str | None])
             # if config.selector_func
             # else None,
         )

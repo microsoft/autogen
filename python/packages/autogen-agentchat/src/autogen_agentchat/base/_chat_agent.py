@@ -17,8 +17,8 @@ class Response:
     """A chat message produced by the agent as the response."""
 
     inner_messages: Sequence[BaseAgentEvent | BaseChatMessage] | None = None
-    """Inner messages produced by the agent, they can be :class:`AgentEvent`
-    or :class:`ChatMessage`."""
+    """Inner messages produced by the agent, they can be :class:`BaseAgentEvent`
+    or :class:`BaseChatMessage`."""
 
 
 class ChatAgent(ABC, TaskRunner, ComponentBase[BaseModel]):
@@ -45,7 +45,7 @@ class ChatAgent(ABC, TaskRunner, ComponentBase[BaseModel]):
     @abstractmethod
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         """The types of messages that the agent produces in the
-        :attr:`Response.chat_message` field. They must be :class:`ChatMessage` types."""
+        :attr:`Response.chat_message` field. They must be :class:`BaseChatMessage` types."""
         ...
 
     @abstractmethod

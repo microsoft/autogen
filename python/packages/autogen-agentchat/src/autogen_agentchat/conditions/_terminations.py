@@ -63,8 +63,8 @@ class MaxMessageTermination(TerminationCondition, Component[MaxMessageTerminatio
 
     Args:
         max_messages: The maximum number of messages allowed in the conversation.
-        include_agent_event: If True, include :class:`~autogen_agentchat.messages.AgentEvent` in the message count.
-            Otherwise, only include :class:`~autogen_agentchat.messages.ChatMessage`. Defaults to False.
+        include_agent_event: If True, include :class:`~autogen_agentchat.messages.BaseAgentEvent` in the message count.
+            Otherwise, only include :class:`~autogen_agentchat.messages.BaseChatMessage`. Defaults to False.
     """
 
     component_config_schema = MaxMessageTerminationConfig

@@ -1,6 +1,6 @@
 """
 This module defines various message types used for agent-to-agent communication.
-Each message type inherits either from the ChatMessage class or BaseAgentEvent
+Each message type inherits either from the BaseChatMessage class or BaseAgentEvent
 class and includes specific fields relevant to the type of message being sent.
 """
 
@@ -21,7 +21,7 @@ class BaseMessage(BaseModel, ABC):
     .. warning::
 
         If you want to create a new message type, do not inherit from this class.
-        Instead, inherit from :class:`ChatMessage` or :class:`AgentEvent`
+        Instead, inherit from :class:`BaseChatMessage` or :class:`BaseAgentEvent`
         to clarify the purpose of the message type.
 
     """
@@ -62,7 +62,7 @@ class BaseChatMessage(BaseMessage, ABC):
 
     This class is used for messages that are sent between agents in a chat
     conversation. Agents are expected to process the content of the
-    message using models and return a response as another :class:`ChatMessage`.
+    message using models and return a response as another :class:`BaseChatMessage`.
     """
 
     source: str
@@ -82,7 +82,7 @@ class BaseChatMessage(BaseMessage, ABC):
         that can be rendered in the console and inspected by the user or conditions.
 
         This is not used for creating text-only content for models.
-        For :class:`ChatMessage` types, use :meth:`to_model_text` instead."""
+        For :class:`BaseChatMessage` types, use :meth:`to_model_text` instead."""
         ...
 
     @abstractmethod
@@ -108,7 +108,7 @@ class BaseChatMessage(BaseMessage, ABC):
 
 
 class BaseTextChatMessage(BaseChatMessage, ABC):
-    """Base class for all text-only :class:`ChatMessage` types.
+    """Base class for all text-only :class:`BaseChatMessage` types.
     It has implementations for :meth:`to_text`, :meth:`to_model_text`,
     and :meth:`to_model_message` methods.
 
@@ -161,7 +161,7 @@ class BaseAgentEvent(BaseMessage, ABC):
         that can be rendered in the console and inspected by the user.
 
         This is not used for creating text-only content for models.
-        For :class:`ChatMessage` types, use :meth:`to_model_text` instead."""
+        For :class:`BaseChatMessage` types, use :meth:`to_model_text` instead."""
         ...
 
 
@@ -170,7 +170,7 @@ StructuredContentType = TypeVar("StructuredContentType", bound=BaseModel, covari
 
 
 class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
-    """A :class:`ChatMessage` type with an unspecified content type.
+    """A :class:`BaseChatMessage` type with an unspecified content type.
 
     To create a new structured message type, specify the content type
     as a subclass of `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_.
@@ -380,7 +380,7 @@ class MessageFactory:
         if self.is_registered(message_type):
             raise ValueError(f"Message type {message_type} is already registered.")
         if not issubclass(message_type, BaseChatMessage) and not issubclass(message_type, BaseAgentEvent):
-            raise ValueError(f"Message type {message_type} must be a subclass of ChatMessage or AgentEvent.")
+            raise ValueError(f"Message type {message_type} must be a subclass of BaseChatMessage or BaseAgentEvent.")
         # Get the class name of the
         class_name = message_type.__name__
         # Check if the class name is already registered.

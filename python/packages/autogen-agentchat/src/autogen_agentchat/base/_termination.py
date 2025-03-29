@@ -15,7 +15,7 @@ class TerminatedException(BaseException): ...
 class TerminationCondition(ABC, ComponentBase[BaseModel]):
     """A stateful condition that determines when a conversation should be terminated.
 
-    A termination condition is a callable that takes a sequence of ChatMessage objects
+    A termination condition is a callable that takes a sequence of BaseChatMessage objects
     since the last time the condition was called, and returns a StopMessage if the
     conversation should be terminated, or None otherwise.
     Once a termination condition has been reached, it must be reset before it can be used again.

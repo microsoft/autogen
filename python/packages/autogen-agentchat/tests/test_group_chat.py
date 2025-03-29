@@ -1324,7 +1324,7 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
             index += 1
 
     # Test with invalid message list
-    with pytest.raises(ValueError, match="All messages in task list must be valid ChatMessage types"):
+    with pytest.raises(ValueError, match="All messages in task list must be valid BaseChatMessage types"):
         await team.run(task=["not a message"])  # type: ignore[list-item, arg-type]  # intentionally testing invalid input
 
     # Test with empty message list
