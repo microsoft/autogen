@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Sequence
 
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import BaseChatMessage, ChatMessage
+from autogen_agentchat.messages import TextChatMessage, ChatMessage
 from autogen_core import ComponentModel
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from pydantic import BaseModel, ConfigDict, SecretStr
@@ -21,7 +21,7 @@ class TeamResult(BaseModel):
     duration: float
 
 
-class LLMCallEventMessage(BaseChatMessage):
+class LLMCallEventMessage(TextChatMessage):
     source: str = "llm_call_event"
     content: str
 
