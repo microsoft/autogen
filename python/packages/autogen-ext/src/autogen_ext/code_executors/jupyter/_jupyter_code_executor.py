@@ -126,7 +126,7 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
     Args:
         kernel_name (str): The kernel name to use. By default, "python3".
         timeout (int): The timeout for code execution, by default 60.
-        output_dir (Path): The directory to save output files, by default a created temporary directory.
+        output_dir (Path): The directory to save output files, by default a temporary directory.
     """
 
     component_config_schema = JupyterCodeExecutorConfig

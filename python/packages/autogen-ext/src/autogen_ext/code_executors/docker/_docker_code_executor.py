@@ -70,8 +70,8 @@ class DockerCommandLineCodeExecutorConfig(BaseModel):
     image: str = "python:3-slim"
     container_name: Optional[str] = None
     timeout: int = 60
-    work_dir: Optional[str] = None  # Changed to None as default
-    bind_dir: Optional[str] = None  # Changed to None as default
+    work_dir: Optional[str] = None
+    bind_dir: Optional[str] = None
     auto_remove: bool = True
     stop_container: bool = True
     functions_module: str = "functions"
@@ -175,7 +175,7 @@ $functions"""
 
         # Handle working directory logic
         if work_dir is None:
-            self._user_work_dir = None
+            self._work_dir = None
         else:
             if isinstance(work_dir, str):
                 work_dir = Path(work_dir)
@@ -186,9 +186,9 @@ $functions"""
                     DeprecationWarning,
                     stacklevel=2,
                 )
-            self._user_work_dir = work_dir
+            self._work_dir = work_dir
             # Create the working directory if it doesn't exist
-            self._user_work_dir.mkdir(exist_ok=True, parents=True)
+            self._work_dir.mkdir(exist_ok=True, parents=True)
 
         if container_name is None:
             self.container_name = f"autogen-code-exec-{uuid.uuid4()}"
@@ -198,11 +198,11 @@ $functions"""
         self._timeout = timeout
 
         # Handle bind_dir
-        self._user_bind_dir: Optional[Path] = None
+        self._bind_dir: Optional[Path] = None
         if bind_dir is not None:
-            self._user_bind_dir = Path(bind_dir) if isinstance(bind_dir, str) else bind_dir
+            self._bind_dir = Path(bind_dir) if isinstance(bind_dir, str) else bind_dir
         else:
-            self._user_bind_dir = self._user_work_dir  # Default to work_dir if not provided
+            self._bind_dir = self._work_dir  # Default to work_dir if not provided
 
         # Track temporary directory
         self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
@@ -342,15 +342,15 @@ $functions"""
     @property
     def work_dir(self) -> Path:
         # If a user specifies a working directory, use that
-        if self._user_work_dir is not None:
+        if self._work_dir is not None:
             # If a user specifies the current directory, warn them that this is deprecated
-            if self._user_work_dir == Path("."):
+            if self._work_dir == Path("."):
                 warnings.warn(
                     "Using the current directory as work_dir is deprecated.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
-            return self._user_work_dir
+            return self._work_dir
         # If a user does not specify a working directory, use the default directory (tempfile.TemporaryDirectory)
         elif self._temp_dir is not None:
             return Path(self._temp_dir.name)
@@ -360,8 +360,8 @@ $functions"""
     @property
     def bind_dir(self) -> Path:
         # If the user specified a bind directory, return it
-        if self._user_bind_dir is not None:
-            return self._user_bind_dir
+        if self._bind_dir is not None:
+            return self._bind_dir
         # Otherwise bind_dir is set to the current work_dir as default
         else:
             return self.work_dir
@@ -415,7 +415,7 @@ $functions"""
             self._running = False
 
     async def start(self) -> None:
-        if self._user_work_dir is None and self._temp_dir is None:
+        if self._work_dir is None and self._temp_dir is None:
             self._temp_dir = tempfile.TemporaryDirectory()
             self._temp_dir_path = Path(self._temp_dir.name)
             self._temp_dir_path.mkdir(exist_ok=True)
@@ -490,8 +490,8 @@ $functions"""
             image=self._image,
             container_name=self.container_name,
             timeout=self._timeout,
-            work_dir=str(self._user_work_dir) if self._user_work_dir else None,
-            bind_dir=str(self._user_bind_dir) if self._user_bind_dir else None,
+            work_dir=str(self._work_dir) if self._work_dir else None,
+            bind_dir=str(self._bind_dir) if self._bind_dir else None,
             auto_remove=self._auto_remove,
             stop_container=self._stop_container,
             functions_module=self._functions_module,
@@ -503,15 +503,13 @@ $functions"""
     @classmethod
     def _from_config(cls, config: DockerCommandLineCodeExecutorConfig) -> Self:
         """(Experimental) Create a component from a config object."""
-        bind_dir = Path(config.bind_dir) if config.bind_dir else None
-        work_dir = Path(config.work_dir) if config.work_dir else None
 
         return cls(
             image=config.image,
             container_name=config.container_name,
             timeout=config.timeout,
-            work_dir=work_dir,
-            bind_dir=bind_dir,
+            work_dir=Path(config.work_dir) if config.work_dir else None,
+            bind_dir=Path(config.bind_dir) if config.bind_dir else None,
             auto_remove=config.auto_remove,
             stop_container=config.stop_container,
             functions=[],  # Functions not restored from config

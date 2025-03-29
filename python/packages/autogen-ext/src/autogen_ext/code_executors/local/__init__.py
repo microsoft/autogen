@@ -155,7 +155,7 @@ $functions"""
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
-        self._user_work_dir: Optional[Path] = None
+        self._work_dir: Optional[Path] = None
         if work_dir is not None:
             # Check if user provided work_dir is the current directory and warn if so.
             if Path(work_dir).resolve() == Path.cwd().resolve():
@@ -165,10 +165,10 @@ $functions"""
                     stacklevel=2,
                 )
             if isinstance(work_dir, str):
-                self._user_work_dir = Path(work_dir)
+                self._work_dir = Path(work_dir)
             else:
-                self._user_work_dir = work_dir
-            self._user_work_dir.mkdir(exist_ok=True)
+                self._work_dir = work_dir
+            self._work_dir.mkdir(exist_ok=True)
 
         if not functions_module.isidentifier():
             raise ValueError("Module name must be a valid Python identifier")
@@ -241,8 +241,8 @@ $functions"""
     @property
     def work_dir(self) -> Path:
         """(Experimental) The working directory for the code execution."""
-        if self._user_work_dir is not None:
-            return self._user_work_dir
+        if self._work_dir is not None:
+            return self._work_dir
         else:
             # Automatically create temp directory if not exists
             if self._temp_dir is None:
@@ -453,7 +453,7 @@ $functions"""
 
     async def start(self) -> None:
         """(Experimental) Start the code executor."""
-        if self._user_work_dir is None and self._temp_dir is None:
+        if self._work_dir is None and self._temp_dir is None:
             self._temp_dir = tempfile.TemporaryDirectory()
         self._started = True
 
