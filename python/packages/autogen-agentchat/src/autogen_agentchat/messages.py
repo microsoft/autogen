@@ -5,13 +5,13 @@ class and includes specific fields relevant to the type of message being sent.
 """
 
 from abc import ABC, abstractmethod
-from typing import Annotated, Any, Dict, Generic, List, Literal, Mapping, TypeVar
+from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
 
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
 from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from typing_extensions import Self
+from typing_extensions import Self, Annotated
 
 
 class BaseMessage(BaseModel, ABC):
@@ -27,9 +27,23 @@ class BaseMessage(BaseModel, ABC):
     """
 
     @computed_field
-    def type(self) -> str:
+    def class_name(self) -> str:
         """The class name of this message."""
         return self.__class__.__name__
+
+    @abstractmethod
+    def dump(self) -> Mapping[str, Any]:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def load(cls, data: Mapping[str, Any]) -> Self:
+        ...
+
+
+class DefaultSerializableMixIn(BaseModel):
+    """A mixin class that provides default serialization and deserialization
+    methods."""
 
     def dump(self) -> Mapping[str, Any]:
         """Convert the message to a JSON-serializable dictionary.
@@ -169,7 +183,7 @@ StructuredContentType = TypeVar("StructuredContentType", bound=BaseModel, covari
 """Type variable for structured content types."""
 
 
-class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
+class StructuredMessage(BaseChatMessage, Generic[StructuredContentType], DefaultSerializableMixIn):
     """A :class:`BaseChatMessage` type with an unspecified content type.
 
     To create a new structured message type, specify the content type
@@ -212,13 +226,13 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
         )
 
 
-class TextMessage(BaseTextChatMessage):
+class TextMessage(BaseTextChatMessage, DefaultSerializableMixIn):
     """A text message with string-only content."""
 
     ...
 
 
-class MultiModalMessage(BaseChatMessage):
+class MultiModalMessage(BaseChatMessage, DefaultSerializableMixIn):
     """A multimodal message."""
 
     content: List[str | Image]
@@ -258,13 +272,13 @@ class MultiModalMessage(BaseChatMessage):
         return UserMessage(content=self.content, source=self.source)
 
 
-class StopMessage(BaseTextChatMessage):
+class StopMessage(BaseTextChatMessage, DefaultSerializableMixIn):
     """A message requesting stop of a conversation."""
 
     ...
 
 
-class HandoffMessage(BaseTextChatMessage):
+class HandoffMessage(BaseTextChatMessage, DefaultSerializableMixIn):
     """A message requesting handoff of a conversation to another agent."""
 
     target: str
@@ -274,13 +288,13 @@ class HandoffMessage(BaseTextChatMessage):
     """The model context to be passed to the target agent."""
 
 
-class ToolCallSummaryMessage(BaseTextChatMessage):
+class ToolCallSummaryMessage(BaseTextChatMessage, DefaultSerializableMixIn):
     """A message signaling the summary of tool call results."""
 
     ...
 
 
-class ToolCallRequestEvent(BaseAgentEvent):
+class ToolCallRequestEvent(BaseAgentEvent, DefaultSerializableMixIn):
     """An event signaling a request to use tools."""
 
     content: List[FunctionCall]
@@ -290,7 +304,7 @@ class ToolCallRequestEvent(BaseAgentEvent):
         return str(self.content)
 
 
-class ToolCallExecutionEvent(BaseAgentEvent):
+class ToolCallExecutionEvent(BaseAgentEvent, DefaultSerializableMixIn):
     """An event signaling the execution of tool calls."""
 
     content: List[FunctionExecutionResult]
@@ -300,7 +314,7 @@ class ToolCallExecutionEvent(BaseAgentEvent):
         return str(self.content)
 
 
-class UserInputRequestedEvent(BaseAgentEvent):
+class UserInputRequestedEvent(BaseAgentEvent, DefaultSerializableMixIn):
     """An event signaling a that the user proxy has requested user input. Published prior to invoking the input callback."""
 
     request_id: str
@@ -313,7 +327,7 @@ class UserInputRequestedEvent(BaseAgentEvent):
         return str(self.content)
 
 
-class MemoryQueryEvent(BaseAgentEvent):
+class MemoryQueryEvent(BaseAgentEvent, DefaultSerializableMixIn):
     """An event signaling the results of memory queries."""
 
     content: List[MemoryContent]
@@ -323,7 +337,7 @@ class MemoryQueryEvent(BaseAgentEvent):
         return str(self.content)
 
 
-class ModelClientStreamingChunkEvent(BaseAgentEvent):
+class ModelClientStreamingChunkEvent(BaseAgentEvent, DefaultSerializableMixIn):
     """An event signaling a text output chunk from a model client in streaming mode."""
 
     content: str
@@ -333,7 +347,7 @@ class ModelClientStreamingChunkEvent(BaseAgentEvent):
         return self.content
 
 
-class ThoughtEvent(BaseAgentEvent):
+class ThoughtEvent(BaseAgentEvent, DefaultSerializableMixIn):
     """An event signaling the thought process of a model.
     It is used to communicate the reasoning tokens generated by a reasoning model,
     or the extra text content generated by a function call."""
@@ -390,7 +404,7 @@ class MessageFactory:
     def create(self, data: Mapping[str, Any]) -> BaseAgentEvent | BaseChatMessage:
         """Create a message from a dictionary of JSON-serializable data."""
         # Get the type of the message from the dictionary.
-        message_type = data.get("type")
+        message_type = data.get("class_name")
         if message_type not in self._message_types:
             raise ValueError(f"Unknown message type: {message_type}")
         if not isinstance(message_type, str):
@@ -407,7 +421,7 @@ class MessageFactory:
 ChatMessage = Annotated[
     TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
 ]
-"""The union type of all built-in subclasses of :class:`BaseChatMessage`.
+"""The union type of all built-in concrete subclasses of :class:`BaseChatMessage`.
 It does not include :class:`StructuredMessage` types."""
 
 AgentEvent = Annotated[
@@ -419,7 +433,7 @@ AgentEvent = Annotated[
     | ThoughtEvent,
     Field(discriminator="type"),
 ]
-"""The union type of all built-in subclasses of :class:`BaseAgentEvent`."""
+"""The union type of all built-in concrete subclasses of :class:`BaseAgentEvent`."""
 
 __all__ = [
     "AgentEvent",
