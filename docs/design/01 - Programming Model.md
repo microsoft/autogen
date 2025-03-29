@@ -11,7 +11,7 @@ Each event in the system is defined using the [CloudEvents Specification](https:
 1. *id* - A unique id (eg. a UUID).
 2. *source* - A URI or URN indicating the event's origin.
 3. *type* - The namespace of the event - prefixed with a reverse-DNS name.
-   - The prefixed domain dictates the organization which defines the semantics of this event type: e.g `com.github.pull_request.opened` or `com.example.object.deleted.v2`), and optionally fields describing the data schema/content-type or extensions.
+   - The prefixed domain dictates the organization which defines the semantics of this event type: e.g (`com.github.pull_request.opened` or `com.example.object.deleted.v2`), and optionally fields describing the data schema/content-type or extensions.
 
 ## Event Handlers
 
