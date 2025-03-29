@@ -250,3 +250,39 @@ print(add_two_numbers(object(), False))"""
         assert result.exit_code == 1
 
         await executor.stop()
+
+
+@pytest.mark.asyncio
+async def test_error_wrong_path() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[])
+        await executor.start()
+
+        code_blocks = [
+            CodeBlock(
+                code="""with open("/nonexistent_dir/test.txt", "w") as f:
+                f.write("hello word")""",
+                language="python",
+            )
+        ]
+
+        result = await executor.execute_code_blocks(code_blocks, CancellationToken())
+        assert result.exit_code != 0
+        assert "No such file or directory" in result.output
+
+        await executor.stop()
+
+
+@pytest.mark.asyncio
+async def test_deprecated_warning() -> None:
+    with pytest.warns(DeprecationWarning, match="Using the current directory as work_dir is deprecated."):
+        executor = LocalCommandLineCodeExecutor(work_dir=".", functions=[])
+        await executor.start()
+
+        code_block = CodeBlock(code='echo "hello word"', language="sh")
+        result = await executor.execute_code_blocks([code_block], CancellationToken())
+
+        assert result.exit_code == 0
+        assert "hello word" in result.output
+
+        await executor.stop()

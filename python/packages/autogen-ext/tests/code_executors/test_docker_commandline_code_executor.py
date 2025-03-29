@@ -248,9 +248,44 @@ async def test_docker_commandline_code_executor_serialization() -> None:
         executor_config = executor.dump_component()
         loaded_executor = DockerCommandLineCodeExecutor.load_component(executor_config)
         await loaded_executor.start()
-        
+
         assert executor.bind_dir == loaded_executor.bind_dir
         assert executor.timeout == loaded_executor.timeout
-        
+
         await executor.stop()
         await loaded_executor.stop()
+
+
+@pytest.mark.asyncio
+async def test_error_wrong_path() -> None:
+    if not docker_tests_enabled():
+        pytest.skip("Docker tests are disabled")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:
+            cancellation_token = CancellationToken()
+            code_blocks = [
+                CodeBlock(
+                    code="""with open("/nonexistent_dir/test.txt", "w") as f:
+                    f.write("hello world!")""",
+                    language="python",
+                )
+            ]
+            result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+            assert result.exit_code != 0
+            assert "No such file or directory" in result.output
+
+
+@pytest.mark.asyncio
+async def test_deprecated_warning() -> None:
+    if not docker_tests_enabled():
+        pytest.skip("Docker tests are disabled")
+
+    with pytest.warns(DeprecationWarning, match="Using the current directory as work_dir is deprecated."):
+        async with DockerCommandLineCodeExecutor(work_dir=".") as executor:
+            await executor.start()
+            cancellation_token = CancellationToken()
+            code_block = CodeBlock(code='echo "hello world!"', language="sh")
+            result = await executor.execute_code_blocks([code_block], cancellation_token)
+            assert result.exit_code == 0
+            assert "hello world!" in result.output

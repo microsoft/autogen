@@ -3,12 +3,11 @@ import base64
 import json
 import re
 import sys
+import tempfile
 import uuid
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
-
-import tempfile
-import warnings
 
 from autogen_core import Component
 from pydantic import BaseModel
@@ -18,13 +17,15 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
+from contextlib import AbstractAsyncContextManager
+from typing import Optional, Union
+
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
 from nbclient import NotebookClient
 from nbformat import NotebookNode
 from nbformat import v4 as nbformat
 from typing_extensions import Self
-from typing import Optional, Union
 
 from .._common import silence_pip
 
@@ -139,25 +140,20 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
-        
-        self._user_output_dir: Optional[Path] = None
-        if output_dir is not None:
-            self._user_output_dir = Path(output_dir) if isinstance(output_dir, str) else output_dir
-            self._user_output_dir.mkdir(exist_ok=True)
 
-        self._temp_dir: Optional[tempfile.TemporaryDirectory] = None
+        self.output_dir: Path = Path(tempfile.mkdtemp()) if output_dir is None else Path(output_dir)
+        self.output_dir.mkdir(exist_ok=True, parents=True)
+
+        self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
+        self._temp_dir_path: Optional[Path] = None
+
         self._started = False
-
 
         self._kernel_name = kernel_name
         self._timeout = timeout
-        # TODO: Forward arguments perhaps?
-        self._client = NotebookClient(
-            nb=nbformat.new_notebook(),  # type: ignore
-            kernel_name=self._kernel_name,
-            timeout=self._timeout,
-            allow_errors=True,
-        )
+
+        self._client: Optional[NotebookClient] = None
+        self.kernel_context: Optional[AbstractAsyncContextManager[None]] = None
 
     async def execute_code_blocks(
         self, code_blocks: list[CodeBlock], cancellation_token: CancellationToken
@@ -242,6 +238,8 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
 
     async def _execute_cell(self, cell: NotebookNode) -> NotebookNode:
         # Temporary push cell to nb as async_execute_cell expects it. But then we want to remove it again as cells can take up significant amount of memory (especially with images)
+        if not self._client:
+            raise RuntimeError("Executor must be started before executing cells")
         self._client.nb.cells.append(cell)
         output = await self._client.async_execute_cell(
             cell,
@@ -269,21 +267,33 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         await self.start()
 
     async def start(self) -> None:
-        if self._user_output_dir is None and self._temp_dir is None:
-            self._temp_dir = tempfile.TemporaryDirectory()
-            Path(self._temp_dir.name).mkdir(exist_ok=True)
-        self._started = True
+        if self._started:
+            return
+
+        notebook: NotebookNode = nbformat.new_notebook()  # type: ignore
+
+        self._client = NotebookClient(
+            nb=notebook,
+            kernel_name=self._kernel_name,
+            timeout=self._timeout,
+            allow_errors=True,
+        )
+
         self.kernel_context = self._client.async_setup_kernel()
         await self.kernel_context.__aenter__()
 
-    async def stop(self) -> None:
-        if self._temp_dir is not None:
-            self._temp_dir.cleanup()
-            self._temp_dir = None
-        self._started = False
+        self._started = True
 
-        """Stop the kernel."""
-        await self.kernel_context.__aexit__(None, None, None)
+    async def stop(self) -> None:
+        if not self._started:
+            return
+
+        if self.kernel_context is not None:
+            await self.kernel_context.__aexit__(None, None, None)
+            self.kernel_context = None
+
+        self._client = None
+        self._started = False
 
     def _to_config(self) -> JupyterCodeExecutorConfig:
         """Convert current instance to config object"""
@@ -292,20 +302,21 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         )
 
     @property
-    def output_dir(self) -> Path:
-        if self._user_output_dir is not None:
-            return self._user_output_dir
-        elif self._started and self._temp_dir is not None:
-            return Path(self._temp_dir.name)
-        else:
+    def work_dir(self) -> Path:
+        # If a user specifies the current directory, warn them that this is deprecated
+        if self.output_dir == Path("."):
             warnings.warn(
-                "Using current directory as output_dir is deprecated. Call start() to use a temporary directory.",
+                "Using the current directory as work_dir is deprecated",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            return Path(".")
+        return self.output_dir
 
     @classmethod
     def _from_config(cls, config: JupyterCodeExecutorConfig) -> Self:
         """Create instance from config object"""
-        return cls(kernel_name=config.kernel_name, timeout=config.timeout, output_dir=Path(config.output_dir))
+        return cls(
+            kernel_name=config.kernel_name,
+            timeout=config.timeout,
+            output_dir=Path(config.output_dir) if config.output_dir else None,
+        )

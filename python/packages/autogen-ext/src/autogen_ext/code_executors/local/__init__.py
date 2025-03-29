@@ -5,8 +5,8 @@ import asyncio
 import logging
 import os
 import sys
-import warnings
 import tempfile
+import warnings
 from hashlib import sha256
 from pathlib import Path
 from string import Template
@@ -157,6 +157,13 @@ $functions"""
 
         self._user_work_dir: Optional[Path] = None
         if work_dir is not None:
+            # Check if user provided work_dir is the current directory and warn if so.
+            if Path(work_dir).resolve() == Path.cwd().resolve():
+                warnings.warn(
+                    "Using the current directory as work_dir is deprecated.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             if isinstance(work_dir, str):
                 self._user_work_dir = Path(work_dir)
             else:
@@ -179,9 +186,8 @@ $functions"""
 
         self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
 
-        self._temp_dir: Optional[tempfile.TemporaryDirectory] = None
+        self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
         self._started = False
-
 
         # Check the current event loop policy if on windows.
         if sys.platform == "win32":
@@ -237,16 +243,12 @@ $functions"""
         """(Experimental) The working directory for the code execution."""
         if self._user_work_dir is not None:
             return self._user_work_dir
-        elif self._started and self._temp_dir is not None:
-            return Path(self._temp_dir.name)
         else:
-            warnings.warn(
-                "Using current directory as work_dir is deprecated. Please call start() to use a temporary directory.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            return Path(".")
-
+            # Automatically create temp directory if not exists
+            if self._temp_dir is None:
+                self._temp_dir = tempfile.TemporaryDirectory()
+                self._started = True
+            return Path(self._temp_dir.name)
 
     async def _setup_functions(self, cancellation_token: CancellationToken) -> None:
         func_file_content = build_python_functions_file(self._functions)
@@ -454,7 +456,6 @@ $functions"""
         if self._user_work_dir is None and self._temp_dir is None:
             self._temp_dir = tempfile.TemporaryDirectory()
         self._started = True
-        pass
 
     async def stop(self) -> None:
         """(Experimental) Stop the code executor."""

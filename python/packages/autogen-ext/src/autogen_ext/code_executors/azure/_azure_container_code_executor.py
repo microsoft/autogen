@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import os
+import tempfile
+import warnings
 from pathlib import Path
 from string import Template
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, List, Optional, Protocol, Sequence, Union
 from uuid import uuid4
-import tempfile
-import warnings
 
 import aiohttp
 
@@ -102,14 +102,22 @@ $functions"""
             raise ValueError("Timeout must be greater than or equal to 1.")
 
         self._user_work_dir: Optional[Path] = None
+        self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
+
+        # If a user specifies a working directory, use that
         if work_dir is not None:
             if isinstance(work_dir, str):
                 self._user_work_dir = Path(work_dir)
             else:
                 self._user_work_dir = work_dir
+            # Create the directory if it doesn't exist
             self._user_work_dir.mkdir(exist_ok=True, parents=True)
+        # If a user does not specify a working directory, use the default directory (tempfile.TemporaryDirectory)
+        else:
+            self._temp_dir = tempfile.TemporaryDirectory()
+            temp_dir_path = Path(self._temp_dir.name)
+            temp_dir_path.mkdir(exist_ok=True, parents=True)
 
-        self._temp_dir: Optional[tempfile.TemporaryDirectory] = None
         self._started = False
 
         # Rest of initialization remains the same
@@ -172,17 +180,21 @@ $functions"""
 
     @property
     def work_dir(self) -> Path:
+        # If a user specifies a working directory, use that
         if self._user_work_dir is not None:
+            # If a user specifies the current directory, warn them that this is deprecated
+            if self._user_work_dir == Path("."):
+                warnings.warn(
+                    "Using the current directory as work_dir is deprecated",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             return self._user_work_dir
-        elif self._started and self._temp_dir is not None:
+        # If a user does not specify a working directory, use the default directory (tempfile.TemporaryDirectory)
+        elif self._temp_dir is not None:
             return Path(self._temp_dir.name)
         else:
-            warnings.warn(
-                "Using current directory as work_dir is deprecated. Call start() to use a temporary directory.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            return Path(".")
+            raise RuntimeError("Working directory not properly initialized")
 
     def _construct_url(self, path: str) -> str:
         endpoint = self._pool_management_endpoint
@@ -219,10 +231,10 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
 
             flattened_packages = [item for sublist in lists_of_packages for item in sublist]
             required_packages = set(flattened_packages)
-            
+
             if self._available_packages is None:
                 await self._populate_available_packages(cancellation_token)
-            
+
             if self._available_packages is not None:
                 missing_pkgs = set(required_packages - self._available_packages)
                 if len(missing_pkgs) > 0:
@@ -356,7 +368,7 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
                     resp = await task
                     resp.raise_for_status()
                     local_path = self.work_dir / file
-                    local_paths.append(local_path)
+                    local_paths.append(str(local_path))
                     async with await open_file(local_path, "wb") as f:
                         await f.write(await resp.read())
                 except asyncio.TimeoutError as e:
@@ -482,17 +494,11 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
     async def start(self) -> None:
         """(Experimental) Start the code executor."""
         # No setup needed for this executor
-        if self._user_work_dir is None and self._temp_dir is None:
-            self._temp_dir = tempfile.TemporaryDirectory()
-            Path(self._temp_dir.name).mkdir(exist_ok=True)
         self._started = True
-
 
     async def stop(self) -> None:
         """(Experimental) Stop the code executor."""
-        # No cleanup needed for this executor
         if self._temp_dir is not None:
             self._temp_dir.cleanup()
             self._temp_dir = None
         self._started = False
-

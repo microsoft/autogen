@@ -60,7 +60,7 @@ async def test_execute_code() -> None:
     code_blocks = [CodeBlock(code="\n".join(file_lines), language="python")]
     code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
     assert code_result.exit_code == 0 and "hello world!" in code_result.output and "200" in code_result.output
-    await executor.close()
+    await executor.stop()
 
 
 @pytest.mark.skipif(
@@ -78,7 +78,8 @@ async def test_azure_container_code_executor_timeout() -> None:
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
     with pytest.raises(asyncio.TimeoutError):
         await executor.execute_code_blocks(code_blocks, cancellation_token)
-    await executor.close()
+    await executor.stop()
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -101,7 +102,7 @@ async def test_azure_container_code_executor_cancellation() -> None:
 
     with pytest.raises(asyncio.CancelledError):
         await coro
-    await executor.close()
+    await executor.stop()
 
 
 @pytest.mark.skipif(
@@ -150,7 +151,7 @@ with open("{test_file_2}") as f:
     assert test_file_1_contents in code_result.output
     assert test_file_2_contents in code_result.output
 
-    await executor.close()
+    await executor.stop()
 
 
 @pytest.mark.skipif(
@@ -201,4 +202,4 @@ with open("{test_file_2}", "w") as f:
             content = await f.read()
             assert test_file_2_contents in content
 
-        await executor.close()
+        await executor.stop()

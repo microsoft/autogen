@@ -32,6 +32,7 @@ async def executor_and_temp_dir(
         await executor.start()
         yield executor, temp_dir
 
+
 ExecutorFixture: TypeAlias = tuple[LocalCommandLineCodeExecutor, str]
 
 
@@ -82,6 +83,7 @@ async def test_execute_code(executor_and_temp_dir: ExecutorFixture) -> None:
         for file_line, code_line in zip(file_lines, code_lines, strict=False):
             assert file_line.strip() == code_line.strip()
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["local"], indirect=True)
 async def test_commandline_code_executor_timeout(executor_and_temp_dir: ExecutorFixture) -> None:
@@ -91,6 +93,7 @@ async def test_commandline_code_executor_timeout(executor_and_temp_dir: Executor
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
     code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
     assert code_result.exit_code and "Timeout" in code_result.output
+
 
 @pytest.mark.asyncio
 async def test_commandline_code_executor_cancellation() -> None:
@@ -229,6 +232,7 @@ async def test_serialize_deserialize() -> None:
 
         await executor.stop()
         await loaded_executor.stop()
+
 
 @pytest.mark.asyncio
 @pytest.mark.windows

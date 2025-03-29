@@ -78,7 +78,7 @@ print(data['name'][0])"""
     assert azure_result.output == "John\n"
     assert azure_result.exit_code == 0
 
-    await azure_executor.close()
+    await azure_executor.stop()
 
 
 @pytest.mark.skipif(
@@ -107,7 +107,7 @@ async def test_azure_can_load_function() -> None:
     assert azure_result.output == "3\n"
     assert azure_result.exit_code == 0
 
-    await azure_executor.close()
+    await azure_executor.stop()
 
 
 @pytest.mark.skipif(
@@ -135,7 +135,7 @@ async def test_azure_fails_for_function_incorrect_import() -> None:
             cancellation_token=cancellation_token,
         )
 
-    await azure_executor.close()
+    await azure_executor.stop()
 
 
 @pytest.mark.skipif(
@@ -160,7 +160,7 @@ async def test_azure_fails_for_function_incorrect_dep() -> None:
             cancellation_token=cancellation_token,
         )
 
-    await azure_executor.close()
+    await azure_executor.stop()
 
 
 def test_azure_formatted_prompt() -> None:
@@ -227,7 +227,8 @@ def add_two_numbers(a: int, b: int) -> int:
     assert azure_result.output == "3\n"
     assert azure_result.exit_code == 0
 
-    await azure_executor.close()
+    await azure_executor.stop()
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -262,4 +263,4 @@ def add_two_numbers(a: int, b: int) -> int:
     assert "TypeError: unsupported operand type(s) for +:" in azure_result.output
     assert azure_result.exit_code == 1
 
-    await azure_executor.close()
+    await azure_executor.stop()
