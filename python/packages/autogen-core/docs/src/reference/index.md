@@ -55,6 +55,7 @@ python/autogen_ext.models.anthropic
 python/autogen_ext.models.semantic_kernel
 python/autogen_ext.models.ollama
 python/autogen_ext.models.llama_cpp
+python/autogen_ext.tools.azure
 python/autogen_ext.tools.code_execution
 python/autogen_ext.tools.graphrag
 python/autogen_ext.tools.http
