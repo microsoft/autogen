@@ -744,6 +744,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             messages=messages,
         )
 
+
         # STEP 2: Update model context with any relevant memory
         inner_messages: List[AgentEvent | ChatMessage] = []
         for event_msg in await self._update_model_context_with_memory(
@@ -753,6 +754,17 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         ):
             inner_messages.append(event_msg)
             yield event_msg
+
+
+        #===================DEBUGGING===================
+
+        # Print the current model context
+        print(f"Current model context: {agent_name} :")
+        for msg in model_context._messages:
+            print(msg)
+        print("")
+
+        #===================DEBUGGING===================
 
         # STEP 3: Run the first inference
         model_result = None
