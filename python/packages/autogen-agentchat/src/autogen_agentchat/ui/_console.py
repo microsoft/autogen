@@ -11,8 +11,8 @@ from autogen_core.models import RequestUsage
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
     UserInputRequestedEvent,
@@ -80,7 +80,7 @@ def aprint(output: str, end: str = "\n", flush: bool = False) -> Awaitable[None]
 
 
 async def Console(
-    stream: AsyncGenerator[AgentEvent | ChatMessage | T, None],
+    stream: AsyncGenerator[BaseAgentEvent | BaseChatMessage | T, None],
     *,
     no_inline_images: bool = False,
     output_stats: bool = False,
@@ -170,7 +170,7 @@ async def Console(
                 user_input_manager.notify_event_received(message.request_id)
         else:
             # Cast required for mypy to be happy
-            message = cast(AgentEvent | ChatMessage, message)  # type: ignore
+            message = cast(BaseAgentEvent | BaseChatMessage, message)  # type: ignore
             if not streaming_chunks:
                 # Print message sender.
                 await aprint(f"{'-' * 10} {message.source} {'-' * 10}", end="\n", flush=True)

@@ -18,8 +18,8 @@ from pydantic import BaseModel, ValidationError
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
     MessageFactory,
     ModelClientStreamingChunkEvent,
     StopMessage,
@@ -50,7 +50,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
-        custom_message_types: List[type[AgentEvent | ChatMessage]] | None = None,
+        custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -90,7 +90,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._output_topic_type = f"output_topic_{self._team_id}"
 
         # The queue for collecting the output messages.
-        self._output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination] = asyncio.Queue()
+        self._output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination] = (
+            asyncio.Queue()
+        )
 
         # Create a runtime for the team.
         if runtime is not None:
@@ -117,7 +119,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
@@ -195,7 +197,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     async def run(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
@@ -297,9 +299,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream. Once the
         team is stopped, the termination condition is reset.
@@ -398,19 +400,19 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         """
 
         # Create the messages list if the task is a string or a chat message.
-        messages: List[ChatMessage] | None = None
+        messages: List[BaseChatMessage] | None = None
         if task is None:
             pass
         elif isinstance(task, str):
             messages = [TextMessage(content=task, source="user")]
-        elif isinstance(task, ChatMessage):
+        elif isinstance(task, BaseChatMessage):
             messages = [task]
         elif isinstance(task, list):
             if not task:
                 raise ValueError("Task list cannot be empty.")
             messages = []
             for msg in task:
-                if not isinstance(msg, ChatMessage):
+                if not isinstance(msg, BaseChatMessage):
                     raise ValueError("All messages in task list must be valid ChatMessage types")
                 messages.append(msg)
         else:
@@ -469,7 +471,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 cancellation_token=cancellation_token,
             )
             # Collect the output messages in order.
-            output_messages: List[AgentEvent | ChatMessage] = []
+            output_messages: List[BaseAgentEvent | BaseChatMessage] = []
             stop_reason: str | None = None
             # Yield the messsages until the queue is empty.
             while True:

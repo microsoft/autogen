@@ -15,8 +15,8 @@ from autogen_agentchat.agents import (
 from autogen_agentchat.base import Handoff, Response, TaskResult
 from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
@@ -60,14 +60,14 @@ class _EchoAgent(BaseChatAgent):
         self._total_messages = 0
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 
     @property
     def total_messages(self) -> int:
         return self._total_messages
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) > 0:
             assert isinstance(messages[0], TextMessage)
             self._last_message = messages[0].content
@@ -89,21 +89,21 @@ class _FlakyAgent(BaseChatAgent):
         self._total_messages = 0
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 
     @property
     def total_messages(self) -> int:
         return self._total_messages
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         raise ValueError("I am a flaky agent...")
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
 
 
-class _UnknownMessageType(ChatMessage):
+class _UnknownMessageType(BaseChatMessage):
     content: str
 
     def to_model_message(self) -> UserMessage:
@@ -121,10 +121,10 @@ class _UnknownMessageTypeAgent(BaseChatAgent):
         super().__init__(name, description)
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (_UnknownMessageType,)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         return Response(chat_message=_UnknownMessageType(content="Unknown message type", source=self.name))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
@@ -138,10 +138,10 @@ class _StopAgent(_EchoAgent):
         self._stop_at = stop_at
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage, StopMessage)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         self._count += 1
         if self._count < self._stop_at:
             return await super().on_messages(messages, cancellation_token)
@@ -162,7 +162,7 @@ class _InputTask2(BaseModel):
     data: str
 
 
-TaskType = str | List[ChatMessage] | ChatMessage
+TaskType = str | List[BaseChatMessage] | BaseChatMessage
 
 
 @pytest_asyncio.fixture(params=["single_threaded", "embedded"])  # type: ignore
@@ -821,7 +821,7 @@ async def test_selector_group_chat_custom_selector(runtime: AgentRuntime | None)
     agent3 = _EchoAgent("agent3", description="echo agent 3")
     agent4 = _EchoAgent("agent4", description="echo agent 4")
 
-    def _select_agent(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
+    def _select_agent(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str | None:
         if len(messages) == 0:
             return "agent1"
         elif messages[-1].source == "agent1":
@@ -862,7 +862,7 @@ async def test_selector_group_chat_custom_candidate_func(runtime: AgentRuntime |
     agent3 = _EchoAgent("agent3", description="echo agent 3")
     agent4 = _EchoAgent("agent4", description="echo agent 4")
 
-    def _candidate_func(messages: Sequence[AgentEvent | ChatMessage]) -> List[str]:
+    def _candidate_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
         if len(messages) == 0:
             return ["agent1"]
         elif messages[-1].source == "agent1":
@@ -901,10 +901,10 @@ class _HandOffAgent(BaseChatAgent):
         self._next_agent = next_agent
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (HandoffMessage,)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         return Response(
             chat_message=HandoffMessage(
                 content=f"Transferred to {self._next_agent}.", target=self._next_agent, source=self.name
@@ -1292,7 +1292,7 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
     team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination, runtime=runtime)
 
     # Create a list of messages
-    messages: List[ChatMessage] = [
+    messages: List[BaseChatMessage] = [
         TextMessage(content="Message 1", source="user"),
         TextMessage(content="Message 2", source="user"),
         TextMessage(content="Message 3", source="user"),

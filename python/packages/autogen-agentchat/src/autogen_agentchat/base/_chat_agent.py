@@ -5,7 +5,7 @@ from typing import Any, AsyncGenerator, Mapping, Sequence
 from autogen_core import CancellationToken, ComponentBase
 from pydantic import BaseModel
 
-from ..messages import AgentEvent, ChatMessage
+from ..messages import BaseAgentEvent, BaseChatMessage
 from ._task import TaskRunner
 
 
@@ -13,10 +13,10 @@ from ._task import TaskRunner
 class Response:
     """A response from calling :meth:`ChatAgent.on_messages`."""
 
-    chat_message: ChatMessage
+    chat_message: BaseChatMessage
     """A chat message produced by the agent as the response."""
 
-    inner_messages: Sequence[AgentEvent | ChatMessage] | None = None
+    inner_messages: Sequence[BaseAgentEvent | BaseChatMessage] | None = None
     """Inner messages produced by the agent, they can be :class:`AgentEvent`
     or :class:`ChatMessage`."""
 
@@ -43,20 +43,20 @@ class ChatAgent(ABC, TaskRunner, ComponentBase[BaseModel]):
 
     @property
     @abstractmethod
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         """The types of messages that the agent produces in the
         :attr:`Response.chat_message` field. They must be :class:`ChatMessage` types."""
         ...
 
     @abstractmethod
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handles incoming messages and returns a response."""
         ...
 
     @abstractmethod
     def on_messages_stream(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """Handles incoming messages and returns a stream of inner messages and
         and the final item is the response."""
         ...

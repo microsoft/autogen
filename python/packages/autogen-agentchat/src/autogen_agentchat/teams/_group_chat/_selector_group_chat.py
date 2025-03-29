@@ -13,8 +13,8 @@ from ... import TRACE_LOGGER_NAME
 from ...agents import BaseChatAgent
 from ...base import ChatAgent, TerminationCondition
 from ...messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
     MessageFactory,
 )
 from ...state import SelectorManagerState
@@ -24,12 +24,12 @@ from ._events import GroupChatTermination
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 
-SyncSelectorFunc = Callable[[Sequence[AgentEvent | ChatMessage]], str | None]
-AsyncSelectorFunc = Callable[[Sequence[AgentEvent | ChatMessage]], Awaitable[str | None]]
+SyncSelectorFunc = Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], str | None]
+AsyncSelectorFunc = Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[str | None]]
 SelectorFuncType = Union[SyncSelectorFunc | AsyncSelectorFunc]
 
-SyncCandidateFunc = Callable[[Sequence[AgentEvent | ChatMessage]], List[str]]
-AsyncCandidateFunc = Callable[[Sequence[AgentEvent | ChatMessage]], Awaitable[List[str]]]
+SyncCandidateFunc = Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], List[str]]
+AsyncCandidateFunc = Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[List[str]]]
 CandidateFuncType = Union[SyncCandidateFunc | AsyncCandidateFunc]
 
 
@@ -45,7 +45,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
@@ -78,7 +78,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._candidate_func = candidate_func
         self._is_candidate_func_async = iscoroutinefunction(self._candidate_func)
 
-    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
+    async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         pass
 
     async def reset(self) -> None:
@@ -102,7 +102,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._current_turn = selector_state.current_turn
         self._previous_speaker = selector_state.previous_speaker
 
-    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
+    async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client,
         with the selector function as override if it returns a speaker name.
 
@@ -153,7 +153,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         # Construct the history of the conversation.
         history_messages: List[str] = []
         for msg in thread:
-            if not isinstance(msg, ChatMessage):
+            if not isinstance(msg, BaseChatMessage):
                 # Only process chat messages.
                 continue
             message = f"{msg.source}: {msg.to_model_text()}"
@@ -448,7 +448,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         max_selector_attempts: int = 3,
         selector_func: Optional[SelectorFuncType] = None,
         candidate_func: Optional[CandidateFuncType] = None,
-        custom_message_types: List[type[AgentEvent | ChatMessage]] | None = None,
+        custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
     ):
         super().__init__(
             participants,
@@ -477,7 +477,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
