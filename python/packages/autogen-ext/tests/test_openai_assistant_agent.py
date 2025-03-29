@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import aiofiles
 import pytest
-from autogen_agentchat.messages import ChatMessage, TextMessage, ToolCallRequestEvent
+from autogen_agentchat.messages import BaseChatMessage, TextMessage, ToolCallRequestEvent
 from autogen_core import CancellationToken
 from autogen_core.tools._base import BaseTool, Tool
 from autogen_ext.agents.openai import OpenAIAssistantAgent
@@ -81,7 +81,7 @@ class FakeMessage:
 
 
 class FakeCursorPage:
-    def __init__(self, data: List[ChatMessage | FakeMessage]) -> None:
+    def __init__(self, data: List[BaseChatMessage | FakeMessage]) -> None:
         self.data = data
 
     def has_next_page(self) -> bool:

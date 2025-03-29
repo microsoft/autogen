@@ -7,7 +7,7 @@ from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import Handoff, TaskResult
 from autogen_agentchat.messages import (
-    ChatMessage,
+    BaseChatMessage,
     HandoffMessage,
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
@@ -737,7 +737,7 @@ async def test_list_chat_messages(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     # Create a list of chat messages
-    messages: List[ChatMessage] = [
+    messages: List[BaseChatMessage] = [
         TextMessage(content="Message 1", source="user"),
         TextMessage(content="Message 2", source="user"),
     ]

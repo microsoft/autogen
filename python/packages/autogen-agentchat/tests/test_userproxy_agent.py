@@ -4,7 +4,7 @@ from typing import Optional, Sequence
 import pytest
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import ChatMessage, HandoffMessage, TextMessage
+from autogen_agentchat.messages import BaseChatMessage, HandoffMessage, TextMessage
 from autogen_core import CancellationToken
 
 
@@ -53,7 +53,7 @@ async def test_handoff_handling() -> None:
 
     agent = UserProxyAgent(name="test_user", input_func=custom_input)
 
-    messages: Sequence[ChatMessage] = [
+    messages: Sequence[BaseChatMessage] = [
         TextMessage(content="Initial message", source="assistant"),
         HandoffMessage(content="Handing off to user for confirmation", source="assistant", target="test_user"),
     ]
