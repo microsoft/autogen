@@ -144,6 +144,9 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         result: TaskResult | None = None
         inner_messages: List[AgentEvent | ChatMessage] = []
         count = 0
+
+        # Set asdf DEBUG
+
         async for inner_msg in self._team.run_stream(task=task, cancellation_token=cancellation_token):
             if isinstance(inner_msg, TaskResult):
                 result = inner_msg
@@ -161,12 +164,13 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
 
         if len(inner_messages) == 0:
             yield Response(
-                chat_message=TextMessage(source=self.name, content="No response."), inner_messages=inner_messages
+                chat_message=TextMessage(source=self.name, content="No response."), inner_messages=[]
+                # Response's inner_messages should be empty. Cause that mean is response to outer world.
             )
         else:
             # Generate a response using the model client.
             llm_messages: List[LLMMessage] = [SystemMessage(content=self._instruction)]
-            for message in messages:
+            for message in inner_messages:
                 if isinstance(message, ChatMessage):
                     llm_messages.append(message.to_model_message())
             llm_messages.append(SystemMessage(content=self._response_prompt))
@@ -174,7 +178,8 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
             assert isinstance(completion.content, str)
             yield Response(
                 chat_message=TextMessage(source=self.name, content=completion.content, models_usage=completion.usage),
-                inner_messages=inner_messages,
+                inner_messages=[],
+                # Response's inner_messages should be empty. Cause that mean is response to outer world.
             )
 
         # Reset the team.
@@ -182,6 +187,8 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         await self._team.reset()
+        # Question : Why do not clear model context???
+        # Answer : Call model_client directly.
 
     async def save_state(self) -> Mapping[str, Any]:
         team_state = await self._team.save_state()

@@ -143,6 +143,12 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         # Append the message to the message thread and construct the delta.
         delta: List[AgentEvent | ChatMessage] = []
         if message.agent_response.inner_messages is not None:
+
+            print("==============[DEBUG]==============")
+            from pprint import pprint
+            pprint(self._message_thread)
+            print("==============[DEBUG-DONE]==============")
+            
             for inner_message in message.agent_response.inner_messages:
                 self._message_thread.append(inner_message)
                 delta.append(inner_message)
