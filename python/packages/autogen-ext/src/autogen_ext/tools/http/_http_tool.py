@@ -126,7 +126,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
                   [TextMessage(content="Can you base64 decode the value 'YWJjZGU=', please?", source="user")],
                   CancellationToken(),
               )
-              print(response.chat_message.content)
+              print(response.chat_message)
 
 
           asyncio.run(main())

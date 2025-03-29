@@ -24,6 +24,7 @@ from autogen_core.tools import BaseTool, FunctionTool
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from autogen_ext.models.openai._model_info import resolve_model
 from autogen_ext.models.openai._openai_client import (
+    BaseOpenAIChatCompletionClient,
     calculate_vision_tokens,
     convert_tools,
     to_oai_type,
@@ -1090,13 +1091,14 @@ async def test_r1_reasoning_content_streaming(monkeypatch: pytest.MonkeyPatch) -
 
     # Verify that the chunks first stream the reasoning content and then the main content
     # Then verify that the final result has the correct content and thought
-    assert len(chunks) == 4
-    assert chunks[0] == "This is the reasoning content 1"
+    assert len(chunks) == 5
+    assert chunks[0] == "<think>This is the reasoning content 1"
     assert chunks[1] == "This is the reasoning content 2"
-    assert chunks[2] == "This is the main content"
-    assert isinstance(chunks[3], CreateResult)
-    assert chunks[3].content == "This is the main content"
-    assert chunks[3].thought == "This is the reasoning content 1This is the reasoning content 2"
+    assert chunks[2] == "</think>"
+    assert chunks[3] == "This is the main content"
+    assert isinstance(chunks[4], CreateResult)
+    assert chunks[4].content == "This is the main content"
+    assert chunks[4].thought == "This is the reasoning content 1This is the reasoning content 2"
 
 
 @pytest.mark.asyncio
@@ -1783,7 +1785,10 @@ async def test_openai_structured_output_with_streaming(model: str, openai_client
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    [
+        "gpt-4o-mini",
+        # "gemini-1.5-flash", # Gemini models do not support structured output with tool calls from model client.
+    ],
 )
 async def test_openai_structured_output_with_tool_calls(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     class AgentResponse(BaseModel):
@@ -1796,13 +1801,15 @@ async def test_openai_structured_output_with_tool_calls(model: str, openai_clien
 
     tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
 
+    extra_create_args = {"tool_choice": "required"}
+
     response1 = await openai_client.create(
         messages=[
             SystemMessage(content="Analyze input text sentiment using the tool provided."),
             UserMessage(content="I am happy.", source="user"),
         ],
         tools=[tool],
-        extra_create_args={"tool_choice": "required"},
+        extra_create_args=extra_create_args,
         json_output=AgentResponse,
     )
     assert isinstance(response1.content, list)
@@ -1836,7 +1843,10 @@ async def test_openai_structured_output_with_tool_calls(model: str, openai_clien
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    [
+        "gpt-4o-mini",
+        # "gemini-1.5-flash", # Gemini models do not support structured output with tool calls from model client.
+    ],
 )
 async def test_openai_structured_output_with_streaming_tool_calls(
     model: str, openai_client: OpenAIChatCompletionClient
@@ -1851,6 +1861,8 @@ async def test_openai_structured_output_with_streaming_tool_calls(
 
     tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
 
+    extra_create_args = {"tool_choice": "required"}
+
     chunks1: List[str | CreateResult] = []
     stream1 = openai_client.create_stream(
         messages=[
@@ -1858,7 +1870,7 @@ async def test_openai_structured_output_with_streaming_tool_calls(
             UserMessage(content="I am happy.", source="user"),
         ],
         tools=[tool],
-        extra_create_args={"tool_choice": "required"},
+        extra_create_args=extra_create_args,
         json_output=AgentResponse,
     )
     async for chunk in stream1:
@@ -2045,6 +2057,250 @@ async def test_add_name_prefixes(monkeypatch: pytest.MonkeyPatch) -> None:
     # Name prepended
     assert str(converted_text["content"]) == "Adam said:\n" + str(oai_text["content"])
     assert str(converted_mm["content"][0]["text"]) == "Adam said:\n" + str(oai_mm["content"][0]["text"])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gpt-4o-mini",
+        "gemini-1.5-flash",
+        # TODO: Add anthropic models when available.
+    ],
+)
+async def test_muliple_system_message(model: str, openai_client: OpenAIChatCompletionClient) -> None:
+    """Test multiple system messages in a single request."""
+
+    # Test multiple system messages
+    messages: List[LLMMessage] = [
+        SystemMessage(content="When you say anything Start with 'FOO'"),
+        SystemMessage(content="When you say anything End with 'BAR'"),
+        UserMessage(content="Just say '.'", source="user"),
+    ]
+
+    result = await openai_client.create(messages=messages)
+    result_content = result.content
+    assert isinstance(result_content, str)
+    result_content = result_content.strip()
+    assert result_content[:3] == "FOO"
+    assert result_content[-3:] == "BAR"
+
+
+@pytest.mark.asyncio
+async def test_system_message_merge_for_gemini_models() -> None:
+    """Tests that system messages are merged correctly for Gemini models."""
+    # Create a mock client
+    mock_client = MagicMock()
+    client = BaseOpenAIChatCompletionClient(
+        client=mock_client,
+        create_args={"model": "gemini-1.5-flash"},
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": "unknown",
+            "structured_output": False,
+        },
+    )
+
+    # Create two system messages
+    messages: List[LLMMessage] = [
+        SystemMessage(content="I am system message 1"),
+        SystemMessage(content="I am system message 2"),
+        UserMessage(content="Hello", source="user"),
+    ]
+
+    # Process the messages
+    # pylint: disable=protected-access
+    # The method is protected, but we need to test it
+    create_params = client._process_create_args(  # pyright: ignore[reportPrivateUsage]
+        messages=messages,
+        tools=[],
+        json_output=None,
+        extra_create_args={},
+    )
+
+    # Extract the actual messages from the result
+    oai_messages = create_params.messages
+
+    # Check that there is only one system message and it contains the merged content
+    system_messages = [msg for msg in oai_messages if msg["role"] == "system"]
+    assert len(system_messages) == 1
+    assert system_messages[0]["content"] == "I am system message 1\nI am system message 2"
+
+    # Check that the user message is preserved
+    user_messages = [msg for msg in oai_messages if msg["role"] == "user"]
+    assert len(user_messages) == 1
+    assert user_messages[0]["content"] == "Hello"
+
+
+@pytest.mark.asyncio
+async def test_system_message_merge_with_non_continuous_messages() -> None:
+    """Tests that an error is raised when non-continuous system messages are provided."""
+    # Create a mock client
+    mock_client = MagicMock()
+    client = BaseOpenAIChatCompletionClient(
+        client=mock_client,
+        create_args={"model": "gemini-1.5-flash"},
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": "unknown",
+            "structured_output": False,
+        },
+    )
+
+    # Create non-continuous system messages
+    messages: List[LLMMessage] = [
+        SystemMessage(content="I am system message 1"),
+        UserMessage(content="Hello", source="user"),
+        SystemMessage(content="I am system message 2"),
+    ]
+
+    # Process should raise ValueError
+    with pytest.raises(ValueError, match="Multiple and Not continuous system messages are not supported"):
+        # pylint: disable=protected-access
+        # The method is protected, but we need to test it
+        client._process_create_args(  # pyright: ignore[reportPrivateUsage]
+            messages=messages,
+            tools=[],
+            json_output=None,
+            extra_create_args={},
+        )
+
+
+@pytest.mark.asyncio
+async def test_system_message_not_merged_for_non_gemini_models() -> None:
+    """Tests that system messages aren't modified for non-Gemini models."""
+    # Create a mock client
+    mock_client = MagicMock()
+    client = BaseOpenAIChatCompletionClient(
+        client=mock_client,
+        create_args={"model": "gpt-4o"},
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": "unknown",
+            "structured_output": False,
+        },
+    )
+
+    # Create two system messages
+    messages: List[LLMMessage] = [
+        SystemMessage(content="I am system message 1"),
+        SystemMessage(content="I am system message 2"),
+        UserMessage(content="Hello", source="user"),
+    ]
+
+    # Process the messages
+    # pylint: disable=protected-access
+    # The method is protected, but we need to test it
+    create_params = client._process_create_args(  # pyright: ignore[reportPrivateUsage]
+        messages=messages,
+        tools=[],
+        json_output=None,
+        extra_create_args={},
+    )
+
+    # Extract the actual messages from the result
+    oai_messages = create_params.messages
+
+    # Check that there are two system messages preserved
+    system_messages = [msg for msg in oai_messages if msg["role"] == "system"]
+    assert len(system_messages) == 2
+    assert system_messages[0]["content"] == "I am system message 1"
+    assert system_messages[1]["content"] == "I am system message 2"
+
+
+@pytest.mark.asyncio
+async def test_no_system_messages_for_gemini_model() -> None:
+    """Tests behavior when no system messages are provided to a Gemini model."""
+    # Create a mock client
+    mock_client = MagicMock()
+    client = BaseOpenAIChatCompletionClient(
+        client=mock_client,
+        create_args={"model": "gemini-1.5-flash"},
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": "unknown",
+            "structured_output": False,
+        },
+    )
+
+    # Create messages with no system message
+    messages: List[LLMMessage] = [
+        UserMessage(content="Hello", source="user"),
+        AssistantMessage(content="Hi there", source="assistant"),
+    ]
+
+    # Process the messages
+    # pylint: disable=protected-access
+    # The method is protected, but we need to test it
+    create_params = client._process_create_args(  # pyright: ignore[reportPrivateUsage]
+        messages=messages,
+        tools=[],
+        json_output=None,
+        extra_create_args={},
+    )
+
+    # Extract the actual messages from the result
+    oai_messages = create_params.messages
+
+    # Check that there are no system messages
+    system_messages = [msg for msg in oai_messages if msg["role"] == "system"]
+    assert len(system_messages) == 0
+
+    # Check that other messages are preserved
+    user_messages = [msg for msg in oai_messages if msg["role"] == "user"]
+    assistant_messages = [msg for msg in oai_messages if msg["role"] == "assistant"]
+    assert len(user_messages) == 1
+    assert len(assistant_messages) == 1
+
+
+@pytest.mark.asyncio
+async def test_single_system_message_for_gemini_model() -> None:
+    """Tests that a single system message is preserved for Gemini models."""
+    # Create a mock client
+    mock_client = MagicMock()
+    client = BaseOpenAIChatCompletionClient(
+        client=mock_client,
+        create_args={"model": "gemini-1.5-flash"},
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": "unknown",
+            "structured_output": False,
+        },
+    )
+
+    # Create messages with a single system message
+    messages: List[LLMMessage] = [
+        SystemMessage(content="I am the only system message"),
+        UserMessage(content="Hello", source="user"),
+    ]
+
+    # Process the messages
+    # pylint: disable=protected-access
+    # The method is protected, but we need to test it
+    create_params = client._process_create_args(  # pyright: ignore[reportPrivateUsage]
+        messages=messages,
+        tools=[],
+        json_output=None,
+        extra_create_args={},
+    )
+
+    # Extract the actual messages from the result
+    oai_messages = create_params.messages
+
+    # Check that there is exactly one system message with the correct content
+    system_messages = [msg for msg in oai_messages if msg["role"] == "system"]
+    assert len(system_messages) == 1
+    assert system_messages[0]["content"] == "I am the only system message"
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.

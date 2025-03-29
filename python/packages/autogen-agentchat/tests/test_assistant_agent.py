@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import List
+from typing import Dict, List
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
@@ -12,6 +12,7 @@ from autogen_agentchat.messages import (
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
+    StructuredMessage,
     TextMessage,
     ThoughtEvent,
     ToolCallExecutionEvent,
@@ -32,9 +33,10 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.models._model_client import ModelFamily
-from autogen_core.tools import FunctionTool
+from autogen_core.tools import BaseTool, FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
+from pydantic import BaseModel
 from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -459,6 +461,158 @@ async def test_handoffs() -> None:
 
 
 @pytest.mark.asyncio
+async def test_custom_handoffs() -> None:
+    name = "transfer_to_agent2"
+    description = "Handoff to agent2."
+    next_action = "next_action"
+
+    class TextCommandHandOff(Handoff):
+        @property
+        def handoff_tool(self) -> BaseTool[BaseModel, BaseModel]:
+            """Create a handoff tool from this handoff configuration."""
+
+            def _next_action(action: str) -> str:
+                """Returns the action you want the user to perform"""
+                return action
+
+            return FunctionTool(_next_action, name=self.name, description=self.description, strict=True)
+
+    handoff = TextCommandHandOff(name=name, description=description, target="agent2")
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[
+                    FunctionCall(id="1", arguments=json.dumps({"action": next_action}), name=handoff.name),
+                ],
+                usage=RequestUsage(prompt_tokens=42, completion_tokens=43),
+                cached=False,
+            )
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    tool_use_agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[
+            _pass_function,
+            _fail_function,
+            FunctionTool(_echo_function, description="Echo"),
+        ],
+        handoffs=[handoff],
+    )
+    assert HandoffMessage in tool_use_agent.produced_message_types
+    result = await tool_use_agent.run(task="task")
+    assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].models_usage is None
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
+    assert result.messages[1].models_usage is not None
+    assert result.messages[1].models_usage.completion_tokens == 43
+    assert result.messages[1].models_usage.prompt_tokens == 42
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
+    assert result.messages[2].models_usage is None
+    assert isinstance(result.messages[3], HandoffMessage)
+    assert result.messages[3].content == next_action
+    assert result.messages[3].target == handoff.target
+
+    assert result.messages[3].models_usage is None
+
+    # Test streaming.
+    model_client.reset()
+    index = 0
+    async for message in tool_use_agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1
+
+
+@pytest.mark.asyncio
+async def test_custom_object_handoffs() -> None:
+    """test handoff tool return a object"""
+    name = "transfer_to_agent2"
+    description = "Handoff to agent2."
+    next_action = {"action": "next_action"}  # using a map, not a str
+
+    class DictCommandHandOff(Handoff):
+        @property
+        def handoff_tool(self) -> BaseTool[BaseModel, BaseModel]:
+            """Create a handoff tool from this handoff configuration."""
+
+            def _next_action(action: str) -> Dict[str, str]:
+                """Returns the action you want the user to perform"""
+                return {"action": action}
+
+            return FunctionTool(_next_action, name=self.name, description=self.description, strict=True)
+
+    handoff = DictCommandHandOff(name=name, description=description, target="agent2")
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[
+                    FunctionCall(id="1", arguments=json.dumps({"action": "next_action"}), name=handoff.name),
+                ],
+                usage=RequestUsage(prompt_tokens=42, completion_tokens=43),
+                cached=False,
+            )
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    tool_use_agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[
+            _pass_function,
+            _fail_function,
+            FunctionTool(_echo_function, description="Echo"),
+        ],
+        handoffs=[handoff],
+    )
+    assert HandoffMessage in tool_use_agent.produced_message_types
+    result = await tool_use_agent.run(task="task")
+    assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].models_usage is None
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
+    assert result.messages[1].models_usage is not None
+    assert result.messages[1].models_usage.completion_tokens == 43
+    assert result.messages[1].models_usage.prompt_tokens == 42
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
+    assert result.messages[2].models_usage is None
+    assert isinstance(result.messages[3], HandoffMessage)
+    # the content will return as a string, because the function call will convert to string
+    assert result.messages[3].content == str(next_action)
+    assert result.messages[3].target == handoff.target
+
+    assert result.messages[3].models_usage is None
+
+    # Test streaming.
+    model_client.reset()
+    index = 0
+    async for message in tool_use_agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1
+
+
+@pytest.mark.asyncio
 async def test_multi_modal_task(monkeypatch: pytest.MonkeyPatch) -> None:
     model_client = ReplayChatCompletionClient(["Hello"])
     agent = AssistantAgent(
@@ -468,6 +622,23 @@ async def test_multi_modal_task(monkeypatch: pytest.MonkeyPatch) -> None:
     # Generate a random base64 image.
     img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
     result = await agent.run(task=MultiModalMessage(source="user", content=["Test", Image.from_base64(img_base64)]))
+    assert len(result.messages) == 2
+
+
+@pytest.mark.asyncio
+async def test_run_with_structured_task() -> None:
+    class InputTask(BaseModel):
+        input: str
+        data: List[str]
+
+    model_client = ReplayChatCompletionClient(["Hello"])
+    agent = AssistantAgent(
+        name="assistant",
+        model_client=model_client,
+    )
+
+    task = StructuredMessage[InputTask](content=InputTask(input="Test", data=["Test1", "Test2"]), source="user")
+    result = await agent.run(task=task)
     assert len(result.messages) == 2
 
 
@@ -743,6 +914,7 @@ async def test_model_client_stream() -> None:
     chunks: List[str] = []
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
             assert message.messages[-1].content == "Response to message 3"
         elif isinstance(message, ModelClientStreamingChunkEvent):
             chunks.append(message.content)
@@ -776,11 +948,14 @@ async def test_model_client_stream_with_tool_calls() -> None:
     chunks: List[str] = []
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
+            assert isinstance(message.messages[1], ToolCallRequestEvent)
             assert message.messages[-1].content == "Example response 2 to task"
             assert message.messages[1].content == [
                 FunctionCall(id="1", name="_pass_function", arguments=r'{"input": "task"}'),
                 FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
             ]
+            assert isinstance(message.messages[2], ToolCallExecutionEvent)
             assert message.messages[2].content == [
                 FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="_pass_function"),
                 FunctionExecutionResult(call_id="3", content="task", is_error=False, name="_echo_function"),

@@ -7,7 +7,6 @@ from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
     ChatMessage,
-    MultiModalMessage,
     TextMessage,
 )
 from autogen_agentchat.utils import remove_images
@@ -90,11 +89,7 @@ class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         for chat_message in messages:
-            if isinstance(chat_message, TextMessage | MultiModalMessage):
-                self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
-            else:
-                raise ValueError(f"Unexpected message in FileSurfer: {chat_message}")
-
+            self._chat_history.append(chat_message.to_model_message())
         try:
             _, content = await self._generate_reply(cancellation_token=cancellation_token)
             self._chat_history.append(AssistantMessage(content=content, source=self.name))

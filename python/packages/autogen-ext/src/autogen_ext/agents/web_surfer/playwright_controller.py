@@ -69,7 +69,9 @@ class PlaywrightController:
         self._markdown_converter: Optional[Any] | None = None
 
         # Read page_script
-        with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+        with open(
+            os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt", encoding="utf-8"
+        ) as fh:
             self._page_script = fh.read()
 
     async def sleep(self, page: Page, duration: Union[int, float]) -> None:

@@ -18,6 +18,7 @@ from ....messages import (
     AgentEvent,
     ChatMessage,
     HandoffMessage,
+    MessageFactory,
     MultiModalMessage,
     StopMessage,
     TextMessage,
@@ -26,7 +27,7 @@ from ....messages import (
     ToolCallSummaryMessage,
 )
 from ....state import MagenticOneOrchestratorState
-from ....utils import content_to_str, remove_images
+from ....utils import remove_images
 from .._base_group_chat_manager import BaseGroupChatManager
 from .._events import (
     GroupChatAgentResponse,
@@ -61,6 +62,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         participant_names: List[str],
         participant_descriptions: List[str],
         max_turns: int | None,
+        message_factory: MessageFactory,
         model_client: ChatCompletionClient,
         max_stalls: int,
         final_answer_prompt: str,
@@ -77,6 +79,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             output_message_queue,
             termination_condition,
             max_turns,
+            message_factory,
         )
         self._model_client = model_client
         self._max_stalls = max_stalls
@@ -147,7 +150,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         # Create the initial task ledger
         #################################
         # Combine all message contents for task
-        self._task = " ".join([content_to_str(msg.content) for msg in message.messages])
+        self._task = " ".join([msg.to_model_text() for msg in message.messages])
         planning_conversation: List[LLMMessage] = []
 
         # 1. GATHER FACTS
@@ -203,7 +206,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def save_state(self) -> Mapping[str, Any]:
         state = MagenticOneOrchestratorState(
-            message_thread=list(self._message_thread),
+            message_thread=[msg.dump() for msg in self._message_thread],
             current_turn=self._current_turn,
             task=self._task,
             facts=self._facts,
@@ -215,7 +218,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         orchestrator_state = MagenticOneOrchestratorState.model_validate(state)
-        self._message_thread = orchestrator_state.message_thread
+        self._message_thread = [self._message_factory.create(message) for message in orchestrator_state.message_thread]
         self._current_turn = orchestrator_state.current_turn
         self._task = orchestrator_state.task
         self._facts = orchestrator_state.facts

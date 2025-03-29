@@ -5,7 +5,7 @@ from typing import Any, List
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
 from ...base import TerminationCondition
-from ...messages import AgentEvent, ChatMessage, StopMessage
+from ...messages import AgentEvent, ChatMessage, MessageFactory, StopMessage
 from ._events import (
     GroupChatAgentResponse,
     GroupChatMessage,
@@ -40,8 +40,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         participant_names: List[str],
         participant_descriptions: List[str],
         output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
-        termination_condition: TerminationCondition | None = None,
-        max_turns: int | None = None,
+        termination_condition: TerminationCondition | None,
+        max_turns: int | None,
+        message_factory: MessageFactory,
     ):
         super().__init__(
             description="Group chat manager",
@@ -73,6 +74,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             raise ValueError("The maximum number of turns must be greater than 0.")
         self._max_turns = max_turns
         self._current_turn = 0
+        self._message_factory = message_factory
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:

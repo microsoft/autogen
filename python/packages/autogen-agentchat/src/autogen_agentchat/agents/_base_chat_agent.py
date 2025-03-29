@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from ..base import ChatAgent, Response, TaskResult
 from ..messages import (
     AgentEvent,
-    BaseChatMessage,
     ChatMessage,
     ModelClientStreamingChunkEvent,
     TextMessage,
@@ -121,7 +120,7 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
             text_msg = TextMessage(content=task, source="user")
             input_messages.append(text_msg)
             output_messages.append(text_msg)
-        elif isinstance(task, BaseChatMessage):
+        elif isinstance(task, ChatMessage):
             input_messages.append(task)
             output_messages.append(task)
         else:
@@ -129,7 +128,7 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
                 raise ValueError("Task list cannot be empty.")
             # Task is a sequence of messages.
             for msg in task:
-                if isinstance(msg, BaseChatMessage):
+                if isinstance(msg, ChatMessage):
                     input_messages.append(msg)
                     output_messages.append(msg)
                 else:
@@ -159,7 +158,7 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
             input_messages.append(text_msg)
             output_messages.append(text_msg)
             yield text_msg
-        elif isinstance(task, BaseChatMessage):
+        elif isinstance(task, ChatMessage):
             input_messages.append(task)
             output_messages.append(task)
             yield task
@@ -167,7 +166,7 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
             if not task:
                 raise ValueError("Task list cannot be empty.")
             for msg in task:
-                if isinstance(msg, BaseChatMessage):
+                if isinstance(msg, ChatMessage):
                     input_messages.append(msg)
                     output_messages.append(msg)
                     yield msg
