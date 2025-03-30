@@ -432,6 +432,35 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
+    def _merge_system_messages(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
+        """
+        Merge continuous system messages into a single message.
+        """
+        _messages: List[LLMMessage] = []
+        system_message_content = ""
+        _first_system_message_idx = -1
+        _last_system_message_idx = -1
+        # Index of the first system message for adding the merged system message at the correct position
+        for idx, message in enumerate(messages):
+            if isinstance(message, SystemMessage):
+                if _first_system_message_idx == -1:
+                    _first_system_message_idx = idx
+                elif _last_system_message_idx + 1 != idx:
+                    # That case, system message is not continuous
+                    # Merge system messages only contiues system messages
+                    raise ValueError("Multiple and Not continuous system messages are not supported")
+                system_message_content += message.content + "\n"
+                _last_system_message_idx = idx
+            else:
+                _messages.append(message)
+        system_message_content = system_message_content.rstrip()
+        if system_message_content != "":
+            system_message = SystemMessage(content=system_message_content)
+            _messages.insert(_first_system_message_idx, system_message)
+        messages = _messages
+
+        return messages
+
     async def create(
         self,
         messages: Sequence[LLMMessage],
@@ -466,9 +495,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         system_message = None
         anthropic_messages: List[MessageParam] = []
 
+        # Merge continuous system messages into a single message
+        messages = self._merge_system_messages(messages)
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
+                    # if that case, system message is must only one
                     raise ValueError("Multiple system messages are not supported")
                 system_message = to_anthropic_type(message)
             else:
@@ -628,9 +660,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         system_message = None
         anthropic_messages: List[MessageParam] = []
 
+        # Merge continuous system messages into a single message
+        messages = self._merge_system_messages(messages)
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
+                    # if that case, system message is must only one
                     raise ValueError("Multiple system messages are not supported")
                 system_message = to_anthropic_type(message)
             else:
