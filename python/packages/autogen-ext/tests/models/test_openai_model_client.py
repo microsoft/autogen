@@ -2355,4 +2355,6 @@ async def test_empty_assistant_content_string_with_some_model(
     result = await openai_client.create(messages=messages)
     assert isinstance(result.content, str)
     assert result.content.strip() != "" or result.content == " "
+
+
 # TODO: add integration tests for Azure OpenAI using AAD token.

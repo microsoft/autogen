@@ -560,6 +560,7 @@ def test_merge_system_messages_no_duplicates() -> None:
     # 중복된 내용도 그대로 병합됨
     assert merged_messages[0].content == "Same instruction\nSame instruction"
 
+
 @pytest.mark.asyncio
 async def test_empty_assistant_content_string_with_anthropic() -> None:
     """Test that an empty assistant content string is handled correctly."""
