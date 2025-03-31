@@ -326,7 +326,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         raise AssertionError("The stream should have returned the final result.")
 
     async def on_messages_stream(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
         Process the incoming messages with the assistant agent and yield events/responses as they happen.
@@ -353,7 +353,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         )
 
         # STEP 2: Update model context with any relevant memory
-        inner_messages: List[AgentEvent | ChatMessage] = []
+        inner_messages: List[BaseAgentEvent | BaseChatMessage] = []
         for event_msg in await self._update_model_context_with_memory(
             memory=None,
             model_context=model_context,
@@ -575,7 +575,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     @staticmethod
     async def _add_messages_to_context(
         model_context: ChatCompletionContext,
-        messages: Sequence[ChatMessage],
+        messages: Sequence[BaseChatMessage],
     ) -> None:
         """
         Add incoming messages to the model context.
@@ -594,7 +594,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_client_stream: bool,
         model_context: ChatCompletionContext,
         agent_name: str,
-        inner_messages: List[AgentEvent | ChatMessage],
+        inner_messages: List[BaseAgentEvent | BaseChatMessage],
     ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent | ThoughtEvent, None]:
         """
         If reflect_on_code_block_results=True, we do another inference based on tool results
