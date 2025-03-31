@@ -5,7 +5,7 @@ from typing import Any, List
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
 from ...base import TerminationCondition
-from ...messages import AgentEvent, ChatMessage, MessageFactory, StopMessage
+from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, StopMessage
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
@@ -41,7 +41,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
@@ -69,7 +69,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             name: topic_type for name, topic_type in zip(participant_names, participant_topic_types, strict=True)
         }
         self._participant_descriptions = participant_descriptions
-        self._message_thread: List[AgentEvent | ChatMessage] = []
+        self._message_thread: List[BaseAgentEvent | BaseChatMessage] = []
         self._output_message_queue = output_message_queue
         self._termination_condition = termination_condition
         if max_turns is not None and max_turns <= 0:
@@ -144,7 +144,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
         try:
             # Append the message to the message thread and construct the delta.
-            delta: List[AgentEvent | ChatMessage] = []
+            delta: List[BaseAgentEvent | BaseChatMessage] = []
             if message.agent_response.inner_messages is not None:
                 for inner_message in message.agent_response.inner_messages:
                     self._message_thread.append(inner_message)
@@ -251,7 +251,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         pass
 
     @abstractmethod
-    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
+    async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         """Validate the state of the group chat given the start messages.
         This is executed when the group chat manager receives a GroupChatStart event.
 
@@ -261,7 +261,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         ...
 
     @abstractmethod
-    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
+    async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
         """Select a speaker from the participants and return the
         topic type of the selected speaker."""
         ...

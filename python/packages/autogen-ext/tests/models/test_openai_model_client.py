@@ -1602,6 +1602,10 @@ def openai_client(request: pytest.FixtureRequest) -> OpenAIChatCompletionClient:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             pytest.skip("GEMINI_API_KEY not found in environment variables")
+    elif model.startswith("claude"):
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
     else:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -1616,7 +1620,7 @@ def openai_client(request: pytest.FixtureRequest) -> OpenAIChatCompletionClient:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    ["gpt-4o-mini", "gemini-1.5-flash", "claude-3-5-haiku-20241022"],
 )
 async def test_model_client_basic_completion(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     # Test basic completion
@@ -1633,7 +1637,7 @@ async def test_model_client_basic_completion(model: str, openai_client: OpenAICh
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    ["gpt-4o-mini", "gemini-1.5-flash", "claude-3-5-haiku-20241022"],
 )
 async def test_model_client_with_function_calling(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     # Test tool calling
@@ -2065,7 +2069,7 @@ async def test_add_name_prefixes(monkeypatch: pytest.MonkeyPatch) -> None:
     [
         "gpt-4o-mini",
         "gemini-1.5-flash",
-        # TODO: Add anthropic models when available.
+        "claude-3-5-haiku-20241022",
     ],
 )
 async def test_muliple_system_message(model: str, openai_client: OpenAIChatCompletionClient) -> None:
@@ -2301,6 +2305,66 @@ async def test_single_system_message_for_gemini_model() -> None:
     system_messages = [msg for msg in oai_messages if msg["role"] == "system"]
     assert len(system_messages) == 1
     assert system_messages[0]["content"] == "I am the only system message"
+
+
+def noop(input: str) -> str:
+    return "done"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model", ["gemini-1.5-flash"])
+async def test_empty_assistant_content_with_gemini(model: str, openai_client: OpenAIChatCompletionClient) -> None:
+    # Test tool calling
+    tool = FunctionTool(noop, name="noop", description="No-op tool")
+    messages: List[LLMMessage] = [UserMessage(content="Call noop", source="user")]
+    result = await openai_client.create(messages=messages, tools=[tool])
+    assert isinstance(result.content, list)
+    tool_call = result.content[0]
+    assert isinstance(tool_call, FunctionCall)
+
+    # reply with empty string as thought (== content)
+    messages.append(AssistantMessage(content=result.content, thought="", source="assistant"))
+    messages.append(
+        FunctionExecutionResultMessage(
+            content=[
+                FunctionExecutionResult(
+                    content="done",
+                    call_id=tool_call.id,
+                    is_error=False,
+                    name=tool_call.name,
+                )
+            ]
+        )
+    )
+
+    # This will crash if _set_empty_to_whitespace is not applied to "thought"
+    result = await openai_client.create(messages=messages)
+    assert isinstance(result.content, str)
+    assert result.content.strip() != "" or result.content == " "
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gpt-4o-mini",
+        "gemini-1.5-flash",
+        "claude-3-5-haiku-20241022",
+    ],
+)
+async def test_empty_assistant_content_string_with_some_model(
+    model: str, openai_client: OpenAIChatCompletionClient
+) -> None:
+    # message: assistant is response empty content
+    messages: list[LLMMessage] = [
+        UserMessage(content="Say something", source="user"),
+        AssistantMessage(content="test", source="assistant"),
+        UserMessage(content="", source="user"),
+    ]
+
+    # This will crash if _set_empty_to_whitespace is not applied to "content"
+    result = await openai_client.create(messages=messages)
+    assert isinstance(result.content, str)
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.

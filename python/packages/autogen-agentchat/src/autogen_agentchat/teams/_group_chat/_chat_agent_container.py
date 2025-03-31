@@ -2,7 +2,7 @@ from typing import Any, List, Mapping
 
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
-from autogen_agentchat.messages import AgentEvent, ChatMessage, MessageFactory
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, MessageFactory
 
 from ...base import ChatAgent, Response
 from ...state import ChatAgentContainerState
@@ -48,7 +48,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
         self._parent_topic_type = parent_topic_type
         self._output_topic_type = output_topic_type
         self._agent = agent
-        self._message_buffer: List[ChatMessage] = []
+        self._message_buffer: List[BaseChatMessage] = []
         self._message_factory = message_factory
 
     @event
@@ -104,13 +104,13 @@ class ChatAgentContainer(SequentialRoutedAgent):
             # Raise the error to the runtime.
             raise e
 
-    def _buffer_message(self, message: ChatMessage) -> None:
+    def _buffer_message(self, message: BaseChatMessage) -> None:
         if not self._message_factory.is_registered(message.__class__):
             raise ValueError(f"Message type {message.__class__} is not registered.")
         # Buffer the message.
         self._message_buffer.append(message)
 
-    async def _log_message(self, message: AgentEvent | ChatMessage) -> None:
+    async def _log_message(self, message: BaseAgentEvent | BaseChatMessage) -> None:
         if not self._message_factory.is_registered(message.__class__):
             raise ValueError(f"Message type {message.__class__} is not registered.")
         # Log the message.
@@ -144,7 +144,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
         self._message_buffer = []
         for message_data in container_state.message_buffer:
             message = self._message_factory.create(message_data)
-            if isinstance(message, ChatMessage):
+            if isinstance(message, BaseChatMessage):
                 self._message_buffer.append(message)
             else:
                 raise ValueError(f"Invalid message type in message buffer: {type(message)}")
