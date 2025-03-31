@@ -47,6 +47,6 @@ The first sample demonstrate how to interact with a single AssistantAgent
 from the chat interface.
 
 ```shell
-chainlit run app_agent.py -h
+chainlit run main.py
 ```
 
