@@ -26,16 +26,16 @@ that decouples message transformation logic from model SDK constructors.
 
 ### 🎯 Key Concepts
 
-- **Transformer Function**:  
+- **Transformer Function**:
   Transforms a field (e.g., `content`, `name`, `role`) of an `LLMMessage` into a keyword argument.
 
-- **Transformer Pipeline**:  
+- **Transformer Pipeline**:
   A sequence of transformer functions composed using `build_transformer_func`.
 
-- **Transformer Map**:  
+- **Transformer Map**:
   A dictionary mapping `LLMMessage` types (System, User, Assistant) to transformers for a specific model.
 
-- **Conditional Transformer**:  
+- **Conditional Transformer**:
   Chooses a pipeline dynamically based on message content or runtime conditions.
 
 ---
@@ -60,15 +60,15 @@ print(sdk_message)
 def _set_role(role: str):
     def fn(message, context):
         return {"role": role}
+
     return fn
+
 
 def _set_content_from_thought(message, context):
     return {"content": message.thought or " "}
 
-base_user_transformer_funcs = [
-    _set_role("user"),
-    _set_content_from_thought
-]
+
+base_user_transformer_funcs = [_set_role("user"), _set_content_from_thought]
 ```
 
 ---
@@ -81,15 +81,10 @@ from openai.types.chat import ChatCompletionUserMessageParam
 from autogen.types import UserMessage, SystemMessage, AssistantMessage
 
 user_transformer = build_transformer_func(
-    funcs=base_user_transformer_funcs,
-    message_param_func=ChatCompletionUserMessageParam
+    funcs=base_user_transformer_funcs, message_param_func=ChatCompletionUserMessageParam
 )
 
-MY_TRANSFORMER_MAP = {
-    UserMessage: user_transformer,
-    SystemMessage: ...,
-    AssistantMessage: ...
-}
+MY_TRANSFORMER_MAP = {UserMessage: user_transformer, SystemMessage: ..., AssistantMessage: ...}
 
 register_transformer("openai", "mistral-7b", MY_TRANSFORMER_MAP)
 ```
@@ -101,12 +96,14 @@ register_transformer("openai", "mistral-7b", MY_TRANSFORMER_MAP)
 ```python
 from autogen_ext.models.utils import build_conditional_transformer_func
 
+
 def condition_func(message, context):
     return "multimodal" if isinstance(message.content, dict) else "text"
 
+
 user_transformers = {
     "text": [_set_content_from_thought],
-    "multimodal": [_set_content_from_thought]  # could be different logic
+    "multimodal": [_set_content_from_thought],  # could be different logic
 }
 
 message_param_funcs = {
@@ -134,8 +131,9 @@ conditional_user_transformer = build_conditional_transformer_func(
 
 ### 📎 Reference
 
-- Introduced in: [PR #6063](https://github.com/microsoft/autogen/pull/6063)  
+- Introduced in: [PR #6063](https://github.com/microsoft/autogen/pull/6063)
 """
+
 from typing import Any, Callable, Dict, List, cast, get_args
 
 from autogen_core import (
