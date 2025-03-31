@@ -73,7 +73,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     Args:
         name: The name of the agent.
         code_executor: The CodeExecutor responsible for executing code received in messages (:py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` recommended. See example below)
-        model_client (optional): The model client to use for inference.
+        model_client (optional): The model client to use for inference and generating code. If not provided, the agent will only execute code blocks found in input messages. 
         model_client_stream (bool, optional): If `True`, the model client will be used in streaming mode.
             :meth:`on_messages_stream` and :meth:`BaseChatAgent.run_stream` methods will also yield :class:`~autogen_agentchat.messages.ModelClientStreamingChunkEvent`
             messages as the model client produces chunks of response. Defaults to `False`.
