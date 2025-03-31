@@ -56,30 +56,46 @@ class CodeExecutorAgentConfig(BaseModel):
 
 
 class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
-    """An agent that generates and executes code snippets found in received
+    """(Experimental) An agent that generates and executes code snippets based on user instructions.
+
+    It is typically used within a team with another agent that generates code snippets
+    to be executed or alone with `model_client` provided so that it can generate code
+    based on user query, execute it and reflect on the code result.
+
+    When used with `model_client`, it will generate code snippets using the model
+    and execute them using the provided `code_executor`. The model will also reflect on the
+    code execution results. The agent will yield the final reflection result from the model
+    as the final response.
+
+    When used without `model_client`, it will only execute code blocks found in
     :class:`~autogen_agentchat.messages.TextMessage` messages and returns the output
     of the code execution.
 
-    It is typically used within a team with another agent that generates code snippets to be executed or alone with `model_client` provided so that it can generate code based on user query, execute it and reflect on the code result.
-
     .. note::
 
-        Consider :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`
-        as an alternative to this agent. The tool allows for executing Python code
-        within a single agent, rather than sending it to a separate agent for execution.
-        However, the model for the agent will have to generate properly escaped code
-        string as a parameter to the tool.
+        Using :class:`~autogen_agentchat.agents.AssistantAgent` with
+        :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`
+        is an alternative to this agent. However, the model for that agent will
+        have to generate properly escaped code string as a parameter to the tool.
 
     Args:
-        name: The name of the agent.
-        code_executor: The CodeExecutor responsible for executing code received in messages (:py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` recommended. See example below)
-        model_client (optional): The model client to use for inference and generating code. If not provided, the agent will only execute code blocks found in input messages. 
+        name (str): The name of the agent.
+        code_executor (CodeExecutor): The code executor responsible for executing code received in messages
+            (:py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` recommended. See example below)
+        model_client (ChatCompletionClient, optional): The model client to use for inference and generating code.
+            If not provided, the agent will only execute code blocks found in input messages.
         model_client_stream (bool, optional): If `True`, the model client will be used in streaming mode.
-            :meth:`on_messages_stream` and :meth:`BaseChatAgent.run_stream` methods will also yield :class:`~autogen_agentchat.messages.ModelClientStreamingChunkEvent`
+            :meth:`on_messages_stream` and :meth:`BaseChatAgent.run_stream` methods will
+            also yield :class:`~autogen_agentchat.messages.ModelClientStreamingChunkEvent`
             messages as the model client produces chunks of response. Defaults to `False`.
-        description (optional): The description of the agent.
-        system_message (optional): The system message for the model. If provided, it will be prepended to the messages in the model context when making an inference. Set to `None` to disable.
-        sources (optional): Check only messages from the specified agents for the code to execute.
+        description (str, optional): The description of the agent. If not provided,
+            :class:`~autogen_agentchat.agents.CodeExecutorAgent.DEFAULT_AGENT_DESCRIPTION` will be used.
+        system_message (str, optional): The system message for the model. If provided, it will be prepended to the messages in the model context when making an inference. Set to `None` to disable.
+            Defaults to :class:`~autogen_agentchat.agents.CodeExecutorAgent.DEFAULT_SYSTEM_MESSAGE`. This is only used if `model_client` is provided.
+        sources (Sequence[str], optional): Check only messages from the specified agents for the code to execute.
+            This is useful when the agent is part of a group chat and you want to limit the code execution to messages from specific agents.
+            If not provided, all messages will be checked for code blocks.
+            This is only used if `model_client` is not provided.
 
 
     .. note::
@@ -269,7 +285,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_context: ChatCompletionContext | None = None,
         model_client_stream: bool = False,
         description: str | None = None,
-        system_message: str | None = None,
+        system_message: str | None = DEFAULT_SYSTEM_MESSAGE,
         sources: Sequence[str] | None = None,
     ) -> None:
         if description is None:
@@ -294,7 +310,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
         self._system_messaages: List[SystemMessage] = []
         if system_message is None:
-            self._system_messages = [SystemMessage(content=CodeExecutorAgent.DEFAULT_SYSTEM_MESSAGE)]
+            self._system_messages = []
         else:
             self._system_messages = [SystemMessage(content=system_message)]
 
