@@ -64,6 +64,7 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     add_name_prefixes: bool
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
     default_headers: Dict[str, str] | None
+    resolve_model_alias: bool
 
 
 # See OpenAI docs for explanation of these parameters
@@ -106,6 +107,7 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     model_info: ModelInfo | None = None
     add_name_prefixes: bool | None = None
     default_headers: Dict[str, str] | None = None
+    resolve_model_alias: bool = True
 
 
 # See OpenAI docs for explanation of these parameters

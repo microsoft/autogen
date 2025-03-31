@@ -386,6 +386,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model_capabilities: Optional[ModelCapabilities] = None,  # type: ignore
         model_info: Optional[ModelInfo] = None,
         add_name_prefixes: bool = False,
+        resolve_model_alias: bool = True,
     ):
         self._client = client
         self._add_name_prefixes = add_name_prefixes
@@ -414,6 +415,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         self._resolved_model: Optional[str] = None
         if "model" in create_args:
             self._resolved_model = _model_info.resolve_model(create_args["model"])
+            if resolve_model_alias:
+                create_args["model"] = self._resolved_model
 
         if (
             not self._model_info["json_output"]
@@ -1128,12 +1131,17 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         top_p (optional, float):
         user (optional, str):
         default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
+        resolve_model_alias (optional, bool): Whether to resolve the provided model name using `MODEL_POINTERS` mapping.
+            This is useful when using model aliases such as `gpt-4o`, which map to actual deployed model names(e.g. `gpt-4o-2024-08-06`).
+            If set to `True` (default), the alias will be resolved during initialization and applied to `create_args["model"]`.
+            If set to `False`, the model name will be used as-is. Set to `False` only if you need to bypass automatic resolution.
         add_name_prefixes (optional, bool): Whether to prepend the `source` value
             to each :class:`~autogen_core.models.UserMessage` content. E.g.,
             "this is content" becomes "Reviewer said: this is content."
             This can be useful for models that do not support the `name` field in
             message. Defaults to False.
         stream_options (optional, dict): Additional options for streaming. Currently only `include_usage` is supported.
+
 
     Examples:
 
@@ -1332,6 +1340,10 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         if "add_name_prefixes" in kwargs:
             add_name_prefixes = kwargs["add_name_prefixes"]
 
+        resolve_model_alias: bool = True
+        if "resolve_model_alias" in kwargs:
+            resolve_model_alias = kwargs["resolve_model_alias"]
+
         # Special handling for Gemini model.
         assert "model" in copied_args and isinstance(copied_args["model"], str)
         if copied_args["model"].startswith("gemini-"):
@@ -1354,6 +1366,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             model_capabilities=model_capabilities,
             model_info=model_info,
             add_name_prefixes=add_name_prefixes,
+            resolve_model_alias=resolve_model_alias,
         )
 
     def __getstate__(self) -> Dict[str, Any]:
@@ -1455,7 +1468,10 @@ class AzureOpenAIChatCompletionClient(
         top_p (optional, float):
         user (optional, str):
         default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
-
+        resolve_model_alias (optional, bool): Whether to resolve the provided model name using `MODEL_POINTERS` mapping.
+            This is useful when using model aliases such as `gpt-4o`, which map to actual deployed model names(e.g. `gpt-4o-2024-08-06`).
+            If set to `True` (default), the alias will be resolved during initialization and applied to `create_args["model"]`.
+            If set to `False`, the model name will be used as-is. Set to `False` only if you need to bypass automatic resolution.
 
     To use the client, you need to provide your deployment name, Azure Cognitive Services endpoint, and api version.
     For authentication, you can either provide an API key or an Azure Active Directory (AAD) token credential.
@@ -1546,6 +1562,10 @@ class AzureOpenAIChatCompletionClient(
         if "add_name_prefixes" in kwargs:
             add_name_prefixes = kwargs["add_name_prefixes"]
 
+        resolve_model_alias: bool = True
+        if "resolve_model_alias" in kwargs:
+            resolve_model_alias = kwargs["resolve_model_alias"]
+
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
@@ -1555,6 +1575,7 @@ class AzureOpenAIChatCompletionClient(
             model_capabilities=model_capabilities,
             model_info=model_info,
             add_name_prefixes=add_name_prefixes,
+            resolve_model_alias=resolve_model_alias,
         )
 
     def __getstate__(self) -> Dict[str, Any]:

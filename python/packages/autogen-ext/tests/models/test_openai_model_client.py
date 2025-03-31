@@ -1620,7 +1620,7 @@ def openai_client(request: pytest.FixtureRequest) -> OpenAIChatCompletionClient:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash", "claude-3-5-haiku-20241022"],
+    ["gpt-4o-mini", "gemini-1.5-flash", "claude-3-5-haiku"],
 )
 async def test_model_client_basic_completion(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     # Test basic completion
@@ -1637,7 +1637,7 @@ async def test_model_client_basic_completion(model: str, openai_client: OpenAICh
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash", "claude-3-5-haiku-20241022"],
+    ["gpt-4o-mini", "gemini-1.5-flash", "claude-3-5-haiku"],
 )
 async def test_model_client_with_function_calling(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     # Test tool calling
@@ -2069,7 +2069,7 @@ async def test_add_name_prefixes(monkeypatch: pytest.MonkeyPatch) -> None:
     [
         "gpt-4o-mini",
         "gemini-1.5-flash",
-        "claude-3-5-haiku-20241022",
+        "claude-3-5-haiku",
     ],
 )
 async def test_muliple_system_message(model: str, openai_client: OpenAIChatCompletionClient) -> None:
@@ -2349,7 +2349,7 @@ async def test_empty_assistant_content_with_gemini(model: str, openai_client: Op
     [
         "gpt-4o-mini",
         "gemini-1.5-flash",
-        "claude-3-5-haiku-20241022",
+        "claude-3-5-haiku",
     ],
 )
 async def test_empty_assistant_content_string_with_some_model(

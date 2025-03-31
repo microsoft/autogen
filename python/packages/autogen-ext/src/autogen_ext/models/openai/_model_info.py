@@ -226,7 +226,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
     "claude-3-5-haiku-20241022": {
         "vision": True,
         "function_calling": True,
-        "json_output": False,  # Update this when Anthropic supports structured output
+        "json_output": True,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_5_HAIKU,
         "structured_output": False,
     },
