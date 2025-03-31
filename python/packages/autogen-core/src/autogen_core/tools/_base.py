@@ -3,12 +3,11 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypeVar, cast, runtime_checkable
-from typing_extensions import TypedDict
 
 import jsonref
 from opentelemetry.trace import get_tracer
 from pydantic import BaseModel
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, TypedDict
 
 from .. import EVENT_LOGGER_NAME, CancellationToken
 from .._component_config import ComponentBase
