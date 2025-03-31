@@ -5,7 +5,7 @@ import shutil
 from typing import Any, Dict, List, Mapping, Optional, Sequence, TypedDict
 
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import AgentEvent, ChatMessage
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 from autogen_core import Image
 from autogen_core.models import (
     AssistantMessage,
@@ -343,7 +343,7 @@ class PageLogger:
         if self.level > self.levels["INFO"]:
             return None
 
-        messages: Sequence[AgentEvent | ChatMessage] = task_result.messages
+        messages: Sequence[BaseAgentEvent | BaseChatMessage] = task_result.messages
         message = messages[-1]
         response_str = message.to_text()
         if not isinstance(response_str, str):
