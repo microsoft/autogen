@@ -21,7 +21,9 @@ class MockAzureKeyCredential:
 class MockHttpResponseError(Exception):
     """Mock HttpResponseError."""
 
-    pass
+    def __init__(self, message: Optional[str] = None, *args: object) -> None:
+        super().__init__(*args)
+        self.message = message
 
 
 class MockResourceNotFoundError(Exception):
@@ -1074,3 +1076,145 @@ _VT = TypeVar("_VT")
 def is_dict_any_any(val: Any) -> TypeGuard[Dict[Any, Any]]:
     """Type guard to check if a value is a Dict[Any, Any]."""
     return isinstance(val, dict)
+
+
+@pytest.mark.asyncio
+async def test_vector_search_with_explicit_vector() -> None:
+    """Test vector search with explicitly provided vector."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            query_type="vector",
+            vector_fields=["embedding"],
+        )
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.search = AsyncMock(return_value=AsyncIterator([]))
+
+        with patch.object(tool, "_get_client", return_value=mock_client):
+            explicit_vector = [0.1, 0.2, 0.3, 0.4, 0.5]
+            await tool.run({"query": "test query", "vector": explicit_vector}, CancellationToken())
+
+            call_args = mock_client.search.call_args
+            keyword_args = call_args[1]
+
+            assert call_args[0][0] == ""
+            assert "vectors" in keyword_args
+            assert len(keyword_args["vectors"]) == 1
+            assert keyword_args["vectors"][0]["value"] == explicit_vector
+            assert keyword_args["vectors"][0]["fields"] == "embedding"
+
+
+@pytest.mark.asyncio
+async def test_fulltext_search_with_semantic_config() -> None:
+    """Test fulltext search with semantic configuration."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            query_type="fulltext",
+            semantic_config_name="my-semantic-config",
+            search_fields=["title", "content"],
+            select_fields=["id", "title", "content"],
+        )
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.search = AsyncMock(return_value=AsyncIterator([]))
+
+        with patch.object(tool, "_get_client", return_value=mock_client):
+            await tool.run("semantic query", CancellationToken())
+
+            call_args = mock_client.search.call_args
+            keyword_args = call_args[1]
+
+            assert call_args[0][0] == "semantic query"
+            assert keyword_args["query_type"] == "semantic"
+            assert keyword_args["semantic_configuration_name"] == "my-semantic-config"
+            assert keyword_args["search_fields"] == ["title", "content"]
+            assert keyword_args["select"] == ["id", "title", "content"]
+
+
+@pytest.mark.asyncio
+async def test_authentication_error_handling() -> None:
+    """Test handling of authentication errors."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("invalid-key"),
+        )
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+
+        auth_error = HttpResponseError()
+        auth_error.message = "401 Unauthorized: Access denied due to invalid credentials"
+        mock_client.search = AsyncMock(side_effect=auth_error)
+
+        with patch.object(tool, "_get_client", return_value=mock_client):
+            with pytest.raises(ValueError) as excinfo:
+                await tool.run("test query", CancellationToken())
+
+            error_message = str(excinfo.value)
+            assert "Authentication failed" in error_message
+            assert "Please check your API key and credentials" in error_message
+
+
+@pytest.mark.asyncio
+async def test_general_http_error_handling() -> None:
+    """Test handling of general HTTP errors."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+        )
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+
+        general_error = HttpResponseError()
+        general_error.message = "500 Internal Server Error: Something went wrong"
+        mock_client.search = AsyncMock(side_effect=general_error)
+
+        with patch.object(tool, "_get_client", return_value=mock_client):
+            with pytest.raises(ValueError) as excinfo:
+                await tool.run("test query", CancellationToken())
+
+            error_message = str(excinfo.value)
+            assert "Error from Azure AI Search" in error_message
+            assert "500 Internal Server Error" in error_message
+
+
+def test_schema_validation() -> None:
+    """Test that the schema is correctly generated."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="custom-search",
+            description="Custom search description",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+        )
+
+        schema = tool.schema
+
+        assert schema["name"] == "custom-search"
+        assert schema["description"] == "Custom search description"
+        assert "parameters" in schema
+        assert schema["parameters"]["type"] == "object"
+        assert "query" in schema["parameters"]["properties"]
+        assert schema["parameters"]["required"] == ["query"]
