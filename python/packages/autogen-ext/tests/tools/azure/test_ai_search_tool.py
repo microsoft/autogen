@@ -707,6 +707,7 @@ class MockVectorizableTextQuery:
         self.text = text
         self.k = k
         self.fields = fields if isinstance(fields, str) else ",".join(fields)
+        self.vector: Optional[List[float]] = None  # Add vector attribute with type annotation
 
 
 @pytest.mark.asyncio
@@ -1220,3 +1221,40 @@ def test_schema_validation() -> None:
         assert schema["parameters"]["type"] == "object"
         assert "query" in schema["parameters"]["properties"]
         assert schema["parameters"]["required"] == ["query"]
+
+
+@pytest.mark.asyncio
+async def test_run_with_vectorizable_text_query() -> None:
+    """Test running the tool with a VectorizableTextQuery object."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            query_type="vector",  # Ensure vector search is enabled
+            vector_fields=["embedding"],
+        )
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.search = AsyncMock(return_value=AsyncIterator([]))
+
+        query_text = "query from object"
+        vector_query = MockVectorizableTextQuery(text=query_text, k=5, fields="embedding")
+
+        vector_query.vector = [0.9, 0.8, 0.7, 0.6, 0.5]
+
+        with patch.object(tool, "_get_client", return_value=mock_client):
+            await tool.run(vector_query, CancellationToken())
+
+            mock_client.search.assert_called_once()
+            call_args = mock_client.search.call_args
+            positional_args, keyword_args = call_args
+
+            assert positional_args[0] == ""
+            assert "vectors" in keyword_args
+            assert len(keyword_args["vectors"]) == 1
+            assert keyword_args["vectors"][0]["fields"] == "embedding"
+            assert keyword_args.get("top") == tool.search_config.top
