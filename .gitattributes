@@ -33,8 +33,10 @@
 *.tsx             text
 *.xml             text
 *.xhtml           text diff=html
+
 # Docker
 Dockerfile        text eol=lf
+
 # Documentation
 *.ipynb           text
 *.markdown        text diff=markdown eol=lf
@@ -60,6 +62,7 @@ NEWS              text eol=lf
 readme            text eol=lf
 *README*          text eol=lf
 TODO              text
+
 # Configs
 *.cnf             text eol=lf
 *.conf            text eol=lf
@@ -81,11 +84,8 @@ yarn.lock         text -diff
 browserslist      text
 Makefile          text eol=lf
 makefile          text eol=lf
-# Images
-*.png filter=lfs diff=lfs merge=lfs -text
-*.jpg filter=lfs diff=lfs merge=lfs -text
-*.jpeg filter=lfs diff=lfs merge=lfs -text
 
+# Generated files
 python/packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos/*.py linguist-generated
 python/packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos/*.pyi linguist-generated
 python/packages/autogen-ext/tests/protos/*.py linguist-generated
