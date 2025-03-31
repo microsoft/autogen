@@ -334,3 +334,253 @@ async def test_anthropic_serialization() -> None:
     loaded_model_client = AnthropicChatCompletionClient.load_component(model_client_config)
     assert loaded_model_client is not None
     assert isinstance(loaded_model_client, AnthropicChatCompletionClient)
+
+
+@pytest.mark.asyncio
+async def test_anthropic_muliple_system_message() -> None:
+    """Test multiple system messages in a single request."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
+
+    # Test multiple system messages
+    messages: List[LLMMessage] = [
+        SystemMessage(content="When you say anything Start with 'FOO'"),
+        SystemMessage(content="When you say anything End with 'BAR'"),
+        UserMessage(content="Just say '.'", source="user"),
+    ]
+
+    result = await client.create(messages=messages)
+    result_content = result.content
+    assert isinstance(result_content, str)
+    result_content = result_content.strip()
+    assert result_content[:3] == "FOO"
+    assert result_content[-3:] == "BAR"
+
+
+def test_merge_continuous_system_messages() -> None:
+    """Tests merging of continuous system messages."""
+    client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
+
+    messages: List[LLMMessage] = [
+        SystemMessage(content="System instruction 1"),
+        SystemMessage(content="System instruction 2"),
+        UserMessage(content="User question", source="user"),
+    ]
+
+    merged_messages = client._merge_system_messages(messages)  # pyright: ignore[reportPrivateUsage]
+    # The method is protected, but we need to test it
+
+    # 병합 후 2개 메시지만 남아야 함 (시스템 1개, 사용자 1개)
+    assert len(merged_messages) == 2
+
+    # 첫 번째 메시지는 병합된 시스템 메시지여야 함
+    assert isinstance(merged_messages[0], SystemMessage)
+    assert merged_messages[0].content == "System instruction 1\nSystem instruction 2"
+
+    # 두 번째 메시지는 사용자 메시지여야 함
+    assert isinstance(merged_messages[1], UserMessage)
+    assert merged_messages[1].content == "User question"
+
+
+def test_merge_single_system_message() -> None:
+    """Tests that a single system message remains unchanged."""
+    client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
+
+    messages: List[LLMMessage] = [
+        SystemMessage(content="Single system instruction"),
+        UserMessage(content="User question", source="user"),
+    ]
+
+    merged_messages = client._merge_system_messages(messages)  # pyright: ignore[reportPrivateUsage]
+    # The method is protected, but we need to test it
+
+    # 메시지 개수는 변하지 않아야 함
+    assert len(merged_messages) == 2
+
+    # 시스템 메시지 내용은 변하지 않아야 함
+    assert isinstance(merged_messages[0], SystemMessage)
+    assert merged_messages[0].content == "Single system instruction"
+
+
+def test_merge_no_system_messages() -> None:
+    """Tests behavior when there are no system messages."""
+    client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
+
+    messages: List[LLMMessage] = [
+        UserMessage(content="User question without system", source="user"),
+    ]
+
+    merged_messages = client._merge_system_messages(messages)  # pyright: ignore[reportPrivateUsage]
+    # The method is protected, but we need to test it
+
+    # 메시지 개수는 변하지 않아야 함
+    assert len(merged_messages) == 1
+
+    # 유일한 메시지는 사용자 메시지여야 함
+    assert isinstance(merged_messages[0], UserMessage)
+    assert merged_messages[0].content == "User question without system"
+
+
+def test_merge_non_continuous_system_messages() -> None:
+    """Tests that an error is raised for non-continuous system messages."""
+    client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
+
+    messages: List[LLMMessage] = [
+        SystemMessage(content="First group 1"),
+        SystemMessage(content="First group 2"),
+        UserMessage(content="Middle user message", source="user"),
+        SystemMessage(content="Second group 1"),
+        SystemMessage(content="Second group 2"),
+    ]
+
+    # 연속적이지 않은 시스템 메시지는 에러를 발생시켜야 함
+    with pytest.raises(ValueError, match="Multiple and Not continuous system messages are not supported"):
+        client._merge_system_messages(messages)  # pyright: ignore[reportPrivateUsage]
+    # The method is protected, but we need to test it
+
+
+def test_merge_system_messages_empty() -> None:
+    """Tests that empty message list is handled properly."""
+    client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
+
+    merged_messages = client._merge_system_messages([])  # pyright: ignore[reportPrivateUsage]
+    # The method is protected, but we need to test it
+    assert len(merged_messages) == 0
+
+
+def test_merge_system_messages_with_special_characters() -> None:
+    """Tests system message merging with special characters and formatting."""
+    client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
+
+    messages: List[LLMMessage] = [
+        SystemMessage(content="Line 1\nWith newline"),
+        SystemMessage(content="Line 2 with *formatting*"),
+        SystemMessage(content="Line 3 with `code`"),
+        UserMessage(content="Question", source="user"),
+    ]
+
+    merged_messages = client._merge_system_messages(messages)  # pyright: ignore[reportPrivateUsage]
+    # The method is protected, but we need to test it
+    assert len(merged_messages) == 2
+
+    system_message = merged_messages[0]
+    assert isinstance(system_message, SystemMessage)
+    assert system_message.content == "Line 1\nWith newline\nLine 2 with *formatting*\nLine 3 with `code`"
+
+
+def test_merge_system_messages_with_whitespace() -> None:
+    """Tests system message merging with extra whitespace."""
+    client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
+
+    messages: List[LLMMessage] = [
+        SystemMessage(content="  Message with leading spaces  "),
+        SystemMessage(content="\nMessage with leading newline\n"),
+        UserMessage(content="Question", source="user"),
+    ]
+
+    merged_messages = client._merge_system_messages(messages)  # pyright: ignore[reportPrivateUsage]
+    # The method is protected, but we need to test it
+    assert len(merged_messages) == 2
+
+    system_message = merged_messages[0]
+    assert isinstance(system_message, SystemMessage)
+    # strip()은 내부에서 발생하지 않지만 최종 결과에서는 줄바꿈이 유지됨
+    assert system_message.content == "  Message with leading spaces  \n\nMessage with leading newline"
+
+
+def test_merge_system_messages_message_order() -> None:
+    """Tests that message order is preserved after merging."""
+    client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
+
+    messages: List[LLMMessage] = [
+        UserMessage(content="Question 1", source="user"),
+        SystemMessage(content="Instruction 1"),
+        SystemMessage(content="Instruction 2"),
+        UserMessage(content="Question 2", source="user"),
+        AssistantMessage(content="Answer", source="assistant"),
+    ]
+
+    merged_messages = client._merge_system_messages(messages)  # pyright: ignore[reportPrivateUsage]
+    # The method is protected, but we need to test it
+    assert len(merged_messages) == 4
+
+    # 첫 번째 메시지는 UserMessage여야 함
+    assert isinstance(merged_messages[0], UserMessage)
+    assert merged_messages[0].content == "Question 1"
+
+    # 두 번째 메시지는 병합된 SystemMessage여야 함
+    assert isinstance(merged_messages[1], SystemMessage)
+    assert merged_messages[1].content == "Instruction 1\nInstruction 2"
+
+    # 나머지 메시지는 순서대로 유지되어야 함
+    assert isinstance(merged_messages[2], UserMessage)
+    assert merged_messages[2].content == "Question 2"
+    assert isinstance(merged_messages[3], AssistantMessage)
+    assert merged_messages[3].content == "Answer"
+
+
+def test_merge_system_messages_multiple_groups() -> None:
+    """Tests that multiple separate groups of system messages raise an error."""
+    client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
+
+    # 연속되지 않은 시스템 메시지: 사용자 메시지로 분리된 두 그룹
+    messages: List[LLMMessage] = [
+        SystemMessage(content="Group 1 - message 1"),
+        UserMessage(content="Interrupting user message", source="user"),
+        SystemMessage(content="Group 2 - message 1"),
+    ]
+
+    with pytest.raises(ValueError, match="Multiple and Not continuous system messages are not supported"):
+        client._merge_system_messages(messages)  # pyright: ignore[reportPrivateUsage]
+    # The method is protected, but we need to test it
+
+
+def test_merge_system_messages_no_duplicates() -> None:
+    """Tests that identical system messages are still merged properly."""
+    client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
+
+    messages: List[LLMMessage] = [
+        SystemMessage(content="Same instruction"),
+        SystemMessage(content="Same instruction"),  # 중복된 내용
+        UserMessage(content="Question", source="user"),
+    ]
+
+    merged_messages = client._merge_system_messages(messages)  # pyright: ignore[reportPrivateUsage]
+    # The method is protected, but we need to test it
+    assert len(merged_messages) == 2
+
+    # 첫 번째 메시지는 병합된 시스템 메시지여야 함
+    assert isinstance(merged_messages[0], SystemMessage)
+    # 중복된 내용도 그대로 병합됨
+    assert merged_messages[0].content == "Same instruction\nSame instruction"
+
+
+@pytest.mark.asyncio
+async def test_empty_assistant_content_string_with_anthropic() -> None:
+    """Test that an empty assistant content string is handled correctly."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
+
+    # Test empty assistant content string
+    result = await client.create(
+        messages=[
+            UserMessage(content="Say something", source="user"),
+            AssistantMessage(content="", source="assistant"),
+        ]
+    )
+
+    # Verify we got a response
+    assert isinstance(result.content, str)
+    assert len(result.content) > 0

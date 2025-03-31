@@ -66,6 +66,55 @@ async def test_execute_code() -> None:
     reason="do not run if pool endpoint is not defined",
 )
 @pytest.mark.asyncio
+async def test_execute_code_create_image() -> None:
+    assert POOL_ENDPOINT is not None
+    cancellation_token = CancellationToken()
+    executor = ACADynamicSessionsCodeExecutor(
+        pool_management_endpoint=POOL_ENDPOINT,
+        credential=DefaultAzureCredential(),
+        suppress_result_output=True,
+    )
+
+    # Test code block that creates an image.
+    # This code cuases the session call to return a result with the base64 encoded output
+    # By default, this is appended to the output
+    # This test verifies that suppress_result_output prevents this from happening
+    code_blocks = [
+        CodeBlock(
+            code="""
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+
+# Create a figure and axis
+fig, ax = plt.subplots(figsize=(6, 6))
+
+# Add a circle
+circle = patches.Circle((0.5, 0.5), 0.3, color='blue', fill=True)
+ax.add_patch(circle)
+
+
+# Set the axis limits and aspect ratio
+ax.set_xlim(0, 1)
+ax.set_ylim(0, 1)
+ax.set_aspect('equal')
+ax.axis('off')  # Turn off the axis
+
+# Save the image to a file
+plt.savefig("circle.png", bbox_inches='tight')
+print("Saved to circle.png")
+""",
+            language="python",
+        ),
+    ]
+    code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+    assert code_result.exit_code == 0 and "base64_data" not in code_result.output
+
+
+@pytest.mark.skipif(
+    not POOL_ENDPOINT,
+    reason="do not run if pool endpoint is not defined",
+)
+@pytest.mark.asyncio
 async def test_azure_container_code_executor_timeout() -> None:
     assert POOL_ENDPOINT is not None
     cancellation_token = CancellationToken()

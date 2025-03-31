@@ -28,8 +28,8 @@ from typing_extensions import Self
 from .. import EVENT_LOGGER_NAME
 from ..base import Response
 from ..messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
     HandoffMessage,
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
@@ -315,11 +315,11 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             self._system_messages = [SystemMessage(content=system_message)]
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         """The types of messages that the code executor agent produces."""
         return (TextMessage,)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
@@ -327,7 +327,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
         Process the incoming messages with the assistant agent and yield events/responses as they happen.
         """
@@ -439,7 +439,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             yield reflection_response  # last reflection_response is of type Response so it will finish the routine
 
     async def execute_code_block(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> TextMessage:
         # Extract code blocks from the messages.
         code_blocks: List[CodeBlock] = []

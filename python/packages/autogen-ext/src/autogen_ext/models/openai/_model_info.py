@@ -9,6 +9,7 @@ _MODEL_POINTERS = {
     "o1": "o1-2024-12-17",
     "o1-preview": "o1-preview-2024-09-12",
     "o1-mini": "o1-mini-2024-09-12",
+    "gpt-4.5-preview": "gpt-4.5-preview-2025-02-27",
     "gpt-4o": "gpt-4o-2024-08-06",
     "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
     "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
@@ -17,6 +18,12 @@ _MODEL_POINTERS = {
     "gpt-4-32k": "gpt-4-32k-0613",
     "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
     "gpt-3.5-turbo-16k": "gpt-3.5-turbo-16k-0613",
+    "claude-3-haiku": "claude-3-haiku-20240307",
+    "claude-3-sonnet": "claude-3-sonnet-20240229",
+    "claude-3-opus": "claude-3-opus-20240229",
+    "claude-3-5-haiku": "claude-3-5-haiku-20241022",
+    "claude-3-5-sonnet": "claude-3-5-sonnet-20241022",
+    "claude-3-7-sonnet": "claude-3-7-sonnet-20250219",
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
@@ -47,6 +54,13 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,
         "family": ModelFamily.O1,
         "structured_output": False,
+    },
+    "gpt-4.5-preview-2025-02-27": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_45,
+        "structured_output": True,
     },
     "gpt-4o-2024-11-20": {
         "vision": True,
@@ -188,6 +202,48 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "family": ModelFamily.GEMINI_2_0_FLASH,
         "structured_output": True,
     },
+    "claude-3-haiku-20240307": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": False,  # Update this when Anthropic supports structured output
+        "family": ModelFamily.CLAUDE_3_HAIKU,
+        "structured_output": False,
+    },
+    "claude-3-sonnet-20240229": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": False,  # Update this when Anthropic supports structured output
+        "family": ModelFamily.CLAUDE_3_SONNET,
+        "structured_output": False,
+    },
+    "claude-3-opus-20240229": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": False,  # Update this when Anthropic supports structured output
+        "family": ModelFamily.CLAUDE_3_OPUS,
+        "structured_output": False,
+    },
+    "claude-3-5-haiku-20241022": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": False,  # Update this when Anthropic supports structured output
+        "family": ModelFamily.CLAUDE_3_5_HAIKU,
+        "structured_output": False,
+    },
+    "claude-3-5-sonnet-20241022": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": False,  # Update this when Anthropic supports structured output
+        "family": ModelFamily.CLAUDE_3_5_SONNET,
+        "structured_output": False,
+    },
+    "claude-3-7-sonnet-20250219": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": False,  # Update this when Anthropic supports structured output
+        "family": ModelFamily.CLAUDE_3_7_SONNET,
+        "structured_output": False,
+    },
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
@@ -195,6 +251,7 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "o1-2024-12-17": 200000,
     "o1-preview-2024-09-12": 128000,
     "o1-mini-2024-09-12": 128000,
+    "gpt-4.5-preview-2025-02-27": 128000,
     "gpt-4o-2024-11-20": 128000,
     "gpt-4o-2024-08-06": 128000,
     "gpt-4o-2024-05-13": 128000,
@@ -214,9 +271,17 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gemini-1.5-flash-8b": 1048576,
     "gemini-1.5-pro": 2097152,
     "gemini-2.0-flash": 1048576,
+    "gemini-2.0-flash-lite-preview-02-05": 1048576,
+    "claude-3-haiku-20240307": 50000,
+    "claude-3-sonnet-20240229": 40000,
+    "claude-3-opus-20240229": 20000,
+    "claude-3-5-haiku-20241022": 50000,
+    "claude-3-5-sonnet-20241022": 40000,
+    "claude-3-7-sonnet-20250219": 20000,
 }
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1/"
 
 
 def resolve_model(model: str) -> str:
