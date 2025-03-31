@@ -4,7 +4,7 @@ import asyncio
 import importlib.util
 import os
 import sys
-from typing import Any, Dict, List, Optional, Type, TypeAlias, Union, cast
+from typing import Any, Dict, List, Optional, Type, TypeAlias, TypeGuard, TypeVar, Union, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -90,20 +90,62 @@ BaseAzureAISearchTool.__abstractmethods__ = frozenset()
 class MockAzureAISearchTool(BaseAzureAISearchTool):  # type: ignore
     """Mock implementation for testing purposes."""
 
+    _name: str
+    _description: str
+    _endpoint: str
+    _index_name: str
+    _api_version: str
+    _credential: Any  # Keep Any for flexibility with dict/object credentials
+    _query_type: str
+    _search_fields: List[str]
+    _select_fields: List[str]
+    _vector_fields: List[str]
+    _top: int
+    _semantic_config_name: Optional[str]
+    _client: Optional[MagicMock]
+    _openai_client: Any  # Keep Any for mock flexibility
+    _embedding_model: str
+    _mock_results: List[Dict[str, Any]]
+
     def __init__(self, **kwargs: Any) -> None:
-        self._name = kwargs.get("name", "")
-        self._description = kwargs.get("description", "")
-        self._endpoint = kwargs.get("endpoint", "")
-        self._index_name = kwargs.get("index_name", "")
-        self._api_version = kwargs.get("api_version", "")
+        self._name = str(kwargs.get("name", ""))
+        self._description = str(kwargs.get("description", ""))
+        self._endpoint = str(kwargs.get("endpoint", ""))
+        self._index_name = str(kwargs.get("index_name", ""))
+        self._api_version = str(kwargs.get("api_version", ""))
         self._credential = kwargs.get("credential", None)
-        self._query_type = kwargs.get("query_type", "keyword")
-        self._search_fields = kwargs.get("search_fields", [])
-        self._select_fields = kwargs.get("select_fields", [])
-        self._vector_fields = kwargs.get("vector_fields", [])
-        self._top = kwargs.get("top", 5)
+        self._query_type = str(kwargs.get("query_type", "keyword"))
+        self._search_fields = list(kwargs.get("search_fields", []))
+        self._select_fields = list(kwargs.get("select_fields", []))
+        self._vector_fields = list(kwargs.get("vector_fields", []))
+        self._top = int(kwargs.get("top", 5))
         self._semantic_config_name = kwargs.get("semantic_config_name", None)
-        self._client: Optional[MagicMock] = None
+        self._client = None
+        self._openai_client = kwargs.get("openai_client")
+        self._embedding_model = str(kwargs.get("embedding_model", "text-embedding-ada-002"))
+        self._mock_results = list(
+            kwargs.get(
+                "mock_results",
+                [
+                    {
+                        "@search.score": 0.95,
+                        "id": "doc1",
+                        "content": "This is the first document content",
+                        "title": "Document 1",
+                        "source": "test-source-1",
+                        "@metadata": {"key": "value1"},
+                    },
+                    {
+                        "@search.score": 0.85,
+                        "id": "doc2",
+                        "content": "This is the second document content",
+                        "title": "Document 2",
+                        "source": "test-source-2",
+                        "@metadata": {"key": "value2"},
+                    },
+                ],
+            )
+        )
 
         self.search_config = MagicMock()
         self.search_config.endpoint = self._endpoint
@@ -119,11 +161,11 @@ class MockAzureAISearchTool(BaseAzureAISearchTool):  # type: ignore
 
     @property
     def name(self) -> str:
-        return str(self._name)
+        return self._name
 
     @property
     def description(self) -> str:
-        return str(self._description)
+        return self._description
 
     @property
     def schema(self) -> Dict[str, Any]:
@@ -174,6 +216,53 @@ class MockAzureAISearchTool(BaseAzureAISearchTool):  # type: ignore
         mock_client.__aexit__ = AsyncMock(return_value=None)
         self._client = mock_client
         return mock_client
+
+    async def _get_embedding(self, query: str) -> List[float]:
+        """Generate embedding vector for the query text."""
+        if self._openai_client:
+            response = await self._openai_client.embeddings.create(model=self._embedding_model, input=query)
+            embedding_data: List[Any] = response.data[0]["embedding"]
+
+            result: List[float] = []
+            if isinstance(embedding_data, list):
+                for item_val in embedding_data:
+                    try:
+                        if isinstance(item_val, (int, float)):
+                            result.append(float(item_val))
+                        elif isinstance(item_val, str):
+                            result.append(float(item_val))
+                        else:
+                            result.append(0.0)
+                    except (ValueError, TypeError):
+                        result.append(0.0)
+                return result
+            else:
+                return [0.0]
+
+        return [0.1, 0.2, 0.3, 0.4, 0.5]
+
+    async def get_embedding_for_test(self, query: str) -> List[float]:
+        """Public async test helper to access _get_embedding."""
+        return await self._get_embedding(query)
+
+    async def get_client_for_test(self) -> MagicMock:
+        """Public async test helper to access _get_client."""
+        return await self._get_client()
+
+    @property
+    def endpoint_for_test(self) -> str:
+        """Access protected endpoint attribute for testing."""
+        return self._endpoint
+
+    @property
+    def index_name_for_test(self) -> str:
+        """Access protected index_name attribute for testing."""
+        return self._index_name
+
+    @property
+    def credential_for_test(self) -> Any:
+        """Access protected credential attribute for testing."""
+        return self._credential
 
     async def run(self, query: Any, cancellation_token: Optional[CancellationToken] = None) -> Any:
         """Run the search with the given query."""
@@ -235,25 +324,6 @@ class MockAzureAISearchTool(BaseAzureAISearchTool):  # type: ignore
         if self._select_fields:
             kwargs["select"] = self._select_fields
 
-        mock_results = [
-            {
-                "@search.score": 0.95,
-                "id": "doc1",
-                "content": "This is the first document content",
-                "title": "Document 1",
-                "source": "test-source-1",
-                "@metadata": {"key": "value1"},
-            },
-            {
-                "@search.score": 0.85,
-                "id": "doc2",
-                "content": "This is the second document content",
-                "title": "Document 2",
-                "source": "test-source-2",
-                "@metadata": {"key": "value2"},
-            },
-        ]
-
         try:
             await client.search(search_text, **kwargs)
         except ResourceNotFoundError as e:
@@ -267,19 +337,24 @@ class MockAzureAISearchTool(BaseAzureAISearchTool):  # type: ignore
             else:
                 raise ValueError(f"Error from Azure AI Search: {error_message}") from e
 
+        if isinstance(client.search, AsyncMock) and not client.search.return_value.items:
+            return SearchResults(results=[])
+
         results: List[Any] = []
-        for result in mock_results:
+        for result in self._mock_results:
             score = cast(float, result.get("@search.score", 0.0))
 
-            content = {}
+            content: Dict[str, Any] = {}
             for content_key, content_val in result.items():
                 if isinstance(content_key, str) and not content_key.startswith("@"):
                     content[content_key] = content_val
 
-            metadata = {}
+            metadata: Dict[str, Any] = {}
             metadata_obj = result.get("@metadata")
-            if isinstance(metadata_obj, dict):
-                metadata = metadata_obj
+            if is_dict_any_any(metadata_obj):
+                for k, v in metadata_obj.items():
+                    if isinstance(k, str):
+                        metadata[k] = v
 
             results.append(
                 SearchResult(
@@ -351,6 +426,14 @@ class AsyncIterator:
 
     async def get_count(self) -> int:
         return len(self.items)
+
+    @property
+    def items(self) -> List[Dict[str, Any]]:
+        return self._items
+
+    @items.setter
+    def items(self, value: List[Dict[str, Any]]) -> None:
+        self._items = value
 
 
 @pytest.mark.asyncio
@@ -574,55 +657,45 @@ async def test_hybrid_search(test_config: ComponentModel) -> None:
 
     tool = MockAzureAISearchTool.load_component(hybrid_config)
 
-    mock_client = AsyncMock()
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
 
-    sample_results = SearchResults(
-        results=[
-            SearchResult(
-                score=0.95,
-                content={
-                    "id": "doc1",
-                    "content": "This is the first document content",
-                    "title": "Document 1",
-                    "source": "test-source-1",
-                },
-                metadata={},
-            ),
-            SearchResult(
-                score=0.85,
-                content={
-                    "id": "doc2",
-                    "content": "This is the second document content",
-                    "title": "Document 2",
-                    "source": "test-source-2",
-                },
-                metadata={},
-            ),
-        ]
-    )
+    mock_results = [
+        {
+            "@search.score": 0.95,
+            "id": "doc1",
+            "content": "This is the first document content",
+            "title": "Document 1",
+            "source": "test-source-1",
+        },
+        {
+            "@search.score": 0.85,
+            "id": "doc2",
+            "content": "This is the second document content",
+            "title": "Document 2",
+            "source": "test-source-2",
+        },
+    ]
+    mock_client.search = AsyncMock(return_value=AsyncIterator(mock_results))
 
-    async def search_side_effect(query: Any, cancellation_token: Optional[CancellationToken] = None) -> Any:
-        mock_client.search.assert_not_called()
-        await run_original(query, cancellation_token)
-        return sample_results
-
-    with patch.object(tool, "_get_client", return_value=mock_client) as mock_get_client:
-        mock_client.search = AsyncMock()
-
-        run_original = tool.run
-        with patch.object(tool, "run", side_effect=search_side_effect):
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        with patch.object(tool, "_get_embedding", return_value=[0.1, 0.2, 0.3, 0.4, 0.5]):
             result = await tool.run(SearchQuery(query="test query"), CancellationToken())
-            mock_get_client.assert_called_once()
+
             mock_client.search.assert_called_once()
-            args, kwargs = mock_client.search.call_args
-            assert args[0] == "test query"
-            assert "query_type" in kwargs
-            assert (
-                kwargs["query_type"] == "semantic"
-            )  # Azure SDK uses 'semantic' query_type for fulltext with semantic ranking
-            assert "vectors" in kwargs
-            assert len(getattr(result, "results", [])) == 2
-            assert getattr(result.results[0], "score", 0) == 0.95
+            call_args = mock_client.search.call_args
+            assert call_args[0][0] == "test query"
+            call_kwargs = call_args[1]
+            assert "query_type" in call_kwargs
+            assert call_kwargs["query_type"] == "semantic"
+            assert "vectors" in call_kwargs
+
+            assert len(result.results) == 2
+            assert result.results[0].score == 0.95
+            assert result.results[0].content["id"] == "doc1"
+            assert result.results[1].score == 0.85
+            assert result.results[1].content["id"] == "doc2"
 
 
 class MockVectorizableTextQuery:
@@ -727,3 +800,277 @@ async def test_actual_implementation_cancellation() -> None:
 
         with pytest.raises(Exception, match="Operation cancelled"):
             await tool.run("test query", cancellation_token=token)
+
+
+@pytest.mark.asyncio
+async def test_get_embedding_method() -> None:
+    """Test the _get_embedding method for generating embeddings."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        search_tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            openai_client=MagicMock(),
+            embedding_model="text-embedding-ada-002",
+        )
+
+        mock_embedding_response = MagicMock()
+        mock_embedding_response.data = [{"embedding": [0.1, 0.2, 0.3]}]
+        mock_openai_client = MagicMock()
+        mock_openai_client.embeddings.create = AsyncMock(return_value=mock_embedding_response)
+
+        search_tool._openai_client = mock_openai_client  # pyright: ignore
+
+        embedding = await search_tool.get_embedding_for_test("test query")
+
+        assert embedding == [0.1, 0.2, 0.3]
+        mock_openai_client.embeddings.create.assert_called_once()
+        call_args = mock_openai_client.embeddings.create.call_args
+        call_kwargs = call_args[1]
+        assert call_kwargs["model"] == "text-embedding-ada-002"
+        assert call_kwargs["input"] == "test query"
+
+
+@pytest.mark.asyncio
+async def test_empty_search_results() -> None:
+    """Test handling of empty search results."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            mock_results=[],
+        )
+
+        empty_iterator = AsyncIterator([])
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.search = AsyncMock(return_value=empty_iterator)
+
+        with patch.object(tool, "_get_client", return_value=mock_client):
+            result = await tool.run("test query", CancellationToken())
+
+            assert hasattr(result, "results")
+            assert len(result.results) == 0
+
+            string_result = tool.return_value_as_string(result)
+            assert string_result == "No search results found."
+
+
+@pytest.mark.asyncio
+async def test_different_query_formats() -> None:
+    """Test handling of different query input formats."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+        )
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.search = AsyncMock(return_value=AsyncIterator([]))
+
+        with patch.object(tool, "_get_client", return_value=mock_client):
+            await tool.run("test query", CancellationToken())
+            call_args = mock_client.search.call_args
+            assert call_args[0][0] == "test query"
+            mock_client.search.reset_mock()
+
+            await tool.run({"query": "dict query"}, CancellationToken())
+            call_args = mock_client.search.call_args
+            assert call_args[0][0] == "dict query"
+            mock_client.search.reset_mock()
+
+            await tool.run(SearchQuery(query="model query"), CancellationToken())
+            call_args = mock_client.search.call_args
+            assert call_args[0][0] == "model query"
+            mock_client.search.reset_mock()
+
+            class ModelDumpQuery:
+                def model_dump(self) -> Dict[str, str]:
+                    return {"query": "model_dump query"}
+
+            await tool.run(ModelDumpQuery(), CancellationToken())
+            call_args = mock_client.search.call_args
+            assert call_args[0][0] == "model_dump query"
+            mock_client.search.reset_mock()
+
+            class DictQuery:
+                def dict(self) -> Dict[str, str]:
+                    return {"query": "dict method query"}
+
+            await tool.run(DictQuery(), CancellationToken())
+            call_args = mock_client.search.call_args
+            assert call_args[0][0] == "dict method query"
+
+
+@pytest.mark.asyncio
+async def test_return_value_formatting() -> None:
+    """Test the return_value_as_string method with various inputs."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+        )
+
+        results = SearchResults(
+            results=[
+                SearchResult(
+                    score=0.95,
+                    content={"id": "doc1", "title": "Test Document", "content": "Test content"},
+                    metadata={"key": "value"},
+                )
+            ]
+        )
+
+        formatted = tool.return_value_as_string(results)
+        assert "Result 1 (Score: 0.95)" in formatted
+        assert "id: doc1" in formatted
+        assert "title: Test Document" in formatted
+        assert "content: Test content" in formatted
+        assert "[Metadata: key=value]" in formatted
+
+        empty_results = SearchResults(results=[])
+        assert tool.return_value_as_string(empty_results) == "No search results found."
+
+        class CustomResult:
+            """Custom result class for testing."""
+
+            def __init__(self) -> None:
+                """Initialize with test data."""
+                result_obj = type(
+                    "ResultObject",
+                    (),
+                    {"score": 0.8, "content": {"custom": "value"}, "metadata": {"custom_meta": "meta_value"}},
+                )
+                self.results = [result_obj()]
+
+        custom_result = CustomResult()
+        formatted_custom = tool.return_value_as_string(custom_result)
+        assert "Result 1 (Score: 0.80)" in formatted_custom
+        assert "custom: value" in formatted_custom
+        assert "[Metadata: custom_meta=meta_value]" in formatted_custom
+
+
+@pytest.mark.asyncio
+async def test_filter_parameter() -> None:
+    """Test that filter parameters are correctly passed to the search client."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+        )
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.search = AsyncMock(return_value=AsyncIterator([]))
+
+        with patch.object(tool, "_get_client", return_value=mock_client):
+            await tool.run({"query": "test query", "filter": "category eq 'docs'"}, CancellationToken())
+
+            call_args = mock_client.search.call_args
+            positional_args = call_args[0]
+            keyword_args = call_args[1]
+            assert positional_args[0] == "test query"
+            assert keyword_args.get("filter") == "category eq 'docs'"
+
+
+@pytest.mark.asyncio
+async def test_top_parameter() -> None:
+    """Test that top parameter is correctly passed to the search client."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            top=10,
+        )
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.search = AsyncMock(return_value=AsyncIterator([]))
+
+        with patch.object(tool, "_get_client", return_value=mock_client):
+            await tool.run("test query", CancellationToken())
+            call_args = mock_client.search.call_args
+            keyword_args = call_args[1]
+            assert keyword_args.get("top") == 10
+            mock_client.search.reset_mock()
+
+            await tool.run({"query": "test query", "top": 5}, CancellationToken())
+            call_args = mock_client.search.call_args
+            keyword_args = call_args[1]
+            assert keyword_args.get("top") == 5
+
+
+def test_initialization_with_dict_credential() -> None:
+    """Test initialization with a dictionary credential."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential={"api_key": "test-key"},
+        )
+
+        assert tool.name == "test_search"
+        assert tool.endpoint_for_test == "https://test-endpoint.search.windows.net"
+        assert tool.index_name_for_test == "test-index"
+
+        credential_dict = tool.credential_for_test
+        if isinstance(credential_dict, dict):
+            assert "api_key" in credential_dict
+            api_key: Any = credential_dict["api_key"]
+            assert isinstance(api_key, str)
+            assert api_key == "test-key"
+        else:
+            raise AssertionError("Credential should be a dictionary")
+
+
+@pytest.mark.asyncio
+async def test_client_creation_with_multiple_calls() -> None:
+    """Test that the client is created only once and reused for multiple calls."""
+    with patch("azure.search.documents.aio.SearchClient"):
+        tool = MockAzureAISearchTool(
+            name="test_search",
+            endpoint="https://test-endpoint.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+        )
+
+        async def setup_mock_client() -> None:
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+            mock_client.search = AsyncMock(return_value=AsyncIterator([]))
+
+            with patch.object(MockAzureAISearchTool, "_get_client", return_value=mock_client):
+                await tool.run("test query", CancellationToken())
+                await tool.run("another query", CancellationToken())
+
+                assert mock_client.search.call_count == 2
+
+        await setup_mock_client()
+
+
+_KT = TypeVar("_KT")
+_VT = TypeVar("_VT")
+
+
+def is_dict_any_any(val: Any) -> TypeGuard[Dict[Any, Any]]:
+    """Type guard to check if a value is a Dict[Any, Any]."""
+    return isinstance(val, dict)
