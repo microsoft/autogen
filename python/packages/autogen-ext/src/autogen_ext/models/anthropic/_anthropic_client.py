@@ -12,6 +12,7 @@ from typing import (
     AsyncGenerator,
     Coroutine,
     Dict,
+    Iterable,
     List,
     Literal,
     Mapping,
@@ -20,6 +21,7 @@ from typing import (
     Set,
     Union,
     cast,
+    overload,
 )
 
 import tiktoken
@@ -142,20 +144,41 @@ def get_mime_type_from_image(image: Image) -> Literal["image/jpeg", "image/png",
         return "image/jpeg"
 
 
+@overload
+def __empty_content_to_whitespace(content: str) -> str: ...
+
+
+@overload
+def __empty_content_to_whitespace(content: List[Any]) -> Iterable[Any]: ...
+
+
+def __empty_content_to_whitespace(
+    content: Union[str, List[Union[str, Image]]],
+) -> Union[str, Iterable[Any]]:
+    if isinstance(content, str) and not content.strip():
+        return " "
+    elif isinstance(content, list) and not any(isinstance(x, str) and not x.strip() for x in content):
+        for idx, message in enumerate(content):
+            if isinstance(message, str) and not message.strip():
+                content[idx] = " "
+
+    return content
+
+
 def user_message_to_anthropic(message: UserMessage) -> MessageParam:
     assert_valid_name(message.source)
 
     if isinstance(message.content, str):
         return {
             "role": "user",
-            "content": message.content,
+            "content": __empty_content_to_whitespace(message.content),
         }
     else:
         blocks: List[Union[TextBlockParam, ImageBlockParam]] = []
 
         for part in message.content:
             if isinstance(part, str):
-                blocks.append(TextBlockParam(type="text", text=part))
+                blocks.append(TextBlockParam(type="text", text=__empty_content_to_whitespace(part)))
             elif isinstance(part, Image):
                 blocks.append(
                     ImageBlockParam(
@@ -177,7 +200,7 @@ def user_message_to_anthropic(message: UserMessage) -> MessageParam:
 
 
 def system_message_to_anthropic(message: SystemMessage) -> str:
-    return message.content
+    return __empty_content_to_whitespace(message.content)
 
 
 def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
@@ -190,6 +213,7 @@ def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
         for func_call in message.content:
             # Parse the arguments and convert to dict if it's a JSON string
             args = func_call.arguments
+            args = __empty_content_to_whitespace(args)
             if isinstance(args, str):
                 try:
                     args_dict = json.loads(args)
@@ -408,6 +432,35 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
+    def _merge_system_messages(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
+        """
+        Merge continuous system messages into a single message.
+        """
+        _messages: List[LLMMessage] = []
+        system_message_content = ""
+        _first_system_message_idx = -1
+        _last_system_message_idx = -1
+        # Index of the first system message for adding the merged system message at the correct position
+        for idx, message in enumerate(messages):
+            if isinstance(message, SystemMessage):
+                if _first_system_message_idx == -1:
+                    _first_system_message_idx = idx
+                elif _last_system_message_idx + 1 != idx:
+                    # That case, system message is not continuous
+                    # Merge system messages only contiues system messages
+                    raise ValueError("Multiple and Not continuous system messages are not supported")
+                system_message_content += message.content + "\n"
+                _last_system_message_idx = idx
+            else:
+                _messages.append(message)
+        system_message_content = system_message_content.rstrip()
+        if system_message_content != "":
+            system_message = SystemMessage(content=system_message_content)
+            _messages.insert(_first_system_message_idx, system_message)
+        messages = _messages
+
+        return messages
+
     async def create(
         self,
         messages: Sequence[LLMMessage],
@@ -442,9 +495,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         system_message = None
         anthropic_messages: List[MessageParam] = []
 
+        # Merge continuous system messages into a single message
+        messages = self._merge_system_messages(messages)
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
+                    # if that case, system message is must only one
                     raise ValueError("Multiple system messages are not supported")
                 system_message = to_anthropic_type(message)
             else:
@@ -604,9 +660,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         system_message = None
         anthropic_messages: List[MessageParam] = []
 
+        # Merge continuous system messages into a single message
+        messages = self._merge_system_messages(messages)
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
+                    # if that case, system message is must only one
                     raise ValueError("Multiple system messages are not supported")
                 system_message = to_anthropic_type(message)
             else:

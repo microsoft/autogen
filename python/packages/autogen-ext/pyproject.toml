@@ -135,7 +135,7 @@ semantic-kernel-all = [
 rich = ["rich>=13.9.4"]
 
 mcp = [
-    "mcp>=1.1.3",
+    "mcp>=1.5.0",
     "json-schema-to-pydantic>=0.2.2"
 ]
 
