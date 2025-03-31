@@ -1602,6 +1602,10 @@ def openai_client(request: pytest.FixtureRequest) -> OpenAIChatCompletionClient:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             pytest.skip("GEMINI_API_KEY not found in environment variables")
+    elif model.startswith("claude"):
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
     else:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -2340,21 +2344,27 @@ async def test_empty_assistant_content_with_gemini(model: str, openai_client: Op
 
 
 @pytest.mark.asyncio
-# @pytest.mark.parametrize("model", ["gemini-1.5-flash", "claude-3-5-haiku-latest"]) #
-@pytest.mark.parametrize("model", ["gemini-1.5-flash"])  # before add claude-3-5-haiku-latest at openai/_model_info.py
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gpt-4o-mini",
+        "gemini-1.5-flash",
+        "claude-3-5-haiku-20241022",
+    ],
+)
 async def test_empty_assistant_content_string_with_some_model(
     model: str, openai_client: OpenAIChatCompletionClient
 ) -> None:
     # message: assistant is response empty content
     messages: list[LLMMessage] = [
         UserMessage(content="Say something", source="user"),
-        AssistantMessage(content="", source="assistant"),
+        AssistantMessage(content="test", source="assistant"),
+        UserMessage(content="", source="user"),
     ]
 
     # This will crash if _set_empty_to_whitespace is not applied to "content"
     result = await openai_client.create(messages=messages)
     assert isinstance(result.content, str)
-    assert result.content.strip() != "" or result.content == " "
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.

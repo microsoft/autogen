@@ -125,6 +125,12 @@ def _set_empty_to_whitespace(message: LLMMessage, context: Dict[str, Any]) -> Di
     return {"content": message.content or " "}
 
 
+def _set_pass_message_when_whitespace(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, bool]:
+    if isinstance(message.content, str) and (message.content.isspace() or not message.content):
+        return {"pass_message": True}
+    return {}
+
+
 # === Base Transformers list ===
 base_system_message_transformers: List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]] = [
     _set_content_direct,
@@ -250,13 +256,13 @@ assistant_transformer_funcs_gemini: Dict[str, List[Callable[[LLMMessage, Dict[st
 
 
 user_transformer_funcs_claude: Dict[str, List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]]] = {
-    "text": single_user_transformer_funcs + [_set_empty_to_whitespace],
-    "multimodal": multimodal_user_transformer_funcs + [_set_empty_to_whitespace],
+    "text": single_user_transformer_funcs + [_set_pass_message_when_whitespace],
+    "multimodal": multimodal_user_transformer_funcs + [_set_pass_message_when_whitespace],
 }
 
 
 assistant_transformer_funcs_claude: Dict[str, List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]]] = {
-    "text": single_assistant_transformer_funcs + [_set_empty_to_whitespace],
+    "text": single_assistant_transformer_funcs + [_set_pass_message_when_whitespace],
     "tools": tools_assistant_transformer_funcs,  # that case, message.content is a list of FunctionCall
     "thought": thought_assistant_transformer_funcs_gemini,  # that case, message.content is a list of FunctionCall
 }
@@ -340,7 +346,7 @@ for model in __openai_models:
     register_transformer("openai", model, __BASE_TRANSFORMER_MAP)
 
 for model in __claude_models:
-    register_transformer("openai", model, __BASE_TRANSFORMER_MAP)
+    register_transformer("openai", model, __CLAUDE_TRANSFORMER_MAP)
 
 for model in __gemini_models:
     register_transformer("openai", model, __GEMINI_TRANSFORMER_MAP)

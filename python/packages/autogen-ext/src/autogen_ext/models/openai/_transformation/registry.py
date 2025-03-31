@@ -62,6 +62,8 @@ def build_conditional_transformer_func(
         kwargs: Dict[str, Any] = {}
         for func in funcs_map[condition]:
             kwargs.update(func(message, context))
+        if kwargs.get("pass_message", False):
+            return []
         return [message_param_func(**kwargs)]
 
     return transformer
