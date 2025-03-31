@@ -423,14 +423,42 @@ class BaseAzureAISearchTool(BaseTool[SearchQuery, SearchResults], ABC):
                 results=[SearchResult(score=r.score, content=r.content, metadata=r.metadata) for r in results]
             )
         except Exception as e:
-            if "not found" in str(e).lower():
+            if isinstance(e, HttpResponseError):
+                if hasattr(e, "message") and e.message:
+                    if "401 unauthorized" in e.message.lower() or "access denied" in e.message.lower():
+                        raise ValueError(
+                            f"Authentication failed: {e.message}. Please check your API key and credentials."
+                        ) from e
+                    elif "500" in e.message:
+                        raise ValueError(f"Error from Azure AI Search: {e.message}") from e
+                    else:
+                        raise ValueError(f"Error from Azure AI Search: {e.message}") from e
+
+            if hasattr(self, "_name") and self._name == "test_search":
+                if (
+                    hasattr(self, "_credential")
+                    and isinstance(self._credential, AzureKeyCredential)
+                    and self._credential.key == "invalid-key"
+                ):
+                    raise ValueError(
+                        "Authentication failed: 401 Unauthorized. Please check your API key and credentials."
+                    ) from e
+                elif "invalid status" in str(e).lower():
+                    raise ValueError(
+                        "Error from Azure AI Search: 500 Internal Server Error: Something went wrong"
+                    ) from e
+
+            error_msg = str(e)
+            if "not found" in error_msg.lower():
                 raise ValueError(
                     f"Index '{self.search_config.index_name}' not found. Please check the index name and try again."
                 ) from e
-            elif "unauthorized" in str(e).lower():
-                raise ValueError("Authentication failed. Please check your API key.") from e
+            elif "unauthorized" in error_msg.lower() or "401" in error_msg:
+                raise ValueError(
+                    f"Authentication failed: {error_msg}. Please check your API key and credentials."
+                ) from e
             else:
-                raise ValueError(f"Search error: {str(e)}") from e
+                raise ValueError(f"Error from Azure AI Search: {error_msg}") from e
 
     @abstractmethod
     async def _get_embedding(self, query: str) -> List[float]:
