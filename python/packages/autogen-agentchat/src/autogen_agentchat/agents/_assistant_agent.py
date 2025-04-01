@@ -108,6 +108,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     If the `output_content_type` is set, the agent will respond with a :class:`~autogen_agentchat.messages.StructuredMessage`
     instead of a :class:`~autogen_agentchat.messages.TextMessage` in the final response by default.
 
+    .. note::
+
+        Currently, setting `output_content_type` prevents the agent from being
+        able to call `load_component` and `dum_component` methods for serializable
+        configuration. This will be fixed soon in the future.
+
     **Tool call behavior:**
 
     * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`.
