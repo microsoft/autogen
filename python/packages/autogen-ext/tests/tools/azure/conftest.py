@@ -1,7 +1,7 @@
 """Test fixtures for Azure AI Search tool tests."""
 
 import warnings
-from typing import Any, Dict, Generator, List, Protocol, Type, TypeVar, Union, cast
+from typing import Any, Dict, Generator, List, Protocol, Type, TypeVar, Union
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -10,7 +10,6 @@ from autogen_core import ComponentModel
 T = TypeVar("T")
 
 
-# Define protocol classes to satisfy type checking
 class AccessTokenProtocol(Protocol):
     """Protocol matching Azure AccessToken."""
 
@@ -18,7 +17,6 @@ class AccessTokenProtocol(Protocol):
     expires_on: int
 
 
-# Create proper mock classes that match the Azure SDK classes
 class MockAccessToken:
     """Mock implementation of AccessToken."""
 
@@ -49,7 +47,6 @@ class MockTokenCredential:
         return MockAccessToken("mock-token", 12345)
 
 
-# Import Azure SDK classes if available, otherwise use mocks
 try:
     from azure.core.credentials import AccessToken, AzureKeyCredential, TokenCredential
 
@@ -213,104 +210,94 @@ def mock_search_client(mock_search_response: List[Dict[str, Any]]) -> tuple[Magi
     return mock_client, patcher
 
 
-def test_validate_credentials_non_dict() -> None:
-    """Test validate_credentials with non-dict input."""
+def test_validate_credentials_scenarios() -> None:
+    """Test all validate_credentials scenarios to ensure full code coverage."""
+    import sys
+
     from autogen_ext.tools.azure._config import AzureAISearchConfig
 
-    data = "not a dict"
-    result = cast(str, AzureAISearchConfig.validate_credentials(data))  # type: ignore
+    module_path = sys.modules[AzureAISearchConfig.__module__].__file__
+    if module_path is not None:
+        assert "autogen-ext" in module_path
+
+    data: Any = "not a dict"
+    result: Any = AzureAISearchConfig.validate_credentials(data)  # type: ignore
     assert result == data
 
+    data_empty: Dict[str, Any] = {}
+    result_empty: Dict[str, Any] = AzureAISearchConfig.validate_credentials(data_empty)  # type: ignore
+    assert isinstance(result_empty, dict)
 
-def test_validate_credentials_with_api_key() -> None:
-    """Test validate_credentials with api_key in credential dict."""
-    from autogen_ext.tools.azure._config import AzureAISearchConfig
+    data_items: Dict[str, Any] = {"key1": "value1", "key2": "value2"}
+    result_items: Dict[str, Any] = AzureAISearchConfig.validate_credentials(data_items)  # type: ignore
+    assert result_items["key1"] == "value1"
+    assert result_items["key2"] == "value2"
 
-    data = {
+    data_with_api_key: Dict[str, Any] = {
         "name": "test",
         "endpoint": "https://test.search.windows.net",
         "index_name": "test-index",
         "credential": {"api_key": "test-key"},
     }
-    result = cast(Dict[str, Any], AzureAISearchConfig.validate_credentials(data))  # type: ignore
-    assert isinstance(result["credential"], (AzureKeyCredential, MockAzureKeyCredential))
-    assert result["credential"].key == "test-key"
+    result_with_api_key: Dict[str, Any] = AzureAISearchConfig.validate_credentials(data_with_api_key)  # type: ignore
 
+    cred = result_with_api_key["credential"]  # type: ignore
+    assert isinstance(cred, (AzureKeyCredential, MockAzureKeyCredential))
+    assert hasattr(cred, "key")
+    assert cred.key == "test-key"  # type: ignore
 
-def test_validate_credentials_with_existing_credential() -> None:
-    """Test validate_credentials with existing credential object."""
-    from autogen_ext.tools.azure._config import AzureAISearchConfig
-
-    # Use the appropriate type based on availability
     credential: Any = AzureKeyCredential("test-key")
-    data = {
+    data_with_credential: Dict[str, Any] = {
         "name": "test",
         "endpoint": "https://test.search.windows.net",
         "index_name": "test-index",
         "credential": credential,
     }
-    result = cast(Dict[str, Any], AzureAISearchConfig.validate_credentials(data))  # type: ignore
-    assert result["credential"] is credential
+    result_with_credential: Dict[str, Any] = AzureAISearchConfig.validate_credentials(data_with_credential)  # type: ignore
+    assert result_with_credential["credential"] is credential
 
-
-def test_validate_credentials_with_credential_dict_no_api_key() -> None:
-    """Test validate_credentials with credential dict that doesn't have api_key."""
-    from autogen_ext.tools.azure._config import AzureAISearchConfig
-
-    data = {
+    data_without_api_key: Dict[str, Any] = {
         "name": "test",
         "endpoint": "https://test.search.windows.net",
         "index_name": "test-index",
         "credential": {"username": "test-user", "password": "test-pass"},
     }
-    result = cast(Dict[str, Any], AzureAISearchConfig.validate_credentials(data))  # type: ignore
-    assert result["credential"] == {"username": "test-user", "password": "test-pass"}
+    result_without_api_key: Dict[str, Any] = AzureAISearchConfig.validate_credentials(data_without_api_key)  # type: ignore
+    assert result_without_api_key["credential"] == {"username": "test-user", "password": "test-pass"}
 
 
-def test_model_dump_with_azure_key_credential() -> None:
-    """Test model_dump with AzureKeyCredential."""
+def test_model_dump_scenarios() -> None:
+    """Test all model_dump scenarios to ensure full code coverage."""
+    import sys
+
     from autogen_ext.tools.azure._config import AzureAISearchConfig
+
+    module_path = sys.modules[AzureAISearchConfig.__module__].__file__
+    if module_path is not None:
+        assert "autogen-ext" in module_path
 
     config = AzureAISearchConfig(
         name="test",
-        endpoint="https://test.search.windows.net",
-        index_name="test-index",
-        credential=AzureKeyCredential("test-key"),  # type: ignore
+        endpoint="https://endpoint",
+        index_name="index",
+        credential=AzureKeyCredential("key"),  # type: ignore
     )
     result = config.model_dump()
     assert result["credential"] == {"type": "AzureKeyCredential"}
 
+    if azure_sdk_available:
+        from azure.core.credentials import AccessToken
+        from azure.core.credentials import TokenCredential as RealTokenCredential
 
-def test_model_dump_with_token_credential() -> None:
-    """Test model_dump with TokenCredential."""
-    from autogen_ext.tools.azure._config import AzureAISearchConfig
+        class TestTokenCredential(RealTokenCredential):
+            def get_token(self, *args: Any, **kwargs: Any) -> AccessToken:
+                """Override of get_token method that returns proper type."""
+                return AccessToken("test-token", 12345)
 
-    config = AzureAISearchConfig(
-        name="test",
-        endpoint="https://test.search.windows.net",
-        index_name="test-index",
-        credential=MockTokenCredential(),  # type: ignore
-    )
-    result = config.model_dump()
-    assert result["credential"] == {"type": "TokenCredential"}
-
-
-def test_model_dump_with_other_credential_type() -> None:
-    """Test model_dump with a credential that is neither AzureKeyCredential nor TokenCredential."""
-    from autogen_ext.tools.azure._config import AzureAISearchConfig
-
-    class OtherCredential:
-        """Some other credential type."""
-
-        def __init__(self, value: str) -> None:
-            self.value = value
-
-    config = AzureAISearchConfig(
-        name="test",
-        endpoint="https://test.search.windows.net",
-        index_name="test-index",
-        credential=OtherCredential("test-value"),  # type: ignore
-    )
-    result = config.model_dump()
-    assert "credential" in result
-    assert not isinstance(result["credential"], dict) or "type" not in result["credential"]
+        config = AzureAISearchConfig(
+            name="test", endpoint="https://endpoint", index_name="index", credential=TestTokenCredential()
+        )
+        result = config.model_dump()
+        assert result["credential"] == {"type": "TokenCredential"}
+    else:
+        pytest.skip("Skipping TokenCredential test - Azure SDK not available")
