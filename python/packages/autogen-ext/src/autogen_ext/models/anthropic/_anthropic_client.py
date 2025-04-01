@@ -509,7 +509,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         # Merge continuous system messages into a single message
         messages = self._merge_system_messages(messages)
         messages = self._rstrip_last_assistant_message(messages)
-        
+
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
@@ -676,7 +676,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         # Merge continuous system messages into a single message
         messages = self._merge_system_messages(messages)
         messages = self._rstrip_last_assistant_message(messages)
-        
+
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
