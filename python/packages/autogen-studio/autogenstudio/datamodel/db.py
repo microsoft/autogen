@@ -6,8 +6,10 @@ from typing import List, Optional, Union
 
 from autogen_core import ComponentModel
 from pydantic import ConfigDict, SecretStr, field_validator
+from regex import T
 from sqlalchemy import ForeignKey, Integer, String
 from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func
+from streamlit import table
 
 from .types import (
     GalleryComponents,
@@ -19,36 +21,50 @@ from .types import (
     TeamResult,
 )
 
-
-class Team(SQLModel, table=True):
-    __table_args__ = {"sqlite_autoincrement": True}
-    id: Optional[int] = Field(default=None, primary_key=True)
+class BaseDBModel(SQLModel, table=False):
+    """
+    Base model with common fields for all database tables.
+    Not a table itself - meant to be inherited by concrete model classes.
+    """
+    __abstract__ = True
+    
+    # Common fields present in all database tables
+    id: Optional[int] = Field(
+        default=None, 
+        primary_key=True
+    )
+    
     created_at: datetime = Field(
         default_factory=datetime.now,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
-    )  # pylint: disable=not-callable
+        sa_type=DateTime(timezone=True), # type: ignore[assignment]
+        sa_column_kwargs={
+            "server_default": func.now(),
+            "nullable": True
+        }
+    )
+    
     updated_at: datetime = Field(
         default_factory=datetime.now,
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
-    )  # pylint: disable=not-callable
+        sa_type=DateTime(timezone=True), # type: ignore[assignment]
+        sa_column_kwargs={
+            "onupdate": func.now(),
+            "nullable": True
+        }
+    )
+    
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
+     
+
+
+class Team(BaseDBModel, table=True):
+    __table_args__ = {"sqlite_autoincrement": True} 
     component: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
 
 
-class Message(SQLModel, table=True):
+class Message(BaseDBModel, table=True): 
     __table_args__ = {"sqlite_autoincrement": True}
-    id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(
-        default_factory=datetime.now,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
-    )  # pylint: disable=not-callable
-    updated_at: datetime = Field(
-        default_factory=datetime.now,
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
-    )  # pylint: disable=not-callable
-    user_id: Optional[str] = None
-    version: Optional[str] = "0.0.1"
+
     config: Union[MessageConfig, dict] = Field(
         default_factory=lambda: MessageConfig(source="", content=""), sa_column=Column(JSON)
     )
@@ -60,19 +76,8 @@ class Message(SQLModel, table=True):
     message_meta: Optional[Union[MessageMeta, dict]] = Field(default={}, sa_column=Column(JSON))
 
 
-class Session(SQLModel, table=True):
+class Session(BaseDBModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
-    id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(
-        default_factory=datetime.now,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
-    )  # pylint: disable=not-callable
-    updated_at: datetime = Field(
-        default_factory=datetime.now,
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
-    )  # pylint: disable=not-callable
-    user_id: Optional[str] = None
-    version: Optional[str] = "0.0.1"
     team_id: Optional[int] = Field(default=None, sa_column=Column(Integer, ForeignKey("team.id", ondelete="CASCADE")))
     name: Optional[str] = None
 
@@ -92,18 +97,12 @@ class RunStatus(str, Enum):
     STOPPED = "stopped"
 
 
-class Run(SQLModel, table=True):
+class Run(BaseDBModel, table=True):
     """Represents a single execution run within a session"""
 
     __table_args__ = {"sqlite_autoincrement": True}
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(
-        default_factory=datetime.now, sa_column=Column(DateTime(timezone=True), server_default=func.now())
-    )
-    updated_at: datetime = Field(
-        default_factory=datetime.now, sa_column=Column(DateTime(timezone=True), onupdate=func.now())
-    )
+     
     session_id: Optional[int] = Field(
         default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"), nullable=False)
     )
@@ -125,19 +124,9 @@ class Run(SQLModel, table=True):
     user_id: Optional[str] = None
 
 
-class Gallery(SQLModel, table=True):
+class Gallery(BaseDBModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
-    id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(
-        default_factory=datetime.now,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
-    )  # pylint: disable=not-callable
-    updated_at: datetime = Field(
-        default_factory=datetime.now,
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
-    )  # pylint: disable=not-callable
-    user_id: Optional[str] = None
-    version: Optional[str] = "0.0.1"
+    
     config: Union[GalleryConfig, dict] = Field(
         default_factory=lambda: GalleryConfig(
             id="",
@@ -156,17 +145,7 @@ class Gallery(SQLModel, table=True):
     )  # type: ignore[call-arg]
 
 
-class Settings(SQLModel, table=True):
+class Settings(BaseDBModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
-    id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(
-        default_factory=datetime.now,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
-    )  # pylint: disable=not-callable
-    updated_at: datetime = Field(
-        default_factory=datetime.now,
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
-    )  # pylint: disable=not-callable
-    user_id: Optional[str] = None
-    version: Optional[str] = "0.0.1"
+     
     config: Union[SettingsConfig, dict] = Field(default_factory=SettingsConfig, sa_column=Column(JSON))

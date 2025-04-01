@@ -2,16 +2,18 @@ import json
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Type, TypeVar, Union
 
 from loguru import logger
-from sqlalchemy import exc, inspect, text
-from sqlmodel import Session, SQLModel, and_, create_engine, select
+from sqlalchemy import exc, inspect, text, select
+from sqlmodel import Session, SQLModel, and_, create_engine
 
-from ..datamodel import Response, Team
+from ..datamodel import Response, Team, BaseDBModel
 from ..teammanager import TeamManager
 from .schema_manager import SchemaManager
 
+
+T = TypeVar('T', bound=BaseDBModel)
 
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -94,7 +96,7 @@ class DatabaseManager:
         finally:
             self._init_lock.release()
 
-    def reset_db(self, recreate_tables: bool = True):
+    def reset_db(self, recreate_tables: bool = True) -> Response:
         """
         Reset the database by dropping all tables and optionally recreating them.
 
@@ -151,7 +153,7 @@ class DatabaseManager:
                 self._init_lock.release()
                 logger.info("Database reset lock released")
 
-    def upsert(self, model: SQLModel, return_json: bool = True) -> Response:
+    def upsert(self, model: BaseDBModel, return_json: bool = True) -> Response:
         """Create or update an entity
 
         Args:
@@ -168,7 +170,7 @@ class DatabaseManager:
 
         with Session(self.engine) as session:
             try:
-                existing_model = session.exec(select(model_class).where(model_class.id == model.id)).first()
+                existing_model = session.exec(select(model_class).where(model_class.id == model.id)).first() # type: ignore
                 if existing_model:
                     model.updated_at = datetime.now()
                     for key, value in model.model_dump().items():
@@ -199,11 +201,11 @@ class DatabaseManager:
 
     def get(
         self,
-        model_class: SQLModel,
+        model_class: Type[T],
         filters: dict | None = None,
         return_json: bool = False,
         order: str = "desc",
-    ):
+    ) -> Response:
         """List entities"""
         with Session(self.engine) as session:
             result = []
@@ -211,7 +213,7 @@ class DatabaseManager:
             status_message = ""
 
             try:
-                statement = select(model_class)
+                statement = select(model_class) # type: ignore
                 if filters:
                     conditions = [getattr(model_class, col) == value for col, value in filters.items()]
                     statement = statement.where(and_(*conditions))
@@ -220,7 +222,7 @@ class DatabaseManager:
                     order_by_clause = getattr(model_class.created_at, order)()  # Dynamically apply asc/desc
                     statement = statement.order_by(order_by_clause)
 
-                items = session.exec(statement).all()
+                items = session.exec(statement).all() # type: ignore
                 result = [self._model_to_dict(item) if return_json else item for item in items]
                 status_message = f"{model_class.__name__} Retrieved Successfully"
             except Exception as e:
@@ -231,7 +233,7 @@ class DatabaseManager:
 
             return Response(message=status_message, status=status, data=result)
 
-    def delete(self, model_class: SQLModel, filters: dict = None) -> Response:
+    def delete(self, model_class: Type[T], filters: dict | None = None) -> Response:
         """Delete an entity"""
         status_message = ""
         status = True
@@ -239,13 +241,13 @@ class DatabaseManager:
         with Session(self.engine) as session:
             try:
                 if "sqlite" in str(self.engine.url):
-                    session.exec(text("PRAGMA foreign_keys=ON"))
-                statement = select(model_class)
+                    session.exec(text("PRAGMA foreign_keys=ON")) # type: ignore
+                statement = select(model_class) # type: ignore
                 if filters:
                     conditions = [getattr(model_class, col) == value for col, value in filters.items()]
                     statement = statement.where(and_(*conditions))
 
-                rows = session.exec(statement).all()
+                rows = session.exec(statement).all() # type: ignore
 
                 if rows:
                     for row in rows:
@@ -326,7 +328,7 @@ class DatabaseManager:
                         {
                             "status": result.status,
                             "message": result.message,
-                            "id": result.data.get("id") if result.status else None,
+                            "id": result.data.get("id") if result.status and result.data is not None else None,
                         }
                     )
 
@@ -342,13 +344,12 @@ class DatabaseManager:
 
     async def _check_team_exists(self, config: dict, user_id: str) -> Optional[Team]:
         """Check if identical team config already exists"""
-        teams = self.get(Team, {"user_id": user_id}).data
+        response = self.get(Team, {"user_id": user_id})
+        teams = response.data if response.status and response.data is not None else []
 
         for team in teams:
             if team.component == config:
                 return team
-
-        return None
 
     async def close(self):
         """Close database connections and cleanup resources"""
