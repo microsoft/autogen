@@ -70,9 +70,12 @@ class ACADynamicSessionsCodeExecutor(CodeExecutor):
         timeout (int): The timeout for the execution of any single code block. Default is 60.
         work_dir (str): The working directory for the code execution. If None,
             a default working directory will be used. The default working
-            directory is the current directory ".".
+            directory is a temporal directory.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         suppress_result_output bool: By default the executor will attach any result info in the execution response to the result outpu. Set this to True to prevent this.
+
+    .. note::
+        Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
     """
 
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
@@ -147,7 +150,7 @@ $functions"""
     # TODO: expiration?
     def _ensure_access_token(self) -> None:
         if not self._access_token:
-            scope = "https://dynamicsessions.io"
+            scope = "https://dynamicsessions.io/.default"
             self._access_token = self._credential.get_token(scope).token
 
     def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:

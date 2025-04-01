@@ -127,6 +127,10 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         kernel_name (str): The kernel name to use. By default, "python3".
         timeout (int): The timeout for code execution, by default 60.
         output_dir (Path): The directory to save output files, by default a temporary directory.
+
+
+    .. note::
+        Using the current directory (".") as output directory is deprecated. Using it will raise a deprecation warning.
     """
 
     component_config_schema = JupyterCodeExecutorConfig
@@ -141,8 +145,8 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
-        self.output_dir: Path = Path(tempfile.mkdtemp()) if output_dir is None else Path(output_dir)
-        self.output_dir.mkdir(exist_ok=True, parents=True)
+        self._output_dir: Path = Path(tempfile.mkdtemp()) if output_dir is None else Path(output_dir)
+        self._output_dir.mkdir(exist_ok=True, parents=True)
 
         self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
         self._temp_dir_path: Optional[Path] = None
@@ -251,13 +255,13 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
     def _save_image(self, image_data_base64: str) -> Path:
         """Save image data to a file."""
         image_data = base64.b64decode(image_data_base64)
-        path = self.output_dir / f"{uuid.uuid4().hex}.png"
+        path = self._output_dir / f"{uuid.uuid4().hex}.png"
         path.write_bytes(image_data)
         return path.absolute()
 
     def _save_html(self, html_data: str) -> Path:
         """Save HTML data to a file."""
-        path = self.output_dir / f"{uuid.uuid4().hex}.html"
+        path = self._output_dir / f"{uuid.uuid4().hex}.html"
         path.write_text(html_data)
         return path.absolute()
 
@@ -302,15 +306,15 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         )
 
     @property
-    def work_dir(self) -> Path:
+    def output_dir(self) -> Path:
         # If a user specifies the current directory, warn them that this is deprecated
-        if self.output_dir == Path("."):
+        if self._output_dir == Path("."):
             warnings.warn(
-                "Using the current directory as work_dir is deprecated",
+                "Using the current directory as output_dir is deprecated",
                 DeprecationWarning,
                 stacklevel=2,
             )
-        return self.output_dir
+        return self._output_dir
 
     @classmethod
     def _from_config(cls, config: JupyterCodeExecutorConfig) -> Self:

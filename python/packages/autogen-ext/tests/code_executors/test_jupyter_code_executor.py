@@ -205,3 +205,23 @@ async def test_jupyter_code_executor_serialization(tmp_path: Path) -> None:
 
     await loaded_executor.stop()
     await executor.stop()
+
+
+def test_invalid_timeout() -> None:
+    with pytest.raises(ValueError, match="Timeout must be greater than or equal to 1."):
+        _ = JupyterCodeExecutor(timeout=0)
+
+
+@pytest.mark.asyncio
+async def test_deprecation_output_dir() -> None:
+    with pytest.warns(DeprecationWarning, match="Using the current directory as output_dir is deprecated"):
+        async with JupyterCodeExecutor(output_dir=".") as executor:
+            _ = executor.output_dir
+
+
+@pytest.mark.asyncio
+async def test_runtime_error_not_started() -> None:
+    executor = JupyterCodeExecutor()
+    code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
+    with pytest.raises(RuntimeError, match="Executor must be started before executing cells"):
+        await executor.execute_code_blocks(code_blocks, CancellationToken())

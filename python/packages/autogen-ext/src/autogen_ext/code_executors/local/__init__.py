@@ -57,7 +57,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
     commands from being executed which may potentially affect the users environment.
     Currently the only supported languages is Python and shell scripts.
     For Python code, use the language "python" for the code block.
-    For shell scripts, use the language "bash", "shell", or "sh" for the code
+    For shell scripts, use the language "bash", "shell", "sh", "pwsh", "powershell", or "ps1" for the code
     block.
 
     .. note::
@@ -79,6 +79,10 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
         virtual_env_context (Optional[SimpleNamespace], optional): The virtual environment context. Defaults to None.
+
+    .. note::
+        Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
+
 
     Example:
 

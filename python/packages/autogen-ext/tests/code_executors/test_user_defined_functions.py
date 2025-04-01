@@ -300,3 +300,20 @@ async def test_default_work_dir_is_temp() -> None:
     assert system_temp in str(executor.work_dir)
 
     await executor.stop()
+
+
+def test_invalid_timeout() -> None:
+    with pytest.raises(ValueError, match="Timeout must be greater than or equal to 1."):
+        _ = LocalCommandLineCodeExecutor(timeout=0)
+
+
+def test_python_identifier() -> None:
+    with pytest.raises(ValueError, match="Module name must be a valid Python identifier"):
+        # Using a name with an hyphen is an example of an invalid Python identifier
+        _ = LocalCommandLineCodeExecutor(functions_module="invalid-identifier")
+
+
+@pytest.mark.asyncio
+async def test_create_temp_dir() -> None:
+    executor = LocalCommandLineCodeExecutor()
+    assert executor.work_dir.is_dir()

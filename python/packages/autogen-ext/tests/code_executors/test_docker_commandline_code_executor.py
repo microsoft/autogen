@@ -256,6 +256,18 @@ async def test_docker_commandline_code_executor_serialization() -> None:
         await loaded_executor.stop()
 
 
+def test_invalid_timeout() -> None:
+    with pytest.raises(ValueError, match="Timeout must be greater than or equal to 1."):
+        _ = DockerCommandLineCodeExecutor(timeout=0)
+
+
+@pytest.mark.asyncio
+async def test_directory_not_initialized() -> None:
+    executor = DockerCommandLineCodeExecutor()
+    with pytest.raises(RuntimeError, match="Working directory not properly initialized"):
+        _ = executor.work_dir
+
+
 @pytest.mark.asyncio
 async def test_error_wrong_path() -> None:
     if not docker_tests_enabled():
@@ -289,3 +301,17 @@ async def test_deprecated_warning() -> None:
             result = await executor.execute_code_blocks([code_block], cancellation_token)
             assert result.exit_code == 0
             assert "hello world!" in result.output
+
+
+@pytest.mark.asyncio
+async def test_directory_creation_cleanup() -> None:
+    executor = DockerCommandLineCodeExecutor(timeout=60, work_dir=None)
+
+    await executor.start()
+
+    directory = executor.work_dir
+    assert directory.is_dir()
+
+    await executor.stop()
+
+    assert not Path(directory).exists()

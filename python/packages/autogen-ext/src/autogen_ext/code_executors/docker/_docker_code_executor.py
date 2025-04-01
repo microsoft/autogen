@@ -97,8 +97,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor, Component[DockerCommandLineCod
     The executor executes the code blocks in the order they are received.
     Currently, the executor only supports Python and shell scripts.
     For Python code, use the language "python" for the code block.
-    For shell scripts, use the language "bash", "shell", or "sh" for the code
-    block.
+    For shell scripts, use the language "bash", "shell", "sh", "pwsh", "powershell", or "ps1" for the code block.
 
     Args:
         image (_type_, optional): Docker image to use for code execution.
@@ -107,7 +106,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor, Component[DockerCommandLineCod
             which is created. If None, will autogenerate a name. Defaults to None.
         timeout (int, optional): The timeout for code execution. Defaults to 60.
         work_dir (Union[Path, str], optional): The working directory for the code
-            execution. Defaults to Path(".").
+            execution. Defaults to temporary directory.
         bind_dir (Union[Path, str], optional): The directory that will be bound
         to the code executor container. Useful for cases where you want to spawn
         the container from within a container. Defaults to work_dir.
@@ -125,6 +124,10 @@ class DockerCommandLineCodeExecutor(CodeExecutor, Component[DockerCommandLineCod
             Example: extra_hosts = {"kubernetes.docker.internal": "host-gateway"}
         init_command (Optional[str], optional): A shell command to run before each shell operation execution. Defaults to None.
             Example: init_command="kubectl config use-context docker-hub"
+
+    .. note::
+        Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
+
     """
 
     component_config_schema = DockerCommandLineCodeExecutorConfig
