@@ -22,6 +22,23 @@ ENVIRON_KEY_AZURE_POOL_ENDPOINT = "AZURE_POOL_ENDPOINT"
 POOL_ENDPOINT = os.getenv(ENVIRON_KEY_AZURE_POOL_ENDPOINT)
 
 
+def test_session_id_preserved_if_passed() -> None:
+    executor = ACADynamicSessionsCodeExecutor(
+        pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential()
+    )
+    session_id = "test_session_id"
+    executor._session_id = session_id
+    assert executor._session_id == session_id
+
+
+def test_session_id_generated_if_not_passed() -> None:
+    executor = ACADynamicSessionsCodeExecutor(
+        pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential()
+    )
+    assert executor._session_id is not None
+    assert len(executor._session_id) > 0
+
+
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
     reason="do not run if pool endpoint is not defined",
