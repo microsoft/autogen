@@ -6,8 +6,8 @@ from pydantic import BaseModel
 
 from ..base import ChatAgent, Response, TaskResult
 from ..messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
     ModelClientStreamingChunkEvent,
     TextMessage,
 )
@@ -59,13 +59,13 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
 
     @property
     @abstractmethod
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         """The types of messages that the agent produces in the
-        :attr:`Response.chat_message` field. They must be :class:`ChatMessage` types."""
+        :attr:`Response.chat_message` field. They must be :class:`BaseChatMessage` types."""
         ...
 
     @abstractmethod
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handles incoming messages and returns a response.
 
         .. note::
@@ -81,8 +81,8 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
         ...
 
     async def on_messages_stream(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """Handles incoming messages and returns a stream of messages and
         and the final item is the response. The base implementation in
         :class:`BaseChatAgent` simply calls :meth:`on_messages` and yields
@@ -106,21 +106,21 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
     async def run(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
-        input_messages: List[ChatMessage] = []
-        output_messages: List[AgentEvent | ChatMessage] = []
+        input_messages: List[BaseChatMessage] = []
+        output_messages: List[BaseAgentEvent | BaseChatMessage] = []
         if task is None:
             pass
         elif isinstance(task, str):
             text_msg = TextMessage(content=task, source="user")
             input_messages.append(text_msg)
             output_messages.append(text_msg)
-        elif isinstance(task, ChatMessage):
+        elif isinstance(task, BaseChatMessage):
             input_messages.append(task)
             output_messages.append(task)
         else:
@@ -128,7 +128,7 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
                 raise ValueError("Task list cannot be empty.")
             # Task is a sequence of messages.
             for msg in task:
-                if isinstance(msg, ChatMessage):
+                if isinstance(msg, BaseChatMessage):
                     input_messages.append(msg)
                     output_messages.append(msg)
                 else:
@@ -142,15 +142,15 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
         and the final task result as the last item in the stream."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
-        input_messages: List[ChatMessage] = []
-        output_messages: List[AgentEvent | ChatMessage] = []
+        input_messages: List[BaseChatMessage] = []
+        output_messages: List[BaseAgentEvent | BaseChatMessage] = []
         if task is None:
             pass
         elif isinstance(task, str):
@@ -158,7 +158,7 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
             input_messages.append(text_msg)
             output_messages.append(text_msg)
             yield text_msg
-        elif isinstance(task, ChatMessage):
+        elif isinstance(task, BaseChatMessage):
             input_messages.append(task)
             output_messages.append(task)
             yield task
@@ -166,7 +166,7 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
             if not task:
                 raise ValueError("Task list cannot be empty.")
             for msg in task:
-                if isinstance(msg, ChatMessage):
+                if isinstance(msg, BaseChatMessage):
                     input_messages.append(msg)
                     output_messages.append(msg)
                     yield msg

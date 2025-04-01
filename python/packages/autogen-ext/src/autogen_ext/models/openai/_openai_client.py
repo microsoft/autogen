@@ -12,6 +12,7 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import (
     Any,
     AsyncGenerator,
+    Callable,
     Dict,
     List,
     Mapping,
@@ -38,7 +39,6 @@ from autogen_core.models import (
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
     CreateResult,
-    FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,  # type: ignore
     ModelFamily,
@@ -53,18 +53,11 @@ from autogen_core.tools import Tool, ToolSchema
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
-    ChatCompletionAssistantMessageParam,
     ChatCompletionChunk,
-    ChatCompletionContentPartImageParam,
     ChatCompletionContentPartParam,
-    ChatCompletionContentPartTextParam,
     ChatCompletionMessageParam,
-    ChatCompletionMessageToolCallParam,
     ChatCompletionRole,
-    ChatCompletionSystemMessageParam,
-    ChatCompletionToolMessageParam,
     ChatCompletionToolParam,
-    ChatCompletionUserMessageParam,
     ParsedChatCompletion,
     ParsedChoice,
     completion_create_params,
@@ -82,6 +75,10 @@ from typing_extensions import Self, Unpack
 from .._utils.normalize_stop_reason import normalize_stop_reason
 from .._utils.parse_r1_content import parse_r1_content
 from . import _model_info
+from ._transformation import (
+    get_transformer,
+)
+from ._utils import assert_valid_name
 from .config import (
     AzureOpenAIClientConfiguration,
     AzureOpenAIClientConfigurationConfigModel,
@@ -164,105 +161,22 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
         return "tool"
 
 
-def user_message_to_oai(message: UserMessage, prepend_name: bool = False) -> ChatCompletionUserMessageParam:
-    assert_valid_name(message.source)
-    if isinstance(message.content, str):
-        return ChatCompletionUserMessageParam(
-            content=(f"{message.source} said:\n" if prepend_name else "") + message.content,
-            role="user",
-            name=message.source,
-        )
-    else:
-        parts: List[ChatCompletionContentPartParam] = []
-        for part in message.content:
-            if isinstance(part, str):
-                if prepend_name:
-                    # Append the name to the first text part
-                    oai_part = ChatCompletionContentPartTextParam(
-                        text=f"{message.source} said:\n" + part,
-                        type="text",
-                    )
-                    prepend_name = False
-                else:
-                    oai_part = ChatCompletionContentPartTextParam(
-                        text=part,
-                        type="text",
-                    )
-                parts.append(oai_part)
-            elif isinstance(part, Image):
-                # TODO: support url based images
-                # TODO: support specifying details
-                parts.append(cast(ChatCompletionContentPartImageParam, part.to_openai_format()))
-            else:
-                raise ValueError(f"Unknown content type: {part}")
-        return ChatCompletionUserMessageParam(
-            content=parts,
-            role="user",
-            name=message.source,
-        )
+def to_oai_type(
+    message: LLMMessage, prepend_name: bool = False, model_family: str = "gpt-4o"
+) -> Sequence[ChatCompletionMessageParam]:
+    context = {
+        "prepend_name": prepend_name,
+    }
+    transformers = get_transformer("openai", model_family)
 
+    def raise_value_error(message: LLMMessage, context: Dict[str, Any]) -> Sequence[ChatCompletionMessageParam]:
+        raise ValueError(f"Unknown message type: {type(message)}")
 
-def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessageParam:
-    return ChatCompletionSystemMessageParam(
-        content=message.content,
-        role="system",
+    transformer: Callable[[LLMMessage, Dict[str, Any]], Sequence[ChatCompletionMessageParam]] = transformers.get(
+        type(message), raise_value_error
     )
-
-
-def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallParam:
-    return ChatCompletionMessageToolCallParam(
-        id=message.id,
-        function={
-            "arguments": message.arguments,
-            "name": message.name,
-        },
-        type="function",
-    )
-
-
-def tool_message_to_oai(
-    message: FunctionExecutionResultMessage,
-) -> Sequence[ChatCompletionToolMessageParam]:
-    return [
-        ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id) for x in message.content
-    ]
-
-
-def assistant_message_to_oai(
-    message: AssistantMessage,
-) -> ChatCompletionAssistantMessageParam:
-    assert_valid_name(message.source)
-    if isinstance(message.content, list):
-        if message.thought is not None:
-            return ChatCompletionAssistantMessageParam(
-                content=message.thought,
-                tool_calls=[func_call_to_oai(x) for x in message.content],
-                role="assistant",
-                name=message.source,
-            )
-        else:
-            return ChatCompletionAssistantMessageParam(
-                tool_calls=[func_call_to_oai(x) for x in message.content],
-                role="assistant",
-                name=message.source,
-            )
-    else:
-        return ChatCompletionAssistantMessageParam(
-            content=message.content,
-            role="assistant",
-            name=message.source,
-        )
-
-
-def to_oai_type(message: LLMMessage, prepend_name: bool = False) -> Sequence[ChatCompletionMessageParam]:
-    if isinstance(message, SystemMessage):
-        return [system_message_to_oai(message)]
-    elif isinstance(message, UserMessage):
-        return [user_message_to_oai(message, prepend_name)]
-    elif isinstance(message, AssistantMessage):
-        return [assistant_message_to_oai(message)]
-    else:
-        return tool_message_to_oai(message)
+    result = transformer(message, context)
+    return result
 
 
 def calculate_vision_tokens(image: Image, detail: str = "auto") -> int:
@@ -360,17 +274,99 @@ def normalize_name(name: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
 
 
-def assert_valid_name(name: str) -> str:
-    """
-    Ensure that configured names are valid, raises ValueError if not.
+def count_tokens_openai(
+    messages: Sequence[LLMMessage],
+    model: str,
+    *,
+    add_name_prefixes: bool = False,
+    tools: Sequence[Tool | ToolSchema] = [],
+) -> int:
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        trace_logger.warning(f"Model {model} not found. Using cl100k_base encoding.")
+        encoding = tiktoken.get_encoding("cl100k_base")
+    tokens_per_message = 3
+    tokens_per_name = 1
+    num_tokens = 0
 
-    For munging LLM responses use _normalize_name to ensure LLM specified names don't break the API.
-    """
-    if not re.match(r"^[a-zA-Z0-9_-]+$", name):
-        raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
-    if len(name) > 64:
-        raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
-    return name
+    # Message tokens.
+    for message in messages:
+        num_tokens += tokens_per_message
+        oai_message = to_oai_type(message, prepend_name=add_name_prefixes, model_family=model)
+        for oai_message_part in oai_message:
+            for key, value in oai_message_part.items():
+                if value is None:
+                    continue
+
+                if isinstance(message, UserMessage) and isinstance(value, list):
+                    typed_message_value = cast(List[ChatCompletionContentPartParam], value)
+
+                    assert len(typed_message_value) == len(
+                        message.content
+                    ), "Mismatch in message content and typed message value"
+
+                    # We need image properties that are only in the original message
+                    for part, content_part in zip(typed_message_value, message.content, strict=False):
+                        if isinstance(content_part, Image):
+                            # TODO: add detail parameter
+                            num_tokens += calculate_vision_tokens(content_part)
+                        elif isinstance(part, str):
+                            num_tokens += len(encoding.encode(part))
+                        else:
+                            try:
+                                serialized_part = json.dumps(part)
+                                num_tokens += len(encoding.encode(serialized_part))
+                            except TypeError:
+                                trace_logger.warning(f"Could not convert {part} to string, skipping.")
+                else:
+                    if not isinstance(value, str):
+                        try:
+                            value = json.dumps(value)
+                        except TypeError:
+                            trace_logger.warning(f"Could not convert {value} to string, skipping.")
+                            continue
+                    num_tokens += len(encoding.encode(value))
+                    if key == "name":
+                        num_tokens += tokens_per_name
+    num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
+
+    # Tool tokens.
+    oai_tools = convert_tools(tools)
+    for tool in oai_tools:
+        function = tool["function"]
+        tool_tokens = len(encoding.encode(function["name"]))
+        if "description" in function:
+            tool_tokens += len(encoding.encode(function["description"]))
+        tool_tokens -= 2
+        if "parameters" in function:
+            parameters = function["parameters"]
+            if "properties" in parameters:
+                assert isinstance(parameters["properties"], dict)
+                for propertiesKey in parameters["properties"]:  # pyright: ignore
+                    assert isinstance(propertiesKey, str)
+                    tool_tokens += len(encoding.encode(propertiesKey))
+                    v = parameters["properties"][propertiesKey]  # pyright: ignore
+                    for field in v:  # pyright: ignore
+                        if field == "type":
+                            tool_tokens += 2
+                            tool_tokens += len(encoding.encode(v["type"]))  # pyright: ignore
+                        elif field == "description":
+                            tool_tokens += 2
+                            tool_tokens += len(encoding.encode(v["description"]))  # pyright: ignore
+                        elif field == "enum":
+                            tool_tokens -= 3
+                            for o in v["enum"]:  # pyright: ignore
+                                tool_tokens += 3
+                                tool_tokens += len(encoding.encode(o))  # pyright: ignore
+                        else:
+                            trace_logger.warning(f"Not supported field {field}")
+                tool_tokens += 11
+                if len(parameters["properties"]) == 0:  # pyright: ignore
+                    tool_tokens -= 2
+        num_tokens += tool_tokens
+    num_tokens += 12
+    return num_tokens
 
 
 @dataclass
@@ -517,7 +513,37 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
-        oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes) for m in messages]
+        if create_args.get("model", "unknown").startswith("gemini-"):
+            # Gemini models accept only one system message(else, it will read only the last one)
+            # So, merge system messages into one
+            system_message_content = ""
+            _messages: List[LLMMessage] = []
+            _first_system_message_idx = -1
+            _last_system_message_idx = -1
+            # Index of the first system message for adding the merged system message at the correct position
+            for idx, message in enumerate(messages):
+                if isinstance(message, SystemMessage):
+                    if _first_system_message_idx == -1:
+                        _first_system_message_idx = idx
+                    elif _last_system_message_idx + 1 != idx:
+                        # That case, system message is not continuous
+                        # Merge system messages only contiues system messages
+                        raise ValueError("Multiple and Not continuous system messages are not supported")
+                    system_message_content += message.content + "\n"
+                    _last_system_message_idx = idx
+                else:
+                    _messages.append(message)
+            system_message_content = system_message_content.rstrip()
+            if system_message_content != "":
+                system_message = SystemMessage(content=system_message_content)
+                _messages.insert(_first_system_message_idx, system_message)
+            messages = _messages
+
+        oai_messages_nested = [
+            to_oai_type(m, prepend_name=self._add_name_prefixes, model_family=create_args.get("model", "unknown"))
+            for m in messages
+        ]
+
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
         if self.model_info["function_calling"] is False and len(tools) > 0:
@@ -1002,93 +1028,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         return self._total_usage
 
     def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
-        model = self._create_args["model"]
-        try:
-            encoding = tiktoken.encoding_for_model(model)
-        except KeyError:
-            trace_logger.warning(f"Model {model} not found. Using cl100k_base encoding.")
-            encoding = tiktoken.get_encoding("cl100k_base")
-        tokens_per_message = 3
-        tokens_per_name = 1
-        num_tokens = 0
-
-        # Message tokens.
-        for message in messages:
-            num_tokens += tokens_per_message
-            oai_message = to_oai_type(message, prepend_name=self._add_name_prefixes)
-            for oai_message_part in oai_message:
-                for key, value in oai_message_part.items():
-                    if value is None:
-                        continue
-
-                    if isinstance(message, UserMessage) and isinstance(value, list):
-                        typed_message_value = cast(List[ChatCompletionContentPartParam], value)
-
-                        assert len(typed_message_value) == len(
-                            message.content
-                        ), "Mismatch in message content and typed message value"
-
-                        # We need image properties that are only in the original message
-                        for part, content_part in zip(typed_message_value, message.content, strict=False):
-                            if isinstance(content_part, Image):
-                                # TODO: add detail parameter
-                                num_tokens += calculate_vision_tokens(content_part)
-                            elif isinstance(part, str):
-                                num_tokens += len(encoding.encode(part))
-                            else:
-                                try:
-                                    serialized_part = json.dumps(part)
-                                    num_tokens += len(encoding.encode(serialized_part))
-                                except TypeError:
-                                    trace_logger.warning(f"Could not convert {part} to string, skipping.")
-                    else:
-                        if not isinstance(value, str):
-                            try:
-                                value = json.dumps(value)
-                            except TypeError:
-                                trace_logger.warning(f"Could not convert {value} to string, skipping.")
-                                continue
-                        num_tokens += len(encoding.encode(value))
-                        if key == "name":
-                            num_tokens += tokens_per_name
-        num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
-
-        # Tool tokens.
-        oai_tools = convert_tools(tools)
-        for tool in oai_tools:
-            function = tool["function"]
-            tool_tokens = len(encoding.encode(function["name"]))
-            if "description" in function:
-                tool_tokens += len(encoding.encode(function["description"]))
-            tool_tokens -= 2
-            if "parameters" in function:
-                parameters = function["parameters"]
-                if "properties" in parameters:
-                    assert isinstance(parameters["properties"], dict)
-                    for propertiesKey in parameters["properties"]:  # pyright: ignore
-                        assert isinstance(propertiesKey, str)
-                        tool_tokens += len(encoding.encode(propertiesKey))
-                        v = parameters["properties"][propertiesKey]  # pyright: ignore
-                        for field in v:  # pyright: ignore
-                            if field == "type":
-                                tool_tokens += 2
-                                tool_tokens += len(encoding.encode(v["type"]))  # pyright: ignore
-                            elif field == "description":
-                                tool_tokens += 2
-                                tool_tokens += len(encoding.encode(v["description"]))  # pyright: ignore
-                            elif field == "enum":
-                                tool_tokens -= 3
-                                for o in v["enum"]:  # pyright: ignore
-                                    tool_tokens += 3
-                                    tool_tokens += len(encoding.encode(o))  # pyright: ignore
-                            else:
-                                trace_logger.warning(f"Not supported field {field}")
-                    tool_tokens += 11
-                    if len(parameters["properties"]) == 0:  # pyright: ignore
-                        tool_tokens -= 2
-            num_tokens += tool_tokens
-        num_tokens += 12
-        return num_tokens
+        return count_tokens_openai(
+            messages,
+            self._create_args["model"],
+            add_name_prefixes=self._add_name_prefixes,
+            tools=tools,
+        )
 
     def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         token_limit = _model_info.get_token_limit(self._create_args["model"])
@@ -1394,6 +1339,11 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                 copied_args["base_url"] = _model_info.GEMINI_OPENAI_BASE_URL
             if "api_key" not in copied_args and "GEMINI_API_KEY" in os.environ:
                 copied_args["api_key"] = os.environ["GEMINI_API_KEY"]
+        if copied_args["model"].startswith("claude-"):
+            if "base_url" not in copied_args:
+                copied_args["base_url"] = _model_info.ANTHROPIC_OPENAI_BASE_URL
+            if "api_key" not in copied_args and "ANTHROPIC_API_KEY" in os.environ:
+                copied_args["api_key"] = os.environ["ANTHROPIC_API_KEY"]
 
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
