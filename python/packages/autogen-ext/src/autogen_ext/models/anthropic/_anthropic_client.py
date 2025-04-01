@@ -25,7 +25,7 @@ from typing import (
 )
 
 import tiktoken
-from anthropic import AsyncAnthropic, AsyncStream
+from anthropic import AsyncAnthropic, AsyncStream, AnthropicBedrock
 from anthropic.types import (
     Base64ImageSourceParam,
     ContentBlock,
@@ -1043,6 +1043,121 @@ class AnthropicChatCompletionClient(
             del copied_args["model_info"]
 
         client = _anthropic_client_from_config(copied_args)
+        create_args = _create_args_from_config(copied_args)
+
+        super().__init__(
+            client=client,
+            create_args=create_args,
+            model_info=model_info,
+        )
+
+    def __getstate__(self) -> Dict[str, Any]:
+        state = self.__dict__.copy()
+        state["_client"] = None
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        self.__dict__.update(state)
+        self._client = _anthropic_client_from_config(state["_raw_config"])
+
+    def _to_config(self) -> AnthropicClientConfigurationConfigModel:
+        copied_config = self._raw_config.copy()
+        return AnthropicClientConfigurationConfigModel(**copied_config)
+
+    @classmethod
+    def _from_config(cls, config: AnthropicClientConfigurationConfigModel) -> Self:
+        copied_config = config.model_copy().model_dump(exclude_none=True)
+
+        # Handle api_key as SecretStr
+        if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
+            copied_config["api_key"] = config.api_key.get_secret_value()
+
+        return cls(**copied_config)
+
+class AnthropicBedrockChatCompletionClient(
+    BaseAnthropicChatCompletionClient, Component[AnthropicClientConfigurationConfigModel]
+):
+    """
+    Chat completion client for Anthropic's Claude models.
+
+    Args:
+        model (str): The Claude model to use (e.g., "claude-3-sonnet-20240229", "claude-3-opus-20240229")
+        api_key (str, optional): Anthropic API key. Required if not in environment variables.
+        base_url (str, optional): Override the default API endpoint.
+        max_tokens (int, optional): Maximum tokens in the response. Default is 4096.
+        temperature (float, optional): Controls randomness. Lower is more deterministic. Default is 1.0.
+        top_p (float, optional): Controls diversity via nucleus sampling. Default is 1.0.
+        top_k (int, optional): Controls diversity via top-k sampling. Default is -1 (disabled).
+        model_info (ModelInfo, optional): The capabilities of the model. Required if using a custom model.
+
+    To use this client, you must install the Anthropic extension:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[anthropic]"
+
+    Example:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_ext.models.anthropic import AnthropicBedrockChatCompletionClient
+        from autogen_core.models import UserMessage
+
+
+        async def main():
+            config =  {
+            "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "temperature": 0.1,
+            "model_info": {
+                "vision": True,
+                "function_calling": True,
+                "json_output": True,
+                "family": ModelFamily.CLAUDE_3_5_SONNET,
+            },
+            "bedrock_info":{
+                "aws_access_key": "<aws_access_key>",
+                "aws_secret_key": "<aws_secret_key>",
+                "aws_session_token": "<aws_session_token>",
+                "aws_region": "<aws_region>"
+            }}
+            anthropic_client = AnthropicBedrockChatCompletionClient(**config)
+
+            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            print(result)
+
+        if __name__ == "__main__":
+            asyncio.run(main())
+    """
+
+    component_type = "model"
+    component_config_schema = AnthropicClientConfigurationConfigModel
+    component_provider_override = "autogen_ext.models.anthropic.AnthropicChatCompletionClient"
+
+    def __init__(self, **kwargs: Unpack[AnthropicClientConfiguration]):
+        if "model" not in kwargs:
+            raise ValueError("model is required for AnthropicChatCompletionClient")
+
+        self._raw_config: Dict[str, Any] = dict(kwargs).copy()
+        copied_args = dict(kwargs).copy()
+
+        model_info: Optional[ModelInfo] = None
+        if "model_info" in kwargs:
+            model_info = kwargs["model_info"]
+            del copied_args["model_info"]
+
+        if "bedrock_info" not in kwargs:
+            raise ValueError("bedrock_info is required for AnthropicBedrockChatCompletionClient")
+        # Authenticate by either providing the keys below or use the default AWS credential providers, such as
+        # using ~/.aws/credentials or the "AWS_SECRET_ACCESS_KEY" and "AWS_ACCESS_KEY_ID" environment variables.
+        aws_region = kwargs["bedrock_info"]["aws_region"]
+        aws_access_key=kwargs["bedrock_info"]["aws_access_key"]
+        aws_secret_key=kwargs["bedrock_info"]["aws_secret_key"]
+        aws_session_token=kwargs["bedrock_info"]["aws_session_token"]
+        client = AnthropicBedrock(aws_access_key=aws_access_key,
+                                  aws_secret_key=aws_secret_key,
+                                  aws_session_token=aws_session_token,
+                                  aws_region=aws_region)
         create_args = _create_args_from_config(copied_args)
 
         super().__init__(
