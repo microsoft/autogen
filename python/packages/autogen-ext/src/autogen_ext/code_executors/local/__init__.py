@@ -456,13 +456,22 @@ $functions"""
         )
 
     async def start(self) -> None:
-        """(Experimental) Start the code executor."""
+        """(Experimental) Start the code executor.
+
+        Initializes the local code executor and should be called before executing any code blocks.
+        It marks the executor internal state as started.
+        If no working directory is provided, the method creates a temporary directory for the executor to use.
+        """
         if self._work_dir is None and self._temp_dir is None:
             self._temp_dir = tempfile.TemporaryDirectory()
         self._started = True
 
     async def stop(self) -> None:
-        """(Experimental) Stop the code executor."""
+        """(Experimental) Stop the code executor.
+
+        Stops the local code executor and performs the cleanup of the temporary working directory (if it was created).
+        The executor's internal state is markes as no longer started.
+        """
         if self._temp_dir is not None:
             self._temp_dir.cleanup()
             self._temp_dir = None

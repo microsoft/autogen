@@ -271,6 +271,12 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         await self.start()
 
     async def start(self) -> None:
+        """(Experimental) Start the code executor.
+
+        Initializes the Jupyter Notebook execution environment by creating a new notebook and setting it up with the specified Jupyter Kernel.
+        Marks the executor as started, allowing for code execution.
+        This method should be called before executing any code blocks.
+        """
         if self._started:
             return
 
@@ -289,6 +295,9 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         self._started = True
 
     async def stop(self) -> None:
+        """(Experimental) Stop the code executor.
+
+        Terminates the Jupyter Notebook execution by exiting the kernel context and cleaning up the associated resources."""
         if not self._started:
             return
 

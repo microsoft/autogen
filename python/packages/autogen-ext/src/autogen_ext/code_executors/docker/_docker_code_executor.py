@@ -386,10 +386,10 @@ $functions"""
         return await self._execute_code_dont_check_setup(code_blocks, cancellation_token)
 
     async def restart(self) -> None:
+        """(Experimental) Restart the Docker container code executor."""
         if self._container is None or not self._running:
             raise ValueError("Container is not running. Must first be started with either start or a context manager.")
 
-        """(Experimental) Restart the code executor."""
         await asyncio.to_thread(self._container.restart)  # type: ignore
         if self._container.status != "running":
             self._running = False
@@ -397,7 +397,12 @@ $functions"""
             raise ValueError(f"Failed to restart container. Logs: {logs_str}")
 
     async def stop(self) -> None:
-        """(Experimental) Stop the code executor."""
+        """(Experimental) Stop the code executor.
+
+        Stops the Docker container and cleans up any temporary files (if they were created), along with the temporary directory.
+        The method first waits for all cancellation tasks to finish before stopping the container. Finally it marks the executor as not running.
+        If the container is not running, the method does nothing.
+        """
         if not self._running:
             return
 
@@ -418,6 +423,12 @@ $functions"""
             self._running = False
 
     async def start(self) -> None:
+        """(Experimental) Start the code executor.
+
+        This method sets the working environment variables, connects to Docker and starts the code executor.
+        If no working directory was provided to the code executor, it creates a temporary directory and sets it as the code executor working directory.
+        """
+
         if self._work_dir is None and self._temp_dir is None:
             self._temp_dir = tempfile.TemporaryDirectory()
             self._temp_dir_path = Path(self._temp_dir.name)

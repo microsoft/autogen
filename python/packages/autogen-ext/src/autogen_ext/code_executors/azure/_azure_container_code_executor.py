@@ -492,7 +492,11 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
         return CodeResult(exit_code=exitcode, output=logs_all)
 
     async def restart(self) -> None:
-        """(Experimental) Restart the code executor."""
+        """(Experimental) Restart the code executor.
+
+        Resets the internal state of the executor by generating a new session ID and resetting the setup variables.
+        This causes the next code execution to reinitialize the environment and re-run any setup code.
+        """
         self._session_id = str(uuid4())
         self._setup_functions_complete = False
         self._access_token = None
@@ -500,12 +504,16 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
         self._setup_cwd_complete = False
 
     async def start(self) -> None:
-        """(Experimental) Start the code executor."""
+        """(Experimental) Start the code executor.
+
+        Marks the code executor as started."""
         # No setup needed for this executor
         self._started = True
 
     async def stop(self) -> None:
-        """(Experimental) Stop the code executor."""
+        """(Experimental) Stop the code executor.
+
+        Stops the code executor after cleaning up the temporary working directory (if it was created)."""
         if self._temp_dir is not None:
             self._temp_dir.cleanup()
             self._temp_dir = None
