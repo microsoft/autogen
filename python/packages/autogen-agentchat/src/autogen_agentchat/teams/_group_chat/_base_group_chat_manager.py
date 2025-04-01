@@ -200,7 +200,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             error = SerializableException.from_exception(e)
             await self._signal_termination_with_error(error)
             # Raise the exception to the runtime.
-            raise e
+            raise
 
     async def _signal_termination(self, message: StopMessage) -> None:
         termination_event = GroupChatTermination(message=message)

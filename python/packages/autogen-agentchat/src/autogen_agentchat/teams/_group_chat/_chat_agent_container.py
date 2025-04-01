@@ -102,7 +102,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
                 cancellation_token=ctx.cancellation_token,
             )
             # Raise the error to the runtime.
-            raise e
+            raise
 
     def _buffer_message(self, message: BaseChatMessage) -> None:
         if not self._message_factory.is_registered(message.__class__):
