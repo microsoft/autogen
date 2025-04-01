@@ -727,7 +727,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     @property
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
-        message_types: List[type[BaseChatMessage]] = [TextMessage]
+        message_types: List[type[BaseChatMessage]] = []
         if self._handoffs:
             message_types.append(HandoffMessage)
         if self._tools:
