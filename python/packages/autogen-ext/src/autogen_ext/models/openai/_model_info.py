@@ -311,7 +311,7 @@ def get_info(model: str) -> ModelInfo:
         },
     )
     if model_info.get("family") == "FAILED":
-        raise ValueError(f"model_info is required when model name is not a valid OpenAI model")
+        raise ValueError("model_info is required when model name is not a valid OpenAI model")
     if model_info.get("family") == ModelFamily.UNKNOWN:
         trace_logger.warning(f"Model info not found for model: {model}")
 

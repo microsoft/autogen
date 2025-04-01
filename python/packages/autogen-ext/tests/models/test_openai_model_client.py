@@ -29,6 +29,7 @@ from autogen_ext.models.openai._openai_client import (
     convert_tools,
     to_oai_type,
 )
+from autogen_ext.models.openai._transformation import TransformerMap, get_transformer
 from openai.resources.beta.chat.completions import (  # type: ignore
     AsyncChatCompletionStreamManager as BetaAsyncChatCompletionStreamManager,  # type: ignore
 )
@@ -2365,6 +2366,29 @@ async def test_empty_assistant_content_string_with_some_model(
     # This will crash if _set_empty_to_whitespace is not applied to "content"
     result = await openai_client.create(messages=messages)
     assert isinstance(result.content, str)
+
+
+def test_openai_model_registry_find_well() -> None:
+    model = "gpt-4o"
+    client1 = OpenAIChatCompletionClient(model=model, api_key="test")
+    client2 = OpenAIChatCompletionClient(
+        model=model,
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "structured_output": False,
+            "family": ModelFamily.UNKNOWN,
+        },
+        api_key="test",
+    )
+
+    def get_regitered_transformer(client: OpenAIChatCompletionClient) -> TransformerMap:
+        model_name = client._create_args["model"]  # pyright: ignore[reportPrivateUsage]
+        model_family = client.model_info["family"]
+        return get_transformer("openai", model_name, model_family)
+
+    assert get_regitered_transformer(client1) == get_regitered_transformer(client2)
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.

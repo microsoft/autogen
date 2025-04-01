@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Any, Callable, Dict, List
 
-from autogen_core.models import LLMMessage
+from autogen_core.models import LLMMessage, ModelFamily
 
 from .types import (
     TransformerFunc,
@@ -87,7 +87,7 @@ def _find_model_family(api: str, model: str) -> str:
     Finds the best matching model family for the given model.
     Search via prefix matching (e.g. "gpt-4o" → "gpt-4o-1.0").
     """
-    family = "unknown"
+    family = ModelFamily.UNKNOWN
     for _family in MESSAGE_TRANSFORMERS[api].keys():
         if model.startswith(_family):
             family = _family
@@ -108,8 +108,9 @@ def get_transformer(api: str, model: str, model_family: str) -> TransformerMap:
     Keeping this as a function (instead of direct dict access) improves long-term flexibility.
     """
 
-    if model_family == "unknown":
-        model_family = _find_model_family(api, model_family)
+    if model_family == ModelFamily.UNKNOWN:
+        # fallback to finding the best matching model family
+        model_family = _find_model_family(api, model)
 
     transformer = MESSAGE_TRANSFORMERS.get(api, {}).get(model_family, {})
 

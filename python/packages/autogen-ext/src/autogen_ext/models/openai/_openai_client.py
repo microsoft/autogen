@@ -162,7 +162,7 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
 
 
 def to_oai_type(
-    message: LLMMessage, prepend_name: bool = False, model: str = "unknown", model_family: str = "unknown"
+    message: LLMMessage, prepend_name: bool = False, model: str = "unknown", model_family: str = ModelFamily.UNKNOWN
 ) -> Sequence[ChatCompletionMessageParam]:
     context = {
         "prepend_name": prepend_name,
@@ -280,7 +280,7 @@ def count_tokens_openai(
     *,
     add_name_prefixes: bool = False,
     tools: Sequence[Tool | ToolSchema] = [],
-    model_family: str = "unknown",
+    model_family: str = ModelFamily.UNKNOWN,
 ) -> int:
     try:
         encoding = tiktoken.encoding_for_model(model)
@@ -544,7 +544,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             to_oai_type(
                 m,
                 prepend_name=self._add_name_prefixes,
-                model=create_args.get("model", "unknown"),
+                model=create_args.get("model", ModelFamily.UNKNOWN),
                 model_family=self._model_info["family"],
             )
             for m in messages
