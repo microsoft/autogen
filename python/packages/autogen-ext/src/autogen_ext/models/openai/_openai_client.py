@@ -539,6 +539,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 _messages.insert(_first_system_message_idx, system_message)
             messages = _messages
 
+        # in that case, for ad-hoc, we using startswith instead of model_family for code consistency
+        if create_args.get("model", "unknown").startswith("claude-"): 
+            # When Claude models last message is AssistantMessage, It could not end with whitespace
+            if isinstance(messages[-1], AssistantMessage):
+                if isinstance(messages[-1].content, str):
+                    messages[-1].content = messages[-1].content.rstrip()
+
         oai_messages_nested = [
             to_oai_type(m, prepend_name=self._add_name_prefixes, model_family=create_args.get("model", "unknown"))
             for m in messages

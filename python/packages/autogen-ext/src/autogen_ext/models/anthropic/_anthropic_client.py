@@ -461,6 +461,17 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         return messages
 
+    def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
+        """
+        Remove the last assistant message if it is empty.
+        """
+        # When Claude models last message is AssistantMessage, It could not end with whitespace
+        if isinstance(messages[-1], AssistantMessage):
+            if isinstance(messages[-1].content, str):
+                messages[-1].content = messages[-1].content.rstrip()
+
+        return messages
+
     async def create(
         self,
         messages: Sequence[LLMMessage],
@@ -497,6 +508,8 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         # Merge continuous system messages into a single message
         messages = self._merge_system_messages(messages)
+        messages = self._rstrip_last_assistant_message(messages)
+        
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
@@ -662,6 +675,8 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         # Merge continuous system messages into a single message
         messages = self._merge_system_messages(messages)
+        messages = self._rstrip_last_assistant_message(messages)
+        
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
