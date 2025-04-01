@@ -1278,7 +1278,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         """Convert the assistant agent to a declarative config."""
 
         if self._output_content_type:
-            raise ValueError("AssistantAgent with output_format does not support declarative config.")
+            raise ValueError("AssistantAgent with output_content_type does not support declarative config.")
 
         return AssistantAgentConfig(
             name=self.name,
