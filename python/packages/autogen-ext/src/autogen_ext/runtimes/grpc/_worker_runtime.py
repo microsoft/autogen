@@ -40,7 +40,6 @@ from autogen_core import (
     AgentMetadata,
     AgentRuntime,
     AgentType,
-    BaseAgent,
     CancellationToken,
     MessageContext,
     MessageHandlerContext,
@@ -747,18 +746,13 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
     async def register_agent_instance(
         self,
         agent_instance: T | Awaitable[T],
+        agent_id: AgentId,
     ) -> AgentId:
         def agent_factory() -> T:
             raise RuntimeError("Agent factory should not be called when registering an agent instance.")
 
         if inspect.isawaitable(agent_instance):
             agent_instance = await agent_instance
-
-        # Agent type does not have the concept of a runtime
-        if isinstance(agent_instance, BaseAgent):
-            if agent_instance.runtime is not self:
-                raise ValueError("Agent instance is associated with a different runtime.")
-        agent_id = agent_instance.id
 
         if agent_id in self._instantiated_agents:
             raise ValueError(f"Agent with id {agent_id} already exists.")
@@ -773,6 +767,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             if self._agent_instance_types[agent_id.type] != type_func_alias(agent_instance):
                 raise ValueError("Agent instances must be the same object type.")
 
+        await agent_instance.init(runtime=self, agent_id=agent_id)
         self._instantiated_agents[agent_id] = agent_instance
         return agent_id
 
@@ -796,7 +791,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 raise ValueError("Agent factory must take 0 or 2 arguments.")
 
             if inspect.isawaitable(agent):
-                return cast(T, await agent)
+                agent = cast(T, await agent)
 
         return agent
 

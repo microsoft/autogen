@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from asyncio import Event
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from autogen_core import (
-    AgentId,
-    AgentRuntime,
     BaseAgent,
     Component,
     ComponentBase,
@@ -35,8 +33,8 @@ class ContentMessage:
 
 
 class LoopbackAgent(RoutedAgent):
-    def __init__(self, runtime: Optional[AgentRuntime] = None, agent_id: Optional[AgentId] = None) -> None:
-        super().__init__("A loop back agent.", runtime, agent_id)
+    def __init__(self) -> None:
+        super().__init__("A loop back agent.")
         self.num_calls = 0
         self.received_messages: list[Any] = []
         self.event = Event()
@@ -57,10 +55,8 @@ class LoopbackAgentWithDefaultSubscription(LoopbackAgent): ...
 
 @default_subscription
 class CascadingAgent(RoutedAgent):
-    def __init__(
-        self, max_rounds: int, runtime: Optional[AgentRuntime] = None, agent_id: Optional[AgentId] = None
-    ) -> None:
-        super().__init__("A cascading agent.", runtime, agent_id)
+    def __init__(self, max_rounds: int) -> None:
+        super().__init__("A cascading agent.")
         self.num_calls = 0
         self.max_rounds = max_rounds
 
@@ -73,8 +69,8 @@ class CascadingAgent(RoutedAgent):
 
 
 class NoopAgent(BaseAgent):
-    def __init__(self, runtime: Optional[AgentRuntime] = None, agent_id: Optional[AgentId] = None) -> None:
-        super().__init__("A no op agent", runtime=runtime, agent_id=agent_id)
+    def __init__(self) -> None:
+        super().__init__("A no op agent")
 
     async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any:
         raise NotImplementedError

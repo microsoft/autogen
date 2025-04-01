@@ -4,7 +4,7 @@ import inspect
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, Tuple, Type, TypeVar, final
+from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Type, TypeVar, final
 
 from typing_extensions import Self
 
@@ -81,36 +81,23 @@ class BaseAgent(ABC, Agent):
         assert self._id is not None
         return AgentMetadata(key=self._id.key, type=self._id.type, description=self._description)
 
-    def __init__(
-        self, description: str, runtime: Optional[AgentRuntime] = None, agent_id: Optional[AgentId] = None
-    ) -> None:
-        param_count = 0
-        if runtime is not None:
-            param_count += 1
-        if agent_id is not None:
-            param_count += 1
-
-        if param_count != 0 and param_count != 2:
-            raise ValueError("BaseAgent must be instantiated with both runtime and agent_id or neither.")
-        if param_count == 0:
-            try:
-                runtime = AgentInstantiationContext.current_runtime()
-                agent_id = AgentInstantiationContext.current_agent_id()
-            except LookupError as e:
-                raise RuntimeError(
-                    "BaseAgent must be instantiated within the context of an AgentRuntime. It cannot be directly instantiated."
-                ) from e
-        else:
-            if not isinstance(runtime, AgentRuntime):
-                raise ValueError("Agent must be initialized with runtime of type AgentRuntime")
-            if not isinstance(agent_id, AgentId):
-                raise ValueError("Agent must be initialized with agent_id of type AgentId")
-
-        self._runtime: AgentRuntime = runtime
-        self._id: AgentId = agent_id
+    def __init__(self, description: str) -> None:
+        if AgentInstantiationContext.is_in_runtime():
+            self._runtime: AgentRuntime = AgentInstantiationContext.current_runtime()
+            self._id = AgentInstantiationContext.current_agent_id()
         if not isinstance(description, str):
             raise ValueError("Agent description must be a string")
         self._description = description
+
+    async def init(self, **kwargs: Any) -> None:
+        if "runtime" not in kwargs or "agent_id" not in kwargs:
+            raise ValueError("Agent must be initialized with runtime and agent_id")
+        if not isinstance(kwargs["runtime"], AgentRuntime):
+            raise ValueError("Agent must be initialized with runtime of type AgentRuntime")
+        if not isinstance(kwargs["agent_id"], AgentId):
+            raise ValueError("Agent must be initialized with agent_id of type AgentId")
+        self._runtime = kwargs["runtime"]
+        self._id = kwargs["agent_id"]
 
     @property
     def type(self) -> str:
@@ -173,12 +160,13 @@ class BaseAgent(ABC, Agent):
 
     async def register_instance(
         self,
+        runtime: AgentRuntime,
+        agent_id: AgentId,
         *,
         skip_class_subscriptions: bool = False,
         skip_direct_message_subscription: bool = False,
     ) -> AgentId:
-        runtime = self.runtime
-        agent_id = await runtime.register_agent_instance(agent_instance=self)
+        agent_id = await runtime.register_agent_instance(agent_instance=self, agent_id=agent_id)
         if not skip_class_subscriptions:
             with SubscriptionInstantiationContext.populate_context(AgentType(agent_id.type)):
                 subscriptions: List[Subscription] = []

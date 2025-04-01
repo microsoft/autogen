@@ -133,6 +133,7 @@ class AgentRuntime(Protocol):
     async def register_agent_instance(
         self,
         agent_instance: T | Awaitable[T],
+        agent_id: AgentId,
     ) -> AgentId:
         """Register an agent instance with the runtime. The type may be reused, but each agent_id must be unique. All agent instances within a type must be of the same object type. This API does not add any subscriptions.
 
@@ -145,7 +146,6 @@ class AgentRuntime(Protocol):
         .. code-block:: python
 
             from dataclasses import dataclass
-            from typing import Optional
 
             from autogen_core import AgentId, AgentRuntime, MessageContext, RoutedAgent, event
             from autogen_core.models import UserMessage
@@ -157,8 +157,8 @@ class AgentRuntime(Protocol):
 
 
             class MyAgent(RoutedAgent):
-                def __init__(self, runtime: Optional[AgentRuntime] = None, agent_id: Optional[AgentId] = None) -> None:
-                    super().__init__("My core agent", runtime, agent_id)
+                def __init__(self) -> None:
+                    super().__init__("My core agent")
 
                 @event
                 async def handler(self, message: UserMessage, context: MessageContext) -> None:
@@ -167,8 +167,10 @@ class AgentRuntime(Protocol):
 
             async def main() -> None:
                 runtime: AgentRuntime = ...  # type: ignore
-                agent = MyAgent(runtime=runtime, agent_id=AgentId(type="my_agent", key="default"))
-                await runtime.register_agent_instance(agent)
+                agent: Agent = MyAgent()
+                await runtime.register_agent_instance(
+                    agent_instance=agent, agent_id=AgentId(type="my_agent", key="default")
+                )
 
 
             import asyncio
@@ -178,6 +180,7 @@ class AgentRuntime(Protocol):
 
         Args:
             agent_instance (T | Awaitable[T]): A concrete instance of the agent.
+            agent_id (AgentId): The agent's identifier. The agent's type is `agent_id.type`.
         """
         ...
 

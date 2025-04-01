@@ -588,16 +588,16 @@ async def test_agent_type_register_instance() -> None:
     host.start()
 
     worker = GrpcWorkerAgentRuntime(host_address=host_address)
-    agent1 = NoopAgent(runtime=worker, agent_id=agent1_id)
-    agent2 = NoopAgent(runtime=worker, agent_id=agent2_id)
-    agentdup = NoopAgent(runtime=worker, agent_id=agentdup_id)
+    agent1 = NoopAgent()
+    agent2 = NoopAgent()
+    agentdup = NoopAgent()
     await worker.start()
 
-    await worker.register_agent_instance(agent1)
-    await worker.register_agent_instance(agent2)
+    await worker.register_agent_instance(agent1, agent_id=agent1_id)
+    await worker.register_agent_instance(agent2, agent_id=agent2_id)
 
     with pytest.raises(ValueError):
-        await worker.register_agent_instance(agentdup)
+        await worker.register_agent_instance(agentdup, agent_id=agentdup_id)
 
     assert await worker.try_get_underlying_agent_instance(agent1_id, type=NoopAgent) == agent1
     assert await worker.try_get_underlying_agent_instance(agent2_id, type=NoopAgent) == agent2
@@ -616,13 +616,13 @@ async def test_agent_type_register_instance_different_types() -> None:
     host.start()
 
     worker = GrpcWorkerAgentRuntime(host_address=host_address)
-    agent1 = NoopAgent(runtime=worker, agent_id=agent1_id)
-    agent2 = LoopbackAgent(runtime=worker, agent_id=agent2_id)
+    agent1 = NoopAgent()
+    agent2 = LoopbackAgent()
     await worker.start()
 
-    await worker.register_agent_instance(agent1)
+    await worker.register_agent_instance(agent1, agent_id=agent1_id)
     with pytest.raises(ValueError):
-        await worker.register_agent_instance(agent2)
+        await worker.register_agent_instance(agent2, agent_id=agent2_id)
 
     await worker.stop()
     await host.stop()
@@ -637,10 +637,10 @@ async def test_register_instance_factory() -> None:
     host.start()
 
     worker = GrpcWorkerAgentRuntime(host_address=host_address)
-    agent1 = NoopAgent(runtime=worker, agent_id=agent1_id)
+    agent1 = NoopAgent()
     await worker.start()
 
-    await agent1.register_instance()
+    await agent1.register_instance(runtime=worker, agent_id=agent1_id)
 
     with pytest.raises(ValueError):
         await NoopAgent.register(runtime=worker, type="name", factory=lambda: NoopAgent())
