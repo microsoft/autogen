@@ -2391,4 +2391,26 @@ def test_openai_model_registry_find_well() -> None:
     assert get_regitered_transformer(client1) == get_regitered_transformer(client2)
 
 
+def test_openai_model_registry_find_wrong() -> None:
+    with pytest.raises(ValueError, match="No transformer found for model family"):
+        get_transformer("openai", "gpt-7", "foobar")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gpt-4o-mini",
+    ],
+)
+async def test_openai_model_unknown_message_type(model: str, openai_client: OpenAIChatCompletionClient) -> None:
+    class WrongMessage:
+        content = "foo"
+        source = "bar"
+
+    messages: List[WrongMessage] = [WrongMessage()]
+    with pytest.raises(ValueError, match="Unknown message type"):
+        await openai_client.create(messages=messages)  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
+
+
 # TODO: add integration tests for Azure OpenAI using AAD token.
