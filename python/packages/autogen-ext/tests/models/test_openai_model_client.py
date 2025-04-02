@@ -2396,6 +2396,7 @@ def test_openai_model_registry_find_wrong() -> None:
         get_transformer("openai", "gpt-7", "foobar")
 
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
@@ -2411,6 +2412,41 @@ async def test_openai_model_unknown_message_type(model: str, openai_client: Open
     messages: List[WrongMessage] = [WrongMessage()]
     with pytest.raises(ValueError, match="Unknown message type"):
         await openai_client.create(messages=messages)  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "model",
+    [
+        "claude-3-5-haiku-20241022",
+    ],
+)
+async def test_claude_trailing_whitespace_at_last_assistant_content(
+    model: str, openai_client: OpenAIChatCompletionClient
+) -> None:
+    messages: list[LLMMessage] = [
+        UserMessage(content="foo", source="user"),
+        UserMessage(content="bar", source="user"),
+        AssistantMessage(content="foobar ", source="assistant"),
+    ]
+
+    result = await openai_client.create(messages=messages)
+    assert isinstance(result.content, str)
+
+
+def test_rstrip_railing_whitespace_at_last_assistant_content() -> None:
+    messages: list[LLMMessage] = [
+        UserMessage(content="foo", source="user"),
+        UserMessage(content="bar", source="user"),
+        AssistantMessage(content="foobar ", source="assistant"),
+    ]
+
+    # This will crash if _rstrip_railing_whitespace_at_last_assistant_content is not applied to "content"
+    dummy_client = OpenAIChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
+    result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
+
+    assert isinstance(result[-1].content, str)
+    assert result[-1].content == "foobar"
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.
