@@ -12,7 +12,7 @@ from autogen_agentchat.agents import (
     BaseChatAgent,
     CodeExecutorAgent,
 )
-from autogen_agentchat.base import Handoff, Response, TaskResult
+from autogen_agentchat.base import Handoff, Response, TaskResult, TerminationCondition
 from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.messages import (
     BaseAgentEvent,
@@ -101,6 +101,26 @@ class _FlakyAgent(BaseChatAgent):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
+
+
+class _FlakyTermination(TerminationCondition):
+    def __init__(self, raise_on_count: int) -> None:
+        self._raise_on_count = raise_on_count
+        self._count = 0
+
+    @property
+    def terminated(self) -> bool:
+        """Check if the termination condition has been reached"""
+        return False
+
+    async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
+        self._count += 1
+        if self._count == self._raise_on_count:
+            raise ValueError("I am a flaky termination...")
+        return None
+
+    async def reset(self) -> None:
+        pass
 
 
 class _UnknownMessageType(BaseChatMessage):
@@ -285,7 +305,7 @@ async def test_round_robin_group_chat_unknown_agent_message_type() -> None:
     agent2 = _UnknownMessageTypeAgent("agent2", "I am an unknown message type agent")
     termination = TextMentionTermination("TERMINATE")
     team1 = RoundRobinGroupChat(participants=[agent1, agent2], termination_condition=termination)
-    with pytest.raises(ValueError, match="Message type .*UnknownMessageType.* not registered"):
+    with pytest.raises(RuntimeError, match=".* Message type .*UnknownMessageType.* not registered"):
         await team1.run(task=TextMessage(content="Write a program that prints 'Hello, world!'", source="user"))
 
 
@@ -457,10 +477,8 @@ async def test_round_robin_group_chat_with_resume_and_reset(runtime: AgentRuntim
     assert result.stop_reason is not None
 
 
-# TODO: add runtime fixture for testing with custom runtime once the issue regarding
-# hanging on exception is resolved.
 @pytest.mark.asyncio
-async def test_round_robin_group_chat_with_exception_raised() -> None:
+async def test_round_robin_group_chat_with_exception_raised_from_agent(runtime: AgentRuntime | None) -> None:
     agent_1 = _EchoAgent("agent_1", description="echo agent 1")
     agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
@@ -468,9 +486,29 @@ async def test_round_robin_group_chat_with_exception_raised() -> None:
     team = RoundRobinGroupChat(
         participants=[agent_1, agent_2, agent_3],
         termination_condition=termination,
+        runtime=runtime,
     )
 
-    with pytest.raises(ValueError, match="I am a flaky agent..."):
+    with pytest.raises(RuntimeError, match="I am a flaky agent..."):
+        await team.run(
+            task="Write a program that prints 'Hello, world!'",
+        )
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_with_exception_raised_from_termination_condition(
+    runtime: AgentRuntime | None,
+) -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    team = RoundRobinGroupChat(
+        participants=[agent_1, agent_2, agent_3],
+        termination_condition=_FlakyTermination(raise_on_count=1),
+        runtime=runtime,
+    )
+
+    with pytest.raises(Exception, match="I am a flaky termination..."):
         await team.run(
             task="Write a program that prints 'Hello, world!'",
         )

@@ -1,3 +1,139 @@
+"""
+# `_message_transform.py` Module-Level Documentation
+
+This document is a markdown-formatted version of the module-level docstring inserted into `_message_transform.py` as part of [PR #6063](https://github.com/microsoft/autogen/pull/6063).
+
+---
+
+## AutoGen Modular Transformer Pipeline
+
+This module implements a modular and extensible message transformation pipeline
+for converting `LLMMessage` instances into SDK-specific message formats
+(e.g., OpenAI-style `ChatCompletionMessageParam`).
+
+---
+
+### 📌 Background
+
+In previous versions of AutoGen, message adaptation was handled in ad-hoc ways,
+scattered across model clients. This led to compatibility bugs and code duplication,
+especially when supporting diverse models such as Gemini, Claude, or Anthropic SDKs.
+
+To address this, PR #6063 introduced a unified, composable transformer pipeline
+that decouples message transformation logic from model SDK constructors.
+
+---
+
+### 🎯 Key Concepts
+
+- **Transformer Function**:
+  Transforms a field (e.g., `content`, `name`, `role`) of an `LLMMessage` into a keyword argument.
+
+- **Transformer Pipeline**:
+  A sequence of transformer functions composed using `build_transformer_func`.
+
+- **Transformer Map**:
+  A dictionary mapping `LLMMessage` types (System, User, Assistant) to transformers for a specific model.
+
+- **Conditional Transformer**:
+  Chooses a pipeline dynamically based on message content or runtime conditions.
+
+---
+
+### 🧪 Example: Basic Flow
+
+```python
+from autogen_ext.models.openai._message_transform import get_transformer
+from autogen.types import AssistantMessage
+
+llm_message = AssistantMessage(name="a", thought="Let's go!")
+transformer = get_transformer("openai", "gpt-4", type(llm_message))
+sdk_message = transformer(llm_message, context={})
+print(sdk_message)
+```
+
+---
+
+### 🧰 Example: Define Transformer Functions
+
+```python
+def _set_role(role: str):
+    def fn(message, context):
+        return {"role": role}
+
+    return fn
+
+
+def _set_content_from_thought(message, context):
+    return {"content": message.thought or " "}
+
+
+base_user_transformer_funcs = [_set_role("user"), _set_content_from_thought]
+```
+
+---
+
+### 🛠️ Example: Build and Register Transformer Map
+
+```python
+from autogen_ext.models.utils import build_transformer_func, register_transformer
+from openai.types.chat import ChatCompletionUserMessageParam
+from autogen.types import UserMessage, SystemMessage, AssistantMessage
+
+user_transformer = build_transformer_func(
+    funcs=base_user_transformer_funcs, message_param_func=ChatCompletionUserMessageParam
+)
+
+MY_TRANSFORMER_MAP = {UserMessage: user_transformer, SystemMessage: ..., AssistantMessage: ...}
+
+register_transformer("openai", "mistral-7b", MY_TRANSFORMER_MAP)
+```
+
+---
+
+### 🔁 Conditional Transformer Example
+
+```python
+from autogen_ext.models.utils import build_conditional_transformer_func
+
+
+def condition_func(message, context):
+    return "multimodal" if isinstance(message.content, dict) else "text"
+
+
+user_transformers = {
+    "text": [_set_content_from_thought],
+    "multimodal": [_set_content_from_thought],  # could be different logic
+}
+
+message_param_funcs = {
+    "text": ChatCompletionUserMessageParam,
+    "multimodal": ChatCompletionUserMessageParam,
+}
+
+conditional_user_transformer = build_conditional_transformer_func(
+    funcs_map=user_transformers,
+    message_param_func_map=message_param_funcs,
+    condition_func=condition_func,
+)
+```
+
+---
+
+### 📦 Design Principles
+
+- ✅ DRY and Composable
+- ✅ Model-specific overrides without forking entire clients
+- ✅ Explicit separation between transformation logic and SDK builders
+- ✅ Future extensibility (e.g., Claude, Gemini, Alibaba)
+
+---
+
+### 📎 Reference
+
+- Introduced in: [PR #6063](https://github.com/microsoft/autogen/pull/6063)
+"""
+
 from typing import Any, Callable, Dict, List, cast, get_args
 
 from autogen_core import (

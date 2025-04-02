@@ -465,7 +465,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
-        """It it's a no-op as the code executor agent has no mutable state."""
+        """Its a no-op as the code executor agent has no mutable state."""
         pass
 
     def _extract_markdown_code_blocks(self, markdown_text: str) -> List[CodeBlock]:

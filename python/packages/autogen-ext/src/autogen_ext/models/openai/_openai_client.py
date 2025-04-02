@@ -433,6 +433,17 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
         return OpenAIChatCompletionClient(**config)
 
+    def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
+        """
+        Remove the last assistant message if it is empty.
+        """
+        # When Claude models last message is AssistantMessage, It could not end with whitespace
+        if isinstance(messages[-1], AssistantMessage):
+            if isinstance(messages[-1].content, str):
+                messages[-1].content = messages[-1].content.rstrip()
+
+        return messages
+
     def _process_create_args(
         self,
         messages: Sequence[LLMMessage],
@@ -538,6 +549,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 system_message = SystemMessage(content=system_message_content)
                 _messages.insert(_first_system_message_idx, system_message)
             messages = _messages
+
+        # in that case, for ad-hoc, we using startswith instead of model_family for code consistency
+        if create_args.get("model", "unknown").startswith("claude-"):
+            # When Claude models last message is AssistantMessage, It could not end with whitespace
+            messages = self._rstrip_last_assistant_message(messages)
 
         oai_messages_nested = [
             to_oai_type(m, prepend_name=self._add_name_prefixes, model_family=create_args.get("model", "unknown"))
