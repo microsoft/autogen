@@ -30,6 +30,20 @@ class AssistantAgent(RoutedAgent):
     async def handle_my_message_type(self, message: MyMessageType, ctx: MessageContext) -> None:
         print(f"{self.id.type} received message: {message.content}")
 
+    def __init__(self, name: str):
+        super().__init__(name)
+        # If you have a model client, store it here, e.g. self.model_client = model_client
+        # Also store any tools references here if needed.
+
+    @message_handler
+    async def handle_user_message(self, message: UserMessage, ctx: MessageContext) -> None:
+        # 1) We got a user message. Suppose we do a "draft" answer (here it's a stub).
+        draft_answer = f"(Draft) You said: {message.content}\n(Assistant's preliminary answer...)"
+        # 2) Send reflection request to Critic
+        await ctx.send(
+            ReflectionRequest(draft=draft_answer),
+            AgentId("critic", "default")
+        )
 
 
 @cl.set_starters  # type: ignore
