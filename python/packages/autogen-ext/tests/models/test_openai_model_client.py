@@ -2396,7 +2396,6 @@ def test_openai_model_registry_find_wrong() -> None:
         get_transformer("openai", "gpt-7", "foobar")
 
 
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
