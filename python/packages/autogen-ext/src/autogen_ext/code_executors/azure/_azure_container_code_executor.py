@@ -73,6 +73,7 @@ class ACADynamicSessionsCodeExecutor(CodeExecutor):
             directory is a temporal directory.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         suppress_result_output bool: By default the executor will attach any result info in the execution response to the result outpu. Set this to True to prevent this.
+        session_id (str): The session id for the code execution (passed to Dynamic Sessions). If None, a new session id will be generated. Default is None. Note this value will be reset when calling `restart`
 
     .. note::
         Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
@@ -102,6 +103,7 @@ $functions"""
         ] = [],
         functions_module: str = "functions",
         suppress_result_output: bool = False,
+        session_id: Optional[str] = None,
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
@@ -141,7 +143,7 @@ $functions"""
 
         self._pool_management_endpoint = pool_management_endpoint
         self._access_token: str | None = None
-        self._session_id: str = str(uuid4())
+        self._session_id: str = session_id or str(uuid4())
         self._available_packages: set[str] | None = None
         self._credential: TokenProvider = credential
         # cwd needs to be set to /mnt/data to properly read uploaded files and download written files
