@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <meta http-equiv="refresh" content="0; url=$to_url">
+    <!-- JavaScript redirect as a fallback -->
+    <script type="text/javascript">
+        setTimeout(function() {
+            window.location.href = "$to_url";
+        }, 0);
+    </script>
+</head>
+<body>
+    <p>If you are not redirected automatically, follow this <a href="$to_url">link to example.com</a>.</p>
+    <!-- noscript fallback for users with JavaScript disabled -->
+    <noscript>
+        <meta http-equiv="refresh" content="0; url=$to_url">
+        <p>If you are not redirected automatically, follow this <a href="$to_url">link to example.com</a>.</p>
+    </noscript>
+</body>
+</html>

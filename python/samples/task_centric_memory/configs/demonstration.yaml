@@ -1,0 +1,31 @@
+
+PageLogger:
+  level: DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
+  path: ./pagelogs/demonstration
+
+client:
+  model: gpt-4o-2024-08-06
+  temperature: 0.8
+  max_completion_tokens: 4096
+  presence_penalty: 0.0
+  frequency_penalty: 0.0
+  top_p: 1.0
+  max_retries: 65535
+
+Apprentice:
+  name_of_agent_or_team: AssistantAgent  # AssistantAgent or MagenticOneGroupChat
+  disable_prefix_caching: 1  # If true, prepends a small random string to the context, to decorrelate repeated runs.
+  MemoryController:
+    max_train_trials: 10
+    max_test_trials: 3
+    MemoryBank:
+      path: ./memory_bank/demonstration
+      relevance_conversion_threshold: 1.7
+      n_results: 25
+      distance_threshold: 100
+
+test:
+  main_task_file: data_files/tasks/cell_towers_1.yaml  # The task being tested.
+  demo_task_file: data_files/tasks/cell_towers_2.yaml  # A similar but different task.
+  demo_solution_file: data_files/insights/cell_towers_2_demo.yaml  # A demonstration of solving the second task.
+  num_trials: 10

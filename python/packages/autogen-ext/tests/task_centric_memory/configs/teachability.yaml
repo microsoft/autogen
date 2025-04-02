@@ -1,0 +1,29 @@
+
+PageLogger:
+  level: DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
+  path: ./tests/task_centric_memory/pagelogs/teachability
+
+client:
+  model: gpt-4o-2024-08-06
+  temperature: 0.8
+  max_completion_tokens: 4096
+  presence_penalty: 0.0
+  frequency_penalty: 0.0
+  top_p: 1.0
+  max_retries: 65535
+
+Apprentice:
+  name_of_agent_or_team: AssistantAgent  # AssistantAgent or MagenticOneGroupChat
+  disable_prefix_caching: 0  # If true, prepends a small random string to the context, to decorrelate repeated runs.
+  MemoryController:
+    max_train_trials: 10
+    max_test_trials: 3
+    MemoryBank:
+      path: ./tests/task_centric_memory/memory_bank/teachability
+      relevance_conversion_threshold: 1.7
+      n_results: 25
+      distance_threshold: 100
+
+test:
+  task_file: tests/task_centric_memory/data_files/tasks/autogen_package.yaml  # The task being tested.
+  insight_file: tests/task_centric_memory/data_files/insights/add_topic.yaml  # Advice provided to help solve the task.

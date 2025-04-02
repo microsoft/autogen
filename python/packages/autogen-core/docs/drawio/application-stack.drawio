@@ -1,0 +1,52 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0" version="24.7.5">
+  <diagram name="Page-1" id="cddb7oONEilqIw1Y7nf5">
+    <mxGraphModel dx="1071" dy="1138" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="e_Se_iOjKQHndGvTYtJ0-6" value="Application Logic" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="290" y="390" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-1" value="Behavior Contract (Message Protocol)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="290" y="430" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-2" value="Message Types" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="290" y="470" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-3" value="Message Routing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="290" y="540" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-4" value="Protobuf + gRPC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="290" y="580" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-6" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="265" y="520" as="sourcePoint" />
+            <mxPoint x="555" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-7" value="Agent Communication Stack" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="570" y="560" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-8" value="Your Multi-Agent Application" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="560" y="430" width="111" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-9" value="Multi-Agent Patterns" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="130" y="410" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="aPJ7GLReoFj_4gOym3_0-3" target="aPJ7GLReoFj_4gOym3_0-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-11" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;labelPosition=left;verticalLabelPosition=middle;align=right;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="260" y="395" width="20" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-12" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;flipH=1;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="540" y="395" width="20" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="aPJ7GLReoFj_4gOym3_0-13" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;flipH=1;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="540" y="550" width="20" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

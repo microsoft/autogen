@@ -1,0 +1,5 @@
+# Test where human advice is needed.
+
+task_description: As a contribution to autogen, can I create a new autogen package for a copilot extension agent that I built on autogen?
+
+expected_answer: It's best to have your agent in its own repo, then add the autogen-extension topic to that repo.

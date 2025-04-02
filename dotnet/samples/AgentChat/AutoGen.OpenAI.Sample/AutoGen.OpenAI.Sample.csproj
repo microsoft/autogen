@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS8981;CS8600;CS8602;CS8604;CS8618;CS0219;SKEXP0054;SKEXP0050;SKEXP0110</NoWarn>
+    <IncludeResourceFolder>true</IncludeResourceFolder>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\AutoGen.DotnetInteractive\AutoGen.DotnetInteractive.csproj" />
+    <ProjectReference Include="..\..\..\src\AutoGen.Ollama\AutoGen.Ollama.csproj" />
+    <ProjectReference Include="..\..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\src\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Azure.AI.OpenAI" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,130 @@
+### This config file contains required core defaults that must be set, along with a handful of common optional settings.
+### For a full list of available settings, see https://microsoft.github.io/graphrag/config/yaml/
+
+### LLM settings ###
+## There are a number of settings to tune the threading and token limits for LLM calls - check the docs.
+
+encoding_model: cl100k_base # this needs to be matched to your model!
+
+llm:
+  api_key: null
+  type: openai_chat # or azure_openai_chat
+  model: gpt-4o
+  model_supports_json: true # recommended if this is available for your model.
+  # audience: "https://cognitiveservices.azure.com/.default"
+  # api_base: https://<resource-name>.openai.azure.com
+  # api_version: 2024-08-01-preview
+  # deployment_name: gpt-4o
+
+parallelization:
+  stagger: 0.3
+  # num_threads: 50
+
+async_mode: threaded # or asyncio
+
+embeddings:
+  async_mode: threaded # or asyncio
+  vector_store:
+    type: lancedb
+    db_uri: 'data/output/lancedb'
+    container_name: default
+    overwrite: true
+  llm:
+    api_key: null
+    type: openai_embedding # or azure_openai_embedding
+    model: text-embedding-3-small
+    # api_base: https://<resource-name>.openai.azure.com
+    # api_version: "2023-05-15"
+    # audience: "https://cognitiveservices.azure.com/.default"
+    # deployment_name: text-embedding-3-small
+
+### Input settings ###
+
+input:
+  type: file # or blob
+  file_type: text # or csv
+  base_dir: "data/input"
+  file_encoding: utf-8
+  file_pattern: ".*\\.txt$"
+
+chunks:
+  size: 1200
+  overlap: 100
+  group_by_columns: [id]
+
+### Storage settings ###
+## If blob storage is specified in the following four sections,
+## connection_string and container_name must be provided
+
+cache:
+  type: file # or blob
+  base_dir: "cache"
+
+reporting:
+  type: file # or console, blob
+  base_dir: "logs"
+
+storage:
+  type: file # or blob
+  base_dir: "data/output"
+
+## only turn this on if running `graphrag index` with custom settings
+## we normally use `graphrag update` with the defaults
+update_index_storage:
+  # type: file # or blob
+  # base_dir: "update_output"
+
+### Workflow settings ###
+
+skip_workflows: []
+
+entity_extraction:
+  prompt: "prompts/entity_extraction.txt"
+  entity_types: [organization,person,geo,event]
+  max_gleanings: 1
+
+summarize_descriptions:
+  prompt: "prompts/summarize_descriptions.txt"
+  max_length: 500
+
+claim_extraction:
+  enabled: false
+  prompt: "prompts/claim_extraction.txt"
+  description: "Any claims or facts that could be relevant to information discovery."
+  max_gleanings: 1
+
+community_reports:
+  prompt: "prompts/community_report.txt"
+  max_length: 2000
+  max_input_length: 8000
+
+cluster_graph:
+  max_cluster_size: 10
+
+embed_graph:
+  enabled: false # if true, will generate node2vec embeddings for nodes
+
+umap:
+  enabled: false # if true, will generate UMAP embeddings for nodes
+
+snapshots:
+  graphml: false
+  raw_entities: false
+  top_level_nodes: false
+  embeddings: false
+  transient: false
+
+### Query settings ###
+## The prompt locations are required here, but each search method has a number of optional knobs that can be tuned.
+## See the config docs: https://microsoft.github.io/graphrag/config/yaml/#query
+
+local_search:
+  prompt: "prompts/local_search_system_prompt.txt"
+
+global_search:
+  map_prompt: "prompts/global_search_map_system_prompt.txt"
+  reduce_prompt: "prompts/global_search_reduce_system_prompt.txt"
+  knowledge_prompt: "prompts/global_search_knowledge_system_prompt.txt"
+
+drift_search:
+  prompt: "prompts/drift_search_system_prompt.txt"

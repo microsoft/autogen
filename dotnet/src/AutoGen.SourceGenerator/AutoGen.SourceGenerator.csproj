@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+	  <IncludeBuildOutput>false</IncludeBuildOutput>
+	  <!-- Do not include the generator as a lib dependency -->
+	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	  <!-- Do not include the generator as a lib dependency -->
+    <UserSecretsId>35954224-b94e-4024-b0ef-7ba7cf80c0d8</UserSecretsId>
+	  <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
+	  <LaunchDebugger>false</LaunchDebugger>
+	  <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+	<NoWarn>$(NoWarn);RS1036</NoWarn>
+	  <DefineConstants Condition="'$(LaunchDebugger)' == 'true'">$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+  
+
+	<PropertyGroup>
+		<Title>AutoGen.SourceGenerator</Title>
+		<Description>Source generator for AutoGen. This package provides type-safe function call to AutoGen agents.</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="System.CodeDom" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all" GeneratePathProperty="True" />
+		<PackageReference Include="Newtonsoft.Json" PrivateAssets="all" GeneratePathProperty="true" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<None Include="$(PkgNewtonsoft_Json)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
+
+	<Target Name="GetDependencyTargetPaths">
+		<ItemGroup>
+			<TargetPathWithTargetPlatformMoniker Include="$(PkgNewtonsoft_Json)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
+		</ItemGroup>
+	</Target>
+
+	<ItemGroup>
+	  <None Update="Template\FunctionCallTemplate.tt">
+	    <Generator>TextTemplatingFilePreprocessor</Generator>
+	    <LastGenOutput>FunctionCallTemplate.cs</LastGenOutput>
+	  </None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoGen.SourceGenerator.Tests"/>
+  </ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Template\FunctionCallTemplate.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>FunctionCallTemplate.tt</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+</Project>

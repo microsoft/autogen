@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoGen FastAPI Sample: Team</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #chat-container {
+            width: 90%;
+            max-width: 600px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        #messages {
+            height: 600px;
+            overflow-y: auto;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin: 10px 0;
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.assistant {
+            text-align: left;
+        }
+
+        .label {
+            font-weight: bold;
+            display: block;
+        }
+
+        .content {
+            margin-top: 5px;
+        }
+
+        #input-container {
+            display: flex;
+        }
+
+        #input-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #input-container button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #input-container input:disabled,
+        #input-container button:disabled {
+            background-color: #e0e0e0;
+            cursor: not-allowed;
+        }
+
+        .message.error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .message.system {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chat-container">
+        <div id="messages"></div>
+        <div id="input-container">
+            <input type="text" id="message-input" placeholder="Type a message...">
+            <button id="send-button" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:8002/ws/chat');
+
+        ws.onmessage = function (event) {
+            const message = JSON.parse(event.data);
+
+            if (message.type === 'UserInputRequestedEvent') {
+                // Re-enable input and send button if UserInputRequestedEvent is received
+                enableInput();
+            }
+            else if (message.type === 'error') {
+                // Display error message
+                displayMessage(message.content, 'error');
+                enableInput();
+            }
+            else {
+                // Display regular message
+                displayMessage(message.content, message.source);
+            }
+        };
+
+        ws.onerror = function(error) {
+            displayMessage("WebSocket error occurred. Please refresh the page.", 'error');
+            enableInput();
+        };
+
+        ws.onclose = function() {
+            displayMessage("Connection closed. Please refresh the page.", 'system');
+            disableInput();
+        };
+
+        document.getElementById('message-input').addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && !event.target.disabled) {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const button = document.getElementById('send-button');
+            const message = input.value;
+            if (!message) return;
+
+            // Clear input and disable input and send button
+            input.value = '';
+            disableInput();
+
+            // Send message to WebSocket
+            ws.send(JSON.stringify({ content: message, source: 'user' }));
+        }
+
+        function displayMessage(content, source) {
+            const messagesContainer = document.getElementById('messages');
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${source}`;
+
+            const labelElement = document.createElement('span');
+            labelElement.className = 'label';
+            labelElement.textContent = source;
+
+            const contentElement = document.createElement('div');
+            contentElement.className = 'content';
+            contentElement.textContent = content;
+
+            messageElement.appendChild(labelElement);
+            messageElement.appendChild(contentElement);
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function disableInput() {
+            const input = document.getElementById('message-input');
+            const button = document.getElementById('send-button');
+            input.disabled = true;
+            button.disabled = true;
+        }
+
+        function enableInput() {
+            const input = document.getElementById('message-input');
+            const button = document.getElementById('send-button');
+            input.disabled = false;
+            button.disabled = false;
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('http://localhost:8002/history');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const history = await response.json();
+                history.forEach(message => {
+                    displayMessage(message.content, message.source);
+                });
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+
+        // Load chat history when the page loads
+        window.onload = loadHistory;
+    </script>
+</body>
+
+</html>

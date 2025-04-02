@@ -1,0 +1,95 @@
+# Source code
+*.bash            text eol=lf
+*.bat             text eol=crlf
+*.cmd             text eol=crlf
+*.coffee          text
+*.css             text diff=css eol=lf
+*.htm             text diff=html eol=lf
+*.html            text diff=html eol=lf
+*.inc             text
+*.ini             text
+*.js              text
+*.json            text eol=lf
+*.jsx             text
+*.less            text
+*.ls              text
+*.map             text -diff
+*.od              text
+*.onlydata        text
+*.php             text diff=php
+*.pl              text
+*.ps1             text eol=crlf
+*.py              text diff=python eol=lf
+*.rb              text diff=ruby eol=lf
+*.sass            text
+*.scm             text
+*.scss            text diff=css
+*.sh              text eol=lf
+.husky/*          text eol=lf
+*.sql             text
+*.styl            text
+*.tag             text
+*.ts              text
+*.tsx             text
+*.xml             text
+*.xhtml           text diff=html
+# Docker
+Dockerfile        text eol=lf
+# Documentation
+*.ipynb           text
+*.markdown        text diff=markdown eol=lf
+*.md              text diff=markdown eol=lf
+*.mdwn            text diff=markdown eol=lf
+*.mdown           text diff=markdown eol=lf
+*.mkd             text diff=markdown eol=lf
+*.mkdn            text diff=markdown eol=lf
+*.mdtxt           text eol=lf
+*.mdtext          text eol=lf
+*.txt             text eol=lf
+AUTHORS           text eol=lf
+CHANGELOG         text eol=lf
+CHANGES           text eol=lf
+CONTRIBUTING      text eol=lf
+COPYING           text eol=lf
+copyright         text eol=lf
+*COPYRIGHT*       text eol=lf
+INSTALL           text eol=lf
+license           text eol=lf
+LICENSE           text eol=lf
+NEWS              text eol=lf
+readme            text eol=lf
+*README*          text eol=lf
+TODO              text
+# Configs
+*.cnf             text eol=lf
+*.conf            text eol=lf
+*.config          text eol=lf
+.editorconfig     text
+.env              text eol=lf
+.gitattributes    text eol=lf
+.gitconfig        text eol=lf
+.htaccess         text
+*.lock            text -diff
+package.json      text eol=lf
+package-lock.json text eol=lf -diff
+pnpm-lock.yaml    text eol=lf -diff
+.prettierrc       text
+yarn.lock         text -diff
+*.toml            text eol=lf
+*.yaml            text eol=lf
+*.yml             text eol=lf
+browserslist      text
+Makefile          text eol=lf
+makefile          text eol=lf
+# Images
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+
+python/packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos/*.py linguist-generated
+python/packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos/*.pyi linguist-generated
+python/packages/autogen-ext/tests/protos/*.py linguist-generated
+python/packages/autogen-ext/tests/protos/*.pyi linguist-generated
+docs/** linguist-documentation
+python/packages/autogen-core/docs/** linguist-documentation
+dotnet/website/** linguist-documentation

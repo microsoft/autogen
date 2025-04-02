@@ -1,0 +1,358 @@
+name: Checks
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  pull_request:
+    branches:
+      - main
+      - staging
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe fmt --check
+        working-directory: ./python
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe lint
+        working-directory: ./python
+
+  mypy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [
+            "./packages/autogen-core",
+            "./packages/agbench",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+            "./packages/magentic-one-cli",
+          ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ${{ matrix.package }} mypy
+        working-directory: ./python
+
+  pyright:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [
+            "./packages/autogen-core",
+            "./packages/agbench",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+            "./packages/magentic-one-cli",
+          ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ${{ matrix.package }} pyright
+        working-directory: ./python
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [
+            "./packages/autogen-core",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+          ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run uv sync
+        run: |
+          uv sync --locked --all-extras
+          echo "PKG_NAME=$(basename '${{ matrix.package }}')" >> $GITHUB_ENV
+
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ${{ matrix.package }} test
+        working-directory: ./python
+
+      - name: Move coverage file
+        run: |
+          mv ${{ matrix.package }}/coverage.xml coverage_${{ env.PKG_NAME }}.xml
+        working-directory: ./python
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ env.PKG_NAME }}
+          path: ./python/coverage_${{ env.PKG_NAME }}.xml
+
+  test-grpc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run uv sync
+        run: |
+          uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ./packages/autogen-ext test-grpc
+        working-directory: ./python
+
+      - name: Move coverage file
+        run: |
+          mv ./packages/autogen-ext/coverage.xml coverage_autogen-ext-grpc.xml
+        working-directory: ./python
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-autogen-ext-grpc
+          path: ./python/coverage_autogen-ext-grpc.xml
+
+  test-autogen-ext-pwsh:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
+        run: |
+          uv sync --locked --all-extras
+        shell: pwsh
+        working-directory: ./python
+
+      - name: Run tests for Windows
+        run: |
+          .venv/Scripts/activate.ps1
+          poe --directory ./packages/autogen-ext test-windows
+        shell: pwsh
+        working-directory: ./python
+
+      - name: Move coverage file
+        run: |
+          mv ./packages/autogen-ext/coverage.xml coverage_autogen_ext_windows.xml
+        working-directory: ./python
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-autogen-ext-windows
+          path: ./python/coverage_autogen_ext_windows.xml
+
+  codecov:
+    runs-on: ubuntu-latest
+    needs: [test, test-grpc]
+    strategy:
+      matrix:
+        package:
+          [
+            "./packages/autogen-core",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+            "autogen-ext-grpc",
+          ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up environment
+        run: |
+          echo "PKG_NAME=$(basename '${{ matrix.package }}')" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-${{ env.PKG_NAME }}
+          path: ./
+      - uses: codecov/codecov-action@v5
+        with:
+          files: coverage_${{ env.PKG_NAME }}.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  docs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ["./packages/autogen-core"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ${{ matrix.package }} docs-check
+        working-directory: ./python
+
+  docs-example-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ["./packages/autogen-core"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ${{ matrix.package }} docs-check-examples
+        working-directory: ./python
+
+  samples-code-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe samples-code-check
+        working-directory: ./python
+
+  markdown-code-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe markdown-code-lint
+        working-directory: ./python
+
+  check-proto-changes-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe gen-proto
+          poe gen-test-proto
+        working-directory: ./python
+      - name: Check if there are uncommited changes
+        id: changes
+        uses: UnicornGlobal/has-changes-action@v1.0.11
+      - name: Process changes
+        if: steps.changes.outputs.changed == 1
+        run: echo "There are changes in the proto files. Please commit them."

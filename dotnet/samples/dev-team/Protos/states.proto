@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package devteam;
+
+option csharp_namespace = "DevTeam";
+
+
+message DeveloperState {
+  string understanding = 1;
+}
+
+message DeveloperLeadState {
+  string plan = 1;
+}
+
+message ProductManagerState {
+  string capabilities = 1;
+}

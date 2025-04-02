@@ -1,0 +1,78 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0" version="24.7.17">
+  <diagram name="Page-1" id="IxvBbn9yzyvW_p07RlV3">
+    <mxGraphModel dx="748" dy="618" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="1k9D6tqECFl55jLrpz0O-17" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="1k9D6tqECFl55jLrpz0O-1" target="1k9D6tqECFl55jLrpz0O-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-18" value="2. RequestToSpeak" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="1k9D6tqECFl55jLrpz0O-17">
+          <mxGeometry x="-0.0134" y="-3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-27" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="1k9D6tqECFl55jLrpz0O-1" target="1k9D6tqECFl55jLrpz0O-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-28" value="4. RequestToSpeak" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="1k9D6tqECFl55jLrpz0O-27">
+          <mxGeometry x="-0.1817" y="4" relative="1" as="geometry">
+            <mxPoint x="6" y="9" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-1" value="Group Chat Manager Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="240" y="200" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="1k9D6tqECFl55jLrpz0O-2" target="1k9D6tqECFl55jLrpz0O-4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="190" />
+              <mxPoint x="620" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="1k9D6tqECFl55jLrpz0O-2" target="1k9D6tqECFl55jLrpz0O-5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="190" />
+              <mxPoint x="620" y="350" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="1k9D6tqECFl55jLrpz0O-2" target="1k9D6tqECFl55jLrpz0O-3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="190" />
+              <mxPoint x="620" y="110" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-25" value="3. GroupChatMessage" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="1k9D6tqECFl55jLrpz0O-21">
+          <mxGeometry x="-0.6833" relative="1" as="geometry">
+            <mxPoint x="41" y="20" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="1k9D6tqECFl55jLrpz0O-2" target="1k9D6tqECFl55jLrpz0O-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-26" value="3. GroupChatMessage" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="1k9D6tqECFl55jLrpz0O-22">
+          <mxGeometry x="0.0244" y="-4" relative="1" as="geometry">
+            <mxPoint x="5" y="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-2" value="Writer Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="470" y="160" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-3" value="Editor Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="470" y="80" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-5" value="User Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="470" y="320" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="1k9D6tqECFl55jLrpz0O-4" value="Illustrator Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="470" y="240" width="100" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
