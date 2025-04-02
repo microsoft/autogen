@@ -65,11 +65,11 @@ class _FallbackAzureAISearchConfig:
         self.index_name = kwargs.get("index_name", "")
         self.credential = kwargs.get("credential", None)
         self.api_version = kwargs.get("api_version", "")
-        self.semantic_config_name = kwargs.get("semantic_config_name", None)
         self.query_type = kwargs.get("query_type", "simple")
         self.search_fields = kwargs.get("search_fields", None)
         self.select_fields = kwargs.get("select_fields", None)
         self.vector_fields = kwargs.get("vector_fields", None)
+        self.filter = kwargs.get("filter", None)
         self.top = kwargs.get("top", None)
         self.retry_enabled = kwargs.get("retry_enabled", False)
         self.retry_mode = kwargs.get("retry_mode", "fixed")
@@ -539,7 +539,6 @@ class BaseAzureAISearchTool(BaseTool[SearchQuery, SearchResults], ABC):
             vector_fields=getattr(config, "vector_fields", None),
             top=getattr(config, "top", None),
             filter=getattr(config, "filter", None),
-            semantic_config_name=getattr(config, "semantic_config_name", None),
             enable_caching=getattr(config, "enable_caching", False),
             cache_ttl_seconds=getattr(config, "cache_ttl_seconds", 300),
         )
@@ -660,7 +659,6 @@ class AzureAISearchTool(BaseAzureAISearchTool):
         index_name: str,
         credential: Union[AzureKeyCredential, TokenCredential, Dict[str, str]],
         query_type: Literal["keyword", "fulltext", "vector", "hybrid"],
-        semantic_config_name: Optional[str] = None,
         search_fields: Optional[List[str]] = None,
         select_fields: Optional[List[str]] = None,
         vector_fields: Optional[List[str]] = None,
@@ -680,7 +678,6 @@ class AzureAISearchTool(BaseAzureAISearchTool):
             index_name=index_name,
             credential=credential,
             query_type=query_type,
-            semantic_config_name=semantic_config_name,
             search_fields=search_fields,
             select_fields=select_fields,
             vector_fields=vector_fields,
@@ -741,7 +738,6 @@ class AzureAISearchTool(BaseAzureAISearchTool):
                 index_name=config.get("index_name", ""),
                 credential=config.get("credential", {}),
                 query_type=query_type,
-                semantic_config_name=config.get("semantic_config_name"),
                 search_fields=config.get("search_fields"),
                 select_fields=config.get("select_fields"),
                 vector_fields=config.get("vector_fields"),
@@ -866,8 +862,6 @@ class AzureAISearchTool(BaseAzureAISearchTool):
         select_fields: Optional[List[str]] = None,
         filter: Optional[str] = None,
         top: Optional[int] = 5,
-        semantic_config_name: Optional[str] = None,
-        use_semantic_ranking: bool = False,
         **kwargs: Any,
     ) -> "AzureAISearchTool":
         """Factory method to create a full-text search tool.
@@ -884,8 +878,6 @@ class AzureAISearchTool(BaseAzureAISearchTool):
             select_fields (Optional[List[str]]): Fields to include in results
             filter (Optional[str]): OData filter expression to filter results
             top (Optional[int]): Maximum number of results to return
-            semantic_config_name (Optional[str]): Semantic configuration name for enhanced results
-            use_semantic_ranking (bool): Whether to use semantic ranking
             **kwargs (Any): Additional configuration options
 
         Returns:
@@ -915,9 +907,6 @@ class AzureAISearchTool(BaseAzureAISearchTool):
         """
         cls._validate_common_params(name, endpoint, index_name, credential)
 
-        if use_semantic_ranking and not semantic_config_name:
-            raise ValueError("semantic_config_name must be specified when use_semantic_ranking is True") from None
-
         token = _allow_private_constructor.set(True)
         try:
             query_type = cast(
@@ -935,7 +924,6 @@ class AzureAISearchTool(BaseAzureAISearchTool):
                 select_fields=select_fields,
                 filter=filter,
                 top=top,
-                semantic_config_name=semantic_config_name,
                 **kwargs,
             )
         finally:
@@ -1030,7 +1018,6 @@ class AzureAISearchTool(BaseAzureAISearchTool):
         select_fields: Optional[List[str]] = None,
         filter: Optional[str] = None,
         top: Optional[int] = 5,
-        semantic_config_name: Optional[str] = None,
         **kwargs: Any,
     ) -> "AzureAISearchTool":
         """Factory method to create a hybrid search tool.
@@ -1051,7 +1038,6 @@ class AzureAISearchTool(BaseAzureAISearchTool):
             select_fields (Optional[List[str]]): Fields to include in results
             filter (Optional[str]): OData filter expression to filter results
             top (Optional[int]): Maximum number of results to return
-            semantic_config_name (Optional[str]): Semantic configuration name for enhanced results
             **kwargs (Any): Additional configuration options
 
         Returns:
@@ -1100,7 +1086,6 @@ class AzureAISearchTool(BaseAzureAISearchTool):
                 vector_fields=vector_fields,
                 filter=filter,
                 top=top,
-                semantic_config_name=semantic_config_name,
                 **kwargs,
             )
         finally:

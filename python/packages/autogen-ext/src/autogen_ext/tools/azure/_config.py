@@ -55,14 +55,13 @@ class AzureAISearchConfig(BaseModel):
                 endpoint="https://my-search.search.windows.net",
                 index_name="my-index",
                 credential=AzureKeyCredential("<your-key>"),
-                query_type="semantic",
-                semantic_config_name="default",
+                query_type="vector",
+                vector_fields=["embedding"],
             )
 
     For more details, see:
         * `Azure AI Search Overview <https://learn.microsoft.com/azure/search/search-what-is-azure-search>`_
         * `Vector Search <https://learn.microsoft.com/azure/search/vector-search-overview>`_
-        * `Semantic Search <https://learn.microsoft.com/azure/search/semantic-search-overview>`_
 
     Args:
         name (str): Name for the tool instance, used to identify it in the agent's toolkit.
@@ -76,13 +75,11 @@ class AzureAISearchConfig(BaseModel):
         credential (Union[AzureKeyCredential, TokenCredential]): Azure authentication credential:
             - AzureKeyCredential: For API key authentication (admin/query key)
             - TokenCredential: For Azure AD authentication (e.g., DefaultAzureCredential)
-        semantic_config_name (Optional[str]): Name of a semantic configuration defined in your search service.
-            Required only when using semantic/hybrid search capabilities.
-        query_type (Literal["simple", "full", "semantic", "vector"]): The search query mode to use:
-            - 'simple': Basic keyword search (default)
+        query_type (Literal["keyword", "fulltext", "vector", "hybrid"]): The search query mode to use:
+            - 'keyword': Basic keyword search (default)
             - 'full': Full Lucene query syntax
-            - 'semantic': Semantic ranking with ML models
             - 'vector': Vector similarity search
+            - 'hybrid': Hybrid search combining multiple techniques
         search_fields (Optional[List[str]]): List of index fields to search within. If not specified,
             searches all searchable fields. Example: ['title', 'content'].
         select_fields (Optional[List[str]]): Fields to return in search results. If not specified,
@@ -96,6 +93,7 @@ class AzureAISearchConfig(BaseModel):
         retry_mode (Literal["fixed", "exponential"]): Retry backoff strategy: fixed or exponential. Defaults to "exponential".
         enable_caching (bool): Whether to enable client-side caching of search results. Defaults to False.
         cache_ttl_seconds (int): Time-to-live for cached search results in seconds. Defaults to 300 (5 minutes).
+        filter (Optional[str]): OData filter expression to refine search results.
     """
 
     name: str = Field(description="The name of the tool")
@@ -106,11 +104,8 @@ class AzureAISearchConfig(BaseModel):
     credential: Union[AzureKeyCredential, TokenCredential] = Field(
         description="The credential to use for authentication"
     )
-    semantic_config_name: Optional[str] = Field(
-        default=None, description="Optional name of semantic configuration to use"
-    )
-    query_type: Literal["simple", "full", "semantic", "vector"] = Field(
-        default="simple", description="Type of query to perform"
+    query_type: Literal["keyword", "fulltext", "vector", "hybrid"] = Field(
+        default="keyword", description="Type of query to perform"
     )
     search_fields: Optional[List[str]] = Field(default=None, description="Optional list of fields to search in")
     select_fields: Optional[List[str]] = Field(default=None, description="Optional list of fields to return in results")
@@ -118,6 +113,7 @@ class AzureAISearchConfig(BaseModel):
         default=None, description="Optional list of vector fields for vector search"
     )
     top: Optional[int] = Field(default=None, description="Optional number of results to return")
+    filter: Optional[str] = Field(default=None, description="Optional OData filter expression to refine search results")
 
     retry_enabled: bool = Field(default=True, description="Whether to enable retry policy for transient errors")
     retry_max_attempts: Optional[int] = Field(
@@ -149,7 +145,7 @@ class AzureAISearchConfig(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     @classmethod
-    @model_validator(mode="before")  # type: ignore
+    @model_validator(mode="before")
     def validate_credentials(cls: Type[T], data: Any) -> Any:
         """Validate and convert credential data."""
         if not isinstance(data, dict):
@@ -157,11 +153,11 @@ class AzureAISearchConfig(BaseModel):
 
         result = {}
 
-        for key, value in data.items():  # type: ignore
+        for key, value in data.items():
             result[str(key)] = value
 
         if "credential" in result:
-            credential = result["credential"]  # type: ignore
+            credential = result["credential"]
 
             if isinstance(credential, dict) and "api_key" in credential:
                 api_key = str(credential["api_key"])
