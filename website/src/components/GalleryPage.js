@@ -70,8 +70,8 @@ const GalleryPage = (props) => {
           item.image
             ? item.image.includes("http")
               ? item.image
-              : `/autogen/img/gallery/${item.image}`
-            : `/autogen/img/gallery/default.png`
+              : `/autogen/0.2/img/gallery/${item.image}`
+            : `/autogen/0.2/img/gallery/default.png`
         }
         style={{
           height: 150,
