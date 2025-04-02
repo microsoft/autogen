@@ -1644,7 +1644,9 @@ async def test_model_client_with_function_calling(model: str, openai_client: Ope
     # Test tool calling
     pass_tool = FunctionTool(_pass_function, name="pass_tool", description="pass session.")
     fail_tool = FunctionTool(_fail_function, name="fail_tool", description="fail session.")
-    messages: List[LLMMessage] = [UserMessage(content="Call the pass tool with input 'task'", source="user")]
+    messages: List[LLMMessage] = [
+        UserMessage(content="Call the pass tool with input 'task' and talk result", source="user")
+    ]
     create_result = await openai_client.create(messages=messages, tools=[pass_tool, fail_tool])
     assert isinstance(create_result.content, list)
     assert len(create_result.content) == 1
@@ -1675,7 +1677,8 @@ async def test_model_client_with_function_calling(model: str, openai_client: Ope
     # Test parallel tool calling
     messages = [
         UserMessage(
-            content="Call both the pass tool with input 'task' and the fail tool also with input 'task'", source="user"
+            content="Call both the pass tool with input 'task' and the fail tool also with input 'task' and talk result",
+            source="user",
         )
     ]
     create_result = await openai_client.create(messages=messages, tools=[pass_tool, fail_tool])
