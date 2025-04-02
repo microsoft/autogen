@@ -5,11 +5,10 @@ from enum import Enum
 from typing import List, Optional, Union
 
 from autogen_core import ComponentModel
-from pydantic import ConfigDict, SecretStr, field_validator
-from regex import T
-from sqlalchemy import ForeignKey, Integer, String
+from pydantic import ConfigDict, SecretStr, field_validator 
+from sqlalchemy import ForeignKey, Integer
 from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func
-from streamlit import table
+ 
 
 from .types import (
     GalleryComponents,
