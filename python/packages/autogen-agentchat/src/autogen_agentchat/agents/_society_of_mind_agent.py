@@ -189,8 +189,6 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
             )
             task = [prev_message] + task
 
-        print(f"Task@SoMA: {self.name} : {task}")
-
         async for inner_msg in self._team.run_stream(task=task, cancellation_token=cancellation_token):
             if isinstance(inner_msg, TaskResult):
                 result = inner_msg
