@@ -1,9 +1,0 @@
-# File-free version of a GAIA L1 task.
-
-task_description: You are a telecommunications engineer who wants to build cell phone towers on a stretch of road.
-                  Houses are located at mile markers 16, 17, 19, 11, 9, 10, 2, 5, 4.
-                  Each cell phone tower can cover houses located next to the road within a 4-mile radius.
-                  Find the minimum number of cell phone towers needed to cover all houses next to the road.
-                  Your answer should be a positive numerical integer value.
-
-expected_answer: '2'

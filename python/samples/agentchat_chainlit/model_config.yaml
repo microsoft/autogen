@@ -1,4 +1,0 @@
-# Use Open AI with key
-provider: autogen_ext.models.openai.OpenAIChatCompletionClient
-config:
-  model: gpt-4o
