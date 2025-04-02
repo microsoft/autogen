@@ -1090,13 +1090,14 @@ async def test_r1_reasoning_content_streaming(monkeypatch: pytest.MonkeyPatch) -
 
     # Verify that the chunks first stream the reasoning content and then the main content
     # Then verify that the final result has the correct content and thought
-    assert len(chunks) == 4
-    assert chunks[0] == "This is the reasoning content 1"
+    assert len(chunks) == 5
+    assert chunks[0] == "<think>This is the reasoning content 1"
     assert chunks[1] == "This is the reasoning content 2"
-    assert chunks[2] == "This is the main content"
-    assert isinstance(chunks[3], CreateResult)
-    assert chunks[3].content == "This is the main content"
-    assert chunks[3].thought == "This is the reasoning content 1This is the reasoning content 2"
+    assert chunks[2] == "</think>"
+    assert chunks[3] == "This is the main content"
+    assert isinstance(chunks[4], CreateResult)
+    assert chunks[4].content == "This is the main content"
+    assert chunks[4].thought == "This is the reasoning content 1This is the reasoning content 2"
 
 
 @pytest.mark.asyncio
@@ -1783,7 +1784,10 @@ async def test_openai_structured_output_with_streaming(model: str, openai_client
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    [
+        "gpt-4o-mini",
+        # "gemini-1.5-flash", # Gemini models do not support structured output with tool calls from model client.
+    ],
 )
 async def test_openai_structured_output_with_tool_calls(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     class AgentResponse(BaseModel):
@@ -1796,13 +1800,15 @@ async def test_openai_structured_output_with_tool_calls(model: str, openai_clien
 
     tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
 
+    extra_create_args = {"tool_choice": "required"}
+
     response1 = await openai_client.create(
         messages=[
             SystemMessage(content="Analyze input text sentiment using the tool provided."),
             UserMessage(content="I am happy.", source="user"),
         ],
         tools=[tool],
-        extra_create_args={"tool_choice": "required"},
+        extra_create_args=extra_create_args,
         json_output=AgentResponse,
     )
     assert isinstance(response1.content, list)
@@ -1836,7 +1842,10 @@ async def test_openai_structured_output_with_tool_calls(model: str, openai_clien
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    [
+        "gpt-4o-mini",
+        # "gemini-1.5-flash", # Gemini models do not support structured output with tool calls from model client.
+    ],
 )
 async def test_openai_structured_output_with_streaming_tool_calls(
     model: str, openai_client: OpenAIChatCompletionClient
@@ -1851,6 +1860,8 @@ async def test_openai_structured_output_with_streaming_tool_calls(
 
     tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
 
+    extra_create_args = {"tool_choice": "required"}
+
     chunks1: List[str | CreateResult] = []
     stream1 = openai_client.create_stream(
         messages=[
@@ -1858,7 +1869,7 @@ async def test_openai_structured_output_with_streaming_tool_calls(
             UserMessage(content="I am happy.", source="user"),
         ],
         tools=[tool],
-        extra_create_args={"tool_choice": "required"},
+        extra_create_args=extra_create_args,
         json_output=AgentResponse,
     )
     async for chunk in stream1:
