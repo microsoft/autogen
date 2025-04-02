@@ -21,6 +21,7 @@ from autogen_core.models import (
     CreateResult,
     LLMMessage,
     SystemMessage,
+    UserMessage,
 )
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -416,12 +417,11 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         # and execution_result as Response
         yield inferred_text_message
 
-        # Add the code execution result to the model context, keeping thought=None since the execution result doesn't have any associated thought.
+        # Add the code execution result to the model context
         await model_context.add_message(
-            AssistantMessage(
+            UserMessage(
                 content=execution_result.content,
                 source=agent_name,
-                thought=None,
             )
         )
 
