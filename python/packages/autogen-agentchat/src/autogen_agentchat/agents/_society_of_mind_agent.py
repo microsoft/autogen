@@ -1,12 +1,11 @@
 from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
 from autogen_core import CancellationToken, Component, ComponentModel
-from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage
 from autogen_core.model_context import (
     ChatCompletionContext,
     UnboundedChatCompletionContext,
 )
-
+from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -20,7 +19,6 @@ from ..messages import (
     HandoffMessage,
     ModelClientStreamingChunkEvent,
     TextMessage,
-    HandoffMessage,
 )
 from ._base_chat_agent import BaseChatAgent
 
@@ -55,7 +53,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
     You can also create your own model context by subclassing
     :class:`~autogen_core.model_context.ChatCompletionContext`.
 
-    
+
     Args:
         name (str): The name of the agent.
         team (Team): The team of agents to use.
@@ -66,7 +64,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         response_prompt (str, optional): The response prompt to use when generating a response using the inner team's messages.
             Defaults to :attr:`DEFAULT_RESPONSE_PROMPT`. It assumes the role of 'system'.
         model_context (ChatCompletionContext | None, optional): The model context for storing and retrieving :class:`~autogen_core.models.LLMMessage`. It can be preloaded with initial messages. The initial messages will be cleared when the agent is reset.
-        
+
 
 
     Example:
@@ -134,14 +132,14 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         description: str = DEFAULT_DESCRIPTION,
         instruction: str = DEFAULT_INSTRUCTION,
         response_prompt: str = DEFAULT_RESPONSE_PROMPT,
-        model_context: ComponentModel | None = None
+        model_context: ComponentModel | None = None,
     ) -> None:
         super().__init__(name=name, description=description)
         self._team = team
         self._model_client = model_client
         self._instruction = instruction
         self._response_prompt = response_prompt
-        
+
         if model_context is not None:
             self._model_context = model_context
         else:
@@ -206,7 +204,8 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
 
         if len(inner_messages) == 0:
             yield Response(
-                chat_message=TextMessage(source=self.name, content="No response."), inner_messages=[]
+                chat_message=TextMessage(source=self.name, content="No response."),
+                inner_messages=[],
                 # Response's inner_messages should be empty. Cause that mean is response to outer world.
             )
         else:
@@ -224,13 +223,12 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
                 # Response's inner_messages should be empty. Cause that mean is response to outer world.
             )
 
-        
         # Add new user/handoff messages to the model context
         await self._add_messages_to_context(
             model_context=model_context,
             messages=messages,
         )
-        
+
         # Reset the team.
         await self._team.reset()
 

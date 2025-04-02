@@ -778,7 +778,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             messages=messages,
         )
 
-
         # STEP 2: Update model context with any relevant memory
         inner_messages: List[BaseAgentEvent | BaseChatMessage] = []
         for event_msg in await self._update_model_context_with_memory(
@@ -788,7 +787,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         ):
             inner_messages.append(event_msg)
             yield event_msg
-
 
         # STEP 3: Run the first inference
         model_result = None
