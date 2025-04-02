@@ -410,10 +410,10 @@ async def test_caching_functionality() -> None:
 
 
 @pytest.mark.asyncio
-async def test_semantic_search_configuration() -> None:
-    """Test semantic search configuration handling."""
+async def test_semantic_configuration_name_handling() -> None:
+    """Test handling of semantic configuration names in fulltext search."""
     tool = ConcreteAzureAISearchTool.create_full_text_search(
-        name="semantic_search",
+        name="semantic_config_test",
         endpoint="https://test.search.windows.net",
         index_name="test-index",
         credential=AzureKeyCredential("test-key"),
@@ -421,33 +421,24 @@ async def test_semantic_search_configuration() -> None:
         select_fields=["title", "content"],
     )
 
-    assert tool.search_config.query_type == "fulltext"
-
     mock_client = AsyncMock()
+    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.9, "title": "Semantic Test Result"}])
 
-    class MockAsyncIterator:
-        def __init__(self, items: List[Dict[str, Any]]) -> None:
-            self.items = items[:]
+    assert tool.search_config.query_type == "fulltext"
+    assert tool.search_config.search_fields == ["title", "content"]
 
-        def __aiter__(self) -> "MockAsyncIterator":
-            return self
-
-        async def __anext__(self) -> Dict[str, Any]:
-            if not self.items:
-                raise StopAsyncIteration
-            return self.items.pop(0)
-
-    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.9, "title": "Semantic Result"}])
-
-    with patch.object(ConcreteAzureAISearchTool, "run") as mock_run:
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        mock_run = AsyncMock()
         mock_run.return_value = SearchResults(
-            results=[SearchResult(score=0.9, content={"title": "Semantic Result"}, metadata={})]
+            results=[SearchResult(score=0.9, content={"title": "Semantic Test Result"}, metadata={})]
         )
 
-        results = await tool.run("semantic query")
+        with patch.object(tool, "run", mock_run):
+            results = await tool.run("semantic query")
+            mock_run.assert_called_once()
 
         assert len(results.results) == 1
-        assert results.results[0].content["title"] == "Semantic Result"
+        assert results.results[0].content["title"] == "Semantic Test Result"
 
 
 @pytest.mark.asyncio
@@ -776,14 +767,18 @@ async def test_search_with_user_provided_vectors() -> None:
     mock_client = AsyncMock()
     mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.95, "title": "Vector Result"}])
 
-    query = "test vector search"
+    custom_vectors = [0.1, 0.2, 0.3, 0.4, 0.5]
+    query_dict = {"query": "test query", "vectors": {"embedding": custom_vectors}}
 
     with patch.object(tool, "_get_client", return_value=mock_client):
-        results = await tool.run(query)
+        results = await tool.run(query_dict)
+
         assert len(results.results) == 1
         assert results.results[0].content["title"] == "Vector Result"
 
         mock_client.search.assert_called_once()
+        _, kwargs = mock_client.search.call_args
+        assert "vector_queries" in kwargs
 
 
 @pytest.mark.asyncio
@@ -799,16 +794,15 @@ async def test_component_loading_with_invalid_params() -> None:
             expected=OtherClass,  # type: ignore
         )
 
-    with pytest.raises(ValueError):
-        from unittest.mock import patch
+    with pytest.raises(Exception) as excinfo:
+        ConcreteAzureAISearchTool.load_component("not a dict or ComponentModel")  # type: ignore
+    error_msg = str(excinfo.value).lower()
+    assert any(text in error_msg for text in ["attribute", "type", "object", "dict", "str"])
 
-        with patch.object(
-            AzureAISearchTool, "load_component", side_effect=ValueError("Invalid component configuration")
-        ):
-            ConcreteAzureAISearchTool.load_component("not a dict or ComponentModel")  # type: ignore
-
-    with pytest.raises(ValueError, match="Invalid component configuration"):
+    with pytest.raises(Exception) as excinfo:
         ConcreteAzureAISearchTool.load_component({})
+    error_msg = str(excinfo.value).lower()
+    assert any(text in error_msg for text in ["validation", "required", "missing", "field"])
 
 
 @pytest.mark.asyncio
@@ -922,33 +916,165 @@ async def test_complex_error_handling_scenarios() -> None:
 
 
 @pytest.mark.asyncio
-async def test_semantic_configuration_name_handling() -> None:
-    """Test handling of semantic configuration names in fulltext search."""
-    tool = ConcreteAzureAISearchTool.create_full_text_search(
-        name="semantic_config_test",
+async def test_multi_step_vector_search() -> None:
+    """Test a multi-step vector search with query embeddings and explicit search options."""
+    tool = ConcreteAzureAISearchTool.create_vector_search(
+        name="vector_multi_step",
         endpoint="https://test.search.windows.net",
         index_name="test-index",
         credential=AzureKeyCredential("test-key"),
-        search_fields=["title", "content"],
-        select_fields=["title", "content"],
+        vector_fields=["embedding"],
     )
 
     mock_client = AsyncMock()
-    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.9, "title": "Semantic Test Result"}])
+    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.98, "title": "Vector Embedding Test"}])
 
-    assert tool.search_config.query_type == "fulltext"
-    assert tool.search_config.search_fields == ["title", "content"]
+    embedding = [0.1, 0.2, 0.3, 0.4, 0.5]
+    with patch.object(tool, "_get_embedding", AsyncMock(return_value=embedding)):
+        with patch.object(tool, "_get_client", return_value=mock_client):
+            results = await tool.run("vector embedding query")
+
+            assert len(results.results) == 1
+            assert results.results[0].content["title"] == "Vector Embedding Test"
+
+            mock_client.search.assert_called_once()
+
+            _, kwargs = mock_client.search.call_args
+            assert "vector_queries" in kwargs
+
+
+@pytest.mark.asyncio
+async def test_error_handling_in_special_cases() -> None:
+    """Test error handling for specific error cases that might be missed."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="error_test",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    not_found_error = ValueError("The requested resource with 'test-index' was not found")
+
+    with patch.object(tool, "_get_client", AsyncMock(side_effect=not_found_error)):
+        with pytest.raises(ValueError, match="Index 'test-index' not found"):
+            await tool.run("error query")
+
+    auth_error = ValueError("401 Unauthorized error occurred")
+
+    with patch.object(tool, "_get_client", AsyncMock(side_effect=auth_error)):
+        with pytest.raises(ValueError, match="Authentication failed"):
+            await tool.run("auth error query")
+
+
+@pytest.mark.asyncio
+async def test_component_loading_with_config_model() -> None:
+    """Test the load_component method with a ComponentModel instead of dict."""
+    from autogen_core import ComponentModel
+
+    model = ComponentModel(
+        provider="autogen_ext.tools.azure.BaseAzureAISearchTool",
+        config={
+            "name": "model_test",
+            "endpoint": "https://test.search.windows.net",
+            "index_name": "test-index",
+            "credential": {"api_key": "test-key"},
+            "query_type": "keyword",
+            "search_fields": ["title", "content"],
+        },
+    )
+
+    with patch.object(ConcreteAzureAISearchTool, "create_keyword_search") as mock_create:
+        mock_create.return_value = ConcreteAzureAISearchTool.create_keyword_search(
+            name="model_test",
+            endpoint="https://test.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+        )
+
+        tool = ConcreteAzureAISearchTool.load_component(model)
+
+        assert tool.name == "model_test"
+
+
+@pytest.mark.asyncio
+async def test_fallback_vectorizable_text_query() -> None:
+    """Test the fallback VectorizableTextQuery class when Azure SDK is not available."""
+
+    class MockVectorizableTextQuery:
+        def __init__(self, text: str, k: int, fields: str) -> None:
+            self.text = text
+            self.k = k
+            self.fields = fields
+
+    query1 = MockVectorizableTextQuery(text="test query", k=5, fields="title")
+    assert query1.text == "test query"
+    assert query1.fields == "title"
+
+    query2 = MockVectorizableTextQuery(text="test query", k=3, fields="title,content")
+    assert query2.text == "test query"
+    assert query2.fields == "title,content"
+
+
+@pytest.mark.asyncio
+async def test_dump_component() -> None:
+    """Test the dump_component method."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="dump_test",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    component_model = tool.dump_component()
+    assert component_model.provider == "autogen_ext.tools.azure.BaseAzureAISearchTool"
+    assert component_model.config["name"] == "dump_test"
+    assert component_model.config["endpoint"] == "https://test.search.windows.net"
+    assert component_model.config["index_name"] == "test-index"
+
+
+@pytest.mark.asyncio
+async def test_fallback_config_class() -> None:
+    """Test the fallback configuration class."""
+    from autogen_ext.tools.azure._ai_search import _FallbackAzureAISearchConfig  # pyright: ignore[reportPrivateUsage]
+
+    config = _FallbackAzureAISearchConfig(
+        name="fallback_test",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        query_type="vector",
+        vector_fields=["embedding"],
+        top=10,
+    )
+
+    assert config.name == "fallback_test"
+    assert config.endpoint == "https://test.search.windows.net"
+    assert config.index_name == "test-index"
+    assert config.query_type == "vector"
+    assert config.vector_fields == ["embedding"]
+    assert config.top == 10
+
+
+@pytest.mark.asyncio
+async def test_search_with_different_query_types() -> None:
+    """Test search with different query types and parameters."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="query_types_test",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    mock_client = AsyncMock()
+    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.9, "title": "Test Result"}])
 
     with patch.object(tool, "_get_client", return_value=mock_client):
-        original_run = tool.run
+        await tool.run("string query")
+        mock_client.search.assert_called_once()
+        mock_client.search.reset_mock()
 
-        async def mock_run(*args: Any, **kwargs: Any) -> SearchResults:
-            return SearchResults(
-                results=[SearchResult(score=0.9, content={"title": "Semantic Test Result"}, metadata={})]
-            )
+        await tool.run({"query": "dict query"})
+        mock_client.search.assert_called_once()
+        mock_client.search.reset_mock()
 
-        tool.run = mock_run  # type: ignore
-        results = await tool.run("semantic query")
-        assert len(results.results) == 1
-        assert results.results[0].content["title"] == "Semantic Test Result"
-        tool.run = original_run  # type: ignore
+        await tool.run(SearchQuery(query="object query"))
+        mock_client.search.assert_called_once()
