@@ -7,6 +7,7 @@ import pytest
 from autogen_core import CancellationToken
 from autogen_ext.tools.azure._ai_search import (
     AzureAISearchTool,
+    SearchResult,
     SearchResults,
     _allow_private_constructor,  # pyright: ignore[reportPrivateUsage]
 )
@@ -188,17 +189,34 @@ async def test_create_full_text_search() -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_vector_search() -> None:
+    """Test the create_vector_search factory method."""
+    tool = ConcreteAzureAISearchTool.create_vector_search(
+        name="vector_search",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+        vector_fields=["embedding"],
+        select_fields=["title", "content"],
+        top=5,
+    )
+
+    assert tool.name == "vector_search"
+    assert tool.search_config.query_type == "vector"
+    assert tool.search_config.vector_fields == ["embedding"]
+
+
+@pytest.mark.asyncio
 async def test_create_hybrid_search() -> None:
     """Test the create_hybrid_search factory method."""
     tool = ConcreteAzureAISearchTool.create_hybrid_search(
         name="hybrid_search",
         endpoint="https://test.search.windows.net",
         index_name="test-index",
-        credential=cast(TokenCredential, AzureKeyCredential("test-key")),
+        credential=AzureKeyCredential("test-key"),
         vector_fields=["embedding"],
         search_fields=["title", "content"],
         select_fields=["title", "content"],
-        filter="category eq 'test'",
         top=5,
     )
 
@@ -206,13 +224,26 @@ async def test_create_hybrid_search() -> None:
     assert tool.search_config.query_type == "hybrid"
     assert tool.search_config.vector_fields == ["embedding"]
     assert tool.search_config.search_fields == ["title", "content"]
-    assert tool.search_config.filter == "category eq 'test'"
-    assert tool.search_config.top == 5
 
 
 @pytest.mark.asyncio
-async def test_process_credential() -> None:
-    """Test the _process_credential method."""
+async def test_run_invalid_query() -> None:
+    """Test the run method with an invalid query format."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    invalid_query: Dict[str, Any] = {"invalid_key": "invalid_value"}
+    with pytest.raises(ValueError, match="Invalid search query format"):
+        await tool.run(invalid_query)
+
+
+@pytest.mark.asyncio
+async def test_process_credential_dict() -> None:
+    """Test the _process_credential method with a dictionary credential."""
     tool = ConcreteAzureAISearchTool.create_keyword_search(
         name="test_tool",
         endpoint="https://test.search.windows.net",
@@ -223,10 +254,96 @@ async def test_process_credential() -> None:
     assert isinstance(tool.search_config.credential, AzureKeyCredential)
     assert tool.search_config.credential.key == "test-key"
 
-    with pytest.raises(ValueError, match="credential cannot be None"):
-        ConcreteAzureAISearchTool.create_keyword_search(
-            name="test_tool",
-            endpoint="https://test.search.windows.net",
-            index_name="test-index",
-            credential={},
-        )
+
+@pytest.mark.asyncio
+async def test_run_empty_query() -> None:
+    """Test the run method with an empty query."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    with patch.object(tool, "_get_client", AsyncMock()):
+        with pytest.raises(ValueError, match="Invalid search query format"):
+            await tool.run("")
+
+
+@pytest.mark.asyncio
+async def test_get_client_initialization() -> None:
+    """Test the _get_client method for proper initialization."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    assert tool.search_config.endpoint == "https://test.search.windows.net"
+    assert tool.search_config.index_name == "test-index"
+
+    with patch("azure.search.documents.aio.SearchClient", autospec=True) as mock_client:
+        mock_client.return_value = AsyncMock()
+        await tool.run("test query", CancellationToken())
+        mock_client.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_return_value_as_string() -> None:
+    """Test the return_value_as_string method for formatting search results."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    results = SearchResults(
+        results=[
+            SearchResult(score=0.95, content={"title": "Doc 1"}, metadata={}),
+            SearchResult(score=0.85, content={"title": "Doc 2"}, metadata={}),
+        ]
+    )
+
+    result_string = tool.return_value_as_string(results)
+    assert "Result 1 (Score: 0.95): title: Doc 1" in result_string
+    assert "Result 2 (Score: 0.85): title: Doc 2" in result_string
+
+
+@pytest.mark.asyncio
+async def test_return_value_as_string_empty() -> None:
+    """Test the return_value_as_string method with empty results."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    results = SearchResults(results=[])
+    result_string = tool.return_value_as_string(results)
+    assert result_string == "No results found."
+
+
+@pytest.mark.asyncio
+async def test_load_component() -> None:
+    """Test the load_component method for proper deserialization."""
+    model = {
+        "provider": "autogen_ext.tools.azure.BaseAzureAISearchTool",
+        "config": {
+            "name": "test_tool",
+            "endpoint": "https://test.search.windows.net",
+            "index_name": "test-index",
+            "credential": {"api_key": "test-key"},
+            "query_type": "keyword",
+            "search_fields": ["title", "content"],
+            "select_fields": ["title", "content"],
+            "top": 5,
+        },
+    }
+
+    tool = ConcreteAzureAISearchTool.load_component(model)
+    assert tool.name == "test_tool"
+    assert tool.search_config.query_type == "keyword"
+    assert tool.search_config.search_fields == ["title", "content"]

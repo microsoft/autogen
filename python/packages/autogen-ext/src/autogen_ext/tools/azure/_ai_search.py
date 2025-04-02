@@ -299,6 +299,9 @@ class BaseAzureAISearchTool(BaseTool[SearchQuery, SearchResults], ABC):
         Returns:
             Search results
         """
+        if isinstance(args, str) and not args.strip():
+            raise ValueError("Invalid search query format: Query cannot be empty")
+
         if isinstance(args, str):
             search_query = SearchQuery(query=args)
         elif isinstance(args, dict) and "query" in args:
