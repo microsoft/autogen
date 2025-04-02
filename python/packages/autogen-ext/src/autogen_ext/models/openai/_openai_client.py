@@ -560,7 +560,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             to_oai_type(
                 m,
                 prepend_name=self._add_name_prefixes,
-                model=create_args.get("model", ModelFamily.UNKNOWN),
+                model=create_args.get("model", "unknown"),
                 model_family=self._model_info["family"],
             )
             for m in messages
