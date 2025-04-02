@@ -248,8 +248,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         await self._team.reset()
-        # Question : Why do not clear model context???
-        # Answer : Call model_client directly.
+        await self._model_context.clear()
 
     async def save_state(self) -> Mapping[str, Any]:
         team_state = await self._team.save_state()
