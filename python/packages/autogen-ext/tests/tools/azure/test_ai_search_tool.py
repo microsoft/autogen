@@ -1,25 +1,26 @@
 """Tests for the Azure AI Search tool."""
 
-from typing import Any, AsyncGenerator, Dict, List, cast
+from typing import Any, AsyncGenerator, Dict, List, Union, cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from autogen_core import CancellationToken
 from autogen_ext.tools.azure._ai_search import (
     AzureAISearchTool,
+    SearchQuery,
     SearchResult,
     SearchResults,
     _allow_private_constructor,  # pyright: ignore[reportPrivateUsage]
 )
 from azure.core.credentials import AzureKeyCredential, TokenCredential
+from azure.core.exceptions import HttpResponseError
 
 
-# Common helper for mocking async iterators
 class MockAsyncIterator:
     """Mock for async iterator to use in tests."""
 
     def __init__(self, items: List[Dict[str, Any]]) -> None:
-        self.items = items.copy()  # Create a copy to avoid modifying the original
+        self.items = items.copy()
 
     def __aiter__(self) -> "MockAsyncIterator":
         return self
@@ -30,7 +31,6 @@ class MockAsyncIterator:
         return self.items.pop(0)
 
 
-# Test fixtures and helper classes
 @pytest.fixture
 async def search_tool() -> AsyncGenerator[AzureAISearchTool, None]:
     """Create a concrete search tool for testing."""
@@ -447,3 +447,315 @@ async def test_semantic_search_configuration() -> None:
 
         assert len(results.results) == 1
         assert results.results[0].content["title"] == "Semantic Result"
+
+
+@pytest.mark.asyncio
+async def test_http_response_error_handling() -> None:
+    """Test handling of different HTTP response errors."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_search",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    mock_client = AsyncMock()
+    http_error = HttpResponseError()
+    http_error.message = "401 Unauthorized: Access is denied due to invalid credentials"
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        mock_client.search = AsyncMock(side_effect=http_error)
+        with pytest.raises(ValueError, match="Authentication failed"):
+            await tool.run("test query")
+
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_search",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("invalid-key"),
+    )
+
+    with patch.object(tool, "_get_client", AsyncMock(side_effect=ValueError("Invalid key"))):
+        with pytest.raises(ValueError, match="Authentication failed"):
+            await tool.run("test query")
+
+
+@pytest.mark.asyncio
+async def test_run_with_search_query_object() -> None:
+    """Test running the search with a SearchQuery object instead of a string."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    mock_client = AsyncMock()
+    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.85, "title": "Query Object Test"}])
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        search_query = SearchQuery(query="advanced query")
+        results = await tool.run(search_query)
+
+        assert len(results.results) == 1
+        assert results.results[0].content["title"] == "Query Object Test"
+        mock_client.search.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_dict_document_processing() -> None:
+    """Test processing of document with dict-like interface."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    class DictLikeDoc:
+        def __init__(self, data: Dict[str, Any]) -> None:
+            self._data = data
+
+        def items(self) -> List[tuple[str, Any]]:
+            return list(self._data.items())
+
+    mock_client = AsyncMock()
+
+    class SpecialMockAsyncIterator:
+        def __init__(self) -> None:
+            self.returned = False
+
+        def __aiter__(self) -> "SpecialMockAsyncIterator":
+            return self
+
+        async def __anext__(self) -> DictLikeDoc:
+            if self.returned:
+                raise StopAsyncIteration
+            self.returned = True
+            return DictLikeDoc({"@search.score": 0.75, "title": "Dict Like Doc"})
+
+    mock_client.search.return_value = SpecialMockAsyncIterator()
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        results = await tool.run("test query")
+
+        assert len(results.results) == 1
+        assert results.results[0].content["title"] == "Dict Like Doc"
+        assert results.results[0].score == 0.75
+
+
+@pytest.mark.asyncio
+async def test_document_processing_error_handling() -> None:
+    """Test error handling during document processing."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    mock_client = AsyncMock()
+
+    class ProblemDoc:
+        def items(self) -> None:
+            raise AttributeError("Simulated error in document processing")
+
+    class MixedResultsAsyncIterator:
+        def __init__(self) -> None:
+            self.docs: List[Union[Dict[str, Any], ProblemDoc]] = [
+                {"@search.score": 0.9, "title": "Good Doc"},
+                ProblemDoc(),
+                {"@search.score": 0.8, "title": "Another Good Doc"},
+            ]
+            self.index = 0
+
+        def __aiter__(self) -> "MixedResultsAsyncIterator":
+            return self
+
+        async def __anext__(self) -> Union[Dict[str, Any], ProblemDoc]:
+            if self.index >= len(self.docs):
+                raise StopAsyncIteration
+            doc = self.docs[self.index]
+            self.index += 1
+            return doc
+
+    mock_client.search.return_value = MixedResultsAsyncIterator()
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        results = await tool.run("test query")
+
+        assert len(results.results) == 2
+        assert results.results[0].content["title"] == "Good Doc"
+        assert results.results[1].content["title"] == "Another Good Doc"
+
+
+@pytest.mark.asyncio
+async def test_index_not_found_error() -> None:
+    """Test handling of 'index not found' error."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="nonexistent-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    not_found_error = ValueError("The index 'nonexistent-index' was not found")
+
+    with patch.object(tool, "_get_client", AsyncMock(side_effect=not_found_error)):
+        with pytest.raises(ValueError, match="Index 'nonexistent-index' not found"):
+            await tool.run("test query")
+
+
+@pytest.mark.asyncio
+async def test_http_response_with_500_error() -> None:
+    """Test handling of HTTP 500 error responses."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_search",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    http_error = HttpResponseError()
+    http_error.message = "500 Internal Server Error: Something went wrong on the server"
+
+    with patch.object(tool, "_get_client", AsyncMock()) as mock_client:
+        mock_client.return_value.search = AsyncMock(side_effect=http_error)
+
+        with pytest.raises(ValueError, match="Error from Azure AI Search"):
+            await tool.run("test query")
+
+
+@pytest.mark.asyncio
+async def test_cancellation_during_search() -> None:
+    """Test cancellation token functionality during the search process."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    cancellation_token = CancellationToken()
+    cancellation_token.cancel()
+
+    with pytest.raises(ValueError, match="Operation cancelled"):
+        await tool.run("test query", cancellation_token)
+
+
+@pytest.mark.asyncio
+async def test_run_with_dict_query_format() -> None:
+    """Test running the search with a dictionary query format with 'query' key."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    mock_client = AsyncMock()
+    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.85, "title": "Dict Query Test"}])
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        query_dict = {"query": "dict style query"}
+        results = await tool.run(query_dict)
+
+        assert len(results.results) == 1
+        assert results.results[0].content["title"] == "Dict Query Test"
+        mock_client.search.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_object_based_document_processing() -> None:
+    """Test processing of document with object attributes instead of dict interface."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    class ObjectDoc:
+        """Test document class with object attributes."""
+
+        def __init__(self) -> None:
+            self.title = "Object Doc"
+            self.content = "Object content"
+            self._private_attr = "private"
+            self.__search_score = 0.8
+
+    mock_client = AsyncMock()
+
+    class ObjectDocAsyncIterator:
+        def __init__(self) -> None:
+            self.returned = False
+
+        def __aiter__(self) -> "ObjectDocAsyncIterator":
+            return self
+
+        async def __anext__(self) -> ObjectDoc:
+            if self.returned:
+                raise StopAsyncIteration
+            self.returned = True
+            return ObjectDoc()
+
+    mock_client.search.return_value = ObjectDocAsyncIterator()
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        results = await tool.run("test query")
+
+        assert len(results.results) == 1
+        assert results.results[0].content["title"] == "Object Doc"
+        assert results.results[0].content["content"] == "Object content"
+        assert "_private_attr" not in results.results[0].content
+
+
+@pytest.mark.asyncio
+async def test_vector_search_with_provided_vectors() -> None:
+    """Test vector search using vectors provided directly in the search options."""
+    tool = ConcreteAzureAISearchTool.create_vector_search(
+        name="vector_direct_search",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+        vector_fields=["embedding"],
+        select_fields=["title", "content"],
+    )
+
+    mock_client = AsyncMock()
+    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.95, "title": "Vector Direct Test"}])
+
+    query = "test vector search"
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        results = await tool.run(query)
+        assert len(results.results) == 1
+        assert results.results[0].content["title"] == "Vector Direct Test"
+
+        mock_client.search.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_credential_token_expiry_handling() -> None:
+    """Test handling credential token expiry and error cases."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="token_test",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    auth_error = HttpResponseError()
+    auth_error.message = "401 Unauthorized: Access token has expired or is not yet valid"
+
+    with patch.object(tool, "_get_client", AsyncMock()) as mock_client:
+        mock_client.return_value.search = AsyncMock(side_effect=auth_error)
+
+        with pytest.raises(ValueError, match="Authentication failed"):
+            await tool.run("test query")
+
+    token_error = ValueError("401 Unauthorized: Token is invalid")
+
+    with patch.object(tool, "_get_client", AsyncMock(side_effect=token_error)):
+        with pytest.raises(ValueError, match="Authentication failed"):
+            await tool.run("test query")
