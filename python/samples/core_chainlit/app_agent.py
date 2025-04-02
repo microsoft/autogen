@@ -10,6 +10,27 @@ import yaml
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 
+from dataclasses import dataclass
+
+from autogen_core import SingleThreadedAgentRuntime
+
+from autogen_core import AgentId, MessageContext, RoutedAgent, message_handler
+
+
+@dataclass
+class MyMessageType:
+    content: str
+
+
+class AssistantAgent(RoutedAgent):
+    def __init__(self) -> None:
+        super().__init__("AssistantAgent")
+
+    @message_handler
+    async def handle_my_message_type(self, message: MyMessageType, ctx: MessageContext) -> None:
+        print(f"{self.id.type} received message: {message.content}")
+
+
 
 @cl.set_starters  # type: ignore
 async def set_starts() -> List[cl.Starter]:
@@ -37,6 +58,7 @@ async def start_chat() -> None:
         model_config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(model_config)
 
+    ##replace
     # Create the assistant agent with the get_weather tool.
     assistant = AssistantAgent(
         name="assistant",
@@ -47,9 +69,24 @@ async def start_chat() -> None:
         reflect_on_tool_use=True,  # Reflect on tool use.
     )
 
+    # Register the assistant agent to runtime
+    runtime = SingleThreadedAgentRuntime()
+    await AssistantAgent.register(runtime, "my_assistant", lambda: AssistantAgent("my_assistant"))
+    
+    runtime.start()  # Start processing messages in the background.
+    
+    await runtime.send_message(MyMessageType("Hello, World!"), AgentId("my_agent", "default"))
+    await runtime.send_message(MyMessageType("Hello, World!"), AgentId("my_assistant", "default"))
+    await runtime.stop()  # Stop processing messages in the background.
+
+
     # Set the assistant agent in the user session.
     cl.user_session.set("prompt_history", "")  # type: ignore
     cl.user_session.set("agent", assistant)  # type: ignore
+
+    
+
+    
 
 
 @cl.on_message  # type: ignore
