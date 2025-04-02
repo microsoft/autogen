@@ -59,6 +59,10 @@ class CodeExecutorAgentConfig(BaseModel):
 class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     """(Experimental) An agent that generates and executes code snippets based on user instructions.
 
+    .. note::
+
+        This agent is experimental and may change in future releases.
+
     It is typically used within a team with another agent that generates code snippets
     to be executed or alone with `model_client` provided so that it can generate code
     based on user query, execute it and reflect on the code result.
