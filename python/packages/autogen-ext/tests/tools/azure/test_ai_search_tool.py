@@ -14,6 +14,23 @@ from autogen_ext.tools.azure._ai_search import (
 from azure.core.credentials import AzureKeyCredential, TokenCredential
 
 
+# Common helper for mocking async iterators
+class MockAsyncIterator:
+    """Mock for async iterator to use in tests."""
+
+    def __init__(self, items: List[Dict[str, Any]]) -> None:
+        self.items = items.copy()  # Create a copy to avoid modifying the original
+
+    def __aiter__(self) -> "MockAsyncIterator":
+        return self
+
+    async def __anext__(self) -> Dict[str, Any]:
+        if not self.items:
+            raise StopAsyncIteration
+        return self.items.pop(0)
+
+
+# Test fixtures and helper classes
 @pytest.fixture
 async def search_tool() -> AsyncGenerator[AzureAISearchTool, None]:
     """Create a concrete search tool for testing."""
@@ -46,21 +63,9 @@ async def test_search_tool_run(search_tool: AsyncGenerator[AzureAISearchTool, No
     query = "test query"
     cancellation_token = CancellationToken()
 
-    class AsyncIterableMock:
-        def __init__(self, items: List[Dict[str, Any]]) -> None:
-            self._items = items
-
-        def __aiter__(self) -> "AsyncIterableMock":
-            return self
-
-        async def __anext__(self) -> Dict[str, Any]:
-            if not self._items:
-                raise StopAsyncIteration
-            return self._items.pop(0)
-
     with patch.object(tool, "_get_client", AsyncMock()) as mock_client:
         mock_client.return_value.search = AsyncMock(
-            return_value=AsyncIterableMock([{"@search.score": 0.95, "title": "Test Doc", "content": "Test Content"}])
+            return_value=MockAsyncIterator([{"@search.score": 0.95, "title": "Test Doc", "content": "Test Content"}])
         )
 
         results = await tool.run(query, cancellation_token)
@@ -113,21 +118,9 @@ async def test_search_tool_vector_search() -> None:
             top=10,
         )
 
-        class AsyncIterableMock:
-            def __init__(self, items: List[Dict[str, Any]]) -> None:
-                self._items = items
-
-            def __aiter__(self) -> "AsyncIterableMock":
-                return self
-
-            async def __anext__(self) -> Dict[str, Any]:
-                if not self._items:
-                    raise StopAsyncIteration
-                return self._items.pop(0)
-
         with patch.object(tool, "_get_client", AsyncMock()) as mock_client:
             mock_client.return_value.search = AsyncMock(
-                return_value=AsyncIterableMock(
+                return_value=MockAsyncIterator(
                     [{"@search.score": 0.95, "title": "Vector Doc", "content": "Vector Content"}]
                 )
             )
@@ -283,10 +276,29 @@ async def test_get_client_initialization() -> None:
     assert tool.search_config.endpoint == "https://test.search.windows.net"
     assert tool.search_config.index_name == "test-index"
 
-    with patch("azure.search.documents.aio.SearchClient", autospec=True) as mock_client:
-        mock_client.return_value = AsyncMock()
-        await tool.run("test query", CancellationToken())
-        mock_client.assert_called_once()
+    mock_client = AsyncMock()
+
+    class MockAsyncIterator:
+        def __init__(self, items: List[Dict[str, Any]]) -> None:
+            self.items = items
+
+        def __aiter__(self) -> "MockAsyncIterator":
+            return self
+
+        async def __anext__(self) -> Dict[str, Any]:
+            if not self.items:
+                raise StopAsyncIteration
+            return self.items.pop(0)
+
+    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.9, "title": "Test Result"}])
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        results = await tool.run("test query", CancellationToken())
+        mock_client.search.assert_called_once()
+
+        assert len(results.results) == 1
+        assert results.results[0].content["title"] == "Test Result"
+        assert results.results[0].score == 0.9
 
 
 @pytest.mark.asyncio
@@ -347,3 +359,91 @@ async def test_load_component() -> None:
     assert tool.name == "test_tool"
     assert tool.search_config.query_type == "keyword"
     assert tool.search_config.search_fields == ["title", "content"]
+
+
+@pytest.mark.asyncio
+async def test_caching_functionality() -> None:
+    """Test the caching functionality of the search tool."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="cache_test_tool",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+        enable_caching=True,
+        cache_ttl_seconds=300,
+    )
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+
+    test_result = {"@search.score": 0.9, "title": "Test Result"}
+
+    class MockAsyncIterator:
+        def __init__(self) -> None:
+            self.returned = False
+
+        def __aiter__(self) -> "MockAsyncIterator":
+            return self
+
+        async def __anext__(self) -> Dict[str, Any]:
+            if self.returned:
+                raise StopAsyncIteration
+            self.returned = True
+            return test_result
+
+    mock_client.search = AsyncMock(return_value=MockAsyncIterator())
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        results1 = await tool.run("test query")
+        assert len(results1.results) == 1
+        assert results1.results[0].content["title"] == "Test Result"
+        assert mock_client.search.call_count == 1
+
+        mock_client.search = AsyncMock(return_value=MockAsyncIterator())
+
+        results2 = await tool.run("test query")
+        assert len(results2.results) == 1
+        assert results2.results[0].content["title"] == "Test Result"
+        assert mock_client.search.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_semantic_search_configuration() -> None:
+    """Test semantic search configuration handling."""
+    tool = ConcreteAzureAISearchTool.create_full_text_search(
+        name="semantic_search",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+        search_fields=["title", "content"],
+        select_fields=["title", "content"],
+    )
+
+    assert tool.search_config.query_type == "fulltext"
+
+    mock_client = AsyncMock()
+
+    class MockAsyncIterator:
+        def __init__(self, items: List[Dict[str, Any]]) -> None:
+            self.items = items[:]
+
+        def __aiter__(self) -> "MockAsyncIterator":
+            return self
+
+        async def __anext__(self) -> Dict[str, Any]:
+            if not self.items:
+                raise StopAsyncIteration
+            return self.items.pop(0)
+
+    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.9, "title": "Semantic Result"}])
+
+    with patch.object(ConcreteAzureAISearchTool, "run") as mock_run:
+        mock_run.return_value = SearchResults(
+            results=[SearchResult(score=0.9, content={"title": "Semantic Result"}, metadata={})]
+        )
+
+        results = await tool.run("semantic query")
+
+        assert len(results.results) == 1
+        assert results.results[0].content["title"] == "Semantic Result"
