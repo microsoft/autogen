@@ -31,13 +31,8 @@ async def test_society_of_mind_agent(runtime: AgentRuntime | None) -> None:
     inner_team = RoundRobinGroupChat([agent1, agent2], termination_condition=inner_termination, runtime=runtime)
     society_of_mind_agent = SocietyOfMindAgent("society_of_mind", team=inner_team, model_client=model_client)
     response = await society_of_mind_agent.run(task="Count to 10.")
-    print(response)
-    # assert len(response.messages) == 4
     assert len(response.messages) == 2
     assert response.messages[0].source == "user"
-    # assert response.messages[1].source == "assistant1"
-    # assert response.messages[2].source == "assistant2"
-    # assert response.messages[3].source == "society_of_mind"
     assert response.messages[1].source == "society_of_mind"
 
     # Test save and load state.

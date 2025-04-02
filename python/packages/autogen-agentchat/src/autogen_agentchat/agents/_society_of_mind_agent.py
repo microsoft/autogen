@@ -132,7 +132,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         description: str = DEFAULT_DESCRIPTION,
         instruction: str = DEFAULT_INSTRUCTION,
         response_prompt: str = DEFAULT_RESPONSE_PROMPT,
-        model_context: ComponentModel | None = None,
+        model_context: ChatCompletionContext | None = None,
     ) -> None:
         super().__init__(name=name, description=description)
         self._team = team
