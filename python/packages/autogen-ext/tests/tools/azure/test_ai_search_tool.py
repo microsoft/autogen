@@ -7,6 +7,7 @@ import pytest
 from autogen_core import CancellationToken
 from autogen_ext.tools.azure._ai_search import (
     AzureAISearchTool,
+    BaseAzureAISearchTool,
     SearchQuery,
     SearchResult,
     SearchResults,
@@ -759,3 +760,195 @@ async def test_credential_token_expiry_handling() -> None:
     with patch.object(tool, "_get_client", AsyncMock(side_effect=token_error)):
         with pytest.raises(ValueError, match="Authentication failed"):
             await tool.run("test query")
+
+
+@pytest.mark.asyncio
+async def test_search_with_user_provided_vectors() -> None:
+    """Test the use of user-provided embedding vectors in SearchQuery."""
+    tool = ConcreteAzureAISearchTool.create_vector_search(
+        name="vector_test_with_embeddings",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+        vector_fields=["embedding"],
+    )
+
+    mock_client = AsyncMock()
+    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.95, "title": "Vector Result"}])
+
+    query = "test vector search"
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        results = await tool.run(query)
+        assert len(results.results) == 1
+        assert results.results[0].content["title"] == "Vector Result"
+
+        mock_client.search.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_component_loading_with_invalid_params() -> None:
+    """Test loading components with invalid parameters."""
+
+    class OtherClass:
+        pass
+
+    with pytest.raises(TypeError, match="Cannot create instance"):
+        BaseAzureAISearchTool.load_component(
+            {"provider": "autogen_ext.tools.azure.BaseAzureAISearchTool", "config": {}},
+            expected=OtherClass,  # type: ignore
+        )
+
+    with pytest.raises(ValueError):
+        from unittest.mock import patch
+
+        with patch.object(
+            AzureAISearchTool, "load_component", side_effect=ValueError("Invalid component configuration")
+        ):
+            ConcreteAzureAISearchTool.load_component("not a dict or ComponentModel")  # type: ignore
+
+    with pytest.raises(ValueError, match="Invalid component configuration"):
+        ConcreteAzureAISearchTool.load_component({})
+
+
+@pytest.mark.asyncio
+async def test_factory_method_validation() -> None:
+    """Test validation in factory methods."""
+    with pytest.raises(ValueError, match="endpoint must be a valid URL"):
+        ConcreteAzureAISearchTool.create_keyword_search(
+            name="test", endpoint="", index_name="test-index", credential=AzureKeyCredential("test-key")
+        )
+
+    with pytest.raises(ValueError, match="endpoint must be a valid URL"):
+        ConcreteAzureAISearchTool.create_keyword_search(
+            name="test", endpoint="invalid-url", index_name="test-index", credential=AzureKeyCredential("test-key")
+        )
+
+    with pytest.raises(ValueError, match="index_name cannot be empty"):
+        ConcreteAzureAISearchTool.create_keyword_search(
+            name="test",
+            endpoint="https://test.search.windows.net",
+            index_name="",
+            credential=AzureKeyCredential("test-key"),
+        )
+
+    with pytest.raises(ValueError, match="name cannot be empty"):
+        ConcreteAzureAISearchTool.create_keyword_search(
+            name="",
+            endpoint="https://test.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+        )
+
+    with pytest.raises(ValueError, match="credential cannot be None"):
+        ConcreteAzureAISearchTool.create_keyword_search(
+            name="test",
+            endpoint="https://test.search.windows.net",
+            index_name="test-index",
+            credential=None,  # type: ignore
+        )
+
+    with pytest.raises(ValueError, match="vector_fields must contain at least one field name"):
+        ConcreteAzureAISearchTool.create_vector_search(
+            name="test",
+            endpoint="https://test.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            vector_fields=[],
+        )
+
+    with pytest.raises(ValueError, match="vector_fields must contain at least one field name"):
+        ConcreteAzureAISearchTool.create_hybrid_search(
+            name="test",
+            endpoint="https://test.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            vector_fields=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_direct_tool_initialization_error() -> None:
+    """Test that directly initializing AzureAISearchTool raises an error."""
+
+    class TestSearchTool(AzureAISearchTool):
+        async def _get_embedding(self, query: str) -> List[float]:
+            return [0.1, 0.2, 0.3]
+
+    with pytest.raises(RuntimeError, match="Constructor is private"):
+        TestSearchTool(
+            name="test",
+            endpoint="https://test.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            query_type="keyword",
+        )
+
+
+@pytest.mark.asyncio
+async def test_credential_dict_with_missing_api_key() -> None:
+    """Test handling of credential dict without api_key."""
+    with pytest.raises(ValueError, match="If credential is a dict, it must contain an 'api_key' key"):
+        ConcreteAzureAISearchTool.create_keyword_search(
+            name="test",
+            endpoint="https://test.search.windows.net",
+            index_name="test-index",
+            credential={"invalid_key": "value"},
+        )
+
+
+@pytest.mark.asyncio
+async def test_complex_error_handling_scenarios() -> None:
+    """Test more complex error handling scenarios."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="error_test",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    permission_error = HttpResponseError()
+    permission_error.message = "403 Forbidden: Access is denied"
+
+    with patch.object(tool, "_get_client", AsyncMock(side_effect=permission_error)):
+        with pytest.raises(ValueError, match="Error from Azure AI Search"):
+            await tool.run("test query")
+
+    unexpected_error = Exception("Unexpected error during initialization")
+
+    with patch.object(tool, "_get_client", AsyncMock(side_effect=unexpected_error)):
+        with pytest.raises(ValueError, match="Error from Azure AI Search"):
+            await tool.run("test query")
+
+
+@pytest.mark.asyncio
+async def test_semantic_configuration_name_handling() -> None:
+    """Test handling of semantic configuration names in fulltext search."""
+    tool = ConcreteAzureAISearchTool.create_full_text_search(
+        name="semantic_config_test",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+        search_fields=["title", "content"],
+        select_fields=["title", "content"],
+    )
+
+    mock_client = AsyncMock()
+    mock_client.search.return_value = MockAsyncIterator([{"@search.score": 0.9, "title": "Semantic Test Result"}])
+
+    assert tool.search_config.query_type == "fulltext"
+    assert tool.search_config.search_fields == ["title", "content"]
+
+    with patch.object(tool, "_get_client", return_value=mock_client):
+        original_run = tool.run
+
+        async def mock_run(*args: Any, **kwargs: Any) -> SearchResults:
+            return SearchResults(
+                results=[SearchResult(score=0.9, content={"title": "Semantic Test Result"}, metadata={})]
+            )
+
+        tool.run = mock_run  # type: ignore
+        results = await tool.run("semantic query")
+        assert len(results.results) == 1
+        assert results.results[0].content["title"] == "Semantic Test Result"
+        tool.run = original_run  # type: ignore
