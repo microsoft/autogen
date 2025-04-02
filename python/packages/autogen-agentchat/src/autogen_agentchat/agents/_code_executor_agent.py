@@ -273,6 +273,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     DEFAULT_TERMINAL_DESCRIPTION = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)."
     DEFAULT_AGENT_DESCRIPTION = "A Code Execution Agent that generates and executes Python and shell scripts based on user instructions. Python code should be provided in ```python code blocks, and sh shell scripts should be provided in ```sh code blocks for execution. It ensures correctness, efficiency, and minimal errors while gracefully handling edge cases."
     DEFAULT_SYSTEM_MESSAGE = "You are a Code Execution Agent. Your role is to generate and execute Python code based on user instructions, ensuring correctness, efficiency, and minimal errors. Handle edge cases gracefully."
+    NO_CODE_BLOCKS_FOUND_MESSAGE = "No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks)."
 
     component_config_schema = CodeExecutorAgentConfig
     component_provider_override = "autogen_agentchat.agents.CodeExecutorAgent"
@@ -405,10 +406,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         execution_result = await self.execute_code_block([inferred_text_message], cancellation_token)
 
         # TODO: need a better way to bypass yielding in case there are no code blocks from the code executor.
-        if (
-            execution_result.content
-            == "No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks)."
-        ):
+        if execution_result.content == CodeExecutorAgent.NO_CODE_BLOCKS_FOUND_MESSAGE:
             # yield inferred_text_message as Response and return
             yield Response(chat_message=inferred_text_message)
             return
@@ -462,7 +460,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             return TextMessage(content=code_output, source=self.name)
         else:
             return TextMessage(
-                content="No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks).",
+                content=CodeExecutorAgent.NO_CODE_BLOCKS_FOUND_MESSAGE,
                 source=self.name,
             )
 
