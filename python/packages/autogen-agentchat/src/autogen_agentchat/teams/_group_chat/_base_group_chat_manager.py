@@ -143,11 +143,6 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
         try:
-            print("==============[DEBUG]==============")
-            from pprint import pprint
-            pprint(self._message_thread)
-            print("==============[DEBUG-DONE]==============")
-            
             # Append the message to the message thread and construct the delta.
             delta: List[BaseAgentEvent | BaseChatMessage] = []
             if message.agent_response.inner_messages is not None:

@@ -790,16 +790,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             yield event_msg
 
 
-        #===================DEBUGGING===================
-
-        # Print the current model context
-        print(f"Current model context: {agent_name} :")
-        for msg in model_context._messages:
-            print(msg)
-        print("")
-
-        #===================DEBUGGING===================
-
         # STEP 3: Run the first inference
         model_result = None
         async for inference_output in self._call_llm(

@@ -179,16 +179,6 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         model_context = self._model_context
         count = 0
 
-        #===================DEBUGGING===================
-
-        # Print the current model context
-        print(f"Current model context@SoMA: {self.name} :")
-        for msg in model_context._messages:
-            print(msg)
-        print("")
-
-        #===================DEBUGGING===================
-
         prev_content = await model_context.get_messages()
         if len(prev_content) > 0:
             prev_message = HandoffMessage(
