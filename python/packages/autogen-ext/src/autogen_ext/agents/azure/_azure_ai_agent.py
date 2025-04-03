@@ -122,12 +122,12 @@ class AzureAIAgent(BaseChatAgent):
         
         self._original_tools: dict[str, Tool] = {}
         
-        converted_tools: List["ToolDefinition"] = []
+        converted_tools: List["models.ToolDefinition"] = []
         self._add_tools(tools, converted_tools)
             
         self._project_client = project_client
-        self._agent: Optional["Agent"] = None
-        self._thread: Optional["AgentThread"] = None
+        self._agent: Optional["models.Agent"] = None
+        self._thread: Optional["models.AgentThread"] = None
         self._init_thread_id = thread_id
         self._model = model
         self._instructions = instructions
@@ -318,7 +318,9 @@ class AzureAIAgent(BaseChatAgent):
         raise AssertionError("The stream should have returned the final result.")
 
     async def on_messages_stream(
-            self, messages: Sequence[ChatMessage], message_limit: int  = 1, cancellation_token: CancellationToken = CancellationToken()
+            self, messages: Sequence[ChatMessage], message_limit: int  = 1, 
+            cancellation_token: CancellationToken = CancellationToken(),
+            sleep_interval: float = 0.5,
         ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
             """Handle incoming messages and return a response."""
             await self._ensure_initialized()
@@ -416,8 +418,16 @@ class AzureAIAgent(BaseChatAgent):
                     break
 
                 #TODO support for parameter to control polling interval
-                await asyncio.sleep(0.5) 
+                await asyncio.sleep(sleep_interval) 
 
+            run_steps: models.OpenAIPageableListOfRunStep = await cancellation_token.link_future(
+                asyncio.ensure_future(
+                    self._project_client.agents.list_run_steps(
+                        thread_id=self._thread_id,
+                        run_id=run.id,
+                    )
+                )
+            )
             # Get messages after run completion
             agent_messages: models.OpenAIPageableListOfThreadMessage = await cancellation_token.link_future(
                 asyncio.ensure_future(
@@ -487,12 +497,13 @@ class AzureAIAgent(BaseChatAgent):
         self._uploaded_file_ids = agent_state.uploaded_file_ids
     
     async def on_upload_for_code_interpreter(
-        self, file_paths: str | Iterable[str], cancellation_token: CancellationToken
+        self, file_paths: str | Iterable[str], cancellation_token: CancellationToken = CancellationToken(),
+        sleep_interval: float = 0.5,
     ) -> None:
         """Handle file uploads for the code interpreter."""
         await self._ensure_initialized()
 
-        file_ids = await self._upload_files(file_paths=file_paths, cancellation_token=cancellation_token)
+        file_ids = await self._upload_files(file_paths=file_paths, cancellation_token=cancellation_token, sleep_interval=sleep_interval, purpose=models.FilePurpose.AGENTS)
 
         # Update thread with the new files
         thread: models.AgentThread = await cancellation_token.link_future(
@@ -505,16 +516,18 @@ class AzureAIAgent(BaseChatAgent):
         )
         existing_file_ids: List[str] = code_interpreter.file_ids or []
         existing_file_ids.extend(file_ids)
-        tool_resources.code_interpreter = models.CodeInterpreterToolResource(file_ids=existing_file_ids)
+        
 
         await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._project_client.agents.update_thread(
                     thread_id=self._thread_id,
-                    tool_resources=tool_resources)
+                    tool_resources=models.ToolResources(
+                            code_interpreter=models.CodeInterpreterToolResource(file_ids=existing_file_ids)
+                        ),
                 )
-            
-            )
+            )            
+        )
   
     async def on_upload_for_file_search(
         self, 
@@ -573,72 +586,10 @@ class AzureAIAgent(BaseChatAgent):
             )
         )
     
-async def main():
-    async with DefaultAzureCredential() as credential:
-        
-        async with  AIProjectClient.from_connection_string(credential=credential,
-                                                           conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING"),
-        ) as project_client:
-                
-                conn = await project_client.connections.get(connection_name="gwbsglobal01")
-                
-                #Example of using the AzureAIAgent with a bing grounding tool
-                
-                bing_tool = models.BingGroundingTool(conn.id)
-                
-                agent_with_bing_grounding = AzureAIAgent(
-                        name="my_agent",
-                        description="This is a test agent",
-                        project_client=project_client,
-                        model="gpt-4o",
-                        instructions="You are a helpful assistant.",
-                        tools=bing_tool.definitions,
-                        metadata={"source": "Autogen_AzureAIAgent"},
-                        
-                )
-                
-                file_search_tool = models.FileSearchToolDefinition()
-                
-                agent_with_file_search_tool = AzureAIAgent(
-                        name="my_agent_file_search",
-                        description="This is a test agent",
-                        project_client=project_client,
-                        model="gpt-4o",
-                        instructions="You are a helpful assistant.",
-                        tools=["file_search"],
-                        metadata={"source": "Autogen_AzureAIAgent"},
-                )
-                
-                # Example of using the AzureAIAgent with bing grounding
-                current_active_agent = agent_with_bing_grounding
-                result = await current_active_agent.on_messages(messages=[TextMessage(content="What is microsoft annual leave policy?", source="user")], 
-                                                                cancellation_token=CancellationToken(), 
-                                                                message_limit=5)
-                
-                
-                # Example of using the AzureAIAgent with file search grounding
-                # current_active_agent = agent_with_file_search_tool
-                # await current_active_agent.on_upload_for_file_search(
-                #     file_paths=["/workspaces/autogen/python/packages/autogen-core/docs/src/user-guide/core-user-guide/faqs.md"],
-                #     vector_store_name="file_upload_index",
-                #     vector_store_metadata={"source": "Autogen_AzureAIAgent"},
-                #     cancellation_token=CancellationToken(),
-                # )
-                
-                # result = await current_active_agent.on_messages(messages=[TextMessage(content="Summarize the main points of the faqs", source="user")], 
-                #                                                 cancellation_token=CancellationToken(),
-                #                                                 message_limit=5)
-                
-                
-                print(result)
 
 if __name__ == "__main__":
     # Example usage of AzureAIAgent
     # Replace with your actual connection string and credentials
-    dotenv.load_dotenv()
-    asyncio.run(main())
-    
-    
     """
         TOOD:
         [] Support for file upload
