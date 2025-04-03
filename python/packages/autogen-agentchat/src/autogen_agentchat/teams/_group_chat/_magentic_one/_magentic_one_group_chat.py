@@ -9,7 +9,7 @@ from typing_extensions import Self
 
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition
-from ....messages import AgentEvent, ChatMessage, MessageFactory
+from ....messages import BaseAgentEvent, BaseChatMessage, MessageFactory
 from .._base_group_chat import BaseGroupChat
 from .._events import GroupChatTermination
 from ._magentic_one_orchestrator import MagenticOneOrchestrator
@@ -128,7 +128,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,

@@ -25,6 +25,7 @@ azure = [
     "azure-ai-inference>=1.0.0b7",
     "azure-core",
     "azure-identity",
+    "azure-search-documents>=11.4.0",
 ]
 docker = ["docker~=7.0", "asyncio_atexit>=1.0.1"]
 ollama = ["ollama>=0.4.7", "tiktoken>=0.8.0"]
@@ -135,7 +136,7 @@ semantic-kernel-all = [
 rich = ["rich>=13.9.4"]
 
 mcp = [
-    "mcp>=1.5.0",
+    "mcp>=1.6.0",
     "json-schema-to-pydantic>=0.2.2"
 ]
 
