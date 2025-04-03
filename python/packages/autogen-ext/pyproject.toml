@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-ext"
-version = "0.4.9"
+version = "0.5.0"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen extensions library"
 readme = "README.md"
@@ -15,7 +15,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.4.9",
+    "autogen-core==0.5.0",
 ]
 
 [project.optional-dependencies]
@@ -31,7 +31,7 @@ docker = ["docker~=7.0", "asyncio_atexit>=1.0.1"]
 ollama = ["ollama>=0.4.7", "tiktoken>=0.8.0"]
 openai = ["openai>=1.66.5", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
-    "autogen-agentchat==0.4.9",
+    "autogen-agentchat==0.5.0",
     "magika>=0.6.1rc2",
     "markitdown[all]~=0.1.0a3",
 ]
@@ -43,21 +43,21 @@ llama-cpp = [
 graphrag = ["graphrag>=1.0.1"]
 chromadb = ["chromadb"]
 web-surfer = [
-    "autogen-agentchat==0.4.9",
+    "autogen-agentchat==0.5.0",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
     "magika>=0.6.1rc2",
     "markitdown[all]~=0.1.0a3",
 ]
 magentic-one = [
-    "autogen-agentchat==0.4.9",
+    "autogen-agentchat==0.5.0",
     "magika>=0.6.1rc2",
     "markitdown[all]~=0.1.0a3",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]
 video-surfer = [
-    "autogen-agentchat==0.4.9",
+    "autogen-agentchat==0.5.0",
     "opencv-python>=4.5",
     "ffmpeg-python",
     "openai-whisper",

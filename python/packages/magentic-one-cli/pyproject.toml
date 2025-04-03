@@ -18,7 +18,7 @@ license={ file="LICENSE-CODE" }
 name="magentic-one-cli"
 readme="README.md"
 requires-python=">=3.10"
-version="0.2.3"
+version="0.2.4"
 
 [project.scripts]
 m1="magentic_one_cli._m1:main"
