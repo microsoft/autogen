@@ -7,23 +7,23 @@
 ###############################
 # Open AI model configuration #
 ###############################
-model_config:
-  provider: autogen_ext.models.openai.OpenAIChatCompletionClient
-  config:
-    model: gpt-4o
+# model_config:
+#   provider: autogen_ext.models.openai.OpenAIChatCompletionClient
+#   config:
+#     model: gpt-4o
 
 
 ##############################
 # Ollama model configuration #
 ##############################
-#model_config:
-#    provider: autogen_ext.models.openai.OpenAIChatCompletionClient
-#    config:
-#      model: deepseek-r1:7b
-#      base_url: http://localhost:11434/v1/
-#      api_key: ollama
-#      model_info:
-#        function_calling: false
-#        json_output: false
-#        vision: false
-#        family: r1
+model_config:
+   provider: autogen_ext.models.openai.OpenAIChatCompletionClient
+   config:
+     model: deepseek-ai/DeepSeek-R1-Distill-Llama-8B
+     base_url: http://localhost:8000/v1/
+     api_key: "apikey"
+     model_info:
+       function_calling: false
+       json_output: false
+       vision: false
+       family: "r1"
