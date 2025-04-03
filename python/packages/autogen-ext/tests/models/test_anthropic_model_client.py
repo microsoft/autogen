@@ -317,13 +317,9 @@ async def test_anthropic_multimodal() -> None:
 async def test_anthropic_serialization() -> None:
     """Test serialization and deserialization of component."""
 
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
-
     client = AnthropicChatCompletionClient(
         model="claude-3-haiku-20240307",
-        api_key=api_key,
+        api_key="api-key",
     )
 
     # Serialize and deserialize
@@ -339,9 +335,18 @@ async def test_anthropic_serialization() -> None:
 @pytest.mark.asyncio
 async def test_anthropic_message_serialization_with_tools(caplog: pytest.LogCaptureFixture) -> None:
     """Test that complex messages with tool calls are properly serialized in logs."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
     # Use existing tools from the test file
     pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
     add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
 
     # Set up logging capture - capture all loggers
     with caplog.at_level(logging.INFO):
