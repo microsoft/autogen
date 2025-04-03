@@ -4,12 +4,14 @@ Each message type inherits either from the BaseChatMessage class or BaseAgentEve
 class and includes specific fields relevant to the type of message being sent.
 """
 
+import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
 
 from autogen_core import FunctionCall, Image
+from autogen_core.code_executor import CodeBlock
 from autogen_core.memory import MemoryContent
-from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
+from autogen_core.models import AssistantMessage, FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
 from pydantic import BaseModel, Field, computed_field
 from typing_extensions import Annotated, Self
 
@@ -282,6 +284,58 @@ class ToolCallRequestEvent(BaseAgentEvent):
         return str(self.content)
 
 
+class CodeGenerationEvent(BaseAgentEvent):
+    """An event signaling code generation for execution."""
+
+    content: str
+    "The complete content as string."
+
+    type: Literal["CodeGenerationEvent"] = "CodeGenerationEvent"
+
+    def get_code_blocks(self) -> List[CodeBlock]:
+        code_blocks: List[CodeBlock] = self._extract_markdown_code_blocks(self.content)
+        return code_blocks
+
+    def _extract_markdown_code_blocks(self, markdown_text: str) -> List[CodeBlock]:
+        pattern = re.compile(r"```(?:\s*([\w\+\-]+))?\n([\s\S]*?)```")
+        matches = pattern.findall(markdown_text)
+        code_blocks: List[CodeBlock] = []
+        for match in matches:
+            language = match[0].strip() if match[0] else ""
+            code_content = match[1]
+            code_blocks.append(CodeBlock(code=code_content, language=language))
+        return code_blocks
+
+    def to_text(self) -> str:
+        return self.content
+
+    def to_model_text(self) -> str:
+        return self.content
+
+    def to_model_message(self) -> AssistantMessage:
+        return AssistantMessage(
+            content=self.content,
+            source=self.source,
+        )
+
+
+class CodeExecutionEvent(BaseAgentEvent):
+    type: Literal["CodeExecutionEvent"] = "CodeExecutionEvent"
+    result: str
+
+    def to_text(self) -> str:
+        return self.result
+
+    def to_model_text(self) -> str:
+        return self.result
+
+    def to_model_message(self) -> UserMessage:
+        return UserMessage(
+            content=self.result,
+            source=self.source,
+        )
+
+
 class ToolCallExecutionEvent(BaseAgentEvent):
     """An event signaling the execution of tool calls."""
 
@@ -369,6 +423,8 @@ class MessageFactory:
         self._message_types[UserInputRequestedEvent.__name__] = UserInputRequestedEvent
         self._message_types[ModelClientStreamingChunkEvent.__name__] = ModelClientStreamingChunkEvent
         self._message_types[ThoughtEvent.__name__] = ThoughtEvent
+        self._message_types[CodeGenerationEvent.__name__] = CodeGenerationEvent
+        self._message_types[CodeExecutionEvent.__name__] = CodeExecutionEvent
 
     def is_registered(self, message_type: type[BaseAgentEvent | BaseChatMessage]) -> bool:
         """Check if a message type is registered with the factory."""
@@ -420,7 +476,9 @@ AgentEvent = Annotated[
     | MemoryQueryEvent
     | UserInputRequestedEvent
     | ModelClientStreamingChunkEvent
-    | ThoughtEvent,
+    | ThoughtEvent
+    | CodeGenerationEvent
+    | CodeExecutionEvent,
     Field(discriminator="type"),
 ]
 """The union type of all built-in concrete subclasses of :class:`BaseAgentEvent`."""
@@ -447,4 +505,6 @@ __all__ = [
     "ModelClientStreamingChunkEvent",
     "ThoughtEvent",
     "MessageFactory",
+    "CodeGenerationEvent",
+    "CodeExecutionEvent",
 ]

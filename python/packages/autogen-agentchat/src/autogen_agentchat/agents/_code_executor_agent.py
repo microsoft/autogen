@@ -31,6 +31,8 @@ from ..base import Response
 from ..messages import (
     BaseAgentEvent,
     BaseChatMessage,
+    CodeExecutionEvent,
+    CodeGenerationEvent,
     HandoffMessage,
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
@@ -345,11 +347,11 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_client = self._model_client
         model_client_stream = self._model_client_stream
 
-        execution_result: TextMessage | None = None
+        execution_result: CodeExecutionEvent | None = None
         if model_client is None:  # default behaviour for backward compatibility
             # execute generated code if present
             execution_result = await self.execute_code_block(messages, cancellation_token)
-            yield Response(chat_message=execution_result)
+            yield Response(chat_message=TextMessage(content=execution_result.to_text(), source=execution_result.source))
             return
 
         # STEP 1: Add new user/handoff messages to the model context
@@ -404,15 +406,19 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         # NOTE: error: Argument of type "str | List[FunctionCall]" cannot be assigned to parameter "content" of type "str" in function "__init__".
         #       For now we can assume that there are no FunctionCalls in the response because we are not providing tools to the CodeExecutorAgent.
         #       So, for now we cast model_result.content to string
-        inferred_text_message: TextMessage = TextMessage(content=str(model_result.content), source=agent_name)
+        inferred_text_message: CodeGenerationEvent = CodeGenerationEvent(
+            content=str(model_result.content), source=agent_name
+        )
 
         # execute generated code if present
         execution_result = await self.execute_code_block([inferred_text_message], cancellation_token)
 
         # TODO: need a better way to bypass yielding in case there are no code blocks from the code executor.
-        if execution_result.content == CodeExecutorAgent.NO_CODE_BLOCKS_FOUND_MESSAGE:
+        if execution_result.result == CodeExecutorAgent.NO_CODE_BLOCKS_FOUND_MESSAGE:
             # yield inferred_text_message as Response and return
-            yield Response(chat_message=inferred_text_message)
+            yield Response(
+                chat_message=TextMessage(content=inferred_text_message.to_text(), source=inferred_text_message.source)
+            )
             return
 
         # if code block present then yield inferred_text_message as TextMessage
@@ -422,7 +428,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         # Add the code execution result to the model context
         await model_context.add_message(
             UserMessage(
-                content=execution_result.content,
+                content=execution_result.result,
                 source=agent_name,
             )
         )
@@ -441,14 +447,17 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             yield reflection_response  # last reflection_response is of type Response so it will finish the routine
 
     async def execute_code_block(
-        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
-    ) -> TextMessage:
+        self, messages: Sequence[BaseChatMessage | BaseAgentEvent], cancellation_token: CancellationToken
+    ) -> CodeExecutionEvent:
         # Extract code blocks from the messages.
         code_blocks: List[CodeBlock] = []
         for msg in messages:
-            if isinstance(msg, TextMessage):
-                if self._sources is None or msg.source in self._sources:
+            if self._sources is None or msg.source in self._sources:
+                if isinstance(msg, TextMessage):
                     code_blocks.extend(self._extract_markdown_code_blocks(msg.content))
+                if isinstance(msg, CodeGenerationEvent):
+                    code_blocks.extend(msg.get_code_blocks())
+
         if code_blocks:
             # Execute the code blocks.
             result = await self._code_executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
@@ -461,10 +470,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 # Error
                 code_output = f"The script ran, then exited with an error (POSIX exit code: {result.exit_code})\nIts output was:\n{result.output}"
 
-            return TextMessage(content=code_output, source=self.name)
+            return CodeExecutionEvent(result=code_output, source=self.name)
         else:
-            return TextMessage(
-                content=CodeExecutorAgent.NO_CODE_BLOCKS_FOUND_MESSAGE,
+            return CodeExecutionEvent(
+                result=CodeExecutorAgent.NO_CODE_BLOCKS_FOUND_MESSAGE,
                 source=self.name,
             )
 
