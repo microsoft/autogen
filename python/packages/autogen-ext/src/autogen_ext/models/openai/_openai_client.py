@@ -653,6 +653,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             cached=False,
             logprobs=logprobs,
             thought=thought,
+            raw_response=result,
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)
@@ -879,6 +880,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             cached=False,
             logprobs=logprobs,
             thought=thought,
+            raw_response=result,
         )
 
         # Log the end of the stream.

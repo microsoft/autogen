@@ -521,6 +521,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
             cached=False,
             thought=thought,
+            raw_response=result
         )
 
     @staticmethod
@@ -676,6 +677,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                         finish_reason="function_calls",
                         usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
                         cached=False,
+                        raw_response=result,
                     )
                     return
 
@@ -698,6 +700,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
             cached=False,
             thought=thought,
+            raw_response=result,
         )
 
         # Emit the end event.

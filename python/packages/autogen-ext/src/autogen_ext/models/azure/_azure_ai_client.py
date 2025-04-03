@@ -438,6 +438,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+            raw_response=result,
         )
 
         self.add_usage(usage)

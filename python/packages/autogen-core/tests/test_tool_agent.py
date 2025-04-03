@@ -113,6 +113,7 @@ async def test_caller_loop() -> None:
                     usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
                     cached=False,
                     logprobs=None,
+                    raw_response={"id": "mock-id", "provider": "replay"},
                 )
             return CreateResult(
                 content="Done",
@@ -120,6 +121,7 @@ async def test_caller_loop() -> None:
                 usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
                 cached=False,
                 logprobs=None,
+                raw_response={"id": "mock-id", "provider": "replay"},
             )
 
         def create_stream(

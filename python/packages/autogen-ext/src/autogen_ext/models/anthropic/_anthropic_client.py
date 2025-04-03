@@ -557,6 +557,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+            raw_response=result,
         )
 
         # Update usage statistics
@@ -775,6 +776,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+            raw_response=result,
         )
 
         # Emit the end event.

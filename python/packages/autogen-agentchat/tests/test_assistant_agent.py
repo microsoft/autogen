@@ -64,6 +64,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
                 usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                 thought="Calling pass function",
                 cached=False,
+                raw_response={"id": "mock-id", "provider": "replay"},
             ),
             "pass",
             "TERMINATE",
@@ -142,18 +143,21 @@ async def test_run_with_tools_and_reflection() -> None:
                 content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
                 usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                 cached=False,
+                raw_response={"id": "mock-id", "provider": "replay"},
             ),
             CreateResult(
                 finish_reason="stop",
                 content="Hello",
                 usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                 cached=False,
+                raw_response={"id": "mock-id", "provider": "replay"},
             ),
             CreateResult(
                 finish_reason="stop",
                 content="TERMINATE",
                 usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                 cached=False,
+                raw_response={"id": "mock-id", "provider": "replay"},
             ),
         ],
         model_info={
@@ -244,6 +248,7 @@ async def test_run_with_parallel_tools() -> None:
                 usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                 thought="Calling pass and echo functions",
                 cached=False,
+                raw_response={"id": "mock-id", "provider": "replay"},
             ),
             "pass",
             "TERMINATE",
@@ -329,6 +334,7 @@ async def test_run_with_parallel_tools_with_empty_call_ids() -> None:
                 ],
                 usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                 cached=False,
+                raw_response={"id": "mock-id", "provider": "replay"},
             ),
             "pass",
             "TERMINATE",
@@ -411,6 +417,7 @@ async def test_handoffs() -> None:
                 ],
                 usage=RequestUsage(prompt_tokens=42, completion_tokens=43),
                 cached=False,
+                raw_response={"id": "mock-id", "provider": "replay"},
             )
         ],
         model_info={
@@ -557,6 +564,7 @@ async def test_list_chat_messages(monkeypatch: pytest.MonkeyPatch) -> None:
                 content="Response to message 1",
                 usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                 cached=False,
+                raw_response={"id": "mock-id", "provider": "replay"},
             )
         ]
     )
@@ -759,6 +767,7 @@ async def test_model_client_stream_with_tool_calls() -> None:
                 finish_reason="function_calls",
                 usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                 cached=False,
+                raw_response={"id": "mock-id", "provider": "replay"},
             ),
             "Example response 2 to task",
         ]
