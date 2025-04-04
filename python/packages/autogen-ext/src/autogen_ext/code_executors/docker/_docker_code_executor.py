@@ -78,6 +78,7 @@ class DockerCommandLineCodeExecutorConfig(BaseModel):
     extra_volumes: Dict[str, Dict[str, str]] = {}
     extra_hosts: Dict[str, str] = {}
     init_command: Optional[str] = None
+    delete_tmp_files: bool = False
 
 
 class DockerCommandLineCodeExecutor(CodeExecutor, Component[DockerCommandLineCodeExecutorConfig]):
@@ -124,6 +125,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor, Component[DockerCommandLineCod
             Example: extra_hosts = {"kubernetes.docker.internal": "host-gateway"}
         init_command (Optional[str], optional): A shell command to run before each shell operation execution. Defaults to None.
             Example: init_command="kubectl config use-context docker-hub"
+        delete_tmp_files (bool, optional): If true, will delete temporary files after execution. Defaults to False.
 
     .. note::
         Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
@@ -172,6 +174,7 @@ $functions"""
         extra_volumes: Optional[Dict[str, Dict[str, str]]] = None,
         extra_hosts: Optional[Dict[str, str]] = None,
         init_command: Optional[str] = None,
+        delete_tmp_files: bool = False,
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
@@ -225,6 +228,7 @@ $functions"""
         self._extra_volumes = extra_volumes if extra_volumes is not None else {}
         self._extra_hosts = extra_hosts if extra_hosts is not None else {}
         self._init_command = init_command
+        self._delete_tmp_files = delete_tmp_files
 
         # Setup could take some time so we intentionally wait for the first code block to do it.
         if len(functions) > 0:
@@ -311,33 +315,41 @@ $functions"""
         outputs: List[str] = []
         files: List[Path] = []
         last_exit_code = 0
-        for code_block in code_blocks:
-            lang = code_block.language.lower()
-            code = silence_pip(code_block.code, lang)
+        try:
+            for code_block in code_blocks:
+                lang = code_block.language.lower()
+                code = silence_pip(code_block.code, lang)
 
-            # Check if there is a filename comment
-            try:
-                filename = get_file_name_from_content(code, self.work_dir)
-            except ValueError:
-                outputs.append("Filename is not in the workspace")
-                last_exit_code = 1
-                break
+                # Check if there is a filename comment
+                try:
+                    filename = get_file_name_from_content(code, self.work_dir)
+                except ValueError:
+                    outputs.append("Filename is not in the workspace")
+                    last_exit_code = 1
+                    break
 
-            if not filename:
-                filename = f"tmp_code_{sha256(code.encode()).hexdigest()}.{lang}"
+                if not filename:
+                    filename = f"tmp_code_{sha256(code.encode()).hexdigest()}.{lang}"
 
-            code_path = self.work_dir / filename
-            with code_path.open("w", encoding="utf-8") as fout:
-                fout.write(code)
-            files.append(code_path)
+                code_path = self.work_dir / filename
+                with code_path.open("w", encoding="utf-8") as fout:
+                    fout.write(code)
+                files.append(code_path)
 
-            command = ["timeout", str(self._timeout), lang_to_cmd(lang), filename]
+                command = ["timeout", str(self._timeout), lang_to_cmd(lang), filename]
 
-            output, exit_code = await self._execute_command(command, cancellation_token)
-            outputs.append(output)
-            last_exit_code = exit_code
-            if exit_code != 0:
-                break
+                output, exit_code = await self._execute_command(command, cancellation_token)
+                outputs.append(output)
+                last_exit_code = exit_code
+                if exit_code != 0:
+                    break
+        finally:
+            if self._delete_tmp_files:
+                for file in files:
+                    try:
+                        file.unlink()
+                    except (OSError, FileNotFoundError):
+                        pass
 
         code_file = str(files[0]) if files else None
         return CommandLineCodeResult(exit_code=last_exit_code, output="".join(outputs), code_file=code_file)
@@ -512,6 +524,7 @@ $functions"""
             extra_volumes=self._extra_volumes,
             extra_hosts=self._extra_hosts,
             init_command=self._init_command,
+            delete_tmp_files=self._delete_tmp_files,
         )
 
     @classmethod
@@ -531,4 +544,5 @@ $functions"""
             extra_volumes=config.extra_volumes,
             extra_hosts=config.extra_hosts,
             init_command=config.init_command,
+            delete_tmp_files=config.delete_tmp_files,
         )
