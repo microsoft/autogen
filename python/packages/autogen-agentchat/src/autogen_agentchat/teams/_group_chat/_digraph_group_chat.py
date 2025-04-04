@@ -3,15 +3,14 @@ from typing import Any, List, Dict, Set, Callable, Literal
 from pydantic import BaseModel
 from autogen_core import AgentRuntime, Component, ComponentModel
 from typing_extensions import Self
-from functools import cached_property
+
 
 from ...base import ChatAgent, TerminationCondition
-from ...messages import AgentEvent, ChatMessage, MessageFactory, StopMessage, StructuredContentType
+from ...messages import AgentEvent, ChatMessage, MessageFactory, StopMessage, BaseTextChatMessage
 from ...state import BaseGroupChatManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._events import GroupChatTermination
-
 
 class DiGraphEdge(BaseModel):
     """Represents a directed edge in a DiGraph, with an optional execution condition."""
@@ -212,9 +211,7 @@ class DiGraphGroupChatManager(BaseGroupChatManager):
         next_speakers: Set[str] = set()
 
         source_node: DiGraphNode | None = None
-
-        # Get the last message from the thread to identify who just spoke
-        if thread and isinstance(thread[-1], ChatMessage):
+        if thread and isinstance(thread[-1], BaseTextChatMessage):
             source = thread[-1].source # name of the agent that just finished
             content = thread[-1].to_model_text()
 

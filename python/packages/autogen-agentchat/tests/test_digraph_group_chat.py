@@ -1,7 +1,5 @@
 import asyncio
-import json
 import logging
-import tempfile
 from typing import AsyncGenerator, List, Sequence
 
 import pytest
@@ -10,40 +8,18 @@ from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import (
     AssistantAgent,
     BaseChatAgent,
-    CodeExecutorAgent,
 )
-from autogen_agentchat.base import Handoff, Response, TaskResult, TerminationCondition
-from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.base import Response, TaskResult
+from autogen_agentchat.conditions import MaxMessageTermination
 from autogen_agentchat.messages import (
-    AgentEvent,
     ChatMessage,
-    TextChatMessage,
-    StructuredMessage,
-    HandoffMessage,
-    MultiModalMessage,
+    BaseTextChatMessage as TextChatMessage,
     StopMessage,
-    StructuredMessage,
     TextMessage,
-    ToolCallExecutionEvent,
-    ToolCallRequestEvent,
-    ToolCallSummaryMessage,
     MessageFactory
 )
 from autogen_agentchat.teams._group_chat._digraph_group_chat import DiGraphGroupChat, DiGraph, DiGraphGroupChatManager, DiGraphManagerState, DiGraphNode, DiGraphEdge
-from autogen_agentchat.ui import Console
-from autogen_core import AgentId, AgentRuntime, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
-from autogen_core.models import (
-    AssistantMessage,
-    CreateResult,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
-    LLMMessage,
-    RequestUsage,
-    UserMessage,
-)
-from autogen_core.tools import FunctionTool
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_core import AgentRuntime, CancellationToken, SingleThreadedAgentRuntime
 from autogen_ext.models.replay import ReplayChatCompletionClient
 from pydantic import BaseModel
 from utils import FileLogHandler
