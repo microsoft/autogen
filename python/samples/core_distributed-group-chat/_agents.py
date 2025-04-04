@@ -1,16 +1,18 @@
 import asyncio
 import random
-from typing import Awaitable, Callable, List
+from typing import AsyncGenerator, Awaitable, Callable, List, Union
 from uuid import uuid4
 
 from _types import GroupChatMessage, MessageChunk, RequestToSpeak, UIAgentConfig
 from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, message_handler
+
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
     SystemMessage,
     UserMessage,
+    CreateResult
 )
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 from rich.console import Console
@@ -50,20 +52,22 @@ class BaseGroupChatAgent(RoutedAgent):
         self._chat_history.append(
             UserMessage(content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
         )
-        completion = await self._model_client.create([self._system_message] + self._chat_history)
-        assert isinstance(completion.content, str)
-        self._chat_history.append(AssistantMessage(content=completion.content, source=self.id.type))
-
-        console_message = f"\n{'-'*80}\n**{self.id.type}**: {completion.content}"
-        self.console.print(Markdown(console_message))
-
-        await publish_message_to_ui_and_backend(
+        stream_output = self._model_client.create_stream(
+            messages=[self._system_message] + self._chat_history, max_consecutive_empty_chunk_tolerance=3
+        )
+        create_stream_result = await publish_message_stream_to_ui_and_backend(
             runtime=self,
             source=self.id.type,
-            user_message=completion.content,
+            stream_output=stream_output,
             ui_config=self._ui_config,
             group_chat_topic_type=self._group_chat_topic_type,
         )
+
+        if create_stream_result is not None:
+            self._chat_history.append(AssistantMessage(content=create_stream_result.content, source=self.id.type))
+
+            console_message = f"\n{'-' * 80}\n**{self.id.type}**: {create_stream_result.content}"
+            self.console.print(Markdown(console_message))
 
 
 class GroupChatManager(RoutedAgent):
@@ -129,13 +133,13 @@ Read the above conversation. Then select the next role from {participants} to pl
         system_message = SystemMessage(content=selector_prompt)
         completion = await self._model_client.create([system_message], cancellation_token=ctx.cancellation_token)
 
-        assert isinstance(
-            completion.content, str
-        ), f"Completion content must be a string, but is: {type(completion.content)}"
+        assert isinstance(completion.content, str), (
+            f"Completion content must be a string, but is: {type(completion.content)}"
+        )
 
         if completion.content.upper() == "FINISH":
             finish_msg = "I think it's enough iterations on the story! Thanks for collaborating!"
-            manager_message = f"\n{'-'*80}\n Manager ({id(self)}): {finish_msg}"
+            manager_message = f"\n{'-' * 80}\n Manager ({id(self)}): {finish_msg}"
             await publish_message_to_ui(
                 runtime=self, source=self.id.type, user_message=finish_msg, ui_config=self._ui_config
             )
@@ -148,7 +152,7 @@ Read the above conversation. Then select the next role from {participants} to pl
                 selected_topic_type = topic_type
                 self._previous_participant_topic_type = selected_topic_type
                 self.console.print(
-                    Markdown(f"\n{'-'*80}\n Manager ({id(self)}): Asking `{selected_topic_type}` to speak")
+                    Markdown(f"\n{'-' * 80}\n Manager ({id(self)}): Asking `{selected_topic_type}` to speak")
                 )
                 await self.publish_message(RequestToSpeak(), DefaultTopicId(type=selected_topic_type))
                 return
@@ -167,12 +171,72 @@ class UIAgent(RoutedAgent):
         await self._on_message_chunk_func(message)
 
 
+async def publish_message_stream_to_ui(
+    runtime: RoutedAgent | GrpcWorkerAgentRuntime,
+    source: str,
+    ui_config: UIAgentConfig,
+    stream_output: AsyncGenerator[Union[str, CreateResult], None],
+) -> None:
+    """Publishes a stream of messages to the UI."""
+    message_id = str(uuid4())
+    async for chunk in stream_output:
+        if isinstance(chunk, str):
+            msg_chunk = MessageChunk(message_id=message_id, text=str(chunk), author=source, finished=False)
+
+            await runtime.publish_message(
+                msg_chunk,
+                DefaultTopicId(type=ui_config.topic_type),
+            )
+            await asyncio.sleep(random.uniform(ui_config.min_delay, ui_config.max_delay))
+        elif isinstance(chunk, CreateResult):
+            print("Ok, finished the message!")
+            await runtime.publish_message(
+                MessageChunk(message_id=message_id, text=" ", author=source, finished=True),
+                DefaultTopicId(type=ui_config.topic_type),
+            )
+
+
+async def publish_message_stream_to_ui_and_backend(
+    runtime: RoutedAgent | GrpcWorkerAgentRuntime,
+    source: str,
+    ui_config: UIAgentConfig,
+    group_chat_topic_type: str,
+    stream_output: AsyncGenerator[Union[str, CreateResult], None],
+) -> None | CreateResult:
+    """Publishes a stream of messages to both the UI and backend."""
+    message_id = str(uuid4())
+    async for chunk in stream_output:
+        if isinstance(chunk, str):
+            msg_chunk = MessageChunk(message_id=message_id, text=str(chunk), author=source, finished=False)
+
+            await runtime.publish_message(
+                msg_chunk,
+                DefaultTopicId(type=ui_config.topic_type),
+            )
+            await asyncio.sleep(random.uniform(ui_config.min_delay, ui_config.max_delay))
+        elif isinstance(chunk, CreateResult):
+            print("Ok, finished the message!")
+            await runtime.publish_message(
+                MessageChunk(message_id=message_id, text=" ", author=source, finished=True),
+                DefaultTopicId(type=ui_config.topic_type),
+            )
+            # Publish message to backend
+            await runtime.publish_message(
+                GroupChatMessage(body=UserMessage(content=str(chunk.content), source=source)),
+                topic_id=DefaultTopicId(type=group_chat_topic_type),
+            )
+            return chunk
+
+    return None
+
+
 async def publish_message_to_ui(
     runtime: RoutedAgent | GrpcWorkerAgentRuntime,
     source: str,
     user_message: str,
     ui_config: UIAgentConfig,
 ) -> None:
+    """Publishes a single message to the UI."""
     message_id = str(uuid4())
     # Stream the message to UI
     message_chunks = (
@@ -199,6 +263,7 @@ async def publish_message_to_ui_and_backend(
     ui_config: UIAgentConfig,
     group_chat_topic_type: str,
 ) -> None:
+    """Publishes a single message to both the UI and backend."""
     # Publish messages for ui
     await publish_message_to_ui(
         runtime=runtime,
