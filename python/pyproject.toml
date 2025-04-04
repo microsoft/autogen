@@ -20,6 +20,7 @@ dev = [
     "tomli-w",
     "chainlit",
     "streamlit",
+    "azure-ai-projects>=1.0.0b7",
 ]
 
 [tool.uv]
