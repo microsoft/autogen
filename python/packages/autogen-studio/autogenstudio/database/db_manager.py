@@ -2,18 +2,16 @@ import json
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Type, TypeVar, Union
+from typing import Optional, Union
 
 from loguru import logger
-from sqlalchemy import exc, inspect, text, select
-from sqlmodel import Session, SQLModel, and_, create_engine
+from sqlalchemy import exc, inspect, text
+from sqlmodel import Session, SQLModel, and_, create_engine, select
 
 from ..datamodel import Response, Team, BaseDBModel
 from ..teammanager import TeamManager
 from .schema_manager import SchemaManager
 
-
-T = TypeVar('T', bound=BaseDBModel)
 
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -170,7 +168,7 @@ class DatabaseManager:
 
         with Session(self.engine) as session:
             try:
-                existing_model = session.exec(select(model_class).where(model_class.id == model.id)).first() # type: ignore
+                existing_model = session.exec(select(model_class).where(model_class.id == model.id)).first()
                 if existing_model:
                     model.updated_at = datetime.now()
                     for key, value in model.model_dump().items():
@@ -201,11 +199,11 @@ class DatabaseManager:
 
     def get(
         self,
-        model_class: Type[T],
+        model_class: type[BaseDBModel],
         filters: dict | None = None,
         return_json: bool = False,
         order: str = "desc",
-    ) -> Response:
+    ):
         """List entities"""
         with Session(self.engine) as session:
             result = []
@@ -222,7 +220,7 @@ class DatabaseManager:
                     order_by_clause = getattr(model_class.created_at, order)()  # Dynamically apply asc/desc
                     statement = statement.order_by(order_by_clause)
 
-                items = session.exec(statement).all() # type: ignore
+                items = session.exec(statement).all()
                 result = [self._model_to_dict(item) if return_json else item for item in items]
                 status_message = f"{model_class.__name__} Retrieved Successfully"
             except Exception as e:
@@ -233,7 +231,7 @@ class DatabaseManager:
 
             return Response(message=status_message, status=status, data=result)
 
-    def delete(self, model_class: Type[T], filters: dict | None = None) -> Response:
+    def delete(self, model_class: BaseDBModel, filters: dict | None = None) -> Response:
         """Delete an entity"""
         status_message = ""
         status = True
@@ -247,7 +245,7 @@ class DatabaseManager:
                     conditions = [getattr(model_class, col) == value for col, value in filters.items()]
                     statement = statement.where(and_(*conditions))
 
-                rows = session.exec(statement).all() # type: ignore
+                rows = session.exec(statement).all()
 
                 if rows:
                     for row in rows:
@@ -350,6 +348,8 @@ class DatabaseManager:
         for team in teams:
             if team.component == config:
                 return team
+
+        return None
 
     async def close(self):
         """Close database connections and cleanup resources"""
