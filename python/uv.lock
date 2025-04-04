@@ -745,7 +745,7 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'http-tool'", specifier = ">=0.27.0" },
     { name = "ipykernel", marker = "extra == 'jupyter-executor'", specifier = ">=6.29.5" },
     { name = "json-schema-to-pydantic", marker = "extra == 'http-tool'", specifier = ">=0.2.0" },
-    { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.2" },
+    { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.3" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
     { name = "llama-cpp-python", marker = "extra == 'llama-cpp'", specifier = ">=0.3.8" },
     { name = "magika", marker = "extra == 'file-surfer'", specifier = ">=0.6.1rc2" },
@@ -3039,14 +3039,14 @@ wheels = [
 
 [[package]]
 name = "json-schema-to-pydantic"
-version = "0.2.2"
+version = "0.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/13/87/af1870beea329744a759349b972b309f8c95ae21e986e387e19733b85cc9/json_schema_to_pydantic-0.2.2.tar.gz", hash = "sha256:685db8d93aa29ccd257b2803fcd9a956c527e5fb108a523cbfe8cac1239b3785", size = 34158 }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/8d/da0e791baf63a957ff67e0706d59386b72ab87858e616b6fcfc9b58cd910/json_schema_to_pydantic-0.2.3.tar.gz", hash = "sha256:c76db1f6001996895328e7aa174aae201d85d1f5e79d592c272ea03c8586e453", size = 35305 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/8d/3c738e4b4b041269c4a506544b90e9ba924bbd800c8d496ed3e5a6da0265/json_schema_to_pydantic-0.2.2-py3-none-any.whl", hash = "sha256:01b82d234f2b482a273e117e29d063b6b86021a250035873d6eec4b85b70e64d", size = 11396 },
+    { url = "https://files.pythonhosted.org/packages/4a/55/81bbfbc806aab8dc4a21ad1c9c7fd61f94f2b4076ea64f1730a0368831a2/json_schema_to_pydantic-0.2.3-py3-none-any.whl", hash = "sha256:fe0c04357aa8d27ad5a46e54c2d6a8f35ca6c10b36e76a95c39827e38397f427", size = 11699 },
 ]
 
 [[package]]

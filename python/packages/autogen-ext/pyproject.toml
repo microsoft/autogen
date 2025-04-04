@@ -137,7 +137,7 @@ rich = ["rich>=13.9.4"]
 
 mcp = [
     "mcp>=1.6.0",
-    "json-schema-to-pydantic>=0.2.2"
+    "json-schema-to-pydantic>=0.2.3"
 ]
 
 [tool.hatch.build.targets.wheel]
