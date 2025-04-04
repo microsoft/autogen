@@ -4,7 +4,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import AsyncGenerator, Callable, List, Optional, Union
+from typing import AsyncGenerator, Callable, List, Optional, Sequence, Union
 
 import aiofiles
 import yaml
@@ -16,6 +16,7 @@ from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, Compon
 from autogen_core.logging import LLMCallEvent
 
 from ..datamodel.types import EnvironmentVariable, LLMCallEventMessage, TeamResult
+from ..web.managers.run_context import RunContext
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +98,7 @@ class TeamManager:
 
     async def run_stream(
         self,
-        task: str,
+        task: str | ChatMessage | Sequence[ChatMessage] | None,
         team_config: Union[str, Path, dict, ComponentModel],
         input_func: Optional[Callable] = None,
         cancellation_token: Optional[CancellationToken] = None,
@@ -142,7 +143,7 @@ class TeamManager:
 
     async def run(
         self,
-        task: str,
+        task: str | ChatMessage | Sequence[ChatMessage] | None,
         team_config: Union[str, Path, dict, ComponentModel],
         input_func: Optional[Callable] = None,
         cancellation_token: Optional[CancellationToken] = None,

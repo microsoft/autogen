@@ -1,9 +1,9 @@
 # from dataclasses import Field
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Sequence
 
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import BaseChatMessage
+from autogen_agentchat.messages import BaseChatMessage, ChatMessage
 from autogen_core import ComponentModel
 from autogen_core.models import UserMessage
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, SecretStr
 
 class MessageConfig(BaseModel):
     source: str
-    content: str
+    content: str | ChatMessage | Sequence[ChatMessage] | None
     message_type: Optional[str] = "text"
 
 
