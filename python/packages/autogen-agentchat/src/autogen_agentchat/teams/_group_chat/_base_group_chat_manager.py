@@ -51,7 +51,6 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             sequential_message_types=[
                 GroupChatStart,
                 GroupChatAgentResponse,
-                GroupChatMessage,
                 GroupChatReset,
             ],
         )
