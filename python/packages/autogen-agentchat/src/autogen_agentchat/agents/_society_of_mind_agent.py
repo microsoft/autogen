@@ -169,7 +169,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         # Prepare the task for the team of agents.
-        task = list(messages)
+        task_messages = list(messages)
 
         # Run the team of agents.
         result: TaskResult | None = None
@@ -185,14 +185,19 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
                 target="",
                 context=prev_content,
             )
-            task = [prev_message] + task
+            task_messages = [prev_message] + task_messages
+
+        if len(task_messages) == 0:
+            task = None
+        else:
+            task = task_messages
 
         async for inner_msg in self._team.run_stream(task=task, cancellation_token=cancellation_token):
             if isinstance(inner_msg, TaskResult):
                 result = inner_msg
             else:
                 count += 1
-                if count <= len(task):
+                if count <= len(task_messages):
                     # Skip the task messages.
                     continue
                 yield inner_msg
