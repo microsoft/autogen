@@ -1,11 +1,12 @@
 import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, List
+from asyncio import Lock
 
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
 from ...base import TerminationCondition
-from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, StopMessage
+from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, StopMessage, AgentEvent, ChatMessage
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
@@ -77,6 +78,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._max_turns = max_turns
         self._current_turn = 0
         self._message_factory = message_factory
+        self._lock = Lock()
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -125,26 +127,41 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                     await self._signal_termination(stop_message)
                     # Stop the group chat.
                     return
+                
+        # Select multiple speakers concurrently
+        speaker_names_future = asyncio.ensure_future(self.select_speakers(self._message_thread))
 
-        # Select a speaker to start/continue the conversation
-        speaker_name_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
-        # Link the select speaker future to the cancellation token.
-        ctx.cancellation_token.link_future(speaker_name_future)
-        speaker_name = await speaker_name_future
-        if speaker_name not in self._participant_name_to_topic_type:
-            raise RuntimeError(f"Speaker {speaker_name} not found in participant names.")
-        speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
-        await self.publish_message(
-            GroupChatRequestPublish(),
-            topic_id=DefaultTopicId(type=speaker_topic_type),
-            cancellation_token=ctx.cancellation_token,
-        )
+        # Link the future to the cancellation token
+        ctx.cancellation_token.link_future(speaker_names_future)
+        
+        # Await the speakers list
+        speaker_names = await speaker_names_future
+        # Validate all speakers before proceeding
+        invalid_speakers = [name for name in speaker_names if name not in self._participant_name_to_topic_type]
+        if invalid_speakers:
+            raise RuntimeError(f"Speakers {invalid_speakers} not found in participant names.")
+        
+        # Get topic types for each speaker
+        speaker_topic_map = {
+            name: self._participant_name_to_topic_type[name] for name in speaker_names
+        }
+
+        # Publish messages concurrently for all speakers
+        await asyncio.gather(*[
+            self.publish_message(
+                GroupChatRequestPublish(),
+                topic_id=DefaultTopicId(type=topic_type),
+                cancellation_token=ctx.cancellation_token,
+            )
+            for topic_type in speaker_topic_map.values()
+        ])
+
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
-        try:
+        async with self._lock:
             # Append the message to the message thread and construct the delta.
-            delta: List[BaseAgentEvent | BaseChatMessage] = []
+            delta: List[AgentEvent | ChatMessage] = []
             if message.agent_response.inner_messages is not None:
                 for inner_message in message.agent_response.inner_messages:
                     self._message_thread.append(inner_message)
@@ -182,25 +199,35 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                     # Stop the group chat.
                     return
 
-            # Select a speaker to continue the conversation.
-            speaker_name_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
-            # Link the select speaker future to the cancellation token.
-            ctx.cancellation_token.link_future(speaker_name_future)
-            speaker_name = await speaker_name_future
-            if speaker_name not in self._participant_name_to_topic_type:
-                raise RuntimeError(f"Speaker {speaker_name} not found in participant names.")
-            speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
-            await self.publish_message(
-                GroupChatRequestPublish(),
-                topic_id=DefaultTopicId(type=speaker_topic_type),
-                cancellation_token=ctx.cancellation_token,
-            )
-        except Exception as e:
-            # Handle the exception and signal termination with an error.
-            error = SerializableException.from_exception(e)
-            await self._signal_termination_with_error(error)
-            # Raise the exception to the runtime.
-            raise
+            # Select multiple speakers concurrently
+            speaker_names_future = asyncio.ensure_future(self.select_speakers(self._message_thread))
+
+            # Link the future to the cancellation token
+            ctx.cancellation_token.link_future(speaker_names_future)
+            
+            # Await the speakers list
+            speaker_names = await speaker_names_future
+            # Validate all speakers before proceeding
+            invalid_speakers = [name for name in speaker_names if name not in self._participant_name_to_topic_type]
+            if invalid_speakers:
+                raise RuntimeError(f"Speakers {invalid_speakers} not found in participant names.")
+
+            if speaker_names:
+                # Get topic types for each speaker
+                speaker_topic_map = {
+                    name: self._participant_name_to_topic_type[name] for name in speaker_names
+                }
+
+                # Publish messages concurrently for all speakers
+                await asyncio.gather(*[
+                    self.publish_message(
+                        GroupChatRequestPublish(),
+                        topic_id=DefaultTopicId(type=topic_type),
+                        cancellation_token=ctx.cancellation_token,
+                    )
+                    for topic_type in speaker_topic_map.values()
+                ])
+
 
     async def _signal_termination(self, message: StopMessage) -> None:
         termination_event = GroupChatTermination(message=message)
@@ -265,6 +292,12 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         """Select a speaker from the participants and return the
         topic type of the selected speaker."""
         ...
+
+    async def select_speakers(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> List[str]:
+        """Select multiple speakers from the participants and return the
+        topic types of the selected speakers."""
+        speaker = await self.select_speaker(thread)  # ✅ Ensure we await the result
+        return [speaker] 
 
     @abstractmethod
     async def reset(self) -> None:
