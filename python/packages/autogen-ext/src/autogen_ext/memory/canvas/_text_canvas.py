@@ -1,5 +1,3 @@
-# file: canvas_memory.py
-
 from autogen_core.memory import (
     Memory,
     MemoryContent,
@@ -18,7 +16,6 @@ class TextCanvasMemory(Memory):
     """
     A memory implementation that uses a Canvas for storing file-like content.
     Inserts the current state of the canvas into the ChatCompletionContext on each turn
-    (or you could also insert diffs, etc.)
     """
 
     def __init__(self, canvas: Canvas):

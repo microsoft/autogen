@@ -1,5 +1,3 @@
-# file: canvas_tools.py
-
 import json
 from pydantic import BaseModel
 from autogen_core import CancellationToken
