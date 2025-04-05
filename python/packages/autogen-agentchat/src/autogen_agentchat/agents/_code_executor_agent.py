@@ -407,7 +407,9 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         #       For now we can assume that there are no FunctionCalls in the response because we are not providing tools to the CodeExecutorAgent.
         #       So, for now we cast model_result.content to string
         inferred_text_message: CodeGenerationEvent = CodeGenerationEvent(
-            content=str(model_result.content), source=agent_name
+            content=str(model_result.content),
+            code_blocks=self._extract_markdown_code_blocks(model_result.content),
+            source=agent_name,
         )
 
         # execute generated code if present
@@ -456,7 +458,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 if isinstance(msg, TextMessage):
                     code_blocks.extend(self._extract_markdown_code_blocks(msg.content))
                 if isinstance(msg, CodeGenerationEvent):
-                    code_blocks.extend(msg.get_code_blocks())
+                    code_blocks.extend(msg.code_blocks)
 
         if code_blocks:
             # Execute the code blocks.
