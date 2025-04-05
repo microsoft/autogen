@@ -11,7 +11,7 @@ from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
 from autogen_core import FunctionCall, Image
 from autogen_core.code_executor import CodeBlock
 from autogen_core.memory import MemoryContent
-from autogen_core.models import AssistantMessage, FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
+from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
 from pydantic import BaseModel, Field, computed_field
 from typing_extensions import Annotated, Self
 
@@ -309,15 +309,6 @@ class CodeGenerationEvent(BaseAgentEvent):
     def to_text(self) -> str:
         return self.content
 
-    def to_model_text(self) -> str:
-        return self.content
-
-    def to_model_message(self) -> AssistantMessage:
-        return AssistantMessage(
-            content=self.content,
-            source=self.source,
-        )
-
 
 class CodeExecutionEvent(BaseAgentEvent):
     type: Literal["CodeExecutionEvent"] = "CodeExecutionEvent"
@@ -325,15 +316,6 @@ class CodeExecutionEvent(BaseAgentEvent):
 
     def to_text(self) -> str:
         return self.result
-
-    def to_model_text(self) -> str:
-        return self.result
-
-    def to_model_message(self) -> UserMessage:
-        return UserMessage(
-            content=self.result,
-            source=self.source,
-        )
 
 
 class ToolCallExecutionEvent(BaseAgentEvent):
