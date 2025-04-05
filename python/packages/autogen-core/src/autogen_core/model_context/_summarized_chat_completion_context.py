@@ -1,17 +1,17 @@
-from typing import List, Callable
+from typing import Callable, List
 
 from pydantic import BaseModel
 from typing_extensions import Self
 
 from .._component_config import Component
-from ..models import FunctionExecutionResultMessage, LLMMessage
+from ..models import LLMMessage
 from ._chat_completion_context import ChatCompletionContext
 from ._conditions import MessageCompletionCondition
 
 
 class SummarizedChatCompletionContextConfig(BaseModel):
     summarizing_func: Callable[[List[LLMMessage], List[LLMMessage]], List[LLMMessage]]
-    summarizing_contition: MessageCompletionCondition
+    summarizing_condition: "MessageCompletionCondition"
     initial_messages: List[LLMMessage] | None = None
     non_summarized_messages: List[LLMMessage] | None = None
 
@@ -33,7 +33,7 @@ class SummarizedChatCompletionContext(ChatCompletionContext, Component[Summarize
     def __init__(
         self,
         summarizing_func: Callable[[List[LLMMessage], List[LLMMessage]], List[LLMMessage]],
-        summarizing_condition: MessageCompletionCondition,
+        summarizing_condition: "MessageCompletionCondition",
         initial_messages: List[LLMMessage] | None = None,
         non_summarized_messages: List[LLMMessage] | None = None,
     ) -> None:
@@ -50,7 +50,13 @@ class SummarizedChatCompletionContext(ChatCompletionContext, Component[Summarize
     async def add_message(self, message: LLMMessage) -> None:
         """Add a message to the context."""
         self._non_summarized_messages.append(message)
-        supuer().add_message(message)
+        await super().add_message(message)
+
+        # Check if the summarizing condition is met.
+        await self._summarizing_condition(self._messages)
+        if self._summarizing_condition.triggered:
+            # If the condition is met, summarize the messages.
+            await self.summary()
 
     async def get_messages(self) -> List[LLMMessage]:
         return self._messages
@@ -62,7 +68,7 @@ class SummarizedChatCompletionContext(ChatCompletionContext, Component[Summarize
     def _to_config(self) -> SummarizedChatCompletionContextConfig:
         return SummarizedChatCompletionContextConfig(
             summarizing_func=self._summarizing_func,
-            summarizing_contition=self._summarizing_condition,
+            summarizing_condition=self._summarizing_condition,
             initial_messages=self._initial_messages,
         )
 
@@ -70,8 +76,7 @@ class SummarizedChatCompletionContext(ChatCompletionContext, Component[Summarize
     def _from_config(cls, config: SummarizedChatCompletionContextConfig) -> Self:
         return cls(
             summarizing_func=config.summarizing_func,
-            summarizing_contition=config.summarizing_condition,
+            summarizing_condition=config.summarizing_condition,
             initial_messages=config.initial_messages,
             non_summarized_messages=config.non_summarized_messages,
         )
-
