@@ -1,7 +1,8 @@
-import json
 import hashlib
+import json
 import re
-from typing import Protocol, List, Set, Optional
+from typing import List, Optional, Protocol, Set
+
 from pydantic import BaseModel, Field
 
 

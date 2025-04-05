@@ -47,7 +47,10 @@ class ChatCompletionContext(ABC, ComponentBase[BaseModel]):
     component_type = "chat_completion_context"
 
     def __init__(self, initial_messages: List[LLMMessage] | None = None) -> None:
-        self._messages: List[LLMMessage] = initial_messages or []
+        self._messages: List[LLMMessage] = []
+        if initial_messages is not None:
+            self._messages.extend(initial_messages)
+        self._initial_messages = initial_messages
 
     async def add_message(self, message: LLMMessage) -> None:
         """Add a message to the context."""
