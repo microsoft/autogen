@@ -118,6 +118,7 @@ def get_transformer(api: str, model: str, model_family: str) -> TransformerMap:
     transformer = MESSAGE_TRANSFORMERS.get(api, {}).get(model_family, {})
 
     if not transformer:
+        # Just in case, we should never reach here
         raise ValueError(f"No transformer found for model family '{model_family}'")
 
     return transformer
