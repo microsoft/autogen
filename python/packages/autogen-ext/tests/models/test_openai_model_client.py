@@ -2448,6 +2448,8 @@ def test_rstrip_railing_whitespace_at_last_assistant_content() -> None:
 
 
 def test_find_model_family() -> None:
+    assert _find_model_family("openai", "gpt-4") == ModelFamily.GPT_4
+    assert _find_model_family("openai", "gpt-4-latest") == ModelFamily.GPT_4
     assert _find_model_family("openai", "gpt-4o") == ModelFamily.GPT_4O
     assert _find_model_family("openai", "gemini-2.0-flash") == ModelFamily.GEMINI_2_0_FLASH
     assert _find_model_family("openai", "claude-3-5-haiku-20241022") == ModelFamily.CLAUDE_3_5_HAIKU
