@@ -87,10 +87,13 @@ def _find_model_family(api: str, model: str) -> str:
     Finds the best matching model family for the given model.
     Search via prefix matching (e.g. "gpt-4o" → "gpt-4o-1.0").
     """
+    len_family = 0
     family = ModelFamily.UNKNOWN
     for _family in MESSAGE_TRANSFORMERS[api].keys():
         if model.startswith(_family):
-            family = _family
+            if len(_family) > len_family:
+                family = _family
+                len_family = len(_family)
     return family
 
 
