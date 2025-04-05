@@ -326,7 +326,7 @@ class DatabaseManager:
                         {
                             "status": result.status,
                             "message": result.message,
-                            "id": result.data.get("id") if result.status else None,
+                            "id": result.data.get("id") if result.data else None,
                         }
                     )
 

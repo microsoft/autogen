@@ -432,6 +432,25 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
+    def _serialize_message(self, message: MessageParam) -> Dict[str, Any]:
+        """Convert an Anthropic MessageParam to a JSON-serializable format."""
+        if isinstance(message, dict):
+            result: Dict[str, Any] = {}
+            for key, value in message.items():
+                if key == "content" and isinstance(value, list):
+                    serialized_blocks: List[Any] = []
+                    for block in value:  # type: ignore
+                        if isinstance(block, BaseModel):
+                            serialized_blocks.append(block.model_dump())
+                        else:
+                            serialized_blocks.append(block)
+                    result[key] = serialized_blocks
+                else:
+                    result[key] = value
+            return result
+        else:
+            return {"role": "unknown", "content": str(message)}
+
     def _merge_system_messages(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
         """
         Merge continuous system messages into a single message.
@@ -573,10 +592,11 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             prompt_tokens=result.usage.input_tokens,
             completion_tokens=result.usage.output_tokens,
         )
+        serializable_messages: List[Dict[str, Any]] = [self._serialize_message(msg) for msg in anthropic_messages]
 
         logger.info(
             LLMCallEvent(
-                messages=cast(List[Dict[str, Any]], anthropic_messages),
+                messages=serializable_messages,
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,

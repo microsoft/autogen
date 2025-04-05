@@ -646,14 +646,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         content: Union[str, List[FunctionCall]]
         thought: Optional[str] = None
         if result.message.tool_calls is not None:
-            # TODO: What are possible values for done_reason?
-            if result.done_reason != "tool_calls":
-                warnings.warn(
-                    f"Finish reason mismatch: {result.done_reason} != tool_calls "
-                    "when tool_calls are present. Finish reason may not be accurate. "
-                    "This may be due to the API used that is not returning the correct finish reason.",
-                    stacklevel=2,
-                )
             if result.message.content is not None and result.message.content != "":
                 thought = result.message.content
             # NOTE: If OAI response type changes, this will need to be updated
@@ -760,9 +752,8 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                     content_chunks.append(chunk.message.content)
                     if len(chunk.message.content) > 0:
                         yield chunk.message.content
-                    continue
 
-                # Otherwise, get tool calls
+                # Get tool calls
                 if chunk.message.tool_calls is not None:
                     full_tool_calls.extend(
                         [
@@ -795,9 +786,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             prompt_tokens = chunk.prompt_eval_count
         else:
             prompt_tokens = 0
-
-        if stop_reason == "function_call":
-            raise ValueError("Function calls are not supported in this context")
 
         content: Union[str, List[FunctionCall]]
         thought: Optional[str] = None
