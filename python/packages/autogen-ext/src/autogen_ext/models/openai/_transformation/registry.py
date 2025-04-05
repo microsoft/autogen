@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, get_args
 
 from autogen_core.models import LLMMessage, ModelFamily
 
@@ -108,7 +108,7 @@ def get_transformer(api: str, model: str, model_family: str) -> TransformerMap:
     Keeping this as a function (instead of direct dict access) improves long-term flexibility.
     """
 
-    if model_family == ModelFamily.UNKNOWN:
+    if model_family not in set(get_args(ModelFamily.ANY)) or model_family == ModelFamily.UNKNOWN:
         # fallback to finding the best matching model family
         model_family = _find_model_family(api, model)
 
