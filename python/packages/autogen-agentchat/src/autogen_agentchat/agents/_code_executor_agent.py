@@ -9,7 +9,7 @@ from typing import (
 )
 
 from autogen_core import CancellationToken, Component, ComponentModel
-from autogen_core.code_executor import CodeBlock, CodeExecutor
+from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
 from autogen_core.memory import Memory
 from autogen_core.model_context import (
     ChatCompletionContext,
@@ -430,14 +430,19 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         # Add the code execution result to the model context
         await model_context.add_message(
             UserMessage(
-                content=execution_result.result,
+                content=execution_result.result.output,
                 source=agent_name,
             )
         )
 
-        # changed return type of execute_code_block from `Response` to `TextMessage`, so that yielding execution_result doesn't terminate the function and we can proceed to reflection
+        # changed return type of execute_code_block from `Response` to `TextMessage`,
+        # so that yielding execution_result doesn't terminate the function and we can proceed to reflection
+        yield TextMessage(
+            content=execution_result.result.output,
+            source=self.name,
+        )
+
         # always reflect on the execution result
-        yield execution_result
         async for reflection_response in CodeExecutorAgent._reflect_on_code_block_results_flow(
             system_messages=system_messages,
             model_client=model_client,
@@ -464,20 +469,19 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             # Execute the code blocks.
             result = await self._code_executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
 
-            code_output = result.output
-            if code_output.strip() == "":
+            if result.output.strip() == "":
                 # No output
-                code_output = f"The script ran but produced no output to console. The POSIX exit code was: {result.exit_code}. If you were expecting output, consider revising the script to ensure content is printed to stdout."
+                result.output = f"The script ran but produced no output to console. The POSIX exit code was: {result.exit_code}. If you were expecting output, consider revising the script to ensure content is printed to stdout."
             elif result.exit_code != 0:
                 # Error
-                code_output = f"The script ran, then exited with an error (POSIX exit code: {result.exit_code})\nIts output was:\n{result.output}"
+                result.output = f"The script ran, then exited with an error (POSIX exit code: {result.exit_code})\nIts output was:\n{result.output}"
 
-            return CodeExecutionEvent(result=code_output, source=self.name)
-        else:
-            return CodeExecutionEvent(
-                result=CodeExecutorAgent.NO_CODE_BLOCKS_FOUND_MESSAGE,
-                source=self.name,
-            )
+            return CodeExecutionEvent(result=result, source=self.name)
+
+        return CodeExecutionEvent(
+            result=CodeResult(output=CodeExecutorAgent.NO_CODE_BLOCKS_FOUND_MESSAGE,
+                              exit_code=-1),
+            source=self.name)
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Its a no-op as the code executor agent has no mutable state."""

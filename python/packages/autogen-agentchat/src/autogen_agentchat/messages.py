@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
 
 from autogen_core import FunctionCall, Image
-from autogen_core.code_executor import CodeBlock
+from autogen_core.code_executor import CodeBlock, CodeResult
 from autogen_core.memory import MemoryContent
 from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
 from pydantic import BaseModel, Field, computed_field
@@ -300,7 +300,7 @@ class CodeGenerationEvent(BaseAgentEvent):
 
 class CodeExecutionEvent(BaseAgentEvent):
     type: Literal["CodeExecutionEvent"] = "CodeExecutionEvent"
-    result: str
+    result: CodeResult
 
     def to_text(self) -> str:
         return self.result
