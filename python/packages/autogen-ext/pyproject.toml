@@ -85,7 +85,8 @@ semantic-kernel-core = [
 ]
 
 gemini = [
-    "google-genai>=1.0.0",
+    "google-auth>=2.38.0",
+    "google-genai>=1.2.0",
 ]
 
 semantic-kernel-google = [
