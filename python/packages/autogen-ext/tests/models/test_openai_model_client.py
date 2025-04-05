@@ -30,6 +30,7 @@ from autogen_ext.models.openai._openai_client import (
     to_oai_type,
 )
 from autogen_ext.models.openai._transformation import TransformerMap, get_transformer
+from autogen_ext.models.openai._transformation.registry import _find_model_family  # pyright: ignore[reportPrivateUsage]
 from openai.resources.beta.chat.completions import (  # type: ignore
     AsyncChatCompletionStreamManager as BetaAsyncChatCompletionStreamManager,  # type: ignore
 )
@@ -2394,11 +2395,6 @@ def test_openai_model_registry_find_well() -> None:
     assert get_regitered_transformer(client1) == get_regitered_transformer(client2)
 
 
-def test_openai_model_registry_find_wrong() -> None:
-    with pytest.raises(ValueError, match="No transformer found for model family"):
-        get_transformer("openai", "gpt-7", "foobar")
-
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
@@ -2449,6 +2445,15 @@ def test_rstrip_railing_whitespace_at_last_assistant_content() -> None:
 
     assert isinstance(result[-1].content, str)
     assert result[-1].content == "foobar"
+
+
+def test_find_model_family() -> None:
+    assert _find_model_family("openai", "gpt-4") == ModelFamily.GPT_4
+    assert _find_model_family("openai", "gpt-4-latest") == ModelFamily.GPT_4
+    assert _find_model_family("openai", "gpt-4o") == ModelFamily.GPT_4O
+    assert _find_model_family("openai", "gemini-2.0-flash") == ModelFamily.GEMINI_2_0_FLASH
+    assert _find_model_family("openai", "claude-3-5-haiku-20241022") == ModelFamily.CLAUDE_3_5_HAIKU
+    assert _find_model_family("openai", "error") == ModelFamily.UNKNOWN
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.
