@@ -231,7 +231,7 @@ class DatabaseManager:
 
             return Response(message=status_message, status=status, data=result)
 
-    def delete(self, model_class: BaseDBModel, filters: dict | None = None) -> Response:
+    def delete(self, model_class: type[BaseDBModel], filters: dict | None = None) -> Response:
         """Delete an entity"""
         status_message = ""
         status = True
