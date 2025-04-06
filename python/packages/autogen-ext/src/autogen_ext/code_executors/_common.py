@@ -1,5 +1,6 @@
 import inspect
 import re
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from textwrap import dedent, indent
@@ -159,7 +160,13 @@ def lang_to_cmd(lang: str) -> str:
     if lang in ["shell"]:
         return "sh"
     if lang in ["pwsh", "powershell", "ps1"]:
-        return "pwsh"
+        # Check if pwsh is available, otherwise fall back to powershell
+        if shutil.which("pwsh") is not None:
+            return "pwsh"
+        elif shutil.which("powershell") is not None:
+            return "powershell"
+        else:
+            raise ValueError(f"Powershell or pwsh is not installed. Please install one of them.")
     else:
         raise ValueError(f"Unsupported language: {lang}")
 
