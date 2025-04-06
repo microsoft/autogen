@@ -5,7 +5,7 @@ from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
 
 from ...base import ChatAgent, TerminationCondition
-from ...messages import AgentEvent, ChatMessage, HandoffMessage
+from ...messages import BaseAgentEvent, BaseChatMessage, HandoffMessage, MessageFactory
 from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
@@ -23,9 +23,10 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        message_factory: MessageFactory,
     ) -> None:
         super().__init__(
             name,
@@ -37,10 +38,11 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             output_message_queue,
             termination_condition,
             max_turns,
+            message_factory,
         )
         self._current_speaker = self._participant_names[0]
 
-    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
+    async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         """Validate the start messages for the group chat."""
         # Check if any of the start messages is a handoff message.
         if messages:
@@ -75,7 +77,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             await self._termination_condition.reset()
         self._current_speaker = self._participant_names[0]
 
-    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
+    async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
         """Select a speaker from the participants based on handoff message.
         Looks for the last handoff message in the thread to determine the next speaker."""
         if len(thread) == 0:
@@ -90,7 +92,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
 
     async def save_state(self) -> Mapping[str, Any]:
         state = SwarmManagerState(
-            message_thread=list(self._message_thread),
+            message_thread=[msg.dump() for msg in self._message_thread],
             current_turn=self._current_turn,
             current_speaker=self._current_speaker,
         )
@@ -98,7 +100,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         swarm_state = SwarmManagerState.model_validate(state)
-        self._message_thread = list(swarm_state.message_thread)
+        self._message_thread = [self._message_factory.create(message) for message in swarm_state.message_thread]
         self._current_turn = swarm_state.current_turn
         self._current_speaker = swarm_state.current_speaker
 
@@ -210,6 +212,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
+        custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
     ) -> None:
         super().__init__(
             participants,
@@ -218,6 +221,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
             termination_condition=termination_condition,
             max_turns=max_turns,
             runtime=runtime,
+            custom_message_types=custom_message_types,
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
@@ -232,9 +236,10 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        message_factory: MessageFactory,
     ) -> Callable[[], SwarmGroupChatManager]:
         def _factory() -> SwarmGroupChatManager:
             return SwarmGroupChatManager(
@@ -247,6 +252,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
                 output_message_queue,
                 termination_condition,
                 max_turns,
+                message_factory,
             )
 
         return _factory

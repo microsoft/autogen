@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import tempfile
-from typing import AsyncGenerator, List, Sequence
+from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
 import pytest
 import pytest_asyncio
@@ -12,14 +12,15 @@ from autogen_agentchat.agents import (
     BaseChatAgent,
     CodeExecutorAgent,
 )
-from autogen_agentchat.base import Handoff, Response, TaskResult
+from autogen_agentchat.base import Handoff, Response, TaskResult, TerminationCondition
 from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
+    StructuredMessage,
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
@@ -44,6 +45,7 @@ from autogen_core.tools import FunctionTool
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
+from pydantic import BaseModel
 from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -58,14 +60,14 @@ class _EchoAgent(BaseChatAgent):
         self._total_messages = 0
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 
     @property
     def total_messages(self) -> int:
         return self._total_messages
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) > 0:
             assert isinstance(messages[0], TextMessage)
             self._last_message = messages[0].content
@@ -87,18 +89,73 @@ class _FlakyAgent(BaseChatAgent):
         self._total_messages = 0
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 
     @property
     def total_messages(self) -> int:
         return self._total_messages
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         raise ValueError("I am a flaky agent...")
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
+
+
+class _FlakyTermination(TerminationCondition):
+    def __init__(self, raise_on_count: int) -> None:
+        self._raise_on_count = raise_on_count
+        self._count = 0
+
+    @property
+    def terminated(self) -> bool:
+        """Check if the termination condition has been reached"""
+        return False
+
+    async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
+        self._count += 1
+        if self._count == self._raise_on_count:
+            raise ValueError("I am a flaky termination...")
+        return None
+
+    async def reset(self) -> None:
+        pass
+
+
+class _UnknownMessageType(BaseChatMessage):
+    content: str
+
+    def to_model_message(self) -> UserMessage:
+        raise NotImplementedError("This message type is not supported.")
+
+    def to_model_text(self) -> str:
+        raise NotImplementedError("This message type is not supported.")
+
+    def to_text(self) -> str:
+        raise NotImplementedError("This message type is not supported.")
+
+    def dump(self) -> Mapping[str, Any]:
+        return {}
+
+    @classmethod
+    def load(cls, data: Mapping[str, Any]) -> "_UnknownMessageType":
+        return cls(**data)
+
+
+class _UnknownMessageTypeAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str) -> None:
+        super().__init__(name, description)
+
+    @property
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+        return (_UnknownMessageType,)
+
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+        return Response(chat_message=_UnknownMessageType(content="Unknown message type", source=self.name))
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        pass
 
 
 class _StopAgent(_EchoAgent):
@@ -108,10 +165,10 @@ class _StopAgent(_EchoAgent):
         self._stop_at = stop_at
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage, StopMessage)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         self._count += 1
         if self._count < self._stop_at:
             return await super().on_messages(messages, cancellation_token)
@@ -120,6 +177,19 @@ class _StopAgent(_EchoAgent):
 
 def _pass_function(input: str) -> str:
     return "pass"
+
+
+class _InputTask1(BaseModel):
+    task: str
+    data: List[str]
+
+
+class _InputTask2(BaseModel):
+    task: str
+    data: str
+
+
+TaskType = str | List[BaseChatMessage] | BaseChatMessage
 
 
 @pytest_asyncio.fixture(params=["single_threaded", "embedded"])  # type: ignore
@@ -164,14 +234,11 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
             "Hello, world!",
             "TERMINATE",
         ]
-        # Normalize the messages to remove \r\n and any leading/trailing whitespace.
-        normalized_messages = [
-            msg.content.replace("\r\n", "\n").rstrip("\n") if isinstance(msg.content, str) else msg.content
-            for msg in result.messages
-        ]
-
-        # Assert that all expected messages are in the collected messages
-        assert normalized_messages == expected_messages
+        for i in range(len(expected_messages)):
+            produced_message = result.messages[i]
+            assert isinstance(produced_message, TextMessage)
+            content = produced_message.content.replace("\r\n", "\n").rstrip("\n")
+            assert content == expected_messages[i]
 
         assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
@@ -202,28 +269,89 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
         model_client.reset()
         index = 0
         await team.reset()
-        result_2 = await team.run(
-            task=MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")
-        )
-        assert result.messages[0].content == result_2.messages[0].content[0]
+        task = MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")
+        result_2 = await team.run(task=task)
+        assert isinstance(result.messages[0], TextMessage)
+        assert isinstance(result_2.messages[0], MultiModalMessage)
+        assert result.messages[0].content == task.content[0]
         assert result.messages[1:] == result_2.messages[1:]
 
 
 @pytest.mark.asyncio
-async def test_round_robin_group_chat_state(runtime: AgentRuntime | None) -> None:
+async def test_round_robin_group_chat_unknown_task_message_type(runtime: AgentRuntime | None) -> None:
+    model_client = ReplayChatCompletionClient([])
+    agent1 = AssistantAgent("agent1", model_client=model_client)
+    agent2 = AssistantAgent("agent2", model_client=model_client)
+    termination = TextMentionTermination("TERMINATE")
+    team1 = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=termination,
+        runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask2]],
+    )
+    with pytest.raises(ValueError, match=r"Message type .*StructuredMessage\[_InputTask1\].* is not registered"):
+        await team1.run(
+            task=StructuredMessage[_InputTask1](
+                content=_InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+                source="user",
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_unknown_agent_message_type() -> None:
+    model_client = ReplayChatCompletionClient(["Hello"])
+    agent1 = AssistantAgent("agent1", model_client=model_client)
+    agent2 = _UnknownMessageTypeAgent("agent2", "I am an unknown message type agent")
+    termination = TextMentionTermination("TERMINATE")
+    team1 = RoundRobinGroupChat(participants=[agent1, agent2], termination_condition=termination)
+    with pytest.raises(RuntimeError, match=".* Message type .*UnknownMessageType.* not registered"):
+        await team1.run(task=TextMessage(content="Write a program that prints 'Hello, world!'", source="user"))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "task",
+    [
+        "Write a program that prints 'Hello, world!'",
+        [TextMessage(content="Write a program that prints 'Hello, world!'", source="user")],
+        [MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")],
+        [
+            StructuredMessage[_InputTask1](
+                content=_InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+                source="user",
+            ),
+            StructuredMessage[_InputTask2](
+                content=_InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
+            ),
+        ],
+    ],
+    ids=["text", "text_message", "multi_modal_message", "structured_message"],
+)
+async def test_round_robin_group_chat_state(task: TaskType, runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient(
         ["No facts", "No plan", "print('Hello, world!')", "TERMINATE"],
     )
     agent1 = AssistantAgent("agent1", model_client=model_client)
     agent2 = AssistantAgent("agent2", model_client=model_client)
     termination = TextMentionTermination("TERMINATE")
-    team1 = RoundRobinGroupChat(participants=[agent1, agent2], termination_condition=termination, runtime=runtime)
-    await team1.run(task="Write a program that prints 'Hello, world!'")
+    team1 = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=termination,
+        runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
+    )
+    await team1.run(task=task)
     state = await team1.save_state()
 
     agent3 = AssistantAgent("agent1", model_client=model_client)
     agent4 = AssistantAgent("agent2", model_client=model_client)
-    team2 = RoundRobinGroupChat(participants=[agent3, agent4], termination_condition=termination, runtime=runtime)
+    team2 = RoundRobinGroupChat(
+        participants=[agent3, agent4],
+        termination_condition=termination,
+        runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
+    )
     await team2.load_state(state)
     state2 = await team2.save_state()
     assert state == state2
@@ -349,10 +477,8 @@ async def test_round_robin_group_chat_with_resume_and_reset(runtime: AgentRuntim
     assert result.stop_reason is not None
 
 
-# TODO: add runtime fixture for testing with custom runtime once the issue regarding
-# hanging on exception is resolved.
 @pytest.mark.asyncio
-async def test_round_robin_group_chat_with_exception_raised() -> None:
+async def test_round_robin_group_chat_with_exception_raised_from_agent(runtime: AgentRuntime | None) -> None:
     agent_1 = _EchoAgent("agent_1", description="echo agent 1")
     agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
@@ -360,9 +486,29 @@ async def test_round_robin_group_chat_with_exception_raised() -> None:
     team = RoundRobinGroupChat(
         participants=[agent_1, agent_2, agent_3],
         termination_condition=termination,
+        runtime=runtime,
     )
 
-    with pytest.raises(ValueError, match="I am a flaky agent..."):
+    with pytest.raises(RuntimeError, match="I am a flaky agent..."):
+        await team.run(
+            task="Write a program that prints 'Hello, world!'",
+        )
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_with_exception_raised_from_termination_condition(
+    runtime: AgentRuntime | None,
+) -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    team = RoundRobinGroupChat(
+        participants=[agent_1, agent_2, agent_3],
+        termination_condition=_FlakyTermination(raise_on_count=1),
+        runtime=runtime,
+    )
+
+    with pytest.raises(Exception, match="I am a flaky termination..."):
         await team.run(
             task="Write a program that prints 'Hello, world!'",
         )
@@ -453,6 +599,7 @@ async def test_selector_group_chat(runtime: AgentRuntime | None) -> None:
         task="Write a program that prints 'Hello, world!'",
     )
     assert len(result.messages) == 6
+    assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent3"
     assert result.messages[2].source == "agent2"
@@ -485,7 +632,25 @@ async def test_selector_group_chat(runtime: AgentRuntime | None) -> None:
 
 
 @pytest.mark.asyncio
-async def test_selector_group_chat_state(runtime: AgentRuntime | None) -> None:
+@pytest.mark.parametrize(
+    "task",
+    [
+        "Write a program that prints 'Hello, world!'",
+        [TextMessage(content="Write a program that prints 'Hello, world!'", source="user")],
+        [MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")],
+        [
+            StructuredMessage[_InputTask1](
+                content=_InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+                source="user",
+            ),
+            StructuredMessage[_InputTask2](
+                content=_InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
+            ),
+        ],
+    ],
+    ids=["text", "text_message", "multi_modal_message", "structured_message"],
+)
+async def test_selector_group_chat_state(task: TaskType, runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient(
         ["agent1", "No facts", "agent2", "No plan", "agent1", "print('Hello, world!')", "agent2", "TERMINATE"],
     )
@@ -497,14 +662,18 @@ async def test_selector_group_chat_state(runtime: AgentRuntime | None) -> None:
         termination_condition=termination,
         model_client=model_client,
         runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
     )
-    await team1.run(task="Write a program that prints 'Hello, world!'")
+    await team1.run(task=task)
     state = await team1.save_state()
 
     agent3 = AssistantAgent("agent1", model_client=model_client)
     agent4 = AssistantAgent("agent2", model_client=model_client)
     team2 = SelectorGroupChat(
-        participants=[agent3, agent4], termination_condition=termination, model_client=model_client
+        participants=[agent3, agent4],
+        termination_condition=termination,
+        model_client=model_client,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
     )
     await team2.load_state(state)
     state2 = await team2.save_state()
@@ -545,6 +714,7 @@ async def test_selector_group_chat_two_speakers(runtime: AgentRuntime | None) ->
         task="Write a program that prints 'Hello, world!'",
     )
     assert len(result.messages) == 5
+    assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"
     assert result.messages[2].source == "agent1"
@@ -594,6 +764,7 @@ async def test_selector_group_chat_two_speakers_allow_repeated(runtime: AgentRun
     )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"
     assert result.messages[2].source == "agent2"
@@ -635,6 +806,7 @@ async def test_selector_group_chat_succcess_after_2_attempts(runtime: AgentRunti
     )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 2
+    assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"
 
@@ -659,6 +831,7 @@ async def test_selector_group_chat_fall_back_to_first_after_3_attempts(runtime: 
     )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 2
+    assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent1"
 
@@ -679,6 +852,7 @@ async def test_selector_group_chat_fall_back_to_previous_after_3_attempts(runtim
     )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 3
+    assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"
     assert result.messages[2].source == "agent2"
@@ -692,7 +866,7 @@ async def test_selector_group_chat_custom_selector(runtime: AgentRuntime | None)
     agent3 = _EchoAgent("agent3", description="echo agent 3")
     agent4 = _EchoAgent("agent4", description="echo agent 4")
 
-    def _select_agent(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
+    def _select_agent(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str | None:
         if len(messages) == 0:
             return "agent1"
         elif messages[-1].source == "agent1":
@@ -733,7 +907,7 @@ async def test_selector_group_chat_custom_candidate_func(runtime: AgentRuntime |
     agent3 = _EchoAgent("agent3", description="echo agent 3")
     agent4 = _EchoAgent("agent4", description="echo agent 4")
 
-    def _candidate_func(messages: Sequence[AgentEvent | ChatMessage]) -> List[str]:
+    def _candidate_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
         if len(messages) == 0:
             return ["agent1"]
         elif messages[-1].source == "agent1":
@@ -772,10 +946,10 @@ class _HandOffAgent(BaseChatAgent):
         self._next_agent = next_agent
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (HandoffMessage,)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         return Response(
             chat_message=HandoffMessage(
                 content=f"Transferred to {self._next_agent}.", target=self._next_agent, source=self.name
@@ -796,6 +970,12 @@ async def test_swarm_handoff(runtime: AgentRuntime | None) -> None:
     team = Swarm([second_agent, first_agent, third_agent], termination_condition=termination, runtime=runtime)
     result = await team.run(task="task")
     assert len(result.messages) == 6
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], HandoffMessage)
+    assert isinstance(result.messages[2], HandoffMessage)
+    assert isinstance(result.messages[3], HandoffMessage)
+    assert isinstance(result.messages[4], HandoffMessage)
+    assert isinstance(result.messages[5], HandoffMessage)
     assert result.messages[0].content == "task"
     assert result.messages[1].content == "Transferred to third_agent."
     assert result.messages[2].content == "Transferred to first_agent."
@@ -840,6 +1020,65 @@ async def test_swarm_handoff(runtime: AgentRuntime | None) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "task",
+    [
+        "Write a program that prints 'Hello, world!'",
+        [TextMessage(content="Write a program that prints 'Hello, world!'", source="user")],
+        [MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")],
+        [
+            StructuredMessage[_InputTask1](
+                content=_InputTask1(task="Write a program that prints 'Hello, world!'", data=["a", "b", "c"]),
+                source="user",
+            ),
+            StructuredMessage[_InputTask2](
+                content=_InputTask2(task="Write a program that prints 'Hello, world!'", data="a"), source="user"
+            ),
+        ],
+    ],
+    ids=["text", "text_message", "multi_modal_message", "structured_message"],
+)
+async def test_swarm_handoff_state(task: TaskType, runtime: AgentRuntime | None) -> None:
+    first_agent = _HandOffAgent("first_agent", description="first agent", next_agent="second_agent")
+    second_agent = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
+    third_agent = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
+
+    termination = MaxMessageTermination(6)
+    team1 = Swarm(
+        [second_agent, first_agent, third_agent],
+        termination_condition=termination,
+        runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
+    )
+    await team1.run(task=task)
+    state = await team1.save_state()
+
+    first_agent2 = _HandOffAgent("first_agent", description="first agent", next_agent="second_agent")
+    second_agent2 = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
+    third_agent2 = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
+    team2 = Swarm(
+        [second_agent2, first_agent2, third_agent2],
+        termination_condition=termination,
+        runtime=runtime,
+        custom_message_types=[StructuredMessage[_InputTask1], StructuredMessage[_InputTask2]],
+    )
+    await team2.load_state(state)
+    state2 = await team2.save_state()
+    assert state == state2
+
+    manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team1._group_chat_manager_name}_{team1._team_id}", team1._team_id),  # pyright: ignore
+        SwarmGroupChatManager,  # pyright: ignore
+    )
+    manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
+        SwarmGroupChatManager,  # pyright: ignore
+    )
+    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
+    assert manager_1._current_speaker == manager_2._current_speaker  # pyright: ignore
+
+
+@pytest.mark.asyncio
 async def test_swarm_handoff_using_tool_calls(runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient(
         chat_completions=[
@@ -870,9 +1109,14 @@ async def test_swarm_handoff_using_tool_calls(runtime: AgentRuntime | None) -> N
     team = Swarm([agent1, agent2], termination_condition=termination, runtime=runtime)
     result = await team.run(task="task")
     assert len(result.messages) == 7
+    assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].content == "task"
     assert isinstance(result.messages[1], ToolCallRequestEvent)
     assert isinstance(result.messages[2], ToolCallExecutionEvent)
+    assert isinstance(result.messages[3], HandoffMessage)
+    assert isinstance(result.messages[4], HandoffMessage)
+    assert isinstance(result.messages[5], TextMessage)
+    assert isinstance(result.messages[6], TextMessage)
     assert result.messages[3].content == "handoff to agent2"
     assert result.messages[4].content == "Transferred to agent1."
     assert result.messages[5].content == "Hello"
@@ -910,18 +1154,23 @@ async def test_swarm_pause_and_resume(runtime: AgentRuntime | None) -> None:
     team = Swarm([second_agent, first_agent, third_agent], max_turns=1, runtime=runtime)
     result = await team.run(task="task")
     assert len(result.messages) == 2
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], HandoffMessage)
     assert result.messages[0].content == "task"
     assert result.messages[1].content == "Transferred to third_agent."
 
     # Resume with a new task.
     result = await team.run(task="new task")
     assert len(result.messages) == 2
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], HandoffMessage)
     assert result.messages[0].content == "new task"
     assert result.messages[1].content == "Transferred to first_agent."
 
     # Resume with the same task.
     result = await team.run()
     assert len(result.messages) == 1
+    assert isinstance(result.messages[0], HandoffMessage)
     assert result.messages[0].content == "Transferred to second_agent."
 
 
@@ -996,8 +1245,10 @@ async def test_swarm_with_parallel_tool_calls(runtime: AgentRuntime | None) -> N
         source="agent1",
         context=expected_handoff_context,
     )
+    assert isinstance(result.messages[4], TextMessage)
     assert result.messages[4].content == "Hello"
     assert result.messages[4].source == "agent2"
+    assert isinstance(result.messages[5], TextMessage)
     assert result.messages[5].content == "TERMINATE"
     assert result.messages[5].source == "agent2"
 
@@ -1020,17 +1271,26 @@ async def test_swarm_with_handoff_termination(runtime: AgentRuntime | None) -> N
     # Start
     result = await team.run(task="task")
     assert len(result.messages) == 2
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], HandoffMessage)
     assert result.messages[0].content == "task"
     assert result.messages[1].content == "Transferred to third_agent."
     # Resume existing.
     result = await team.run()
     assert len(result.messages) == 3
+    assert isinstance(result.messages[0], HandoffMessage)
+    assert isinstance(result.messages[1], HandoffMessage)
+    assert isinstance(result.messages[2], HandoffMessage)
     assert result.messages[0].content == "Transferred to first_agent."
     assert result.messages[1].content == "Transferred to second_agent."
     assert result.messages[2].content == "Transferred to third_agent."
     # Resume new task.
     result = await team.run(task="new task")
     assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], HandoffMessage)
+    assert isinstance(result.messages[2], HandoffMessage)
+    assert isinstance(result.messages[3], HandoffMessage)
     assert result.messages[0].content == "new task"
     assert result.messages[1].content == "Transferred to first_agent."
     assert result.messages[2].content == "Transferred to second_agent."
@@ -1043,6 +1303,9 @@ async def test_swarm_with_handoff_termination(runtime: AgentRuntime | None) -> N
     # Start
     result = await team.run(task="task")
     assert len(result.messages) == 3
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], HandoffMessage)
+    assert isinstance(result.messages[2], HandoffMessage)
     assert result.messages[0].content == "task"
     assert result.messages[1].content == "Transferred to third_agent."
     assert result.messages[2].content == "Transferred to non_existing_agent."
@@ -1055,6 +1318,10 @@ async def test_swarm_with_handoff_termination(runtime: AgentRuntime | None) -> N
     # Resume with a HandoffMessage
     result = await team.run(task=HandoffMessage(content="Handoff to first_agent.", target="first_agent", source="user"))
     assert len(result.messages) == 4
+    assert isinstance(result.messages[0], HandoffMessage)
+    assert isinstance(result.messages[1], HandoffMessage)
+    assert isinstance(result.messages[2], HandoffMessage)
+    assert isinstance(result.messages[3], HandoffMessage)
     assert result.messages[0].content == "Handoff to first_agent."
     assert result.messages[1].content == "Transferred to second_agent."
     assert result.messages[2].content == "Transferred to third_agent."
@@ -1070,7 +1337,7 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
     team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination, runtime=runtime)
 
     # Create a list of messages
-    messages: List[ChatMessage] = [
+    messages: List[BaseChatMessage] = [
         TextMessage(content="Message 1", source="user"),
         TextMessage(content="Message 2", source="user"),
         TextMessage(content="Message 3", source="user"),
@@ -1081,6 +1348,10 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
 
     # Verify the messages were processed in order
     assert len(result.messages) == 4  # Initial messages + echo until termination
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], TextMessage)
+    assert isinstance(result.messages[2], TextMessage)
+    assert isinstance(result.messages[3], TextMessage)
     assert result.messages[0].content == "Message 1"  # First message
     assert result.messages[1].content == "Message 2"  # Second message
     assert result.messages[2].content == "Message 3"  # Third message
@@ -1098,7 +1369,7 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
             index += 1
 
     # Test with invalid message list
-    with pytest.raises(ValueError, match="All messages in task list must be valid ChatMessage types"):
+    with pytest.raises(ValueError, match="All messages in task list must be valid BaseChatMessage types"):
         await team.run(task=["not a message"])  # type: ignore[list-item, arg-type]  # intentionally testing invalid input
 
     # Test with empty message list
