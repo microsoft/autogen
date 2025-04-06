@@ -66,11 +66,14 @@ def get_user_prompt(board: chess.Board) -> str:
 
 
 def extract_move(response: str) -> str:
-    start = response.find("<move>") + len("<move>")
+    start = response.find("<move>") 
     end = response.find("</move>")
+    
     if start == -1 or end == -1:
         raise ValueError("Invalid response format.")
-    return response[start:end]
+    if end < start:
+        raise ValueError("Invalid response format.")
+    return response[start+ len("<move>"):end].strip()
 
 
 async def get_ai_move(board: chess.Board, player: AssistantAgent, max_tries: int) -> str:
