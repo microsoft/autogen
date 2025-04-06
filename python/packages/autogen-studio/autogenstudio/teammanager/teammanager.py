@@ -10,7 +10,7 @@ import aiofiles
 import yaml
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import TaskResult, Team
-from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, ChatMessage
 from autogen_agentchat.teams import BaseGroupChat
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel
 from autogen_core.logging import LLMCallEvent

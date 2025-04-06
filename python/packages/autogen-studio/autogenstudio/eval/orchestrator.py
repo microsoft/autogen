@@ -1,814 +1,813 @@
-# eval/orchestrator.py
 import asyncio
-from datetime import datetime
-import time
-from typing import Dict, List, Optional, Set, Tuple, Union, Any
+from pdb import run
 import uuid
+from datetime import datetime
+from typing import Dict, List, Optional, TypedDict, Union, Any
 
-from autogen_core import CancellationToken
+from loguru import logger
+from pydantic import BaseModel
 
+from ..datamodel.db import EvalTaskDB, EvalCriteriaDB, EvalRunDB
 from ..datamodel.eval import (
-    EvalTask, EvalRunConfig, EvalJudgeCriteria, EvalRunStatus,
-    EvalConfigDB, EvalRunDB, EvalResultDB, EvalRunResult,
-    EvalScore, EvalRunConfigDB
+    EvalTask, 
+    EvalJudgeCriteria, 
+    EvalRunResult, 
+    EvalScore, 
+    EvalRunStatus
 )
 from ..database.db_manager import DatabaseManager
-from .judge import BaseEvalJudge
 from .runners import BaseEvalRunner
+from .judges import BaseEvalJudge
 
+
+
+class DimensionScore(TypedDict):
+    score: Optional[float]
+    reason: Optional[str]
+
+class RunEntry(TypedDict):
+    id: str
+    name: str
+    task_name: str
+    runner_type: str
+    overall_score: Optional[float]
+    scores: List[Optional[float]]
+    reasons: Optional[List[Optional[str]]]
+
+class TabulatedResults(TypedDict):
+    dimensions: List[str]
+    runs: List[RunEntry]
 
 class EvalOrchestrator:
-    """Orchestrates evaluation runs across tasks, configs, and judges."""
+    """
+    Orchestrator for evaluation runs.
     
-    def __init__(
-        self,
-        db_manager: DatabaseManager,
-        max_concurrent_runs: int = 5
-    ):
-        self.db_manager = db_manager
-        self.max_concurrent_runs = max_concurrent_runs
-        self.semaphore = asyncio.Semaphore(max_concurrent_runs)
-        self._runner_registry = {}
-        self._active_runs = {}  # Tracking active run tasks
-        
-    def register_runner(self, config_type: str, runner: BaseEvalRunner):
-        """Register a runner for a specific config type."""
-        self._runner_registry[config_type] = runner
+    This class manages the lifecycle of evaluation tasks, criteria, and runs.
+    It can operate with or without a database manager for persistence.
+    """
     
-    async def create_experiment(
-        self,
-        name: str,
-        tasks: List[EvalTask],
-        run_configs: List[EvalRunConfig],
-        judge_criteria: List[EvalJudgeCriteria],
-        description: str = "",
-        user_id: Optional[str] = None,
-        metadata: Optional[Dict] = None
-    ) -> EvalConfigDB:
-        """Create a new experiment configuration."""
-        # Convert tasks and run_configs to dictionaries for storage
-        tasks_dict = {str(task.task_id): task.dict() for task in tasks}
-        configs_dict = {str(config.config_id): config.dict() for config in run_configs}
+    def __init__(self, db_manager: Optional[DatabaseManager] = None):
+        """
+        Initialize the orchestrator.
         
-        # Create experiment config for DB
-        experiment_db = EvalConfigDB(
-            name=name,
-            description=description,
-            tasks=tasks_dict,
-            run_configs=configs_dict,
-            judge_criteria=[criterion.dict() for criterion in judge_criteria],
-            metadata=metadata or {},
-            user_id=user_id
-        )
+        Args:
+            db_manager: Optional database manager for persistence.
+                        If None, data is stored in memory only.
+        """
+        self._db_manager = db_manager
         
-        # Save to database
-        response = self.db_manager.upsert(experiment_db, return_json=False)
-        if not response.status:
-            raise Exception(f"Failed to create experiment: {response.message}")
+        # In-memory storage (used when db_manager is None)
+        self._tasks: Dict[str, EvalTask] = {}
+        self._criteria: Dict[str, EvalJudgeCriteria] = {}
+        self._runs: Dict[str, Dict[str, Any]] = {}
         
-        return response.data
+        # Active runs tracking
+        self._active_runs: Dict[str, asyncio.Task] = {}
     
-    async def list_experiments(
-        self, 
-        user_id: Optional[str] = None, 
-        limit: int = 100,
-        offset: int = 0
-    ) -> List[EvalConfigDB]:
-        """List all experiments, optionally filtered by user_id."""
-        filters = {"user_id": user_id} if user_id else None
-        response = self.db_manager.get(
-            EvalConfigDB, 
-            filters,
-            return_json=False
-        )
-        
-        if not response.status:
-            raise Exception(f"Failed to list experiments: {response.message}")
-        
-        return response.data[offset:offset+limit] if response.data else []
+    # ----- Task Management -----
     
-    async def get_experiment(self, experiment_id: int) -> Optional[EvalConfigDB]:
-        """Get details of a specific experiment."""
-        response = self.db_manager.get(
-            EvalConfigDB,
-            {"id": experiment_id},
-            return_json=False
-        )
+    async def create_task(self, task: EvalTask) -> str:
+        """
+        Create a new evaluation task.
         
-        if not response.status or not response.data:
-            return None
+        Args:
+            task: The evaluation task to create
             
-        return response.data[0] if response.data else None
+        Returns:
+            Task ID
+        """
+        if not task.task_id:
+            task.task_id = str(uuid.uuid4())
+        
+        if self._db_manager:
+            # Store in database
+            task_db = EvalTaskDB(name=task.name, description=task.description, config=task)
+            response = self._db_manager.upsert(task_db)
+            if not response.status:
+                logger.error(f"Failed to store task: {response.message}")
+                raise RuntimeError(f"Failed to store task: {response.message}")
+            task_id = str(response.data.get("id")) if response.data else str(task.task_id)
+        else:
+            # Store in memory
+            task_id = str(task.task_id)
+            self._tasks[task_id] = task
+        
+        return task_id
     
-    async def run_experiment(
-        self,
-        experiment_id: int,
-        judge: BaseEvalJudge,
-        run_unfinished_only: bool = False,
-        cancellation_token: Optional[CancellationToken] = None
-    ) -> EvalRunDB:
-        """Run an experiment and judge the results."""
-        # Get experiment configuration
-        experiment = await self.get_experiment(experiment_id)
-        if not experiment:
-            raise Exception(f"Experiment with ID {experiment_id} not found")
+    async def get_task(self, task_id: str) -> Optional[EvalTask]:
+        """
+        Retrieve an evaluation task by ID.
         
-        # Convert stored dicts back to model objects
-        tasks = [EvalTask(**task_data) for task_data in experiment.tasks.values()]
-        run_configs = [EvalRunConfig(**config_data) for config_data in experiment.run_configs.values()]
-        criteria = [EvalJudgeCriteria(**criterion) for criterion in experiment.judge_criteria]
-        
-        # Create experiment run record
-        exp_run = EvalRunDB(
-            experiment_id=experiment_id,
-            status=EvalRunStatus.PREPARING,
-            start_time=datetime.now(),
-            user_id=experiment.user_id,
-            total_tasks=len(tasks) * len(run_configs),
-            completed_tasks=0,
-            failed_tasks=0
-        )
-        
-        run_response = self.db_manager.upsert(exp_run, return_json=False)
-        if not run_response.status:
-            raise Exception(f"Failed to create experiment run: {run_response.message}")
-        
-        exp_run = run_response.data
-        
-        try:
-            # Check for previously completed evaluations if running unfinished only
-            skip_combinations = set()
-            if run_unfinished_only:
-                skip_combinations = await self._get_completed_combinations(exp_run.id)
+        Args:
+            task_id: The ID of the task to retrieve
             
-            # Create all evaluation combinations
-            eval_tasks = []
-            for task in tasks:
-                for config in run_configs:
-                    if (str(task.task_id), str(config.config_id)) not in skip_combinations:
-                        eval_tasks.append((task, config))
-            
-            # Update experiment run status
-            exp_run.status = EvalRunStatus.RUNNING
-            self.db_manager.upsert(exp_run)
-            
-            # Run evaluations with concurrency control
-            self._active_runs[exp_run.id] = []
-            async with asyncio.TaskGroup() as tg:
-                for task, config in eval_tasks:
-                    task_obj = tg.create_task(
-                        self._run_and_judge_evaluation(
-                            exp_run.id, task, config, judge, criteria, cancellation_token
-                        )
-                    )
-                    self._active_runs[exp_run.id].append(task_obj)
-            
-            # Check final status
-            results_response = self.db_manager.get(
-                EvalResultDB,
-                {"experiment_run_id": exp_run.id},
-                return_json=False
+        Returns:
+            The task if found, None otherwise
+        """
+        if self._db_manager:
+            # Retrieve from database
+            response = self._db_manager.get(
+                EvalTaskDB, 
+                filters={"id": int(task_id) if task_id.isdigit() else task_id}
             )
             
-            if results_response.status and results_response.data:
-                completed = sum(1 for r in results_response.data if r.status == EvalRunStatus.COMPLETED)
-                failed = sum(1 for r in results_response.data if r.status == EvalRunStatus.FAILED)
-                
-                # Update run with final stats
-                exp_run.completed_tasks = completed
-                exp_run.failed_tasks = failed
-                
-                # Determine final status
-                if failed == 0 and completed == exp_run.total_tasks:
-                    exp_run.status = EvalRunStatus.COMPLETED
-                elif completed > 0:
-                    exp_run.status = EvalRunStatus.PARTIALLY_COMPLETED
-                elif failed > 0:
-                    exp_run.status = EvalRunStatus.FAILED
-            
-            exp_run.end_time = datetime.now()
-            
-        except Exception as e:
-            # Update experiment run status in case of error
-            exp_run.status = EvalRunStatus.FAILED
-            exp_run.end_time = datetime.now()
-            exp_run.metadata = {**exp_run.metadata, "error": str(e)}
-            raise
-        finally:
-            # Clean up active runs tracking
-            if exp_run.id in self._active_runs:
-                del self._active_runs[exp_run.id]
-                
-            # Save updated experiment run
-            self.db_manager.upsert(exp_run)
+            if response.status and response.data and len(response.data) > 0:
+                task_data = response.data[0]
+                return task_data.get("config") if isinstance(task_data.get("config"), EvalTask) else EvalTask.model_validate(task_data.get("config"))
+        else:
+            # Retrieve from memory
+            return self._tasks.get(task_id)
         
-        return exp_run
+        return None
     
-    async def restart_experiment(
+    async def list_tasks(self) -> List[EvalTask]:
+        """
+        List all available evaluation tasks.
+        
+        Returns:
+            List of evaluation tasks
+        """
+        if self._db_manager:
+            # Retrieve from database
+            response = self._db_manager.get(EvalTaskDB)
+            
+            tasks = []
+            if response.status and response.data:
+                for task_data in response.data:
+                    config = task_data.get("config")
+                    if config:
+                        if isinstance(config, EvalTask):
+                            tasks.append(config)
+                        else:
+                            tasks.append(EvalTask.model_validate(config))
+            return tasks
+        else:
+            # Retrieve from memory
+            return list(self._tasks.values())
+    
+    # ----- Criteria Management -----
+    
+    async def create_criteria(self, criteria: EvalJudgeCriteria) -> str:
+        """
+        Create new evaluation criteria.
+        
+        Args:
+            criteria: The evaluation criteria to create
+            
+        Returns:
+            Criteria ID
+        """
+        criteria_id = str(uuid.uuid4())
+        
+        if self._db_manager:
+            # Store in database
+            criteria_db = EvalCriteriaDB(
+                name=criteria.dimension, 
+                description=criteria.prompt, 
+                config=criteria
+            )
+            response = self._db_manager.upsert(criteria_db)
+            if not response.status:
+                logger.error(f"Failed to store criteria: {response.message}")
+                raise RuntimeError(f"Failed to store criteria: {response.message}")
+            criteria_id = str(response.data.get("id")) if response.data else criteria_id
+        else:
+            # Store in memory
+            self._criteria[criteria_id] = criteria
+        
+        return criteria_id
+    
+    async def get_criteria(self, criteria_id: str) -> Optional[EvalJudgeCriteria]:
+        """
+        Retrieve evaluation criteria by ID.
+        
+        Args:
+            criteria_id: The ID of the criteria to retrieve
+            
+        Returns:
+            The criteria if found, None otherwise
+        """
+        if self._db_manager:
+            # Retrieve from database
+            response = self._db_manager.get(
+                EvalCriteriaDB, 
+                filters={"id": int(criteria_id) if criteria_id.isdigit() else criteria_id}
+            )
+            
+            if response.status and response.data and len(response.data) > 0:
+                criteria_data = response.data[0]
+                return criteria_data.get("config") if isinstance(criteria_data.get("config"), EvalJudgeCriteria) else EvalJudgeCriteria.model_validate(criteria_data.get("config"))
+        else:
+            # Retrieve from memory
+            return self._criteria.get(criteria_id)
+        
+        return None
+    
+    async def list_criteria(self) -> List[EvalJudgeCriteria]:
+        """
+        List all available evaluation criteria.
+        
+        Returns:
+            List of evaluation criteria
+        """
+        if self._db_manager:
+            # Retrieve from database
+            response = self._db_manager.get(EvalCriteriaDB)
+            
+            criteria_list = []
+            if response.status and response.data:
+                for criteria_data in response.data:
+                    config = criteria_data.get("config")
+                    if config:
+                        if isinstance(config, EvalJudgeCriteria):
+                            criteria_list.append(config)
+                        else:
+                            criteria_list.append(EvalJudgeCriteria.model_validate(config))
+            return criteria_list
+        else:
+            # Retrieve from memory
+            return list(self._criteria.values())
+    
+    # ----- Run Management -----
+    
+    async def create_run(
         self,
-        experiment_run_id: int,
+        task: Union[str, EvalTask],
+        runner: BaseEvalRunner,
         judge: BaseEvalJudge,
-        retry_failed_only: bool = True,
-        max_attempts: int = 3,
-        cancellation_token: Optional[CancellationToken] = None
-    ) -> EvalRunDB:
-        """Restart a previous experiment run, optionally only retrying failed evaluations."""
-        # Get the run
-        run_response = self.db_manager.get(
-            EvalRunDB,
-            {"id": experiment_run_id},
-            return_json=False
-        )
+        criteria: List[Union[str, EvalJudgeCriteria]],
+        name: str = "",
+        description: str = ""
+    ) -> str:
+        """
+        Create a new evaluation run configuration.
         
-        if not run_response.status or not run_response.data:
-            raise Exception(f"Experiment run with ID {experiment_run_id} not found")
+        Args:
+            task: The task to evaluate (ID or task object)
+            runner: The runner to use for evaluation
+            judge: The judge to use for evaluation
+            criteria: List of criteria to use for evaluation (IDs or criteria objects)
+            name: Name for the run
+            description: Description for the run
+            
+        Returns:
+            Run ID
+        """
+        # Resolve task
+        task_obj = None
+        if isinstance(task, str):
+            task_obj = await self.get_task(task)
+            if not task_obj:
+                raise ValueError(f"Task not found: {task}")
+        else:
+            task_obj = task
         
-        previous_run = run_response.data[0]
+        # Resolve criteria
+        criteria_objs = []
+        for criterion in criteria:
+            if isinstance(criterion, str):
+                criterion_obj = await self.get_criteria(criterion)
+                if not criterion_obj:
+                    raise ValueError(f"Criteria not found: {criterion}")
+                criteria_objs.append(criterion_obj)
+            else:
+                criteria_objs.append(criterion)
         
-        # Get the experiment
-        experiment = await self.get_experiment(previous_run.experiment_id)
-        if not experiment:
-            raise Exception(f"Experiment with ID {previous_run.experiment_id} not found")
+        # Generate run ID
+        run_id = str(uuid.uuid4())
         
-        # Get evaluation results
-        results_response = self.db_manager.get(
-            EvalResultDB,
-            {"experiment_run_id": experiment_run_id},
-            return_json=False
-        )
+        # Create run configuration
+        runner_config = runner.dump_component() if hasattr(runner, "dump_component") else runner._to_config()
+        judge_config = judge.dump_component() if hasattr(judge, "dump_component") else judge._to_config()
         
-        if not results_response.status:
-            raise Exception(f"Failed to get evaluation results: {results_response.message}")
-        
-        previous_results = results_response.data or []
-        
-        # Identify evaluations to retry
-        eval_tasks_to_retry = []
-        for result in previous_results:
-            # Skip if max attempts reached
-            if result.attempt >= max_attempts:
-                continue
-                
-            # Skip successful runs if retrying only failed ones
-            if retry_failed_only and result.status == EvalRunStatus.COMPLETED:
-                continue
-                
-            # Add to retry list
-            task = EvalTask(**result.task)
-            config = EvalRunConfig(**result.run_config)
-            eval_tasks_to_retry.append((task, config, result.attempt + 1))
-        
-        if not eval_tasks_to_retry:
-            raise Exception(f"No evaluations to retry for run {experiment_run_id}")
-        
-        # Create new experiment run
-        new_run = EvalRunDB(
-            experiment_id=previous_run.experiment_id,
-            status=EvalRunStatus.PREPARING,
-            start_time=datetime.now(),
-            user_id=previous_run.user_id,
-            total_tasks=len(eval_tasks_to_retry),
-            completed_tasks=0,
-            failed_tasks=0,
-            metadata={
-                "restarted_from": experiment_run_id,
-                "retry_failed_only": retry_failed_only
+        if self._db_manager:
+            # Store in database
+            run_db = EvalRunDB(
+                name=name or f"Run {run_id}",
+                description=description,
+                task_id=int(task) if isinstance(task, str) and task.isdigit() else None,
+                runner_config=runner_config.model_dump(),
+                judge_config=judge_config.model_dump(),
+                criteria_configs=criteria_objs,
+                status=EvalRunStatus.PENDING
+            )
+            response = self._db_manager.upsert(run_db)
+            if not response.status:
+                logger.error(f"Failed to store run: {response.message}")
+                raise RuntimeError(f"Failed to store run: {response.message}")
+            run_id = str(response.data.get("id")) if response.data else run_id
+        else:
+            # Store in memory
+            self._runs[run_id] = {
+                "task": task_obj,
+                "runner_config": runner_config,
+                "judge_config": judge_config,
+                "criteria_configs": [c.model_dump() for c in criteria_objs],
+                "status": EvalRunStatus.PENDING,
+                "created_at": datetime.now(),
+                "run_result": None,
+                "score_result": None,
+                "name": name or f"Run {run_id}",
+                "description": description
             }
-        )
         
-        run_response = self.db_manager.upsert(new_run, return_json=False)
-        if not run_response.status:
-            raise Exception(f"Failed to create restart run: {run_response.message}")
-        
-        new_run = run_response.data
-        
-        try:
-            # Convert judge criteria
-            criteria = [EvalJudgeCriteria(**criterion) for criterion in experiment.judge_criteria]
-            
-            # Update experiment run status
-            new_run.status = EvalRunStatus.RUNNING
-            self.db_manager.upsert(new_run)
-            
-            # Run evaluations with concurrency control
-            self._active_runs[new_run.id] = []
-            async with asyncio.TaskGroup() as tg:
-                for task, config, attempt in eval_tasks_to_retry:
-                    task_obj = tg.create_task(
-                        self._run_and_judge_evaluation(
-                            new_run.id, task, config, judge, criteria, 
-                            cancellation_token, attempt=attempt
-                        )
-                    )
-                    self._active_runs[new_run.id].append(task_obj)
-            
-            # Check final status
-            results_response = self.db_manager.get(
-                EvalResultDB,
-                {"experiment_run_id": new_run.id},
-                return_json=False
-            )
-            
-            if results_response.status and results_response.data:
-                completed = sum(1 for r in results_response.data if r.status == EvalRunStatus.COMPLETED)
-                failed = sum(1 for r in results_response.data if r.status == EvalRunStatus.FAILED)
-                
-                # Update run with final stats
-                new_run.completed_tasks = completed
-                new_run.failed_tasks = failed
-                
-                # Determine final status
-                if failed == 0 and completed == new_run.total_tasks:
-                    new_run.status = EvalRunStatus.COMPLETED
-                elif completed > 0:
-                    new_run.status = EvalRunStatus.PARTIALLY_COMPLETED
-                elif failed > 0:
-                    new_run.status = EvalRunStatus.FAILED
-            
-            new_run.end_time = datetime.now()
-            
-        except Exception as e:
-            # Update experiment run status in case of error
-            new_run.status = EvalRunStatus.FAILED
-            new_run.end_time = datetime.now()
-            new_run.metadata = {**new_run.metadata, "error": str(e)}
-            raise
-        finally:
-            # Clean up active runs tracking
-            if new_run.id in self._active_runs:
-                del self._active_runs[new_run.id]
-                
-            # Save updated experiment run
-            self.db_manager.upsert(new_run)
-        
-        return new_run
+        return run_id
     
-    async def cancel_experiment_run(self, experiment_run_id: int) -> bool:
-        """Cancel an active experiment run."""
-        # Check if run exists and is active
-        run_response = self.db_manager.get(
-            EvalRunDB,
-            {"id": experiment_run_id},
-            return_json=False
-        )
+    async def start_run(self, run_id: str) -> None:
+        """
+        Start an evaluation run.
         
-        if not run_response.status or not run_response.data:
-            raise Exception(f"Experiment run with ID {experiment_run_id} not found")
+        Args:
+            run_id: The ID of the run to start
+        """
+        # Check if run is already active
+        if run_id in self._active_runs:
+            logger.warning(f"Run {run_id} is already active")
+            return
         
-        run = run_response.data[0]
-        
-        # If run is not active, nothing to cancel
-        if run.status not in (EvalRunStatus.PREPARING, EvalRunStatus.RUNNING):
-            return False
-        
-        # Cancel active tasks if any
-        if experiment_run_id in self._active_runs:
-            for task in self._active_runs[experiment_run_id]:
-                task.cancel()
-            del self._active_runs[experiment_run_id]
+        # Start the run asynchronously
+        run_task = asyncio.create_task(self._execute_run(run_id))
+        self._active_runs[run_id] = run_task
         
         # Update run status
-        run.status = EvalRunStatus.CANCELED
-        run.end_time = datetime.now()
-        self.db_manager.upsert(run)
-        
-        # Update any active evaluation results
-        results_response = self.db_manager.get(
-            EvalResultDB,
-            {"experiment_run_id": experiment_run_id},
-            return_json=False
-        )
-        
-        if results_response.status and results_response.data:
-            for result in results_response.data:
-                if result.status in (EvalRunStatus.PREPARING, EvalRunStatus.RUNNING):
-                    result.status = EvalRunStatus.CANCELED
-                    result.end_time = datetime.now()
-                    self.db_manager.upsert(result)
-        
-        return True
+        await self._update_run_status(run_id, EvalRunStatus.RUNNING)
     
-    async def get_experiment_status(self, experiment_run_id: int) -> Dict[str, Any]:
-        """Get detailed status of an experiment run."""
-        # Get the run
-        run_response = self.db_manager.get(
-            EvalRunDB,
-            {"id": experiment_run_id},
-            return_json=False
-        )
+    async def _execute_run(self, run_id: str) -> None:
+        """
+        Execute an evaluation run.
         
-        if not run_response.status or not run_response.data:
-            raise Exception(f"Experiment run with ID {experiment_run_id} not found")
-        
-        run = run_response.data[0]
-        
-        # Get all evaluation results
-        results_response = self.db_manager.get(
-            EvalResultDB,
-            {"experiment_run_id": experiment_run_id},
-            return_json=False
-        )
-        
-        results = results_response.data if results_response.status else []
-        
-        # Compute stats
-        total = run.total_tasks
-        completed = run.completed_tasks
-        failed = run.failed_tasks
-        pending = total - completed - failed
-        progress = (completed / total) * 100 if total > 0 else 0
-        
-        # Get summary metrics if available
-        metrics = {}
-        if results:
-            scores = []
-            dimensions = {}
-            execution_times = []
+        Args:
+            run_id: The ID of the run to execute
+        """
+        try:
+            # Get run configuration
+            run_config = await self._get_run_config(run_id)
+            if not run_config:
+                raise ValueError(f"Run not found: {run_id}")
             
-            for result in results:
-                if result.score and result.status == EvalRunStatus.COMPLETED:
-                    score_obj = EvalScore(**result.score)
-                    
-                    # Overall score
-                    if score_obj.overall_score is not None:
-                        scores.append(score_obj.overall_score)
-                    
-                    # Dimension scores
-                    for dim_score in score_obj.dimension_scores:
-                        if dim_score.score is not None:
-                            if dim_score.dimension not in dimensions:
-                                dimensions[dim_score.dimension] = []
-                            dimensions[dim_score.dimension].append(dim_score.score)
-                
-                # Execution time
-                if result.duration_ms:
-                    execution_times.append(result.duration_ms)
+            # Get task
+            task = run_config.get("task")
+            if not task:
+                raise ValueError(f"Task not found for run: {run_id}")
             
-            # Compute averages
-            if scores:
-                metrics["avg_overall_score"] = sum(scores) / len(scores)
-                
-            dimension_avgs = {}
-            for dim, dim_scores in dimensions.items():
-                if dim_scores:
-                    dimension_avgs[dim] = sum(dim_scores) / len(dim_scores)
+            # Initialize runner
+            runner_config = run_config.get("runner_config")
+            runner = BaseEvalRunner.load_component(runner_config) if runner_config else None
             
-            if dimension_avgs:
-                metrics["avg_dimension_scores"] = dimension_avgs
-                
-            if execution_times:
-                metrics["avg_execution_time_ms"] = sum(execution_times) / len(execution_times)
+            
+            # Initialize judge
+            judge_config = run_config.get("judge_config")
+            judge = BaseEvalJudge.load_component(judge_config) if judge_config else None
+
+            if not runner or not judge:
+                raise ValueError(f"Runner or judge not found for run: {run_id}")
+            
+            # Initialize criteria
+            criteria_configs = run_config.get("criteria_configs")
+            criteria = []
+            if criteria_configs:
+                criteria = [EvalJudgeCriteria.model_validate(c) if not isinstance(c, EvalJudgeCriteria) else c for c in criteria_configs]
+            
+            # Execute runner
+            logger.info(f"Starting runner for run {run_id}")
+            start_time = datetime.now()
+            run_result = await runner.run(task)
+            
+            # Update run result
+            await self._update_run_result(run_id, run_result)
+            
+            if not run_result.status:
+                logger.error(f"Runner failed for run {run_id}: {run_result.error}")
+                await self._update_run_status(run_id, EvalRunStatus.FAILED)
+                return
+            
+            # Execute judge
+            logger.info(f"Starting judge for run {run_id}")
+            score_result = await judge.judge(task, run_result, criteria)
+            
+            # Update score result
+            await self._update_score_result(run_id, score_result)
+            
+            # Update run status
+            end_time = datetime.now()
+            await self._update_run_completed(run_id, start_time, end_time)
+            
+            logger.info(f"Run {run_id} completed successfully")
+            
+        except Exception as e:
+            logger.exception(f"Error executing run {run_id}: {str(e)}")
+            await self._update_run_error(run_id, str(e))
+        finally:
+            # Remove from active runs
+            if run_id in self._active_runs:
+                del self._active_runs[run_id]
+    
+    async def get_run_status(self, run_id: str) -> Optional[EvalRunStatus]:
+        """
+        Get the status of an evaluation run.
         
-        # Build status object
-        status = {
-            "id": run.id,
-            "experiment_id": run.experiment_id,
-            "status": run.status,
-            "start_time": run.start_time.isoformat() if run.start_time else None,
-            "end_time": run.end_time.isoformat() if run.end_time else None,
-            "total_tasks": total,
-            "completed_tasks": completed,
-            "failed_tasks": failed,
-            "pending_tasks": pending,
-            "progress_percentage": progress,
-            "metrics": metrics,
-            "metadata": run.metadata
+        Args:
+            run_id: The ID of the run
+            
+        Returns:
+            The run status if found, None otherwise
+        """
+        run_config = await self._get_run_config(run_id)
+        return run_config.get("status") if run_config else None
+    
+    async def get_run_result(self, run_id: str) -> Optional[EvalRunResult]:
+        """
+        Get the result of an evaluation run.
+        
+        Args:
+            run_id: The ID of the run
+            
+        Returns:
+            The run result if found, None otherwise
+        """
+        run_config = await self._get_run_config(run_id)
+        if not run_config:
+            return None
+        
+        run_result = run_config.get("run_result")
+        if not run_result:
+            return None
+        
+        return run_result if isinstance(run_result, EvalRunResult) else EvalRunResult.model_validate(run_result)
+    
+    async def get_run_score(self, run_id: str) -> Optional[EvalScore]:
+        """
+        Get the score of an evaluation run.
+        
+        Args:
+            run_id: The ID of the run
+            
+        Returns:
+            The run score if found, None otherwise
+        """
+        run_config = await self._get_run_config(run_id)
+        if not run_config:
+            return None
+        
+        score_result = run_config.get("score_result")
+        if not score_result:
+            return None
+        
+        return score_result if isinstance(score_result, EvalScore) else EvalScore.model_validate(score_result)
+    
+    async def list_runs(self) -> List[Dict[str, Any]]:
+        """
+        List all available evaluation runs.
+        
+        Returns:
+            List of run configurations
+        """
+        if self._db_manager:
+            # Retrieve from database
+            response = self._db_manager.get(EvalRunDB)
+            
+            runs = []
+            if response.status and response.data:
+                for run_data in response.data:
+                    runs.append({
+                        "id": run_data.get("id"),
+                        "name": run_data.get("name"),
+                        "status": run_data.get("status"),
+                        "created_at": run_data.get("created_at"),
+                        "updated_at": run_data.get("updated_at")
+                    })
+            return runs
+        else:
+            # Retrieve from memory
+            return [
+                {
+                    "id": run_id,
+                    "name": run_config.get("name"),
+                    "status": run_config.get("status"),
+                    "created_at": run_config.get("created_at"),
+                    "updated_at": run_config.get("updated_at", run_config.get("created_at"))
+                }
+                for run_id, run_config in self._runs.items()
+            ]
+    
+    async def cancel_run(self, run_id: str) -> bool:
+        """
+        Cancel an active evaluation run.
+        
+        Args:
+            run_id: The ID of the run to cancel
+            
+        Returns:
+            True if the run was cancelled, False otherwise
+        """
+        # Check if run is active
+        if run_id not in self._active_runs:
+            logger.warning(f"Run {run_id} is not active")
+            return False
+        
+        # Cancel the run task
+        try:
+            self._active_runs[run_id].cancel()
+            await self._update_run_status(run_id, EvalRunStatus.CANCELED)
+            del self._active_runs[run_id]
+            return True
+        except Exception as e:
+            logger.error(f"Failed to cancel run {run_id}: {str(e)}")
+            return False
+    
+    # ----- Helper Methods -----
+    
+    async def _get_run_config(self, run_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get the configuration of an evaluation run.
+        
+        Args:
+            run_id: The ID of the run
+            
+        Returns:
+            The run configuration if found, None otherwise
+        """
+        if self._db_manager:
+            # Retrieve from database
+            response = self._db_manager.get(
+                EvalRunDB, 
+                filters={"id": int(run_id) if run_id.isdigit() else run_id}
+            )
+            
+            if response.status and response.data and len(response.data) > 0:
+                run_data = response.data[0]
+                
+                # Get task
+                task = None
+                if run_data.get("task_id"):
+                    task_response = self._db_manager.get(
+                        EvalTaskDB, 
+                        filters={"id": run_data.get("task_id")}
+                    )
+                    if task_response.status and task_response.data and len(task_response.data) > 0:
+                        task_data = task_response.data[0]
+                        task = task_data.get("config") if isinstance(task_data.get("config"), EvalTask) else EvalTask.model_validate(task_data.get("config"))
+                
+                return {
+                    "task": task,
+                    "runner_config": run_data.get("runner_config"),
+                    "judge_config": run_data.get("judge_config"),
+                    "criteria_configs": run_data.get("criteria_configs"),
+                    "status": run_data.get("status"),
+                    "run_result": run_data.get("run_result"),
+                    "score_result": run_data.get("score_result"),
+                    "name": run_data.get("name"),
+                    "description": run_data.get("description"),
+                    "created_at": run_data.get("created_at"),
+                    "updated_at": run_data.get("updated_at")
+                }
+        else:
+            # Retrieve from memory
+            return self._runs.get(run_id)
+        
+        return None
+    
+    async def _update_run_status(self, run_id: str, status: EvalRunStatus) -> None:
+        """
+        Update the status of an evaluation run.
+        
+        Args:
+            run_id: The ID of the run
+            status: The new status
+        """
+        if self._db_manager:
+            # Update in database
+            response = self._db_manager.get(
+                EvalRunDB, 
+                filters={"id": int(run_id) if run_id.isdigit() else run_id}
+            )
+            
+            if response.status and response.data and len(response.data) > 0:
+                run_data = response.data[0]
+                run_db = EvalRunDB.model_validate(run_data)
+                run_db.status = status
+                run_db.updated_at = datetime.now()
+                self._db_manager.upsert(run_db)
+        else:
+            # Update in memory
+            if run_id in self._runs:
+                self._runs[run_id]["status"] = status
+                self._runs[run_id]["updated_at"] = datetime.now()
+    
+    async def _update_run_result(self, run_id: str, run_result: EvalRunResult) -> None:
+        """
+        Update the result of an evaluation run.
+        
+        Args:
+            run_id: The ID of the run
+            run_result: The run result
+        """
+        if self._db_manager:
+            # Update in database
+            response = self._db_manager.get(
+                EvalRunDB, 
+                filters={"id": int(run_id) if run_id.isdigit() else run_id}
+            )
+            
+            if response.status and response.data and len(response.data) > 0:
+                run_data = response.data[0]
+                run_db = EvalRunDB.model_validate(run_data)
+                run_db.run_result = run_result
+                run_db.updated_at = datetime.now()
+                self._db_manager.upsert(run_db)
+        else:
+            # Update in memory
+            if run_id in self._runs:
+                self._runs[run_id]["run_result"] = run_result
+                self._runs[run_id]["updated_at"] = datetime.now()
+    
+    async def _update_score_result(self, run_id: str, score_result: EvalScore) -> None:
+        """
+        Update the score of an evaluation run.
+        
+        Args:
+            run_id: The ID of the run
+            score_result: The score result
+        """
+        if self._db_manager:
+            # Update in database
+            response = self._db_manager.get(
+                EvalRunDB, 
+                filters={"id": int(run_id) if run_id.isdigit() else run_id}
+            )
+            
+            if response.status and response.data and len(response.data) > 0:
+                run_data = response.data[0]
+                run_db = EvalRunDB.model_validate(run_data)
+                run_db.score_result = score_result
+                run_db.updated_at = datetime.now()
+                self._db_manager.upsert(run_db)
+        else:
+            # Update in memory
+            if run_id in self._runs:
+                self._runs[run_id]["score_result"] = score_result
+                self._runs[run_id]["updated_at"] = datetime.now()
+    
+    async def _update_run_completed(self, run_id: str, start_time: datetime, end_time: datetime) -> None:
+        """
+        Update a run as completed.
+        
+        Args:
+            run_id: The ID of the run
+            start_time: The start time
+            end_time: The end time
+        """
+        if self._db_manager:
+            # Update in database
+            response = self._db_manager.get(
+                EvalRunDB, 
+                filters={"id": int(run_id) if run_id.isdigit() else run_id}
+            )
+            
+            if response.status and response.data and len(response.data) > 0:
+                run_data = response.data[0]
+                run_db = EvalRunDB.model_validate(run_data)
+                run_db.status = EvalRunStatus.COMPLETED
+                run_db.start_time = start_time
+                run_db.end_time = end_time
+                run_db.updated_at = datetime.now()
+                self._db_manager.upsert(run_db)
+        else:
+            # Update in memory
+            if run_id in self._runs:
+                self._runs[run_id]["status"] = EvalRunStatus.COMPLETED
+                self._runs[run_id]["start_time"] = start_time
+                self._runs[run_id]["end_time"] = end_time
+                self._runs[run_id]["updated_at"] = datetime.now()
+    
+    async def _update_run_error(self, run_id: str, error_message: str) -> None:
+        """
+        Update a run with an error.
+        
+        Args:
+            run_id: The ID of the run
+            error_message: The error message
+        """
+        if self._db_manager:
+            # Update in database
+            response = self._db_manager.get(
+                EvalRunDB, 
+                filters={"id": int(run_id) if run_id.isdigit() else run_id}
+            )
+            
+            if response.status and response.data and len(response.data) > 0:
+                run_data = response.data[0]
+                run_db = EvalRunDB.model_validate(run_data)
+                run_db.status = EvalRunStatus.FAILED
+                run_db.error_message = error_message
+                run_db.end_time = datetime.now()
+                run_db.updated_at = datetime.now()
+                self._db_manager.upsert(run_db)
+        else:
+            # Update in memory
+            if run_id in self._runs:
+                self._runs[run_id]["status"] = EvalRunStatus.FAILED
+                self._runs[run_id]["error_message"] = error_message
+                self._runs[run_id]["end_time"] = datetime.now()
+                self._runs[run_id]["updated_at"] = datetime.now()
+
+    async def tabulate_results(
+        self,
+        run_ids: List[str],
+        include_reasons: bool = False
+    ) -> TabulatedResults:
+        """
+        Generate a tabular representation of evaluation results across runs.
+        
+        This method collects scores across different runs and organizes them by
+        dimension, making it easy to create visualizations like radar charts.
+        
+        Args:
+            run_ids: List of run IDs to include in the tabulation
+            include_reasons: Whether to include scoring reasons in the output
+            
+        Returns:
+            A dictionary with structured data suitable for visualization
+        """
+        result: TabulatedResults = {
+            "dimensions": [],
+            "runs": []
         }
         
-        return status
-    
-    async def get_experiment_results(
-        self, 
-        experiment_run_id: int,
-        detailed: bool = False
-    ) -> List[Dict[str, Any]]:
-        """Get evaluation results for an experiment run."""
-        # Get evaluation results
-        results_response = self.db_manager.get(
-            EvalResultDB,
-            {"experiment_run_id": experiment_run_id},
-            return_json=False
-        )
-        
-        if not results_response.status:
-            raise Exception(f"Failed to get evaluation results: {results_response.message}")
-        
-        results = results_response.data or []
-        
-        # Format results
-        formatted_results = []
-        for result in results:
-            # Basic result info
-            result_dict = {
-                "id": result.id,
-                "task_id": result.task_id,
-                "run_config_id": result.run_config_id,
-                "status": result.status,
-                "start_time": result.start_time.isoformat() if result.start_time else None,
-                "end_time": result.end_time.isoformat() if result.end_time else None,
-                "duration_ms": result.duration_ms,
-                "attempt": result.attempt,
-                "task_name": result.task.get("name", "Unnamed Task"),
-                "config_name": result.run_config.get("name", "Unnamed Config")
-            }
-            
-            # Add score if available
-            if result.score:
-                score_obj = EvalScore(**result.score)
-                result_dict["overall_score"] = score_obj.overall_score
-                
-                # Add dimension scores
-                dimension_scores = {}
-                for dim_score in score_obj.dimension_scores:
-                    dimension_scores[dim_score.dimension] = {
-                        "score": dim_score.score,
-                        "reason": dim_score.reason,
-                        "max_value": dim_score.max_value
-                    }
-                
-                result_dict["dimension_scores"] = dimension_scores
-            
-            # Add error if available
-            if result.error:
-                result_dict["error"] = result.error
-            
-            # Add detailed info if requested
-            if detailed:
-                result_dict["task"] = result.task
-                result_dict["run_config"] = result.run_config
-                
-                if result.result:
-                    result_dict["result"] = result.result
-            
-            formatted_results.append(result_dict)
-        
-        return formatted_results
-    
-    async def compare_experiment_runs(self, run_ids: List[int]) -> Dict[str, Any]:
-        """Compare results across multiple experiment runs."""
-        if not run_ids or len(run_ids) < 2:
-            raise ValueError("At least two run IDs are required for comparison")
-        
-        runs = {}
+        # Parallelize fetching of run configs and scores
+        fetch_tasks = []
         for run_id in run_ids:
-            # Get run info
-            run_response = self.db_manager.get(
-                EvalRunDB,
-                {"id": run_id},
-                return_json=False
-            )
+            fetch_tasks.append(self._get_run_config(run_id))
+            fetch_tasks.append(self.get_run_score(run_id))
+        
+        # Wait for all fetches to complete
+        fetch_results = await asyncio.gather(*fetch_tasks)
+        
+        # Process fetched data
+        dimensions_set = set()
+        run_data = {}
+        
+        for i in range(0, len(fetch_results), 2):
+            run_id = run_ids[i // 2]
+            run_config = fetch_results[i]
+            score = fetch_results[i + 1]
             
-            if not run_response.status or not run_response.data:
-                raise Exception(f"Experiment run with ID {run_id} not found")
+            # Store run data for later processing
+            run_data[run_id] = (run_config, score)
             
-            run = run_response.data[0]
+            # Collect dimensions
+            if score and score.dimension_scores:
+                for dim_score in score.dimension_scores:
+                    dimensions_set.add(dim_score.dimension)
+        
+        # Convert dimensions to sorted list
+        result["dimensions"] = sorted(list(dimensions_set))
+        
+        # Process each run's data
+        for run_id, (run_config, score) in run_data.items():
+            if not run_config or not score:
+                continue
             
-            # Get results
-            results = await self.get_experiment_results(run_id)
+            # Determine runner type
+            runner_type = "unknown"
+            if run_config.get("runner_config"):
+                runner_config = run_config.get("runner_config")
+                if runner_config is not None and "provider" in runner_config:
+                    if "ModelEvalRunner" in runner_config["provider"]:
+                        runner_type = "model"
+                    elif "TeamEvalRunner" in runner_config["provider"]:
+                        runner_type = "team"
             
-            runs[run_id] = {
-                "run": run,
-                "results": results
+            # Get task name
+            task = run_config.get("task")
+            task_name = task.name if task else "Unknown Task"
+            
+            # Create run entry
+            run_entry: RunEntry = {
+                "id": run_id,
+                "name": run_config.get("name", f"Run {run_id}"),
+                "task_name": task_name,
+                "runner_type": runner_type,
+                "overall_score": score.overall_score,
+                "scores": [],
+                "reasons": [] if include_reasons else None
             }
-        
-        # Build comparison metrics
-        comparison = {
-            "run_ids": run_ids,
-            "completion_rates": {},
-            "avg_scores": {},
-            "dimension_scores": {},
-            "execution_times": {}
-        }
-        
-        for run_id, run_data in runs.items():
-            run = run_data["run"]
-            results = run_data["results"]
             
-            total = run.total_tasks
-            completed = run.completed_tasks
+            # Build dimension lookup map for O(1) access
+            dim_map = {ds.dimension: ds for ds in score.dimension_scores}
             
-            # Completion rate
-            completion_rate = (completed / total) * 100 if total > 0 else 0
-            comparison["completion_rates"][run_id] = completion_rate
-            
-            # Score aggregates
-            scores = [r.get("overall_score") for r in results if r.get("overall_score") is not None]
-            if scores:
-                comparison["avg_scores"][run_id] = sum(scores) / len(scores)
-            
-            # Dimension scores
-            all_dimensions = {}
-            for result in results:
-                if "dimension_scores" in result:
-                    for dim, dim_data in result["dimension_scores"].items():
-                        if dim not in all_dimensions:
-                            all_dimensions[dim] = {}
-                        
-                        if run_id not in all_dimensions[dim]:
-                            all_dimensions[dim][run_id] = []
-                        
-                        if dim_data.get("score") is not None:
-                            all_dimensions[dim][run_id].append(dim_data["score"])
-            
-            # Calculate averages for each dimension
-            for dim, dim_data in all_dimensions.items():
-                if dim not in comparison["dimension_scores"]:
-                    comparison["dimension_scores"][dim] = {}
-                
-                for run_id, scores in dim_data.items():
-                    if scores:
-                        comparison["dimension_scores"][dim][run_id] = sum(scores) / len(scores)
-            
-            # Execution times
-            times = [r.get("duration_ms") for r in results if r.get("duration_ms") is not None]
-            if times:
-                comparison["execution_times"][run_id] = sum(times) / len(times)
-        
-        return comparison
-    
-    async def _get_completed_combinations(self, experiment_run_id: int) -> Set[Tuple[str, str]]:
-        """Get task_id, config_id combinations that were already completed."""
-        results_response = self.db_manager.get(
-            EvalResultDB, 
-            {"experiment_run_id": experiment_run_id}, 
-            return_json=False
-        )
-        
-        completed = set()
-        if results_response.status and results_response.data:
-            for result in results_response.data:
-                if result.status == EvalRunStatus.COMPLETED:
-                    completed.add((result.task_id, result.run_config_id))
-        
-        return completed
-    
-    async def _run_and_judge_evaluation(
-        self,
-        experiment_run_id: int,
-        task: EvalTask,
-        config: EvalRunConfig,
-        judge: BaseEvalJudge,
-        criteria: List[EvalJudgeCriteria],
-        cancellation_token: Optional[CancellationToken] = None,
-        attempt: int = 1
-    ) -> EvalResultDB:
-        """Run and judge a single evaluation task."""
-        async with self.semaphore:
-            # Get the appropriate runner
-            runner = self._runner_registry.get(config.config_type)
-            if not runner:
-                raise ValueError(f"No runner registered for config type: {config.config_type}")
-            
-            # Create evaluation result record
-            eval_result = EvalResultDB(
-                experiment_run_id=experiment_run_id,
-                task_id=str(task.task_id),
-                run_config_id=str(config.config_id),
-                status=EvalRunStatus.PENDING,
-                task=task.dict(),
-                run_config=config.dict(),
-                attempt=attempt
-            )
-            
-            # Save initial state
-            response = self.db_manager.upsert(eval_result, return_json=False)
-            if not response.status:
-                raise Exception(f"Failed to create evaluation result: {response.message}")
-            
-            eval_result = response.data
-            
-            try:
-                # Update status to running
-                eval_result.status = EvalRunStatus.RUNNING
-                eval_result.start_time = datetime.now()
-                self.db_manager.upsert(eval_result)
-                
-                # Run the evaluation
-                start_time = time.time()
-                run_result = await runner.run(task, config, cancellation_token)
-                end_time = time.time()
-                
-                # Calculate duration
-                duration_ms = (end_time - start_time) * 1000
-                
-                # Update with run results
-                eval_result.result = run_result.dict() if run_result else None
-                eval_result.duration_ms = duration_ms
-                
-                if run_result and run_result.status:
-                    eval_result.status = EvalRunStatus.COMPLETED
-                    self.db_manager.upsert(eval_result)
-                    
-                    # Judge the result
-                    score = await judge.judge(task, run_result, criteria, cancellation_token)
-                    eval_result.score = score.dict() if score else None
-                    self.db_manager.upsert(eval_result)
+            # Populate scores aligned with dimensions
+            for dim in result["dimensions"]:
+                dim_score = dim_map.get(dim)
+                if dim_score:
+                    run_entry["scores"].append(dim_score.score)
+                    if include_reasons:
+                        run_entry["reasons"].append(dim_score.reason)  # type: ignore
                 else:
-                    eval_result.status = EvalRunStatus.FAILED
-                    eval_result.error = run_result.error if run_result else "No result returned"
-                    self.db_manager.upsert(eval_result)
-                
-                # Update experiment completion counter
-                await self._update_experiment_counters(experiment_run_id)
-                
-            except Exception as e:
-                # Update with error
-                eval_result.status = EvalRunStatus.FAILED
-                eval_result.error = str(e)
-                self.db_manager.upsert(eval_result)
-                
-                # Update experiment failure counter
-                await self._update_experiment_counters(experiment_run_id)
-                raise
-            finally:
-                # Ensure end time is set
-                eval_result.end_time = datetime.now()
-                self.db_manager.upsert(eval_result)
+                    run_entry["scores"].append(None)
+                    if include_reasons:
+                        run_entry["reasons"].append(None)  # type: ignore
             
-            return eval_result
-    
-    async def _update_experiment_counters(self, experiment_run_id: int):
-        """Update the completed and failed task counters for an experiment run."""
-        # Get the run
-        run_response = self.db_manager.get(
-            EvalRunDB,
-            {"id": experiment_run_id},
-            return_json=False
-        )
+            result["runs"].append(run_entry)
         
-        if not run_response.status or not run_response.data:
-            return
-        
-        run = run_response.data[0]
-        
-        # Get all results
-        results_response = self.db_manager.get(
-            EvalResultDB,
-            {"experiment_run_id": experiment_run_id},
-            return_json=False
-        )
-        
-        if not results_response.status or not results_response.data:
-            return
-        
-        results = results_response.data
-        
-        # Count completed and failed
-        completed = sum(1 for r in results if r.status == EvalRunStatus.COMPLETED)
-        failed = sum(1 for r in results if r.status == EvalRunStatus.FAILED)
-        
-        # Update run
-        run.completed_tasks = completed
-        run.failed_tasks = failed
-        self.db_manager.upsert(run)
-    
-    async def export_experiment_results(
-        self,
-        experiment_run_id: int,
-        format: str = "json"
-    ) -> Dict[str, Any]:
-        """Export experiment results in a structured format."""
-        # Get run info
-        run_response = self.db_manager.get(
-            EvalRunDB,
-            {"id": experiment_run_id},
-            return_json=False
-        )
-        
-        if not run_response.status or not run_response.data:
-            raise Exception(f"Experiment run with ID {experiment_run_id} not found")
-        
-        run = run_response.data[0]
-        
-        # Get experiment info
-        experiment = await self.get_experiment(run.experiment_id)
-        if not experiment:
-            raise Exception(f"Experiment with ID {run.experiment_id} not found")
-        
-        # Get results
-        results = await self.get_experiment_results(experiment_run_id, detailed=True)
-        
-        # Build export
-        export_data = {
-            "experiment": {
-                "id": experiment.id,
-                "name": experiment.name,
-                "description": experiment.description,
-                "metadata": experiment.metadata
-            },
-            "run": {
-                "id": run.id,
-                "status": run.status,
-                "start_time": run.start_time.isoformat() if run.start_time else None,
-                "end_time": run.end_time.isoformat() if run.end_time else None,
-                "total_tasks": run.total_tasks,
-                "completed_tasks": run.completed_tasks,
-                "failed_tasks": run.failed_tasks,
-                "metadata": run.metadata
-            },
-            "results": results,
-            "export_time": datetime.now().isoformat()
-        }
-        
-        # For now just return JSON, could add CSV or other formats later
-        return export_data
+        return result

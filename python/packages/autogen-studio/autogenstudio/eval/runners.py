@@ -4,9 +4,9 @@ from typing import Any, Dict, Optional, Sequence, Union, Type
 
 from autogen_core import CancellationToken, ComponentModel, Image
 from autogen_core.models import UserMessage, ChatCompletionClient
-from autogen_agentchat.messages import TextChatMessage, MultiModalMessage, ChatMessage
+from autogen_agentchat.messages import TextMessage, MultiModalMessage, ChatMessage
 from autogen_agentchat.base import TaskResult, Team
-from autogen_core import Component, ComponentBase
+from autogen_core import Component, ComponentBase 
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -61,7 +61,7 @@ class BaseEvalRunner(ABC, ComponentBase[BaseEvalRunnerConfig]):
 
 class ModelEvalRunnerConfig(BaseEvalRunnerConfig):
     """Configuration for ModelEvalRunner."""
-    model_client_config: ComponentModel
+    model_client: ComponentModel
 
 
 class ModelEvalRunner(BaseEvalRunner, Component[ModelEvalRunnerConfig]):
@@ -111,7 +111,7 @@ class ModelEvalRunner(BaseEvalRunner, Component[ModelEvalRunnerConfig]):
             model_response = model_result.content if isinstance(model_result, str) else model_result.model_dump()
 
             task_result = TaskResult(
-                messages=[TextChatMessage(content=str(model_response), source="model")],
+                messages=[TextMessage(content=str(model_response), source="model")],
             )
             result = EvalRunResult(
                 result=task_result,
@@ -136,24 +136,24 @@ class ModelEvalRunner(BaseEvalRunner, Component[ModelEvalRunnerConfig]):
             name=base_config.name,
             description=base_config.description,
             metadata=base_config.metadata,
-            model_client_config=self.model_client.dump_component()
+            model_client=self.model_client.dump_component()
         )
     
     @classmethod
     def _from_config(cls, config: ModelEvalRunnerConfig) -> Self:
         """Create from configuration object with serialized model client."""
-        model_client = ChatCompletionClient.load_component(config.model_client_config)
-        return cls(
-            model_client=model_client,
+        model_client = ChatCompletionClient.load_component(config.model_client)
+        return cls( 
             name=config.name,
             description=config.description,
-            metadata=config.metadata
+            metadata=config.metadata,
+            model_client=model_client,
         )
 
 
 class TeamEvalRunnerConfig(BaseEvalRunnerConfig):
     """Configuration for TeamEvalRunner."""
-    team_config: ComponentModel
+    team: ComponentModel
 
 
 class TeamEvalRunner(BaseEvalRunner, Component[TeamEvalRunnerConfig]):
@@ -167,13 +167,13 @@ class TeamEvalRunner(BaseEvalRunner, Component[TeamEvalRunnerConfig]):
     
     def __init__(
         self, 
-        team_config: Union[Dict[str, Any], ComponentModel],
+        team: Union[Team, ComponentModel],
         name: str = "Team Runner",
         description: str = "Evaluates tasks using a team of agents",
         metadata: Optional[Dict[str, Any]] = None
     ):
         super().__init__(name, description, metadata)
-        self.team_config = team_config
+        self._team = team if isinstance(team, Team) else Team.load_component(team)
     
     async def run(
         self,
@@ -184,22 +184,20 @@ class TeamEvalRunner(BaseEvalRunner, Component[TeamEvalRunnerConfig]):
         # Create initial result object
         result = EvalRunResult()
         
-        try:
-            # Create team from config 
-            team = Team.load_component(self.team_config)
+        try: 
 
             team_task: Sequence[ChatMessage] = [] 
             if isinstance(task.input, str):
-                team_task.append(TextChatMessage(content=task.input, source="user"))
+                team_task.append(TextMessage(content=task.input, source="user"))
             if isinstance(task.input, list): 
                 for message in task.input:
                     if isinstance(message, str):
-                        team_task.append(TextChatMessage(content=message, source="user"))
+                        team_task.append(TextMessage(content=message, source="user"))
                     elif isinstance(message, Image):
                         team_task.append(MultiModalMessage(source="user", content=[message]))
             
             # Run task with team
-            team_result = await team.run(task=team_task, cancellation_token=cancellation_token)
+            team_result = await self._team.run(task=team_task, cancellation_token=cancellation_token)
             
             result = EvalRunResult(
                 result=team_result,
@@ -220,25 +218,17 @@ class TeamEvalRunner(BaseEvalRunner, Component[TeamEvalRunnerConfig]):
     def _to_config(self) -> TeamEvalRunnerConfig:
         """Convert to configuration object including team configuration."""
         base_config = super()._to_config()
-        
-        # Convert team_config to ComponentModel if it's a dictionary
-        team_config_model = self.team_config
-        if isinstance(self.team_config, dict):
-            # Convert dict to ComponentModel
-            team_config_model = ComponentModel(**self.team_config)
-            
         return TeamEvalRunnerConfig(
             name=base_config.name,
             description=base_config.description,
             metadata=base_config.metadata,
-            team_config=team_config_model
+            team=self._team.dump_component()
         )
-    
     @classmethod
     def _from_config(cls, config: TeamEvalRunnerConfig) -> Self:
         """Create from configuration object with serialized team configuration."""
         return cls(
-            team_config=config.team_config,
+            team = Team.load_component(config.team),
             name=config.name,
             description=config.description,
             metadata=config.metadata

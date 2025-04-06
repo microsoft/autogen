@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from autogen_core import ComponentModel
 from pydantic import ConfigDict, SecretStr, field_validator 
@@ -19,6 +19,15 @@ from .types import (
     SettingsConfig,
     TeamResult,
 )
+
+from .eval import (
+    EvalTask, 
+    EvalJudgeCriteria, 
+    EvalRunResult, 
+    EvalScore, 
+    EvalRunStatus
+)
+from autogen_core import ComponentModel
 
 class BaseDBModel(SQLModel, table=False):
     """
@@ -148,3 +157,62 @@ class Settings(BaseDBModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
      
     config: Union[SettingsConfig, dict] = Field(default_factory=SettingsConfig, sa_column=Column(JSON))
+
+# --- Evaluation system database models ---
+
+class EvalTaskDB(BaseDBModel, table=True):
+    """Database model for storing evaluation tasks."""
+    __table_args__ = {"sqlite_autoincrement": True}
+    
+    name: str = "Unnamed Task"
+    description: str = ""
+    config: Union[EvalTask, dict] = Field(sa_column=Column(JSON)) 
+
+
+class EvalCriteriaDB(BaseDBModel, table=True):
+    """Database model for storing evaluation criteria."""
+    __table_args__ = {"sqlite_autoincrement": True}
+    
+    name: str = "Unnamed Criteria"
+    description: str = ""
+    config: Union[EvalJudgeCriteria, dict] = Field(sa_column=Column(JSON)) 
+
+
+class EvalRunDB(BaseDBModel, table=True):
+    """Database model for tracking evaluation runs."""
+    __table_args__ = {"sqlite_autoincrement": True}
+    
+    name: str = "Unnamed Evaluation Run"
+    description: str = ""
+    
+    # References to related components
+    task_id: Optional[int] = Field(
+        default=None, 
+        sa_column=Column(Integer, ForeignKey("evaltaskdb.id", ondelete="SET NULL"))
+    )
+    
+    # Serialized configurations for runner and judge
+    runner_config: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
+    judge_config: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
+    
+    # List of criteria IDs or embedded criteria configs
+    criteria_configs: List[Union[EvalJudgeCriteria, dict]] = Field(
+        default_factory=list, sa_column=Column(JSON)
+    )
+    
+    # Run status and timing information
+    status: EvalRunStatus = Field(default=EvalRunStatus.PENDING)
+    start_time: Optional[datetime] = Field(default=None)
+    end_time: Optional[datetime] = Field(default=None)
+    
+    # Results (updated as they become available)
+    run_result: Union[EvalRunResult, dict] = Field(
+        default=None, sa_column=Column(JSON)
+    )
+    
+    score_result: Union[EvalScore, dict] = Field(
+        default=None, sa_column=Column(JSON)
+    )
+    
+    # Additional metadata
+    error_message: Optional[str] = None 
