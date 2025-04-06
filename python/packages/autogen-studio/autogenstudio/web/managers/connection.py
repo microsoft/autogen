@@ -8,6 +8,7 @@ from autogen_agentchat.base._task import TaskResult
 from autogen_agentchat.messages import (
     BaseAgentEvent,
     BaseChatMessage,
+    ChatMessage,
     HandoffMessage,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
@@ -100,7 +101,7 @@ class WebSocketManager:
                 if run is not None and run.user_id:
                     # get user Settings
                     user_settings = await self._get_settings(run.user_id)
-                    env_vars = SettingsConfig(**user_settings.config).environment if user_settings else None
+                    env_vars = SettingsConfig(**user_settings.config).environment if user_settings else None # type: ignore
                     run.task = MessageConfig(content=task, source="user").model_dump()
                     run.status = RunStatus.ACTIVE
                     self.db_manager.upsert(run)
