@@ -15,12 +15,15 @@ from autogen_core import (
     RoutedAgent,
     SingleThreadedAgentRuntime,
     message_handler,
+    CancellationToken
 )
 from autogen_core.models import (
     ChatCompletionClient,
     LLMMessage,
     SystemMessage,
     UserMessage,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage
 )
 from autogen_core.tools import FunctionTool, Tool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -29,6 +32,7 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 @dataclass
 class Message:
     content: str
+    source: str
 
 
 class WeatherAgent(RoutedAgent):
@@ -123,11 +127,10 @@ async def start_chat() -> None:
     model_client = ChatCompletionClient.load_component(model_config)
 
     # Create the agent with the get_weather tool.
-    assistant = WeatherAgent(
-        self,
-        model_client = model_client,
-        tool_schema = [get_weather]
-    )
+#    assistant = WeatherAgent(
+ #       model_client = model_client,
+  #      tool_schema = [get_weather]
+   # )
 
     # Register the weather agent to runtime
     runtime = SingleThreadedAgentRuntime()
@@ -137,7 +140,7 @@ async def start_chat() -> None:
 
     # Set the assistant agent in the user session.
     cl.user_session.set("prompt_history", "")  # type: ignore
-    cl.user_session.set("agent", assistant)  # type: ignore
+    cl.user_session.set("agent", WeatherAgent)  # type: ignore
     
 
     
@@ -149,8 +152,8 @@ async def chat(message: cl.Message) -> None:
     agent = cast(WeatherAgent, cl.user_session.get("agent"))  # type: ignore
     # Construct the response message.
     response = cl.Message(content="")
-    async for msg in agent.on_messages_stream(
-        messages=[TextMessage(content=message.content, source="user")],
+    async for msg in agent.on_message(
+        messages=[Message(content=message.content, source="user")],
         cancellation_token=CancellationToken(),
     ):
         if isinstance(msg, ModelClientStreamingChunkEvent):
