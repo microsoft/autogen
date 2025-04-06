@@ -209,6 +209,13 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "family": ModelFamily.GEMINI_2_0_FLASH,
         "structured_output": True,
     },
+    "gemini-2.5-pro-preview-03-25": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GEMINI_2_5_PRO,
+        "structured_output": True,
+    },
     "claude-3-haiku-20240307": {
         "vision": True,
         "function_calling": True,
@@ -279,6 +286,7 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gemini-1.5-pro": 2097152,
     "gemini-2.0-flash": 1048576,
     "gemini-2.0-flash-lite-preview-02-05": 1048576,
+    "gemini-2.5-pro-preview-03-25": 2097152,
     "claude-3-haiku-20240307": 50000,
     "claude-3-sonnet-20240229": 40000,
     "claude-3-opus-20240229": 20000,
