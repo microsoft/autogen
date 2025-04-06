@@ -7,8 +7,7 @@ from typing_extensions import Self
 
 from autogen_core import Component, ComponentBase, ComponentModel
 
-from ...models import LLMMessage
-from ._types import TriggerMessage
+from ._types import ContextMessage, TriggerMessage
 
 
 class MessageCompletionException(BaseException): ...
@@ -24,7 +23,7 @@ class MessageCompletionCondition(ABC, ComponentBase[BaseModel]):
         ...
 
     @abstractmethod
-    async def __call__(self, messages: List[LLMMessage]) -> TriggerMessage | None: ...
+    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None: ...
 
     @abstractmethod
     async def reset(self) -> None:
@@ -57,7 +56,7 @@ class AndMessageCompletionCondition(MessageCompletionCondition, Component[AndMes
     def triggered(self) -> bool:
         return all(condition.triggered for condition in self._conditions)
 
-    async def __call__(self, messages: List[LLMMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
         if self.triggered:
             raise MessageCompletionException("Message completion condition has already been reached.")
         # Check all remaining conditions.
@@ -72,8 +71,8 @@ class AndMessageCompletionCondition(MessageCompletionCondition, Component[AndMes
             # If any remaining condition has not reached termination, it is not terminated.
             return None
         content = ", ".join(trigger_message.content for trigger_message in self._trigger_messages)
-        # source = ", ".join(trigger_message.source for trigger_message in self._trigger_messages)
-        return TriggerMessage(content=content)
+        source = ", ".join(trigger_message.source for trigger_message in self._trigger_messages)
+        return TriggerMessage(content=content, source=source)
 
     async def reset(self) -> None:
         for condition in self._conditions:
@@ -112,7 +111,7 @@ class OrMessageCompletionCondition(MessageCompletionCondition, Component[OrMessa
     def triggered(self) -> bool:
         return any(condition.triggered for condition in self._conditions)
 
-    async def __call__(self, messages: List[LLMMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
         if self.triggered:
             raise RuntimeError("Termination condition has already been reached")
         trigger_messages = await asyncio.gather(*[condition(messages) for condition in self._conditions])
@@ -121,8 +120,8 @@ class OrMessageCompletionCondition(MessageCompletionCondition, Component[OrMessa
         ]
         if len(trigger_messages_filter) > 0:
             content = ", ".join(trigger_message.content for trigger_message in trigger_messages_filter)
-            # source = ", ".join(trigger_message.source for stop_message in stop_messages_filter)
-            return TriggerMessage(content=content)
+            source = ", ".join(trigger_message.source for trigger_message in trigger_messages_filter)
+            return TriggerMessage(content=content, source=source)
         return None
 
     async def reset(self) -> None:
