@@ -13,6 +13,7 @@ else:
     from typing_extensions import Self
 from autogen_core.code_executor import CodeBlock, CodeExecutor
 from autogen_ext.code_executors._common import silence_pip
+from autogen_core import Component
 from ._jupyter_server import JupyterClient, JupyterConnectable, JupyterConnectionInfo
 
 class CodeResult(BaseModel):
@@ -36,15 +37,8 @@ class DockerJupyterCodeExecutorConfig(BaseModel):
     class Config:
         arbitrary_types_allowed = True  
     
-class DockerJupyterCodeExecutor(CodeExecutor):
-    def __init__(
-        self,
-        jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo],
-        kernel_name: str = "python3",
-        timeout: int = 60,
-        output_dir: Union[Path, str] = Path("."),
-    ):
-        """(Experimental) A code executor class that executes code statefully using
+class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecutorConfig]):
+    """(Experimental) A code executor class that executes code statefully using
         a Jupyter server supplied to this class.
 
         Each execution is stateful and can access variables created from previous
@@ -142,6 +136,16 @@ class DockerJupyterCodeExecutor(CodeExecutor):
                 By default, it is "python3".
             output_dir (str): The directory to save output files, by default ".".
         """
+    component_config_schema = DockerJupyterCodeExecutorConfig
+    component_provider_override = "autogen_ext.code_executors.docker_jupyter.DockerJupyterCodeExecutor"
+    def __init__(
+        self,
+        jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo],
+        kernel_name: str = "python3",
+        timeout: int = 60,
+        output_dir: Union[Path, str] = Path("."),
+    ):
+       
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
