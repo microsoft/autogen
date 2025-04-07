@@ -432,7 +432,6 @@ __all__ = [
     "BaseChatMessage",
     "BaseAgentEvent",
     "BaseTextChatMessage",
-    "BaseChatMessage",
     "StructuredContentType",
     "StructuredMessage",
     "HandoffMessage",

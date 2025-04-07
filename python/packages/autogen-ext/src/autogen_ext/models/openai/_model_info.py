@@ -1,10 +1,16 @@
+import logging
 from typing import Dict
 
+from autogen_core import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from autogen_core.models import ModelFamily, ModelInfo
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
+trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 
 # Based on: https://platform.openai.com/docs/models/continuous-model-upgrades
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``
 _MODEL_POINTERS = {
+    # OpenAI models
     "o3-mini": "o3-mini-2025-01-31",
     "o1": "o1-2024-12-17",
     "o1-preview": "o1-preview-2024-09-12",
@@ -18,6 +24,7 @@ _MODEL_POINTERS = {
     "gpt-4-32k": "gpt-4-32k-0613",
     "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
     "gpt-3.5-turbo-16k": "gpt-3.5-turbo-16k-0613",
+    # Anthropic models
     "claude-3-haiku": "claude-3-haiku-20240307",
     "claude-3-sonnet": "claude-3-sonnet-20240229",
     "claude-3-opus": "claude-3-opus-20240229",
@@ -202,6 +209,13 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "family": ModelFamily.GEMINI_2_0_FLASH,
         "structured_output": True,
     },
+    "gemini-2.5-pro-preview-03-25": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GEMINI_2_5_PRO,
+        "structured_output": True,
+    },
     "claude-3-haiku-20240307": {
         "vision": True,
         "function_calling": True,
@@ -272,6 +286,7 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gemini-1.5-pro": 2097152,
     "gemini-2.0-flash": 1048576,
     "gemini-2.0-flash-lite-preview-02-05": 1048576,
+    "gemini-2.5-pro-preview-03-25": 2097152,
     "claude-3-haiku-20240307": 50000,
     "claude-3-sonnet-20240229": 40000,
     "claude-3-opus-20240229": 20000,
@@ -291,8 +306,24 @@ def resolve_model(model: str) -> str:
 
 
 def get_info(model: str) -> ModelInfo:
+    # If call it, that mean is that the config does not have cumstom model_info
     resolved_model = resolve_model(model)
-    return _MODEL_INFO[resolved_model]
+    model_info: ModelInfo = _MODEL_INFO.get(
+        resolved_model,
+        {
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": "FAILED",
+            "structured_output": False,
+        },
+    )
+    if model_info.get("family") == "FAILED":
+        raise ValueError("model_info is required when model name is not a valid OpenAI model")
+    if model_info.get("family") == ModelFamily.UNKNOWN:
+        trace_logger.warning(f"Model info not found for model: {model}")
+
+    return model_info
 
 
 def get_token_limit(model: str) -> int:

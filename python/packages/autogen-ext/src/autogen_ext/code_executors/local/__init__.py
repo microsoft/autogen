@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import sys
+import tempfile
 import warnings
 from hashlib import sha256
 from pathlib import Path
@@ -36,7 +37,7 @@ class LocalCommandLineCodeExecutorConfig(BaseModel):
     """Configuration for LocalCommandLineCodeExecutor"""
 
     timeout: int = 60
-    work_dir: str = "."  # Stored as string, converted to Path in _from_config
+    work_dir: Optional[str] = None
     functions_module: str = "functions"
 
 
@@ -56,7 +57,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
     commands from being executed which may potentially affect the users environment.
     Currently the only supported languages is Python and shell scripts.
     For Python code, use the language "python" for the code block.
-    For shell scripts, use the language "bash", "shell", or "sh" for the code
+    For shell scripts, use the language "bash", "shell", "sh", "pwsh", "powershell", or "ps1" for the code
     block.
 
     .. note::
@@ -74,11 +75,14 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
     Args:
         timeout (int): The timeout for the execution of any single code block. Default is 60.
         work_dir (str): The working directory for the code execution. If None,
-            a default working directory will be used. The default working
-            directory is the current directory ".".
+            a default working directory will be used. The default working directory is a temporary directory.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
         virtual_env_context (Optional[SimpleNamespace], optional): The virtual environment context. Defaults to None.
+
+    .. note::
+        Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
+
 
     Example:
 
@@ -141,7 +145,7 @@ $functions"""
     def __init__(
         self,
         timeout: int = 60,
-        work_dir: Union[Path, str] = Path("."),
+        work_dir: Optional[Union[Path, str]] = None,
         functions: Sequence[
             Union[
                 FunctionWithRequirements[Any, A],
@@ -155,18 +159,27 @@ $functions"""
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
-        if isinstance(work_dir, str):
-            work_dir = Path(work_dir)
+        self._work_dir: Optional[Path] = None
+        if work_dir is not None:
+            # Check if user provided work_dir is the current directory and warn if so.
+            if Path(work_dir).resolve() == Path.cwd().resolve():
+                warnings.warn(
+                    "Using the current directory as work_dir is deprecated.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            if isinstance(work_dir, str):
+                self._work_dir = Path(work_dir)
+            else:
+                self._work_dir = work_dir
+            self._work_dir.mkdir(exist_ok=True)
 
         if not functions_module.isidentifier():
             raise ValueError("Module name must be a valid Python identifier")
 
         self._functions_module = functions_module
 
-        work_dir.mkdir(exist_ok=True)
-
         self._timeout = timeout
-        self._work_dir: Path = work_dir
 
         self._functions = functions
         # Setup could take some time so we intentionally wait for the first code block to do it.
@@ -176,6 +189,9 @@ $functions"""
             self._setup_functions_complete = True
 
         self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
+
+        self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
+        self._started = False
 
         # Check the current event loop policy if on windows.
         if sys.platform == "win32":
@@ -229,11 +245,18 @@ $functions"""
     @property
     def work_dir(self) -> Path:
         """(Experimental) The working directory for the code execution."""
-        return self._work_dir
+        if self._work_dir is not None:
+            return self._work_dir
+        else:
+            # Automatically create temp directory if not exists
+            if self._temp_dir is None:
+                self._temp_dir = tempfile.TemporaryDirectory()
+                self._started = True
+            return Path(self._temp_dir.name)
 
     async def _setup_functions(self, cancellation_token: CancellationToken) -> None:
         func_file_content = build_python_functions_file(self._functions)
-        func_file = self._work_dir / f"{self._functions_module}.py"
+        func_file = self.work_dir / f"{self._functions_module}.py"
         func_file.write_text(func_file_content)
 
         # Collect requirements
@@ -255,7 +278,7 @@ $functions"""
                 asyncio.create_subprocess_exec(
                     py_executable,
                     *cmd_args,
-                    cwd=self._work_dir,
+                    cwd=self.work_dir,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -329,7 +352,7 @@ $functions"""
 
             # Try extracting a filename (if present)
             try:
-                filename = get_file_name_from_content(code, self._work_dir)
+                filename = get_file_name_from_content(code, self.work_dir)
             except ValueError:
                 return CommandLineCodeResult(
                     exit_code=1,
@@ -349,7 +372,7 @@ $functions"""
 
                 filename = f"tmp_code_{code_hash}.{ext}"
 
-            written_file = (self._work_dir / filename).resolve()
+            written_file = (self.work_dir / filename).resolve()
             with written_file.open("w", encoding="utf-8") as f:
                 f.write(code)
             file_names.append(written_file)
@@ -388,7 +411,7 @@ $functions"""
                 asyncio.create_subprocess_exec(
                     program,
                     *extra_args,
-                    cwd=self._work_dir,
+                    cwd=self.work_dir,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                     env=env,
@@ -433,13 +456,26 @@ $functions"""
         )
 
     async def start(self) -> None:
-        """(Experimental) Start the code executor."""
-        # No action needed for local command line executor
-        pass
+        """(Experimental) Start the code executor.
+
+        Initializes the local code executor and should be called before executing any code blocks.
+        It marks the executor internal state as started.
+        If no working directory is provided, the method creates a temporary directory for the executor to use.
+        """
+        if self._work_dir is None and self._temp_dir is None:
+            self._temp_dir = tempfile.TemporaryDirectory()
+        self._started = True
 
     async def stop(self) -> None:
-        """(Experimental) Stop the code executor."""
-        # No action needed for local command line executor
+        """(Experimental) Stop the code executor.
+
+        Stops the local code executor and performs the cleanup of the temporary working directory (if it was created).
+        The executor's internal state is markes as no longer started.
+        """
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+            self._temp_dir = None
+        self._started = False
         pass
 
     def _to_config(self) -> LocalCommandLineCodeExecutorConfig:
@@ -450,7 +486,7 @@ $functions"""
 
         return LocalCommandLineCodeExecutorConfig(
             timeout=self._timeout,
-            work_dir=str(self._work_dir),
+            work_dir=str(self.work_dir),
             functions_module=self._functions_module,
         )
 
@@ -458,6 +494,6 @@ $functions"""
     def _from_config(cls, config: LocalCommandLineCodeExecutorConfig) -> Self:
         return cls(
             timeout=config.timeout,
-            work_dir=Path(config.work_dir),
+            work_dir=Path(config.work_dir) if config.work_dir is not None else None,
             functions_module=config.functions_module,
         )
