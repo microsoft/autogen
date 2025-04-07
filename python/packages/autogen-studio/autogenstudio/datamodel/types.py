@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Literal, Optional, Sequence
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import BaseChatMessage, ChatMessage
 from autogen_core import ComponentModel
+from autogen_core.models import UserMessage
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from pydantic import BaseModel, ConfigDict, SecretStr
 
@@ -24,6 +25,15 @@ class TeamResult(BaseModel):
 class LLMCallEventMessage(BaseChatMessage):
     source: str = "llm_call_event"
     content: str
+
+    def to_text(self) -> str:
+        return self.content
+
+    def to_model_text(self) -> str:
+        return self.content
+
+    def to_model_message(self) -> UserMessage:
+        raise NotImplementedError("This message type is not supported.")
 
 
 class MessageMeta(BaseModel):

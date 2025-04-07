@@ -1,6 +1,10 @@
 from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
 from autogen_core import CancellationToken, Component, ComponentModel
+from autogen_core.model_context import (
+    ChatCompletionContext,
+    UnboundedChatCompletionContext,
+)
 from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -10,8 +14,9 @@ from autogen_agentchat.state import SocietyOfMindAgentState
 
 from ..base import TaskResult, Team
 from ..messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
+    HandoffMessage,
     ModelClientStreamingChunkEvent,
     TextMessage,
 )
@@ -27,6 +32,7 @@ class SocietyOfMindAgentConfig(BaseModel):
     description: str | None = None
     instruction: str | None = None
     response_prompt: str | None = None
+    model_context: ComponentModel | None = None
 
 
 class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
@@ -38,6 +44,16 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
     Once the response is generated, the agent resets the inner team by
     calling :meth:`Team.reset`.
 
+    Limit context size sent to the model:
+
+    You can limit the number of messages sent to the model by setting
+    the `model_context` parameter to a :class:`~autogen_core.model_context.BufferedChatCompletionContext`.
+    This will limit the number of recent messages sent to the model and can be useful
+    when the model has a limit on the number of tokens it can process.
+    You can also create your own model context by subclassing
+    :class:`~autogen_core.model_context.ChatCompletionContext`.
+
+
     Args:
         name (str): The name of the agent.
         team (Team): The team of agents to use.
@@ -47,6 +63,8 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
             Defaults to :attr:`DEFAULT_INSTRUCTION`. It assumes the role of 'system'.
         response_prompt (str, optional): The response prompt to use when generating a response using the inner team's messages.
             Defaults to :attr:`DEFAULT_RESPONSE_PROMPT`. It assumes the role of 'system'.
+        model_context (ChatCompletionContext | None, optional): The model context for storing and retrieving :class:`~autogen_core.models.LLMMessage`. It can be preloaded with initial messages. The initial messages will be cleared when the agent is reset.
+
 
 
     Example:
@@ -114,6 +132,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         description: str = DEFAULT_DESCRIPTION,
         instruction: str = DEFAULT_INSTRUCTION,
         response_prompt: str = DEFAULT_RESPONSE_PROMPT,
+        model_context: ChatCompletionContext | None = None,
     ) -> None:
         super().__init__(name=name, description=description)
         self._team = team
@@ -121,11 +140,23 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         self._instruction = instruction
         self._response_prompt = response_prompt
 
+        if model_context is not None:
+            self._model_context = model_context
+        else:
+            self._model_context = UnboundedChatCompletionContext()
+
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    @property
+    def model_context(self) -> ChatCompletionContext:
+        """
+        The model context in use by the agent.
+        """
+        return self._model_context
+
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         # Call the stream method and collect the messages.
         response: Response | None = None
         async for msg in self.on_messages_stream(messages, cancellation_token):
@@ -135,21 +166,38 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         return response
 
     async def on_messages_stream(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         # Prepare the task for the team of agents.
-        task = list(messages)
+        task_messages = list(messages)
 
         # Run the team of agents.
         result: TaskResult | None = None
-        inner_messages: List[AgentEvent | ChatMessage] = []
+        inner_messages: List[BaseAgentEvent | BaseChatMessage] = []
+        model_context = self._model_context
         count = 0
+
+        prev_content = await model_context.get_messages()
+        if len(prev_content) > 0:
+            prev_message = HandoffMessage(
+                content="relevant previous messages",
+                source=self.name,
+                target="",
+                context=prev_content,
+            )
+            task_messages = [prev_message] + task_messages
+
+        if len(task_messages) == 0:
+            task = None
+        else:
+            task = task_messages
+
         async for inner_msg in self._team.run_stream(task=task, cancellation_token=cancellation_token):
             if isinstance(inner_msg, TaskResult):
                 result = inner_msg
             else:
                 count += 1
-                if count <= len(task):
+                if count <= len(task_messages):
                     # Skip the task messages.
                     continue
                 yield inner_msg
@@ -161,27 +209,51 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
 
         if len(inner_messages) == 0:
             yield Response(
-                chat_message=TextMessage(source=self.name, content="No response."), inner_messages=inner_messages
+                chat_message=TextMessage(source=self.name, content="No response."),
+                inner_messages=[],
+                # Response's inner_messages should be empty. Cause that mean is response to outer world.
             )
         else:
             # Generate a response using the model client.
             llm_messages: List[LLMMessage] = [SystemMessage(content=self._instruction)]
-            for message in messages:
-                if isinstance(message, ChatMessage):
+            for message in inner_messages:
+                if isinstance(message, BaseChatMessage):
                     llm_messages.append(message.to_model_message())
             llm_messages.append(SystemMessage(content=self._response_prompt))
             completion = await self._model_client.create(messages=llm_messages, cancellation_token=cancellation_token)
             assert isinstance(completion.content, str)
             yield Response(
                 chat_message=TextMessage(source=self.name, content=completion.content, models_usage=completion.usage),
-                inner_messages=inner_messages,
+                inner_messages=[],
+                # Response's inner_messages should be empty. Cause that mean is response to outer world.
             )
+
+        # Add new user/handoff messages to the model context
+        await self._add_messages_to_context(
+            model_context=model_context,
+            messages=messages,
+        )
 
         # Reset the team.
         await self._team.reset()
 
+    @staticmethod
+    async def _add_messages_to_context(
+        model_context: ChatCompletionContext,
+        messages: Sequence[BaseChatMessage],
+    ) -> None:
+        """
+        Add incoming messages to the model context.
+        """
+        for msg in messages:
+            if isinstance(msg, HandoffMessage):
+                for llm_msg in msg.context:
+                    await model_context.add_message(llm_msg)
+            await model_context.add_message(msg.to_model_message())
+
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         await self._team.reset()
+        await self._model_context.clear()
 
     async def save_state(self) -> Mapping[str, Any]:
         team_state = await self._team.save_state()
