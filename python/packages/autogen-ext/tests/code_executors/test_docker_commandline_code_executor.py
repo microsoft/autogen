@@ -346,7 +346,7 @@ async def test_delete_tmp_files() -> None:
             # Test with multiple code blocks
             code_blocks = [
                 CodeBlock(code="print('first block')", language="python"),
-                CodeBlock(code="print('second block')", language="python")
+                CodeBlock(code="print('second block')", language="python"),
             ]
             result = await executor.execute_code_blocks(code_blocks, cancellation_token)
             assert result.exit_code == 0
