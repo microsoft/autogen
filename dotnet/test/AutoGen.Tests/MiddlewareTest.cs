@@ -72,7 +72,7 @@ public partial class MiddlewareTest
     public async Task FunctionCallMiddlewareTestAsync()
     {
         var agent = new EchoAgent("echo");
-        var args = new EchoSchema { message = "hello" }; // make the format check happy on linux
+        var args = new AutoGen.Tests.MiddlewareTest.EchoSchema { message = "hello" }; // make the format check happy on linux
         var argsJson = JsonSerializer.Serialize(args) ?? throw new InvalidOperationException("Failed to serialize args");
         var functionCall = new ToolCall("Echo", argsJson);
         var functionCallAgent = agent.RegisterMiddleware(async (messages, options, agent, ct) =>
