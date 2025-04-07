@@ -1,5 +1,6 @@
 from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
 
+import httpx
 from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
 from pydantic import BaseModel, SecretStr
@@ -65,7 +66,7 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     add_name_prefixes: bool
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
     default_headers: Dict[str, str] | None
-    http_client: httpx.AsyncClient | None = None
+    http_client: httpx.AsyncClient | None
 
 
 # See OpenAI docs for explanation of these parameters
