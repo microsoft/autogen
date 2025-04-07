@@ -116,7 +116,7 @@ public struct MultiModalData
     /// <param name="item">The <see cref="AIContent"/> to wrap.</param>
     /// <returns>A <see cref="MultiModalData"/> instance wrapping the <paramref name="item"/>.</returns>
     /// <exception cref="ArgumentException">
-    /// Thrown if the <paramref name="item"/> is not a <see cref="TextContent"/> or <see cref="ImageContent"/>.
+    /// Thrown if the <paramref name="item"/> is not a <see cref="TextContent"/> or <see cref="DataContent"/>.
     /// </exception>
     public static MultiModalData CheckTypeAndCreate(AIContent item)
     {
@@ -124,7 +124,7 @@ public struct MultiModalData
         {
             return new MultiModalData(text);
         }
-        else if (item is ImageContent image)
+        else if (item is DataContent image)
         {
             return new MultiModalData(image);
         }
@@ -155,10 +155,10 @@ public struct MultiModalData
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="MultiModalData"/> with an <see cref="ImageContent"/>.
+    /// Initializes a new instance of the <see cref="MultiModalData"/> with an <see cref="DataContent"/>.
     /// </summary>
     /// <param name="image">The image to wrap.</param>
-    public MultiModalData(ImageContent image)
+    public MultiModalData(DataContent image)
     {
         ContentType = Type.Image;
         AIContent = image;
@@ -246,12 +246,12 @@ public class MultiModalMessage : ChatMessage, IList<AIContent>
     }
 
     /// <summary>
-    /// Adds a range of <see cref="ImageContent"/> to the message.
+    /// Adds a range of <see cref="DataContent"/> to the message.
     /// </summary>
     /// <param name="images">The items to add.</param>
-    public void AddRange(IEnumerable<ImageContent> images)
+    public void AddRange(IEnumerable<DataContent> images)
     {
-        foreach (ImageContent image in images)
+        foreach (DataContent image in images)
         {
             this.Add(image);
         }
@@ -279,7 +279,7 @@ public class MultiModalMessage : ChatMessage, IList<AIContent>
     /// Adds a <see cref="TextContent"/> to the message.
     /// </summary>
     /// <param name="image">The image to add.</param>
-    public void Add(ImageContent image)
+    public void Add(DataContent image)
     {
         this.Content.Add(new(image));
     }
@@ -366,7 +366,7 @@ public class MultiModalMessage : ChatMessage, IList<AIContent>
     }
 
     /// <inheritdoc cref="IList{ImageContent}.Insert(int, ImageContent)"/>
-    public void Insert(int index, ImageContent image)
+    public void Insert(int index, DataContent image)
     {
         this.Content.Insert(index, new(image));
     }
@@ -597,7 +597,7 @@ public static class CompletionChatMessageExtensions
             {
                 contentBuilder.AppendLine(textContent.Text);
             }
-            else if (content is ImageContent)
+            else if (content is DataContent)
             {
                 contentBuilder.AppendLine("[Image]");
             }

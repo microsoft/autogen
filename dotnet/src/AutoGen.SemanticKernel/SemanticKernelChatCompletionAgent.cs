@@ -26,8 +26,9 @@ public class SemanticKernelChatCompletionAgent : IAgent
     public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        ChatMessageContent[] reply = await _chatCompletionAgent
-            .InvokeAsync(BuildChatHistory(messages), cancellationToken: cancellationToken)
+        var agentThread = new ChatHistoryAgentThread(BuildChatHistory(messages));
+        var reply = await _chatCompletionAgent
+            .InvokeAsync(agentThread, cancellationToken: cancellationToken)
             .ToArrayAsync(cancellationToken: cancellationToken);
 
         return reply.Length > 1
