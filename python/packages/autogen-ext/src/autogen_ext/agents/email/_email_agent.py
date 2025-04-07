@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from autogen_agentchat.agents import BaseChatAgent
+from autogen_agentchat.agents import BaseChatAgent, AssistantAgent
 from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_agentchat.utils import remove_images
 from autogen_core.models import (
@@ -13,8 +13,10 @@ from autogen_core.models import (
 )
 from autogen_agentchat.messages import (
     ChatMessage,
+    MultiModalMessage,
     TextMessage,
 )
+
 
 from email_tools import (
     TOOL_GENERATE_IMAGE,
@@ -26,12 +28,13 @@ from typing import List, Sequence, Tuple
 from autogen_agentchat.base import Response
 from typing_extensions import Self, Annotated
 import requests, time
-import smtplib, json, traceback, os
+import smtplib, json, traceback
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.application import MIMEApplication
 from email.utils import formataddr
+import os
 
 class EmailConfig(BaseModel):
     email:str = ''
@@ -95,9 +98,7 @@ class EmailAgent(BaseChatAgent, Component[EmailAgentConfig]):
 
     DEFAULT_DESCRIPTION = "An agent that can send emails."
     
-    DEFAULT_SYSTEM_MESSAGES = [
-        SystemMessage(
-            content="""
+    DEFAULT_SYSTEM_MESSAGES = """
         You are an AI email writer specializing in crafting and recommending well-structured emails. You have four main functions: **"send_email" ,"get_attach_data" ,"get_image_data" and "generate_image."**  
 
         1. When generating an image:  
@@ -130,11 +131,7 @@ class EmailAgent(BaseChatAgent, Component[EmailAgentConfig]):
         Once the task is completed, return 'TERMINATE' to indicate the completion.  
         """
         
-        ),
-    ]
-    DEFAULT_WRITER_SYSTEM_MESSAGES = [
-        SystemMessage(
-            content="""
+    DEFAULT_WRITER_SYSTEM_MESSAGES = """
         You are an AI email writer, expertly trained to craft and recommend well-structured, engaging, and effective emails for any scenario.  
 
         ## Your Secret Mission:  
@@ -175,8 +172,7 @@ class EmailAgent(BaseChatAgent, Component[EmailAgentConfig]):
             do not add any picture info in the html content
             
         """
-        ),
-    ]
+
     def __init__(
         self, 
         name: str, 
@@ -186,26 +182,27 @@ class EmailAgent(BaseChatAgent, Component[EmailAgentConfig]):
         img_api_key:str = '',
         description: str = DEFAULT_DESCRIPTION,
         human_input = False,
-        system_message: List[SystemMessage] = DEFAULT_SYSTEM_MESSAGES
+        system_message: str = DEFAULT_SYSTEM_MESSAGES,
+        writer_system_message: str = DEFAULT_WRITER_SYSTEM_MESSAGES
         ) -> None:
         super().__init__(name, description)
         self._email_config = email_config
         self._model_client = model_client
         self._img_base_url = img_base_url
         self._img_api_key = img_api_key
+        self.writer_system_message = writer_system_message
         self._chat_history: List[LLMMessage] = []
         self._images = {}
         self._gen_images = {}
         self._attachments = {}
         self.human_input = human_input
         if system_message:
-            self._chat_history = system_message + self._chat_history
+            self._chat_history = [SystemMessage(content=system_message)] + self._chat_history
         
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         return (TextMessage,)
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
-        print(messages)
         for chat_message in messages:
             self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
 
@@ -215,14 +212,13 @@ class EmailAgent(BaseChatAgent, Component[EmailAgentConfig]):
             return Response(chat_message=TextMessage(content=content, source=self.name))
 
         except BaseException:
-            content = f"File surfing error:\n\n{traceback.format_exc()}"
+            content = f"Email agent error:\n\n{traceback.format_exc()}"
             self._chat_history.append(AssistantMessage(content=content, source=self.name))
             return Response(chat_message=TextMessage(content=content, source=self.name))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._chat_history.clear()
     async def _generate_reply(self, cancellation_token: CancellationToken) -> Tuple[bool, str]:
-
         messages=self._get_compatible_context(self._chat_history)
         if 'PASS_TO_USER' in messages[-1].content:
             if self.human_input:
@@ -243,7 +239,6 @@ class EmailAgent(BaseChatAgent, Component[EmailAgentConfig]):
             ],
             cancellation_token=cancellation_token,
         )
-        print(create_result)
         response = create_result.content
         if isinstance(response, str):
             # Answer directly.
@@ -302,7 +297,7 @@ class EmailAgent(BaseChatAgent, Component[EmailAgentConfig]):
 
     async def write_content(self):
         messages = self._chat_history[1:]
-        system_message = self.DEFAULT_WRITER_SYSTEM_MESSAGES
+        system_message = [SystemMessage(content=self.writer_system_message)]
         messages = system_message + messages
         create_result = await self._model_client.create(
             messages=messages,
