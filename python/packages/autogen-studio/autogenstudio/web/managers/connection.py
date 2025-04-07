@@ -97,11 +97,11 @@ class WebSocketManager:
             try:
                 # Update run with task and status
                 run = await self._get_run(run_id)
-                
+
                 if run is not None and run.user_id:
                     # get user Settings
                     user_settings = await self._get_settings(run.user_id)
-                    env_vars = SettingsConfig(**user_settings.config).environment if user_settings else None # type: ignore
+                    env_vars = SettingsConfig(**user_settings.config).environment if user_settings else None  # type: ignore
                     run.task = MessageConfig(content=task, source="user").model_dump()
                     run.status = RunStatus.ACTIVE
                     self.db_manager.upsert(run)

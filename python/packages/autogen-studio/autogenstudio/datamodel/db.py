@@ -5,11 +5,11 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
 from autogen_core import ComponentModel
-from pydantic import ConfigDict, SecretStr, field_validator 
+from pydantic import ConfigDict, SecretStr, field_validator
 from sqlalchemy import ForeignKey, Integer
 from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func
- 
 
+from .eval import EvalJudgeCriteria, EvalRunResult, EvalRunStatus, EvalScore, EvalTask
 from .types import (
     GalleryComponents,
     GalleryConfig,
@@ -20,57 +20,40 @@ from .types import (
     TeamResult,
 )
 
-from .eval import (
-    EvalTask, 
-    EvalJudgeCriteria, 
-    EvalRunResult, 
-    EvalScore, 
-    EvalRunStatus
-)
-from autogen_core import ComponentModel
 
 class BaseDBModel(SQLModel, table=False):
     """
     Base model with common fields for all database tables.
     Not a table itself - meant to be inherited by concrete model classes.
     """
+
     __abstract__ = True
-    
+
     # Common fields present in all database tables
-    id: Optional[int] = Field(
-        default=None, 
-        primary_key=True
-    )
-    
+    id: Optional[int] = Field(default=None, primary_key=True)
+
     created_at: datetime = Field(
         default_factory=datetime.now,
-        sa_type=DateTime(timezone=True), # type: ignore[assignment]
-        sa_column_kwargs={
-            "server_default": func.now(),
-            "nullable": True
-        }
+        sa_type=DateTime(timezone=True),  # type: ignore[assignment]
+        sa_column_kwargs={"server_default": func.now(), "nullable": True},
     )
-    
+
     updated_at: datetime = Field(
         default_factory=datetime.now,
-        sa_type=DateTime(timezone=True), # type: ignore[assignment]
-        sa_column_kwargs={
-            "onupdate": func.now(),
-            "nullable": True
-        }
+        sa_type=DateTime(timezone=True),  # type: ignore[assignment]
+        sa_column_kwargs={"onupdate": func.now(), "nullable": True},
     )
-    
+
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-     
 
 
 class Team(BaseDBModel, table=True):
-    __table_args__ = {"sqlite_autoincrement": True} 
+    __table_args__ = {"sqlite_autoincrement": True}
     component: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
 
 
-class Message(BaseDBModel, table=True): 
+class Message(BaseDBModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
 
     config: Union[MessageConfig, dict] = Field(
@@ -110,7 +93,6 @@ class Run(BaseDBModel, table=True):
 
     __table_args__ = {"sqlite_autoincrement": True}
 
-     
     session_id: Optional[int] = Field(
         default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"), nullable=False)
     )
@@ -134,7 +116,7 @@ class Run(BaseDBModel, table=True):
 
 class Gallery(BaseDBModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
-    
+
     config: Union[GalleryConfig, dict] = Field(
         default_factory=lambda: GalleryConfig(
             id="",
@@ -155,64 +137,62 @@ class Gallery(BaseDBModel, table=True):
 
 class Settings(BaseDBModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
-     
+
     config: Union[SettingsConfig, dict] = Field(default_factory=SettingsConfig, sa_column=Column(JSON))
+
 
 # --- Evaluation system database models ---
 
+
 class EvalTaskDB(BaseDBModel, table=True):
     """Database model for storing evaluation tasks."""
+
     __table_args__ = {"sqlite_autoincrement": True}
-    
+
     name: str = "Unnamed Task"
     description: str = ""
-    config: Union[EvalTask, dict] = Field(sa_column=Column(JSON)) 
+    config: Union[EvalTask, dict] = Field(sa_column=Column(JSON))
 
 
 class EvalCriteriaDB(BaseDBModel, table=True):
     """Database model for storing evaluation criteria."""
+
     __table_args__ = {"sqlite_autoincrement": True}
-    
+
     name: str = "Unnamed Criteria"
     description: str = ""
-    config: Union[EvalJudgeCriteria, dict] = Field(sa_column=Column(JSON)) 
+    config: Union[EvalJudgeCriteria, dict] = Field(sa_column=Column(JSON))
 
 
 class EvalRunDB(BaseDBModel, table=True):
     """Database model for tracking evaluation runs."""
+
     __table_args__ = {"sqlite_autoincrement": True}
-    
+
     name: str = "Unnamed Evaluation Run"
     description: str = ""
-    
+
     # References to related components
     task_id: Optional[int] = Field(
-        default=None, 
-        sa_column=Column(Integer, ForeignKey("evaltaskdb.id", ondelete="SET NULL"))
+        default=None, sa_column=Column(Integer, ForeignKey("evaltaskdb.id", ondelete="SET NULL"))
     )
-    
+
     # Serialized configurations for runner and judge
     runner_config: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
     judge_config: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
-    
+
     # List of criteria IDs or embedded criteria configs
-    criteria_configs: List[Union[EvalJudgeCriteria, dict]] = Field(
-        default_factory=list, sa_column=Column(JSON)
-    )
-    
+    criteria_configs: List[Union[EvalJudgeCriteria, dict]] = Field(default_factory=list, sa_column=Column(JSON))
+
     # Run status and timing information
     status: EvalRunStatus = Field(default=EvalRunStatus.PENDING)
     start_time: Optional[datetime] = Field(default=None)
     end_time: Optional[datetime] = Field(default=None)
-    
+
     # Results (updated as they become available)
-    run_result: Union[EvalRunResult, dict] = Field(
-        default=None, sa_column=Column(JSON)
-    )
-    
-    score_result: Union[EvalScore, dict] = Field(
-        default=None, sa_column=Column(JSON)
-    )
-    
+    run_result: Union[EvalRunResult, dict] = Field(default=None, sa_column=Column(JSON))
+
+    score_result: Union[EvalScore, dict] = Field(default=None, sa_column=Column(JSON))
+
     # Additional metadata
-    error_message: Optional[str] = None 
+    error_message: Optional[str] = None

@@ -103,7 +103,8 @@ class TestDatabaseOperations:
 
         # Verify deletion
         result = test_db.get(Team, {"id": team_id})
-        assert result.data and len(result.data) == 0
+        if result.data:
+            assert len(result.data) == 0 
         
     def test_cascade_delete(self, test_db: DatabaseManager, test_user: str):
         """Test all levels of cascade delete"""
@@ -134,7 +135,8 @@ class TestDatabaseOperations:
         
         test_db.delete(Run, {"id": run1_id})
         db_message = test_db.get(Message, {"run_id": run1_id})
-        assert db_message.data and len(db_message.data) == 0, "Run->Message cascade failed"
+        if db_message.data:
+            assert len(db_message.data) == 0, "Run->Message cascade failed"
 
         # Test Session -> Run -> Message cascade
         session2 = SessionModel(user_id=test_user, team_id=team1.id, name="Session2")
@@ -157,8 +159,10 @@ class TestDatabaseOperations:
         test_db.delete(SessionModel, {"id": session2.id})
         session = test_db.get(SessionModel, {"id": session2.id})
         run = test_db.get(Run, {"id": run2_id})
-        assert session.data and len(session.data) == 0, "Session->Run cascade failed"
-        assert run.data and len(run.data) == 0, "Session->Run->Message cascade failed"
+        if session.data:
+            assert len(session.data) == 0, "Session->Run cascade failed"
+        if run.data:
+            assert len(run.data) == 0, "Session->Run->Message cascade failed"
 
         # Clean up
         test_db.delete(Team, {"id": team1.id})

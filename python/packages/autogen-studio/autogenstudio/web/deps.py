@@ -109,8 +109,9 @@ async def register_auth_dependencies(app: FastAPI, auth_manager: AuthManager) ->
 
     for route in app.routes:
         # print(" *** Route: ", route.path)
-        if hasattr(route, "app") and isinstance(route.app, FastAPI): # type: ignore
-            route.app.state.auth_manager = auth_manager # type: ignore
+        if hasattr(route, "app") and isinstance(route.app, FastAPI):  # type: ignore
+            route.app.state.auth_manager = auth_manager  # type: ignore
+
 
 # Manager initialization and cleanup
 

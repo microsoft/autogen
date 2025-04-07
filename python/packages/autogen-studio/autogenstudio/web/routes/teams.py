@@ -13,11 +13,8 @@ router = APIRouter()
 @router.get("/")
 async def list_teams(user_id: str, db=Depends(get_db)) -> Dict:
     """List all teams for a user"""
-    try:
-        response = db.get(Team, filters={"user_id": user_id})
-    except Exception as e:
-        print("**** error wuth db", e)
-     
+    response = db.get(Team, filters={"user_id": user_id})
+
     if not response.data or len(response.data) == 0:
         default_gallery = create_default_gallery()
         default_team = Team(user_id=user_id, component=default_gallery.components.teams[0].model_dump())

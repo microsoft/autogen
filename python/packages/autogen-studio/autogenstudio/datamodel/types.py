@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Sequence
 
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import TextMessage, ChatMessage
+from autogen_agentchat.messages import ChatMessage, TextMessage
 from autogen_core import ComponentModel
 from autogen_core.models import UserMessage
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -23,7 +23,7 @@ class TeamResult(BaseModel):
 
 
 class LLMCallEventMessage(TextMessage):
-    source: str = "llm_call_event" 
+    source: str = "llm_call_event"
 
     def to_text(self) -> str:
         return self.content

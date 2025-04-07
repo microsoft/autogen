@@ -8,7 +8,7 @@ from loguru import logger
 from sqlalchemy import exc, inspect, text
 from sqlmodel import Session, SQLModel, and_, create_engine, select
 
-from ..datamodel import Response, Team, BaseDBModel
+from ..datamodel import BaseDBModel, Response, Team
 from ..teammanager import TeamManager
 from .schema_manager import SchemaManager
 
@@ -211,7 +211,7 @@ class DatabaseManager:
             status_message = ""
 
             try:
-                statement = select(model_class) # type: ignore
+                statement = select(model_class)  # type: ignore
                 if filters:
                     conditions = [getattr(model_class, col) == value for col, value in filters.items()]
                     statement = statement.where(and_(*conditions))
@@ -239,8 +239,8 @@ class DatabaseManager:
         with Session(self.engine) as session:
             try:
                 if "sqlite" in str(self.engine.url):
-                    session.exec(text("PRAGMA foreign_keys=ON")) # type: ignore
-                statement = select(model_class) # type: ignore
+                    session.exec(text("PRAGMA foreign_keys=ON"))  # type: ignore
+                statement = select(model_class)  # type: ignore
                 if filters:
                     conditions = [getattr(model_class, col) == value for col, value in filters.items()]
                     statement = statement.where(and_(*conditions))
