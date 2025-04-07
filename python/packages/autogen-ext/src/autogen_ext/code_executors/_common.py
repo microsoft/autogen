@@ -166,7 +166,7 @@ def lang_to_cmd(lang: str) -> str:
         elif shutil.which("powershell") is not None:
             return "powershell"
         else:
-            raise ValueError("Powershell or pwsh is not installed. Please install one of them.")
+            raise ValueError(f"Powershell or pwsh is not installed. Please install one of them.")
     else:
         raise ValueError(f"Unsupported language: {lang}")
 
