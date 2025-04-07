@@ -28,6 +28,9 @@ from autogen_core.models import (
 from autogen_core.tools import FunctionTool, Tool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
+from autogen_core.model_context import BufferedChatCompletionContext
+from autogen_core.models import AssistantMessage, ChatCompletionClient, SystemMessage, UserMessage
+
 
 @dataclass
 class Message:
@@ -41,11 +44,15 @@ class WeatherAgent(RoutedAgent):
         self._system_messages: List[LLMMessage] = [SystemMessage(content="You are a helpful AI assistant.")]
         self._model_client = model_client
         self._tools = tool_schema
+        self._model_context = BufferedChatCompletionContext(buffer_size=5)
 
     @message_handler
     async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
         # Create a session of messages.
         session: List[LLMMessage] = self._system_messages + [UserMessage(content=message.content, source="user")]
+
+        # Add message to model context.
+        await self._model_context.add_message(UserMessage(content=message.content, source="user"))
 
         # Run the chat completion with the tools.
         create_result = await self._model_client.create(
@@ -153,8 +160,8 @@ async def chat(message: cl.Message) -> None:
     # Construct the response message.
     response = cl.Message(content="")
     async for msg in agent.on_message(
-        messages=[Message(content=message.content, source="user")],
-        cancellation_token=CancellationToken(),
+        message=[Message(content=message.content, source="user")],
+        ctx=prompt_history,
     ):
         if isinstance(msg, ModelClientStreamingChunkEvent):
             # Stream the model client response to the user.
