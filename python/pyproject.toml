@@ -16,7 +16,6 @@ dev = [
     "grpcio-tools~=1.70.0",
     "mypy-protobuf",
     "cookiecutter",
-    "poethepoet",
     "tomli",
     "tomli-w",
     "chainlit",

@@ -13,7 +13,7 @@ internal static class KVStringParseHelper
     /// <summary>
     /// The regular expression pattern used to match key-value pairs in the format "key/value".
     /// </summary>
-    private const string KVPairPattern = @"^(?<key>\w+)/(?<value>\w+)$";
+    private const string KVPairPattern = @"^(?<key>\w+)/(?<value>[\w-]+)$";
 
     /// <summary>
     /// The compiled regex used for extracting key-value pairs from a string.

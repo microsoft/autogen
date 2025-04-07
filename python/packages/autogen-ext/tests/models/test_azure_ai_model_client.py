@@ -1,7 +1,9 @@
 import asyncio
+import logging
 import os
 from datetime import datetime
-from typing import Any, AsyncGenerator, List
+from typing import Any, AsyncGenerator, List, Type, Union
+from unittest.mock import MagicMock
 
 import pytest
 from autogen_core import CancellationToken, FunctionCall, Image
@@ -87,6 +89,7 @@ def azure_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient
                 "function_calling": False,
                 "vision": False,
                 "family": "unknown",
+                "structured_output": False,
             },
             model="model",
         )
@@ -100,6 +103,7 @@ def azure_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient
             "function_calling": False,
             "vision": False,
             "family": "unknown",
+            "structured_output": False,
         },
         model="model",
     )
@@ -116,6 +120,7 @@ async def test_azure_ai_chat_completion_client_validation() -> None:
                 "function_calling": False,
                 "vision": False,
                 "family": "unknown",
+                "structured_output": False,
             },
         )
 
@@ -128,6 +133,7 @@ async def test_azure_ai_chat_completion_client_validation() -> None:
                 "function_calling": False,
                 "vision": False,
                 "family": "unknown",
+                "structured_output": False,
             },
         )
 
@@ -140,6 +146,7 @@ async def test_azure_ai_chat_completion_client_validation() -> None:
                 "function_calling": False,
                 "vision": False,
                 "family": "unknown",
+                "structured_output": False,
             },
         )
 
@@ -170,16 +177,31 @@ async def test_azure_ai_chat_completion_client(azure_client: AzureAIChatCompleti
 
 
 @pytest.mark.asyncio
-async def test_azure_ai_chat_completion_client_create(azure_client: AzureAIChatCompletionClient) -> None:
-    result = await azure_client.create(messages=[UserMessage(content="Hello", source="user")])
-    assert result.content == "Hello"
+async def test_azure_ai_chat_completion_client_create(
+    azure_client: AzureAIChatCompletionClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.INFO):
+        result = await azure_client.create(messages=[UserMessage(content="Hello", source="user")])
+        assert result.content == "Hello"
+        assert "LLMCall" in caplog.text and "Hello" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_azure_ai_chat_completion_client_create_stream(azure_client: AzureAIChatCompletionClient) -> None:
-    chunks: List[str | CreateResult] = []
-    async for chunk in azure_client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
-        chunks.append(chunk)
+async def test_azure_ai_chat_completion_client_create_stream(
+    azure_client: AzureAIChatCompletionClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.INFO):
+        chunks: List[str | CreateResult] = []
+        async for chunk in azure_client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
+            chunks.append(chunk)
+
+        assert "LLMStreamStart" in caplog.text
+        assert "LLMStreamEnd" in caplog.text
+
+        final_result: str | CreateResult = chunks[-1]
+        assert isinstance(final_result, CreateResult)
+        assert isinstance(final_result.content, str)
+        assert final_result.content in caplog.text
 
     assert chunks[0] == "Hello"
     assert chunks[1] == " Another Hello"
@@ -251,6 +273,7 @@ def function_calling_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompl
             "function_calling": True,
             "vision": False,
             "family": "function_calling_model",
+            "structured_output": False,
         },
         model="model",
     )
@@ -338,6 +361,7 @@ async def test_multimodal_supported(monkeypatch: pytest.MonkeyPatch) -> None:
             "function_calling": False,
             "vision": True,
             "family": "vision_model",
+            "structured_output": False,
         },
         model="model",
     )
@@ -420,6 +444,7 @@ async def test_r1_content(monkeypatch: pytest.MonkeyPatch) -> None:
             "function_calling": False,
             "vision": True,
             "family": ModelFamily.R1,
+            "structured_output": False,
         },
         model="model",
     )
@@ -434,3 +459,167 @@ async def test_r1_content(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(chunks[-1], CreateResult)
     assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
     assert chunks[-1].thought == "Thought"
+
+
+@pytest.fixture
+def thought_with_tool_call_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    """
+    Returns a client that simulates a response with both tool calls and thought content.
+    """
+
+    async def _mock_thought_with_tool_call(*args: Any, **kwargs: Any) -> ChatCompletions:
+        await asyncio.sleep(0.01)
+        return ChatCompletions(
+            id="id",
+            created=datetime.now(),
+            model="model",
+            choices=[
+                ChatChoice(
+                    index=0,
+                    finish_reason=CompletionsFinishReason.TOOL_CALLS,
+                    message=ChatResponseMessage(
+                        role="assistant",
+                        content="Let me think about what function to call.",
+                        tool_calls=[
+                            ChatCompletionsToolCall(
+                                id="tool_call_id",
+                                function=AzureFunctionCall(name="some_function", arguments='{"foo": "bar"}'),
+                            )
+                        ],
+                    ),
+                )
+            ],
+            usage=CompletionsUsage(prompt_tokens=8, completion_tokens=5, total_tokens=13),
+        )
+
+    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_thought_with_tool_call)
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": True,
+            "vision": False,
+            "family": "function_calling_model",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+
+@pytest.mark.asyncio
+async def test_thought_field_with_tool_calls(thought_with_tool_call_client: AzureAIChatCompletionClient) -> None:
+    """
+    Tests that when a model returns both tool calls and text content, the text content is
+    preserved in the thought field of the CreateResult.
+    """
+    result = await thought_with_tool_call_client.create(
+        messages=[UserMessage(content="Please call a function", source="user")],
+        tools=[{"name": "test_tool"}],
+    )
+
+    assert result.finish_reason == "function_calls"
+    assert isinstance(result.content, list)
+    assert isinstance(result.content[0], FunctionCall)
+    assert result.content[0].name == "some_function"
+    assert result.content[0].arguments == '{"foo": "bar"}'
+
+    assert result.thought == "Let me think about what function to call."
+
+
+@pytest.fixture
+def thought_with_tool_call_stream_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    """
+    Returns a client that simulates a streaming response with both tool calls and thought content.
+    """
+    first_choice = MagicMock()
+    first_choice.delta = MagicMock()
+    first_choice.delta.content = "Let me think about what function to call."
+    first_choice.finish_reason = None
+
+    mock_tool_call = MagicMock()
+    mock_tool_call.id = "tool_call_id"
+    mock_tool_call.function = MagicMock()
+    mock_tool_call.function.name = "some_function"
+    mock_tool_call.function.arguments = '{"foo": "bar"}'
+
+    tool_call_choice = MagicMock()
+    tool_call_choice.delta = MagicMock()
+    tool_call_choice.delta.content = None
+    tool_call_choice.delta.tool_calls = [mock_tool_call]
+    tool_call_choice.finish_reason = "function_calls"
+
+    async def _mock_thought_with_tool_call_stream(
+        *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        yield StreamingChatCompletionsUpdate(
+            id="id",
+            choices=[first_choice],
+            created=datetime.now(),
+            model="model",
+        )
+
+        await asyncio.sleep(0.01)
+
+        yield StreamingChatCompletionsUpdate(
+            id="id",
+            choices=[tool_call_choice],
+            created=datetime.now(),
+            model="model",
+            usage=CompletionsUsage(prompt_tokens=8, completion_tokens=5, total_tokens=13),
+        )
+
+    mock_client = MagicMock()
+    mock_client.close = MagicMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> Any:
+        if kwargs.get("stream", False):
+            return _mock_thought_with_tool_call_stream(*args, **kwargs)
+        return None
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": True,
+            "vision": False,
+            "family": "function_calling_model",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+
+@pytest.mark.asyncio
+async def test_thought_field_with_tool_calls_streaming(
+    thought_with_tool_call_stream_client: AzureAIChatCompletionClient,
+) -> None:
+    """
+    Tests that when a model returns both tool calls and text content in a streaming response,
+    the text content is preserved in the thought field of the final CreateResult.
+    """
+    chunks: List[Union[str, CreateResult]] = []
+    async for chunk in thought_with_tool_call_stream_client.create_stream(
+        messages=[UserMessage(content="Please call a function", source="user")],
+        tools=[{"name": "test_tool"}],
+    ):
+        chunks.append(chunk)
+
+    final_result = chunks[-1]
+    assert isinstance(final_result, CreateResult)
+
+    assert final_result.finish_reason == "function_calls"
+    assert isinstance(final_result.content, list)
+    assert isinstance(final_result.content[0], FunctionCall)
+    assert final_result.content[0].name == "some_function"
+    assert final_result.content[0].arguments == '{"foo": "bar"}'
+
+    assert final_result.thought == "Let me think about what function to call."

@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock
@@ -335,7 +336,9 @@ async def test_sk_chat_completion_with_tools(sk_client: AzureChatCompletion) -> 
 
 
 @pytest.mark.asyncio
-async def test_sk_chat_completion_without_tools(sk_client: AzureChatCompletion) -> None:
+async def test_sk_chat_completion_without_tools(
+    sk_client: AzureChatCompletion, caplog: pytest.LogCaptureFixture
+) -> None:
     # Create adapter and kernel
     adapter = SKChatCompletionAdapter(sk_client)
     kernel = Kernel(memory=NullMemory())
@@ -346,15 +349,19 @@ async def test_sk_chat_completion_without_tools(sk_client: AzureChatCompletion) 
         UserMessage(content="Say hello!", source="user"),
     ]
 
-    # Call create without tools
-    result = await adapter.create(messages=messages, extra_create_args={"kernel": kernel})
+    with caplog.at_level(logging.INFO):
+        # Call create without tools
+        result = await adapter.create(messages=messages, extra_create_args={"kernel": kernel})
 
-    # Verify response
-    assert isinstance(result.content, str)
-    assert result.finish_reason == "stop"
-    assert result.usage.prompt_tokens >= 0
-    assert result.usage.completion_tokens >= 0
-    assert not result.cached
+        # Verify response
+        assert isinstance(result.content, str)
+        assert result.finish_reason == "stop"
+        assert result.usage.prompt_tokens >= 0
+        assert result.usage.completion_tokens >= 0
+        assert not result.cached
+
+        # Check log output
+        assert "LLMCall" in caplog.text and result.content in caplog.text
 
 
 @pytest.mark.asyncio
@@ -389,7 +396,9 @@ async def test_sk_chat_completion_stream_with_tools(sk_client: AzureChatCompleti
 
 
 @pytest.mark.asyncio
-async def test_sk_chat_completion_stream_without_tools(sk_client: AzureChatCompletion) -> None:
+async def test_sk_chat_completion_stream_without_tools(
+    sk_client: AzureChatCompletion, caplog: pytest.LogCaptureFixture
+) -> None:
     # Create adapter and kernel
     adapter = SKChatCompletionAdapter(sk_client)
     kernel = Kernel(memory=NullMemory())
@@ -402,23 +411,28 @@ async def test_sk_chat_completion_stream_without_tools(sk_client: AzureChatCompl
 
     # Call create_stream without tools
     response_chunks: list[CreateResult | str] = []
-    async for chunk in adapter.create_stream(messages=messages, extra_create_args={"kernel": kernel}):
-        response_chunks.append(chunk)
+    with caplog.at_level(logging.INFO):
+        async for chunk in adapter.create_stream(messages=messages, extra_create_args={"kernel": kernel}):
+            response_chunks.append(chunk)
 
-    # Verify response
-    assert len(response_chunks) > 0
-    # All chunks except last should be strings
-    for chunk in response_chunks[:-1]:
-        assert isinstance(chunk, str)
+        assert "LLMStreamStart" in caplog.text
+        assert "LLMStreamEnd" in caplog.text
 
-    # Final chunk should be CreateResult
-    final_chunk = response_chunks[-1]
-    assert isinstance(final_chunk, CreateResult)
-    assert isinstance(final_chunk.content, str)
-    assert final_chunk.finish_reason == "stop"
-    assert final_chunk.usage.prompt_tokens >= 0
-    assert final_chunk.usage.completion_tokens >= 0
-    assert not final_chunk.cached
+        # Verify response
+        assert len(response_chunks) > 0
+        # All chunks except last should be strings
+        for chunk in response_chunks[:-1]:
+            assert isinstance(chunk, str)
+
+        # Final chunk should be CreateResult
+        final_chunk = response_chunks[-1]
+        assert isinstance(final_chunk, CreateResult)
+        assert isinstance(final_chunk.content, str)
+        assert final_chunk.finish_reason == "stop"
+        assert final_chunk.usage.prompt_tokens >= 0
+        assert final_chunk.usage.completion_tokens >= 0
+        assert not final_chunk.cached
+        assert final_chunk.content in caplog.text
 
 
 @pytest.mark.asyncio
@@ -439,7 +453,9 @@ async def test_sk_chat_completion_default_model_info(sk_client: AzureChatComplet
 @pytest.mark.asyncio
 async def test_sk_chat_completion_custom_model_info(sk_client: AzureChatCompletion) -> None:
     # Create custom model info
-    custom_model_info = ModelInfo(vision=True, function_calling=True, json_output=True, family=ModelFamily.GPT_4)
+    custom_model_info = ModelInfo(
+        vision=True, function_calling=True, json_output=True, family=ModelFamily.GPT_4, structured_output=False
+    )
 
     # Create adapter with custom model_info
     adapter = SKChatCompletionAdapter(sk_client, model_info=custom_model_info)
@@ -508,7 +524,9 @@ async def test_sk_chat_completion_r1_content() -> None:
     adapter = SKChatCompletionAdapter(
         mock_client,
         kernel=kernel,
-        model_info=ModelInfo(vision=False, function_calling=False, json_output=False, family=ModelFamily.R1),
+        model_info=ModelInfo(
+            vision=False, function_calling=False, json_output=False, family=ModelFamily.R1, structured_output=False
+        ),
     )
 
     result = await adapter.create(messages=[UserMessage(content="Say hello!", source="user")])

@@ -93,6 +93,49 @@ export interface FromModuleImport {
 // Import can be either a string (direct import) or a FromModuleImport
 export type Import = string | FromModuleImport;
 
+// Code Executor Base Config
+export interface CodeExecutorBaseConfig {
+  timeout?: number;
+  work_dir?: string;
+}
+
+// Local Command Line Code Executor Config
+export interface LocalCommandLineCodeExecutorConfig
+  extends CodeExecutorBaseConfig {
+  functions_module?: string;
+}
+
+// Docker Command Line Code Executor Config
+export interface DockerCommandLineCodeExecutorConfig
+  extends CodeExecutorBaseConfig {
+  image?: string;
+  container_name?: string;
+  bind_dir?: string;
+  auto_remove?: boolean;
+  stop_container?: boolean;
+  functions_module?: string;
+  extra_volumes?: Record<string, Record<string, string>>;
+  extra_hosts?: Record<string, string>;
+  init_command?: string;
+}
+
+// Jupyter Code Executor Config
+export interface JupyterCodeExecutorConfig extends CodeExecutorBaseConfig {
+  kernel_name?: string;
+  output_dir?: string;
+}
+
+// Python Code Execution Tool Config
+export interface PythonCodeExecutionToolConfig {
+  executor: Component<
+    | LocalCommandLineCodeExecutorConfig
+    | DockerCommandLineCodeExecutorConfig
+    | JupyterCodeExecutorConfig
+  >;
+  description?: string;
+  name?: string;
+}
+
 // The complete FunctionToolConfig interface
 export interface FunctionToolConfig {
   source_code: string;
@@ -227,6 +270,10 @@ export interface OrTerminationConfig {
   conditions: Component<TerminationConfig>[];
 }
 
+export interface AndTerminationConfig {
+  conditions: Component<TerminationConfig>[];
+}
+
 export interface MaxMessageTerminationConfig {
   max_messages: number;
 }
@@ -248,12 +295,13 @@ export type ModelConfig =
   | AzureOpenAIClientConfig
   | AnthropicClientConfig;
 
-export type ToolConfig = FunctionToolConfig;
+export type ToolConfig = FunctionToolConfig | PythonCodeExecutionToolConfig;
 
 export type ChatCompletionContextConfig = UnboundedChatCompletionContextConfig;
 
 export type TerminationConfig =
   | OrTerminationConfig
+  | AndTerminationConfig
   | MaxMessageTerminationConfig
   | TextMentionTerminationConfig;
 

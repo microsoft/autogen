@@ -376,12 +376,35 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             )
 
     async def save_state(self) -> Mapping[str, Any]:
+        """Save the state of all instantiated agents.
+
+        This method calls the :meth:`~autogen_core.BaseAgent.save_state` method on each agent and returns a dictionary
+        mapping agent IDs to their state.
+
+        .. note::
+            This method does not currently save the subscription state. We will add this in the future.
+
+        Returns:
+            A dictionary mapping agent IDs to their state.
+
+        """
         state: Dict[str, Dict[str, Any]] = {}
         for agent_id in self._instantiated_agents:
             state[str(agent_id)] = dict(await (await self._get_agent(agent_id)).save_state())
         return state
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
+        """Load the state of all instantiated agents.
+
+        This method calls the :meth:`~autogen_core.BaseAgent.load_state` method on each agent with the state
+        provided in the dictionary. The keys of the dictionary are the agent IDs, and the values are the state
+        dictionaries returned by the :meth:`~autogen_core.BaseAgent.save_state` method.
+
+        .. note::
+
+            This method does not currently load the subscription state. We will add this in the future.
+
+        """
         for agent_id_str in state:
             agent_id = AgentId.from_str(agent_id_str)
             if agent_id.type in self._known_agent_names:
@@ -417,11 +440,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     cancellation_token=message_envelope.cancellation_token,
                     message_id=message_envelope.message_id,
                 )
-                with MessageHandlerContext.populate_context(recipient_agent.id):
-                    response = await recipient_agent.on_message(
-                        message_envelope.message,
-                        ctx=message_context,
-                    )
+                with self._tracer_helper.trace_block("process", recipient_agent.id, parent=message_envelope.metadata):
+                    with MessageHandlerContext.populate_context(recipient_agent.id):
+                        response = await recipient_agent.on_message(
+                            message_envelope.message,
+                            ctx=message_context,
+                        )
             except CancelledError as e:
                 if not message_envelope.future.cancelled():
                     message_envelope.future.set_exception(e)
@@ -503,7 +527,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     agent = await self._get_agent(agent_id)
 
                     async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
-                        with self._tracer_helper.trace_block("process", agent.id, parent=None):
+                        with self._tracer_helper.trace_block("process", agent.id, parent=message_envelope.metadata):
                             with MessageHandlerContext.populate_context(agent.id):
                                 try:
                                     return await agent.on_message(

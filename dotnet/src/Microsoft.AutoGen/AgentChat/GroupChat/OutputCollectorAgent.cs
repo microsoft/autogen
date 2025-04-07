@@ -26,7 +26,7 @@ internal sealed class OutputSink : IOutputCollectionSink
     }
 
     private readonly object sync = new();
-    private SemaphoreSlim semapohre = new SemaphoreSlim(1, 1);
+    private SemaphoreSlim semapohre = new SemaphoreSlim(0, 1);
 
     private SinkFrame? receivingSinkFrame;
 
@@ -43,7 +43,12 @@ internal sealed class OutputSink : IOutputCollectionSink
             frameAction(this.receivingSinkFrame);
         }
 
-        semapohre.Release();
+        // TODO: Replace the Semaphore with a TaskSource approach
+        try
+        {
+            semapohre.Release();
+        }
+        catch (SemaphoreFullException) { }
     }
 
     public void CollectMessage(AgentMessage message)

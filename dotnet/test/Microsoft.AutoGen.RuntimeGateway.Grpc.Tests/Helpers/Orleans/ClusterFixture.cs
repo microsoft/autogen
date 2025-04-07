@@ -13,7 +13,6 @@ public sealed class ClusterFixture : IDisposable
         builder.AddSiloBuilderConfigurator<SiloBuilderConfigurator>();
         Cluster = builder.Build();
         Cluster.Deploy();
-
     }
     public TestCluster Cluster { get; }
 

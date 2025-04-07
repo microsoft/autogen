@@ -1,9 +1,7 @@
-import os
 import asyncio 
 import pytest
 from sqlmodel import Session, text, select
 from typing import Generator
-from pathlib import Path
 
 from autogenstudio.database import DatabaseManager
 from autogen_agentchat.agents import AssistantAgent

@@ -1,17 +1,22 @@
 import json
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeVar, cast, runtime_checkable
+from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypeVar, cast, runtime_checkable
 
 import jsonref
+from opentelemetry.trace import get_tracer
 from pydantic import BaseModel
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, TypedDict
 
-from .. import CancellationToken
+from .. import EVENT_LOGGER_NAME, CancellationToken
 from .._component_config import ComponentBase
 from .._function_utils import normalize_annotated_type
+from ..logging import ToolCallEvent
 
 T = TypeVar("T", bound=BaseModel, contravariant=True)
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class ParametersSchema(TypedDict):
@@ -143,7 +148,25 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
     async def run(self, args: ArgsT, cancellation_token: CancellationToken) -> ReturnT: ...
 
     async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any:
-        return_value = await self.run(self._args_type.model_validate(args), cancellation_token)
+        with get_tracer("base_tool").start_as_current_span(
+            self._name,
+            attributes={
+                "tool_name": self._name,
+                "tool_description": self._description,
+                "tool_args": json.dumps(args),
+            },
+        ):
+            # Execute the tool's run method
+            return_value = await self.run(self._args_type.model_validate(args), cancellation_token)
+
+        # Log the tool call event
+        event = ToolCallEvent(
+            tool_name=self.name,
+            arguments=dict(args),  # Using the raw args passed to run_json
+            result=self.return_value_as_string(return_value),
+        )
+        logger.info(event)
+
         return return_value
 
     def save_state_json(self) -> Mapping[str, Any]:

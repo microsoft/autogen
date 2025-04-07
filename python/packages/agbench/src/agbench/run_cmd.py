@@ -7,12 +7,13 @@ import pathlib
 import random
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
 import traceback
 from multiprocessing import Pool
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 import docker
 import yaml
@@ -284,14 +285,8 @@ def get_scenario_env(token_provider: Optional[Callable[[], str]] = None, env_fil
 
     ## Support Azure auth tokens
     azure_openai_ad_token = os.environ.get("AZURE_OPENAI_AD_TOKEN")
-    if not azure_openai_ad_token and token_provider:
+    if azure_openai_ad_token is None and token_provider is not None:
         azure_openai_ad_token = token_provider()
-    if not azure_openai_ad_token:
-        azure_token_provider = get_azure_token_provider()
-        if azure_token_provider:
-            azure_openai_ad_token = azure_token_provider()
-        else:
-            logging.warning("No Azure AD token provider found. Azure AD token not set.")
     if azure_openai_ad_token is not None and len(azure_openai_ad_token.strip()) > 0:
         env["AZURE_OPENAI_AD_TOKEN"] = azure_openai_ad_token
 
@@ -381,7 +376,7 @@ def substitute_env_variables(json_data: Any) -> None:
         replace_in_list(cast(List[Any], json_data))  # type: ignore
 
 
-def run_scenario_natively(work_dir: str, env: Mapping[str, str], timeout: int = TASK_TIMEOUT) -> None:
+def run_scenario_natively(work_dir: str, env: Dict[str, str], timeout: int = TASK_TIMEOUT) -> None:
     """
     Run a scenario in the native environment.
 
@@ -426,13 +421,17 @@ fi
 # Run the scenario
 pip install -r requirements.txt
 echo SCENARIO.PY STARTING !#!#
+start_time=$(date +%s)
 timeout --preserve-status --kill-after {timeout  + 30}s {timeout}s python scenario.py
+end_time=$(date +%s)
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
     echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
 else
     echo SCENARIO.PY COMPLETE !#!#
 fi
+elapsed_time=$((end_time - start_time))
+echo "SCENARIO.PY RUNTIME: $elapsed_time !#!#"
 
 # Clean up
 if [ -d .cache ] ; then
@@ -481,7 +480,7 @@ echo RUN.SH COMPLETE !#!#
 
 
 def run_scenario_in_docker(
-    work_dir: str, env: Mapping[str, str], timeout: int = TASK_TIMEOUT, docker_image: Optional[str] = None
+    work_dir: str, env: Dict[str, str], timeout: int = TASK_TIMEOUT, docker_image: Optional[str] = None
 ) -> None:
     """
     Run a scenario in a Docker environment.
@@ -543,13 +542,17 @@ fi
 # Run the scenario
 pip install -r requirements.txt
 echo SCENARIO.PY STARTING !#!#
+start_time=$(date +%s)
 timeout --preserve-status --kill-after {timeout  + 30}s {timeout}s python scenario.py
+end_time=$(date +%s)
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
     echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
 else
     echo SCENARIO.PY COMPLETE !#!#
 fi
+elapsed_time=$((end_time - start_time))
+echo "SCENARIO.PY RUNTIME: $elapsed_time !#!#"
 
 # Clean up
 if [ -d .cache ] ; then
@@ -592,8 +595,26 @@ echo RUN.SH COMPLETE !#!#
     autogen_repo_base = os.path.join(autogen_repo_base, "python")
     volumes[str(pathlib.Path(autogen_repo_base).absolute())] = {"bind": "/autogen_python", "mode": "rw"}
 
+    # Add the Docker socket if we are running on Linux
+    # This allows docker-out-of-docker to work, but provides access to the Docker daemon on the host.
+    # This maintains good isolation for experiment purposes (e.g., ensuring consistent initial conditions),
+    # but deminishes the security benefits of using Docker (e.g., when facing a deliberately malicious agent).
+    # since it would allow clients to mount privalaged images, volumes, etc.
+    docker_host = os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock")
+    if docker_host.startswith("unix://"):
+        docker_socket = os.path.abspath(docker_host[7:])
+        if os.path.exists(docker_socket):
+            st_mode = os.stat(docker_socket).st_mode
+            if stat.S_ISSOCK(st_mode):
+                volumes[docker_socket] = {"bind": "/var/run/docker.sock", "mode": "rw"}
+
+                # Update the environment variables so that the inner docker client can
+                # mount the workspace
+                env = {k: v for k, v in env.items()}
+                env["HOST_WORKSPACE"] = str(pathlib.Path(work_dir).absolute())
+
     print("Mounting:")
-    for k in volumes:
+    for k in volumes.keys():
         bind = volumes[k]["bind"]
         mode = volumes[k]["mode"].upper()
         if bind == "/workspace":
@@ -607,12 +628,13 @@ echo RUN.SH COMPLETE !#!#
         image,
         command=["sh", "run.sh"],
         working_dir="/workspace",
-        environment=dict(env),
+        environment=env,
         detach=True,
         remove=True,
         auto_remove=True,
         # Type hint of docker is wrong here
         volumes=volumes,  # type: ignore
+        network="host",  # Use the host network to avoid issues with localhost.
     )
 
     # Read the logs in a streaming fashion. Keep an eye on the time to make sure we don't need to stop.
@@ -880,6 +902,12 @@ def run_cli(args: Sequence[str]) -> None:
         default=1,
     )
     parser.add_argument(
+        "-a",
+        "--azure",
+        action="store_true",
+        help="Use Azure identity to pass an AZURE_OPENAI_AD_TOKEN to the task environment. This is necessary when using Azure-hosted OpenAI models rather than those hosted by OpenAI.",
+    )
+    parser.add_argument(
         "-e",
         "--env",
         type=str,
@@ -930,9 +958,6 @@ def run_cli(args: Sequence[str]) -> None:
         if IS_WIN32:
             sys.exit("Running scenarios with --native is not supported in Windows. Exiting.")
 
-        if parsed_args.requirements is not None:
-            sys.exit("--requirements is not compatible with --native. Exiting.")
-
         sys.stderr.write(
             "WARNING: Running natively, without Docker, not only poses the usual risks of executing arbitrary AI generated code on your machine, it also makes it impossible to ensure that each test starts from a known and consistent set of initial conditions. For example, if the agents spend time debugging and installing Python libraries to solve the task, then those libraries will be available to all other runs. In other words, earlier runs can influence later runs, leading to many confounds in testing.\n\n"
         )
@@ -966,7 +991,9 @@ def run_cli(args: Sequence[str]) -> None:
                 )
 
     # Get the Azure bearer token generator if a token wasn't provided and there's any evidence of using Azure
-    azure_token_provider = get_azure_token_provider()
+    azure_token_provider = None
+    if parsed_args.azure:
+        azure_token_provider = get_azure_token_provider()
 
     # Run the scenario
     if parsed_args.parallel > 1:

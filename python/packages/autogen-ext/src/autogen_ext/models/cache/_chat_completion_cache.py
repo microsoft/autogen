@@ -102,7 +102,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
-        json_output: Optional[bool],
+        json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
     ) -> tuple[Optional[Union[CreateResult, List[Union[str, CreateResult]]]], str]:
         """
@@ -110,10 +110,17 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         Returns a tuple of (cached_result, cache_key).
         """
 
+        json_output_data: str | bool | None = None
+
+        if isinstance(json_output, type) and issubclass(json_output, BaseModel):
+            json_output_data = json.dumps(json_output.model_json_schema())
+        elif isinstance(json_output, bool):
+            json_output_data = json_output
+
         data = {
             "messages": [message.model_dump() for message in messages],
             "tools": [(tool.schema if isinstance(tool, Tool) else tool) for tool in tools],
-            "json_output": json_output,
+            "json_output": json_output_data,
             "extra_create_args": extra_create_args,
         }
         serialized_data = json.dumps(data, sort_keys=True)
@@ -130,7 +137,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -162,7 +169,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
@@ -205,6 +212,9 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                 yield result
 
         return _generator()
+
+    async def close(self) -> None:
+        await self.client.close()
 
     def actual_usage(self) -> RequestUsage:
         return self.client.actual_usage()

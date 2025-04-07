@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ...base import ChatAgent, TerminationCondition
-from ...messages import AgentEvent, ChatMessage
+from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory
 from ...state import RoundRobinManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
@@ -24,9 +24,10 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
-        max_turns: int | None = None,
+        max_turns: int | None,
+        message_factory: MessageFactory,
     ) -> None:
         super().__init__(
             name,
@@ -38,10 +39,11 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             output_message_queue,
             termination_condition,
             max_turns,
+            message_factory,
         )
         self._next_speaker_index = 0
 
-    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
+    async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         pass
 
     async def reset(self) -> None:
@@ -53,7 +55,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
 
     async def save_state(self) -> Mapping[str, Any]:
         state = RoundRobinManagerState(
-            message_thread=list(self._message_thread),
+            message_thread=[message.dump() for message in self._message_thread],
             current_turn=self._current_turn,
             next_speaker_index=self._next_speaker_index,
         )
@@ -61,11 +63,11 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         round_robin_state = RoundRobinManagerState.model_validate(state)
-        self._message_thread = list(round_robin_state.message_thread)
+        self._message_thread = [self._message_factory.create(message) for message in round_robin_state.message_thread]
         self._current_turn = round_robin_state.current_turn
         self._next_speaker_index = round_robin_state.next_speaker_index
 
-    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
+    async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
         """Select a speaker from the participants in a round-robin fashion."""
         current_speaker_index = self._next_speaker_index
         self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_names)
@@ -164,6 +166,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
+        custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
     ) -> None:
         super().__init__(
             participants,
@@ -172,6 +175,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
             termination_condition=termination_condition,
             max_turns=max_turns,
             runtime=runtime,
+            custom_message_types=custom_message_types,
         )
 
     def _create_group_chat_manager_factory(
@@ -182,9 +186,10 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        message_factory: MessageFactory,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
@@ -197,6 +202,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
                 output_message_queue,
                 termination_condition,
                 max_turns,
+                message_factory,
             )
 
         return _factory

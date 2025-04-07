@@ -1,3 +1,4 @@
+import json
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -12,10 +13,17 @@ from ..teammanager import TeamManager
 from .schema_manager import SchemaManager
 
 
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, "get_secret_value") and callable(obj.get_secret_value):
+            return obj.get_secret_value()
+        return super().default(obj)
+
+
 class DatabaseManager:
     _init_lock = threading.Lock()
 
-    def __init__(self, engine_uri: str, base_dir: Optional[Path] = None):
+    def __init__(self, engine_uri: str, base_dir: Optional[Union[str, Path]] = None) -> None:
         """
         Initialize DatabaseManager with database connection settings.
         Does not perform any database operations.
@@ -26,7 +34,12 @@ class DatabaseManager:
         """
         connection_args = {"check_same_thread": True} if "sqlite" in engine_uri else {}
 
-        self.engine = create_engine(engine_uri, connect_args=connection_args)
+        if base_dir is not None and isinstance(base_dir, str):
+            base_dir = Path(base_dir)
+
+        self.engine = create_engine(
+            engine_uri, connect_args=connection_args, json_serializer=lambda obj: json.dumps(obj, cls=CustomJSONEncoder)
+        )
         self.schema_manager = SchemaManager(
             engine=self.engine,
             base_dir=base_dir,
@@ -100,7 +113,7 @@ class DatabaseManager:
                 try:
                     # Disable foreign key checks for SQLite
                     if "sqlite" in str(self.engine.url):
-                        session.exec(text("PRAGMA foreign_keys=OFF"))
+                        session.exec(text("PRAGMA foreign_keys=OFF"))  # type: ignore
 
                     # Drop all tables
                     SQLModel.metadata.drop_all(self.engine)
@@ -108,7 +121,7 @@ class DatabaseManager:
 
                     # Re-enable foreign key checks for SQLite
                     if "sqlite" in str(self.engine.url):
-                        session.exec(text("PRAGMA foreign_keys=ON"))
+                        session.exec(text("PRAGMA foreign_keys=ON"))  # type: ignore
 
                     session.commit()
 
@@ -160,7 +173,7 @@ class DatabaseManager:
                     model.updated_at = datetime.now()
                     for key, value in model.model_dump().items():
                         setattr(existing_model, key, value)
-                    model = existing_model  # Use the updated existing model
+                    model = existing_model
                     session.add(model)
                 else:
                     session.add(model)
@@ -187,7 +200,7 @@ class DatabaseManager:
     def get(
         self,
         model_class: SQLModel,
-        filters: dict = None,
+        filters: dict | None = None,
         return_json: bool = False,
         order: str = "desc",
     ):
@@ -313,7 +326,7 @@ class DatabaseManager:
                         {
                             "status": result.status,
                             "message": result.message,
-                            "id": result.data.get("id") if result.status else None,
+                            "id": result.data.get("id") if result.data else None,
                         }
                     )
 

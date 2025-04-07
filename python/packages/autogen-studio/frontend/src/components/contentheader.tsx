@@ -1,21 +1,16 @@
 import React from "react";
-import { Menu } from "@headlessui/react";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import {
   BellIcon,
   MoonIcon,
   SunIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
-import {
-  ChevronDown,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Menu as MenuIcon,
-} from "lucide-react";
-import { Tooltip } from "antd";
+import { ChevronDown, Menu as MenuIcon } from "lucide-react";
 import { appContext } from "../hooks/provider";
 import { useConfigStore } from "../hooks/store";
 import { Link } from "gatsby";
+import { sanitizeUrl } from "./utils/security-utils";
 
 type ContentHeaderProps = {
   onMobileMenuToggle: () => void;
@@ -150,11 +145,11 @@ const ContentHeader = ({
             {/* User Menu */}
             {user && (
               <Menu as="div" className="relative">
-                <Menu.Button className="flex items-center">
+                <MenuButton className="flex items-center">
                   {user.avatar_url ? (
                     <img
                       className="h-8 w-8 rounded-full"
-                      src={user.avatar_url}
+                      src={sanitizeUrl(user.avatar_url)}
                       alt={user.name}
                     />
                   ) : (
@@ -168,9 +163,9 @@ const ContentHeader = ({
                     </span>
                     <ChevronDown className="ml-2 h-5 w-5 text-secondary" />
                   </span>
-                </Menu.Button>
-                <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-primary py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                  <Menu.Item>
+                </MenuButton>
+                <MenuItems className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-primary py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <MenuItem>
                     {({ active }) => (
                       <a
                         href="#"
@@ -182,8 +177,8 @@ const ContentHeader = ({
                         Sign out
                       </a>
                     )}
-                  </Menu.Item>
-                </Menu.Items>
+                  </MenuItem>
+                </MenuItems>
               </Menu>
             )}
           </div>

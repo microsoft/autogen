@@ -13,6 +13,7 @@ from autogen_core.models import (
     RequestUsage,
 )
 from autogen_core.tools import Tool, ToolSchema
+from pydantic import BaseModel
 
 from .page_logger import PageLogger
 
@@ -87,7 +88,7 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -154,7 +155,7 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
@@ -165,6 +166,9 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
             extra_create_args=extra_create_args,
             cancellation_token=cancellation_token,
         )
+
+    async def close(self) -> None:
+        await self.base_client.close()
 
     def actual_usage(self) -> RequestUsage:
         # Calls base_client.actual_usage() and returns the result.

@@ -20,6 +20,7 @@ import type {
   TextMentionTerminationConfig,
   UnboundedChatCompletionContextConfig,
   AnthropicClientConfig,
+  AndTerminationConfig,
 } from "./datamodel";
 
 // Provider constants
@@ -43,6 +44,7 @@ const PROVIDERS = {
 
   // Termination
   OR_TERMINATION: "autogen_agentchat.base.OrTerminationCondition",
+  AND_TERMINATION: "autogen_agentchat.base.AndTerminationCondition",
   MAX_MESSAGE: "autogen_agentchat.conditions.MaxMessageTermination",
   TEXT_MENTION: "autogen_agentchat.conditions.TextMentionTermination",
 
@@ -74,6 +76,7 @@ type ProviderToConfig = {
 
   // Termination
   [PROVIDERS.OR_TERMINATION]: OrTerminationConfig;
+  [PROVIDERS.AND_TERMINATION]: AndTerminationConfig;
   [PROVIDERS.MAX_MESSAGE]: MaxMessageTerminationConfig;
   [PROVIDERS.TEXT_MENTION]: TextMentionTerminationConfig;
 
@@ -202,6 +205,22 @@ export function isOrTermination(
   component: Component<ComponentConfig>
 ): component is Component<OrTerminationConfig> {
   return isComponentOfType(component, PROVIDERS.OR_TERMINATION);
+}
+
+// is Or or And termination
+export function isCombinationTermination(
+  component: Component<ComponentConfig>
+): component is Component<OrTerminationConfig | AndTerminationConfig> {
+  return (
+    isComponentOfType(component, PROVIDERS.OR_TERMINATION) ||
+    isComponentOfType(component, PROVIDERS.AND_TERMINATION)
+  );
+}
+
+export function isAndTermination(
+  component: Component<ComponentConfig>
+): component is Component<AndTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.AND_TERMINATION);
 }
 
 export function isMaxMessageTermination(

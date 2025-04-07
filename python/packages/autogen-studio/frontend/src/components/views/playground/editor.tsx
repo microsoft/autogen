@@ -1,11 +1,8 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal, Form, message, Input, Button, Select, Spin } from "antd";
 import { TriangleAlertIcon } from "lucide-react";
 import type { FormProps } from "antd";
 import { SessionEditorProps } from "./types";
-import { Team } from "../../types/datamodel";
-import { teamAPI } from "../teambuilder/api";
-import { appContext } from "../../../hooks/provider";
 import { Link } from "gatsby";
 
 type FieldType = {
@@ -22,7 +19,6 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const { user } = useContext(appContext);
   const [messageApi, contextHolder] = message.useMessage();
 
   // Set form values when modal opens or session changes

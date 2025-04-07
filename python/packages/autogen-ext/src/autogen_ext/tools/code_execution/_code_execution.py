@@ -83,7 +83,6 @@ class PythonCodeExecutionTool(
         result = await self._executor.execute_code_blocks(
             code_blocks=code_blocks, cancellation_token=cancellation_token
         )
-
         return CodeExecutionResult(success=result.exit_code == 0, output=result.output)
 
     def _to_config(self) -> PythonCodeExecutionToolConfig:
