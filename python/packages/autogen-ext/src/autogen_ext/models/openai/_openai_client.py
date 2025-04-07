@@ -1340,6 +1340,9 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
         model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
         self._raw_config: Dict[str, Any] = dict(kwargs).copy()
+        if "http_client" in kwargs:
+            # If http_client is passed, remove it from the saved config, as it cannot be serialized.
+            del kwargs["http_client"]
         copied_args = dict(kwargs).copy()
 
         if "model_capabilities" in kwargs:
@@ -1572,6 +1575,9 @@ class AzureOpenAIChatCompletionClient(
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
+        if "http_client" in self._raw_config:
+            # If http_client is passed, remove it from the saved config, as it cannot be serialized.
+            del self._raw_config["http_client"]
         super().__init__(
             client=client,
             create_args=create_args,
