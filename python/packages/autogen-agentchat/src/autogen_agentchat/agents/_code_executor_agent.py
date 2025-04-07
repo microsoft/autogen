@@ -412,6 +412,8 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             source=agent_name,
         )
 
+        yield inferred_text_message
+
         # execute generated code if present
         execution_result = await self.execute_code_block([inferred_text_message], cancellation_token)
 
@@ -423,10 +425,6 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             )
             return
 
-        # if code block present then yield inferred_text_message as TextMessage
-        # and execution_result as Response
-        yield inferred_text_message
-
         # Add the code execution result to the model context
         await model_context.add_message(
             UserMessage(
@@ -435,12 +433,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             )
         )
 
-        # changed return type of execute_code_block from `Response` to `TextMessage`,
-        # so that yielding execution_result doesn't terminate the function and we can proceed to reflection
-        yield TextMessage(
-            content=execution_result.result.output,
-            source=self.name,
-        )
+        yield execution_result
 
         # always reflect on the execution result
         async for reflection_response in CodeExecutorAgent._reflect_on_code_block_results_flow(

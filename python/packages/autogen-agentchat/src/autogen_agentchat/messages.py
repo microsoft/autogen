@@ -303,7 +303,7 @@ class CodeExecutionEvent(BaseAgentEvent):
     result: CodeResult
 
     def to_text(self) -> str:
-        return self.result
+        return self.result.output
 
 
 class ToolCallExecutionEvent(BaseAgentEvent):
