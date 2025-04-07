@@ -155,13 +155,13 @@ async def start_chat() -> None:
 
 @cl.on_message  # type: ignore
 async def chat(message: cl.Message) -> None:
-    # Get the assistant agent from the user session.
+    # Get the agent from the user session.
     agent = cast(WeatherAgent, cl.user_session.get("agent"))  # type: ignore
     # Construct the response message.
     response = cl.Message(content="")
     async for msg in agent.on_message(
         message=[Message(content=message.content, source="user")],
-        ctx=prompt_history,
+        ctx=cl.chat_context.to_openai(),
     ):
         if isinstance(msg, ModelClientStreamingChunkEvent):
             # Stream the model client response to the user.
