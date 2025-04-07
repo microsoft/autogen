@@ -3,15 +3,17 @@ from typing import Callable, List
 from pydantic import BaseModel
 from typing_extensions import Self
 
+from autogen_core import ComponentModel
+
 from .._component_config import Component
 from ..models import LLMMessage
 from ._chat_completion_context import ChatCompletionContext
-from ._conditions import MessageCompletionCondition
+from .conditions import MessageCompletionCondition, SummarizngFunction
 
 
 class SummarizedChatCompletionContextConfig(BaseModel):
-    summarizing_func: Callable[[List[LLMMessage], List[LLMMessage]], List[LLMMessage]]
-    summarizing_condition: "MessageCompletionCondition"
+    summarizing_func: SummarizngFunction
+    summarizing_condition: ComponentModel
     initial_messages: List[LLMMessage] | None = None
     non_summarized_messages: List[LLMMessage] | None = None
 
@@ -33,16 +35,17 @@ class SummarizedChatCompletionContext(ChatCompletionContext, Component[Summarize
     def __init__(
         self,
         summarizing_func: Callable[[List[LLMMessage], List[LLMMessage]], List[LLMMessage]],
-        summarizing_condition: "MessageCompletionCondition",
+        summarizing_condition: MessageCompletionCondition,
         initial_messages: List[LLMMessage] | None = None,
         non_summarized_messages: List[LLMMessage] | None = None,
     ) -> None:
-        self._non_summarized_messages: List[LLMMessage] = []
         super().__init__(initial_messages)
-        if non_summarized_messages is None:
-            self._non_summarized_messages.extend(self._messages)
-        else:
+        
+        self._non_summarized_messages: List[LLMMessage] = []
+        if non_summarized_messages is not None:
             self._non_summarized_messages.extend(non_summarized_messages)
+    
+        self._non_summarized_messages.extend(self._messages)
 
         self._summarizing_func = summarizing_func
         self._summarizing_condition = summarizing_condition
@@ -57,6 +60,7 @@ class SummarizedChatCompletionContext(ChatCompletionContext, Component[Summarize
         if self._summarizing_condition.triggered:
             # If the condition is met, summarize the messages.
             await self.summary()
+            await self._summarizing_condition.reset()
 
     async def get_messages(self) -> List[LLMMessage]:
         return self._messages
