@@ -35,7 +35,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         description = tool.description or ""
 
         # Create the input model from the tool's schema
-        input_model = create_model(tool.inputSchema)
+        input_model = create_model(tool.inputSchema, allow_undefined_array_items=True)
 
         # Use Any as return type since MCP tool returns can vary
         return_type: Type[Any] = object

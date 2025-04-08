@@ -15,10 +15,10 @@ from ..version import APP_NAME
 
 def sha256_hash(text: str) -> str:
     """
-    Compute the MD5 hash of a given text.
+    Compute the SHA-256 hash of a given text.
 
     :param text: The string to hash
-    :return: The MD5 hash of the text
+    :return: The SHA-256 hash of the text, hex-encoded.
     """
     return hashlib.sha256(text.encode()).hexdigest()
 

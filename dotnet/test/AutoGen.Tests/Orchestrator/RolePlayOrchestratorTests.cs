@@ -18,7 +18,6 @@ using AutoGen.Mistral.Extension;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
 using Azure.AI.Inference;
-using Azure.AI.OpenAI;
 using FluentAssertions;
 using Moq;
 using OpenAI;
@@ -215,21 +214,6 @@ public class RolePlayOrchestratorTests
 
         var speaker = await orchestrator.GetNextSpeakerAsync(context);
         speaker.Should().Be(bob);
-    }
-
-    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
-    public async Task GPT_3_5_CoderReviewerRunnerTestAsync()
-    {
-        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
-        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
-        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
-        var openaiClient = new AzureOpenAIClient(new Uri(endpoint), new System.ClientModel.ApiKeyCredential(key));
-        var openAIChatAgent = new OpenAIChatAgent(
-            chatClient: openaiClient.GetChatClient(deployName),
-            name: "assistant")
-            .RegisterMessageConnector();
-
-        await CoderReviewerRunnerTestAsync(openAIChatAgent);
     }
 
     [ApiKeyFact("OPENAI_API_KEY")]
