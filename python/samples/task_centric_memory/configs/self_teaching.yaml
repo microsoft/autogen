@@ -15,10 +15,10 @@ client:
 Apprentice:
   name_of_agent_or_team: AssistantAgent  # AssistantAgent or MagenticOneGroupChat
   disable_prefix_caching: 1  # If true, prepends a small random string to the context, to decorrelate repeated runs.
-  TaskCentricMemoryController:
+  MemoryController:
     max_train_trials: 10
     max_test_trials: 3
-    TaskCentricMemoryBank:
+    MemoryBank:
       path: ./memory_bank/self_teaching
       relevance_conversion_threshold: 1.7
       n_results: 25
