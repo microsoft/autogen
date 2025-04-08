@@ -50,7 +50,7 @@ AGS also lets you directly modify the JSON configuration of the team. This can b
 
 > Did you know that you define your agents in Python, export them to JSON and then paste them in the JSON editor? The section below shows how to accomplish this.
 
-## Declarative Specification of Componenents
+## Declarative Specification of Components
 
 AutoGen Studio is built on the declarative specification behaviors of AutoGen AgentChat. This allows users to define teams, agents, models, tools, and termination conditions in Python and then dump them into a JSON file for use in AutoGen Studio.
 
