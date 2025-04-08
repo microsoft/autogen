@@ -4,7 +4,7 @@ import traceback
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional, Sequence, Union
 
-from autogen_agentchat.base._task import TaskResult
+from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import (
     BaseAgentEvent,
     BaseChatMessage,
@@ -102,7 +102,7 @@ class WebSocketManager:
                     # get user Settings
                     user_settings = await self._get_settings(run.user_id)
                     env_vars = SettingsConfig(**user_settings.config).environment if user_settings else None  # type: ignore
-                    run.task = MessageConfig(content=task, source="user").model_dump()
+                    run.task = self._convert_images_in_dict(MessageConfig(content=task, source="user").model_dump())
                     run.status = RunStatus.ACTIVE
                     self.db_manager.upsert(run)
 
@@ -176,7 +176,7 @@ class WebSocketManager:
             db_message = Message(
                 session_id=run.session_id,
                 run_id=run_id,
-                config=message.model_dump(),
+                config=self._convert_images_in_dict(message.model_dump()),
                 user_id=None,  # You might want to pass this from somewhere
             )
             self.db_manager.upsert(db_message)
@@ -189,7 +189,7 @@ class WebSocketManager:
         if run:
             run.status = status
             if team_result:
-                run.team_result = team_result
+                run.team_result = self._convert_images_in_dict(team_result)
             if error:
                 run.error_message = error
             self.db_manager.upsert(run)
@@ -275,6 +275,18 @@ class WebSocketManager:
         self._cancellation_tokens.pop(run_id, None)
         self._input_responses.pop(run_id, None)
 
+    def _convert_images_in_dict(self, obj: Any) -> Any:
+        """Recursively find and convert Image objects in dictionaries and lists"""
+        if isinstance(obj, dict):
+            return {k: self._convert_images_in_dict(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_images_in_dict(item) for item in obj]
+        elif isinstance(obj, AGImage):  # Assuming you've imported AGImage
+            # Convert the Image object to a serializable format
+            return {"type": "image", "url": f"data:image/png;base64,{obj.to_base64()}", "alt": "Image"}
+        else:
+            return obj
+
     async def _send_message(self, run_id: int, message: dict) -> None:
         """Send a message through the WebSocket with connection state checking
 
@@ -289,7 +301,7 @@ class WebSocketManager:
         try:
             if run_id in self._connections:
                 websocket = self._connections[run_id]
-                await websocket.send_json(message)
+                await websocket.send_json(self._convert_images_in_dict(message))
         except WebSocketDisconnect:
             logger.warning(f"WebSocket disconnected while sending message for run {run_id}")
             await self.disconnect(run_id)
