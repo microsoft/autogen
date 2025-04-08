@@ -16,6 +16,10 @@ from .utils.page_logger import PageLogger
 # Following the nested-config pattern, this TypedDict minimizes code changes by encapsulating
 # the settings that change frequently, as when loading many settings from a single YAML file.
 class MemoryControllerConfig(TypedDict, total=False):
+    generalize_task: bool
+    generate_topics: bool
+    validate_memos: bool
+    max_memos_to_retrieve: int
     max_train_trials: int
     max_test_trials: int
     MemoryBank: "MemoryBankConfig"
@@ -33,6 +37,10 @@ class MemoryController:
         task_assignment_callback: An optional callback used to assign a task to any agent managed by the caller.
         config: An optional dict that can be used to override the following values:
 
+            - generalize_task: Whether to rewrite tasks in more general terms.
+            - generate_topics: Whether to base retrieval directly on tasks, or on topics extracted from tasks.
+            - validate_memos: Whether to apply a final validation stage to retrieved memos.
+            - max_memos_to_retrieve: The maximum number of memos to return from retrieve_relevant_memos().
             - max_train_trials: The maximum number of learning iterations to attempt when training on a task.
             - max_test_trials: The total number of attempts made when testing for failure on a task.
             - MemoryBank: A config dict passed to MemoryBank.
@@ -91,10 +99,18 @@ class MemoryController:
         self.logger.enter_function()
 
         # Apply default settings and any config overrides.
+        self.generalize_task = True
+        self.generate_topics = True
+        self.validate_memos = True
+        self.max_memos_to_retrieve = 10
         self.max_train_trials = 10
         self.max_test_trials = 3
         memory_bank_config = None
         if config is not None:
+            self.generalize_task = config.get("generalize_task", self.generalize_task)
+            self.generate_topics = config.get("generate_topics", self.generate_topics)
+            self.validate_memos = config.get("validate_memos", self.validate_memos)
+            self.max_memos_to_retrieve = config.get("max_memos_to_retrieve", self.max_memos_to_retrieve)
             self.max_train_trials = config.get("max_train_trials", self.max_train_trials)
             self.max_test_trials = config.get("max_test_trials", self.max_test_trials)
             memory_bank_config = config.get("MemoryBank", memory_bank_config)
@@ -178,8 +194,10 @@ class MemoryController:
         if task is not None:
             self.logger.info("\nGIVEN TASK:")
             self.logger.info(task)
-            # Generalize the task.
-            generalized_task = await self.prompter.generalize_task(task)
+            if self.generalize_task:
+                generalized_task = await self.prompter.generalize_task(task)
+            else:
+                generalized_task = task
 
         self.logger.info("\nGIVEN INSIGHT:")
         self.logger.info(insight)
@@ -196,7 +214,10 @@ class MemoryController:
                 text_to_index = task
                 self.logger.info("\nTOPICS EXTRACTED FROM TASK:")
 
-        topics = await self.prompter.find_index_topics(text_to_index)
+        if self.generate_topics:
+            topics = await self.prompter.find_index_topics(text_to_index)
+        else:
+            topics = [text_to_index]
         self.logger.info("\n".join(topics))
         self.logger.info("")
 
@@ -218,7 +239,10 @@ class MemoryController:
         self.logger.info(solution)
 
         # Get a list of topics from the task.
-        topics = await self.prompter.find_index_topics(task.strip())
+        if self.generate_topics:
+            topics = await self.prompter.find_index_topics(task.strip())
+        else:
+            topics = [task.strip()]
         self.logger.info("\nTOPICS EXTRACTED FROM TASK:")
         self.logger.info("\n".join(topics))
         self.logger.info("")
@@ -238,8 +262,14 @@ class MemoryController:
             self.logger.info(task)
 
             # Get a list of topics from the generalized task.
-            generalized_task = await self.prompter.generalize_task(task)
-            task_topics = await self.prompter.find_index_topics(generalized_task)
+            if self.generalize_task:
+                generalized_task = await self.prompter.generalize_task(task)
+            else:
+                generalized_task = task
+            if self.generate_topics:
+                task_topics = await self.prompter.find_index_topics(generalized_task)
+            else:
+                task_topics = [generalized_task]
             self.logger.info("\nTOPICS EXTRACTED FROM TASK:")
             self.logger.info("\n".join(task_topics))
             self.logger.info("")
@@ -250,7 +280,9 @@ class MemoryController:
             # Apply a final validation stage to keep only the memos that the LLM concludes are sufficiently relevant.
             validated_memos: List[Memo] = []
             for memo in memo_list:
-                if await self.prompter.validate_insight(memo.insight, task):
+                if len(validated_memos) >= self.max_memos_to_retrieve:
+                    break
+                if (not self.validate_memos) or await self.prompter.validate_insight(memo.insight, task):
                     validated_memos.append(memo)
 
             self.logger.info("\n{} VALIDATED MEMOS".format(len(validated_memos)))
