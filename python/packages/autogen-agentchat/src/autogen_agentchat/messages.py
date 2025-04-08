@@ -69,8 +69,6 @@ class BaseChatMessage(BaseMessage, ABC):
     message using models and return a response as another :class:`BaseChatMessage`.
     """
 
-    content: Any | None = None
-
     source: str
     """The name of the agent that sent this message."""
 
