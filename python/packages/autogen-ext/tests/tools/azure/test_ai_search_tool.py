@@ -1372,4 +1372,3 @@ async def test_schema_property() -> None:
     assert "query" in required  # pyright: ignore
 
     assert schema.get("strict") is True  # pyright: ignore
-

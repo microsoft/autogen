@@ -1173,4 +1173,3 @@ class AzureAISearchTool(BaseAzureAISearchTool):
             )
         finally:
             _allow_private_constructor.reset(token)
-
