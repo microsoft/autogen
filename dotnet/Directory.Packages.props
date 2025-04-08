@@ -5,7 +5,7 @@
     <MicrosoftSemanticKernelStableVersion>1.45.0</MicrosoftSemanticKernelStableVersion>
     <MicrosoftSemanticKernelPreviewVersion>$(MicrosoftSemanticKernelStableVersion)-preview</MicrosoftSemanticKernelPreviewVersion>
     <MicrosoftSemanticKernelAlphaVersion>$(MicrosoftSemanticKernelStableVersion)-alpha</MicrosoftSemanticKernelAlphaVersion>
-    <MicrosoftExtensionsAIVersion>9.3.0-preview.1.25161.3</MicrosoftExtensionsAIVersion>
+    <MicrosoftExtensionsAIVersion>9.4.0-preview.1.25207.5</MicrosoftExtensionsAIVersion>
     <MicrosoftExtensionConfiguration>9.0.0</MicrosoftExtensionConfiguration>
     <MicrosoftExtensionDependencyInjection>9.0.3</MicrosoftExtensionDependencyInjection>
     <MicrosoftExtensionLogging>9.0.0</MicrosoftExtensionLogging>
