@@ -41,10 +41,11 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
     create calls) or a "stream" (a list of streamed outputs for create_stream calls).
 
     ReplayChatCompletionClient and ChatCompletionCache do similar things, but with significant differences:
-    - ReplayChatCompletionClient replays pre-defined responses in a specified order
-    without recording anything or checking the messages sent to the client.
-    - ChatCompletionCache caches responses and replays them for messages that have been seen before,
-    regardless of order, and calls the base client for any uncached messages.
+
+        - ReplayChatCompletionClient replays pre-defined responses in a specified order
+        without recording anything or checking the messages sent to the client.
+        - ChatCompletionCache caches responses and replays them for messages that have been seen before,
+        regardless of order, and calls the base client for any uncached messages.
     """
 
     def __init__(
