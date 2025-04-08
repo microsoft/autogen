@@ -53,9 +53,9 @@ public class FunctionCallMiddleware : IStreamingMiddleware
     public FunctionCallMiddleware(IEnumerable<AIFunction> functions, string? name = null)
     {
         this.Name = name ?? nameof(FunctionCallMiddleware);
-        this.functions = functions.Select(f => (FunctionContract)f.Metadata).ToArray();
+        this.functions = functions.Select(f => (FunctionContract)f).ToArray();
 
-        this.functionMap = functions.Select(f => (f.Metadata.Name, this.AIToolInvokeWrapper(f.InvokeAsync))).ToDictionary(f => f.Name, f => f.Item2);
+        this.functionMap = functions.Select(f => (f.Name, this.AIToolInvokeWrapper(f.InvokeAsync))).ToDictionary(f => f.Name, f => f.Item2);
     }
 
     public string? Name { get; }
