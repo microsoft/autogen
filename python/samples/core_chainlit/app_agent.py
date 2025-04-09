@@ -133,21 +133,28 @@ async def start_chat() -> None:
         model_config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(model_config)
 
+    runtime = SingleThreadedAgentRuntime()
+    
     # Create the agent with the get_weather tool.
-#    assistant = WeatherAgent(
- #       model_client = model_client,
-  #      tool_schema = [get_weather]
-   # )
+    #assistant = WeatherAgent(
+    #    model_client = model_client,
+    #    tool_schema = [get_weather]
+    #)
 
     # Register the weather agent to runtime
-    runtime = SingleThreadedAgentRuntime()
-    await WeatherAgent.register(runtime, "weather_agent", lambda: WeatherAgent("weather_agent"))
+
+    await WeatherAgent.register(runtime, "weather_agent", lambda: WeatherAgent(
+        model_client = model_client,
+        tool_schema = [get_weather]
+    ))
     
     runtime.start()  # Start processing messages in the background.
 
     # Set the assistant agent in the user session.
     cl.user_session.set("prompt_history", "")  # type: ignore
     cl.user_session.set("agent", WeatherAgent)  # type: ignore
+    #agent = cast(WeatherAgent, cl.user_session.get("agent"))  # type: ignore
+    #print(agent)
     
 
     
