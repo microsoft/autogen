@@ -54,7 +54,6 @@ class GroupChatAgent(RoutedAgent):
                 message.body,
             ]
         )
-
     @message_handler
     async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
         # print(f"\n{'-'*80}\n{self.id.type}:", flush=True)
