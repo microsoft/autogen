@@ -62,7 +62,7 @@ class AgentRuntime(Protocol):
 
         Args:
             message (Any): The message to publish.
-            topic (TopicId): The topic to publish the message to.
+            topic_id (TopicId): The topic to publish the message to.
             sender (AgentId | None, optional): The agent which sent the message. Defaults to None.
             cancellation_token (CancellationToken | None, optional): Token used to cancel an in progress. Defaults to None.
             message_id (str | None, optional): The message id. If None, a new message id will be generated. Defaults to None. This message id must be unique. and is recommended to be a UUID.
