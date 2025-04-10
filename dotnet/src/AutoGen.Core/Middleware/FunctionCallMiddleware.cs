@@ -189,11 +189,11 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         }
     }
 
-    private Func<string, Task<string>> AIToolInvokeWrapper(Func<IEnumerable<KeyValuePair<string, object?>>?, CancellationToken, Task<object?>> lambda)
+    private Func<string, Task<string>> AIToolInvokeWrapper(Func<AIFunctionArguments?, CancellationToken, ValueTask<object?>> lambda)
     {
         return async (string args) =>
         {
-            var arguments = JsonSerializer.Deserialize<Dictionary<string, object?>>(args);
+            var arguments = new AIFunctionArguments(JsonSerializer.Deserialize<Dictionary<string, object?>>(args));
             var result = await lambda(arguments, CancellationToken.None);
 
             return result switch
