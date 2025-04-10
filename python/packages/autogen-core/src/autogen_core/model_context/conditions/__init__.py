@@ -19,6 +19,9 @@ from ._contidions import (
     TextMessageMessageCompletion,
     FunctionCallMessageCompletion
 )
+from ._summary_function import (
+    SummaryFunction,
+)
 
 __all__ = [
     "MessageCompletionCondition",
@@ -36,4 +39,5 @@ __all__ = [
     "SourceMatchMessageCompletion",
     "TextMessageMessageCompletion",
     "FunctionCallMessageCompletion",
+    "SummaryFunction",
 ]

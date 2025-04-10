@@ -15,7 +15,7 @@ class MessageCompletionException(BaseException): ...
 
 class MessageCompletionCondition(ABC, ComponentBase[BaseModel]):
     component_type = "message_completion_condition"
-    component_provider_override = "autogen_core.model_context.conditions.MessageCompletionCondition"
+    # component_provider_override = "autogen_core.model_context.conditions.MessageCompletionCondition"
 
     @property
     @abstractmethod

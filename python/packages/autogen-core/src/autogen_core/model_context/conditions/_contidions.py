@@ -62,7 +62,7 @@ class MaxMessageCompletion(MessageCompletionCondition, Component[MaxMessageCompl
     """
 
     component_config_schema = MaxMessageCompletionConfig
-    component_provider_override = "" #TODO
+    component_provider_override = "autogen_agentchat.conditions.MaxMessageCompletion"
 
     def __init__(self, max_messages: int) -> None:
         self._max_messages = max_messages
