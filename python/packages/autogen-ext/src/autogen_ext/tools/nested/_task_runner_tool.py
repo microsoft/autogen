@@ -8,12 +8,9 @@ from autogen_agentchat.messages import (
     ToolCallSummaryMessage,
 )
 from autogen_agentchat.teams._group_chat._base_group_chat import BaseGroupChat
-from autogen_agentchat.teams._group_chat._events import GroupChatMessage
-from autogen_core import CancellationToken, ComponentModel
-from autogen_core.tools import BaseToolWithState
+from autogen_core import CancellationToken
+from autogen_core.tools import BaseTool
 from pydantic import BaseModel
-from typing import Type
-from autogen_agentchat.state import BaseState
 
 class TaskRunnerToolInput(BaseModel):
     """Input for the TaskRunnerTool."""
@@ -21,21 +18,19 @@ class TaskRunnerToolInput(BaseModel):
     task: Annotated[str, "The task to be executed by the agent."]
 
 
-class TaskRunnerTool(BaseToolWithState):
+class TaskRunnerTool(BaseTool):
     """Tool that can be used to run a task."""
 
     component_type = "tool"
 
-    def __init__(self, task_runner: BaseGroupChat | BaseChatAgent, state_type: Type[BaseState], name: str, description: str) -> None:
+    def __init__(self, task_runner: BaseGroupChat | BaseChatAgent, name: str, description: str) -> None:
         self._task_runner = task_runner
         super().__init__(
             args_type=TaskRunnerToolInput,
-            return_type=str,
-            state_type=state_type,
+            return_type=TaskResult,
             name=name,
             description=description,
         )
 
-    async def run(self, args: TaskRunnerToolInput, cancellation_token: CancellationToken) -> str:
-        result = await self._task_runner.run(task=args.task, cancellation_token=cancellation_token)
-        return result.model_dump_json()
+    async def run(self, args: TaskRunnerToolInput, cancellation_token: CancellationToken) -> TaskResult:
+        return await self._task_runner.run(task=args.task, cancellation_token=cancellation_token)

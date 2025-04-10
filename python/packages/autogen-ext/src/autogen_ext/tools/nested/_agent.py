@@ -6,11 +6,6 @@ from typing_extensions import Self
 from typing import Mapping, Any
 from ._task_runner_tool import TaskRunnerTool
 
-class AgentToolState(BaseState):
-    """State for the AgentTool."""
-
-    agent_state: Mapping[str, Any]
-
 
 class AgentToolConfig(BaseModel):
     """Configuration for the AgentTool."""
@@ -26,7 +21,7 @@ class AgentTool(TaskRunnerTool, Component[AgentToolConfig]):
 
     def __init__(self, agent: BaseChatAgent) -> None:
         self._agent = agent
-        super().__init__(agent, AgentToolState, agent.name, agent.description)
+        super().__init__(agent, agent.name, agent.description)
 
     def _to_config(self) -> AgentToolConfig:
         return AgentToolConfig(

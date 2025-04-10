@@ -7,13 +7,6 @@ from typing import Mapping, Any
 
 from ._task_runner_tool import TaskRunnerTool
 
-
-class TeamToolState(BaseState):
-    """State for the TeamTool."""
-
-    team_state: Mapping[str, Any]
-
-
 class TeamToolConfig(BaseModel):
     """Configuration for the TeamTool."""
 
@@ -30,7 +23,7 @@ class TeamTool(TaskRunnerTool, Component[TeamToolConfig]):
 
     def __init__(self, team: BaseGroupChat, name: str, description: str) -> None:
         self._team = team
-        super().__init__(team, TeamToolState, name, description)
+        super().__init__(team, name, description)
 
     def _to_config(self) -> TeamToolConfig:
         return TeamToolConfig(
