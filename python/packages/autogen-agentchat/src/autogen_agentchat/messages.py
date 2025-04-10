@@ -4,14 +4,18 @@ Each message type inherits either from the BaseChatMessage class or BaseAgentEve
 class and includes specific fields relevant to the type of message being sent.
 """
 
-import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
 
 from autogen_core import FunctionCall, Image
 from autogen_core.code_executor import CodeBlock, CodeResult
 from autogen_core.memory import MemoryContent
-from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
+from autogen_core.models import (
+    FunctionExecutionResult,
+    LLMMessage,
+    RequestUsage,
+    UserMessage,
+)
 from pydantic import BaseModel, Field, computed_field
 from typing_extensions import Annotated, Self
 
@@ -98,7 +102,8 @@ class BaseChatMessage(BaseMessage, ABC):
     @abstractmethod
     def to_model_message(self) -> UserMessage:
         """Convert the message content to a :class:`~autogen_core.models.UserMessage`
-        for use with model client, e.g., :class:`~autogen_core.models.ChatCompletionClient`."""
+        for use with model client, e.g., :class:`~autogen_core.models.ChatCompletionClient`.
+        """
         ...
 
 
@@ -435,7 +440,8 @@ class MessageFactory:
 
 
 ChatMessage = Annotated[
-    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
+    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage,
+    Field(discriminator="type"),
 ]
 """The union type of all built-in concrete subclasses of :class:`BaseChatMessage`.
 It does not include :class:`StructuredMessage` types."""
