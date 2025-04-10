@@ -54,9 +54,9 @@ class Tool(Protocol):
 
     async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any: ...
 
-    async def save_state_json(self) -> Mapping[str, Any]: ...
+    def save_state_json(self) -> Mapping[str, Any]: ...
 
-    async def load_state_json(self, state: Mapping[str, Any]) -> None: ...
+    def load_state_json(self, state: Mapping[str, Any]) -> None: ...
 
 
 ArgsT = TypeVar("ArgsT", bound=BaseModel, contravariant=True)
@@ -169,10 +169,10 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
 
         return return_value
 
-    async def save_state_json(self) -> Mapping[str, Any]:
+    def save_state_json(self) -> Mapping[str, Any]:
         return {}
 
-    async def load_state_json(self, state: Mapping[str, Any]) -> None:
+    def load_state_json(self, state: Mapping[str, Any]) -> None:
         pass
 
 
@@ -191,13 +191,13 @@ class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, S
     component_type = "tool"
 
     @abstractmethod
-    async def save_state(self) -> StateT: ...
+    def save_state(self) -> StateT: ...
 
     @abstractmethod
-    async def load_state(self, state: StateT) -> None: ...
+    def load_state(self, state: StateT) -> None: ...
 
-    async def save_state_json(self) -> Mapping[str, Any]:
-        return (await self.save_state()).model_dump()
+    def save_state_json(self) -> Mapping[str, Any]:
+        return self.save_state().model_dump()
 
-    async def load_state_json(self, state: Mapping[str, Any]) -> None:
-        await self.load_state(self._state_type.model_validate(state))
+    def load_state_json(self, state: Mapping[str, Any]) -> None:
+        self.load_state(self._state_type.model_validate(state))
