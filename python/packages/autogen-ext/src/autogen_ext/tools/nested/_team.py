@@ -42,10 +42,3 @@ class TeamTool(TaskRunnerTool, Component[TeamToolConfig]):
     @classmethod
     def _from_config(cls, config: TeamToolConfig) -> Self:
         return cls(BaseGroupChat.load_component(config.team), config.name, config.description)
-
-
-    async def save_state(self) -> TeamToolState:
-        return TeamToolState(team_state=await self._team.save_state())
-
-    async def load_state(self, state: TeamToolState) -> None:
-        await self._team.load_state(state.team_state)

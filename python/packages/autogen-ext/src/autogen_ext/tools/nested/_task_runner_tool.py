@@ -7,7 +7,6 @@ from autogen_agentchat.messages import (
     ModelClientStreamingChunkEvent,
     ToolCallSummaryMessage,
 )
-from autogen_agentchat.teams import AgentChatRuntimeContext
 from autogen_agentchat.teams._group_chat._base_group_chat import BaseGroupChat
 from autogen_agentchat.teams._group_chat._events import GroupChatMessage
 from autogen_core import CancellationToken, ComponentModel
@@ -38,25 +37,5 @@ class TaskRunnerTool(BaseToolWithState):
         )
 
     async def run(self, args: TaskRunnerToolInput, cancellation_token: CancellationToken) -> str:
-        try:
-            runtime = AgentChatRuntimeContext.current_runtime()
-        except RuntimeError as e:
-            raise RuntimeError("TaskRunnerTool must be used within an AgentChatRuntimeContext.") from e
-        response: TaskResult | None = None
-        async for event in self._task_runner.run_stream(task=args.task, cancellation_token=cancellation_token):
-            print(f"Received event: {event}")
-            if isinstance(event, TaskResult):
-                response = event
-                break
-            # Way too noisy
-            if isinstance(event, ModelClientStreamingChunkEvent):
-                continue
-            # We've already got the events
-            elif isinstance(event, ToolCallSummaryMessage):
-                continue
-            else:
-                print(f"Publishing event: {event}")
-                await runtime.publish_message(GroupChatMessage(message=event), AgentChatRuntimeContext.output_channel())
-
-        assert response is not None
-        return response.model_dump_json()
+        result = await self._task_runner.run(task=args.task, cancellation_token=cancellation_token)
+        return result.model_dump_json()

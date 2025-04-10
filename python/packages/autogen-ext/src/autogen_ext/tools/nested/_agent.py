@@ -36,11 +36,3 @@ class AgentTool(TaskRunnerTool, Component[AgentToolConfig]):
     @classmethod
     def _from_config(cls, config: AgentToolConfig) -> Self:
         return cls(BaseChatAgent.load_component(config.agent))
-
-    async def save_state(self) -> AgentToolState:
-        print(f"Saving state of agent {self._agent.name}")
-        return AgentToolState(agent_state=await self._agent.save_state())
-
-    async def load_state(self, state: AgentToolState) -> None:
-        print(f"Loading state of agent {self._agent.name}")
-        await self._agent.load_state(state.agent_state)
