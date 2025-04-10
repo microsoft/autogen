@@ -55,8 +55,6 @@ def update_chroma(gitty_dir: str, db_path: str) -> None:
     conn.close()
 
     sentence_transformer_ef = embedding_functions.DefaultEmbeddingFunction()
-    if sentence_transformer_ef is None:
-        raise RuntimeError("Default embedding function is not available.")
 
     for issue_number, title, content in rows:
         meta = {"title": title}
@@ -159,10 +157,6 @@ def fetch_and_update_issues(owner: str, repo: str, db_path: Optional[str] = None
 
     # New embedding function using sentence_transformers
     sentence_transformer_ef = embedding_functions.DefaultEmbeddingFunction()
-
-    if sentence_transformer_ef is None:
-        print("Error: Default embedding function is not available.")
-        exit(1)
 
     for issue_number, title, content in rows:
         meta = {"title": title}  # metadata for each issue
