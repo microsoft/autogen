@@ -184,7 +184,7 @@ class Prompter:
 
         return topic_list
 
-    async def generalize_task(self, task_description: str) -> str:
+    async def generalize_task(self, task_description: str, revise: bool | None = True) -> str:
         """
         Attempts to rewrite a task description in a more general form.
         """
@@ -198,29 +198,31 @@ class Prompter:
         user_message.append(task_description)
 
         self._clear_history()
-        await self.call_model(
+        generalized_task = await self.call_model(
             summary="Ask the model to rephrase the task in a list of important points",
             system_message_content=sys_message,
             user_content=user_message,
         )
 
-        user_message = [
-            "Do you see any parts of this list that are irrelevant to actually solving the task? If so, explain which items are irrelevant."
-        ]
-        await self.call_model(
-            summary="Ask the model to identify irrelevant points",
-            system_message_content=sys_message,
-            user_content=user_message,
-        )
+        if revise:
+            user_message = [
+                "Do you see any parts of this list that are irrelevant to actually solving the task? If so, explain which items are irrelevant."
+            ]
+            await self.call_model(
+                summary="Ask the model to identify irrelevant points",
+                system_message_content=sys_message,
+                user_content=user_message,
+            )
 
-        user_message = [
-            "Revise your original list to include only the most general terms, those that are critical to solving the task, removing any themes or descriptions that are not essential to the solution. Your final list may be shorter, but do not leave out any part of the task that is needed for solving the task. Do not add any additional commentary either before or after the list."
-        ]
-        generalized_task = await self.call_model(
-            summary="Ask the model to make a final list of general terms",
-            system_message_content=sys_message,
-            user_content=user_message,
-        )
+            user_message = [
+                "Revise your original list to include only the most general terms, those that are critical to solving the task, removing any themes or descriptions that are not essential to the solution. Your final list may be shorter, but do not leave out any part of the task that is needed for solving the task. Do not add any additional commentary either before or after the list."
+            ]
+            generalized_task = await self.call_model(
+                summary="Ask the model to make a final list of general terms",
+                system_message_content=sys_message,
+                user_content=user_message,
+            )
+
         return generalized_task
 
     async def validate_insight(self, insight: str, task_description: str) -> bool:
