@@ -23,7 +23,7 @@ class MessageCompletionCondition(ABC, ComponentBase[BaseModel]):
     Example:
         .. code-block:: python
             import asyncio
-            from autogen_core.model_context.conditions import(
+            from autogen_core.model_context.conditions import (
                 MaxMessageCompletion,
                 TextMentionMessageCompletion,
             )
@@ -38,11 +38,13 @@ class MessageCompletionCondition(ABC, ComponentBase[BaseModel]):
                 # Reset the message completion condition.
                 await cond1.reset()
                 await cond2.reset()
-                
+
+
             asyncio.run(main())
     """
+
     component_type = "message_completion_condition"
-    
+
     @property
     @abstractmethod
     def triggered(self) -> bool:

@@ -180,6 +180,7 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
 
     component_config_schema = TokenUsageMessageCompletionConfig
     component_provider_override = "autogen_core.model_context.conditions.TokenUsageMessageCompletion"
+
     def __init__(
         self,
         model_client: ChatCompletionClient,

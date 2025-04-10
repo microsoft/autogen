@@ -17,6 +17,7 @@ def buffered_summary(buffer_count: int) -> SummarizngFunction:
     Returns:
         SummarizngFunction: The buffered summary function.
     """
+
     def _buffered_summary(
         messages: List[LLMMessage],
         non_summarized_messages: List[LLMMessage],
