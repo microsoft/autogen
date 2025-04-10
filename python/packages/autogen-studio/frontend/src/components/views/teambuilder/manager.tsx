@@ -5,7 +5,7 @@ import { appContext } from "../../../hooks/provider";
 import { teamAPI } from "./api";
 import { useGalleryStore } from "../gallery/store";
 import { TeamSidebar } from "./sidebar";
-import type { Team } from "../../types/datamodel";
+import { Gallery, type Team } from "../../types/datamodel";
 import { TeamBuilder } from "./builder/builder";
 
 export const TeamManager: React.FC = () => {
@@ -19,17 +19,11 @@ export const TeamManager: React.FC = () => {
     }
   });
 
+  const [selectedGallery, setSelectedGallery] = useState<Gallery | null>(null);
+
   const { user } = useContext(appContext);
   const [messageApi, contextHolder] = message.useMessage();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  // Initialize galleries
-  const fetchGalleries = useGalleryStore((state) => state.fetchGalleries);
-  useEffect(() => {
-    if (user?.id) {
-      fetchGalleries(user.id);
-    }
-  }, [user?.id, fetchGalleries]);
 
   // Persist sidebar state
   useEffect(() => {
@@ -171,6 +165,8 @@ export const TeamManager: React.FC = () => {
           onEditTeam={setCurrentTeam}
           onDeleteTeam={handleDeleteTeam}
           isLoading={isLoading}
+          setSelectedGallery={setSelectedGallery}
+          selectedGallery={selectedGallery}
         />
       </div>
 
@@ -205,6 +201,7 @@ export const TeamManager: React.FC = () => {
               team={currentTeam}
               onChange={handleSaveTeam}
               onDirtyStateChange={setHasUnsavedChanges}
+              selectedGallery={selectedGallery}
             />
           ) : (
             <div className="flex items-center justify-center h-[calc(100vh-190px)] text-secondary">

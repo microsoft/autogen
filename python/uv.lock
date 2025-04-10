@@ -452,7 +452,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.4.9"
+version = "0.5.1"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "autogen-core" },
@@ -463,7 +463,7 @@ requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autogen-core"
-version = "0.4.9"
+version = "0.5.1"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
@@ -582,7 +582,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.4.9"
+version = "0.5.1"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
@@ -596,6 +596,7 @@ azure = [
     { name = "azure-ai-inference" },
     { name = "azure-core" },
     { name = "azure-identity" },
+    { name = "azure-search-documents" },
 ]
 chromadb = [
     { name = "chromadb" },
@@ -732,6 +733,7 @@ requires-dist = [
     { name = "azure-ai-inference", marker = "extra == 'azure'", specifier = ">=1.0.0b7" },
     { name = "azure-core", marker = "extra == 'azure'" },
     { name = "azure-identity", marker = "extra == 'azure'" },
+    { name = "azure-search-documents", marker = "extra == 'azure'", specifier = ">=11.4.0" },
     { name = "chromadb", marker = "extra == 'chromadb'" },
     { name = "chromadb", marker = "extra == 'task-centric-memory'", specifier = ">=0.6.3" },
     { name = "diskcache", marker = "extra == 'diskcache'", specifier = ">=5.6.3" },
@@ -743,7 +745,7 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'http-tool'", specifier = ">=0.27.0" },
     { name = "ipykernel", marker = "extra == 'jupyter-executor'", specifier = ">=6.29.5" },
     { name = "json-schema-to-pydantic", marker = "extra == 'http-tool'", specifier = ">=0.2.0" },
-    { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.2" },
+    { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.3" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
     { name = "llama-cpp-python", marker = "extra == 'llama-cpp'", specifier = ">=0.3.8" },
     { name = "magika", marker = "extra == 'file-surfer'", specifier = ">=0.6.1rc2" },
@@ -752,7 +754,7 @@ requires-dist = [
     { name = "markitdown", extras = ["all"], marker = "extra == 'file-surfer'", specifier = "~=0.1.0a3" },
     { name = "markitdown", extras = ["all"], marker = "extra == 'magentic-one'", specifier = "~=0.1.0a3" },
     { name = "markitdown", extras = ["all"], marker = "extra == 'web-surfer'", specifier = "~=0.1.0a3" },
-    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.5.0" },
+    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.6.0" },
     { name = "nbclient", marker = "extra == 'jupyter-executor'", specifier = ">=0.10.2" },
     { name = "ollama", marker = "extra == 'ollama'", specifier = ">=0.4.7" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.66.5" },
@@ -806,7 +808,7 @@ requires-dist = [
 
 [[package]]
 name = "autogenstudio"
-version = "0.4.1"
+version = "0.4.2"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "aiofiles" },
@@ -3037,14 +3039,14 @@ wheels = [
 
 [[package]]
 name = "json-schema-to-pydantic"
-version = "0.2.2"
+version = "0.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/13/87/af1870beea329744a759349b972b309f8c95ae21e986e387e19733b85cc9/json_schema_to_pydantic-0.2.2.tar.gz", hash = "sha256:685db8d93aa29ccd257b2803fcd9a956c527e5fb108a523cbfe8cac1239b3785", size = 34158 }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/8d/da0e791baf63a957ff67e0706d59386b72ab87858e616b6fcfc9b58cd910/json_schema_to_pydantic-0.2.3.tar.gz", hash = "sha256:c76db1f6001996895328e7aa174aae201d85d1f5e79d592c272ea03c8586e453", size = 35305 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/8d/3c738e4b4b041269c4a506544b90e9ba924bbd800c8d496ed3e5a6da0265/json_schema_to_pydantic-0.2.2-py3-none-any.whl", hash = "sha256:01b82d234f2b482a273e117e29d063b6b86021a250035873d6eec4b85b70e64d", size = 11396 },
+    { url = "https://files.pythonhosted.org/packages/4a/55/81bbfbc806aab8dc4a21ad1c9c7fd61f94f2b4076ea64f1730a0368831a2/json_schema_to_pydantic-0.2.3-py3-none-any.whl", hash = "sha256:fe0c04357aa8d27ad5a46e54c2d6a8f35ca6c10b36e76a95c39827e38397f427", size = 11699 },
 ]
 
 [[package]]
@@ -3913,7 +3915,7 @@ wheels = [
 
 [[package]]
 name = "magentic-one-cli"
-version = "0.2.3"
+version = "0.2.4"
 source = { editable = "packages/magentic-one-cli" }
 dependencies = [
     { name = "autogen-agentchat" },
@@ -4147,7 +4149,7 @@ wheels = [
 
 [[package]]
 name = "mcp"
-version = "1.5.0"
+version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -4159,9 +4161,9 @@ dependencies = [
     { name = "starlette" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/c9/c55764824e893fdebe777ac7223200986a275c3191dba9169f8eb6d7c978/mcp-1.5.0.tar.gz", hash = "sha256:5b2766c05e68e01a2034875e250139839498c61792163a7b221fc170c12f5aa9", size = 159128 }
+sdist = { url = "https://files.pythonhosted.org/packages/95/d2/f587cb965a56e992634bebc8611c5b579af912b74e04eb9164bd49527d21/mcp-1.6.0.tar.gz", hash = "sha256:d9324876de2c5637369f43161cd71eebfd803df5a95e46225cab8d280e366723", size = 200031 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c1/d1/3ff566ecf322077d861f1a68a1ff025cad337417bd66ad22a7c6f7dfcfaf/mcp-1.5.0-py3-none-any.whl", hash = "sha256:51c3f35ce93cb702f7513c12406bbea9665ef75a08db909200b07da9db641527", size = 73734 },
+    { url = "https://files.pythonhosted.org/packages/10/30/20a7f33b0b884a9d14dd3aa94ff1ac9da1479fe2ad66dd9e2736075d2506/mcp-1.6.0-py3-none-any.whl", hash = "sha256:7bd24c6ea042dbec44c754f100984d186620d8b841ec30f1b19eda9b93a634d0", size = 76077 },
 ]
 
 [[package]]
