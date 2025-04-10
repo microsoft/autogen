@@ -113,6 +113,8 @@ const RunView: React.FC<RunViewProps> = ({
     return run.messages.filter((msg) => msg.config.source !== "llm_call_event");
   }, [run.messages, uiSettings.show_llm_call_events]);
 
+  console.log("Run task", run.task);
+
   // Replace existing scroll effect with this simpler one
   useEffect(() => {
     setTimeout(() => {
