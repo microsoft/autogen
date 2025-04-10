@@ -1,6 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Sequence
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -24,7 +24,7 @@ class MessageCompletionCondition(ABC, ComponentBase[BaseModel]):
         ...
 
     @abstractmethod
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None: ...
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None: ...
 
     @abstractmethod
     async def reset(self) -> None:
@@ -57,7 +57,7 @@ class AndMessageCompletionCondition(MessageCompletionCondition, Component[AndMes
     def triggered(self) -> bool:
         return all(condition.triggered for condition in self._conditions)
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self.triggered:
             raise MessageCompletionException("Message completion condition has already been reached.")
         # Check all remaining conditions.
@@ -112,7 +112,7 @@ class OrMessageCompletionCondition(MessageCompletionCondition, Component[OrMessa
     def triggered(self) -> bool:
         return any(condition.triggered for condition in self._conditions)
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self.triggered:
             raise RuntimeError("Termination condition has already been reached")
         trigger_messages = await asyncio.gather(*[condition(messages) for condition in self._conditions])

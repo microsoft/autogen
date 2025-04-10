@@ -1,32 +1,30 @@
-import asyncio
 import functools
 import warnings
 from textwrap import dedent
-from typing import Any, Callable, Sequence, List
+from typing import Any, List, Sequence
 
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from . import SummarizngFunction
-
-from ...models import LLMMessage
 from ..._component_config import Component
 from ..._function_utils import (
-    args_base_model_from_signature,
     get_typed_signature,
 )
 from ...code_executor._func_with_reqs import Import, import_to_str, to_code
-from ...tools._base import BaseTool
+from ...models import LLMMessage
+from ._base_summary_function import BaseSummaryFunction
+from ._types import SummarizngFunction
 
 
 class SummaryFunctionConfig(BaseModel):
     """Configuration for a function tool."""
+
     source_code: str
     name: str
     global_imports: Sequence[Import]
 
 
-class SummaryFunction(BaseTool[BaseModel, BaseModel], Component[SummaryFunctionConfig]):
+class SummaryFunction(BaseSummaryFunction, Component[SummaryFunctionConfig]):
     component_provider_override = "autogen_core.model_context.conditions.SummaryFunction"
     component_config_schema = SummaryFunctionConfig
 
@@ -41,11 +39,9 @@ class SummaryFunction(BaseTool[BaseModel, BaseModel], Component[SummaryFunctionC
         self._global_imports = global_imports
         self._signature = get_typed_signature(func)
         func_name = name or func.func.__name__ if isinstance(func, functools.partial) else name or func.__name__
-        args_model = args_base_model_from_signature(func_name + "args", self._signature)
-        return_type = self._signature.return_annotation
-        super().__init__(args_model, return_type, func_name, "", strict)
+        super().__init__(func_name)
 
-    def run(self, messages: List[LLMMessage], non_summary_messages: List[LLMMessage]) -> Any:
+    def run(self, messages: List[LLMMessage], non_summary_messages: List[LLMMessage]) -> List[LLMMessage]:
         result = self._func(messages, non_summary_messages)
         return result
 

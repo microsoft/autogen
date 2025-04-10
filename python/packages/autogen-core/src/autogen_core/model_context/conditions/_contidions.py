@@ -1,14 +1,15 @@
+import time
 from typing import List, Sequence
 
-from autogen_core import Component
 from pydantic import BaseModel
 from typing_extensions import Self
 
 from ..._component_config import Component, ComponentModel
-from ...tools import ToolSchema
 from ...models import ChatCompletionClient, FunctionExecutionResultMessage, LLMMessage
+from ...tools import ToolSchema
 from ._base_condition import MessageCompletionCondition, MessageCompletionException
-from ._types import ContextMessage, TriggerMessage, BaseContextMessage, LLMMessageInstance
+from ._types import BaseContextMessageTypes, ContextMessage, LLMMessageInstance, TriggerMessage
+
 
 class StopMessageCompletionConfig(BaseModel):
     pass
@@ -18,7 +19,7 @@ class StopMessageCompletion(MessageCompletionCondition, Component[StopMessageCom
     """Terminate the conversation if a StopMessage is received."""
 
     component_config_schema = StopMessageCompletionConfig
-    component_provider_override = "" # TODO
+    component_provider_override = ""  # TODO
 
     def __init__(self) -> None:
         self._triggered = False
@@ -27,7 +28,7 @@ class StopMessageCompletion(MessageCompletionCondition, Component[StopMessageCom
     def triggreed(self) -> bool:
         return self._triggered
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
             raise MessageCompletionException("Triggered condition has already been reached")
         for message in messages:
@@ -72,10 +73,10 @@ class MaxMessageCompletion(MessageCompletionCondition, Component[MaxMessageCompl
     def triggered(self) -> bool:
         return self._message_count >= self._max_messages
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self.triggered:
             raise MessageCompletionException("Triggered condition has already been reached")
-        self._message_count += len([m for m in messages if isinstance(m, BaseContextMessage)])
+        self._message_count += len([m for m in messages if isinstance(m, BaseContextMessageTypes)])
         if self._message_count >= self._max_messages:
             return TriggerMessage(
                 content=f"Maximum number of messages {self._max_messages} reached, current message count: {self._message_count}",
@@ -87,9 +88,7 @@ class MaxMessageCompletion(MessageCompletionCondition, Component[MaxMessageCompl
         self._message_count = 0
 
     def _to_config(self) -> MaxMessageCompletionConfig:
-        return MaxMessageCompletionConfig(
-            max_messages=self._max_messages
-        )
+        return MaxMessageCompletionConfig(max_messages=self._max_messages)
 
     @classmethod
     def _from_config(cls, config: MaxMessageCompletionConfig) -> Self:
@@ -110,7 +109,7 @@ class TextMentionMessageCompletion(MessageCompletionCondition, Component[TextMen
     """
 
     component_config_schema = TextMentionMessageCompletionConfig
-    component_provider_override = "" # TODO
+    component_provider_override = ""  # TODO
 
     def __init__(self, text: str, sources: Sequence[str] | None = None) -> None:
         self._trigger_text = text
@@ -121,13 +120,12 @@ class TextMentionMessageCompletion(MessageCompletionCondition, Component[TextMen
     def triggered(self) -> bool:
         return self._triggered
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
             raise MessageCompletionException("Triggerd condition has already been reached")
-        for message in [m for m in messages if isinstance(m, BaseContextMessage)]:
-            if isinstance(message, BaseContextMessage):
-                if self._sources is not None and message.source not in self._sources:
-                    continue
+        for message in [m for m in messages if isinstance(m, BaseContextMessageTypes)]:
+            if self._sources is not None and message.source not in self._sources:
+                continue
 
             content = message.content
             if self._trigger_text in content:
@@ -146,6 +144,7 @@ class TextMentionMessageCompletion(MessageCompletionCondition, Component[TextMen
     @classmethod
     def _from_config(cls, config: TextMentionMessageCompletionConfig) -> Self:
         return cls(text=config.text)
+
 
 class TokenUsageMessageCompletionConfig(BaseModel):
     model_client: ComponentModel
@@ -175,7 +174,7 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
     """
 
     component_config_schema = TokenUsageMessageCompletionConfig
-    component_provider_override = "" #TODO
+    component_provider_override = ""  # TODO
 
     def __init__(
         self,
@@ -183,7 +182,7 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
         *,
         token_limit: int | None = None,
         tool_schema: List[ToolSchema] | None = None,
-        internal_messages: List[LLMMessage] | None = None
+        internal_messages: List[LLMMessage] | None = None,
     ) -> None:
         if token_limit is not None and token_limit <= 0:
             raise ValueError("token_limit must be greater than 0.")
@@ -200,25 +199,28 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
     def triggered(self) -> bool:
         _triggered = False
         if self._token_limit is None:
-            if self._model_client.remaining_tokens(
-                self._internal_messages,
-                tools=self._tool_schema,
-            ) < 0:
+            if (
+                self._model_client.remaining_tokens(
+                    self._internal_messages,
+                    tools=self._tool_schema,
+                )
+                < 0
+            ):
                 _triggered = True
         else:
             if self._total_token >= self._token_limit:
                 _triggered = True
         return _triggered
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self.triggered:
             raise MessageCompletionException("Triggered condition has already been reached")
-        
+
         _messages = [m for m in messages if isinstance(m, LLMMessageInstance)]
         self._internal_messages.extend(_messages)
-        
+
         self._total_token += self._model_client.count_tokens(_messages, tools=self._tool_schema)
-        
+
         if self.triggered:
             content = f"Token usage limit reached, total token count: {self._total_token}."
             return TriggerMessage(content=content, source="TokenUsageMessageCompletion")
@@ -246,9 +248,6 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
         )
 
 
-import time
-
-
 class TimeoutMessageCompletionConfig(BaseModel):
     timeout_seconds: float
 
@@ -272,7 +271,7 @@ class TimeoutMessageCompletion(MessageCompletionCondition, Component[TimeoutMess
     def triggered(self) -> bool:
         return self._triggered
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
             raise MessageCompletionException("Termination condition has already been reached")
 
@@ -334,7 +333,7 @@ class ExternalMessageCompletion(MessageCompletionCondition, Component[ExternalMe
         """Set the termination condition to triggered."""
         self._setted = True
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
             raise MessageCompletionException("Termination condition has already been reached")
         if self._setted:
@@ -379,11 +378,11 @@ class SourceMatchMessageCompletion(MessageCompletionCondition, Component[SourceM
     def triggered(self) -> bool:
         return self._triggered
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
             raise MessageCompletionException("Termination condition has already been reached")
-        
-        _messages = [m for m in messages if isinstance(m, BaseContextMessage)]
+
+        _messages = [m for m in messages if isinstance(m, BaseContextMessageTypes)]
 
         if not _messages:
             return None
@@ -435,11 +434,15 @@ class TextMessageMessageCompletion(MessageCompletionCondition, Component[TextMes
     def triggered(self) -> bool:
         return self._triggered
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
             raise MessageCompletionException("Termination condition has already been reached")
         for message in messages:
-            if isinstance(message, BaseContextMessage) and isinstance(message.content, str) and (self._source is None or message.source == self._source):
+            if (
+                isinstance(message, BaseContextMessageTypes)
+                and isinstance(message.content, str)
+                and (self._source is None or message.source == self._source)
+            ):
                 self._triggered = True
                 return TriggerMessage(
                     content=f"Text message received from '{message.source}'", source="TextMessageMessageCompletion"
@@ -485,7 +488,7 @@ class FunctionCallMessageCompletion(MessageCompletionCondition, Component[Functi
     def triggered(self) -> bool:
         return self._triggered
 
-    async def __call__(self, messages: List[ContextMessage]) -> TriggerMessage | None:
+    async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
             raise MessageCompletionException("Termination condition has already been reached")
         for message in messages:
@@ -512,5 +515,3 @@ class FunctionCallMessageCompletion(MessageCompletionCondition, Component[Functi
         return cls(
             function_name=config.function_name,
         )
-    
-

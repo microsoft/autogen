@@ -1,24 +1,23 @@
 from typing import List
 
-from autogen_core.models import LLMMessage
 from autogen_core.model_context import (
-    SummarizngFunction,
     SummarizedChatCompletionContext,
+    SummarizngFunction,
 )
-from autogen_core.model_context.conditions import (
-    MaxMessageCompletion
-)
+from autogen_core.model_context.conditions import MaxMessageCompletion
+from autogen_core.models import LLMMessage
+
 
 def buffered_summary(buffer_count: int) -> SummarizngFunction:
     def _buffered_summary(
         messages: List[LLMMessage],
         non_summarized_messages: List[LLMMessage],
-    ) -> str:
+    ) -> List[LLMMessage]:
         """Summarize the last `buffer_count` messages."""
         if len(messages) > buffer_count:
             return messages[-buffer_count:]
         return messages
-    
+
     return _buffered_summary
 
 
@@ -37,10 +36,10 @@ def buffered_summarized_chat_completion_context(
     Returns:
         SummarizedChatCompletionContext: The buffered summarized chat completion context.
     """
-    
+
     if max_messages is None:
         max_messages = buffer_count
-    
+
     return SummarizedChatCompletionContext(
         summarizing_func=buffered_summary(buffer_count),
         summarizing_condition=MaxMessageCompletion(

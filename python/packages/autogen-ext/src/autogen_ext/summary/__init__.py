@@ -1,9 +1,6 @@
-from .buffered_summary import (
-    buffered_summary,
-    buffered_summarized_chat_completion_context
-)
+from .buffered_summary import buffered_summarized_chat_completion_context, buffered_summary
 
 __all__ = [
-    "buffered_summary"
+    "buffered_summary",
     "buffered_summarized_chat_completion_context",
 ]
