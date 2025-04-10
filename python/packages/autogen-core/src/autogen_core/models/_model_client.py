@@ -18,6 +18,7 @@ class ModelFamily:
 
     This namespace class holds constants for the model families that AutoGen understands. Other families definitely exist and can be represented by a string, however, AutoGen will treat them as unknown."""
 
+    GPT_45 = "gpt-45"
     GPT_4O = "gpt-4o"
     O1 = "o1"
     O3 = "o3"
@@ -27,15 +28,17 @@ class ModelFamily:
     GEMINI_1_5_FLASH = "gemini-1.5-flash"
     GEMINI_1_5_PRO = "gemini-1.5-pro"
     GEMINI_2_0_FLASH = "gemini-2.0-flash"
+    GEMINI_2_5_PRO = "gemini-2.5-pro"
     CLAUDE_3_HAIKU = "claude-3-haiku"
     CLAUDE_3_SONNET = "claude-3-sonnet"
     CLAUDE_3_OPUS = "claude-3-opus"
-    CLAUDE_3_5_HAIKU = "claude-3.5-haiku"
-    CLAUDE_3_5_SONNET = "claude-3.5-sonnet"
-    CLAUDE_3_7_SONNET = "claude-3.7-sonnet"
+    CLAUDE_3_5_HAIKU = "claude-3-5-haiku"
+    CLAUDE_3_5_SONNET = "claude-3-5-sonnet"
+    CLAUDE_3_7_SONNET = "claude-3-7-sonnet"
     UNKNOWN = "unknown"
 
     ANY: TypeAlias = Literal[
+        "gpt-45",
         "gpt-4o",
         "o1",
         "o3",
@@ -45,11 +48,13 @@ class ModelFamily:
         "gemini-1.5-flash",
         "gemini-1.5-pro",
         "gemini-2.0-flash",
+        "gemini-2.5-pro",
         "claude-3-haiku",
         "claude-3-sonnet",
         "claude-3-opus",
-        "claude-3.5-haiku",
-        "claude-3.5-sonnet",
+        "claude-3-5-haiku",
+        "claude-3-5-sonnet",
+        "claude-3-7-sonnet",
         "unknown",
     ]
 
@@ -64,6 +69,7 @@ class ModelFamily:
             ModelFamily.CLAUDE_3_OPUS,
             ModelFamily.CLAUDE_3_5_HAIKU,
             ModelFamily.CLAUDE_3_5_SONNET,
+            ModelFamily.CLAUDE_3_7_SONNET,
         )
 
     @staticmethod
@@ -72,6 +78,7 @@ class ModelFamily:
             ModelFamily.GEMINI_1_5_FLASH,
             ModelFamily.GEMINI_1_5_PRO,
             ModelFamily.GEMINI_2_0_FLASH,
+            ModelFamily.GEMINI_2_5_PRO,
         )
 
     @staticmethod

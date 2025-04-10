@@ -1,4 +1,5 @@
 # mypy: disable-error-code="no-any-unimported"
+import asyncio
 import os
 import sys
 import tempfile
@@ -109,6 +110,33 @@ async def test_commandline_code_executor_timeout(executor_and_temp_dir: Executor
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
+async def test_commandline_code_executor_cancellation(executor_and_temp_dir: ExecutorFixture) -> None:
+    _executor, temp_dir = executor_and_temp_dir
+    cancellation_token = CancellationToken()
+    # Write code that sleep for 10 seconds and then write "hello world!"
+    # to a file.
+    code = """import time
+time.sleep(10)
+with open("hello.txt", "w") as f:
+    f.write("hello world!")
+"""
+    code_blocks = [CodeBlock(code=code, language="python")]
+
+    task = asyncio.create_task(_executor.execute_code_blocks(code_blocks, cancellation_token))
+    # Cancel the task after 2 seconds
+    await asyncio.sleep(2)
+    cancellation_token.cancel()
+    code_result = await task
+
+    assert code_result.exit_code and "Code execution was cancelled" in code_result.output
+
+    # Check if the file was not created
+    hello_file_path = Path(temp_dir) / "hello.txt"
+    assert not hello_file_path.exists(), f"File {hello_file_path} should not exist after cancellation"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
 async def test_invalid_relative_path(executor_and_temp_dir: ExecutorFixture) -> None:
     executor, _temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
@@ -215,6 +243,121 @@ async def test_docker_commandline_code_executor_extra_args() -> None:
 async def test_docker_commandline_code_executor_serialization() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = DockerCommandLineCodeExecutor(work_dir=temp_dir)
-        loaded_executor = DockerCommandLineCodeExecutor.load_component(executor.dump_component())
+        await executor.start()
+
+        executor_config = executor.dump_component()
+        loaded_executor = DockerCommandLineCodeExecutor.load_component(executor_config)
+        await loaded_executor.start()
+
         assert executor.bind_dir == loaded_executor.bind_dir
         assert executor.timeout == loaded_executor.timeout
+
+        await executor.stop()
+        await loaded_executor.stop()
+
+
+def test_invalid_timeout() -> None:
+    with pytest.raises(ValueError, match="Timeout must be greater than or equal to 1."):
+        _ = DockerCommandLineCodeExecutor(timeout=0)
+
+
+@pytest.mark.asyncio
+async def test_directory_not_initialized() -> None:
+    executor = DockerCommandLineCodeExecutor()
+    with pytest.raises(RuntimeError, match="Working directory not properly initialized"):
+        _ = executor.work_dir
+
+
+@pytest.mark.asyncio
+async def test_error_wrong_path() -> None:
+    if not docker_tests_enabled():
+        pytest.skip("Docker tests are disabled")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:
+            cancellation_token = CancellationToken()
+            code_blocks = [
+                CodeBlock(
+                    code="""with open("/nonexistent_dir/test.txt", "w") as f:
+                    f.write("hello world!")""",
+                    language="python",
+                )
+            ]
+            result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+            assert result.exit_code != 0
+            assert "No such file or directory" in result.output
+
+
+@pytest.mark.asyncio
+async def test_deprecated_warning() -> None:
+    if not docker_tests_enabled():
+        pytest.skip("Docker tests are disabled")
+
+    with pytest.warns(DeprecationWarning, match="Using the current directory as work_dir is deprecated."):
+        async with DockerCommandLineCodeExecutor(work_dir=".") as executor:
+            await executor.start()
+            cancellation_token = CancellationToken()
+            code_block = CodeBlock(code='echo "hello world!"', language="sh")
+            result = await executor.execute_code_blocks([code_block], cancellation_token)
+            assert result.exit_code == 0
+            assert "hello world!" in result.output
+
+
+@pytest.mark.asyncio
+async def test_directory_creation_cleanup() -> None:
+    executor = DockerCommandLineCodeExecutor(timeout=60, work_dir=None)
+
+    await executor.start()
+
+    directory = executor.work_dir
+    assert directory.is_dir()
+
+    await executor.stop()
+
+    assert not Path(directory).exists()
+
+
+@pytest.mark.asyncio
+async def test_delete_tmp_files() -> None:
+    if not docker_tests_enabled():
+        pytest.skip("Docker tests are disabled")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Test with delete_tmp_files=False (default)
+        async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:
+            cancellation_token = CancellationToken()
+            code_blocks = [CodeBlock(code="print('test output')", language="python")]
+            result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+            assert result.exit_code == 0
+            assert result.code_file is not None
+            # Verify file exists after execution
+            assert Path(result.code_file).exists()
+
+        # Test with delete_tmp_files=True
+        async with DockerCommandLineCodeExecutor(work_dir=temp_dir, delete_tmp_files=True) as executor:
+            cancellation_token = CancellationToken()
+            code_blocks = [CodeBlock(code="print('test output')", language="python")]
+            result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+            assert result.exit_code == 0
+            assert result.code_file is not None
+            # Verify file is deleted after execution
+            assert not Path(result.code_file).exists()
+
+            # Test with multiple code blocks
+            code_blocks = [
+                CodeBlock(code="print('first block')", language="python"),
+                CodeBlock(code="print('second block')", language="python"),
+            ]
+            result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+            assert result.exit_code == 0
+            assert result.code_file is not None
+            # Verify files are deleted after execution
+            assert not Path(result.code_file).exists()
+
+            # Test deletion with execution error
+            code_blocks = [CodeBlock(code="raise Exception('test error')", language="python")]
+            result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+            assert result.exit_code != 0
+            assert result.code_file is not None
+            # Verify file is deleted even after error
+            assert not Path(result.code_file).exists()

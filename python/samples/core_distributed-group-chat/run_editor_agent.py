@@ -21,6 +21,7 @@ async def main(config: AppConfig):
     await asyncio.sleep(4)
     Console().print(Markdown("Starting **`Editor Agent`**"))
     await editor_agent_runtime.start()
+    model_client = AzureOpenAIChatCompletionClient(**config.client_config)
     editor_agent_type = await BaseGroupChatAgent.register(
         editor_agent_runtime,
         config.editor_agent.topic_type,
@@ -28,7 +29,7 @@ async def main(config: AppConfig):
             description=config.editor_agent.description,
             group_chat_topic_type=config.group_chat_manager.topic_type,
             system_message=config.editor_agent.system_message,
-            model_client=AzureOpenAIChatCompletionClient(**config.client_config),
+            model_client=model_client,
             ui_config=config.ui_agent,
         ),
     )
@@ -40,6 +41,7 @@ async def main(config: AppConfig):
     )
 
     await editor_agent_runtime.stop_when_signal()
+    await model_client.close()
 
 
 if __name__ == "__main__":

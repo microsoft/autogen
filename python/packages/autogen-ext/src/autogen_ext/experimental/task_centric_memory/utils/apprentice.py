@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, List, Sequence, Tuple, TypedDict
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import AgentEvent, ChatMessage, TextMessage
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, TextMessage
 from autogen_core.models import (
     ChatCompletionClient,
     LLMMessage,
@@ -190,9 +190,9 @@ In responding to every user message, you follow the same multi-step process give
 
         # Get the agent's response to the task.
         task_result: TaskResult = await assistant_agent.run(task=TextMessage(content=task, source="User"))
-        messages: Sequence[AgentEvent | ChatMessage] = task_result.messages
-        message: AgentEvent | ChatMessage = messages[-1]
-        response_str = message.content
+        messages: Sequence[BaseAgentEvent | BaseChatMessage] = task_result.messages
+        message: BaseAgentEvent | BaseChatMessage = messages[-1]
+        response_str = message.to_text()
 
         # Log the model call
         self.logger.log_model_task(
@@ -245,12 +245,7 @@ In responding to every user message, you follow the same multi-step process give
 
         response_str_list: List[str] = []
         for message in messages:
-            content = message.content
-            if isinstance(content, str):
-                content_str = content
-            else:
-                content_str = "Not a string."
-            response_str_list.append(content_str)
+            response_str_list.append(message.to_text())
         response_str = "\n".join(response_str_list)
 
         self.logger.info("\n-----  RESPONSE  -----\n\n{}\n".format(response_str))

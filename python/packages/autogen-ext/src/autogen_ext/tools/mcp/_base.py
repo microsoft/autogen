@@ -1,3 +1,5 @@
+import asyncio
+import builtins
 from abc import ABC
 from typing import Any, Generic, Type, TypeVar
 
@@ -33,7 +35,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         description = tool.description or ""
 
         # Create the input model from the tool's schema
-        input_model = create_model(tool.inputSchema)
+        input_model = create_model(tool.inputSchema, allow_undefined_array_items=True)
 
         # Use Any as return type since MCP tool returns can vary
         return_type: Type[Any] = object
@@ -54,7 +56,10 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         Raises:
             Exception: If the operation is cancelled or the tool execution fails.
         """
-        kwargs = args.model_dump()
+        # Convert the input model to a dictionary
+        # Exclude unset values to avoid sending them to the MCP servers which may cause errors
+        # for many servers.
+        kwargs = args.model_dump(exclude_unset=True)
 
         try:
             async with create_mcp_server_session(self._server_params) as session:
@@ -63,13 +68,16 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 if cancellation_token.is_cancelled():
                     raise Exception("Operation cancelled")
 
-                result = await session.call_tool(self._tool.name, kwargs)  # type: ignore
+                result_future = asyncio.ensure_future(session.call_tool(name=self._tool.name, arguments=kwargs))
+                cancellation_token.link_future(result_future)
+                result = await result_future
 
                 if result.isError:
                     raise Exception(f"MCP tool execution failed: {result.content}")
                 return result.content
         except Exception as e:
-            raise Exception(str(e)) from e
+            error_message = self._format_errors(e)
+            raise Exception(error_message) from e
 
     @classmethod
     async def from_server_params(cls, server_params: TServerParams, tool_name: str) -> "McpToolAdapter[TServerParams]":
@@ -98,3 +106,16 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 )
 
         return cls(server_params=server_params, tool=matching_tool)
+
+    def _format_errors(self, error: Exception) -> str:
+        """Recursively format errors into a string."""
+
+        error_message = ""
+        if hasattr(builtins, "ExceptionGroup") and isinstance(error, builtins.ExceptionGroup):
+            # ExceptionGroup is available in Python 3.11+.
+            # TODO: how to make this compatible with Python 3.10?
+            for sub_exception in error.exceptions:  # type: ignore
+                error_message += self._format_errors(sub_exception)  # type: ignore
+        else:
+            error_message += f"{str(error)}\n"
+        return error_message

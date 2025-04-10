@@ -4,13 +4,13 @@ from typing import AsyncGenerator, Protocol, Sequence
 from autogen_core import CancellationToken
 from pydantic import BaseModel
 
-from ..messages import AgentEvent, ChatMessage
+from ..messages import BaseAgentEvent, BaseChatMessage
 
 
 class TaskResult(BaseModel):
     """Result of running a task."""
 
-    messages: Sequence[AgentEvent | ChatMessage]
+    messages: Sequence[BaseAgentEvent | BaseChatMessage]
     """Messages produced by the task."""
 
     stop_reason: str | None = None
@@ -23,7 +23,7 @@ class TaskRunner(Protocol):
     async def run(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the task and return the result.
@@ -38,9 +38,9 @@ class TaskRunner(Protocol):
     def run_stream(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | TaskResult, None]:
         """Run the task and produces a stream of messages and the final result
         :class:`TaskResult` as the last item in the stream.
 
