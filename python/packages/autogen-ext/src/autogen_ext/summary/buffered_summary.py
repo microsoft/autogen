@@ -9,6 +9,14 @@ from autogen_core.models import LLMMessage
 
 
 def buffered_summary(buffer_count: int) -> SummarizngFunction:
+    """Create a buffered summary function.
+    This function summarizes the last `buffer_count` messages.
+    It is used to create a buffered summarized chat completion context.
+    Args:
+        buffer_count (int): The size of the buffer.
+    Returns:
+        SummarizngFunction: The buffered summary function.
+    """
     def _buffered_summary(
         messages: List[LLMMessage],
         non_summarized_messages: List[LLMMessage],

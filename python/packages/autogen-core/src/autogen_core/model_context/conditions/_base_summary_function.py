@@ -12,13 +12,12 @@ logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class BaseSummaryFunction(ABC, ComponentBase[BaseModel]):
-    component_type = "tool"
+    component_type = "summary_function"
 
     def __init__(
         self,
         name: str,
     ) -> None:
-        # Normalize Annotated to the base type.
         self._name = name
 
     @property

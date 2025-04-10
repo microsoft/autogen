@@ -16,21 +16,21 @@ class StopMessageCompletionConfig(BaseModel):
 
 
 class StopMessageCompletion(MessageCompletionCondition, Component[StopMessageCompletionConfig]):
-    """Terminate the conversation if a StopMessage is received."""
+    """Trigger the conversation if a StopMessage is received."""
 
     component_config_schema = StopMessageCompletionConfig
-    component_provider_override = ""  # TODO
+    component_provider_override = "autogen_core.model_context.conditions.StopMessageCompletion"
 
     def __init__(self) -> None:
         self._triggered = False
 
     @property
-    def triggreed(self) -> bool:
+    def triggered(self) -> bool:
         return self._triggered
 
     async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
-            raise MessageCompletionException("Triggered condition has already been reached")
+            raise MessageCompletionException("Trigger condition has already been reached")
         for message in messages:
             if isinstance(message, TriggerMessage):
                 self._triggered = True
@@ -50,20 +50,18 @@ class StopMessageCompletion(MessageCompletionCondition, Component[StopMessageCom
 
 class MaxMessageCompletionConfig(BaseModel):
     max_messages: int
-    include_agent_event: bool = False
+    # TODO : include_agent_event: bool = False
 
 
 class MaxMessageCompletion(MessageCompletionCondition, Component[MaxMessageCompletionConfig]):
-    """Terminate the conversation after a maximum number of messages have been exchanged.
+    """Trigger the conversation after a maximum number of messages have been exchanged.
 
     Args:
         max_messages: The maximum number of messages allowed in the conversation.
-        include_agent_event: If True, include :class:`~autogen_agentchat.messages.BaseAgentEvent` in the message count.
-            Otherwise, only include :class:`~autogen_agentchat.messages.BaseChatMessage`. Defaults to False.
     """
 
     component_config_schema = MaxMessageCompletionConfig
-    component_provider_override = "autogen_agentchat.conditions.MaxMessageCompletion"
+    component_provider_override = "autogen_core.model_context.conditions.MaxMessageCompletion"
 
     def __init__(self, max_messages: int) -> None:
         self._max_messages = max_messages
@@ -75,7 +73,7 @@ class MaxMessageCompletion(MessageCompletionCondition, Component[MaxMessageCompl
 
     async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self.triggered:
-            raise MessageCompletionException("Triggered condition has already been reached")
+            raise MessageCompletionException("Trigger condition has already been reached")
         self._message_count += len([m for m in messages if isinstance(m, BaseContextMessageTypes)])
         if self._message_count >= self._max_messages:
             return TriggerMessage(
@@ -97,10 +95,11 @@ class MaxMessageCompletion(MessageCompletionCondition, Component[MaxMessageCompl
 
 class TextMentionMessageCompletionConfig(BaseModel):
     text: str
+    sources: Sequence[str] | None = None
 
 
 class TextMentionMessageCompletion(MessageCompletionCondition, Component[TextMentionMessageCompletionConfig]):
-    """Terminate the conversation if a specific text is mentioned.
+    """Trigger the conversation if a specific text is mentioned.
 
 
     Args:
@@ -109,7 +108,7 @@ class TextMentionMessageCompletion(MessageCompletionCondition, Component[TextMen
     """
 
     component_config_schema = TextMentionMessageCompletionConfig
-    component_provider_override = ""  # TODO
+    component_provider_override = "autogen_core.model_context.conditions.TextMentionMessageCompletion"
 
     def __init__(self, text: str, sources: Sequence[str] | None = None) -> None:
         self._trigger_text = text
@@ -122,7 +121,7 @@ class TextMentionMessageCompletion(MessageCompletionCondition, Component[TextMen
 
     async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
-            raise MessageCompletionException("Triggerd condition has already been reached")
+            raise MessageCompletionException("Trigger condition has already been reached")
         for message in [m for m in messages if isinstance(m, BaseContextMessageTypes)]:
             if self._sources is not None and message.source not in self._sources:
                 continue
@@ -139,18 +138,24 @@ class TextMentionMessageCompletion(MessageCompletionCondition, Component[TextMen
         self._triggered = False
 
     def _to_config(self) -> TextMentionMessageCompletionConfig:
-        return TextMentionMessageCompletionConfig(text=self._trigger_text)
+        return TextMentionMessageCompletionConfig(
+            text=self._trigger_text,
+            sources=self._sources,
+        )
 
     @classmethod
     def _from_config(cls, config: TextMentionMessageCompletionConfig) -> Self:
-        return cls(text=config.text)
+        return cls(
+            text=config.text,
+            sources=config.sources,
+        )
 
 
 class TokenUsageMessageCompletionConfig(BaseModel):
     model_client: ComponentModel
     token_limit: int | None = None
     tool_schema: List[ToolSchema] | None = None
-    internal_messages: List[LLMMessage] | None = None
+    initial_messages: List[LLMMessage] | None = None
 
 
 class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsageMessageCompletionConfig]):
@@ -158,7 +163,7 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
 
     .. note::
 
-        Added in v0.4.10. This is an experimental component and may change in the future.
+        Added in v0.5.10. This is an experimental component and may change in the future.
 
     Args:
         model_client (ChatCompletionClient): The model client to use for token counting.
@@ -168,21 +173,20 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
             using the :meth:`~autogen_core.models.ChatCompletionClient.count_tokens` method.
             If None, the context will be limited by the model client using the
             :meth:`~autogen_core.models.ChatCompletionClient.remaining_tokens` method.
-        tools (List[ToolSchema] | None): A list of tool schema to use in the context.
+        tool_schema (List[ToolSchema] | None): A list of tool schema to use in the context.
         initial_messages (List[LLMMessage] | None): A list of initial messages to include in the context.
 
     """
 
     component_config_schema = TokenUsageMessageCompletionConfig
-    component_provider_override = ""  # TODO
-
+    component_provider_override = "autogen_core.model_context.conditions.TokenUsageMessageCompletion"
     def __init__(
         self,
         model_client: ChatCompletionClient,
         *,
         token_limit: int | None = None,
         tool_schema: List[ToolSchema] | None = None,
-        internal_messages: List[LLMMessage] | None = None,
+        initial_messages: List[LLMMessage] | None = None,
     ) -> None:
         if token_limit is not None and token_limit <= 0:
             raise ValueError("token_limit must be greater than 0.")
@@ -190,10 +194,10 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
         self._total_token = 0
         self._model_client = model_client
         self._tool_schema = tool_schema or []
-        if internal_messages is not None:
-            self._internal_messages = internal_messages
+        if initial_messages is not None:
+            self._initial_messages = initial_messages
         else:
-            self._internal_messages = []
+            self._initial_messages = []
 
     @property
     def triggered(self) -> bool:
@@ -201,7 +205,7 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
         if self._token_limit is None:
             if (
                 self._model_client.remaining_tokens(
-                    self._internal_messages,
+                    self._initial_messages,
                     tools=self._tool_schema,
                 )
                 < 0
@@ -214,10 +218,10 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
 
     async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self.triggered:
-            raise MessageCompletionException("Triggered condition has already been reached")
+            raise MessageCompletionException("Trigger condition has already been reached")
 
         _messages = [m for m in messages if isinstance(m, LLMMessageInstance)]
-        self._internal_messages.extend(_messages)
+        self._initial_messages.extend(_messages)
 
         self._total_token += self._model_client.count_tokens(_messages, tools=self._tool_schema)
 
@@ -228,14 +232,14 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
 
     async def reset(self) -> None:
         self._total_token = 0
-        self._internal_messages = []
+        self._initial_messages = []
 
     def _to_config(self) -> TokenUsageMessageCompletionConfig:
         return TokenUsageMessageCompletionConfig(
             model_client=self._model_client.dump_component(),
             token_limit=self._token_limit,
             tool_schema=self._tool_schema,
-            internal_messages=self._internal_messages,
+            initial_messages=self._initial_messages,
         )
 
     @classmethod
@@ -244,7 +248,7 @@ class TokenUsageMessageCompletion(MessageCompletionCondition, Component[TokenUsa
             model_client=ChatCompletionClient.load_component(config.model_client),
             token_limit=config.token_limit,
             tool_schema=config.tool_schema,
-            internal_messages=config.internal_messages,
+            initial_messages=config.initial_messages,
         )
 
 
@@ -253,14 +257,14 @@ class TimeoutMessageCompletionConfig(BaseModel):
 
 
 class TimeoutMessageCompletion(MessageCompletionCondition, Component[TimeoutMessageCompletionConfig]):
-    """Terminate the conversation after a specified duration has passed.
+    """Trigger the conversation after a specified duration has passed.
 
     Args:
-        timeout_seconds: The maximum duration in seconds before terminating the conversation.
+        timeout_seconds: The maximum duration in seconds before triggering the conversation.
     """
 
     component_config_schema = TimeoutMessageCompletionConfig
-    component_provider_override = ""
+    component_provider_override = "autogen_core.model_context.conditions.TimeoutMessageCompletion"
 
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -273,7 +277,7 @@ class TimeoutMessageCompletion(MessageCompletionCondition, Component[TimeoutMess
 
     async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
-            raise MessageCompletionException("Termination condition has already been reached")
+            raise MessageCompletionException("Trigger condition has already been reached")
 
         if (time.monotonic() - self._start_time) >= self._timeout_seconds:
             self._triggered = True
@@ -299,27 +303,22 @@ class ExternalMessageCompletionConfig(BaseModel):
 
 
 class ExternalMessageCompletion(MessageCompletionCondition, Component[ExternalMessageCompletionConfig]):
-    """A termination condition that is externally controlled
+    """A Trigger condition that is externally controlled
     by calling the :meth:`set` method.
 
     Example:
 
     .. code-block:: python
+        from autogen_core.model_context.conditions import ExternalMessageCompletion
 
-        from autogen_agentchat.conditions import ExternalTermination
-
-        termination = ExternalTermination()
-
-        # Run the team in an asyncio task.
-        ...
-
-        # Set the termination condition externally
-        termination.set()
+        trigger_condition = ExternalMessageCompletion()
+        trigger_condition.set()
+        # Trigger condition is now set to True.
 
     """
 
     component_config_schema = ExternalMessageCompletionConfig
-    component_provider_override = ""
+    component_provider_override = "autogen_core.model_context.conditions.ExternalMessageCompletion"
 
     def __init__(self) -> None:
         self._triggered = False
@@ -330,15 +329,21 @@ class ExternalMessageCompletion(MessageCompletionCondition, Component[ExternalMe
         return self._triggered
 
     def set(self) -> None:
-        """Set the termination condition to triggered."""
+        """Set the trigger condition to triggered.
+
+        This method manually sets the trigger condition to `True`, indicating that
+        the external trigger has been activated. Once set, the condition will remain
+        triggered until the `reset` method is called to clear it.
+        """
+        """Set the trigger condition to triggered."""
         self._setted = True
 
     async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
-            raise MessageCompletionException("Termination condition has already been reached")
+            raise MessageCompletionException("Trigger condition has already been reached")
         if self._setted:
             self._triggered = True
-            return TriggerMessage(content="External termination requested", source="ExternalMessageCompletion")
+            return TriggerMessage(content="External trigger requested", source="ExternalMessageCompletion")
         return None
 
     async def reset(self) -> None:
@@ -358,17 +363,17 @@ class SourceMatchMessageCompletionConfig(BaseModel):
 
 
 class SourceMatchMessageCompletion(MessageCompletionCondition, Component[SourceMatchMessageCompletionConfig]):
-    """Terminate the conversation after a specific source responds.
+    """Trigger the conversation after a specific source responds.
 
     Args:
-        sources (List[str]): List of source names to terminate the conversation.
+        sources (List[str]): List of source names to trigger the conversation.
 
     Raises:
-        MessageCompletionException: If the termination condition has already been reached.
+        MessageCompletionException: If the trigger condition has already been reached.
     """
 
     component_config_schema = SourceMatchMessageCompletionConfig
-    component_provider_override = "autogen_agentchat.conditions.SourceMatchTermination"
+    component_provider_override = "autogen_core.model_context.conditions.SourceMatchMessageCompletion"
 
     def __init__(self, sources: List[str]) -> None:
         self._sources = sources
@@ -380,7 +385,7 @@ class SourceMatchMessageCompletion(MessageCompletionCondition, Component[SourceM
 
     async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
-            raise MessageCompletionException("Termination condition has already been reached")
+            raise MessageCompletionException("Trigger condition has already been reached")
 
         _messages = [m for m in messages if isinstance(m, BaseContextMessageTypes)]
 
@@ -404,18 +409,18 @@ class SourceMatchMessageCompletion(MessageCompletionCondition, Component[SourceM
 
 
 class TextMessageMessageCompletionConfig(BaseModel):
-    """Configuration for the TextMessageTermination termination condition."""
+    """Configuration for the TextMessageMessageCompletion trigger condition."""
 
     source: str | None = None
-    """The source of the text message to terminate the conversation."""
+    """The source of the text message to trigger the conversation."""
 
 
 class TextMessageMessageCompletion(MessageCompletionCondition, Component[TextMessageMessageCompletionConfig]):
-    """Terminate the conversation if a :class:`~autogen_agentchat.messages.TextMessage` is received.
+    """Trigger the conversation if a :class:`~autogen_core.models.LLMMessage` and it's content type is `str` is received.
 
-    This termination condition checks for TextMessage instances in the message sequence. When a TextMessage is found,
-    it terminates the conversation if either:
-    - No source was specified (terminates on any TextMessage)
+    This trigger condition checks for LLMMessage instances in the message sequence. When a LLMMessage is found,
+    it trigger the conversation if either:
+    - No source was specified (trigger on any text message)
     - The message source matches the specified source
 
     Args:
@@ -424,7 +429,7 @@ class TextMessageMessageCompletion(MessageCompletionCondition, Component[TextMes
     """
 
     component_config_schema = TextMessageMessageCompletionConfig
-    component_provider_override = ""
+    component_provider_override = "autogen_core.model_context.conditions.TextMessageMessageCompletion"
 
     def __init__(self, source: str | None = None) -> None:
         self._triggered = False
@@ -436,7 +441,7 @@ class TextMessageMessageCompletion(MessageCompletionCondition, Component[TextMes
 
     async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
-            raise MessageCompletionException("Termination condition has already been reached")
+            raise MessageCompletionException("Trigger condition has already been reached")
         for message in messages:
             if (
                 isinstance(message, BaseContextMessageTypes)
@@ -461,24 +466,24 @@ class TextMessageMessageCompletion(MessageCompletionCondition, Component[TextMes
 
 
 class FunctionCallMessageCompletionConfig(BaseModel):
-    """Configuration for the :class:`FunctionCallMessageCompletion` termination condition."""
+    """Configuration for the :class:`FunctionCallMessageCompletion` trigger condition."""
 
     function_name: str
 
 
 class FunctionCallMessageCompletion(MessageCompletionCondition, Component[FunctionCallMessageCompletionConfig]):
-    """Terminate the conversation if a :class:`~autogen_core.models.FunctionExecutionResult`
+    """Trigger the conversation if a :class:`~autogen_core.models.FunctionExecutionResult`
     with a specific name was received.
 
     Args:
         function_name (str): The name of the function to look for in the messages.
 
     Raises:
-        MessageCompletionException: If the termination condition has already been reached.
+        MessageCompletionException: If the trigger condition has already been reached.
     """
 
     component_config_schema = FunctionCallMessageCompletionConfig
-    """The schema for the component configuration."""
+    component_provider_override = "autogen_core.model_context.conditions.FunctionCallMessageCompletion"
 
     def __init__(self, function_name: str) -> None:
         self._triggered = False
@@ -490,7 +495,7 @@ class FunctionCallMessageCompletion(MessageCompletionCondition, Component[Functi
 
     async def __call__(self, messages: Sequence[ContextMessage]) -> TriggerMessage | None:
         if self._triggered:
-            raise MessageCompletionException("Termination condition has already been reached")
+            raise MessageCompletionException("Trigger condition has already been reached")
         for message in messages:
             if isinstance(message, FunctionExecutionResultMessage):
                 for execution in message.content:

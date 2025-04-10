@@ -115,6 +115,7 @@ class SummarizedChatCompletionContext(ChatCompletionContext, Component[Summarize
         return self._messages
 
     async def summary(self) -> None:
+        """Summarize the messages in the context using the summarizing function."""
         summarized_message = self._summarizing_func.run(self._messages, self._non_summarized_messages)
         self._messages = summarized_message
 

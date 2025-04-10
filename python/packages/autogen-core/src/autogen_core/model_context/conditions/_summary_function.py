@@ -17,7 +17,7 @@ from ._types import SummarizngFunction
 
 
 class SummaryFunctionConfig(BaseModel):
-    """Configuration for a function tool."""
+    """Configuration for a summary function."""
 
     source_code: str
     name: str
