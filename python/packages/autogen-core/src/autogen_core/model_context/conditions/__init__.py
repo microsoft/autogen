@@ -1,6 +1,7 @@
 from ._base_condition import (
     AndMessageCompletionCondition,
     MessageCompletionCondition,
+    MessageCompletionException,
     OrMessageCompletionCondition,
 )
 from ._contidions import (
@@ -27,6 +28,7 @@ __all__ = [
     "MessageCompletionCondition",
     "AndMessageCompletionCondition",
     "OrMessageCompletionCondition",
+    "MessageCompletionException",
     "ContextMessage",
     "TriggerMessage",
     "SummarizngFunction",
