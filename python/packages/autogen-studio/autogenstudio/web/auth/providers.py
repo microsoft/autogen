@@ -34,7 +34,7 @@ class NoAuthProvider(AuthProvider):
 
     def __init__(self):
         self.default_user = User(
-            id="guestuser@gmail.com", name="Default User", email="guestuser@gmail.com", provider="none"
+            id="admin@kagent.dev", name="Default User", email="admin@kagent.dev", provider="none"
         )
 
     async def get_login_url(self) -> str:
