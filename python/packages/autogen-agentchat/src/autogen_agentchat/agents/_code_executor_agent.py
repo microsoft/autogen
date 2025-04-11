@@ -169,12 +169,14 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         .. code-block:: python
 
             import asyncio
-            from autogen_agentchat.agents import CodeExecutorAgent, AssistantAgent
+
+            from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+            from autogen_agentchat.agents import AssistantAgent, CodeExecutorAgent
             from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_agentchat.ui import Console
-            from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
             termination_condition = MaxMessageTermination(3)
 
@@ -224,14 +226,15 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         .. code-block:: python
 
             import asyncio
-            from autogen_agentchat.agents import CodeExecutorAgent, AssistantAgent
-            from autogen_agentchat.conditions import MaxMessageTermination
-            from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_agentchat.ui import Console
+
             from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-            termination_condition = MaxMessageTermination(3)
+            from autogen_agentchat.agents import CodeExecutorAgent
+            from autogen_agentchat.conditions import TextMessageTermination
+            from autogen_agentchat.ui import Console
+
+            termination_condition = TextMessageTermination("code_executor_agent")
 
 
             async def main() -> None:
