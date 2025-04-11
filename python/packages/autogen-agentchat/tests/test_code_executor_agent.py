@@ -1,11 +1,15 @@
 import pytest
+from autogen_core import CancellationToken
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
 from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
+    CodeExecutionEvent,
+    CodeGenerationEvent,
     TextMessage,
 )
-from autogen_core import CancellationToken
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 
 @pytest.mark.asyncio
@@ -34,6 +38,41 @@ print("%0.3f" % (square_root,))
     assert isinstance(response.chat_message, TextMessage)
     assert response.chat_message.content.strip() == "6.481"
     assert response.chat_message.source == "code_executor"
+
+
+@pytest.mark.asyncio
+async def test_basic_code_execution_with_model_client() -> None:
+    """Test basic code execution"""
+
+    model_client = OpenAIChatCompletionClient(model="gpt-4o-mini")
+
+    agent = CodeExecutorAgent(
+        name="code_executor_agent", code_executor=LocalCommandLineCodeExecutor(), model_client=model_client
+    )
+
+    messages = [
+        TextMessage(
+            content="Generate python code to print 'Hello World!' on console.",
+            source="assistant",
+        )
+    ]
+
+    async for message in agent.on_messages_stream(messages, CancellationToken()):
+        if isinstance(message, CodeGenerationEvent):
+            pass  # Do nothing for CodeGenerationEvent
+        elif isinstance(message, CodeExecutionEvent):
+            assert (
+                message.to_text().strip() == "Hello World!"
+            ), f"Expected 'Hello World!', got: {message.to_text().strip()}"
+        elif isinstance(message, Response):
+            assert isinstance(
+                message.chat_message, TextMessage
+            ), f"Expected TextMessage, got: {type(message.chat_message)}"
+            assert (
+                message.chat_message.source == "code_executor_agent"
+            ), f"Expected source 'code_executor_agent', got: {message.chat_message.source}"
+        else:
+            raise AssertionError(f"Unexpected message type: {type(message)}")
 
 
 @pytest.mark.asyncio
