@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 
-from autogen_ext.memory.canvas import Canvas
+from ._text_canvas import TextCanvas
 
 
 class UpdateFileArgs(BaseModel):
@@ -20,7 +20,7 @@ class UpdateFileTool(BaseTool[UpdateFileArgs, UpdateFileResult]):
     Overwrites or creates a file in the canvas.
     """
 
-    def __init__(self, canvas: Canvas):
+    def __init__(self, canvas: TextCanvas):
         super().__init__(
             args_type=UpdateFileArgs,
             return_type=UpdateFileResult,
@@ -48,7 +48,7 @@ class ApplyPatchTool(BaseTool[ApplyPatchArgs, ApplyPatchResult]):
     Applies a unified diff patch to the given file on the canvas.
     """
 
-    def __init__(self, canvas: Canvas):
+    def __init__(self, canvas: TextCanvas):
         super().__init__(
             args_type=ApplyPatchArgs,
             return_type=ApplyPatchResult,
