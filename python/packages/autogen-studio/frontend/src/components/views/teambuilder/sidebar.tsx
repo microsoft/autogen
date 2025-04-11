@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Button, Tooltip, Select, message } from "antd";
 import {
   Bot,
@@ -12,9 +12,12 @@ import {
   RefreshCcw,
   History,
 } from "lucide-react";
-import type { Team } from "../../types/datamodel";
+import type { Gallery, Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
-import { useGalleryStore } from "../gallery/store";
+import { GalleryAPI } from "../gallery/api";
+import { appContext } from "../../../hooks/provider";
+import { Link } from "gatsby";
+import { getLocalStorage, setLocalStorage } from "../../utils/utils";
 
 interface TeamSidebarProps {
   isOpen: boolean;
@@ -26,6 +29,8 @@ interface TeamSidebarProps {
   onEditTeam: (team: Team) => void;
   onDeleteTeam: (teamId: number) => void;
   isLoading?: boolean;
+  selectedGallery: Gallery | null;
+  setSelectedGallery: (gallery: Gallery) => void;
 }
 
 export const TeamSidebar: React.FC<TeamSidebarProps> = ({
@@ -38,18 +43,50 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
   onEditTeam,
   onDeleteTeam,
   isLoading = false,
+  selectedGallery,
+  setSelectedGallery,
 }) => {
   // Tab state - "recent" or "gallery"
   const [activeTab, setActiveTab] = useState<"recent" | "gallery">("recent");
   const [messageApi, contextHolder] = message.useMessage();
 
-  // Gallery store
-  const {
-    galleries,
-    selectedGallery,
-    selectGallery,
-    isLoading: isLoadingGalleries,
-  } = useGalleryStore();
+  const [isLoadingGalleries, setIsLoadingGalleries] = useState(false);
+  const [galleries, setGalleries] = useState<Gallery[]>([]);
+  const { user } = useContext(appContext);
+
+  // Fetch galleries
+
+  const fetchGalleries = async () => {
+    if (!user?.id) return;
+    setIsLoadingGalleries(true);
+    try {
+      const galleryAPI = new GalleryAPI();
+      const data = await galleryAPI.listGalleries(user.id);
+      setGalleries(data);
+
+      // Check localStorage for a previously saved gallery ID
+      const savedGalleryId = getLocalStorage(`selectedGalleryId_${user.id}`);
+
+      if (savedGalleryId && data.length > 0) {
+        const savedGallery = data.find((g) => g.id === savedGalleryId);
+        if (savedGallery) {
+          setSelectedGallery(savedGallery);
+        } else if (!selectedGallery && data.length > 0) {
+          setSelectedGallery(data[0]);
+        }
+      } else if (!selectedGallery && data.length > 0) {
+        setSelectedGallery(data[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching galleries:", error);
+    } finally {
+      setIsLoadingGalleries(false);
+    }
+  };
+  // Fetch galleries on mount
+  React.useEffect(() => {
+    fetchGalleries();
+  }, [user?.id]);
 
   // Render collapsed state
   if (!isOpen) {
@@ -262,13 +299,28 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
         {activeTab === "gallery" && (
           <div className="p-2">
             {/* Gallery Selector */}
+            <div className="my-2 mb-3 text-xs">
+              {" "}
+              Select a{" "}
+              <Link to="/gallery" className="text-accent">
+                <span className="font-medium">gallery</span>
+              </Link>{" "}
+              to view its components as templates
+            </div>
             <Select
               className="w-full mb-4"
               placeholder="Select gallery"
               value={selectedGallery?.id}
               onChange={(value) => {
                 const gallery = galleries.find((g) => g.id === value);
-                if (gallery) selectGallery(gallery);
+                if (gallery) {
+                  setSelectedGallery(gallery);
+
+                  // Save the selected gallery ID to localStorage
+                  if (user?.id) {
+                    setLocalStorage(`selectedGalleryId_${user.id}`, value);
+                  }
+                }
               }}
               options={galleries.map((gallery) => ({
                 value: gallery.id,

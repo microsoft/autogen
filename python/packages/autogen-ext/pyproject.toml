@@ -41,7 +41,7 @@ llama-cpp = [
 ]
 
 graphrag = ["graphrag>=1.0.1"]
-chromadb = ["chromadb"]
+chromadb = ["chromadb>=1.0.0"]
 web-surfer = [
     "autogen-agentchat==0.5.1",
     "playwright>=1.48.0",
@@ -78,7 +78,7 @@ jupyter-executor = [
     "nbclient>=0.10.2",
 ]
 
-task-centric-memory = ["chromadb>=0.6.3"]
+task-centric-memory = ["chromadb>=1.0.0"]
 
 semantic-kernel-core = [
     "semantic-kernel>=1.17.1",
@@ -137,7 +137,7 @@ rich = ["rich>=13.9.4"]
 
 mcp = [
     "mcp>=1.6.0",
-    "json-schema-to-pydantic>=0.2.2"
+    "json-schema-to-pydantic>=0.2.3"
 ]
 
 [tool.hatch.build.targets.wheel]

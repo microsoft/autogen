@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, Button, Tooltip, Drawer, Input } from "antd";
 import {
   Package,
@@ -12,6 +12,7 @@ import {
   Copy,
   Trash,
   Plus,
+  Download,
 } from "lucide-react";
 import { ComponentEditor } from "../teambuilder/builder/component-editor/component-editor";
 import { TruncatableText } from "../atoms";
@@ -160,6 +161,13 @@ export const GalleryDetail: React.FC<{
     gallery.config.metadata.description
   );
 
+  useEffect(() => {
+    setTempName(gallery.config.name);
+    setTempDescription(gallery.config.metadata.description);
+    setActiveTab("team");
+    setEditingComponent(null);
+  }, [gallery.id]);
+
   const updateGallery = (
     category: CategoryKey,
     updater: (
@@ -286,6 +294,21 @@ export const GalleryDetail: React.FC<{
     setIsEditingDetails(false);
   };
 
+  const handleDownload = () => {
+    const dataStr = JSON.stringify(gallery, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${gallery.config.name
+      .toLowerCase()
+      .replace(/\s+/g, "_")}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const tabItems = Object.entries(iconMap).map(([key, Icon]) => ({
     key,
     label: (
@@ -355,25 +378,6 @@ export const GalleryDetail: React.FC<{
                   </Tooltip>
                 )}
               </div>
-              {!isEditingDetails ? (
-                <Button
-                  icon={<Edit className="w-4 h-4" />}
-                  onClick={() => setIsEditingDetails(true)}
-                  type="text"
-                  className="text-white hover:text-white/80"
-                >
-                  Edit
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button onClick={() => setIsEditingDetails(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="primary" onClick={handleDetailsSave}>
-                    Save
-                  </Button>
-                </div>
-              )}
             </div>
             {isEditingDetails ? (
               <TextArea
@@ -383,9 +387,39 @@ export const GalleryDetail: React.FC<{
                 rows={2}
               />
             ) : (
-              <p className="text-secondary w-1/2 mt-2 line-clamp-2">
-                {gallery.config.metadata.description}
-              </p>
+              <div className="flex flex-col gap-2">
+                <p className="text-secondary w-1/2 mt-2 line-clamp-2">
+                  {gallery.config.metadata.description}
+                </p>
+                <div className="flex gap-0">
+                  <Tooltip title="Edit Gallery">
+                    <Button
+                      icon={<Edit className="w-4 h-4" />}
+                      onClick={() => setIsEditingDetails(true)}
+                      type="text"
+                      className="text-white hover:text-white/80"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Download Gallery">
+                    <Button
+                      icon={<Download className="w-4 h-4" />}
+                      onClick={handleDownload}
+                      type="text"
+                      className="text-white hover:text-white/80"
+                    />
+                  </Tooltip>
+                </div>
+              </div>
+            )}
+            {isEditingDetails && (
+              <div className="flex gap-2 mt-2">
+                <Button onClick={() => setIsEditingDetails(false)}>
+                  Cancel
+                </Button>
+                <Button type="primary" onClick={handleDetailsSave}>
+                  Save
+                </Button>
+              </div>
             )}
           </div>
           <div className="flex gap-2">
