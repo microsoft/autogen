@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ExternalTermination.cs
-
 using Microsoft.AutoGen.AgentChat.Abstractions;
 
 namespace Microsoft.AutoGen.AgentChat.Terminations;

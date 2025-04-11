@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// TerminationConditionTests.cs
-
 using FluentAssertions;
 using Microsoft.AutoGen.AgentChat.Abstractions;
 using Microsoft.AutoGen.AgentChat.Terminations;
@@ -467,6 +464,27 @@ public class TerminationConditionTests
         await termination.InvokeExpectingNullAsync([toolCallRequest]);
         await termination.InvokeExpectingNullAsync([otherExecution]);
         await termination.InvokeExpectingStopAsync([testExecution], reset: false);
+
+        await termination.InvokeExpectingFailureAsync([], reset: false);
+
+        termination.Reset();
+        termination.IsTerminated.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Test_SourceMatchTermination()
+    {
+        SourceMatchTermination termination = new("user", "agent");
+        termination.IsTerminated.Should().BeFalse();
+
+        TextMessage userMessage = new() { Content = "Hello", Source = "user" };
+        TextMessage agentMessage = new() { Content = "World", Source = "agent" };
+        TextMessage otherMessage = new() { Content = "Hi", Source = "other" };
+
+        await termination.InvokeExpectingNullAsync([]);
+        await termination.InvokeExpectingStopAsync([userMessage]);
+        await termination.InvokeExpectingStopAsync([agentMessage]);
+        await termination.InvokeExpectingNullAsync([otherMessage]);
 
         await termination.InvokeExpectingFailureAsync([], reset: false);
 
