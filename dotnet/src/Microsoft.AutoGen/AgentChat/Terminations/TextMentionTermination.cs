@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// TextMentionTermination.cs
-
 using Microsoft.AutoGen.AgentChat.Abstractions;
 using Microsoft.Extensions.AI;
 
