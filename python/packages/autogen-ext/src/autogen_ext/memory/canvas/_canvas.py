@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Union
 
+
 class BaseCanvas(ABC):
     """
     An abstract protocol for "canvas" objects that maintain
