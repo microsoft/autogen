@@ -1,48 +1,18 @@
-import json
-
 import pytest
 from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
     TextMessage,
 )
-from autogen_core import CancellationToken, FunctionCall
-from autogen_core.models import (
-    CreateResult,
-    RequestUsage,
-)
-from autogen_core.models._model_client import ModelFamily
+from autogen_core import CancellationToken
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
 @pytest.mark.asyncio
 async def test_basic_code_execution() -> None:
     """Test basic code execution"""
 
-    model_client = ReplayChatCompletionClient(
-        [
-            CreateResult(
-                finish_reason="function_calls",
-                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
-                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                thought="Calling pass function",
-                cached=False,
-            ),
-            "pass",
-            "TERMINATE",
-        ],
-        model_info={
-            "function_calling": True,
-            "vision": True,
-            "json_output": True,
-            "family": ModelFamily.GPT_4O,
-            "structured_output": True,
-        },
-    )
-    agent = CodeExecutorAgent(
-        name="code_executor", code_executor=LocalCommandLineCodeExecutor(), model_client=model_client
-    )
+    agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
     messages = [
         TextMessage(
@@ -70,29 +40,7 @@ print("%0.3f" % (square_root,))
 async def test_code_execution_error() -> None:
     """Test basic code execution"""
 
-    model_client = ReplayChatCompletionClient(
-        [
-            CreateResult(
-                finish_reason="function_calls",
-                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
-                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                thought="Calling pass function",
-                cached=False,
-            ),
-            "pass",
-            "TERMINATE",
-        ],
-        model_info={
-            "function_calling": True,
-            "vision": True,
-            "json_output": True,
-            "family": ModelFamily.GPT_4O,
-            "structured_output": True,
-        },
-    )
-    agent = CodeExecutorAgent(
-        name="code_executor", code_executor=LocalCommandLineCodeExecutor(), model_client=model_client
-    )
+    agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
     messages = [
         TextMessage(
@@ -120,29 +68,7 @@ print("%0.3f" % (square_root,))
 async def test_code_execution_no_output() -> None:
     """Test basic code execution"""
 
-    model_client = ReplayChatCompletionClient(
-        [
-            CreateResult(
-                finish_reason="function_calls",
-                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
-                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                thought="Calling pass function",
-                cached=False,
-            ),
-            "pass",
-            "TERMINATE",
-        ],
-        model_info={
-            "function_calling": True,
-            "vision": True,
-            "json_output": True,
-            "family": ModelFamily.GPT_4O,
-            "structured_output": True,
-        },
-    )
-    agent = CodeExecutorAgent(
-        name="code_executor", code_executor=LocalCommandLineCodeExecutor(), model_client=model_client
-    )
+    agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
     messages = [
         TextMessage(
@@ -171,29 +97,7 @@ square_root = math.sqrt(number)
 async def test_code_execution_no_block() -> None:
     """Test basic code execution"""
 
-    model_client = ReplayChatCompletionClient(
-        [
-            CreateResult(
-                finish_reason="function_calls",
-                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
-                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                thought="Calling pass function",
-                cached=False,
-            ),
-            "pass",
-            "TERMINATE",
-        ],
-        model_info={
-            "function_calling": True,
-            "vision": True,
-            "json_output": True,
-            "family": ModelFamily.GPT_4O,
-            "structured_output": True,
-        },
-    )
-    agent = CodeExecutorAgent(
-        name="code_executor", code_executor=LocalCommandLineCodeExecutor(), model_client=model_client
-    )
+    agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
     messages = [
         TextMessage(
@@ -220,29 +124,7 @@ square_root = math.sqrt(number)
 async def test_code_execution_multiple_blocks() -> None:
     """Test basic code execution"""
 
-    model_client = ReplayChatCompletionClient(
-        [
-            CreateResult(
-                finish_reason="function_calls",
-                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
-                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                thought="Calling pass function",
-                cached=False,
-            ),
-            "pass",
-            "TERMINATE",
-        ],
-        model_info={
-            "function_calling": True,
-            "vision": True,
-            "json_output": True,
-            "family": ModelFamily.GPT_4O,
-            "structured_output": True,
-        },
-    )
-    agent = CodeExecutorAgent(
-        name="code_executor", code_executor=LocalCommandLineCodeExecutor(), model_client=model_client
-    )
+    agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
     messages = [
         TextMessage(
@@ -290,29 +172,7 @@ print("%0.3f" % (square_root,))
 async def test_code_execution_agent_serialization() -> None:
     """Test agent config serialization"""
 
-    model_client = ReplayChatCompletionClient(
-        [
-            CreateResult(
-                finish_reason="function_calls",
-                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
-                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                thought="Calling pass function",
-                cached=False,
-            ),
-            "pass",
-            "TERMINATE",
-        ],
-        model_info={
-            "function_calling": True,
-            "vision": True,
-            "json_output": True,
-            "family": ModelFamily.GPT_4O,
-            "structured_output": True,
-        },
-    )
-    agent = CodeExecutorAgent(
-        name="code_executor", code_executor=LocalCommandLineCodeExecutor(), model_client=model_client
-    )
+    agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
     # Serialize and deserialize the agent
     serialized_agent = agent.dump_component()
