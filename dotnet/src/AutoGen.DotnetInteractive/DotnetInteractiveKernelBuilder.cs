@@ -14,7 +14,9 @@ public static class DotnetInteractiveKernelBuilder
 
     public static InProccessDotnetInteractiveKernelBuilder CreateDefaultInProcessKernelBuilder()
     {
-        return new InProccessDotnetInteractiveKernelBuilder();
+        return new InProccessDotnetInteractiveKernelBuilder()
+            .AddCSharpKernel()
+            .AddFSharpKernel();
     }
 #endif
 
