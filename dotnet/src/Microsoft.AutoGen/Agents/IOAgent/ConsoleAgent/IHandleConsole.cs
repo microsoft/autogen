@@ -1,5 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// IHandleConsole.cs
 using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Agents;
@@ -30,7 +28,10 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
     async ValueTask IHandle<Output>.HandleAsync(Output item, MessageContext messageContext)
     {
         // Assuming item has a property `Message` that we want to write to the console
+        var messageType = item.GetType().Name;
+        Console.WriteLine($"--------- {messageType} -----------");
         Console.WriteLine(item.Message);
+        Console.WriteLine($"--------- End of {messageType} -----------");
         await ProcessOutputAsync(item.Message);
 
         var evt = new OutputWritten
@@ -52,7 +53,10 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
         Console.WriteLine("Please enter input:");
         string content = Console.ReadLine() ?? string.Empty;
 
+        var messageType = item.GetType().Name;
+        Console.WriteLine($"--------- {messageType} -----------");
         await ProcessInputAsync(content);
+        Console.WriteLine($"--------- End of {messageType} -----------");
 
         var evt = new InputProcessed
         {

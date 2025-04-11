@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// PrintMessageMiddleware.cs
-
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -9,9 +6,6 @@ using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
-/// <summary>
-/// The middleware that prints the reply from agent to the console.
-/// </summary>
 public class PrintMessageMiddleware : IStreamingMiddleware
 {
     public string? Name => nameof(PrintMessageMiddleware);
@@ -57,7 +51,6 @@ public class PrintMessageMiddleware : IStreamingMiddleware
             {
                 if (recentUpdate is null)
                 {
-                    // Print from: xxx
                     Console.WriteLine($"from: {textMessageUpdate.From}");
                     recentUpdate = new TextMessage(textMessageUpdate);
                     Console.Write(textMessageUpdate.Content);
@@ -66,7 +59,6 @@ public class PrintMessageMiddleware : IStreamingMiddleware
                 }
                 else if (recentUpdate is TextMessage recentTextMessage)
                 {
-                    // Print the content of the message
                     Console.Write(textMessageUpdate.Content);
                     recentTextMessage.Update(textMessageUpdate);
 

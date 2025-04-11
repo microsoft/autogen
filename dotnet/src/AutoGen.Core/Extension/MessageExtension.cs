@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// MessageExtension.cs
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,17 +11,18 @@ public static class MessageExtension
 
     public static string FormatMessage(this IMessage message)
     {
+        var messageType = message.GetMessageType();
         return message switch
         {
 #pragma warning disable CS0618 // deprecated
-            Message msg => msg.FormatMessage(),
+            Message msg => $"{messageType} {msg.FormatMessage()}",
 #pragma warning restore CS0618 // deprecated
-            TextMessage textMessage => textMessage.FormatMessage(),
-            ImageMessage imageMessage => imageMessage.FormatMessage(),
-            ToolCallMessage toolCallMessage => toolCallMessage.FormatMessage(),
-            ToolCallResultMessage toolCallResultMessage => toolCallResultMessage.FormatMessage(),
-            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.FormatMessage(),
-            _ => message.ToString(),
+            TextMessage textMessage => $"{messageType} {textMessage.FormatMessage()}",
+            ImageMessage imageMessage => $"{messageType} {imageMessage.FormatMessage()}",
+            ToolCallMessage toolCallMessage => $"{messageType} {toolCallMessage.FormatMessage()}",
+            ToolCallResultMessage toolCallResultMessage => $"{messageType} {toolCallResultMessage.FormatMessage()}",
+            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => $"{messageType} {aggregateMessage.FormatMessage()}",
+            _ => $"{messageType} {message.ToString()}",
         } ?? string.Empty;
     }
 
@@ -218,6 +216,22 @@ public static class MessageExtension
 #pragma warning restore CS0618 // deprecated
             AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.Message1.ToolCalls,
             _ => null,
+        };
+    }
+
+    public static string GetMessageType(this IMessage message)
+    {
+        return message switch
+        {
+#pragma warning disable CS0618 // deprecated
+            Message => "Message",
+#pragma warning restore CS0618 // deprecated
+            TextMessage => "TextMessage",
+            ImageMessage => "ImageMessage",
+            ToolCallMessage => "ToolCallMessage",
+            ToolCallResultMessage => "ToolCallResultMessage",
+            AggregateMessage<ToolCallMessage, ToolCallResultMessage> => "AggregateMessage",
+            _ => "UnknownMessageType",
         };
     }
 }
