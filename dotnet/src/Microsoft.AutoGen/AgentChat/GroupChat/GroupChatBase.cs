@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// GroupChatBase.cs
-
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -346,5 +343,15 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
 
             await this.Runtime!.StopAsync();
         }
+    }
+
+    public async ValueTask<List<AgentMessage>> GetCurrentThread(CancellationToken cancellationToken = default)
+    {
+        GroupChatGetThread getThreadMessage = new GroupChatGetThread();
+
+        AgentId chatManagerId = new AgentId(GroupChatManagerTopicType, this.TeamId);
+        GroupChatThreadResponse response = await this.Runtime!.SendMessageAsync<GroupChatThreadResponse>(getThreadMessage, chatManagerId, cancellationToken: cancellationToken);
+
+        return response.Messages;
     }
 }
