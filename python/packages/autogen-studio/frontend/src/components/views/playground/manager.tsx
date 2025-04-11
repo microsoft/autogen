@@ -26,8 +26,29 @@ export const SessionManager: React.FC = () => {
 
   const { user } = useContext(appContext);
   const { session, setSession, sessions, setSessions } = useConfigStore();
+  const [isCompareMode, setIsCompareMode] = useState(false);
+  const [comparisonSession, setComparisonSession] = useState<Session | null>(
+    null
+  );
 
   const galleryStore = useGalleryStore();
+
+  const handleCompareClick = () => {
+    if (sessions.length > 1) {
+      // Find the first session that isn't the current one
+      const otherSession = sessions.find((s) => s.id !== session?.id);
+      setComparisonSession(otherSession || session);
+    } else {
+      // If only one session, show it in both panels
+      setComparisonSession(session);
+    }
+    setIsCompareMode(true);
+  };
+
+  const handleExitCompare = () => {
+    setIsCompareMode(false);
+    setComparisonSession(null);
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -36,11 +57,11 @@ export const SessionManager: React.FC = () => {
   }, [isSidebarOpen]);
 
   const fetchSessions = useCallback(async () => {
-    if (!user?.email) return;
+    if (!user?.id) return;
 
     try {
       setIsLoading(true);
-      const data = await sessionAPI.listSessions(user.email);
+      const data = await sessionAPI.listSessions(user.id);
       setSessions(data);
 
       // Only set first session if there's no sessionId in URL
@@ -55,7 +76,7 @@ export const SessionManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.email, setSessions, session, setSession]);
+  }, [user?.id, setSessions, session, setSession]);
 
   // Handle initial URL params
   useEffect(() => {
@@ -83,21 +104,21 @@ export const SessionManager: React.FC = () => {
   }, [session]);
 
   const handleSaveSession = async (sessionData: Partial<Session>) => {
-    if (!user?.email) return;
+    if (!user?.id) return;
 
     try {
       if (sessionData.id) {
         const updated = await sessionAPI.updateSession(
           sessionData.id,
           sessionData,
-          user.email
+          user.id
         );
         setSessions(sessions.map((s) => (s.id === updated.id ? updated : s)));
         if (session?.id === updated.id) {
           setSession(updated);
         }
       } else {
-        const created = await sessionAPI.createSession(sessionData, user.email);
+        const created = await sessionAPI.createSession(sessionData, user.id);
         setSessions([created, ...sessions]);
         setSession(created);
       }
@@ -110,10 +131,10 @@ export const SessionManager: React.FC = () => {
   };
 
   const handleDeleteSession = async (sessionId: number) => {
-    if (!user?.email) return;
+    if (!user?.id) return;
 
     try {
-      const response = await sessionAPI.deleteSession(sessionId, user.email);
+      const response = await sessionAPI.deleteSession(sessionId, user.id);
       setSessions(sessions.filter((s) => s.id !== sessionId));
       if (session?.id === sessionId || sessions.length === 0) {
         setSession(sessions[0] || null);
@@ -127,7 +148,7 @@ export const SessionManager: React.FC = () => {
   };
 
   const handleQuickStart = async (teamId: number, teamName: string) => {
-    if (!user?.email) return;
+    if (!user?.id) return;
     try {
       const defaultName = `${teamName.substring(
         0,
@@ -138,7 +159,7 @@ export const SessionManager: React.FC = () => {
           name: defaultName,
           team_id: teamId,
         },
-        user.email
+        user.id
       );
 
       setSessions([created, ...sessions]);
@@ -149,18 +170,18 @@ export const SessionManager: React.FC = () => {
     }
   };
 
+  // Modify the existing session selection handler
   const handleSelectSession = async (selectedSession: Session) => {
-    if (!user?.email || !selectedSession.id) return;
+    if (!user?.id || !selectedSession.id) return;
 
     try {
       setIsLoading(true);
-      const data = await sessionAPI.getSession(selectedSession.id, user.email);
+      const data = await sessionAPI.getSession(selectedSession.id, user.id);
       if (!data) {
-        // Session not found
         messageApi.error("Session not found");
-        window.history.pushState({}, "", window.location.pathname); // Clear URL
+        window.history.pushState({}, "", window.location.pathname);
         if (sessions.length > 0) {
-          setSession(sessions[0]); // Fall back to first session
+          setSession(sessions[0]);
         } else {
           setSession(null);
         }
@@ -171,12 +192,6 @@ export const SessionManager: React.FC = () => {
     } catch (error) {
       console.error("Error loading session:", error);
       messageApi.error("Error loading session");
-      window.history.pushState({}, "", window.location.pathname); // Clear invalid URL
-      if (sessions.length > 0) {
-        setSession(sessions[0]); // Fall back to first session
-      } else {
-        setSession(null);
-      }
     } finally {
       setIsLoading(false);
     }
@@ -188,16 +203,17 @@ export const SessionManager: React.FC = () => {
 
   // Add teams fetching
   const fetchTeams = useCallback(async () => {
-    if (!user?.email) return;
+    // console.log("Fetching teams", user);
+    if (!user?.id) return;
 
     try {
       setIsLoading(true);
-      const teamsData = await teamAPI.listTeams(user.email);
+      const teamsData = await teamAPI.listTeams(user.id);
       if (teamsData.length > 0) {
         setTeams(teamsData);
       } else {
         console.log("No teams found, creating default team");
-        await galleryStore.fetchGalleries(user.email);
+        await galleryStore.fetchGalleries(user.id);
         const defaultGallery = galleryStore.getSelectedGallery();
 
         const sampleTeam = defaultGallery?.config.components.teams[0];
@@ -207,7 +223,7 @@ export const SessionManager: React.FC = () => {
           const teamData: Team = {
             component: sampleTeam,
           };
-          const defaultTeam = await teamAPI.createTeam(teamData, user.email);
+          const defaultTeam = await teamAPI.createTeam(teamData, user.id);
           console.log("Default team created:", teamData);
 
           setTeams([defaultTeam]);
@@ -219,7 +235,7 @@ export const SessionManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.email, messageApi]);
+  }, [user?.id, messageApi]);
 
   // Fetch teams on mount
   useEffect(() => {
@@ -252,13 +268,36 @@ export const SessionManager: React.FC = () => {
       </div>
 
       <div
-        className={`flex-1 transition-all -mr-4 duration-200 ${
+        className={`flex-1 transition-all duration-200 ${
           isSidebarOpen ? "ml-64" : "ml-12"
         }`}
       >
         {session && sessions.length > 0 ? (
-          <div className="pl-4">
-            {session && <ChatView session={session} />}
+          <div className="pl-4 flex gap-4">
+            {/* Primary ChatView */}
+            <div className={`flex-1 ${isCompareMode ? "w-1/2" : "w-full"}`}>
+              <ChatView
+                session={session}
+                isCompareMode={isCompareMode}
+                onCompareClick={handleCompareClick}
+                onSessionChange={handleSelectSession}
+                availableSessions={sessions}
+              />
+            </div>
+
+            {/* Comparison ChatView */}
+            {isCompareMode && (
+              <div className="flex-1 w-1/2 border-l border-secondary/20 pl-4">
+                <ChatView
+                  session={comparisonSession}
+                  isCompareMode={true}
+                  isSecondaryView={true}
+                  onExitCompare={handleExitCompare}
+                  onSessionChange={setComparisonSession}
+                  availableSessions={sessions}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-secondary">

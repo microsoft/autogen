@@ -68,7 +68,7 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext, Component[HeadAndT
 
     def _to_config(self) -> HeadAndTailChatCompletionContextConfig:
         return HeadAndTailChatCompletionContextConfig(
-            head_size=self._head_size, tail_size=self._tail_size, initial_messages=self._messages
+            head_size=self._head_size, tail_size=self._tail_size, initial_messages=self._initial_messages
         )
 
     @classmethod

@@ -90,7 +90,6 @@ wheels = [
 
 [[package]]
 name = "agbench"
-version = "0.0.1a1"
 source = { editable = "packages/agbench" }
 dependencies = [
     { name = "azure-identity" },
@@ -290,7 +289,7 @@ wheels = [
 
 [[package]]
 name = "anthropic"
-version = "0.45.2"
+version = "0.49.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -301,9 +300,9 @@ dependencies = [
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/15/74/2b2485fc120da834c0c5be07462541ec082e9fa8851d845f2587e480535a/anthropic-0.45.2.tar.gz", hash = "sha256:32a18b9ecd12c91b2be4cae6ca2ab46a06937b5aa01b21308d97a6d29794fb5e", size = 200901 }
+sdist = { url = "https://files.pythonhosted.org/packages/86/e3/a88c8494ce4d1a88252b9e053607e885f9b14d0a32273d47b727cbee4228/anthropic-0.49.0.tar.gz", hash = "sha256:c09e885b0f674b9119b4f296d8508907f6cff0009bc20d5cf6b35936c40b4398", size = 210016 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/74/86/e81814e542d1eaeec84d2312bec93a99b9ef1d78d9bfae1fc5dd74abdf15/anthropic-0.45.2-py3-none-any.whl", hash = "sha256:ecd746f7274451dfcb7e1180571ead624c7e1195d1d46cb7c70143d2aedb4d35", size = 222797 },
+    { url = "https://files.pythonhosted.org/packages/76/74/5d90ad14d55fbe3f9c474fdcb6e34b4bed99e3be8efac98734a5ddce88c1/anthropic-0.49.0-py3-none-any.whl", hash = "sha256:bbc17ad4e7094988d2fa86b87753ded8dce12498f4b85fe5810f208f454a8375", size = 243368 },
 ]
 
 [[package]]
@@ -452,7 +451,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.4.9"
+version = "0.5.1"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "autogen-core" },
@@ -463,7 +462,7 @@ requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autogen-core"
-version = "0.4.9"
+version = "0.5.1"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
@@ -582,17 +581,21 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.4.9"
+version = "0.5.1"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
 ]
 
 [package.optional-dependencies]
+anthropic = [
+    { name = "anthropic" },
+]
 azure = [
     { name = "azure-ai-inference" },
     { name = "azure-core" },
     { name = "azure-identity" },
+    { name = "azure-search-documents" },
 ]
 chromadb = [
     { name = "chromadb" },
@@ -606,7 +609,8 @@ docker = [
 ]
 file-surfer = [
     { name = "autogen-agentchat" },
-    { name = "markitdown" },
+    { name = "magika" },
+    { name = "markitdown", extra = ["all"] },
 ]
 gemini = [
     { name = "google-genai" },
@@ -633,7 +637,8 @@ llama-cpp = [
 ]
 magentic-one = [
     { name = "autogen-agentchat" },
-    { name = "markitdown" },
+    { name = "magika" },
+    { name = "markitdown", extra = ["all"] },
     { name = "pillow" },
     { name = "playwright" },
 ]
@@ -700,7 +705,8 @@ video-surfer = [
 ]
 web-surfer = [
     { name = "autogen-agentchat" },
-    { name = "markitdown" },
+    { name = "magika" },
+    { name = "markitdown", extra = ["all"] },
     { name = "pillow" },
     { name = "playwright" },
 ]
@@ -716,6 +722,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiofiles", marker = "extra == 'openai'" },
+    { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.48" },
     { name = "asyncio-atexit", marker = "extra == 'docker'", specifier = ">=1.0.1" },
     { name = "autogen-agentchat", marker = "extra == 'file-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-agentchat", marker = "extra == 'magentic-one'", editable = "packages/autogen-agentchat" },
@@ -725,8 +732,9 @@ requires-dist = [
     { name = "azure-ai-inference", marker = "extra == 'azure'", specifier = ">=1.0.0b7" },
     { name = "azure-core", marker = "extra == 'azure'" },
     { name = "azure-identity", marker = "extra == 'azure'" },
-    { name = "chromadb", marker = "extra == 'chromadb'" },
-    { name = "chromadb", marker = "extra == 'task-centric-memory'", specifier = ">=0.6.3" },
+    { name = "azure-search-documents", marker = "extra == 'azure'", specifier = ">=11.4.0" },
+    { name = "chromadb", marker = "extra == 'chromadb'", specifier = ">=1.0.0" },
+    { name = "chromadb", marker = "extra == 'task-centric-memory'", specifier = ">=1.0.0" },
     { name = "diskcache", marker = "extra == 'diskcache'", specifier = ">=5.6.3" },
     { name = "docker", marker = "extra == 'docker'", specifier = "~=7.0" },
     { name = "ffmpeg-python", marker = "extra == 'video-surfer'" },
@@ -736,16 +744,19 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'http-tool'", specifier = ">=0.27.0" },
     { name = "ipykernel", marker = "extra == 'jupyter-executor'", specifier = ">=6.29.5" },
     { name = "json-schema-to-pydantic", marker = "extra == 'http-tool'", specifier = ">=0.2.0" },
-    { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.2" },
+    { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.3" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
-    { name = "llama-cpp-python", marker = "extra == 'llama-cpp'", specifier = ">=0.1.9" },
-    { name = "markitdown", marker = "extra == 'file-surfer'", specifier = "~=0.0.1" },
-    { name = "markitdown", marker = "extra == 'magentic-one'", specifier = "~=0.0.1" },
-    { name = "markitdown", marker = "extra == 'web-surfer'", specifier = "~=0.0.1" },
-    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.1.3" },
+    { name = "llama-cpp-python", marker = "extra == 'llama-cpp'", specifier = ">=0.3.8" },
+    { name = "magika", marker = "extra == 'file-surfer'", specifier = ">=0.6.1rc2" },
+    { name = "magika", marker = "extra == 'magentic-one'", specifier = ">=0.6.1rc2" },
+    { name = "magika", marker = "extra == 'web-surfer'", specifier = ">=0.6.1rc2" },
+    { name = "markitdown", extras = ["all"], marker = "extra == 'file-surfer'", specifier = "~=0.1.0a3" },
+    { name = "markitdown", extras = ["all"], marker = "extra == 'magentic-one'", specifier = "~=0.1.0a3" },
+    { name = "markitdown", extras = ["all"], marker = "extra == 'web-surfer'", specifier = "~=0.1.0a3" },
+    { name = "mcp", marker = "extra == 'mcp'", git = "https://github.com/kagent-dev/python-sdk?rev=56e86a5c90468014fd94cd95dcdfe0644c5b19b6" },
     { name = "nbclient", marker = "extra == 'jupyter-executor'", specifier = ">=0.10.2" },
     { name = "ollama", marker = "extra == 'ollama'", specifier = ">=0.4.7" },
-    { name = "openai", marker = "extra == 'openai'", specifier = ">=1.52.2" },
+    { name = "openai", marker = "extra == 'openai'", specifier = ">=1.66.5" },
     { name = "openai-whisper", marker = "extra == 'video-surfer'" },
     { name = "opencv-python", marker = "extra == 'video-surfer'", specifier = ">=4.5" },
     { name = "pillow", marker = "extra == 'magentic-one'", specifier = ">=11.0.0" },
@@ -796,15 +807,14 @@ requires-dist = [
 
 [[package]]
 name = "autogenstudio"
-version = "0.4.1"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "aiofiles" },
     { name = "alembic" },
+    { name = "anthropic" },
     { name = "autogen-agentchat" },
     { name = "autogen-core" },
     { name = "autogen-ext", extra = ["azure", "magentic-one", "openai"] },
-    { name = "azure-identity" },
     { name = "fastapi", extra = ["standard"] },
     { name = "html2text" },
     { name = "loguru" },
@@ -831,10 +841,10 @@ web = [
 requires-dist = [
     { name = "aiofiles" },
     { name = "alembic" },
+    { name = "anthropic" },
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "autogen-ext", extras = ["azure", "magentic-one", "openai"], editable = "packages/autogen-ext" },
-    { name = "azure-identity" },
     { name = "fastapi", marker = "extra == 'web'" },
     { name = "fastapi", extras = ["standard"] },
     { name = "html2text" },
@@ -1327,7 +1337,7 @@ wheels = [
 
 [[package]]
 name = "chromadb"
-version = "0.6.3"
+version = "1.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bcrypt" },
@@ -1337,6 +1347,7 @@ dependencies = [
     { name = "grpcio" },
     { name = "httpx" },
     { name = "importlib-resources" },
+    { name = "jsonschema" },
     { name = "kubernetes" },
     { name = "mmh3" },
     { name = "numpy" },
@@ -1359,9 +1370,13 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "uvicorn", extra = ["standard"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/39/cd/f0f2de3f466ff514fb6b58271c14f6d22198402bb5b71b8d890231265946/chromadb-0.6.3.tar.gz", hash = "sha256:c8f34c0b704b9108b04491480a36d42e894a960429f87c6516027b5481d59ed3", size = 29297929 }
+sdist = { url = "https://files.pythonhosted.org/packages/30/76/34998d22f5fc05f4affce956676074aa5bf864006699878334cc95a64d84/chromadb-1.0.4.tar.gz", hash = "sha256:ee927adfe618e170320b6da25b39a01282142350de70b9b76ab98aa7af7d2f34", size = 1145874 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/8e/5c186c77bf749b6fe0528385e507e463f1667543328d76fd00a49e1a4e6a/chromadb-0.6.3-py3-none-any.whl", hash = "sha256:4851258489a3612b558488d98d09ae0fe0a28d5cad6bd1ba64b96fdc419dc0e5", size = 611129 },
+    { url = "https://files.pythonhosted.org/packages/22/95/76b5a4ed9ee3e0fefb8d0676f9f4f4b622a311c3f367e3cc8491956314f6/chromadb-1.0.4-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:f6789b573f510815218b25027f8471b6c132acc2f2d2a53ff42e3e76d9d248ac", size = 17600592 },
+    { url = "https://files.pythonhosted.org/packages/8b/68/59d9cefdbcee97755b6ba95d554366767053cfad7ff94081779f88111289/chromadb-1.0.4-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:32daa01014acf98570eeb31e966b641a4d79a2fdc1f750caa5dfc1ba24d9991c", size = 16870748 },
+    { url = "https://files.pythonhosted.org/packages/12/da/339d6d7dbcc227786018c54a36d7ed4b716896e3c32bedb8e4ae94098315/chromadb-1.0.4-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:844a2a3bd624149093be84b9c3e2b070fa21da129c8563c790be64c4bf0d9f5f", size = 17384197 },
+    { url = "https://files.pythonhosted.org/packages/b9/78/c5dcddcd0ce4ad9365a186fee36bb313656854406e37965241491b975f0a/chromadb-1.0.4-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9c4e72dba33b6fd2da55f044498b298169724cae5113538fa18b3458427ecea8", size = 18279788 },
+    { url = "https://files.pythonhosted.org/packages/22/c8/06214f13c0e83b9ffc597496491097b176d3039609497a3654b30b2ba114/chromadb-1.0.4-cp39-abi3-win_amd64.whl", hash = "sha256:37e8071e3bc40f0a67730f9483ca1d3e8a67d32a3409cd1beaacfb76336eb98c", size = 18222168 },
 ]
 
 [[package]]
@@ -1890,16 +1905,16 @@ wheels = [
 
 [[package]]
 name = "fastapi"
-version = "0.115.7"
+version = "0.115.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "starlette" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a2/f5/3f921e59f189e513adb9aef826e2841672d50a399fead4e69afdeb808ff4/fastapi-0.115.7.tar.gz", hash = "sha256:0f106da6c01d88a6786b3248fb4d7a940d071f6f488488898ad5d354b25ed015", size = 293177 }
+sdist = { url = "https://files.pythonhosted.org/packages/ab/dd/d854f85e70f7341b29e3fda754f2833aec197bd355f805238758e3bcd8ed/fastapi-0.115.9.tar.gz", hash = "sha256:9d7da3b196c5eed049bc769f9475cd55509a112fbe031c0ef2f53768ae68d13f", size = 293774 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e6/7f/bbd4dcf0faf61bc68a01939256e2ed02d681e9334c1a3cef24d5f77aba9f/fastapi-0.115.7-py3-none-any.whl", hash = "sha256:eb6a8c8bf7f26009e8147111ff15b5177a0e19bb4a45bc3486ab14804539d21e", size = 94777 },
+    { url = "https://files.pythonhosted.org/packages/32/b6/7517af5234378518f27ad35a7b24af9591bc500b8c1780929c1295999eb6/fastapi-0.115.9-py3-none-any.whl", hash = "sha256:4a439d7923e4de796bcc88b64e9754340fcd1574673cbd865ba8a99fe0d28c56", size = 94919 },
 ]
 
 [package.optional-dependencies]
@@ -3027,14 +3042,14 @@ wheels = [
 
 [[package]]
 name = "json-schema-to-pydantic"
-version = "0.2.2"
+version = "0.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/13/87/af1870beea329744a759349b972b309f8c95ae21e986e387e19733b85cc9/json_schema_to_pydantic-0.2.2.tar.gz", hash = "sha256:685db8d93aa29ccd257b2803fcd9a956c527e5fb108a523cbfe8cac1239b3785", size = 34158 }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/8d/da0e791baf63a957ff67e0706d59386b72ab87858e616b6fcfc9b58cd910/json_schema_to_pydantic-0.2.3.tar.gz", hash = "sha256:c76db1f6001996895328e7aa174aae201d85d1f5e79d592c272ea03c8586e453", size = 35305 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/8d/3c738e4b4b041269c4a506544b90e9ba924bbd800c8d496ed3e5a6da0265/json_schema_to_pydantic-0.2.2-py3-none-any.whl", hash = "sha256:01b82d234f2b482a273e117e29d063b6b86021a250035873d6eec4b85b70e64d", size = 11396 },
+    { url = "https://files.pythonhosted.org/packages/4a/55/81bbfbc806aab8dc4a21ad1c9c7fd61f94f2b4076ea64f1730a0368831a2/json_schema_to_pydantic-0.2.3-py3-none-any.whl", hash = "sha256:fe0c04357aa8d27ad5a46e54c2d6a8f35ca6c10b36e76a95c39827e38397f427", size = 11699 },
 ]
 
 [[package]]
@@ -3507,7 +3522,7 @@ wheels = [
 
 [[package]]
 name = "llama-cpp-python"
-version = "0.3.7"
+version = "0.3.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "diskcache" },
@@ -3515,7 +3530,7 @@ dependencies = [
     { name = "numpy" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a6/38/7a47b1fb1d83eaddd86ca8ddaf20f141cbc019faf7b425283d8e5ef710e5/llama_cpp_python-0.3.7.tar.gz", hash = "sha256:0566a0dcc0f38005c4093309a87f67c2452449522e3e17e15cd735a62957894c", size = 66715891 }
+sdist = { url = "https://files.pythonhosted.org/packages/95/4e/da912ff2bf9bf855c86e8b1ae9fe1eaedf47d75a66728896b533901c4610/llama_cpp_python-0.3.8.tar.gz", hash = "sha256:31c91323b555c025a76a30923cead9f5695da103dd68c15cdbb4509b17f0ed77", size = 67301056 }
 
 [[package]]
 name = "llama-index"
@@ -3903,7 +3918,7 @@ wheels = [
 
 [[package]]
 name = "magentic-one-cli"
-version = "0.2.3"
+version = "0.2.4"
 source = { editable = "packages/magentic-one-cli" }
 dependencies = [
     { name = "autogen-agentchat" },
@@ -3925,6 +3940,24 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [{ name = "types-pyyaml" }]
+
+[[package]]
+name = "magika"
+version = "0.6.1rc2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "numpy" },
+    { name = "onnxruntime" },
+    { name = "python-dotenv" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5e/bb/c0a7e675a89ac029d3e7889083fe77a723bde5a3372162b4b52f0c5a3b6d/magika-0.6.1rc2.tar.gz", hash = "sha256:27c8d96b015614657488a007b8c9b673e5d7ec9ffd2c3c27f7cdeb3a7b965bf9", size = 3026815 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b0/e5/c41420ef15ce2df012077fe48c7f7e8673c3f7bc9cf482b0782b6b267317/magika-0.6.1rc2-py3-none-any.whl", hash = "sha256:7b9d4ef3d3f41e4de88c80fb12a997234a67e9ec942d98db5eb23abd839bb12e", size = 2967086 },
+    { url = "https://files.pythonhosted.org/packages/ce/c9/b478d2d063512e1c2c01ecab62daf3d5f4c62116bfeb77dd12a2ec7ebbb4/magika-0.6.1rc2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:0c4b165f0ba72722a4bf3b8d49d9603ec61014cf9f7677366dacb09b00f80091", size = 12406214 },
+    { url = "https://files.pythonhosted.org/packages/b2/f0/a532bec3a3e429d46d60f5f0276f0cad24d67edebbcec43e6a3b14bb1a96/magika-0.6.1rc2-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:7b5adeb464bf77d6f73b86bbce152af04053aac237cbb1f424a03441cb24b392", size = 15087434 },
+    { url = "https://files.pythonhosted.org/packages/66/ea/e266819e1b1ecd1d617bfa13453ad6b33347843ab3fcb6e191445d3f8cf8/magika-0.6.1rc2-py3-none-win_amd64.whl", hash = "sha256:5ac4bb90ffe7e81895975546b1f36d1d8939ef8cc50f88ca5791eb90d6bcf3bf", size = 12376271 },
+]
 
 [[package]]
 name = "mako"
@@ -3985,33 +4018,34 @@ wheels = [
 
 [[package]]
 name = "markitdown"
-version = "0.0.1"
+version = "0.1.0a3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "azure-ai-documentintelligence" },
-    { name = "azure-identity" },
     { name = "beautifulsoup4" },
     { name = "charset-normalizer" },
-    { name = "mammoth" },
+    { name = "magika" },
     { name = "markdownify" },
-    { name = "numpy" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b9/94/a9c1148229ec5bbf0dfec87289cefe3bd2a7d5efc2a1c2b02c0353e76b67/markitdown-0.1.0a3.tar.gz", hash = "sha256:10122a7aabff4380a1a7770a8ab75338241ba97ece35665fe082e2a0bcb71556", size = 28812 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/db/7b/b0c4def78049503bd4102c9b2fa7c9a4917afb48e9f06317e5bb644e07ba/markitdown-0.1.0a3-py3-none-any.whl", hash = "sha256:02de241396a85d07bf20d901376acd77ff542e2712d8d03af046c912dd60ccf4", size = 44362 },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "azure-ai-documentintelligence" },
+    { name = "azure-identity" },
+    { name = "mammoth" },
     { name = "olefile" },
-    { name = "openai" },
     { name = "openpyxl" },
     { name = "pandas" },
-    { name = "pathvalidate" },
     { name = "pdfminer-six" },
-    { name = "puremagic" },
     { name = "pydub" },
     { name = "python-pptx" },
-    { name = "requests" },
     { name = "speechrecognition" },
     { name = "xlrd" },
     { name = "youtube-transcript-api" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/07/c6/21f17f3d8beffbf658fcab20331461733c88d254f49e714c384de1f21991/markitdown-0.0.1.tar.gz", hash = "sha256:54795c3ed3d28fa1d5b7103275b0fa784d992291b9f51963dd912b1eba75be40", size = 21597 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/44/bf36f276284a7c9e61877bcbdc545d57654f9d2a21254e91769806ad2e02/markitdown-0.0.1-py3-none-any.whl", hash = "sha256:22a62d8429146adcc2d809c2f02c6d96ef51b301143d663fada5de04444affd0", size = 21956 },
 ]
 
 [[package]]
@@ -4118,19 +4152,17 @@ wheels = [
 
 [[package]]
 name = "mcp"
-version = "1.1.3"
-source = { registry = "https://pypi.org/simple" }
+version = "1.4.0.dev0"
+source = { git = "https://github.com/kagent-dev/python-sdk?rev=56e86a5c90468014fd94cd95dcdfe0644c5b19b6#56e86a5c90468014fd94cd95dcdfe0644c5b19b6" }
 dependencies = [
     { name = "anyio" },
     { name = "httpx" },
     { name = "httpx-sse" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "sse-starlette" },
     { name = "starlette" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/60/66ebfd280b197f9a9d074c9e46cb1ac3186a32d12e6bd0425c24fe7cf7e8/mcp-1.1.3.tar.gz", hash = "sha256:af11018b8e9153cdd25f3722ec639fe7a462c00213a330fd6f593968341a9883", size = 57903 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/08/cfcfa13e41f8d27503c51a8cbf1939d720073ace92469d08655bb5de1b24/mcp-1.1.3-py3-none-any.whl", hash = "sha256:71462d6cd7c06c14689dfcf110ff22286ba1b608cfc3515c0a5cbe33d131731a", size = 36997 },
+    { name = "uvicorn" },
 ]
 
 [[package]]
@@ -4652,7 +4684,6 @@ name = "nvidia-cublas-cu12"
 version = "12.4.5.8"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/7f/7fbae15a3982dc9595e49ce0f19332423b260045d0a6afe93cdbe2f1f624/nvidia_cublas_cu12-12.4.5.8-py3-none-manylinux2014_aarch64.whl", hash = "sha256:0f8aa1706812e00b9f19dfe0cdb3999b092ccb8ca168c0db5b8ea712456fd9b3", size = 363333771 },
     { url = "https://files.pythonhosted.org/packages/ae/71/1c91302526c45ab494c23f61c7a84aa568b8c1f9d196efa5993957faf906/nvidia_cublas_cu12-12.4.5.8-py3-none-manylinux2014_x86_64.whl", hash = "sha256:2fc8da60df463fdefa81e323eef2e36489e1c94335b5358bcb38360adf75ac9b", size = 363438805 },
 ]
 
@@ -4661,7 +4692,6 @@ name = "nvidia-cuda-cupti-cu12"
 version = "12.4.127"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/93/b5/9fb3d00386d3361b03874246190dfec7b206fd74e6e287b26a8fcb359d95/nvidia_cuda_cupti_cu12-12.4.127-py3-none-manylinux2014_aarch64.whl", hash = "sha256:79279b35cf6f91da114182a5ce1864997fd52294a87a16179ce275773799458a", size = 12354556 },
     { url = "https://files.pythonhosted.org/packages/67/42/f4f60238e8194a3106d06a058d494b18e006c10bb2b915655bd9f6ea4cb1/nvidia_cuda_cupti_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:9dec60f5ac126f7bb551c055072b69d85392b13311fcc1bcda2202d172df30fb", size = 13813957 },
 ]
 
@@ -4670,7 +4700,6 @@ name = "nvidia-cuda-nvrtc-cu12"
 version = "12.4.127"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/aa/083b01c427e963ad0b314040565ea396f914349914c298556484f799e61b/nvidia_cuda_nvrtc_cu12-12.4.127-py3-none-manylinux2014_aarch64.whl", hash = "sha256:0eedf14185e04b76aa05b1fea04133e59f465b6f960c0cbf4e37c3cb6b0ea198", size = 24133372 },
     { url = "https://files.pythonhosted.org/packages/2c/14/91ae57cd4db3f9ef7aa99f4019cfa8d54cb4caa7e00975df6467e9725a9f/nvidia_cuda_nvrtc_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:a178759ebb095827bd30ef56598ec182b85547f1508941a3d560eb7ea1fbf338", size = 24640306 },
 ]
 
@@ -4679,7 +4708,6 @@ name = "nvidia-cuda-runtime-cu12"
 version = "12.4.127"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/aa/b656d755f474e2084971e9a297def515938d56b466ab39624012070cb773/nvidia_cuda_runtime_cu12-12.4.127-py3-none-manylinux2014_aarch64.whl", hash = "sha256:961fe0e2e716a2a1d967aab7caee97512f71767f852f67432d572e36cb3a11f3", size = 894177 },
     { url = "https://files.pythonhosted.org/packages/ea/27/1795d86fe88ef397885f2e580ac37628ed058a92ed2c39dc8eac3adf0619/nvidia_cuda_runtime_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:64403288fa2136ee8e467cdc9c9427e0434110899d07c779f25b5c068934faa5", size = 883737 },
 ]
 
@@ -4702,7 +4730,6 @@ dependencies = [
     { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/8a/0e728f749baca3fbeffad762738276e5df60851958be7783af121a7221e7/nvidia_cufft_cu12-11.2.1.3-py3-none-manylinux2014_aarch64.whl", hash = "sha256:5dad8008fc7f92f5ddfa2101430917ce2ffacd86824914c82e28990ad7f00399", size = 211422548 },
     { url = "https://files.pythonhosted.org/packages/27/94/3266821f65b92b3138631e9c8e7fe1fb513804ac934485a8d05776e1dd43/nvidia_cufft_cu12-11.2.1.3-py3-none-manylinux2014_x86_64.whl", hash = "sha256:f083fc24912aa410be21fa16d157fed2055dab1cc4b6934a0e03cba69eb242b9", size = 211459117 },
 ]
 
@@ -4711,7 +4738,6 @@ name = "nvidia-curand-cu12"
 version = "10.3.5.147"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/9c/a79180e4d70995fdf030c6946991d0171555c6edf95c265c6b2bf7011112/nvidia_curand_cu12-10.3.5.147-py3-none-manylinux2014_aarch64.whl", hash = "sha256:1f173f09e3e3c76ab084aba0de819c49e56614feae5c12f69883f4ae9bb5fad9", size = 56314811 },
     { url = "https://files.pythonhosted.org/packages/8a/6d/44ad094874c6f1b9c654f8ed939590bdc408349f137f9b98a3a23ccec411/nvidia_curand_cu12-10.3.5.147-py3-none-manylinux2014_x86_64.whl", hash = "sha256:a88f583d4e0bb643c49743469964103aa59f7f708d862c3ddb0fc07f851e3b8b", size = 56305206 },
 ]
 
@@ -4725,7 +4751,6 @@ dependencies = [
     { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/46/6b/a5c33cf16af09166845345275c34ad2190944bcc6026797a39f8e0a282e0/nvidia_cusolver_cu12-11.6.1.9-py3-none-manylinux2014_aarch64.whl", hash = "sha256:d338f155f174f90724bbde3758b7ac375a70ce8e706d70b018dd3375545fc84e", size = 127634111 },
     { url = "https://files.pythonhosted.org/packages/3a/e1/5b9089a4b2a4790dfdea8b3a006052cfecff58139d5a4e34cb1a51df8d6f/nvidia_cusolver_cu12-11.6.1.9-py3-none-manylinux2014_x86_64.whl", hash = "sha256:19e33fa442bcfd085b3086c4ebf7e8debc07cfe01e11513cc6d332fd918ac260", size = 127936057 },
 ]
 
@@ -4737,7 +4762,6 @@ dependencies = [
     { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/a9/c0d2f83a53d40a4a41be14cea6a0bf9e668ffcf8b004bd65633f433050c0/nvidia_cusparse_cu12-12.3.1.170-py3-none-manylinux2014_aarch64.whl", hash = "sha256:9d32f62896231ebe0480efd8a7f702e143c98cfaa0e8a76df3386c1ba2b54df3", size = 207381987 },
     { url = "https://files.pythonhosted.org/packages/db/f7/97a9ea26ed4bbbfc2d470994b8b4f338ef663be97b8f677519ac195e113d/nvidia_cusparse_cu12-12.3.1.170-py3-none-manylinux2014_x86_64.whl", hash = "sha256:ea4f11a2904e2a8dc4b1833cc1b5181cde564edd0d5cd33e3c168eff2d1863f1", size = 207454763 },
 ]
 
@@ -4754,7 +4778,6 @@ name = "nvidia-nvjitlink-cu12"
 version = "12.4.127"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/02/45/239d52c05074898a80a900f49b1615d81c07fceadd5ad6c4f86a987c0bc4/nvidia_nvjitlink_cu12-12.4.127-py3-none-manylinux2014_aarch64.whl", hash = "sha256:4abe7fef64914ccfa909bc2ba39739670ecc9e820c83ccc7a6ed414122599b83", size = 20552510 },
     { url = "https://files.pythonhosted.org/packages/ff/ff/847841bacfbefc97a00036e0fce5a0f086b640756dc38caea5e1bb002655/nvidia_nvjitlink_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:06b3b9b25bf3f8af351d664978ca26a16d2c5127dbd53c0497e28d1fb9611d57", size = 21066810 },
 ]
 
@@ -4763,7 +4786,6 @@ name = "nvidia-nvtx-cu12"
 version = "12.4.127"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/06/39/471f581edbb7804b39e8063d92fc8305bdc7a80ae5c07dbe6ea5c50d14a5/nvidia_nvtx_cu12-12.4.127-py3-none-manylinux2014_aarch64.whl", hash = "sha256:7959ad635db13edf4fc65c06a6e9f9e55fc2f92596db928d169c0bb031e88ef3", size = 100417 },
     { url = "https://files.pythonhosted.org/packages/87/20/199b8713428322a2f22b722c62b8cc278cc53dffa9705d744484b5035ee9/nvidia_nvtx_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:781e950d9b9f60d8241ccea575b32f5105a5baf4c2351cab5256a24869f12a1a", size = 99144 },
 ]
 
@@ -4855,7 +4877,7 @@ wheels = [
 
 [[package]]
 name = "openai"
-version = "1.60.2"
+version = "1.66.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -4867,9 +4889,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/08/ae/8d9706b8ff2363287b4a8807de2dd29cdbdad5424e9d05d345df724320f5/openai-1.60.2.tar.gz", hash = "sha256:a8f843e10f2855713007f491d96afb2694b11b5e02cb97c7d01a0be60bc5bb51", size = 348185 }
+sdist = { url = "https://files.pythonhosted.org/packages/bb/10/b19dc682c806e6735a8387f2003afe2abada9f9e5227318de642c6949524/openai-1.66.5.tar.gz", hash = "sha256:f61b8fac29490ca8fdc6d996aa6926c18dbe5639536f8c40219c40db05511b11", size = 398595 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/5a/d5474ca67a547dde9b87b5bc8a8f90eadf29f523d410f2ba23d63c9b82ec/openai-1.60.2-py3-none-any.whl", hash = "sha256:993bd11b96900b9098179c728026f016b4982ded7ee30dfcf4555eab1171fff9", size = 456107 },
+    { url = "https://files.pythonhosted.org/packages/c7/3b/1ba418920ecd1eae7cc4d4ac8a01711ee0879b1a57dd81d10551e5b9a2ea/openai-1.66.5-py3-none-any.whl", hash = "sha256:74be528175f8389f67675830c51a15bd51e874425c86d3de6153bf70ed6c2884", size = 571144 },
 ]
 
 [[package]]
@@ -5295,15 +5317,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pathvalidate"
-version = "3.2.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/92/87/c7a2f51cc62df0495acb0ed2533a7c74cc895e569a1b020ee5f6e9fa4e21/pathvalidate-3.2.3.tar.gz", hash = "sha256:59b5b9278e30382d6d213497623043ebe63f10e29055be4419a9c04c721739cb", size = 61717 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/14/c5a0e1a947909810fc4c043b84cac472b70e438148d34f5393be1bac663f/pathvalidate-3.2.3-py3-none-any.whl", hash = "sha256:5eaf0562e345d4b6d0c0239d0f690c3bd84d2a9a3c4c73b99ea667401b27bee1", size = 24130 },
-]
-
-[[package]]
 name = "patsy"
 version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -5687,15 +5700,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/cd/05/0a34433a064256a578f1783a10da6df098ceaa4a57bbeaa96a6c0352786b/pure_eval-0.2.3.tar.gz", hash = "sha256:5f4e983f40564c576c7c8635ae88db5956bb2229d7e9237d03b3c0b0190eaf42", size = 19752 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8e/37/efad0257dc6e593a18957422533ff0f87ede7c9c6ea010a2177d738fb82f/pure_eval-0.2.3-py3-none-any.whl", hash = "sha256:1db8e35b67b3d218d818ae653e27f06c3aa420901fa7b081ca98cbedc874e0d0", size = 11842 },
-]
-
-[[package]]
-name = "puremagic"
-version = "1.28"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/09/2d/40599f25667733e41bbc3d7e4c7c36d5e7860874aa5fe9c584e90b34954d/puremagic-1.28.tar.gz", hash = "sha256:195893fc129657f611b86b959aab337207d6df7f25372209269ed9e303c1a8c0", size = 314945 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c5/53/200a97332d10ed3edd7afcbc5f5543920ac59badfe5762598327999f012e/puremagic-1.28-py3-none-any.whl", hash = "sha256:e16cb9708ee2007142c37931c58f07f7eca956b3472489106a7245e5c3aa1241", size = 43241 },
 ]
 
 [[package]]
@@ -8330,15 +8334,15 @@ wheels = [
 
 [[package]]
 name = "youtube-transcript-api"
-version = "0.6.3"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "defusedxml" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/f1/55ff16f7198bdf5204fd7be3c49122e07092a3da47bf4e1560989a4c0255/youtube_transcript_api-0.6.3.tar.gz", hash = "sha256:4d1f6451ae508390a5279f98519efb45e091bf60d3cca5ea0bb122800ab6a011", size = 612052 }
+sdist = { url = "https://files.pythonhosted.org/packages/e6/2d/810b2b1d8cf401b257928f300415ec66933f82678ca27f273c2aedf42517/youtube_transcript_api-1.0.1.tar.gz", hash = "sha256:820977c8402e2e7f8ce86817e05044ddc8c5fe7085cb8058b9a21e14153a27ba", size = 1911393 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/d4/be6fd091d29ae49d93813e598769e7ab453419a4de640e1755bf20911cce/youtube_transcript_api-0.6.3-py3-none-any.whl", hash = "sha256:297a74c1863d9df88f6885229f33a7eda61493d73ecb13ec80e876b65423e9b4", size = 622293 },
+    { url = "https://files.pythonhosted.org/packages/dc/83/52d6730ca49723116ffcfe398854b6ef1ecc780e09203f6ba4b203fde15e/youtube_transcript_api-1.0.1-py3-none-any.whl", hash = "sha256:66b91279e239b21274ac6d91b55002eb9c418824aab70cd66a82954a09a298a2", size = 1929575 },
 ]
 
 [[package]]

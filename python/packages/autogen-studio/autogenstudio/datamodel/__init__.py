@@ -1,4 +1,4 @@
-from .db import Gallery, Message, Run, RunStatus, Session, Settings, Team, Tool, ToolServer
+from .db import BaseDBModel,Gallery, Message, Run, RunStatus, Session, Settings, Team, Tool, ToolServer
 from .types import (
     EnvironmentVariable,
     GalleryComponents,

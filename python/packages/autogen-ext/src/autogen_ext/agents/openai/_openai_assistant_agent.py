@@ -24,18 +24,14 @@ from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
-    AgentEvent,
-    ChatMessage,
-    HandoffMessage,
-    MultiModalMessage,
-    StopMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
 )
-from autogen_core import CancellationToken, FunctionCall
-from autogen_core.models._model_client import ChatCompletionClient
-from autogen_core.models._types import FunctionExecutionResult
+from autogen_core import CancellationToken, FunctionCall, Image
+from autogen_core.models import ChatCompletionClient, FunctionExecutionResult
 from autogen_core.tools import FunctionTool, Tool
 from pydantic import BaseModel, Field
 
@@ -52,8 +48,14 @@ from openai.types.beta.file_search_tool_param import FileSearchToolParam
 from openai.types.beta.function_tool_param import FunctionToolParam
 from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInterpreter
 from openai.types.beta.threads import Message, MessageDeleted, Run
-from openai.types.beta.vector_store import VectorStore
+from openai.types.beta.threads.image_url_content_block_param import ImageURLContentBlockParam
+from openai.types.beta.threads.image_url_param import ImageURLParam
+from openai.types.beta.threads.message_content_part_param import (
+    MessageContentPartParam,
+)
+from openai.types.beta.threads.text_content_block_param import TextContentBlockParam
 from openai.types.shared_params.function_definition import FunctionDefinition
+from openai.types.vector_store import VectorStore
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -223,7 +225,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         tools (Optional[Iterable[Union[Literal["code_interpreter", "file_search"], Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]]]]): Tools the assistant can use
         assistant_id (Optional[str]): ID of existing assistant to use
         thread_id (Optional[str]): ID of existing thread to use
-        metadata (Optional[object]): Additional metadata for the assistant
+        metadata (Optional[Dict[str, str]]): Additional metadata for the assistant.
         response_format (Optional[AssistantResponseFormatOptionParam]): Response format settings
         temperature (Optional[float]): Temperature for response generation
         tool_resources (Optional[ToolResources]): Additional tool configuration
@@ -247,7 +249,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         ] = None,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
-        metadata: Optional[object] = None,
+        metadata: Optional[Dict[str, str]] = None,
         response_format: Optional["AssistantResponseFormatOptionParam"] = None,
         temperature: Optional[float] = None,
         tool_resources: Optional["ToolResources"] = None,
@@ -351,7 +353,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._initial_message_ids = initial_message_ids
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         """The types of messages that the assistant agent produces."""
         return (TextMessage,)
 
@@ -390,7 +392,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         result = await tool.run_json(arguments, cancellation_token)
         return tool.return_value_as_string(result)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handle incoming messages and return a response."""
 
         async for message in self.on_messages_stream(messages, cancellation_token):
@@ -399,20 +401,17 @@ class OpenAIAssistantAgent(BaseChatAgent):
         raise AssertionError("The stream should have returned the final result.")
 
     async def on_messages_stream(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """Handle incoming messages and return a response."""
         await self._ensure_initialized()
 
         # Process all messages in sequence
         for message in messages:
-            if isinstance(message, (TextMessage, MultiModalMessage)):
-                await self.handle_text_message(str(message.content), cancellation_token)
-            elif isinstance(message, (StopMessage, HandoffMessage)):
-                await self.handle_text_message(message.content, cancellation_token)
+            await self.handle_incoming_message(message, cancellation_token)
 
         # Inner messages for tool calls
-        inner_messages: List[AgentEvent | ChatMessage] = []
+        inner_messages: List[BaseAgentEvent | BaseChatMessage] = []
 
         # Create and start a run
         run: Run = await cancellation_token.link_future(
@@ -519,8 +518,21 @@ class OpenAIAssistantAgent(BaseChatAgent):
         chat_message = TextMessage(source=self.name, content=text_content[0].text.value)
         yield Response(chat_message=chat_message, inner_messages=inner_messages)
 
-    async def handle_text_message(self, content: str, cancellation_token: CancellationToken) -> None:
+    async def handle_incoming_message(self, message: BaseChatMessage, cancellation_token: CancellationToken) -> None:
         """Handle regular text messages by adding them to the thread."""
+        content: str | List[MessageContentPartParam] | None = None
+        llm_message = message.to_model_message()
+        if isinstance(llm_message.content, str):
+            content = llm_message.content
+        else:
+            content = []
+            for c in llm_message.content:
+                if isinstance(c, str):
+                    content.append(TextContentBlockParam(text=c, type="text"))
+                elif isinstance(c, Image):
+                    content.append(ImageURLContentBlockParam(image_url=ImageURLParam(url=c.data_uri), type="image_url"))
+                else:
+                    raise ValueError(f"Unsupported content type: {type(c)} in {message}")
         await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._client.beta.threads.messages.create(
@@ -625,7 +637,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         # Create vector store if not already created
         if self._vector_store_id is None:
             vector_store: VectorStore = await cancellation_token.link_future(
-                asyncio.ensure_future(self._client.beta.vector_stores.create())
+                asyncio.ensure_future(self._client.vector_stores.create())
             )
             self._vector_store_id = vector_store.id
 
@@ -644,7 +656,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         # Create file batch with the file IDs
         await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._client.beta.vector_stores.file_batches.create_and_poll(
+                self._client.vector_stores.file_batches.create_and_poll(
                     vector_store_id=self._vector_store_id, file_ids=file_ids
                 )
             )
@@ -678,7 +690,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         if self._vector_store_id is not None:
             try:
                 await cancellation_token.link_future(
-                    asyncio.ensure_future(self._client.beta.vector_stores.delete(vector_store_id=self._vector_store_id))
+                    asyncio.ensure_future(self._client.vector_stores.delete(vector_store_id=self._vector_store_id))
                 )
                 self._vector_store_id = None
             except Exception as e:

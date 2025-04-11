@@ -1,17 +1,18 @@
 import json
 import logging
-from typing import List
+from typing import Dict, List
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import Handoff, TaskResult
 from autogen_agentchat.messages import (
-    ChatMessage,
+    BaseChatMessage,
     HandoffMessage,
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
+    StructuredMessage,
     TextMessage,
     ThoughtEvent,
     ToolCallExecutionEvent,
@@ -25,15 +26,17 @@ from autogen_core.models import (
     AssistantMessage,
     CreateResult,
     FunctionExecutionResult,
+    FunctionExecutionResultMessage,
     LLMMessage,
     RequestUsage,
     SystemMessage,
     UserMessage,
 )
 from autogen_core.models._model_client import ModelFamily
-from autogen_core.tools import FunctionTool
+from autogen_core.tools import BaseTool, FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
+from pydantic import BaseModel
 from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -67,7 +70,13 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
             "pass",
             "TERMINATE",
         ],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     agent = AssistantAgent(
         "tool_use_agent",
@@ -79,6 +88,15 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
         ],
     )
     result = await agent.run(task="task")
+
+    # Make sure the create call was made with the correct parameters.
+    assert len(model_client.create_calls) == 1
+    llm_messages = model_client.create_calls[0]["messages"]
+    assert len(llm_messages) == 2
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
 
     assert len(result.messages) == 5
     assert isinstance(result.messages[0], TextMessage)
@@ -140,7 +158,13 @@ async def test_run_with_tools_and_reflection() -> None:
                 cached=False,
             ),
         ],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     agent = AssistantAgent(
         "tool_use_agent",
@@ -149,6 +173,23 @@ async def test_run_with_tools_and_reflection() -> None:
         reflect_on_tool_use=True,
     )
     result = await agent.run(task="task")
+
+    # Make sure the create call was made with the correct parameters.
+    assert len(model_client.create_calls) == 2
+    llm_messages = model_client.create_calls[0]["messages"]
+    assert len(llm_messages) == 2
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
+    llm_messages = model_client.create_calls[1]["messages"]
+    assert len(llm_messages) == 4
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
+    assert isinstance(llm_messages[2], AssistantMessage)
+    assert isinstance(llm_messages[3], FunctionExecutionResultMessage)
 
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
@@ -209,7 +250,13 @@ async def test_run_with_parallel_tools() -> None:
             "pass",
             "TERMINATE",
         ],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     agent = AssistantAgent(
         "tool_use_agent",
@@ -288,7 +335,13 @@ async def test_run_with_parallel_tools_with_empty_call_ids() -> None:
             "pass",
             "TERMINATE",
         ],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     agent = AssistantAgent(
         "tool_use_agent",
@@ -349,6 +402,147 @@ async def test_run_with_parallel_tools_with_empty_call_ids() -> None:
 
 
 @pytest.mark.asyncio
+async def test_output_format() -> None:
+    class AgentResponse(BaseModel):
+        response: str
+        status: str
+
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="stop",
+                content=AgentResponse(response="Hello", status="success").model_dump_json(),
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+        ]
+    )
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=model_client,
+        output_content_type=AgentResponse,
+    )
+    assert StructuredMessage[AgentResponse] in agent.produced_message_types
+    assert TextMessage not in agent.produced_message_types
+
+    result = await agent.run()
+    assert len(result.messages) == 1
+    assert isinstance(result.messages[0], StructuredMessage)
+    assert isinstance(result.messages[0].content, AgentResponse)  # type: ignore[reportUnknownMemberType]
+    assert result.messages[0].content.response == "Hello"
+    assert result.messages[0].content.status == "success"
+
+    # Test streaming.
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=model_client,
+        model_client_stream=True,
+        output_content_type=AgentResponse,
+    )
+    model_client.reset()
+    stream = agent.run_stream()
+    stream_result: TaskResult | None = None
+    async for message in stream:
+        if isinstance(message, TaskResult):
+            stream_result = message
+    assert stream_result is not None
+    assert len(stream_result.messages) == 1
+    assert isinstance(stream_result.messages[0], StructuredMessage)
+    assert isinstance(stream_result.messages[0].content, AgentResponse)  # type: ignore[reportUnknownMemberType]
+    assert stream_result.messages[0].content.response == "Hello"
+    assert stream_result.messages[0].content.status == "success"
+
+
+@pytest.mark.asyncio
+async def test_reflection_output_format() -> None:
+    class AgentResponse(BaseModel):
+        response: str
+        status: str
+
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            AgentResponse(response="Hello", status="success").model_dump_json(),
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=model_client,
+        output_content_type=AgentResponse,
+        # reflect_on_tool_use=True,
+        tools=[
+            _pass_function,
+            _fail_function,
+        ],
+    )
+    result = await agent.run()
+    assert len(result.messages) == 3
+    assert isinstance(result.messages[0], ToolCallRequestEvent)
+    assert isinstance(result.messages[1], ToolCallExecutionEvent)
+    assert isinstance(result.messages[2], StructuredMessage)
+    assert isinstance(result.messages[2].content, AgentResponse)  # type: ignore[reportUnknownMemberType]
+    assert result.messages[2].content.response == "Hello"
+    assert result.messages[2].content.status == "success"
+
+    # Test streaming.
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=model_client,
+        model_client_stream=True,
+        output_content_type=AgentResponse,
+        # reflect_on_tool_use=True,
+        tools=[
+            _pass_function,
+            _fail_function,
+        ],
+    )
+    model_client.reset()
+    stream = agent.run_stream()
+    stream_result: TaskResult | None = None
+    async for message in stream:
+        if isinstance(message, TaskResult):
+            stream_result = message
+    assert stream_result is not None
+    assert len(stream_result.messages) == 3
+    assert isinstance(stream_result.messages[0], ToolCallRequestEvent)
+    assert isinstance(stream_result.messages[1], ToolCallExecutionEvent)
+    assert isinstance(stream_result.messages[2], StructuredMessage)
+    assert isinstance(stream_result.messages[2].content, AgentResponse)  # type: ignore[reportUnknownMemberType]
+    assert stream_result.messages[2].content.response == "Hello"
+    assert stream_result.messages[2].content.status == "success"
+
+    # Test when reflect_on_tool_use is False
+    model_client.reset()
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=model_client,
+        output_content_type=AgentResponse,
+        reflect_on_tool_use=False,
+        tools=[
+            _pass_function,
+            _fail_function,
+        ],
+    )
+    result = await agent.run()
+    assert len(result.messages) == 3
+    assert isinstance(result.messages[0], ToolCallRequestEvent)
+    assert isinstance(result.messages[1], ToolCallExecutionEvent)
+    assert isinstance(result.messages[2], ToolCallSummaryMessage)
+
+
+@pytest.mark.asyncio
 async def test_handoffs() -> None:
     handoff = Handoff(target="agent2")
     model_client = ReplayChatCompletionClient(
@@ -362,7 +556,13 @@ async def test_handoffs() -> None:
                 cached=False,
             )
         ],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     tool_use_agent = AssistantAgent(
         "tool_use_agent",
@@ -402,6 +602,158 @@ async def test_handoffs() -> None:
 
 
 @pytest.mark.asyncio
+async def test_custom_handoffs() -> None:
+    name = "transfer_to_agent2"
+    description = "Handoff to agent2."
+    next_action = "next_action"
+
+    class TextCommandHandOff(Handoff):
+        @property
+        def handoff_tool(self) -> BaseTool[BaseModel, BaseModel]:
+            """Create a handoff tool from this handoff configuration."""
+
+            def _next_action(action: str) -> str:
+                """Returns the action you want the user to perform"""
+                return action
+
+            return FunctionTool(_next_action, name=self.name, description=self.description, strict=True)
+
+    handoff = TextCommandHandOff(name=name, description=description, target="agent2")
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[
+                    FunctionCall(id="1", arguments=json.dumps({"action": next_action}), name=handoff.name),
+                ],
+                usage=RequestUsage(prompt_tokens=42, completion_tokens=43),
+                cached=False,
+            )
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    tool_use_agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[
+            _pass_function,
+            _fail_function,
+            FunctionTool(_echo_function, description="Echo"),
+        ],
+        handoffs=[handoff],
+    )
+    assert HandoffMessage in tool_use_agent.produced_message_types
+    result = await tool_use_agent.run(task="task")
+    assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].models_usage is None
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
+    assert result.messages[1].models_usage is not None
+    assert result.messages[1].models_usage.completion_tokens == 43
+    assert result.messages[1].models_usage.prompt_tokens == 42
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
+    assert result.messages[2].models_usage is None
+    assert isinstance(result.messages[3], HandoffMessage)
+    assert result.messages[3].content == next_action
+    assert result.messages[3].target == handoff.target
+
+    assert result.messages[3].models_usage is None
+
+    # Test streaming.
+    model_client.reset()
+    index = 0
+    async for message in tool_use_agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1
+
+
+@pytest.mark.asyncio
+async def test_custom_object_handoffs() -> None:
+    """test handoff tool return a object"""
+    name = "transfer_to_agent2"
+    description = "Handoff to agent2."
+    next_action = {"action": "next_action"}  # using a map, not a str
+
+    class DictCommandHandOff(Handoff):
+        @property
+        def handoff_tool(self) -> BaseTool[BaseModel, BaseModel]:
+            """Create a handoff tool from this handoff configuration."""
+
+            def _next_action(action: str) -> Dict[str, str]:
+                """Returns the action you want the user to perform"""
+                return {"action": action}
+
+            return FunctionTool(_next_action, name=self.name, description=self.description, strict=True)
+
+    handoff = DictCommandHandOff(name=name, description=description, target="agent2")
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[
+                    FunctionCall(id="1", arguments=json.dumps({"action": "next_action"}), name=handoff.name),
+                ],
+                usage=RequestUsage(prompt_tokens=42, completion_tokens=43),
+                cached=False,
+            )
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    tool_use_agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[
+            _pass_function,
+            _fail_function,
+            FunctionTool(_echo_function, description="Echo"),
+        ],
+        handoffs=[handoff],
+    )
+    assert HandoffMessage in tool_use_agent.produced_message_types
+    result = await tool_use_agent.run(task="task")
+    assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].models_usage is None
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
+    assert result.messages[1].models_usage is not None
+    assert result.messages[1].models_usage.completion_tokens == 43
+    assert result.messages[1].models_usage.prompt_tokens == 42
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
+    assert result.messages[2].models_usage is None
+    assert isinstance(result.messages[3], HandoffMessage)
+    # the content will return as a string, because the function call will convert to string
+    assert result.messages[3].content == str(next_action)
+    assert result.messages[3].target == handoff.target
+
+    assert result.messages[3].models_usage is None
+
+    # Test streaming.
+    model_client.reset()
+    index = 0
+    async for message in tool_use_agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1
+
+
+@pytest.mark.asyncio
 async def test_multi_modal_task(monkeypatch: pytest.MonkeyPatch) -> None:
     model_client = ReplayChatCompletionClient(["Hello"])
     agent = AssistantAgent(
@@ -415,12 +767,35 @@ async def test_multi_modal_task(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_run_with_structured_task() -> None:
+    class InputTask(BaseModel):
+        input: str
+        data: List[str]
+
+    model_client = ReplayChatCompletionClient(["Hello"])
+    agent = AssistantAgent(
+        name="assistant",
+        model_client=model_client,
+    )
+
+    task = StructuredMessage[InputTask](content=InputTask(input="Test", data=["Test1", "Test2"]), source="user")
+    result = await agent.run(task=task)
+    assert len(result.messages) == 2
+
+
+@pytest.mark.asyncio
 async def test_invalid_model_capabilities() -> None:
     model = "random-model"
     model_client = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        model_info={"vision": False, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False,
+        },
     )
 
     with pytest.raises(ValueError):
@@ -446,12 +821,24 @@ async def test_remove_images() -> None:
     model_client_1 = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        model_info={"vision": False, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False,
+        },
     )
     model_client_2 = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        model_info={"vision": True, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+        model_info={
+            "vision": True,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False,
+        },
     )
 
     img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
@@ -491,7 +878,7 @@ async def test_list_chat_messages(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     # Create a list of chat messages
-    messages: List[ChatMessage] = [
+    messages: List[BaseChatMessage] = [
         TextMessage(content="Message 1", source="user"),
         TextMessage(content="Message 2", source="user"),
     ]
@@ -540,6 +927,8 @@ async def test_model_context(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     await agent.run(task=messages)
 
+    # Check that the model_context property returns the correct internal context
+    assert agent.model_context == model_context
     # Check if the mock client is called with only the last two messages.
     assert len(model_client.create_calls) == 1
     # 2 message from the context + 1 system message
@@ -615,7 +1004,13 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_assistant_agent_declarative() -> None:
     model_client = ReplayChatCompletionClient(
         ["Response to message 3"],
-        model_info={"function_calling": True, "vision": True, "json_output": True, "family": ModelFamily.GPT_4O},
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
     )
     model_context = BufferedChatCompletionContext(buffer_size=2)
     agent = AssistantAgent(
@@ -660,6 +1055,7 @@ async def test_model_client_stream() -> None:
     chunks: List[str] = []
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
             assert message.messages[-1].content == "Response to message 3"
         elif isinstance(message, ModelClientStreamingChunkEvent):
             chunks.append(message.content)
@@ -693,11 +1089,14 @@ async def test_model_client_stream_with_tool_calls() -> None:
     chunks: List[str] = []
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
+            assert isinstance(message.messages[1], ToolCallRequestEvent)
             assert message.messages[-1].content == "Example response 2 to task"
             assert message.messages[1].content == [
                 FunctionCall(id="1", name="_pass_function", arguments=r'{"input": "task"}'),
                 FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
             ]
+            assert isinstance(message.messages[2], ToolCallExecutionEvent)
             assert message.messages[2].content == [
                 FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="_pass_function"),
                 FunctionExecutionResult(call_id="3", content="task", is_error=False, name="_echo_function"),

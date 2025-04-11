@@ -21,12 +21,14 @@ In the following sample, we will define an OpenAI, AzureOpenAI and a local model
 
 ```python
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_core.models import ModelInfo
 
 model_client=OpenAIChatCompletionClient(
             model="gpt-4o-mini",
         )
 print(model_client.dump_component().model_dump_json())
+
 
 az_model_client = AzureOpenAIChatCompletionClient(
     azure_deployment="{your-azure-deployment}",
@@ -37,10 +39,16 @@ az_model_client = AzureOpenAIChatCompletionClient(
 )
 print(az_model_client.dump_component().model_dump_json())
 
+anthropic_client = AnthropicChatCompletionClient(
+        model="claude-3-sonnet-20240229",
+        api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
+    )
+print(anthropic_client.dump_component().model_dump_json())
+
 mistral_vllm_model = OpenAIChatCompletionClient(
         model="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
         base_url="http://localhost:1234/v1",
-        model_info=ModelInfo(vision=False, function_calling=True, json_output=False, family="unknown"),
+        model_info=ModelInfo(vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True),
     )
 print(mistral_vllm_model.dump_component().model_dump_json())
 ```
@@ -79,6 +87,25 @@ Azure OpenAI
 }
 ```
 
+Anthropic
+
+```json
+{
+  "provider": "autogen_ext.models.anthropic.AnthropicChatCompletionClient",
+  "component_type": "model",
+  "version": 1,
+  "component_version": 1,
+  "description": "Chat completion client for Anthropic's Claude models.",
+  "label": "AnthropicChatCompletionClient",
+  "config": {
+    "model": "claude-3-sonnet-20240229",
+    "max_tokens": 4096,
+    "temperature": 1.0,
+    "api_key": "your-api-key"
+  }
+}
+```
+
 Have a local model server like Ollama, vLLM or LMStudio that provide an OpenAI compliant endpoint? You can use that as well.
 
 ```json
@@ -95,7 +122,8 @@ Have a local model server like Ollama, vLLM or LMStudio that provide an OpenAI c
       "vision": false,
       "function_calling": true,
       "json_output": false,
-      "family": "unknown"
+      "family": "unknown",
+      "structured_output": true
     },
     "base_url": "http://localhost:1234/v1"
   }
@@ -165,7 +193,7 @@ team = BaseGroupChat.load_component(team_config)
 A: Yes, you can run AutoGen Studio in a Docker container. You can build the Docker image using the provided [Dockerfile](https://github.com/microsoft/autogen/blob/autogenstudio/samples/apps/autogen-studio/Dockerfile) and run the container using the following commands:
 
 ```bash
-FROM python:3.10
+FROM python:3.10-slim
 
 WORKDIR /code
 

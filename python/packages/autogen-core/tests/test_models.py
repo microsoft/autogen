@@ -9,6 +9,7 @@ def test_model_info() -> None:
         "vision": True,
         "function_calling": True,
         "json_output": True,
+        "structured_output": True,
     }
     validate_model_info(info)
 

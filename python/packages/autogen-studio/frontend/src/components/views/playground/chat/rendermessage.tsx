@@ -25,9 +25,10 @@ const getImageSource = (item: ImageContent): string => {
   return "/api/placeholder/400/320";
 };
 
-const RenderMultiModal: React.FC<{ content: (string | ImageContent)[] }> = ({
-  content,
-}) => (
+const RenderMultiModal: React.FC<{
+  content: (string | ImageContent)[];
+  thumbnail?: boolean;
+}> = ({ content, thumbnail = false }) => (
   <div className="space-y-2">
     {content.map((item, index) =>
       typeof item === "string" ? (
@@ -37,7 +38,9 @@ const RenderMultiModal: React.FC<{ content: (string | ImageContent)[] }> = ({
           key={index}
           src={getImageSource(item)}
           alt={item.alt || "Image"}
-          className="w-full h-auto rounded border border-secondary"
+          className={` h-auto rounded border border-secondary ${
+            thumbnail ? "w-24 h-24 " : " w-full "
+          }`}
         />
       )
     )}
@@ -101,6 +104,18 @@ export const messageUtils = {
     );
   },
 
+  isNestedMessageContent(content: unknown): content is AgentMessageConfig[] {
+    if (!Array.isArray(content)) return false;
+    return content.every(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        "source" in item &&
+        "content" in item &&
+        "type" in item
+    );
+  },
+
   isMultiModalContent(content: unknown): content is (string | ImageContent)[] {
     if (!Array.isArray(content)) return false;
     return content.every(
@@ -128,13 +143,47 @@ export const messageUtils = {
   isUser(source: string): boolean {
     return source === "user";
   },
+
+  isMessageArray(
+    message: AgentMessageConfig | AgentMessageConfig[]
+  ): message is AgentMessageConfig[] {
+    return Array.isArray(message);
+  },
 };
 
 interface MessageProps {
-  message: AgentMessageConfig;
+  message: AgentMessageConfig | AgentMessageConfig[];
   isLast?: boolean;
   className?: string;
 }
+
+export const RenderNestedMessages: React.FC<{
+  content: AgentMessageConfig[];
+}> = ({ content }) => (
+  <div className="space-y-4">
+    {content.map((item, index) => (
+      <div
+        key={index}
+        className={`${
+          index > 0 ? "bordper border-secondary rounded   bg-secondary/30" : ""
+        }`}
+      >
+        {typeof item.content === "string" ? (
+          <TruncatableText
+            content={item.content}
+            className={`break-all ${index === 0 ? "text-base" : "text-sm"}`}
+          />
+        ) : messageUtils.isMultiModalContent(item.content) ? (
+          <RenderMultiModal content={item.content} thumbnail />
+        ) : (
+          <pre className="text-xs whitespace-pre-wrap overflow-x-auto">
+            {JSON.stringify(item.content, null, 2)}
+          </pre>
+        )}
+      </div>
+    ))}
+  </div>
+);
 
 export const RenderMessage: React.FC<MessageProps> = ({
   message,
@@ -142,6 +191,18 @@ export const RenderMessage: React.FC<MessageProps> = ({
   className = "",
 }) => {
   if (!message) return null;
+
+  // If message is an array, render the first message or return null
+  if (messageUtils.isMessageArray(message)) {
+    return message.length > 0 ? (
+      <RenderMessage
+        message={message[0]}
+        isLast={isLast}
+        className={className}
+      />
+    ) : null;
+  }
+
   const isUser = messageUtils.isUser(message.source);
   const content = message.content;
   const isLLMEventMessage = message.source === "llm_call_event";
@@ -186,7 +247,9 @@ export const RenderMessage: React.FC<MessageProps> = ({
             {messageUtils.isToolCallContent(content) ? (
               <RenderToolCall content={content} />
             ) : messageUtils.isMultiModalContent(content) ? (
-              <RenderMultiModal content={content} />
+              <RenderMultiModal content={content} thumbnail />
+            ) : messageUtils.isNestedMessageContent(content) ? (
+              <RenderNestedMessages content={content} />
             ) : messageUtils.isFunctionExecutionResult(content) ? (
               <RenderToolResult content={content} />
             ) : message.source === "llm_call_event" ? (
@@ -198,7 +261,6 @@ export const RenderMessage: React.FC<MessageProps> = ({
               />
             )}
           </div>
-
           {message.models_usage && (
             <div className="text-xs text-secondary mt-1">
               Tokens:{" "}
