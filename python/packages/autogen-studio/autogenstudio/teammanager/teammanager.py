@@ -4,18 +4,19 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import AsyncGenerator, Callable, List, Optional, Union
+from typing import AsyncGenerator, Callable, List, Optional, Sequence, Union
 
 import aiofiles
 import yaml
 from autogen_agentchat.agents import UserProxyAgent
-from autogen_agentchat.base import TaskResult, Team
-from autogen_agentchat.messages import AgentEvent, ChatMessage
+from autogen_agentchat.base import TaskResult
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 from autogen_agentchat.teams import BaseGroupChat
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, ComponentModel
 from autogen_core.logging import LLMCallEvent
 
 from ..datamodel.types import EnvironmentVariable, LLMCallEventMessage, TeamResult
+from ..web.managers.run_context import RunContext
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,10 @@ class RunEventLogger(logging.Handler):
 
 class TeamManager:
     """Manages team operations including loading configs and running teams"""
+
+    def __init__(self):
+        self._team: Optional[BaseGroupChat] = None
+        self._run_context = RunContext()
 
     @staticmethod
     async def load_from_file(path: Union[str, Path]) -> dict:
@@ -88,22 +93,22 @@ class TeamManager:
             for var in env_vars:
                 os.environ[var.name] = var.value
 
-        team: BaseGroupChat = BaseGroupChat.load_component(config)
+        self._team = BaseGroupChat.load_component(config)
 
-        for agent in team._participants:
+        for agent in self._team._participants:
             if hasattr(agent, "input_func") and isinstance(agent, UserProxyAgent) and input_func:
                 agent.input_func = input_func
 
-        return team
+        return self._team
 
     async def run_stream(
         self,
-        task: str,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None,
         team_config: Union[str, Path, dict, ComponentModel],
         input_func: Optional[Callable] = None,
         cancellation_token: Optional[CancellationToken] = None,
         env_vars: Optional[List[EnvironmentVariable]] = None,
-    ) -> AsyncGenerator[Union[AgentEvent | ChatMessage | LLMCallEvent, ChatMessage, TeamResult], None]:
+    ) -> AsyncGenerator[Union[BaseAgentEvent | BaseChatMessage | LLMCallEvent, BaseChatMessage, TeamResult], None]:
         """Stream team execution results"""
         start_time = time.time()
         team = None
@@ -143,7 +148,7 @@ class TeamManager:
 
     async def run(
         self,
-        task: str,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None,
         team_config: Union[str, Path, dict, ComponentModel],
         input_func: Optional[Callable] = None,
         cancellation_token: Optional[CancellationToken] = None,

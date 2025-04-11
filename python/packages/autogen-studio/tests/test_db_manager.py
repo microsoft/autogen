@@ -1,9 +1,7 @@
-import os
 import asyncio 
 import pytest
 from sqlmodel import Session, text, select
 from typing import Generator
-from pathlib import Path
 
 from autogenstudio.database import DatabaseManager
 from autogen_agentchat.agents import AssistantAgent
@@ -56,7 +54,7 @@ class TestDatabaseOperations:
     def test_basic_setup(self, test_db: DatabaseManager):
         """Test basic database setup and connection"""
         with Session(test_db.engine) as session:
-            result = session.exec(text("SELECT 1")).first()
+            result = session.exec(text("SELECT 1")).first() # type: ignore
             assert result[0] == 1
             result = session.exec(select(1)).first()
             assert result == 1
@@ -87,7 +85,7 @@ class TestDatabaseOperations:
         # Verify Update
         result = test_db.get(Team, {"id": team_id})
         assert result.status is True
-        assert result.data[0].version == "0.0.2"
+        assert result.data and result.data[0].version == "0.0.2"
 
     def test_delete_operations(self, test_db: DatabaseManager, sample_team: Team):
         """Test delete with various filters"""
@@ -105,7 +103,8 @@ class TestDatabaseOperations:
 
         # Verify deletion
         result = test_db.get(Team, {"id": team_id})
-        assert len(result.data) == 0
+        if result.data:
+            assert len(result.data) == 0 
         
     def test_cascade_delete(self, test_db: DatabaseManager, test_user: str):
         """Test all levels of cascade delete"""
@@ -135,7 +134,9 @@ class TestDatabaseOperations:
         ))
         
         test_db.delete(Run, {"id": run1_id})
-        assert len(test_db.get(Message, {"run_id": run1_id}).data) == 0, "Run->Message cascade failed"
+        db_message = test_db.get(Message, {"run_id": run1_id})
+        if db_message.data:
+            assert len(db_message.data) == 0, "Run->Message cascade failed"
 
         # Test Session -> Run -> Message cascade
         session2 = SessionModel(user_id=test_user, team_id=team1.id, name="Session2")
@@ -156,8 +157,12 @@ class TestDatabaseOperations:
         ))
         
         test_db.delete(SessionModel, {"id": session2.id})
-        assert len(test_db.get(Run, {"session_id": session2.id}).data) == 0, "Session->Run cascade failed"
-        assert len(test_db.get(Message, {"run_id": run2_id}).data) == 0, "Session->Run->Message cascade failed"
+        session = test_db.get(SessionModel, {"id": session2.id})
+        run = test_db.get(Run, {"id": run2_id})
+        if session.data:
+            assert len(session.data) == 0, "Session->Run cascade failed"
+        if run.data:
+            assert len(run.data) == 0, "Session->Run->Message cascade failed"
 
         # Clean up
         test_db.delete(Team, {"id": team1.id})

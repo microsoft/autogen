@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 from typing_extensions import TypedDict
 
 
@@ -49,7 +49,7 @@ class CreateArgumentsConfigModel(BaseModel):
 
 
 class BaseAnthropicClientConfigurationConfigModel(CreateArgumentsConfigModel):
-    api_key: str | None = None
+    api_key: SecretStr | None = None
     base_url: str | None = None
     model_capabilities: ModelCapabilities | None = None  # type: ignore
     model_info: ModelInfo | None = None

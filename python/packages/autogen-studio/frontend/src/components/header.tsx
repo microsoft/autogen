@@ -1,5 +1,14 @@
 import Icon from "./icons";
-import { Disclosure, Menu, Transition } from "@headlessui/react";
+import {
+  Disclosure,
+  DisclosureButton,
+  DisclosurePanel,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuItems,
+  Transition,
+} from "@headlessui/react";
 import {
   XMarkIcon,
   Bars3Icon,
@@ -11,6 +20,7 @@ import { Fragment } from "react";
 import { appContext } from "../hooks/provider";
 import { Link } from "gatsby";
 import React from "react";
+import { sanitizeUrl } from "./utils/security-utils";
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
@@ -19,8 +29,8 @@ function classNames(...classes: string[]) {
 const Header = ({ meta, link }: any) => {
   const { user, logout } = React.useContext(appContext);
   const userName = user ? user.name : "Unknown";
-  const userAvatarUrl = user ? user.avatar_url : "";
-  const user_id = user ? user.username : "unknown";
+  const userAvatarUrl = user ? sanitizeUrl(user.avatar_url) : "";
+  const user_id = user ? user.id : "unknown";
 
   const links: any[] = [
     { name: "Build", href: "/build" },
@@ -117,14 +127,14 @@ const Header = ({ meta, link }: any) => {
 
               <div className="flex items-center md:hidden">
                 {/* Mobile menu button */}
-                <Disclosure.Button className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-secondary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent">
+                <DisclosureButton className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-secondary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent">
                   <span className="sr-only">Open main menu</span>
                   {open ? (
                     <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
                   ) : (
                     <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
                   )}
-                </Disclosure.Button>
+                </DisclosureButton>
               </div>
               {
                 <div className="hidden lg:ml-4 md:flex md:items-center">
@@ -140,7 +150,7 @@ const Header = ({ meta, link }: any) => {
                       {/* Profile dropdown */}
                       <Menu as="div" className="ml-4 relative flex-shrink-0">
                         <div>
-                          <Menu.Button className="bg-primary rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent">
+                          <MenuButton className="bg-primary rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent">
                             <span className="sr-only">Open user menu</span>
                             {userAvatarUrl && (
                               <img
@@ -154,7 +164,7 @@ const Header = ({ meta, link }: any) => {
                                 {userName[0]}
                               </div>
                             )}
-                          </Menu.Button>
+                          </MenuButton>
                         </div>
                         <Transition
                           as={Fragment}
@@ -165,8 +175,8 @@ const Header = ({ meta, link }: any) => {
                           leaveFrom="transform opacity-100 scale-100"
                           leaveTo="transform opacity-0 scale-95"
                         >
-                          <Menu.Items className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-primary ring-1 ring-black ring-opacity-5 focus:outline-none">
-                            {/* <Menu.Item>
+                          <MenuItems className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-primary ring-1 ring-black ring-opacity-5 focus:outline-none">
+                            {/* <MenuItem>
                         {({ active }) => (
                           <a
                             href="#"
@@ -175,9 +185,9 @@ const Header = ({ meta, link }: any) => {
                             Your Profile
                           </a>
                         )}
-                      </Menu.Item> */}
+                      </MenuItem> */}
 
-                            <Menu.Item>
+                            <MenuItem>
                               {({ active }) => (
                                 <a
                                   href="#"
@@ -192,8 +202,8 @@ const Header = ({ meta, link }: any) => {
                                   Sign out
                                 </a>
                               )}
-                            </Menu.Item>
-                          </Menu.Items>
+                            </MenuItem>
+                          </MenuItems>
                         </Transition>
                       </Menu>
                     </>
@@ -203,19 +213,19 @@ const Header = ({ meta, link }: any) => {
             </div>
           </div>
 
-          <Disclosure.Panel className="md:hidden">
+          <DisclosurePanel className="md:hidden">
             <div className="pt-2 pb-3 space-y-1">
               {/* Current: "bg-indigo-50 border-accent text-accent", Default: "border-transparent text-gray-600 hover:bg-primary hover:border-gray-300 hover:text-primary" */}
               {links.map((data, index) => {
                 return (
-                  <Disclosure.Button
+                  <DisclosureButton
                     key={index + "linkrow"}
                     as="a"
                     href={data.href}
                     className="bg-secondary border-accent text-accent block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
                   >
                     {data.name}
-                  </Disclosure.Button>
+                  </DisclosureButton>
                 );
               })}
             </div>
@@ -253,18 +263,18 @@ const Header = ({ meta, link }: any) => {
                   </button>
                 </div>
                 <div className="mt-3 space-y-1">
-                  <Disclosure.Button
+                  <DisclosureButton
                     as="a"
                     href="#"
                     onClick={() => logout()}
                     className="block px-4 py-2 text-base font-medium text-secondary hover:text-primary "
                   >
                     Sign out
-                  </Disclosure.Button>
+                  </DisclosureButton>
                 </div>
               </div>
             )}
-          </Disclosure.Panel>
+          </DisclosurePanel>
         </>
       )}
     </Disclosure>

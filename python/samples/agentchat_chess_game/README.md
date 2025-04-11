@@ -63,12 +63,12 @@ please refer to the [Models documentation](https://microsoft.github.io/autogen/s
 Run the following command to start the game:
 
 ```bash
-python chess_game.py
+python main.py
 ```
 
 By default, the game will use a random agent to play against the AI agent.
 You can enable human vs AI mode by setting the `--human` flag:
 
 ```bash
-python chess_game.py --human
+python main.py --human
 ```

@@ -139,7 +139,11 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
             validate_model_info(self._model_info)
         else:
             self._model_info = ModelInfo(
-                vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
+                vision=False,
+                function_calling=False,
+                json_output=False,
+                family=ModelFamily.UNKNOWN,
+                structured_output=False,
             )
         self._total_available_tokens = 10000
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
@@ -158,7 +162,7 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -197,7 +201,7 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:

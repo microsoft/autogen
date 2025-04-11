@@ -12,6 +12,7 @@ using Xunit;
 
 namespace Microsoft.AutoGen.AgentChat.Tests;
 
+[Trait("Category", "UnitV2")]
 public class AgentChatSmokeTest
 {
     public class SpeakMessageAgent : ChatAgentBase

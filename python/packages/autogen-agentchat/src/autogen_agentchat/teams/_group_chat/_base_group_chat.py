@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
@@ -15,22 +14,26 @@ from autogen_core import (
 )
 from pydantic import BaseModel, ValidationError
 
-from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import (
-    AgentEvent,
+    BaseAgentEvent,
     BaseChatMessage,
-    ChatMessage,
+    MessageFactory,
     ModelClientStreamingChunkEvent,
     StopMessage,
     TextMessage,
 )
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
-from ._events import GroupChatPause, GroupChatReset, GroupChatResume, GroupChatStart, GroupChatTermination
+from ._events import (
+    GroupChatPause,
+    GroupChatReset,
+    GroupChatResume,
+    GroupChatStart,
+    GroupChatTermination,
+    SerializableException,
+)
 from ._sequential_routed_agent import SequentialRoutedAgent
-
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
@@ -50,6 +53,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
+        custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -59,6 +63,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._base_group_chat_manager_class = group_chat_manager_class
         self._termination_condition = termination_condition
         self._max_turns = max_turns
+        self._message_factory = MessageFactory()
+        if custom_message_types is not None:
+            for message_type in custom_message_types:
+                self._message_factory.register(message_type)
 
         # The team ID is a UUID that is used to identify the team and its participants
         # in the agent runtime. It is used to create unique topic types for each participant.
@@ -85,7 +93,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._output_topic_type = f"output_topic_{self._team_id}"
 
         # The queue for collecting the output messages.
-        self._output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination] = asyncio.Queue()
+        self._output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination] = (
+            asyncio.Queue()
+        )
 
         # Create a runtime for the team.
         if runtime is not None:
@@ -112,9 +122,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        message_factory: MessageFactory,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
@@ -122,9 +133,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         parent_topic_type: str,
         output_topic_type: str,
         agent: ChatAgent,
+        message_factory: MessageFactory,
     ) -> Callable[[], ChatAgentContainer]:
         def _factory() -> ChatAgentContainer:
-            container = ChatAgentContainer(parent_topic_type, output_topic_type, agent)
+            container = ChatAgentContainer(parent_topic_type, output_topic_type, agent, message_factory)
             return container
 
         return _factory
@@ -140,7 +152,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             await ChatAgentContainer.register(
                 runtime,
                 type=agent_type,
-                factory=self._create_participant_factory(self._group_topic_type, self._output_topic_type, participant),
+                factory=self._create_participant_factory(
+                    self._group_topic_type, self._output_topic_type, participant, self._message_factory
+                ),
             )
             # Add subscriptions for the participant.
             # The participant should be able to receive messages from its own topic.
@@ -162,6 +176,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 output_message_queue=self._output_message_queue,
                 termination_condition=self._termination_condition,
                 max_turns=self._max_turns,
+                message_factory=self._message_factory,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -185,7 +200,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     async def run(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
@@ -193,7 +208,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         Once the team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | Sequence[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
+            task (str | BaseChatMessage | Sequence[BaseChatMessage] | None): The task to run the team with. Can be a string, a single :class:`BaseChatMessage` , or a list of :class:`BaseChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -287,9 +302,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream. Once the
         team is stopped, the termination condition is reset.
@@ -301,14 +316,14 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             :attr:`~autogen_agentchat.base.TaskResult.messages`.
 
         Args:
-            task (str | ChatMessage | Sequence[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
+            task (str | BaseChatMessage | Sequence[BaseChatMessage] | None): The task to run the team with. Can be a string, a single :class:`BaseChatMessage` , or a list of :class:`BaseChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
                 To gracefully stop the team, use :class:`~autogen_agentchat.conditions.ExternalTermination` instead.
 
         Returns:
-            stream: an :class:`~collections.abc.AsyncGenerator` that yields :class:`~autogen_agentchat.messages.AgentEvent`, :class:`~autogen_agentchat.messages.ChatMessage`, and the final result :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream.
+            stream: an :class:`~collections.abc.AsyncGenerator` that yields :class:`~autogen_agentchat.messages.BaseAgentEvent`, :class:`~autogen_agentchat.messages.BaseChatMessage`, and the final result :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream.
 
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
@@ -388,21 +403,32 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         """
 
         # Create the messages list if the task is a string or a chat message.
-        messages: List[ChatMessage] | None = None
+        messages: List[BaseChatMessage] | None = None
         if task is None:
             pass
         elif isinstance(task, str):
             messages = [TextMessage(content=task, source="user")]
         elif isinstance(task, BaseChatMessage):
             messages = [task]
-        else:
+        elif isinstance(task, list):
             if not task:
                 raise ValueError("Task list cannot be empty.")
             messages = []
             for msg in task:
                 if not isinstance(msg, BaseChatMessage):
-                    raise ValueError("All messages in task list must be valid ChatMessage types")
+                    raise ValueError("All messages in task list must be valid BaseChatMessage types")
                 messages.append(msg)
+        else:
+            raise ValueError("Task must be a string, a BaseChatMessage, or a list of BaseChatMessage.")
+        # Check if the messages types are registered with the message factory.
+        if messages is not None:
+            for msg in messages:
+                if not self._message_factory.is_registered(msg.__class__):
+                    raise ValueError(
+                        f"Message type {msg.__class__} is not registered with the message factory. "
+                        "Please register it with the message factory by adding it to the "
+                        "custom_message_types list when creating the team."
+                    )
 
         if self._is_running:
             raise ValueError("The team is already running, it cannot run again until it is stopped.")
@@ -424,13 +450,26 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 try:
                     # This will propagate any exceptions raised.
                     await self._runtime.stop_when_idle()
-                finally:
-                    # Stop the consumption of messages and end the stream.
-                    # NOTE: we also need to put a GroupChatTermination event here because when the group chat
-                    # has an exception, the group chat manager may not be able to put a GroupChatTermination event in the queue.
+                    # Put a termination message in the queue to indicate that the group chat is stopped for whatever reason
+                    # but not due to an exception.
                     await self._output_message_queue.put(
                         GroupChatTermination(
-                            message=StopMessage(content="Exception occurred.", source=self._group_chat_manager_name)
+                            message=StopMessage(
+                                content="The group chat is stopped.", source=self._group_chat_manager_name
+                            )
+                        )
+                    )
+                except Exception as e:
+                    # Stop the consumption of messages and end the stream.
+                    # NOTE: we also need to put a GroupChatTermination event here because when the runtime
+                    # has an exception, the group chat manager may not be able to put a GroupChatTermination event in the queue.
+                    # This may not be necessary if the group chat manager is able to handle the exception and put the event in the queue.
+                    await self._output_message_queue.put(
+                        GroupChatTermination(
+                            message=StopMessage(
+                                content="An exception occurred in the runtime.", source=self._group_chat_manager_name
+                            ),
+                            error=SerializableException.from_exception(e),
                         )
                     )
 
@@ -448,7 +487,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 cancellation_token=cancellation_token,
             )
             # Collect the output messages in order.
-            output_messages: List[AgentEvent | ChatMessage] = []
+            output_messages: List[BaseAgentEvent | BaseChatMessage] = []
             stop_reason: str | None = None
             # Yield the messsages until the queue is empty.
             while True:
@@ -458,11 +497,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 # Wait for the next message, this will raise an exception if the task is cancelled.
                 message = await message_future
                 if isinstance(message, GroupChatTermination):
-                    # If the message is None, it means the group chat has terminated.
-                    # TODO: how do we handle termination when the runtime is not embedded
-                    # and there is an exception in the group chat?
-                    # The group chat manager may not be able to put a GroupChatTermination event in the queue,
-                    # and this loop will never end.
+                    # If the message contains an error, we need to raise it here.
+                    # This will stop the team and propagate the error.
+                    if message.error is not None:
+                        raise RuntimeError(str(message.error))
                     stop_reason = message.message.content
                     break
                 yield message

@@ -1,9 +1,9 @@
-FROM mcr.microsoft.com/devcontainers/python:3.10
-
+FROM python:3.10-slim
 WORKDIR /code
 
 RUN pip install -U gunicorn autogenstudio
 
+# Create a non-root user
 RUN useradd -m -u 1000 user
 USER user
 ENV HOME=/home/user \

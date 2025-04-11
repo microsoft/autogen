@@ -128,7 +128,7 @@ public class AgentTests()
 
         var topicTypeName = "TestTopic";
         await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
-        await Task.Delay(100);
+        await runtime.RunUntilIdleAndRestartAsync();
 
         Assert.True(agent.ReceivedItems.Count == 0);
 
@@ -136,14 +136,14 @@ public class AgentTests()
         await runtime.AddSubscriptionAsync(subscription);
 
         await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
-        await Task.Delay(100);
+        await runtime.RunUntilIdleAndRestartAsync();
 
         Assert.True(agent.ReceivedItems.Count == 1);
         Assert.Equal("info", agent.ReceivedItems[0]);
 
         await runtime.RemoveSubscriptionAsync(subscription.Id);
         await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
-        await Task.Delay(100);
+        await runtime.RunUntilIdleAsync();
 
         Assert.True(agent.ReceivedItems.Count == 1);
     }

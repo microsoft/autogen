@@ -8,12 +8,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import aiofiles
 import pytest
-from autogen_agentchat.messages import ChatMessage, TextMessage
+from autogen_agentchat.messages import BaseChatMessage, TextMessage, ToolCallRequestEvent
 from autogen_core import CancellationToken
 from autogen_core.tools._base import BaseTool, Tool
 from autogen_ext.agents.openai import OpenAIAssistantAgent
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from openai import AsyncAzureOpenAI
+from openai import AsyncAzureOpenAI, AsyncOpenAI
 from pydantic import BaseModel
 
 
@@ -81,16 +81,16 @@ class FakeMessage:
 
 
 class FakeCursorPage:
-    def __init__(self, data: List[ChatMessage | FakeMessage]) -> None:
+    def __init__(self, data: List[BaseChatMessage | FakeMessage]) -> None:
         self.data = data
 
     def has_next_page(self) -> bool:
         return False
 
 
-def create_mock_openai_client() -> AsyncAzureOpenAI:
+def create_mock_openai_client() -> AsyncOpenAI:
     # Create the base client as an AsyncMock.
-    client = AsyncMock(spec=AsyncAzureOpenAI)
+    client = AsyncMock(spec=AsyncOpenAI)
 
     # Create a "beta" attribute with the required nested structure.
     beta = MagicMock()
@@ -130,12 +130,12 @@ def create_mock_openai_client() -> AsyncAzureOpenAI:
     beta.threads.runs.retrieve = AsyncMock(return_value=MagicMock(id="run-mock", status="completed"))
     beta.threads.runs.submit_tool_outputs = AsyncMock(return_value=MagicMock(id="run-mock", status="completed"))
 
-    # Setup beta.vector_stores with create, delete, and file_batches.
-    beta.vector_stores = MagicMock()
-    beta.vector_stores.create = AsyncMock(return_value=MagicMock(id="vector-mock"))
-    beta.vector_stores.delete = AsyncMock(return_value=None)
-    beta.vector_stores.file_batches = MagicMock()
-    beta.vector_stores.file_batches.create_and_poll = AsyncMock(return_value=None)
+    # Setup client.vector_stores with create, delete, and file_batches.
+    client.vector_stores = MagicMock()
+    client.vector_stores.create = AsyncMock(return_value=MagicMock(id="vector-mock"))
+    client.vector_stores.delete = AsyncMock(return_value=None)
+    client.vector_stores.file_batches = MagicMock()
+    client.vector_stores.file_batches.create_and_poll = AsyncMock(return_value=None)
 
     # Setup client.files with create and delete.
     client.files = MagicMock()
@@ -147,22 +147,33 @@ def create_mock_openai_client() -> AsyncAzureOpenAI:
 
 # Fixture for the mock client.
 @pytest.fixture
-def mock_openai_client() -> AsyncAzureOpenAI:
+def mock_openai_client() -> AsyncOpenAI:
     return create_mock_openai_client()
 
 
-@pytest.fixture
-def client() -> AsyncAzureOpenAI:
+@pytest.fixture(params=["openai", "azure", "mock"])
+def client(request: pytest.FixtureRequest) -> AsyncOpenAI:
+    client_type = request.param
+
+    if client_type == "mock":
+        # Return a mock OpenAI client.
+        return create_mock_openai_client()
+
+    if client_type == "openai":
+        # Check for OpenAI credentials in environment variables.
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if openai_api_key:
+            return AsyncOpenAI(api_key=openai_api_key)
+        else:
+            pytest.skip("OPENAI_API_KEY not set in environment variables.")
+
+    # Check for Azure OpenAI credentials in environment variables.
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
     api_key = os.getenv("AZURE_OPENAI_API_KEY")
 
-    # Return mock client if credentials not available
-    if not azure_endpoint or not api_key:
-        return create_mock_openai_client()
-
-    # Try Azure CLI credentials if API key not provided
-    if not api_key:
+    if azure_endpoint and not api_key:
+        # Try Azure CLI credentials if API key not provided
         try:
             token_provider = get_bearer_token_provider(
                 DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
@@ -171,14 +182,17 @@ def client() -> AsyncAzureOpenAI:
                 azure_endpoint=azure_endpoint, api_version=api_version, azure_ad_token_provider=token_provider
             )
         except Exception:
-            return create_mock_openai_client()
+            pytest.skip("Failed to obtain Azure CLI credentials.")
 
-    # Fall back to API key auth if provided
-    return AsyncAzureOpenAI(azure_endpoint=azure_endpoint, api_version=api_version, api_key=api_key)
+    if azure_endpoint and api_key:
+        # Use Azure OpenAI with API key authentication.
+        return AsyncAzureOpenAI(azure_endpoint=azure_endpoint, api_version=api_version, api_key=api_key)
+
+    pytest.skip("AZURE_OPENAI_ENDPOINT not set in environment variables.")
 
 
 @pytest.fixture
-def agent(client: AsyncAzureOpenAI) -> OpenAIAssistantAgent:
+def agent(client: AsyncOpenAI) -> OpenAIAssistantAgent:
     tools: List[Union[Literal["code_interpreter", "file_search"], Tool]] = [
         "code_interpreter",
         "file_search",
@@ -236,8 +250,7 @@ async def test_file_retrieval(
     message = TextMessage(source="user", content="What is the first sentence of the jungle scout book?")
     response = await agent.on_messages([message], cancellation_token)
 
-    assert response.chat_message.content is not None
-    assert isinstance(response.chat_message.content, str)
+    assert isinstance(response.chat_message, TextMessage)
     assert len(response.chat_message.content) > 0
 
     await agent.delete_uploaded_files(cancellation_token)
@@ -257,8 +270,7 @@ async def test_code_interpreter(
     message = TextMessage(source="user", content="I need to solve the equation `3x + 11 = 14`. Can you help me?")
     response = await agent.on_messages([message], cancellation_token)
 
-    assert response.chat_message.content is not None
-    assert isinstance(response.chat_message.content, str)
+    assert isinstance(response.chat_message, TextMessage)
     assert len(response.chat_message.content) > 0
     assert "x = 1" in response.chat_message.content.lower()
 
@@ -266,6 +278,7 @@ async def test_code_interpreter(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("client", ["mock"], indirect=True)
 async def test_quiz_creation(
     agent: OpenAIAssistantAgent, cancellation_token: CancellationToken, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -311,18 +324,17 @@ async def test_quiz_creation(
     response = await agent.on_messages([message], cancellation_token)
 
     # Check that the final response has non-empty inner messages (i.e. tool call events).
-    assert response.chat_message.content is not None
-    assert isinstance(response.chat_message.content, str)
+    assert isinstance(response.chat_message, TextMessage)
     assert len(response.chat_message.content) > 0
     assert isinstance(response.inner_messages, list)
     # Ensure that at least one inner message has non-empty content.
-    assert any(hasattr(tool_msg, "content") and tool_msg.content for tool_msg in response.inner_messages)
+    assert any(isinstance(msg, ToolCallRequestEvent) for msg in response.inner_messages)
 
     await agent.delete_assistant(cancellation_token)
 
 
 @pytest.mark.asyncio
-async def test_on_reset_behavior(client: AsyncAzureOpenAI, cancellation_token: CancellationToken) -> None:
+async def test_on_reset_behavior(client: AsyncOpenAI, cancellation_token: CancellationToken) -> None:
     # Arrange: Use the default behavior for reset.
     thread = await client.beta.threads.create()
     await client.beta.threads.messages.create(
@@ -342,21 +354,21 @@ async def test_on_reset_behavior(client: AsyncAzureOpenAI, cancellation_token: C
 
     message1 = TextMessage(source="user", content="What is my name?")
     response1 = await agent.on_messages([message1], cancellation_token)
-    assert isinstance(response1.chat_message.content, str)
+    assert isinstance(response1.chat_message, TextMessage)
     assert "john" in response1.chat_message.content.lower()
 
     await agent.on_reset(cancellation_token)
 
     message2 = TextMessage(source="user", content="What is my name?")
     response2 = await agent.on_messages([message2], cancellation_token)
-    assert isinstance(response2.chat_message.content, str)
+    assert isinstance(response2.chat_message, TextMessage)
     assert "john" in response2.chat_message.content.lower()
 
     await agent.delete_assistant(cancellation_token)
 
 
 @pytest.mark.asyncio
-async def test_save_and_load_state(mock_openai_client: AsyncAzureOpenAI) -> None:
+async def test_save_and_load_state(mock_openai_client: AsyncOpenAI) -> None:
     agent = OpenAIAssistantAgent(
         name="assistant",
         description="Dummy assistant for state testing",

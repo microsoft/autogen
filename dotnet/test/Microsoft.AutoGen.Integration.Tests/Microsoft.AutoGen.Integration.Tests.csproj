@@ -10,7 +10,10 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Testing" />
-    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="coverlet.collector" >
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="GitHubActionsTestLogger">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -53,10 +56,10 @@
       <CheckUvPath Condition="!Exists('$(Uv)')">True</CheckUvPath>
       <UvPath Condition="'$(CheckUvPath)' == 'True'">uv</UvPath>
       <UvPath Condition="'$(CheckUvPath)' == 'False'">$(Uv)</UvPath>
-    </PropertyGroup>  
+    </PropertyGroup>
     <Message Importance="Normal" Text="Initializing virtual environment for $(PythonVenvRoot)" />
 
-    <Exec Command="$(UvPath) sync --all-extras" WorkingDirectory="$(PythonRoot)" Condition=" '$(CreateVenv)' == 'True' " />
+    <Exec Command="$(UvPath) sync --all-extras --no-install-package llama-cpp-python" WorkingDirectory="$(PythonRoot)" Condition=" '$(CreateVenv)' == 'True' " />
       <!--Output TaskParameter="ConsoleOutput" PropertyName="OutputOfExec" />
     </Exec>
     <Message Importance="Normal" Text="$(OutputOfExec)" />-->

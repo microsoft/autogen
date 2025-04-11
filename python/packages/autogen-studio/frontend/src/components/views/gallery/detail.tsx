@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Tabs, Button, Tooltip, Drawer } from "antd";
+import React, { useState, useEffect } from "react";
+import { Tabs, Button, Tooltip, Drawer, Input } from "antd";
 import {
   Package,
   Users,
@@ -12,6 +12,7 @@ import {
   Copy,
   Trash,
   Plus,
+  Download,
 } from "lucide-react";
 import { ComponentEditor } from "../teambuilder/builder/component-editor/component-editor";
 import { TruncatableText } from "../atoms";
@@ -21,6 +22,7 @@ import {
   ComponentTypes,
   Gallery,
 } from "../../types/datamodel";
+import TextArea from "antd/es/input/TextArea";
 
 type CategoryKey = `${ComponentTypes}s`;
 
@@ -153,6 +155,18 @@ export const GalleryDetail: React.FC<{
     index: number;
   } | null>(null);
   const [activeTab, setActiveTab] = useState<ComponentTypes>("team");
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [tempName, setTempName] = useState(gallery.config.name);
+  const [tempDescription, setTempDescription] = useState(
+    gallery.config.metadata.description
+  );
+
+  useEffect(() => {
+    setTempName(gallery.config.name);
+    setTempDescription(gallery.config.metadata.description);
+    setActiveTab("team");
+    setEditingComponent(null);
+  }, [gallery.id]);
 
   const updateGallery = (
     category: CategoryKey,
@@ -263,6 +277,38 @@ export const GalleryDetail: React.FC<{
     setEditingComponent(null);
   };
 
+  const handleDetailsSave = () => {
+    const updatedGallery = {
+      ...gallery,
+      config: {
+        ...gallery.config,
+        name: tempName,
+        metadata: {
+          ...gallery.config.metadata,
+          description: tempDescription,
+        },
+      },
+    };
+    onSave(updatedGallery);
+    onDirtyStateChange(true);
+    setIsEditingDetails(false);
+  };
+
+  const handleDownload = () => {
+    const dataStr = JSON.stringify(gallery, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${gallery.config.name
+      .toLowerCase()
+      .replace(/\s+/g, "_")}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const tabItems = Object.entries(iconMap).map(([key, Icon]) => ({
     key,
     label: (
@@ -313,19 +359,68 @@ export const GalleryDetail: React.FC<{
         />
         <div className="relative z-10 p-6 h-full flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-medium text-primary">
-                {gallery.config.name}
-              </h1>
-              {gallery.config.url && (
-                <Tooltip title="Remote Gallery">
-                  <Globe className="w-5 h-5 text-secondary" />
-                </Tooltip>
-              )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {isEditingDetails ? (
+                  <Input
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    className="text-2xl font-medium bg-background/50 backdrop-blur px-2 py-1 rounded w-[400px]"
+                  />
+                ) : (
+                  <h1 className="text-2xl font-medium text-primary">
+                    {gallery.config.name}
+                  </h1>
+                )}
+                {gallery.config.url && (
+                  <Tooltip title="Remote Gallery">
+                    <Globe className="w-5 h-5 text-secondary" />
+                  </Tooltip>
+                )}
+              </div>
             </div>
-            <p className="text-secondary w-1/2 mt-2 line-clamp-2">
-              {gallery.config.metadata.description}
-            </p>
+            {isEditingDetails ? (
+              <TextArea
+                value={tempDescription}
+                onChange={(e) => setTempDescription(e.target.value)}
+                className="w-1/2 bg-background/50 backdrop-blur px-2 py-1 rounded mt-2"
+                rows={2}
+              />
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-secondary w-1/2 mt-2 line-clamp-2">
+                  {gallery.config.metadata.description}
+                </p>
+                <div className="flex gap-0">
+                  <Tooltip title="Edit Gallery">
+                    <Button
+                      icon={<Edit className="w-4 h-4" />}
+                      onClick={() => setIsEditingDetails(true)}
+                      type="text"
+                      className="text-white hover:text-white/80"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Download Gallery">
+                    <Button
+                      icon={<Download className="w-4 h-4" />}
+                      onClick={handleDownload}
+                      type="text"
+                      className="text-white hover:text-white/80"
+                    />
+                  </Tooltip>
+                </div>
+              </div>
+            )}
+            {isEditingDetails && (
+              <div className="flex gap-2 mt-2">
+                <Button onClick={() => setIsEditingDetails(false)}>
+                  Cancel
+                </Button>
+                <Button type="primary" onClick={handleDetailsSave}>
+                  Save
+                </Button>
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
             <div className="bg-tertiary backdrop-blur rounded p-2 flex items-center gap-2">
