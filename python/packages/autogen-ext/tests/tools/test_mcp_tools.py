@@ -121,12 +121,12 @@ async def test_mcp_tool_execution(
 ) -> None:
     """Test that adapter properly executes tools through ClientSession."""
     @asynccontextmanager
-    async def fake_create_session(*args, **kwargs):
+    async def fake_create_session(*args, **kwargs):  # type: ignore
         yield mock_session
 
     monkeypatch.setattr(
         "autogen_ext.tools.mcp._session.create_mcp_server_session",
-        fake_create_session,
+        fake_create_session,  # type: ignore
     )
 
     mock_session.call_tool.return_value = mock_tool_response
@@ -163,7 +163,7 @@ async def test_adapter_from_server_params(
         lambda *args, **kwargs: mock_context,  # type: ignore
     )
     @asynccontextmanager
-    async def fake_create_session(*args, **kwargs):
+    async def fake_create_session(*args, **kwargs):  # type: ignore
         try:
             yield mock_session
         finally:
@@ -172,7 +172,7 @@ async def test_adapter_from_server_params(
 
     monkeypatch.setattr(
         "autogen_ext.tools.mcp._session.create_mcp_server_session",
-        fake_create_session,
+        fake_create_session,  # type: ignore
     )
 
     mock_session.list_tools.return_value.tools = [sample_tool]
@@ -246,12 +246,12 @@ async def test_sse_tool_execution(
     mock_sse_session.call_tool.return_value = mock_result
 
     @asynccontextmanager
-    async def fake_create_session(*args, **kwargs):
+    async def fake_create_session(*args, **kwargs):  # type: ignore
         yield mock_sse_session
 
     monkeypatch.setattr(
         "autogen_ext.tools.mcp._session.create_mcp_server_session",
-        fake_create_session,
+        fake_create_session,  # type: ignore
     )
 
     with caplog.at_level(logging.INFO):
@@ -291,12 +291,12 @@ async def test_sse_adapter_from_server_params(
     )
 
     @asynccontextmanager
-    async def fake_create_session(*args, **kwargs):
+    async def fake_create_session(*args, **kwargs):  # type: ignore
         yield mock_sse_session
 
     monkeypatch.setattr(
         "autogen_ext.tools.mcp._session.create_mcp_server_session",
-        fake_create_session,
+        fake_create_session,  # type: ignore
     )
 
     adapter = await SseMcpToolAdapter.from_server_params(params, "test_sse_tool")
