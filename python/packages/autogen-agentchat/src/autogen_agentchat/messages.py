@@ -5,7 +5,7 @@ class and includes specific fields relevant to the type of message being sent.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
+from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar, Optional
 
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
@@ -175,21 +175,45 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
 
         print(message.to_text())  # {"text": "Hello", "number": 42}
 
+    .. code-block:: python
+        from pydantic import BaseModel
+        from autogen_agentchat.messages import StructuredMessage
+
+        class MyMessageContent(BaseModel):
+            text: str
+            number: int
+
+
+        message = StructuredMessage[MyMessageContent](
+            content=MyMessageContent(text="Hello", number=42),
+            source="agent",
+            format_string="Hello, {text} {number}!",
+        )
+
+        print(message.to_text())  # Hello, agent 42!
     """
 
     content: StructuredContentType
     """The content of the message. Must be a subclass of
     `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_."""
 
+    format_string: Optional[str] = None
+
     @computed_field
     def type(self) -> str:
         return self.__class__.__name__
 
     def to_text(self) -> str:
-        return self.content.model_dump_json(indent=2)
+        if self.format_string is not None:
+            return self.format_string.format(**self.content.model_dump())
+        else:
+            return self.content.model_dump_json()
 
     def to_model_text(self) -> str:
-        return self.content.model_dump_json()
+        if self.format_string is not None:
+            return self.format_string.format(**self.content.model_dump())
+        else:
+            return self.content.model_dump_json()
 
     def to_model_message(self) -> UserMessage:
         return UserMessage(
