@@ -65,9 +65,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         try:
             if cancellation_token.is_cancelled():
                 raise Exception("Operation cancelled")
-            print("BBBBB0")
             result_future = await self.actor.call(name=self._tool.name, kwargs=kwargs)
-            print("BBBBB1")
             cancellation_token.link_future(result_future)
             result = await result_future
 
@@ -120,3 +118,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         else:
             error_message += f"{str(error)}\n"
         return error_message
+
+    async def close(self) -> None:
+        """Close the adapter and release resources."""
+        await self.actor.close()

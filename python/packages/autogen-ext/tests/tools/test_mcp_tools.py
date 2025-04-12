@@ -1,4 +1,6 @@
+from contextlib import asynccontextmanager
 import logging
+import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock
 
@@ -85,7 +87,7 @@ def test_adapter_config_serialization(sample_tool: Tool, sample_server_params: S
     original_adapter = StdioMcpToolAdapter(actor=actor, tool=sample_tool)
     config = original_adapter.dump_component()
     loaded_adapter = StdioMcpToolAdapter.load_component(config)
-
+    asyncio.run(actor.close())
     # Test that the loaded adapter has the same properties
     assert loaded_adapter.name == "test_tool"
     assert loaded_adapter.description == "A test tool"
@@ -118,38 +120,32 @@ async def test_mcp_tool_execution(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that adapter properly executes tools through ClientSession."""
-    mock_context = AsyncMock()
-    mock_context.__aenter__.return_value = mock_session
+    @asynccontextmanager
+    async def fake_create_session(*args, **kwargs):
+        yield mock_session
+
     monkeypatch.setattr(
-        "autogen_ext.tools.mcp._base.create_mcp_server_session",
-        lambda *args, **kwargs: mock_context,  # type: ignore
+        "autogen_ext.tools.mcp._session.create_mcp_server_session",
+        fake_create_session,
     )
 
     mock_session.call_tool.return_value = mock_tool_response
 
     with caplog.at_level(logging.INFO):
-        print("AAAAAA1")
         actor = McpSessionActor(server_params=sample_server_params)
-        print("AAAAAA2")
         await actor.initialize()
-        print("AAAAAA3")
         adapter = StdioMcpToolAdapter(actor=actor, tool=sample_tool)
-        print("AAAAAA4")
         result = await adapter.run_json(
             args=create_model(sample_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
             cancellation_token=cancellation_token,
         )
-        print("AAAAAA5")
 
         assert result == mock_tool_response.content
-        print("AAAAAA6")
         mock_session.initialize.assert_called_once()
-        print("AAAAAA7")
         mock_session.call_tool.assert_called_once()
 
         # Check log.
         assert "test_output" in caplog.text
-        await actor.close()
 
 
 @pytest.mark.asyncio
@@ -166,11 +162,23 @@ async def test_adapter_from_server_params(
         "autogen_ext.tools.mcp._base.create_mcp_server_session",
         lambda *args, **kwargs: mock_context,  # type: ignore
     )
+    @asynccontextmanager
+    async def fake_create_session(*args, **kwargs):
+        try:
+            yield mock_session
+        finally:
+            # graceful shutdown
+            pass
+
+    monkeypatch.setattr(
+        "autogen_ext.tools.mcp._session.create_mcp_server_session",
+        fake_create_session,
+    )
 
     mock_session.list_tools.return_value.tools = [sample_tool]
 
     adapter = await StdioMcpToolAdapter.from_server_params(sample_server_params, "test_tool")
-
+    await adapter.close()
     assert isinstance(adapter, StdioMcpToolAdapter)
     assert adapter.name == "test_tool"
     assert adapter.description == "A test tool"
@@ -233,14 +241,17 @@ async def test_sse_tool_execution(
 ) -> None:
     """Test that SSE adapter properly executes tools through ClientSession."""
     params = SseServerParams(url="http://test-url")
-    mock_context = AsyncMock()
-    mock_context.__aenter__.return_value = mock_sse_session
 
-    mock_sse_session.call_tool.return_value = MagicMock(isError=False, content={"result": "test_output"})
+    mock_result = MagicMock(isError=False, content={"result": "test_output"})
+    mock_sse_session.call_tool.return_value = mock_result
+
+    @asynccontextmanager
+    async def fake_create_session(*args, **kwargs):
+        yield mock_sse_session
 
     monkeypatch.setattr(
-        "autogen_ext.tools.mcp._base.create_mcp_server_session",
-        lambda *args, **kwargs: mock_context,  # type: ignore
+        "autogen_ext.tools.mcp._session.create_mcp_server_session",
+        fake_create_session,
     )
 
     with caplog.at_level(logging.INFO):
@@ -258,6 +269,8 @@ async def test_sse_tool_execution(
 
         # Check log.
         assert "test_output" in caplog.text
+        
+        await actor.close()
 
 
 @pytest.mark.asyncio
@@ -268,6 +281,8 @@ async def test_sse_adapter_from_server_params(
 ) -> None:
     """Test that SSE adapter can be created from server parameters."""
     params = SseServerParams(url="http://test-url")
+    mock_sse_session.list_tools.return_value.tools = [sample_sse_tool]
+
     mock_context = AsyncMock()
     mock_context.__aenter__.return_value = mock_sse_session
     monkeypatch.setattr(
@@ -275,9 +290,17 @@ async def test_sse_adapter_from_server_params(
         lambda *args, **kwargs: mock_context,  # type: ignore
     )
 
-    mock_sse_session.list_tools.return_value.tools = [sample_sse_tool]
+    @asynccontextmanager
+    async def fake_create_session(*args, **kwargs):
+        yield mock_sse_session
+
+    monkeypatch.setattr(
+        "autogen_ext.tools.mcp._session.create_mcp_server_session",
+        fake_create_session,
+    )
 
     adapter = await SseMcpToolAdapter.from_server_params(params, "test_sse_tool")
+    await adapter.close()
 
     assert isinstance(adapter, SseMcpToolAdapter)
     assert adapter.name == "test_sse_tool"

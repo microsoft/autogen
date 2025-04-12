@@ -69,11 +69,8 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionConfig]):
         if self._actor_task and self._actor_task.done():
             raise RuntimeError("MCP actor task crashed", self._actor_task.exception())
         fut: asyncio.Future[Any] = asyncio.Future()
-        print("CCCCC1")
         await self._command_queue.put({"type": "call", "name": name, "args": kwargs, "future": fut})
-        print("CCCCC2")
         res = await fut
-        print("CCCCC3")
         return res
 
     async def close(self) -> None:
@@ -88,9 +85,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionConfig]):
     async def _run_actor(self) -> None:
         try:
             async with create_mcp_server_session(self.server_params) as session:
-                print("[MCP] session created")
                 await session.initialize()
-                print("[MCP] session initialized")
                 while True:
                     cmd = await self._command_queue.get()
                     if cmd["type"] == "shutdown":
