@@ -1,16 +1,17 @@
-from autogen_core import Component
+from autogen_core import Component, ComponentModel
 from mcp import Tool
 from pydantic import BaseModel
 from typing_extensions import Self
 
 from ._base import McpToolAdapter
 from ._config import SseServerParams
+from ._session import McpSessionActor
 
 
 class SseMcpToolAdapterConfig(BaseModel):
     """Configuration for the MCP tool adapter."""
 
-    server_params: SseServerParams
+    actor: ComponentModel
     tool: Tool
 
 
@@ -86,8 +87,8 @@ class SseMcpToolAdapter(
     component_config_schema = SseMcpToolAdapterConfig
     component_provider_override = "autogen_ext.tools.mcp.SseMcpToolAdapter"
 
-    def __init__(self, server_params: SseServerParams, tool: Tool) -> None:
-        super().__init__(server_params=server_params, tool=tool)
+    def __init__(self, actor: McpSessionActor, tool: Tool) -> None:
+        super().__init__(actor=actor, tool=tool)
 
     def _to_config(self) -> SseMcpToolAdapterConfig:
         """
@@ -96,7 +97,7 @@ class SseMcpToolAdapter(
         Returns:
             SseMcpToolAdapterConfig: The configuration of the adapter.
         """
-        return SseMcpToolAdapterConfig(server_params=self._server_params, tool=self._tool)
+        return SseMcpToolAdapterConfig(actor=self.actor.dump_component(), tool=self._tool)
 
     @classmethod
     def _from_config(cls, config: SseMcpToolAdapterConfig) -> Self:
@@ -109,4 +110,4 @@ class SseMcpToolAdapter(
         Returns:
             SseMcpToolAdapter: An instance of SseMcpToolAdapter.
         """
-        return cls(server_params=config.server_params, tool=config.tool)
+        return cls(actor=McpSessionActor.load_component(config.actor), tool=config.tool)

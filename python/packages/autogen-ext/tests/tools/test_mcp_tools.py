@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from autogen_core import CancellationToken
 from autogen_ext.tools.mcp import (
+    McpSessionActor,
     SseMcpToolAdapter,
     SseServerParams,
     StdioMcpToolAdapter,
@@ -79,7 +80,9 @@ def cancellation_token() -> CancellationToken:
 
 def test_adapter_config_serialization(sample_tool: Tool, sample_server_params: StdioServerParams) -> None:
     """Test that adapter can be saved to and loaded from config."""
-    original_adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool)
+    # Create an instance of the adapter
+    actor = McpSessionActor(server_params=sample_server_params)
+    original_adapter = StdioMcpToolAdapter(actor=actor, tool=sample_tool)
     config = original_adapter.dump_component()
     loaded_adapter = StdioMcpToolAdapter.load_component(config)
 
@@ -125,18 +128,28 @@ async def test_mcp_tool_execution(
     mock_session.call_tool.return_value = mock_tool_response
 
     with caplog.at_level(logging.INFO):
-        adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool)
+        print("AAAAAA1")
+        actor = McpSessionActor(server_params=sample_server_params)
+        print("AAAAAA2")
+        await actor.initialize()
+        print("AAAAAA3")
+        adapter = StdioMcpToolAdapter(actor=actor, tool=sample_tool)
+        print("AAAAAA4")
         result = await adapter.run_json(
             args=create_model(sample_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
             cancellation_token=cancellation_token,
         )
+        print("AAAAAA5")
 
         assert result == mock_tool_response.content
+        print("AAAAAA6")
         mock_session.initialize.assert_called_once()
+        print("AAAAAA7")
         mock_session.call_tool.assert_called_once()
 
         # Check log.
         assert "test_output" in caplog.text
+        await actor.close()
 
 
 @pytest.mark.asyncio
@@ -183,7 +196,9 @@ async def test_adapter_from_server_params(
 async def test_sse_adapter_config_serialization(sample_sse_tool: Tool) -> None:
     """Test that SSE adapter can be saved to and loaded from config."""
     params = SseServerParams(url="http://test-url")
-    original_adapter = SseMcpToolAdapter(server_params=params, tool=sample_sse_tool)
+    actor = McpSessionActor(server_params=params)
+    await actor.initialize()
+    original_adapter = SseMcpToolAdapter(actor=actor, tool=sample_sse_tool)
     config = original_adapter.dump_component()
     loaded_adapter = SseMcpToolAdapter.load_component(config)
 
@@ -229,7 +244,9 @@ async def test_sse_tool_execution(
     )
 
     with caplog.at_level(logging.INFO):
-        adapter = SseMcpToolAdapter(server_params=params, tool=sample_sse_tool)
+        actor = McpSessionActor(server_params=params)
+        await actor.initialize()
+        adapter = SseMcpToolAdapter(actor=actor, tool=sample_sse_tool)
         result = await adapter.run_json(
             args=create_model(sample_sse_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
             cancellation_token=CancellationToken(),

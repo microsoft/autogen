@@ -1,4 +1,3 @@
-import asyncio
 import builtins
 from abc import ABC
 from typing import Any, Generic, Type, TypeVar
@@ -10,7 +9,7 @@ from mcp import Tool
 from pydantic import BaseModel
 
 from ._config import McpServerParams
-from ._session import create_mcp_server_session
+from ._session import McpSessionActor, create_mcp_server_session
 
 TServerParams = TypeVar("TServerParams", bound=McpServerParams)
 
@@ -26,9 +25,10 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
     component_type = "tool"
 
-    def __init__(self, server_params: TServerParams, tool: Tool) -> None:
+    def __init__(self, actor: McpSessionActor, tool: Tool) -> None:
         self._tool = tool
-        self._server_params = server_params
+        self.actor = actor
+        # self.actor = self._actor.actor
 
         # Extract name and description
         name = tool.name
@@ -59,22 +59,21 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         # Convert the input model to a dictionary
         # Exclude unset values to avoid sending them to the MCP servers which may cause errors
         # for many servers.
+
         kwargs = args.model_dump(exclude_unset=True)
 
         try:
-            async with create_mcp_server_session(self._server_params) as session:
-                await session.initialize()
+            if cancellation_token.is_cancelled():
+                raise Exception("Operation cancelled")
+            print("BBBBB0")
+            result_future = await self.actor.call(name=self._tool.name, kwargs=kwargs)
+            print("BBBBB1")
+            cancellation_token.link_future(result_future)
+            result = await result_future
 
-                if cancellation_token.is_cancelled():
-                    raise Exception("Operation cancelled")
-
-                result_future = asyncio.ensure_future(session.call_tool(name=self._tool.name, arguments=kwargs))
-                cancellation_token.link_future(result_future)
-                result = await result_future
-
-                if result.isError:
-                    raise Exception(f"MCP tool execution failed: {result.content}")
-                return result.content
+            if result.isError:
+                raise Exception(f"MCP tool execution failed: {result.content}")
+            return result.content
         except Exception as e:
             error_message = self._format_errors(e)
             raise Exception(error_message) from e
@@ -105,7 +104,9 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                     f"Tool '{tool_name}' not found, available tools: {', '.join([t.name for t in tools_response.tools])}"
                 )
 
-        return cls(server_params=server_params, tool=matching_tool)
+        actor = McpSessionActor(server_params)
+        await actor.initialize()
+        return cls(actor=actor, tool=matching_tool)
 
     def _format_errors(self, error: Exception) -> str:
         """Recursively format errors into a string."""
