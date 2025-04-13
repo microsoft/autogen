@@ -37,7 +37,6 @@ overrides = [
 
 [manifest.dependency-groups]
 dev = [
-    { name = "azure-ai-projects", specifier = ">=1.0.0b7" },
     { name = "chainlit" },
     { name = "cookiecutter" },
     { name = "grpcio-tools", specifier = "~=1.70.0" },
@@ -595,6 +594,7 @@ anthropic = [
 ]
 azure = [
     { name = "azure-ai-inference" },
+    { name = "azure-ai-projects" },
     { name = "azure-core" },
     { name = "azure-identity" },
     { name = "azure-search-documents" },
@@ -732,6 +732,7 @@ requires-dist = [
     { name = "autogen-agentchat", marker = "extra == 'web-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "azure-ai-inference", marker = "extra == 'azure'", specifier = ">=1.0.0b7" },
+    { name = "azure-ai-projects", marker = "extra == 'azure'", specifier = ">=1.0.0b8" },
     { name = "azure-core", marker = "extra == 'azure'" },
     { name = "azure-identity", marker = "extra == 'azure'" },
     { name = "azure-search-documents", marker = "extra == 'azure'", specifier = ">=11.4.0" },
@@ -920,16 +921,16 @@ wheels = [
 
 [[package]]
 name = "azure-ai-projects"
-version = "1.0.0b7"
+version = "1.0.0b8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "azure-core" },
     { name = "isodate" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/85/1c/b8011bf6feb72c103eaead5e529594fbf2c1269e9f97d0431f824f7dee43/azure_ai_projects-1.0.0b7.tar.gz", hash = "sha256:7e36addea17f3966f28ad82be8066fdc33743c71edd2dfd982d24630598fd9b1", size = 305362 }
+sdist = { url = "https://files.pythonhosted.org/packages/83/85/66da3fe4affd182aa7788f212a1936a56a700bcbcafe157147a416f38e11/azure_ai_projects-1.0.0b8.tar.gz", hash = "sha256:9e48bf15710cdf40dd3fa1ac0448266bf599dc10c6477aa69ac5c250daef236e", size = 310017 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/68/53786f6a5e7496b01028bdb1de975a91d10a479aecb27e02231d3de6d131/azure_ai_projects-1.0.0b7-py3-none-any.whl", hash = "sha256:14325a2419799451c03629c30fe72a560a07cac52b5dcba4bfb61a6de2f20ae7", size = 188889 },
+    { url = "https://files.pythonhosted.org/packages/9c/c3/9071dcf8e383cf193253baccbbcdd5eeab181a388628ce51f98a7fb4c104/azure_ai_projects-1.0.0b8-py3-none-any.whl", hash = "sha256:9636aeaa573449d4cff6a38c44cfc16ad08a4f7a598e953654eece5a9f209ec2", size = 190835 },
 ]
 
 [[package]]
