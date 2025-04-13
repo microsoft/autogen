@@ -205,8 +205,6 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             if self._streaming:
                 message: CreateResult | str = ""
                 async for _message in self._model_client.create_stream(messages=select_speaker_messages):
-                    if isinstance(_message, LLMStreamEndEvent):
-                        break
                     message = _message
                 if isinstance(message, CreateResult):
                     response = message
