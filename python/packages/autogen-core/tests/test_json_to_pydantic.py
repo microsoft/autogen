@@ -1,12 +1,15 @@
-from typing import Any, Dict, List, Literal, Optional
+import types
+from typing import Any, Dict, List, Literal, Optional, Type, get_args, get_origin
 from uuid import UUID, uuid4
 
 import pytest
 from autogen_core.utils._json_to_pydantic import (
+    FORMAT_MAPPING,
+    TYPE_MAPPING,
     FormatNotSupportedError,
     ReferenceNotFoundError,
     UnsupportedKeywordError,
-    _JSONSchemaToPydantic,
+    _JSONSchemaToPydantic,  # pyright: ignore[reportPrivateUsage]
 )
 from pydantic import BaseModel, EmailStr, Field, ValidationError
 
@@ -44,31 +47,31 @@ class ComplexModel(BaseModel):
 
 
 @pytest.fixture
-def converter():
+def converter() -> _JSONSchemaToPydantic:
     """Fixture to create a fresh instance of JSONSchemaToPydantic for every test."""
     return _JSONSchemaToPydantic()
 
 
 @pytest.fixture
-def sample_json_schema():
+def sample_json_schema() -> Dict[str, Any]:
     """Fixture that returns a JSON schema dynamically using model_json_schema()."""
     return User.model_json_schema()
 
 
 @pytest.fixture
-def sample_json_schema_recursive():
+def sample_json_schema_recursive() -> Dict[str, Any]:
     """Fixture that returns a self-referencing JSON schema."""
     return Employee.model_json_schema()
 
 
 @pytest.fixture
-def sample_json_schema_nested():
+def sample_json_schema_nested() -> Dict[str, Any]:
     """Fixture that returns a nested schema with arrays of objects."""
     return Department.model_json_schema()
 
 
 @pytest.fixture
-def sample_json_schema_complex():
+def sample_json_schema_complex() -> Dict[str, Any]:
     """Fixture that returns a complex schema with multiple structures."""
     return ComplexModel.model_json_schema()
 
@@ -82,7 +85,13 @@ def sample_json_schema_complex():
         (sample_json_schema_complex, "ComplexModel", ["user", "extra_info", "sub_items"]),
     ],
 )
-def test_json_schema_to_pydantic(converter, schema_fixture, model_name, expected_fields, request):
+def test_json_schema_to_pydantic(
+    converter: _JSONSchemaToPydantic,
+    schema_fixture: Any,
+    model_name: str,
+    expected_fields: List[str],
+    request: Any,
+) -> None:
     """Test conversion of JSON Schema to Pydantic model using the class instance."""
     schema = request.getfixturevalue(schema_fixture.__name__)
     Model = converter.json_schema_to_pydantic(schema, model_name)
@@ -155,7 +164,13 @@ def test_json_schema_to_pydantic(converter, schema_fixture, model_name, expected
         ),
     ],
 )
-def test_valid_data_model(converter, schema_fixture, model_name, valid_data, request):
+def test_valid_data_model(
+    converter: _JSONSchemaToPydantic,
+    schema_fixture: Any,
+    model_name: str,
+    valid_data: Dict[str, Any],
+    request: Any,
+) -> None:
     """Test that valid data is accepted by the generated model."""
     schema = request.getfixturevalue(schema_fixture.__name__)
     Model = converter.json_schema_to_pydantic(schema, model_name)
@@ -230,7 +245,13 @@ def test_valid_data_model(converter, schema_fixture, model_name, valid_data, req
         ),
     ],
 )
-def test_invalid_data_model(converter, schema_fixture, model_name, invalid_data, request):
+def test_invalid_data_model(
+    converter: _JSONSchemaToPydantic,
+    schema_fixture: Any,
+    model_name: str,
+    invalid_data: Dict[str, Any],
+    request: Any,
+) -> None:
     """Test that invalid data raises ValidationError."""
     schema = request.getfixturevalue(schema_fixture.__name__)
     Model = converter.json_schema_to_pydantic(schema, model_name)
@@ -258,19 +279,19 @@ class NestedListModel(BaseModel):
 
 
 @pytest.fixture
-def sample_json_schema_list_dict():
+def sample_json_schema_list_dict() -> Dict[str, Any]:
     """Fixture for `List[Dict[str, Any]]`"""
     return ListDictModel.model_json_schema()
 
 
 @pytest.fixture
-def sample_json_schema_dict_list():
+def sample_json_schema_dict_list() -> Dict[str, Any]:
     """Fixture for `Dict[str, List[Any]]`"""
     return DictListModel.model_json_schema()
 
 
 @pytest.fixture
-def sample_json_schema_nested_list():
+def sample_json_schema_nested_list() -> Dict[str, Any]:
     """Fixture for `List[List[str]]`"""
     return NestedListModel.model_json_schema()
 
@@ -283,7 +304,13 @@ def sample_json_schema_nested_list():
         (sample_json_schema_nested_list, "NestedListModel", ["matrix"]),
     ],
 )
-def test_json_schema_to_pydantic_nested(converter, schema_fixture, model_name, expected_fields, request):
+def test_json_schema_to_pydantic_nested(
+    converter: _JSONSchemaToPydantic,
+    schema_fixture: Any,
+    model_name: str,
+    expected_fields: list[str],
+    request: Any,
+) -> None:
     """Test conversion of JSON Schema to Pydantic model using the class instance."""
     schema = request.getfixturevalue(schema_fixture.__name__)
     Model = converter.json_schema_to_pydantic(schema, model_name)
@@ -324,7 +351,13 @@ def test_json_schema_to_pydantic_nested(converter, schema_fixture, model_name, e
         ),
     ],
 )
-def test_valid_data_model_nested(converter, schema_fixture, model_name, valid_data, request):
+def test_valid_data_model_nested(
+    converter: _JSONSchemaToPydantic,
+    schema_fixture: Any,
+    model_name: str,
+    valid_data: Dict[str, Any],
+    request: Any,
+) -> None:
     """Test that valid data is accepted by the generated model."""
     schema = request.getfixturevalue(schema_fixture.__name__)
     Model = converter.json_schema_to_pydantic(schema, model_name)
@@ -364,7 +397,13 @@ def test_valid_data_model_nested(converter, schema_fixture, model_name, valid_da
         ),
     ],
 )
-def test_invalid_data_model_nested(converter, schema_fixture, model_name, invalid_data, request):
+def test_invalid_data_model_nested(
+    converter: _JSONSchemaToPydantic,
+    schema_fixture: Any,
+    model_name: str,
+    invalid_data: Dict[str, Any],
+    request: Any,
+) -> None:
     """Test that invalid data raises ValidationError."""
     schema = request.getfixturevalue(schema_fixture.__name__)
     Model = converter.json_schema_to_pydantic(schema, model_name)
@@ -373,25 +412,25 @@ def test_invalid_data_model_nested(converter, schema_fixture, model_name, invali
         Model(**invalid_data)
 
 
-def test_reference_not_found(converter):
+def test_reference_not_found(converter: _JSONSchemaToPydantic) -> None:
     schema = {"type": "object", "properties": {"manager": {"$ref": "#/$defs/MissingRef"}}}
     with pytest.raises(ReferenceNotFoundError):
         converter.json_schema_to_pydantic(schema, "MissingRefModel")
 
 
-def test_format_not_supported(converter):
+def test_format_not_supported(converter: _JSONSchemaToPydantic) -> None:
     schema = {"type": "object", "properties": {"custom_field": {"type": "string", "format": "unsupported-format"}}}
     with pytest.raises(FormatNotSupportedError):
         converter.json_schema_to_pydantic(schema, "UnsupportedFormatModel")
 
 
-def test_unsupported_keyword(converter):
+def test_unsupported_keyword(converter: _JSONSchemaToPydantic) -> None:
     schema = {"type": "object", "properties": {"broken_field": {"title": "Missing type"}}}
     with pytest.raises(UnsupportedKeywordError):
         converter.json_schema_to_pydantic(schema, "MissingTypeModel")
 
 
-def test_enum_field_schema():
+def test_enum_field_schema() -> None:
     schema = {
         "type": "object",
         "properties": {
@@ -401,18 +440,24 @@ def test_enum_field_schema():
         "required": ["status"],
     }
 
-    converter = _JSONSchemaToPydantic()
+    converter: _JSONSchemaToPydantic = _JSONSchemaToPydantic()
     Model = converter.json_schema_to_pydantic(schema, "Task")
 
-    assert Model.model_fields["status"].annotation == Literal["pending", "approved", "rejected"]
-    assert Model.model_fields["priority"].annotation == Optional[Literal[1, 2, 3]]
+    status_ann = Model.model_fields["status"].annotation
+    assert get_origin(status_ann) is Literal
+    assert set(get_args(status_ann)) == {"pending", "approved", "rejected"}
+
+    priority_ann = Model.model_fields["priority"].annotation
+    args = get_args(priority_ann)
+    assert type(None) in args
+    assert Literal[1, 2, 3] in args
 
     instance = Model(status="approved", priority=2)
-    assert instance.status == "approved"
-    assert instance.priority == 2
+    assert instance.status == "approved"  # type: ignore[attr-defined]
+    assert instance.priority == 2  # type: ignore[attr-defined]
 
 
-def test_metadata_title_description(converter):
+def test_metadata_title_description(converter: _JSONSchemaToPydantic) -> None:
     schema = {
         "title": "CustomerProfile",
         "description": "A profile containing personal and contact info",
@@ -437,7 +482,7 @@ def test_metadata_title_description(converter):
         "required": ["first_name"],
     }
 
-    Model = converter.json_schema_to_pydantic(schema, "CustomerProfile")
+    Model: Type[BaseModel] = converter.json_schema_to_pydantic(schema, "CustomerProfile")
     generated_schema = Model.model_json_schema()
 
     assert generated_schema["title"] == "CustomerProfile"
@@ -460,7 +505,7 @@ def test_metadata_title_description(converter):
     assert email["description"] == "Primary email"
 
 
-def test_oneof_with_discriminator(converter):
+def test_oneof_with_discriminator(converter: _JSONSchemaToPydantic) -> None:
     schema = {
         "title": "PetWrapper",
         "type": "object",
@@ -491,11 +536,11 @@ def test_oneof_with_discriminator(converter):
 
     # Instantiate with a Cat
     cat = Model(pet={"pet_type": "cat", "hunting_skill": "expert"})
-    assert cat.pet.pet_type == "cat"
+    assert cat.pet.pet_type == "cat"  # type: ignore[attr-defined]
 
     # Instantiate with a Dog
     dog = Model(pet={"pet_type": "dog", "pack_size": 4})
-    assert dog.pet.pet_type == "dog"
+    assert dog.pet.pet_type == "dog"  # type: ignore[attr-defined]
 
     # Check round-trip schema includes discriminator
     model_schema = Model.model_json_schema()
@@ -503,7 +548,7 @@ def test_oneof_with_discriminator(converter):
     assert model_schema["properties"]["pet"]["discriminator"]["propertyName"] == "pet_type"
 
 
-def test_allof_merging_with_refs(converter):
+def test_allof_merging_with_refs(converter: _JSONSchemaToPydantic) -> None:
     schema = {
         "title": "EmployeeWithDepartment",
         "allOf": [{"$ref": "#/$defs/Employee"}, {"$ref": "#/$defs/Department"}],
@@ -525,15 +570,15 @@ def test_allof_merging_with_refs(converter):
 
     Model = converter.json_schema_to_pydantic(schema, "EmployeeWithDepartment")
     instance = Model(id="123", name="Alice", department="Engineering")
-    assert instance.id == "123"
-    assert instance.name == "Alice"
-    assert instance.department == "Engineering"
+    assert instance.id == "123"  # type: ignore[attr-defined]
+    assert instance.name == "Alice"  # type: ignore[attr-defined]
+    assert instance.department == "Engineering"  # type: ignore[attr-defined]
 
     dumped = instance.model_dump()
     assert dumped == {"id": "123", "name": "Alice", "department": "Engineering"}
 
 
-def test_nested_allof_merging(converter):
+def test_nested_allof_merging(converter: _JSONSchemaToPydantic) -> None:
     schema = {
         "title": "ContainerModel",
         "type": "object",
@@ -565,8 +610,8 @@ def test_nested_allof_merging(converter):
     Model = converter.json_schema_to_pydantic(schema, "ContainerModel")
     instance = Model(nested={"data": {"base_field": "abc", "extra": "xyz"}})
 
-    assert instance.nested.data.base_field == "abc"
-    assert instance.nested.data.extra == "xyz"
+    assert instance.nested.data.base_field == "abc"  # type: ignore[attr-defined]
+    assert instance.nested.data.extra == "xyz"  # type: ignore[attr-defined]
 
 
 @pytest.mark.parametrize(
@@ -620,11 +665,14 @@ def test_nested_allof_merging(converter):
         ),
     ],
 )
-def test_field_constraints(schema, field_name, valid_values, invalid_values):
+def test_field_constraints(
+    schema: Dict[str, Any],
+    field_name: str,
+    valid_values: List[Any],
+    invalid_values: List[Any],
+) -> None:
     converter = _JSONSchemaToPydantic()
     Model = converter.json_schema_to_pydantic(schema, "ConstraintModel")
-
-    import json
 
     for value in valid_values:
         instance = Model(**{field_name: value})
@@ -650,7 +698,60 @@ def test_field_constraints(schema, field_name, valid_values, invalid_values):
         },
     ],
 )
-def test_unknown_type_raises(schema):
+def test_unknown_type_raises(schema: Dict[str, Any]) -> None:
     converter = _JSONSchemaToPydantic()
     with pytest.raises(UnsupportedKeywordError):
         converter.json_schema_to_pydantic(schema, "UnknownTypeModel")
+
+
+@pytest.mark.parametrize("json_type, expected_type", list(TYPE_MAPPING.items()))
+def test_basic_type_mapping(json_type: str, expected_type: type) -> None:
+    schema = {
+        "type": "object",
+        "properties": {"field": {"type": json_type}},
+        "required": ["field"],
+    }
+    converter = _JSONSchemaToPydantic()
+    Model = converter.json_schema_to_pydantic(schema, f"{json_type.capitalize()}Model")
+
+    assert "field" in Model.__annotations__
+    field_type = Model.__annotations__["field"]
+
+    # For array/object/null we check the outer type only
+    if json_type == "null":
+        assert field_type is type(None)
+    elif json_type == "array":
+        assert getattr(field_type, "__origin__", None) is list
+    elif json_type == "object":
+        assert field_type in (dict, Dict) or getattr(field_type, "__origin__", None) in (dict, Dict)
+
+    else:
+        assert field_type == expected_type
+
+
+@pytest.mark.parametrize("format_name, expected_type", list(FORMAT_MAPPING.items()))
+def test_format_mapping(format_name: str, expected_type: Any) -> None:
+    schema = {
+        "type": "object",
+        "properties": {"field": {"type": "string", "format": format_name}},
+        "required": ["field"],
+    }
+    converter = _JSONSchemaToPydantic()
+    Model = converter.json_schema_to_pydantic(schema, f"{format_name.capitalize()}Model")
+
+    assert "field" in Model.__annotations__
+    field_type = Model.__annotations__["field"]
+    if isinstance(expected_type, types.FunctionType):  # if it's a constrained constructor (e.g., conint)
+        assert callable(field_type)
+    else:
+        assert field_type == expected_type
+
+
+def test_unknown_format_raises() -> None:
+    schema = {
+        "type": "object",
+        "properties": {"bad_field": {"type": "string", "format": "definitely-not-a-format"}},
+    }
+    converter = _JSONSchemaToPydantic()
+    with pytest.raises(FormatNotSupportedError):
+        converter.json_schema_to_pydantic(schema, "UnknownFormatModel")

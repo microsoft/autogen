@@ -1,5 +1,6 @@
 import datetime
-from typing import Annotated, Any, Dict, ForwardRef, List, Literal, Optional, Type, Union
+from ipaddress import IPv4Address, IPv6Address
+from typing import Annotated, Any, Dict, ForwardRef, List, Literal, Optional, Type, Union, cast
 
 from pydantic import (
     UUID1,
@@ -10,7 +11,6 @@ from pydantic import (
     BaseModel,
     EmailStr,
     Field,
-    IPvAnyAddress,
     conbytes,
     confloat,
     conint,
@@ -18,6 +18,7 @@ from pydantic import (
     constr,
     create_model,
 )
+from pydantic.fields import FieldInfo
 
 
 class SchemaConversionError(Exception):
@@ -44,14 +45,14 @@ class UnsupportedKeywordError(SchemaConversionError):
     pass
 
 
-TYPE_MAPPING: Dict[str, Any] = {
+TYPE_MAPPING: Dict[str, Type[Any]] = {
     "string": str,
     "integer": int,
     "boolean": bool,
     "number": float,
     "array": List,
     "object": dict,
-    "null": None,
+    "null": type(None),
 }
 
 FORMAT_MAPPING: Dict[str, Any] = {
@@ -64,10 +65,10 @@ FORMAT_MAPPING: Dict[str, Any] = {
     "email": EmailStr,
     "uri": AnyUrl,
     "hostname": constr(strict=True),
-    "ipv4": IPvAnyAddress,
-    "ipv6": IPvAnyAddress,
-    "ipv4-network": IPvAnyAddress,
-    "ipv6-network": IPvAnyAddress,
+    "ipv4": IPv4Address,
+    "ipv6": IPv6Address,
+    "ipv4-network": IPv4Address,
+    "ipv6-network": IPv6Address,
     "date-time": datetime.datetime,
     "date": datetime.date,
     "time": datetime.time,
@@ -84,13 +85,28 @@ FORMAT_MAPPING: Dict[str, Any] = {
 }
 
 
+def _make_field(
+    default: Any,
+    *,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+) -> Any:
+    """Construct a Pydantic Field with proper typing."""
+    field_kwargs: Dict[str, Any] = {}
+    if title is not None:
+        field_kwargs["title"] = title
+    if description is not None:
+        field_kwargs["description"] = description
+    return Field(default, **field_kwargs)
+
+
 class _JSONSchemaToPydantic:
-    def __init__(self):
-        self._model_cache = {}
+    def __init__(self) -> None:
+        self._model_cache: Dict[str, Optional[Union[Type[BaseModel], ForwardRef]]] = {}
 
     def _resolve_ref(self, ref: str, schema: Dict[str, Any]) -> Dict[str, Any]:
         ref_key = ref.split("/")[-1]
-        definitions = schema.get("$defs", {})
+        definitions = cast(dict[str, dict[str, Any]], schema.get("$defs", {}))
 
         if ref_key not in definitions:
             raise ReferenceNotFoundError(
@@ -110,7 +126,7 @@ class _JSONSchemaToPydantic:
 
         return self._model_cache[ref_name]
 
-    def _process_definitions(self, root_schema: Dict[str, Any]):
+    def _process_definitions(self, root_schema: Dict[str, Any]) -> None:
         if "$defs" in root_schema:
             for model_name in root_schema["$defs"]:
                 if model_name not in self._model_cache:
@@ -132,7 +148,7 @@ class _JSONSchemaToPydantic:
             schema = {**resolved, **{k: v for k, v in schema.items() if k != "$ref"}}
 
         if "allOf" in schema:
-            merged = {"type": "object", "properties": {}, "required": []}
+            merged: Dict[str, Any] = {"type": "object", "properties": {}, "required": []}
             for s in schema["allOf"]:
                 part = self._resolve_ref(s["$ref"], root_schema) if "$ref" in s else s
                 merged["properties"].update(part.get("properties", {}))
@@ -146,7 +162,7 @@ class _JSONSchemaToPydantic:
         return self._json_schema_to_model(schema, model_name, root_schema)
 
     def _resolve_union_types(self, schemas: List[Dict[str, Any]]) -> List[Any]:
-        types = []
+        types: List[Any] = []
         for s in schemas:
             if "$ref" in s:
                 types.append(self.get_ref(s["$ref"].split("/")[-1]))
@@ -167,7 +183,7 @@ class _JSONSchemaToPydantic:
             )
 
         base_type = TYPE_MAPPING[json_type]
-        constraints = {}
+        constraints: Dict[str, Any] = {}
 
         if json_type == "string":
             if "minLength" in value:
@@ -219,7 +235,7 @@ class _JSONSchemaToPydantic:
                     )
                 item_type = TYPE_MAPPING[item_type_name]
 
-            base_type = conlist(item_type, **constraints) if constraints else List[item_type]
+            base_type = conlist(item_type, **constraints) if constraints else List[item_type]  # type: ignore[valid-type]
 
         if "format" in value:
             format_type = FORMAT_MAPPING.get(value["format"])
@@ -237,7 +253,7 @@ class _JSONSchemaToPydantic:
         self, schema: Dict[str, Any], model_name: str, root_schema: Dict[str, Any]
     ) -> Type[BaseModel]:
         if "allOf" in schema:
-            merged = {"type": "object", "properties": {}, "required": []}
+            merged: Dict[str, Any] = {"type": "object", "properties": {}, "required": []}
             for s in schema["allOf"]:
                 part = self._resolve_ref(s["$ref"], root_schema) if "$ref" in s else s
                 merged["properties"].update(part.get("properties", {}))
@@ -248,7 +264,7 @@ class _JSONSchemaToPydantic:
             merged["required"] = list(set(merged["required"]))
             schema = merged
 
-        fields = {}
+        fields: Dict[str, tuple[Any, FieldInfo]] = {}
         required_fields = set(schema.get("required", []))
 
         for key, value in schema.get("properties", {}).items():
@@ -299,9 +315,16 @@ class _JSONSchemaToPydantic:
             if "description" in value:
                 field_args["description"] = value["description"]
 
-            fields[key] = (field_type, Field(**field_args))
+            fields[key] = (
+                field_type,
+                _make_field(
+                    default_value if not is_required else ...,
+                    title=value.get("title"),
+                    description=value.get("description"),
+                ),
+            )
 
-        model = create_model(model_name, **fields)
+        model: Type[BaseModel] = create_model(model_name, **cast(dict[str, Any], fields))
         model.model_rebuild()
         return model
 
