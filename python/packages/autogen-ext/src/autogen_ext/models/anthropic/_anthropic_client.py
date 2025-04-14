@@ -67,7 +67,7 @@ from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
 from . import _model_info
-from .config import AnthropicClientConfiguration, AnthropicClientConfigurationConfigModel, AnthropicBedrockClientConfigurationConfigModel
+from .config import AnthropicClientConfiguration, AnthropicClientConfigurationConfigModel, AnthropicBedrockClientConfiguration, AnthropicBedrockClientConfigurationConfigModel
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -1135,7 +1135,7 @@ class AnthropicBedrockChatCompletionClient(
     component_config_schema = AnthropicBedrockClientConfigurationConfigModel
     component_provider_override = "autogen_ext.models.anthropic.AnthropicChatCompletionClient"
 
-    def __init__(self, **kwargs: Unpack[AnthropicClientConfiguration]):
+    def __init__(self, **kwargs: Unpack[AnthropicBedrockClientConfiguration]):
         if "model" not in kwargs:
             raise ValueError("model is required for AnthropicChatCompletionClient")
 
@@ -1176,12 +1176,12 @@ class AnthropicBedrockChatCompletionClient(
         self.__dict__.update(state)
         self._client = _anthropic_client_from_config(state["_raw_config"])
 
-    def _to_config(self) -> AnthropicClientConfigurationConfigModel:
+    def _to_config(self) -> AnthropicBedrockClientConfigurationConfigModel:
         copied_config = self._raw_config.copy()
-        return AnthropicClientConfigurationConfigModel(**copied_config)
+        return AnthropicBedrockClientConfigurationConfigModel(**copied_config)
 
     @classmethod
-    def _from_config(cls, config: AnthropicClientConfigurationConfigModel) -> Self:
+    def _from_config(cls, config: AnthropicBedrockClientConfigurationConfigModel) -> Self:
         copied_config = config.model_copy().model_dump(exclude_none=True)
 
         # Handle api_key as SecretStr
