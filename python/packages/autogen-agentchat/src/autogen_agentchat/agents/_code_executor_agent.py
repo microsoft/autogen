@@ -206,7 +206,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
             asyncio.run(main())
 
-        .. code-block:: bash
+        .. code-block:: text
 
             ---------- user ----------
             Write python code to print Hello World!
@@ -259,7 +259,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
             asyncio.run(main())
 
-        .. code-block:: bash
+        .. code-block:: text
 
             ---------- user ----------
             Write python code to print Hello World!
