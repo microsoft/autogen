@@ -46,6 +46,7 @@ from ..messages import (
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
     StructuredMessage,
+    StructuredMessageFactory,
     TextMessage,
     ThoughtEvent,
     ToolCallExecutionEvent,
@@ -74,6 +75,7 @@ class AssistantAgentConfig(BaseModel):
     reflect_on_tool_use: bool
     tool_call_summary_format: str
     metadata: Dict[str, str] | None = None
+    structured_message_factory: ComponentModel | None = None
 
 
 class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
@@ -183,6 +185,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             This will be used with the model client to generate structured output.
             If this is set, the agent will respond with a :class:`~autogen_agentchat.messages.StructuredMessage` instead of a :class:`~autogen_agentchat.messages.TextMessage`
             in the final response, unless `reflect_on_tool_use` is `False` and a tool call is made.
+        format_string (str | None, optional): The format string used to create the content for a :class:`~autogen_agentchat.messages.StructuredMessage` response.
         tool_call_summary_format (str, optional): The format string used to create the content for a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` response.
             The format string is used to format the tool call summary for every tool call result.
             Defaults to "{result}".
@@ -635,6 +638,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use: bool | None = None,
         tool_call_summary_format: str = "{result}",
         output_content_type: type[BaseModel] | None = None,
+        format_string: str | None = None,
         memory: Sequence[Memory] | None = None,
         metadata: Dict[str, str] | None = None,
     ):
@@ -643,6 +647,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         self._model_client = model_client
         self._model_client_stream = model_client_stream
         self._output_content_type: type[BaseModel] | None = output_content_type
+        self._format_string = format_string
+        self._structured_message_factory: StructuredMessageFactory | None = None
+        if output_content_type is not None:
+            self._structured_message_factory = StructuredMessageFactory(
+                input_model=output_content_type, format_string=format_string
+            )
+
         self._memory = None
         if memory is not None:
             if isinstance(memory, list):
@@ -771,6 +782,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use = self._reflect_on_tool_use
         tool_call_summary_format = self._tool_call_summary_format
         output_content_type = self._output_content_type
+        format_string = self._format_string
 
         # STEP 1: Add new user/handoff messages to the model context
         await self._add_messages_to_context(
@@ -840,6 +852,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             reflect_on_tool_use=reflect_on_tool_use,
             tool_call_summary_format=tool_call_summary_format,
             output_content_type=output_content_type,
+            format_string=format_string,
         ):
             yield output_event
 
@@ -942,6 +955,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use: bool,
         tool_call_summary_format: str,
         output_content_type: type[BaseModel] | None,
+        format_string: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
         Handle final or partial responses from model_result, including tool calls, handoffs,
@@ -957,6 +971,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                         content=content,
                         source=agent_name,
                         models_usage=model_result.usage,
+                        format_string=format_string,
                     ),
                     inner_messages=inner_messages,
                 )
@@ -1277,9 +1292,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
 
-        if self._output_content_type:
-            raise ValueError("AssistantAgent with output_content_type does not support declarative config.")
-
         return AssistantAgentConfig(
             name=self.name,
             model_client=self._model_client.dump_component(),
@@ -1294,12 +1306,23 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=self._model_client_stream,
             reflect_on_tool_use=self._reflect_on_tool_use,
             tool_call_summary_format=self._tool_call_summary_format,
+            structured_message_factory=self._structured_message_factory.dump_component()
+            if self._structured_message_factory
+            else None,
             metadata=self._metadata,
         )
 
     @classmethod
     def _from_config(cls, config: AssistantAgentConfig) -> Self:
         """Create an assistant agent from a declarative config."""
+        if config.structured_message_factory:
+            structured_message_factory = StructuredMessageFactory.load_component(config.structured_message_factory)
+            format_string = structured_message_factory.format_string
+            output_content_type = structured_message_factory.ContentModel
+
+        else:
+            format_string = None
+            output_content_type = None
 
         return cls(
             name=config.name,
@@ -1313,5 +1336,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=config.model_client_stream,
             reflect_on_tool_use=config.reflect_on_tool_use,
             tool_call_summary_format=config.tool_call_summary_format,
+            output_content_type=output_content_type,
+            format_string=format_string,
             metadata=config.metadata,
         )
