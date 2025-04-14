@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any, Dict, List, Mapping
+from typing import Any, Dict, List, Mapping, Union
 
 from autogen_core import AgentId, CancellationToken, DefaultTopicId, MessageContext, event, rpc
 from autogen_core.models import (
@@ -20,6 +20,7 @@ from ....messages import (
     HandoffMessage,
     MessageFactory,
     MultiModalMessage,
+    SelectSpeakerEvent,
     StopMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -66,9 +67,16 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         model_client: ChatCompletionClient,
         max_stalls: int,
         final_answer_prompt: str,
-        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[
+            Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent]
+        ],
         termination_condition: TerminationCondition | None,
+        speaker_name: str | None = None,
     ):
+        queue: asyncio.Queue[Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent]] = (
+            output_message_queue
+        )
+
         super().__init__(
             name,
             group_topic_type,
@@ -76,10 +84,11 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             participant_topic_types,
             participant_names,
             participant_descriptions,
-            output_message_queue,
+            queue,
             termination_condition,
             max_turns,
             message_factory,
+            speaker_name=speaker_name,
         )
         self._model_client = model_client
         self._max_stalls = max_stalls

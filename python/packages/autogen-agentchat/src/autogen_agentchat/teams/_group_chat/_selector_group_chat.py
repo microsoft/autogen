@@ -16,6 +16,7 @@ from ...messages import (
     BaseAgentEvent,
     BaseChatMessage,
     MessageFactory,
+    SelectSpeakerEvent,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -45,7 +46,9 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[
+            Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent]
+        ],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
@@ -55,6 +58,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         selector_func: Optional[SelectorFuncType],
         max_selector_attempts: int,
         candidate_func: Optional[CandidateFuncType],
+        speaker_name: str | None = None,
     ) -> None:
         super().__init__(
             name,
@@ -67,6 +71,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             termination_condition,
             max_turns,
             message_factory,
+            speaker_name=speaker_name,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -481,7 +486,8 @@ Read the above conversation. Then select the next role from {participants} to pl
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
-    ) -> Callable[[], BaseGroupChatManager]:
+        speaker_name: str | None = None,
+    ) -> Callable[[], SelectorGroupChatManager]:
         return lambda: SelectorGroupChatManager(
             name,
             group_topic_type,
@@ -499,6 +505,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._selector_func,
             self._max_selector_attempts,
             self._candidate_func,
+            speaker_name=speaker_name,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:

@@ -1,12 +1,12 @@
 import asyncio
-from typing import Any, Callable, List, Mapping
+from typing import Any, Callable, List, Mapping, Union
 
 from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
 from typing_extensions import Self
 
 from ...base import ChatAgent, TerminationCondition
-from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory
+from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectSpeakerEvent
 from ...state import RoundRobinManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
@@ -24,10 +24,13 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[
+            Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent]
+        ],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        speaker_name: str | None = None,
     ) -> None:
         super().__init__(
             name,
@@ -40,6 +43,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             termination_condition,
             max_turns,
             message_factory,
+            speaker_name=speaker_name,
         )
         self._next_speaker_index = 0
 
@@ -186,10 +190,13 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[
+            Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent]
+        ],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        speaker_name: str | None = None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
@@ -203,6 +210,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
                 termination_condition,
                 max_turns,
                 message_factory,
+                speaker_name=speaker_name,
             )
 
         return _factory

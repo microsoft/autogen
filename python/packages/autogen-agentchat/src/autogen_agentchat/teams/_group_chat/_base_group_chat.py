@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
+from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence, Union
 
 from autogen_core import (
     AgentId,
@@ -20,6 +20,7 @@ from ...messages import (
     BaseChatMessage,
     MessageFactory,
     ModelClientStreamingChunkEvent,
+    SelectSpeakerEvent,
     StopMessage,
     TextMessage,
 )
@@ -54,6 +55,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
+        speaker_name: str | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -64,6 +66,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._termination_condition = termination_condition
         self._max_turns = max_turns
         self._message_factory = MessageFactory()
+        self._speaker_name = speaker_name
         if custom_message_types is not None:
             for message_type in custom_message_types:
                 self._message_factory.register(message_type)
@@ -93,9 +96,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._output_topic_type = f"output_topic_{self._team_id}"
 
         # The queue for collecting the output messages.
-        self._output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination] = (
-            asyncio.Queue()
-        )
+        self._output_message_queue: asyncio.Queue[
+            Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent]
+        ] = asyncio.Queue()
 
         # Create a runtime for the team.
         if runtime is not None:
@@ -122,10 +125,13 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[
+            Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent]
+        ],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        speaker_name: str | None = None,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
@@ -170,13 +176,14 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 name=self._group_chat_manager_name,
                 group_topic_type=self._group_topic_type,
                 output_topic_type=self._output_topic_type,
-                participant_names=self._participant_names,
                 participant_topic_types=self._participant_topic_types,
+                participant_names=self._participant_names,
                 participant_descriptions=self._participant_descriptions,
                 output_message_queue=self._output_message_queue,
                 termination_condition=self._termination_condition,
                 max_turns=self._max_turns,
                 message_factory=self._message_factory,
+                speaker_name=self._speaker_name,
             ),
         )
         # Add subscriptions for the group chat manager.

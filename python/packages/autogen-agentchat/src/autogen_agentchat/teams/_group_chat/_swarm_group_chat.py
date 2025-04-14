@@ -1,11 +1,11 @@
 import asyncio
-from typing import Any, Callable, List, Mapping
+from typing import Any, Callable, List, Mapping, Union
 
 from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
 
 from ...base import ChatAgent, TerminationCondition
-from ...messages import BaseAgentEvent, BaseChatMessage, HandoffMessage, MessageFactory
+from ...messages import BaseAgentEvent, BaseChatMessage, HandoffMessage, MessageFactory, SelectSpeakerEvent
 from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
@@ -23,10 +23,13 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[
+            Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent]
+        ],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        speaker_name: str | None = None,
     ) -> None:
         super().__init__(
             name,
@@ -39,6 +42,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             termination_condition,
             max_turns,
             message_factory,
+            speaker_name=speaker_name,
         )
         self._current_speaker = self._participant_names[0]
 
@@ -213,6 +217,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
+        speaker_name: str | None = None,
     ) -> None:
         super().__init__(
             participants,
@@ -222,6 +227,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
             max_turns=max_turns,
             runtime=runtime,
             custom_message_types=custom_message_types,
+            speaker_name=speaker_name,
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
@@ -236,10 +242,13 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[
+            Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent]
+        ],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        speaker_name: str | None = None,
     ) -> Callable[[], SwarmGroupChatManager]:
         def _factory() -> SwarmGroupChatManager:
             return SwarmGroupChatManager(
@@ -253,6 +262,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
                 termination_condition,
                 max_turns,
                 message_factory,
+                speaker_name=speaker_name,
             )
 
         return _factory

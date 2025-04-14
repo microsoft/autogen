@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Callable, List
+from typing import Callable, List, Union
 
 from autogen_core import AgentRuntime, Component, ComponentModel
 from autogen_core.models import ChatCompletionClient
@@ -128,10 +128,11 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination]],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        speaker_name: str | None = None,
     ) -> Callable[[], MagenticOneOrchestrator]:
         return lambda: MagenticOneOrchestrator(
             name,

@@ -1,11 +1,11 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any, List, Union, cast
 
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
 from ...base import TerminationCondition
-from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, StopMessage
+from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectSpeakerEvent, StopMessage
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
@@ -41,10 +41,13 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
-        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[
+            Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent]
+        ],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        speaker_name: str | None = None,
     ):
         super().__init__(
             description="Group chat manager",
@@ -76,7 +79,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._termination_condition = termination_condition
         self._max_turns = max_turns
         self._current_turn = 0
-        self._message_factory = message_factory
+        self._message_factory: MessageFactory = message_factory
+        self._speaker_name = speaker_name
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -103,7 +107,10 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 topic_id=DefaultTopicId(type=self._output_topic_type),
             )
             for msg in message.messages:
-                await self._output_message_queue.put(msg)
+                self._message_thread.append(msg)
+                await self._output_message_queue.put(  # type: ignore[arg-type]
+                    cast(Union[BaseAgentEvent, BaseChatMessage, GroupChatTermination, SelectSpeakerEvent], msg)
+                )
 
             # Relay all messages at once to participants
             await self.publish_message(
@@ -134,6 +141,14 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         if speaker_name not in self._participant_name_to_topic_type:
             raise RuntimeError(f"Speaker {speaker_name} not found in participant names.")
         speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
+        raw_event = cast(Any, self._message_factory.create_event("SelectSpeakerEvent", content=speaker_name))  # type: ignore[attr-defined]
+        msg: BaseAgentEvent = cast(SelectSpeakerEvent, raw_event)
+        await self.publish_message(
+            GroupChatMessage(message=msg),
+            topic_id=DefaultTopicId(type=self._output_topic_type),
+            cancellation_token=ctx.cancellation_token,
+        )
+        await self._output_message_queue.put(msg)
         await self.publish_message(
             GroupChatRequestPublish(),
             topic_id=DefaultTopicId(type=speaker_topic_type),
@@ -190,6 +205,13 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             if speaker_name not in self._participant_name_to_topic_type:
                 raise RuntimeError(f"Speaker {speaker_name} not found in participant names.")
             speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
+            raw_event = cast(Any, self._message_factory.create_event("SelectSpeakerEvent", content=speaker_name))  # type: ignore[attr-defined]
+            msg: BaseAgentEvent = cast(SelectSpeakerEvent, raw_event)
+            await self.publish_message(
+                GroupChatMessage(message=msg),
+                topic_id=DefaultTopicId(type=self._output_topic_type),
+            )
+            await self._output_message_queue.put(msg)
             await self.publish_message(
                 GroupChatRequestPublish(),
                 topic_id=DefaultTopicId(type=speaker_topic_type),
