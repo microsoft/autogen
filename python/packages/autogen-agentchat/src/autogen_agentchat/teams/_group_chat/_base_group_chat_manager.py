@@ -48,6 +48,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         max_turns: int | None,
         message_factory: MessageFactory,
         speaker_name: str | None = None,
+        emit_team_events: bool = False,
     ):
         super().__init__(
             description="Group chat manager",
@@ -81,6 +82,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._current_turn = 0
         self._message_factory: MessageFactory = message_factory
         self._speaker_name = speaker_name
+        self._emit_team_events = emit_team_events
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -143,12 +145,13 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
         raw_event = cast(Any, self._message_factory.create_event("SelectSpeakerEvent", content=speaker_name))  # type: ignore[attr-defined]
         msg: BaseAgentEvent = cast(SelectSpeakerEvent, raw_event)
-        await self.publish_message(
-            GroupChatMessage(message=msg),
-            topic_id=DefaultTopicId(type=self._output_topic_type),
-            cancellation_token=ctx.cancellation_token,
-        )
-        await self._output_message_queue.put(msg)
+        if self._emit_team_events:
+            await self.publish_message(
+                GroupChatMessage(message=msg),
+                topic_id=DefaultTopicId(type=self._output_topic_type),
+                cancellation_token=ctx.cancellation_token,
+            )
+            await self._output_message_queue.put(msg)
         await self.publish_message(
             GroupChatRequestPublish(),
             topic_id=DefaultTopicId(type=speaker_topic_type),
@@ -207,11 +210,12 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
             raw_event = cast(Any, self._message_factory.create_event("SelectSpeakerEvent", content=speaker_name))  # type: ignore[attr-defined]
             msg: BaseAgentEvent = cast(SelectSpeakerEvent, raw_event)
-            await self.publish_message(
-                GroupChatMessage(message=msg),
-                topic_id=DefaultTopicId(type=self._output_topic_type),
-            )
-            await self._output_message_queue.put(msg)
+            if self._emit_team_events:
+                await self.publish_message(
+                    GroupChatMessage(message=msg),
+                    topic_id=DefaultTopicId(type=self._output_topic_type),
+                )
+                await self._output_message_queue.put(msg)
             await self.publish_message(
                 GroupChatRequestPublish(),
                 topic_id=DefaultTopicId(type=speaker_topic_type),
