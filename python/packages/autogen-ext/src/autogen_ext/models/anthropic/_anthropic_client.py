@@ -67,7 +67,7 @@ from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
 from . import _model_info
-from .config import AnthropicClientConfiguration, AnthropicClientConfigurationConfigModel
+from .config import AnthropicClientConfiguration, AnthropicClientConfigurationConfigModel, AnthropicBedrockClientConfigurationConfigModel
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -1075,7 +1075,7 @@ class AnthropicChatCompletionClient(
         return cls(**copied_config)
 
 class AnthropicBedrockChatCompletionClient(
-    BaseAnthropicChatCompletionClient, Component[AnthropicClientConfigurationConfigModel]
+    BaseAnthropicChatCompletionClient, Component[AnthropicBedrockClientConfigurationConfigModel]
 ):
     """
     Chat completion client for Anthropic's Claude models.
@@ -1089,6 +1089,7 @@ class AnthropicBedrockChatCompletionClient(
         top_p (float, optional): Controls diversity via nucleus sampling. Default is 1.0.
         top_k (int, optional): Controls diversity via top-k sampling. Default is -1 (disabled).
         model_info (ModelInfo, optional): The capabilities of the model. Required if using a custom model.
+        bedrock_info (BedrockInfo, optional): The capabilities of the model in bedrock. Required if using a model from AWS bedrock.
 
     To use this client, you must install the Anthropic extension:
 
@@ -1131,7 +1132,7 @@ class AnthropicBedrockChatCompletionClient(
     """
 
     component_type = "model"
-    component_config_schema = AnthropicClientConfigurationConfigModel
+    component_config_schema = AnthropicBedrockClientConfigurationConfigModel
     component_provider_override = "autogen_ext.models.anthropic.AnthropicChatCompletionClient"
 
     def __init__(self, **kwargs: Unpack[AnthropicClientConfiguration]):
