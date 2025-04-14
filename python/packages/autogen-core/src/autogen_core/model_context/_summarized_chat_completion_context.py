@@ -94,7 +94,7 @@ class SummarizedChatCompletionContext(ChatCompletionContext, Component[Summarize
             # If the summarizing function is a tool, use it directly.
             self._summarizing_func = summarizing_func
         elif callable(summarizing_func):
-            self._summarizing_func = SummaryFunction(summarizing_func)
+            self._summarizing_func = SummaryFunction(func=summarizing_func)
         else:
             raise ValueError("summarizing_func must be a callable or a tool.")
         self._summarizing_condition = summarizing_condition
@@ -116,7 +116,7 @@ class SummarizedChatCompletionContext(ChatCompletionContext, Component[Summarize
 
     async def summary(self) -> None:
         """Summarize the messages in the context using the summarizing function."""
-        summarized_message = self._summarizing_func.run(self._messages, self._non_summarized_messages)
+        summarized_message = await self._summarizing_func.run(self._messages, self._non_summarized_messages)
         self._messages = summarized_message
 
     def _to_config(self) -> SummarizedChatCompletionContextConfig:

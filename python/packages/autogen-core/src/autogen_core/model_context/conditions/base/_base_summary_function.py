@@ -4,9 +4,9 @@ from typing import Any, List, Mapping
 
 from pydantic import BaseModel
 
-from ... import EVENT_LOGGER_NAME
-from ..._component_config import ComponentBase
-from ...models import LLMMessage
+from .... import EVENT_LOGGER_NAME
+from ...._component_config import ComponentBase
+from ....models import LLMMessage
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 

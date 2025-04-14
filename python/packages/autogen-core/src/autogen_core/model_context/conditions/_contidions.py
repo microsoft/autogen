@@ -7,7 +7,7 @@ from typing_extensions import Self
 from ..._component_config import Component, ComponentModel
 from ...models import ChatCompletionClient, FunctionExecutionResultMessage, LLMMessage
 from ...tools import ToolSchema
-from ._base_condition import MessageCompletionCondition, MessageCompletionException
+from .base import MessageCompletionCondition, MessageCompletionException
 from ._types import BaseContextMessageTypes, ContextMessage, LLMMessageInstance, TriggerMessage
 
 

@@ -7,7 +7,7 @@ from typing_extensions import Self
 
 from autogen_core import Component, ComponentBase, ComponentModel
 
-from ._types import ContextMessage, TriggerMessage
+from .._types import ContextMessage, TriggerMessage
 
 
 class MessageCompletionException(BaseException): ...
