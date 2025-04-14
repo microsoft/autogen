@@ -132,6 +132,22 @@ def test_message_factory() -> None:
     assert structured_message.content.field2 == 42
     assert structured_message.type == "StructuredMessage[TestContent]"  # type: ignore[comparison-overlap]
 
+    sm_factory = StructuredMessageFactory(input_model=TestContent, format_string=None, content_model_name="TestContent")
+    config = sm_factory.dump_component()
+    config.config["content_model_name"] = "DynamicTestContent"
+    sm_factory_dynamic = StructuredMessageFactory.load_component(config)
+
+    factory.register(sm_factory_dynamic.StructuredMessage)
+    msg = sm_factory_dynamic.StructuredMessage(
+        content=sm_factory_dynamic.ContentModel(field1="static", field2=123), source="static_agent"
+    )
+    restored = factory.create(msg.dump())
+    assert isinstance(restored, StructuredMessage)
+    assert isinstance(restored.content, sm_factory_dynamic.ContentModel)  # type: ignore[reportUnkownMemberType]
+    assert restored.source == "static_agent"
+    assert restored.content.field1 == "static"  # type: ignore[attr-defined]
+    assert restored.content.field2 == 123  # type: ignore[attr-defined]
+
 
 class TestContainer(BaseModel):
     chat_messages: List[ChatMessage]
