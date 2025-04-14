@@ -1,7 +1,7 @@
 import pytest
 from autogen_core import CancellationToken
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.replay import ReplayChatCompletionClient
 
 from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.base import Response
@@ -42,9 +42,14 @@ print("%0.3f" % (square_root,))
 
 @pytest.mark.asyncio
 async def test_basic_code_execution_with_model_client() -> None:
-    """Test basic code execution"""
+    """Test basic code generation, execution and reflection pipeline."""
 
-    model_client = OpenAIChatCompletionClient(model="gpt-4o-mini")
+    language = "python"
+    code = 'import math\n\nnumber = 42\nsquare_root = math.sqrt(number)\nprint("%0.3f" % (square_root,))'
+
+    model_client = ReplayChatCompletionClient(
+        [f"Here is the code to calculate the square root of 42:\n```{language}\n{code}```".strip(), "TERMINATE"]
+    )
 
     agent = CodeExecutorAgent(
         name="code_executor_agent", code_executor=LocalCommandLineCodeExecutor(), model_client=model_client
@@ -59,11 +64,11 @@ async def test_basic_code_execution_with_model_client() -> None:
 
     async for message in agent.on_messages_stream(messages, CancellationToken()):
         if isinstance(message, CodeGenerationEvent):
-            pass  # Do nothing for CodeGenerationEvent
+            code_block = message.code_blocks[0]
+            assert code_block.code == code, "Code block does not match"
+            assert code_block.language == language, "Language does not match"
         elif isinstance(message, CodeExecutionEvent):
-            assert (
-                message.to_text().strip() == "Hello World!"
-            ), f"Expected 'Hello World!', got: {message.to_text().strip()}"
+            assert message.to_text().strip() == "6.481", f"Expected '6.481', got: {message.to_text().strip()}"
         elif isinstance(message, Response):
             assert isinstance(
                 message.chat_message, TextMessage
