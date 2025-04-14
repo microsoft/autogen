@@ -55,6 +55,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         selector_func: Optional[SelectorFuncType],
         max_selector_attempts: int,
         candidate_func: Optional[CandidateFuncType],
+        emit_team_events: bool = True,
     ) -> None:
         super().__init__(
             name,
@@ -67,6 +68,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             termination_condition,
             max_turns,
             message_factory,
+            emit_team_events,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -449,6 +451,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         selector_func: Optional[SelectorFuncType] = None,
         candidate_func: Optional[CandidateFuncType] = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
+        emit_team_events: bool = False,
     ):
         super().__init__(
             participants,
@@ -458,6 +461,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             max_turns=max_turns,
             runtime=runtime,
             custom_message_types=custom_message_types,
+            emit_team_events=emit_team_events,
         )
         # Validate the participants.
         if len(participants) < 2:
@@ -499,6 +503,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._selector_func,
             self._max_selector_attempts,
             self._candidate_func,
+            self._emit_team_events,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:

@@ -45,6 +45,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        emit_team_events: bool = False,
     ):
         super().__init__(
             description="Group chat manager",
@@ -77,6 +78,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._max_turns = max_turns
         self._current_turn = 0
         self._message_factory = message_factory
+        self._emit_team_events = emit_team_events
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -139,12 +141,14 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             topic_id=DefaultTopicId(type=speaker_topic_type),
             cancellation_token=ctx.cancellation_token,
         )
-        msg = SelectSpeakerEvent(content=speaker_name, source=self._name)
-        await self.publish_message(
-            GroupChatMessage(message=msg),
-            topic_id=DefaultTopicId(type=self._output_topic_type),
-        )
-        await self._output_message_queue.put(msg)
+        # Send the message to the next speaker
+        if self._emit_team_events:
+            msg = SelectSpeakerEvent(content=speaker_name, source=self._name)
+            await self.publish_message(
+                GroupChatMessage(message=msg),
+                topic_id=DefaultTopicId(type=self._output_topic_type),
+            )
+            await self._output_message_queue.put(msg)
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
@@ -201,12 +205,14 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 topic_id=DefaultTopicId(type=speaker_topic_type),
                 cancellation_token=ctx.cancellation_token,
             )
-            msg = SelectSpeakerEvent(content=speaker_name, source=self._name)
-            await self.publish_message(
-                GroupChatMessage(message=msg),
-                topic_id=DefaultTopicId(type=self._output_topic_type),
-            )
-            await self._output_message_queue.put(msg)
+            # Send the message to the next speakers
+            if self._emit_team_events:
+                msg = SelectSpeakerEvent(content=speaker_name, source=self._name)
+                await self.publish_message(
+                    GroupChatMessage(message=msg),
+                    topic_id=DefaultTopicId(type=self._output_topic_type),
+                )
+                await self._output_message_queue.put(msg)
         except Exception as e:
             # Handle the exception and signal termination with an error.
             error = SerializableException.from_exception(e)

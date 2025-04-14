@@ -103,6 +103,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         runtime: AgentRuntime | None = None,
         max_stalls: int = 3,
         final_answer_prompt: str = ORCHESTRATOR_FINAL_ANSWER_PROMPT,
+        emit_team_events: bool = False,
     ):
         super().__init__(
             participants,
@@ -111,6 +112,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             termination_condition=termination_condition,
             max_turns=max_turns,
             runtime=runtime,
+            emit_team_events=emit_team_events,
         )
 
         # Validate the participants.
@@ -132,6 +134,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        participant_topic_types: List[str],
     ) -> Callable[[], MagenticOneOrchestrator]:
         return lambda: MagenticOneOrchestrator(
             name,
@@ -147,6 +150,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             self._final_answer_prompt,
             output_message_queue,
             termination_condition,
+            self._emit_team_events,
         )
 
     def _to_config(self) -> MagenticOneGroupChatConfig:

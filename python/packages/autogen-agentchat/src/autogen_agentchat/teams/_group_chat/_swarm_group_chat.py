@@ -27,6 +27,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        emit_team_events: bool,
     ) -> None:
         super().__init__(
             name,
@@ -39,6 +40,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             termination_condition,
             max_turns,
             message_factory,
+            emit_team_events,
         )
         self._current_speaker = self._participant_names[0]
 
@@ -213,6 +215,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
+        emit_team_events: bool = False,
     ) -> None:
         super().__init__(
             participants,
@@ -222,6 +225,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
             max_turns=max_turns,
             runtime=runtime,
             custom_message_types=custom_message_types,
+            emit_team_events=emit_team_events,
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
@@ -253,6 +257,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
                 termination_condition,
                 max_turns,
                 message_factory,
+                self._emit_team_events,
             )
 
         return _factory
