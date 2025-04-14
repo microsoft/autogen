@@ -263,7 +263,7 @@ class StructuredMessageFactory(ComponentBase[StructureMessageConfig], Component[
 
 
         format_string = "This is a string {field1} and this is an int {field2}"
-        sm_component = StructuredMessageFactory, format_string=format_string)
+        sm_component = StructuredMessageFactory(input_model=TestContent, format_string=format_string)
 
         message = sm_component.StructuredMessage(
             source="test_agent", content=TestContent(field1="Hello", field2=42), format_string=format_string
