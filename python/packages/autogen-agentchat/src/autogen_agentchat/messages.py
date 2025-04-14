@@ -347,6 +347,18 @@ class ThoughtEvent(BaseAgentEvent):
         return self.content
 
 
+class SelectSpeakerEvent(BaseAgentEvent):
+    """An event signaling the selection of a speaker for a conversation."""
+
+    content: str
+    """The name of the selected speaker."""
+
+    type: Literal["SelectSpeakerEvent"] = "SelectSpeakerEvent"
+
+    def to_text(self) -> str:
+        return self.content
+
+
 class MessageFactory:
     """:meta private:
 
@@ -369,6 +381,7 @@ class MessageFactory:
         self._message_types[UserInputRequestedEvent.__name__] = UserInputRequestedEvent
         self._message_types[ModelClientStreamingChunkEvent.__name__] = ModelClientStreamingChunkEvent
         self._message_types[ThoughtEvent.__name__] = ThoughtEvent
+        self._message_types[SelectSpeakerEvent.__name__] = SelectSpeakerEvent
 
     def is_registered(self, message_type: type[BaseAgentEvent | BaseChatMessage]) -> bool:
         """Check if a message type is registered with the factory."""
@@ -420,7 +433,8 @@ AgentEvent = Annotated[
     | MemoryQueryEvent
     | UserInputRequestedEvent
     | ModelClientStreamingChunkEvent
-    | ThoughtEvent,
+    | ThoughtEvent
+    | SelectSpeakerEvent,
     Field(discriminator="type"),
 ]
 """The union type of all built-in concrete subclasses of :class:`BaseAgentEvent`."""
@@ -445,5 +459,6 @@ __all__ = [
     "UserInputRequestedEvent",
     "ModelClientStreamingChunkEvent",
     "ThoughtEvent",
+    "SelectSpeakerEvent",
     "MessageFactory",
 ]
