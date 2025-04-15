@@ -150,6 +150,7 @@ dev = [
     "langchain-experimental",
     "pandas-stubs>=2.2.3.241126",
     "httpx>=0.28.1",
+    "opentelemetry-proto>=1.28.0"
 ]
 
 [tool.ruff]
