@@ -1,7 +1,7 @@
-from contextlib import asynccontextmanager
-import logging
 import asyncio
+import logging
 import os
+from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -120,6 +120,7 @@ async def test_mcp_tool_execution(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that adapter properly executes tools through ClientSession."""
+
     @asynccontextmanager
     async def fake_create_session(*args, **kwargs):  # type: ignore
         yield mock_session
@@ -162,6 +163,7 @@ async def test_adapter_from_server_params(
         "autogen_ext.tools.mcp._base.create_mcp_server_session",
         lambda *args, **kwargs: mock_context,  # type: ignore
     )
+
     @asynccontextmanager
     async def fake_create_session(*args, **kwargs):  # type: ignore
         try:
@@ -269,7 +271,7 @@ async def test_sse_tool_execution(
 
         # Check log.
         assert "test_output" in caplog.text
-        
+
         await actor.close()
 
 
