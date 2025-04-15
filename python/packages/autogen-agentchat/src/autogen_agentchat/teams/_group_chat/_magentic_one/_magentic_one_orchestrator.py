@@ -20,6 +20,7 @@ from ....messages import (
     HandoffMessage,
     MessageFactory,
     MultiModalMessage,
+    SelectSpeakerEvent,
     StopMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -409,12 +410,12 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Send the message to the next speaker
         if self._emit_team_events:
-            msg = SelectSpeakerEvent(content=next_speaker, source=self._name)
+            select_msg = SelectSpeakerEvent(content=next_speaker, source=self._name)
             await self.publish_message(
-                GroupChatMessage(message=msg),
+                GroupChatMessage(message=select_msg),
                 topic_id=DefaultTopicId(type=self._output_topic_type),
             )
-            await self._output_message_queue.put(msg)
+            await self._output_message_queue.put(select_msg)
 
     async def _update_task_ledger(self, cancellation_token: CancellationToken) -> None:
         """Update the task ledger (outer loop) with the latest facts and plan."""

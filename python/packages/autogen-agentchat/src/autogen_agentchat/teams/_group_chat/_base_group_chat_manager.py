@@ -5,7 +5,7 @@ from typing import Any, List
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
 from ...base import TerminationCondition
-from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, StopMessage, SelectSpeakerEvent
+from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectSpeakerEvent, StopMessage
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
@@ -143,12 +143,12 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         )
         # Send the message to the next speaker
         if self._emit_team_events:
-            msg = SelectSpeakerEvent(content=speaker_name, source=self._name)
+            select_msg = SelectSpeakerEvent(content=speaker_name, source=self._name)
             await self.publish_message(
-                GroupChatMessage(message=msg),
+                GroupChatMessage(message=select_msg),
                 topic_id=DefaultTopicId(type=self._output_topic_type),
             )
-            await self._output_message_queue.put(msg)
+            await self._output_message_queue.put(select_msg)
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
@@ -207,12 +207,12 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             )
             # Send the message to the next speakers
             if self._emit_team_events:
-                msg = SelectSpeakerEvent(content=speaker_name, source=self._name)
+                select_msg = SelectSpeakerEvent(content=speaker_name, source=self._name)
                 await self.publish_message(
-                    GroupChatMessage(message=msg),
+                    GroupChatMessage(message=select_msg),
                     topic_id=DefaultTopicId(type=self._output_topic_type),
                 )
-                await self._output_message_queue.put(msg)
+                await self._output_message_queue.put(select_msg)
         except Exception as e:
             # Handle the exception and signal termination with an error.
             error = SerializableException.from_exception(e)

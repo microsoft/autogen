@@ -28,6 +28,7 @@ class MagenticOneGroupChatConfig(BaseModel):
     max_turns: int | None = None
     max_stalls: int
     final_answer_prompt: str
+    emit_team_events: bool = False
 
 
 class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig]):
@@ -46,6 +47,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to 20.
         max_stalls (int, optional): The maximum number of stalls allowed before re-planning. Defaults to 3.
         final_answer_prompt (str, optional): The LLM prompt used to generate the final answer or response from the team's transcript. A default (sensible for GPT-4o class models) is provided.
+        emit_team_events (bool, optional): Whether to emit team events. Defaults to False.
 
     Raises:
         ValueError: In orchestration logic if progress ledger does not have required keys or if next speaker is not valid.
@@ -134,7 +136,6 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
-        participant_topic_types: List[str],
     ) -> Callable[[], MagenticOneOrchestrator]:
         return lambda: MagenticOneOrchestrator(
             name,
@@ -163,6 +164,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             max_turns=self._max_turns,
             max_stalls=self._max_stalls,
             final_answer_prompt=self._final_answer_prompt,
+            emit_team_events=self._emit_team_events,
         )
 
     @classmethod
@@ -179,4 +181,5 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             max_turns=config.max_turns,
             max_stalls=config.max_stalls,
             final_answer_prompt=config.final_answer_prompt,
+            emit_team_events=config.emit_team_events,
         )

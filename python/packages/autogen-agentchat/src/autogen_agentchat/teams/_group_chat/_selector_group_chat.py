@@ -280,6 +280,7 @@ class SelectorGroupChatConfig(BaseModel):
     allow_repeated_speaker: bool
     # selector_func: ComponentModel | None
     max_selector_attempts: int = 3
+    emit_team_events: bool = False
 
 
 class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
@@ -309,7 +310,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             A custom function that takes the conversation history and returns a filtered list of candidates for the next speaker
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
             This function is only used if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
-
+        emit_team_events (bool, optional): Whether to emit team events. Defaults to False.
 
     Raises:
         ValueError: If the number of participants is less than two or if the selector prompt is invalid.
@@ -516,6 +517,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             allow_repeated_speaker=self._allow_repeated_speaker,
             max_selector_attempts=self._max_selector_attempts,
             # selector_func=self._selector_func.dump_component() if self._selector_func else None,
+            emit_team_events=self._emit_team_events,
         )
 
     @classmethod
@@ -533,4 +535,5 @@ Read the above conversation. Then select the next role from {participants} to pl
             # selector_func=ComponentLoader.load_component(config.selector_func, Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], str | None])
             # if config.selector_func
             # else None,
+            emit_team_events=config.emit_team_events,
         )
