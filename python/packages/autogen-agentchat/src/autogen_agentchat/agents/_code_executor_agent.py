@@ -58,6 +58,11 @@ class CodeExecutorAgentConfig(BaseModel):
     model_context: ComponentModel | None = None
 
 
+class RetryDecision(BaseModel):
+    reason: str
+    retry: bool
+
+
 class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     """(Experimental) An agent that generates and executes code snippets based on user instructions.
 
@@ -295,6 +300,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_client: ChatCompletionClient | None = None,
         model_context: ChatCompletionContext | None = None,
         model_client_stream: bool = False,
+        n_retry_on_failure: int | None = None,
         description: str | None = None,
         system_message: str | None = DEFAULT_SYSTEM_MESSAGE,
         sources: Sequence[str] | None = None,
@@ -309,6 +315,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         self._code_executor = code_executor
         self._sources = sources
         self._model_client_stream = model_client_stream
+        if n_retry_on_failure is None or n_retry_on_failure <= 0:
+            self._n_retry_on_failure = 1
+        else:
+            self._n_retry_on_failure = n_retry_on_failure
 
         self._model_client = None
         if model_client is not None:
@@ -349,6 +359,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         system_messages = self._system_messages
         model_client = self._model_client
         model_client_stream = self._model_client_stream
+        n_retry_on_failure = self._n_retry_on_failure
 
         execution_result: CodeExecutionEvent | None = None
         if model_client is None:  # default behaviour for backward compatibility
@@ -366,88 +377,132 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             yield Response(chat_message=TextMessage(content=execution_result.to_text(), source=execution_result.source))
             return
 
-        # STEP 1: Add new user/handoff messages to the model context
-        await self._add_messages_to_context(
-            model_context=model_context,
-            messages=messages,
-        )
-
-        # STEP 2: Update model context with any relevant memory
         inner_messages: List[BaseAgentEvent | BaseChatMessage] = []
-        for event_msg in await self._update_model_context_with_memory(
-            memory=None,
-            model_context=model_context,
-            agent_name=agent_name,
-        ):
-            inner_messages.append(event_msg)
-            yield event_msg
 
-        # STEP 3: Run the first inference
-        model_result = None
-        async for inference_output in self._call_llm(
-            model_client=model_client,
-            model_client_stream=model_client_stream,
-            system_messages=system_messages,
-            model_context=model_context,
-            agent_name=agent_name,
-            cancellation_token=cancellation_token,
-        ):
-            if isinstance(inference_output, CreateResult):
-                model_result = inference_output
-            else:
-                # Streaming chunk event
-                yield inference_output
-
-        assert model_result is not None, "No model result was produced."
-
-        # --- NEW: If the model produced a hidden "thought," yield it as an event ---
-        if model_result.thought:
-            thought_event = ThoughtEvent(content=model_result.thought, source=agent_name)
-            yield thought_event
-            inner_messages.append(thought_event)
-
-        # Add the assistant message to the model context (including thought if present)
-        await model_context.add_message(
-            AssistantMessage(
-                content=model_result.content,
-                source=agent_name,
-                thought=getattr(model_result, "thought", None),
+        for nth_try in range(n_retry_on_failure):
+            # STEP 1: Add new user/handoff messages to the model context
+            await self._add_messages_to_context(
+                model_context=model_context,
+                messages=messages,
             )
-        )
 
-        code_blocks = self._extract_markdown_code_blocks(str(model_result.content))
+            # STEP 2: Update model context with any relevant memory
+            for event_msg in await self._update_model_context_with_memory(
+                memory=None,
+                model_context=model_context,
+                agent_name=agent_name,
+            ):
+                inner_messages.append(event_msg)
+                yield event_msg
 
-        if not code_blocks:
-            yield Response(
-                chat_message=TextMessage(
-                    content=str(model_result.content),
+            # STEP 3: Run the first inference
+            model_result = None
+            async for inference_output in self._call_llm(
+                model_client=model_client,
+                model_client_stream=model_client_stream,
+                system_messages=system_messages,
+                model_context=model_context,
+                agent_name=agent_name,
+                cancellation_token=cancellation_token,
+            ):
+                if isinstance(inference_output, CreateResult):
+                    model_result = inference_output
+                else:
+                    # Streaming chunk event
+                    yield inference_output
+
+            assert model_result is not None, "No model result was produced."
+
+            # --- NEW: If the model produced a hidden "thought," yield it as an event ---
+            if model_result.thought:
+                thought_event = ThoughtEvent(content=model_result.thought, source=agent_name)
+                yield thought_event
+                inner_messages.append(thought_event)
+
+            # Add the assistant message to the model context (including thought if present)
+            await model_context.add_message(
+                AssistantMessage(
+                    content=model_result.content,
+                    source=agent_name,
+                    thought=getattr(model_result, "thought", None),
+                )
+            )
+
+            code_blocks = self._extract_markdown_code_blocks(str(model_result.content))
+
+            # TODO: How should we handle the case where model generated no code block
+            #       while retrying?
+            #       My guess is if only one try is remaining then we can just return
+            #       the model result as is, with message indicating no code block was found.
+            #       And if retries are remaining then we can continue to next iteration
+            #       yielding a event indicating no code block was found hence retrying.
+            if not code_blocks:
+                yield Response(
+                    chat_message=TextMessage(
+                        content=str(model_result.content),
+                        source=agent_name,
+                    )
+                )
+                return
+
+            # NOTE: error: Argument of type "str | List[FunctionCall]" cannot be assigned to parameter "content" of type "str" in function "__init__".
+            #       For now we can assume that there are no FunctionCalls in the response because we are not providing tools to the CodeExecutorAgent.
+            #       So, for now we cast model_result.content to string
+            inferred_text_message: CodeGenerationEvent = CodeGenerationEvent(
+                content=str(model_result.content),
+                code_blocks=code_blocks,
+                source=agent_name,
+            )
+
+            yield inferred_text_message
+
+            execution_result = await self.execute_code_block(inferred_text_message.code_blocks, cancellation_token)
+
+            # Add the code execution result to the model context
+            await model_context.add_message(
+                UserMessage(
+                    content=execution_result.result.output,
                     source=agent_name,
                 )
             )
-            return
 
-        # NOTE: error: Argument of type "str | List[FunctionCall]" cannot be assigned to parameter "content" of type "str" in function "__init__".
-        #       For now we can assume that there are no FunctionCalls in the response because we are not providing tools to the CodeExecutorAgent.
-        #       So, for now we cast model_result.content to string
-        inferred_text_message: CodeGenerationEvent = CodeGenerationEvent(
-            content=str(model_result.content),
-            code_blocks=code_blocks,
-            source=agent_name,
-        )
+            yield execution_result
 
-        yield inferred_text_message
+            # if execution was successful, then exit
+            if execution_result.result.exit_code == 0:
+                break
 
-        execution_result = await self.execute_code_block(inferred_text_message.code_blocks, cancellation_token)
+            chat_context = await model_context.get_messages()
 
-        # Add the code execution result to the model context
-        await model_context.add_message(
-            UserMessage(
-                content=execution_result.result.output,
+            retry_prompt = (
+                f"The most recent code execution resulted in an error:\n{execution_result.result.output}\n\n"
+                "Should we attempt to resolve it? Please respond with:\n"
+                "- A boolean value for 'retry' indicating whether it should be retried.\n"
+                "- A detailed explanation in 'reason' that identifies the issue, justifies your decision to retry or not, and outlines how you would resolve the error if a retry is attempted."
+            )
+
+            chat_context = chat_context + [
+                UserMessage(
+                    content=retry_prompt,
+                    source=agent_name,
+                )
+            ]
+
+            # TODO: add support for model that don't support structured output
+            response = await model_client.create(messages=chat_context, json_output=RetryDecision)
+
+            # NOTE: casting to str as no function calls are expected
+            should_retry_generation = RetryDecision.model_validate_json(str(response.content))
+
+            if not should_retry_generation.retry:
+                break
+
+            # TODO: Should we have separate event for retry? maybe yes
+            yield CodeGenerationEvent(
+                content=f"Remaining retry attempts: {n_retry_on_failure - nth_try - 1}\nReason: {should_retry_generation.reason}",
+                code_blocks=[],
                 source=agent_name,
             )
-        )
-
-        yield execution_result
 
         # always reflect on the execution result
         async for reflection_response in CodeExecutorAgent._reflect_on_code_block_results_flow(
