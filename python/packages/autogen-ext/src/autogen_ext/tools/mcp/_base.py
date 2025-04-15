@@ -27,7 +27,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
     def __init__(self, actor: McpSessionActor, tool: Tool) -> None:
         self._tool = tool
-        self.actor = actor
+        self._actor = actor
         # self.actor = self._actor.actor
 
         # Extract name and description
@@ -65,7 +65,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         try:
             if cancellation_token.is_cancelled():
                 raise Exception("Operation cancelled")
-            result_future = await self.actor.call(name=self._tool.name, kwargs=kwargs)
+            result_future = await self._actor.call(name=self._tool.name, kwargs=kwargs)
             cancellation_token.link_future(result_future)
             result = await result_future
 
@@ -121,4 +121,4 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
     async def close(self) -> None:
         """Close the adapter and release resources."""
-        await self.actor.close()
+        await self._actor.close()

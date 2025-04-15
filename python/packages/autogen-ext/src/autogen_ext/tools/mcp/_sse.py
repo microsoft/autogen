@@ -97,7 +97,7 @@ class SseMcpToolAdapter(
         Returns:
             SseMcpToolAdapterConfig: The configuration of the adapter.
         """
-        return SseMcpToolAdapterConfig(actor=self.actor.dump_component(), tool=self._tool)
+        return SseMcpToolAdapterConfig(actor=self._actor.dump_component(), tool=self._tool)
 
     @classmethod
     def _from_config(cls, config: SseMcpToolAdapterConfig) -> Self:

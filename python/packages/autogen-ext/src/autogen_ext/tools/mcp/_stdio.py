@@ -55,7 +55,7 @@ class StdioMcpToolAdapter(
         Returns:
             StdioMcpToolAdapterConfig: The configuration of the adapter.
         """
-        return StdioMcpToolAdapterConfig(actor=self.actor.dump_component(), tool=self._tool)
+        return StdioMcpToolAdapterConfig(actor=self._actor.dump_component(), tool=self._tool)
 
     @classmethod
     def _from_config(cls, config: StdioMcpToolAdapterConfig) -> Self:
