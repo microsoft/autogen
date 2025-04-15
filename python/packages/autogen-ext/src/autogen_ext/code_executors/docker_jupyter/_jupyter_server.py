@@ -8,14 +8,14 @@ import sys
 import uuid
 from pathlib import Path
 from types import TracebackType
-from typing import Dict, Optional, Type, Union, Any, List, cast, Optional, Protocol, runtime_checkable
+from typing import Dict, Optional, Type, Union, Any, List, cast, Protocol, runtime_checkable
 from dataclasses import dataclass
 import datetime
 import json
 import requests
-import websocket
+import asyncio
+import aiohttp
 from requests.adapters import HTTPAdapter, Retry
-from websocket import WebSocket
 from time import sleep
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -58,6 +58,13 @@ class JupyterClient:
         self._session = requests.Session()
         retries = Retry(total=5, backoff_factor=0.1)
         self._session.mount("http://", HTTPAdapter(max_retries=retries))
+        # Create aiohttp session for async requests
+        self._async_session = None
+    
+    async def _ensure_async_session(self):
+        if self._async_session is None:
+            self._async_session = aiohttp.ClientSession()
+        return self._async_session
 
     def _get_headers(self) -> Dict[str, str]:
         if self._connection_info.token is None:
@@ -73,6 +80,7 @@ class JupyterClient:
         port = f":{self._connection_info.port}" if self._connection_info.port else ""
         return f"ws://{self._connection_info.host}{port}"
 
+
     def list_kernel_specs(self) -> Dict[str, Dict[str, str]]:
         response = self._session.get(f"{self._get_api_base_url()}/api/kernelspecs", headers=self._get_headers())
         return cast(Dict[str, Dict[str, str]], response.json())
@@ -81,8 +89,8 @@ class JupyterClient:
         response = self._session.get(f"{self._get_api_base_url()}/api/kernels", headers=self._get_headers())
         return cast(List[Dict[str, str]], response.json())
 
-    def start_kernel(self, kernel_spec_name: str) -> str:
-        """Start a new kernel.
+    async def start_kernel(self, kernel_spec_name: str) -> str:
+        """Start a new kernel asynchronously.
 
         Args:
             kernel_spec_name (str): Name of the kernel spec to start
@@ -90,33 +98,44 @@ class JupyterClient:
         Returns:
             str: ID of the started kernel
         """
-
-        response = self._session.post(
+        session = await self._ensure_async_session()
+        async with session.post(
             f"{self._get_api_base_url()}/api/kernels",
             headers=self._get_headers(),
             json={"name": kernel_spec_name},
-        )
-        return cast(str, response.json()["id"])
+        ) as response:
+            data = await response.json()
+            return cast(str, data["id"])
 
-    def delete_kernel(self, kernel_id: str) -> None:
-        response = self._session.delete(
+    async def delete_kernel(self, kernel_id: str) -> None:
+        session = await self._ensure_async_session()
+        async with session.delete(
             f"{self._get_api_base_url()}/api/kernels/{kernel_id}", headers=self._get_headers()
-        )
-        response.raise_for_status()
+        ) as response:
+            response.raise_for_status()
 
-    def restart_kernel(self, kernel_id: str) -> None:
-        response = self._session.post(
+    async def restart_kernel(self, kernel_id: str) -> None:
+        session = await self._ensure_async_session()
+        async with session.post(
             f"{self._get_api_base_url()}/api/kernels/{kernel_id}/restart", headers=self._get_headers()
-        )
-        response.raise_for_status()
+        ) as response:
+            response.raise_for_status()
 
-    def get_kernel_client(self, kernel_id: str) -> JupyterKernelClient:
+    async def get_kernel_client(self, kernel_id: str) -> JupyterKernelClient:
         ws_url = f"{self._get_ws_base_url()}/api/kernels/{kernel_id}/channels"
-        ws = websocket.create_connection(ws_url, header=self._get_headers())
+        # Using websockets library for async websocket connections
+        import websockets
+        ws = await websockets.connect(ws_url, extra_headers=self._get_headers())
         return JupyterKernelClient(ws)
+    
+    async def close(self):
+        """Close the async session"""
+        if self._async_session is not None:
+            await self._async_session.close()
+            self._async_session = None
 
 class JupyterKernelClient:
-    """(Experimental) A client for communicating with a Jupyter kernel."""
+    """An asynchronous client for communicating with a Jupyter kernel."""
 
     @dataclass
     class ExecutionResult:
@@ -129,22 +148,22 @@ class JupyterKernelClient:
         output: str
         data_items: List[DataItem]
 
-    def __init__(self, websocket: WebSocket):
+    def __init__(self, websocket):
         self._session_id: str = uuid.uuid4().hex
-        self._websocket: WebSocket = websocket
+        self._websocket = websocket
 
-    def __enter__(self) -> Self:
+    async def __aenter__(self) -> Self:
         return self
 
-    def __exit__(
+    async def __aexit__(
         self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
-        self.stop()
+        await self.stop()
 
-    def stop(self) -> None:
-        self._websocket.close()
+    async def stop(self) -> None:
+        await self._websocket.close()
 
-    def _send_message(self, *, content: Dict[str, Any], channel: str, message_type: str) -> str:
+    async def _send_message(self, *, content: Dict[str, Any], channel: str, message_type: str) -> str:
         timestamp = datetime.datetime.now().isoformat()
         message_id = uuid.uuid4().hex
         message = {
@@ -162,23 +181,25 @@ class JupyterKernelClient:
             "metadata": {},
             "buffers": {},
         }
-        self._websocket.send_text(json.dumps(message))
+        await self._websocket.send(json.dumps(message))
         return message_id
 
-    def _receive_message(self, timeout_seconds: Optional[float]) -> Optional[Dict[str, Any]]:
-        self._websocket.settimeout(timeout_seconds)
+    async def _receive_message(self, timeout_seconds: Optional[float]) -> Optional[Dict[str, Any]]:
         try:
-            data = self._websocket.recv()
+            if timeout_seconds is not None:
+                data = await asyncio.wait_for(self._websocket.recv(), timeout=timeout_seconds)
+            else:
+                data = await self._websocket.recv()
             if isinstance(data, bytes):
                 data = data.decode("utf-8")
             return cast(Dict[str, Any], json.loads(data))
-        except websocket.WebSocketTimeoutException:
+        except asyncio.TimeoutError:
             return None
 
-    def wait_for_ready(self, timeout_seconds: Optional[float] = None) -> bool:
-        message_id = self._send_message(content={}, channel="shell", message_type="kernel_info_request")
+    async def wait_for_ready(self, timeout_seconds: Optional[float] = None) -> bool:
+        message_id = await self._send_message(content={}, channel="shell", message_type="kernel_info_request")
         while True:
-            message = self._receive_message(timeout_seconds)
+            message = await self._receive_message(timeout_seconds)
             # This means we timed out with no new messages.
             if message is None:
                 return False
@@ -188,8 +209,8 @@ class JupyterKernelClient:
             ):
                 return True
 
-    def execute(self, code: str, timeout_seconds: Optional[float] = None) -> ExecutionResult:
-        message_id = self._send_message(
+    async def execute(self, code: str, timeout_seconds: Optional[float] = None) -> ExecutionResult:
+        message_id = await self._send_message(
             content={
                 "code": code,
                 "silent": False,
@@ -205,7 +226,7 @@ class JupyterKernelClient:
         text_output = []
         data_output = []
         while True:
-            message = self._receive_message(timeout_seconds)
+            message = await self._receive_message(timeout_seconds)
             if message is None:
                 return JupyterKernelClient.ExecutionResult(
                     is_ok=False, output="ERROR: Timeout waiting for output from code block.", data_items=[]
@@ -372,16 +393,19 @@ class DockerJupyterServer(JupyterConnectable):
         if container.status != "running":
             raise ValueError("Container failed to start")
     
-    def stop(self) -> None:
-        self._cleanup_func()
+    async def stop(self) -> None:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self._cleanup_func)
 
-    def get_client(self) -> JupyterClient:
+    async def get_client(self) -> JupyterClient:
         return JupyterClient(self.connection_info)
 
-    def __enter__(self) -> Self:
+        
+    async def __aenter__(self) -> Self:
         return self
-
-    def __exit__(
+        
+    async def __aexit__(
         self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
-        self.stop()
+        await self.stop()
+        

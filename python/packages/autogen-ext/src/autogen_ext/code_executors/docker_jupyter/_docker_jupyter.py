@@ -11,21 +11,15 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
-from autogen_core.code_executor import CodeBlock, CodeExecutor
+from dataclasses import dataclass
+from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
 from autogen_ext.code_executors._common import silence_pip
 from autogen_core import Component
-from ._jupyter_server import JupyterClient, JupyterConnectable, JupyterConnectionInfo
+from ._jupyter_server import JupyterClient, JupyterConnectable, JupyterConnectionInfo, JupyterKernelClient
 
-class CodeResult(BaseModel):
-    """(Experimental) A class that represents the result of a code execution."""
-
-    exit_code: int
-
-    output: str
-    
+@dataclass
 class DockerJupyterCodeResult(CodeResult):
     """(Experimental) A code result class for IPython code executor."""
-    
     output_files: list[Path] | list[str]
     
 class DockerJupyterCodeExecutorConfig(BaseModel):
@@ -54,13 +48,12 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
 
             async def main() -> None:
-                jupyter_server = DockerJupyterServer()
-                async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
-                    code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
-                    code_result = await executor.execute_code_blocks(code_blocks)
-                    print(code_result)
-
-
+                async with  DockerJupyterServer() as jupyter_server:
+                    async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
+                        code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
+                        code_result = await executor.execute_code_blocks(code_blocks)
+                        print(code_result)
+                        
             asyncio.run(main())
             
         Example of using it with your own jupyter image:
@@ -70,11 +63,11 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
             from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
 
             async def main() -> None:
-                jupyter_server = DockerJupyterServer(custom_image_name='your_custom_images_name', expose_port=8888)
-                async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
-                    code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
-                    code_result = await executor.execute_code_blocks(code_blocks)
-                    print(code_result)
+                async with  DockerJupyterServer(custom_image_name='your_custom_images_name', expose_port=8888) as jupyter_server:
+                    async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
+                        code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
+                        code_result = await executor.execute_code_blocks(code_blocks)
+                        print(code_result)
                     
             asyncio.run(main())
         
@@ -90,13 +83,13 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
 
             async def main() -> None:
-                jupyter_server = DockerJupyterServer()
-                async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
-                    tool = PythonCodeExecutionTool(executor)
-                    model_client = OpenAIChatCompletionClient(model="gpt-4o")
-                    agent = AssistantAgent("assistant", model_client=model_client, tools=[tool])
-                    result = await agent.run(task="What is the 10th Fibonacci number? Use Python to calculate it.")
-                    print(result)
+                async with  DockerJupyterServer() as jupyter_server:
+                    async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
+                        tool = PythonCodeExecutionTool(executor)
+                        model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                        agent = AssistantAgent("assistant", model_client=model_client, tools=[tool])
+                        result = await agent.run(task="What is the 10th Fibonacci number? Use Python to calculate it.")
+                        print(result)
 
 
             asyncio.run(main())
@@ -113,27 +106,27 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
 
             async def main() -> None:
-                jupyter_server = DockerJupyterServer()
-                async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
-                    code_executor_agent = CodeExecutorAgent("code_executor", code_executor=executor)
-                    task = TextMessage(
-                        content='''Here is some code
-                ```python
-                print('Hello world')
-                ```
-                ''',
-                        source="user",
-                    )
-                    response = await code_executor_agent.on_messages([task], CancellationToken())
-                    print(response.chat_message)
+                async with  DockerJupyterServer() as jupyter_server:
+                    async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
+                        code_executor_agent = CodeExecutorAgent("code_executor", code_executor=executor)
+                        task = TextMessage(
+                            content='''Here is some code
+                    ```python
+                    print('Hello world')
+                    ```
+                    ''',
+                            source="user",
+                        )
+                        response = await code_executor_agent.on_messages([task], CancellationToken())
+                        print(response.chat_message)
 
 
             asyncio.run(main())
         Args:
             jupyter_server (Union[JupyterConnectable, JupyterConnectionInfo]): The Jupyter server to use.
-            timeout (int): The timeout for code execution, by default 60.
             kernel_name (str): The kernel name to use. Make sure it is installed.
                 By default, it is "python3".
+            timeout (int): The timeout for code execution, by default 60.
             output_dir (str): The directory to save output files, by default ".".
         """
     component_config_schema = DockerJupyterCodeExecutorConfig
@@ -154,27 +147,31 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
         if not output_dir.exists():
             raise ValueError(f"Output directory {output_dir} does not exist.")
-
         if isinstance(jupyter_server, JupyterConnectable):
             self._connection_info = jupyter_server.connection_info
         elif isinstance(jupyter_server, JupyterConnectionInfo):
             self._connection_info = jupyter_server
         else:
             raise ValueError("jupyter_server must be a JupyterConnectable or JupyterConnectionInfo.")
-
         self._jupyter_client = JupyterClient(self._connection_info)
-        available_kernels = self._jupyter_client.list_kernel_specs()
-        if kernel_name not in available_kernels["kernelspecs"]:
-            raise ValueError(f"Kernel {kernel_name} is not installed.")
-
-        self._kernel_id = self._jupyter_client.start_kernel(kernel_name)
+        
         self._kernel_name = kernel_name
-        self._jupyter_kernel_client = self._jupyter_client.get_kernel_client(self._kernel_id)
+        available_kernels = self._jupyter_client.list_kernel_specs()
+        if self._kernel_name not in available_kernels["kernelspecs"]:
+            raise ValueError(f"Kernel {self._kernel_name} is not installed.")
+        self._jupyter_kernel_client = None
+        self._async_jupyter_kernel_client = None
         self._timeout = timeout
         self._output_dir = output_dir
 
+    async def _ensure_async_kernel_client(self) -> JupyterKernelClient:
+        """Ensure that an async kernel client exists and return it."""
+        if self._async_jupyter_kernel_client is None:
+            self._kernel_id = await self._jupyter_client.start_kernel(self._kernel_name)
+            self._async_jupyter_kernel_client = await self._jupyter_client.get_kernel_client(self._kernel_id)
+        return self._async_jupyter_kernel_client
 
-    async def execute_code_blocks(self, code_blocks: List[CodeBlock], **kwargs) -> IPythonCodeResult:
+    async def execute_code_blocks(self, code_blocks: List[CodeBlock], **kwargs) -> DockerJupyterCodeResult:
         """(Experimental) Execute a list of code blocks and return the result.
 
         This method executes a list of code blocks as cells in the Jupyter kernel.
@@ -187,12 +184,22 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         Returns:
             IPythonCodeResult: The result of the code execution.
         """
-        self._jupyter_kernel_client.wait_for_ready()
+        kernel_client = await self._ensure_async_kernel_client()
+        # Wait for kernel to be ready using async client
+        is_ready = await kernel_client.wait_for_ready(timeout_seconds=self._timeout)
+        if not is_ready:
+            return DockerJupyterCodeResult(
+                exit_code=1,
+                output="ERROR: Kernel not ready",
+                output_files=[]
+            )
+            
         outputs = []
         output_files = []
         for code_block in code_blocks:
             code = silence_pip(code_block.code, code_block.language)
-            result = self._jupyter_kernel_client.execute(code, timeout_seconds=self._timeout)
+            # Execute code using async client
+            result = await kernel_client.execute(code, timeout_seconds=self._timeout)
             if result.is_ok:
                 outputs.append(result.output)
                 for data in result.data_items:
@@ -207,18 +214,23 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
                     else:
                         outputs.append(json.dumps(data.data))
             else:
-                return IPythonCodeResult(
+                return DockerJupyterCodeResult(
                     exit_code=1,
                     output=f"ERROR: {result.output}",
+                    output_files=output_files
                 )
-        return IPythonCodeResult(
+        return DockerJupyterCodeResult(
             exit_code=0, output="\n".join([str(output) for output in outputs]), output_files=output_files
         )
 
-    def restart(self) -> None:
+    async def restart(self) -> None:
         """(Experimental) Restart a new session."""
-        self._jupyter_client.restart_kernel(self._kernel_id)
-        self._jupyter_kernel_client = self._jupyter_client.get_kernel_client(self._kernel_id)
+        # Use async client to restart kernel
+        await self._jupyter_client.restart_kernel_async(self._kernel_id)
+        # Reset the clients to force recreation
+        if self._async_jupyter_kernel_client is not None:
+            await self._async_jupyter_kernel_client.stop()
+            self._async_jupyter_kernel_client = None
 
     def _save_image(self, image_data_base64: str) -> str:
         """Save image data to a file."""
@@ -241,7 +253,16 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
     async def stop(self) -> None:
         """Stop the kernel."""
-        self._jupyter_client.delete_kernel(self._kernel_id)
+        # Clean up async kernel client if it exists
+        if self._async_jupyter_kernel_client is not None:
+            await self._async_jupyter_kernel_client.stop()
+            self._async_jupyter_kernel_client = None
+            
+        # Delete kernel using async client
+        await self._jupyter_client.delete_kernel(self._kernel_id)
+        
+        # Close the async session
+        await self._jupyter_client.close()
         
     async def __aenter__(self) -> Self:
         return self
