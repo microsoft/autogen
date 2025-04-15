@@ -8,8 +8,14 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
 
 from autogen_core import FunctionCall, Image
+from autogen_core.code_executor import CodeBlock, CodeResult
 from autogen_core.memory import MemoryContent
-from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
+from autogen_core.models import (
+    FunctionExecutionResult,
+    LLMMessage,
+    RequestUsage,
+    UserMessage,
+)
 from pydantic import BaseModel, Field, computed_field
 from typing_extensions import Annotated, Self
 
@@ -96,7 +102,8 @@ class BaseChatMessage(BaseMessage, ABC):
     @abstractmethod
     def to_model_message(self) -> UserMessage:
         """Convert the message content to a :class:`~autogen_core.models.UserMessage`
-        for use with model client, e.g., :class:`~autogen_core.models.ChatCompletionClient`."""
+        for use with model client, e.g., :class:`~autogen_core.models.ChatCompletionClient`.
+        """
         ...
 
 
@@ -282,6 +289,28 @@ class ToolCallRequestEvent(BaseAgentEvent):
         return str(self.content)
 
 
+class CodeGenerationEvent(BaseAgentEvent):
+    """An event signaling code generation for execution."""
+
+    content: str
+    "The complete content as string."
+
+    type: Literal["CodeGenerationEvent"] = "CodeGenerationEvent"
+
+    code_blocks: List[CodeBlock]
+
+    def to_text(self) -> str:
+        return self.content
+
+
+class CodeExecutionEvent(BaseAgentEvent):
+    type: Literal["CodeExecutionEvent"] = "CodeExecutionEvent"
+    result: CodeResult
+
+    def to_text(self) -> str:
+        return self.result.output
+
+
 class ToolCallExecutionEvent(BaseAgentEvent):
     """An event signaling the execution of tool calls."""
 
@@ -369,6 +398,8 @@ class MessageFactory:
         self._message_types[UserInputRequestedEvent.__name__] = UserInputRequestedEvent
         self._message_types[ModelClientStreamingChunkEvent.__name__] = ModelClientStreamingChunkEvent
         self._message_types[ThoughtEvent.__name__] = ThoughtEvent
+        self._message_types[CodeGenerationEvent.__name__] = CodeGenerationEvent
+        self._message_types[CodeExecutionEvent.__name__] = CodeExecutionEvent
 
     def is_registered(self, message_type: type[BaseAgentEvent | BaseChatMessage]) -> bool:
         """Check if a message type is registered with the factory."""
@@ -409,7 +440,8 @@ class MessageFactory:
 
 
 ChatMessage = Annotated[
-    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
+    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage,
+    Field(discriminator="type"),
 ]
 """The union type of all built-in concrete subclasses of :class:`BaseChatMessage`.
 It does not include :class:`StructuredMessage` types."""
@@ -420,7 +452,9 @@ AgentEvent = Annotated[
     | MemoryQueryEvent
     | UserInputRequestedEvent
     | ModelClientStreamingChunkEvent
-    | ThoughtEvent,
+    | ThoughtEvent
+    | CodeGenerationEvent
+    | CodeExecutionEvent,
     Field(discriminator="type"),
 ]
 """The union type of all built-in concrete subclasses of :class:`BaseAgentEvent`."""
@@ -446,4 +480,6 @@ __all__ = [
     "ModelClientStreamingChunkEvent",
     "ThoughtEvent",
     "MessageFactory",
+    "CodeGenerationEvent",
+    "CodeExecutionEvent",
 ]
