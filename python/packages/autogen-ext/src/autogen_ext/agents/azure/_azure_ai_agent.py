@@ -52,10 +52,10 @@ event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 class AzureAIAgentState(BaseModel):
     """
     Represents the state of an AzureAIAgent that can be saved and loaded.
-    
+
     This state model keeps track of persistent information about an agent session
     including agent and thread identifiers, message history, and associated resources.
-    
+
     Attributes:
         type (str): The type identifier for the state object, always "AzureAIAgentState"
         agent_id (Optional[str]): The ID of the Azure AI agent
@@ -64,6 +64,7 @@ class AzureAIAgentState(BaseModel):
         vector_store_id (Optional[str]): The ID of the associated vector store for file search
         uploaded_file_ids (List[str]): List of IDs for files uploaded to the agent
     """
+
     type: str = Field(default="AzureAIAgentState")
     agent_id: Optional[str] = None
     thread_id: Optional[str] = None
@@ -75,37 +76,37 @@ class AzureAIAgentState(BaseModel):
 class AzureAIAgent(BaseChatAgent):
     """
     Azure AI Assistant agent for AutoGen.
-    
+
     This agent leverages the Azure AI Assistant API to create AI assistants with capabilities like:
-    
+
     * Code interpretation and execution
     * Grounding with Bing search
     * File handling and search
     * Custom function calling
     * Multi-turn conversations
-    
-    The agent integrates with AutoGen's messaging system, providing a seamless way to use Azure AI 
+
+    The agent integrates with AutoGen's messaging system, providing a seamless way to use Azure AI
     capabilities within the AutoGen framework. It supports tools like code interpreter,
     file search, and various grounding mechanisms.
-    
+
     Agent name must be a valid Python identifier:
         1. It must start with a letter (A-Z, a-z) or an underscore (_).
         2. It can only contain letters, digits (0-9), or underscores.
         3. It cannot be a Python keyword.
         4. It cannot contain spaces or special characters.
         5. It cannot start with a digit.
-    
+
     Examples:
         ```python
         # Create an Azure AI Agent with code interpreter capability
         from autogen_ext.agents.azure import AzureAIAgent
         from azure.ai.projects.aio import AIProjectClient
         from azure.identity.aio import DefaultAzureCredential
-        
+
         # Create a client
         credential = DefaultAzureCredential()
         project_client = AIProjectClient(credential=credential)
-        
+
         # Create an agent
         agent = AzureAIAgent(
             name="code_assistant",
@@ -113,7 +114,7 @@ class AzureAIAgent(BaseChatAgent):
             project_client=project_client,
             model="gpt-4",
             instructions="You are a helpful coding assistant.",
-            tools=["code_interpreter"]
+            tools=["code_interpreter"],
         )
         ```
     """
@@ -164,7 +165,7 @@ class AzureAIAgent(BaseChatAgent):
             model (str): The model identifier to use for the agent (e.g., "gpt-4").
             instructions (str): Detailed instructions for the agent's behavior.
             tools (Optional[Iterable[Union[str, ToolDefinition, Tool, Callable]]]): A list of tools the agent can use.
-                Supported string values: "file_search", "code_interpreter", "bing_grounding", 
+                Supported string values: "file_search", "code_interpreter", "bing_grounding",
                 "azure_ai_search", "azure_function", "sharepoint_grounding".
             agent_id (Optional[str]): Existing agent ID to use instead of creating a new one.
             thread_id (Optional[str]): Existing thread ID to continue a conversation.
@@ -229,11 +230,11 @@ class AzureAIAgent(BaseChatAgent):
     def _add_tools(self, tools, converted_tools):
         """
         Convert various tool formats to Azure AI Agent tool definitions.
-        
+
         Args:
             tools: List of tools in various formats (string identifiers, ToolDefinition objects, Tool objects, or callables)
             converted_tools: List to which converted tool definitions will be added
-            
+
         Raises:
             ValueError: If an unsupported tool type is provided
         """
@@ -272,10 +273,10 @@ class AzureAIAgent(BaseChatAgent):
     def _convert_tool_to_function_tool_definition(self, tool: Tool) -> models.FunctionToolDefinition:
         """
         Convert an autogen Tool to an Azure AI Agent function tool definition.
-        
+
         Args:
             tool (Tool): The AutoGen tool to convert
-            
+
         Returns:
             models.FunctionToolDefinition: A function tool definition compatible with Azure AI Agent API
         """
@@ -291,11 +292,7 @@ class AzureAIAgent(BaseChatAgent):
             if "required" in schema["parameters"]:
                 parameters["required"] = schema["parameters"]["required"]
 
-        func_definition = models.FunctionDefinition(
-            name=tool.name,
-            description=tool.description,
-            parameters=parameters
-        )
+        func_definition = models.FunctionDefinition(name=tool.name, description=tool.description, parameters=parameters)
 
         return models.FunctionToolDefinition(
             function=func_definition,
@@ -304,15 +301,15 @@ class AzureAIAgent(BaseChatAgent):
     async def _ensure_initialized(self, create_new_thread: bool = False, create_new_agent: bool = False) -> None:
         """
         Ensure agent and thread are properly initialized before operations.
-        
+
         This method ensures that both the Azure AI Agent and thread are created or retrieved
         from existing IDs. It also handles retrieving the initial state of an existing thread
         when needed.
-        
+
         Args:
             create_new_thread (bool): When True, creates a new thread even if thread_id is provided
             create_new_agent (bool): When True, creates a new agent even if agent_id is provided
-            
+
         Raises:
             ValueError: If agent or thread creation fails
         """
@@ -346,7 +343,7 @@ class AzureAIAgent(BaseChatAgent):
     async def _retrieve_initial_state(self) -> None:
         """
         Retrieve and store the initial state of messages in the thread.
-        
+
         This method retrieves all message IDs from an existing thread to track which
         messages were present before this agent instance started interacting with the thread.
         It handles pagination to ensure all messages are captured.
@@ -369,14 +366,14 @@ class AzureAIAgent(BaseChatAgent):
     async def _execute_tool_call(self, tool_call: FunctionCall, cancellation_token: CancellationToken) -> str:
         """
         Execute a tool call requested by the Azure AI agent.
-        
+
         Args:
             tool_call (FunctionCall): The function call information including name and arguments
             cancellation_token (CancellationToken): Token for cancellation handling
-            
+
         Returns:
             str: The string representation of the tool call result
-            
+
         Raises:
             ValueError: If the requested tool is not available or no tools are registered
         """
@@ -398,23 +395,23 @@ class AzureAIAgent(BaseChatAgent):
     ) -> List[str]:
         """
         Upload files to the Azure AI Assistant API.
-        
+
         This method handles uploading one or more files to be used by the agent
         and tracks their IDs in the agent's state.
-        
+
         Args:
             file_paths (str | Iterable[str]): Path(s) to file(s) to upload
             purpose (str): The purpose of the file, defaults to "assistant"
             sleep_interval (float): Time to sleep between polling for file status
             cancellation_token (CancellationToken): Token for cancellation handling
-            
+
         Returns:
             List[str]: List of file IDs for the uploaded files
-            
+
         Raises:
             ValueError: If file upload fails
         """
-        if(cancellation_token is None):
+        if cancellation_token is None:
             cancellation_token = CancellationToken()
 
         await self._ensure_initialized()
@@ -453,23 +450,23 @@ class AzureAIAgent(BaseChatAgent):
     ) -> Response:
         """
         Process incoming messages and return a response from the Azure AI agent.
-        
+
         This method is the primary entry point for interaction with the agent.
         It delegates to on_messages_stream and returns the final response.
-        
+
         Args:
             messages (Sequence[ChatMessage]): The messages to process
             cancellation_token (CancellationToken, optional): Token for cancellation handling
             message_limit (int, optional): Maximum number of messages to retrieve from the thread
-            
+
         Returns:
             Response: The agent's response, including the chat message and any inner events
-            
+
         Raises:
             AssertionError: If the stream doesn't return a final result
         """
 
-        if(cancellation_token is None):
+        if cancellation_token is None:
             cancellation_token = CancellationToken()
 
         async for message in self.on_messages_stream(
@@ -488,29 +485,29 @@ class AzureAIAgent(BaseChatAgent):
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """
         Process incoming messages and yield streaming responses from the Azure AI agent.
-        
+
         This method handles the complete interaction flow with the Azure AI agent:
         1. Processing input messages
         2. Creating and monitoring a run
         3. Handling tool calls and their results
         4. Retrieving and returning the agent's final response
-        
+
         The method yields events during processing (like tool calls) and finally yields
         the complete Response with the agent's message.
-        
+
         Args:
             messages (Sequence[ChatMessage]): The messages to process
             message_limit (int, optional): Maximum number of messages to retrieve from the thread
             cancellation_token (CancellationToken, optional): Token for cancellation handling
             sleep_interval (float, optional): Time to sleep between polling for run status
-            
+
         Yields:
             AgentEvent | ChatMessage | Response: Events during processing and the final response
-            
+
         Raises:
             ValueError: If the run fails or no message is received from the assistant
         """
-        if(cancellation_token is None):
+        if cancellation_token is None:
             cancellation_token = CancellationToken()
 
         await self._ensure_initialized()
@@ -649,11 +646,11 @@ class AzureAIAgent(BaseChatAgent):
     async def handle_text_message(self, content: str, cancellation_token: CancellationToken) -> None:
         """
         Handle a text message by adding it to the conversation thread.
-        
+
         Args:
             content (str): The text content of the message
             cancellation_token (CancellationToken): Token for cancellation handling
-            
+
         Returns:
             None
         """
@@ -670,13 +667,13 @@ class AzureAIAgent(BaseChatAgent):
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """
         Reset the agent's conversation by creating a new thread.
-        
+
         This method allows for resetting a conversation without losing the agent
         definition or capabilities. It creates a new thread for fresh conversations.
-        
+
         Note: Currently the Azure AI Agent API has no support for deleting messages,
         so a new thread is created instead.
-        
+
         Args:
             cancellation_token (CancellationToken): Token for cancellation handling
         """
@@ -686,10 +683,10 @@ class AzureAIAgent(BaseChatAgent):
     async def save_state(self) -> Mapping[str, Any]:
         """
         Save the current state of the agent for future restoration.
-        
+
         This method serializes the agent's state including IDs for the agent, thread,
         messages, and associated resources like vector stores and uploaded files.
-        
+
         Returns:
             Mapping[str, Any]: A dictionary containing the serialized state data
         """
@@ -705,10 +702,10 @@ class AzureAIAgent(BaseChatAgent):
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """
         Load a previously saved state into this agent.
-        
+
         This method deserializes and restores a previously saved agent state,
         setting up the agent to continue a previous conversation or session.
-        
+
         Args:
             state (Mapping[str, Any]): The previously saved state dictionary
         """
@@ -727,19 +724,19 @@ class AzureAIAgent(BaseChatAgent):
     ) -> None:
         """
         Upload files to be used with the code interpreter tool.
-        
+
         This method uploads files for the agent's code interpreter tool and
         updates the thread's tool resources to include these files.
-        
+
         Args:
             file_paths (str | Iterable[str]): Path(s) to file(s) to upload
             cancellation_token (CancellationToken, optional): Token for cancellation handling
             sleep_interval (float, optional): Time to sleep between polling for file status
-            
+
         Raises:
             ValueError: If file upload fails or the agent doesn't have code interpreter capability
         """
-        if(cancellation_token is None):
+        if cancellation_token is None:
             cancellation_token = CancellationToken()
 
         await self._ensure_initialized()
@@ -787,10 +784,10 @@ class AzureAIAgent(BaseChatAgent):
     ) -> None:
         """
         Upload files to be used with the file search tool.
-        
+
         This method handles uploading files for the file search capability, creating a vector
         store if necessary, and updating the agent's configuration to use the vector store.
-        
+
         Args:
             file_paths (str | Iterable[str]): Path(s) to file(s) to upload
             cancellation_token (CancellationToken): Token for cancellation handling
@@ -800,7 +797,7 @@ class AzureAIAgent(BaseChatAgent):
             chunking_strategy (Optional[models.VectorStoreChunkingStrategyRequest]): Strategy for chunking file content
             vector_store_metadata (Optional[Dict[str, str]]): Additional metadata for the vector store
             vector_store_polling_sleep_interval (float): Time to sleep between polling for vector store status
-            
+
         Raises:
             ValueError: If file search is not enabled for this agent or file upload fails
         """
