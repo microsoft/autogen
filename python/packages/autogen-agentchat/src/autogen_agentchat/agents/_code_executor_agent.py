@@ -50,7 +50,7 @@ class CodeExecutorAgentConfig(BaseModel):
 
     name: str
     code_executor: ComponentModel
-    model_client: ComponentModel | None
+    model_client: ComponentModel | None = None
     description: str | None = None
     sources: List[str] | None = None
     system_message: str | None = None
@@ -354,6 +354,14 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         if model_client is None:  # default behaviour for backward compatibility
             # execute generated code if present
             code_blocks: List[CodeBlock] = await self.extract_code_blocks_from_messages(messages)
+            if not code_blocks:
+                yield Response(
+                    chat_message=TextMessage(
+                        content=self.NO_CODE_BLOCKS_FOUND_MESSAGE,
+                        source=agent_name,
+                    )
+                )
+                return
             execution_result = await self.execute_code_block(code_blocks, cancellation_token)
             yield Response(chat_message=TextMessage(content=execution_result.to_text(), source=execution_result.source))
             return
@@ -459,8 +467,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             if self._sources is None or msg.source in self._sources:
                 if isinstance(msg, TextMessage):
                     code_blocks.extend(self._extract_markdown_code_blocks(msg.content))
-                if isinstance(msg, CodeGenerationEvent):
-                    code_blocks.extend(msg.code_blocks)
+                # TODO: handle other message types if needed
         return code_blocks
 
     async def execute_code_block(

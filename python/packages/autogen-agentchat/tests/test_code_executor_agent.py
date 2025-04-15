@@ -1,8 +1,4 @@
 import pytest
-from autogen_core import CancellationToken
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.replay import ReplayChatCompletionClient
-
 from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
@@ -10,6 +6,9 @@ from autogen_agentchat.messages import (
     CodeGenerationEvent,
     TextMessage,
 )
+from autogen_core import CancellationToken
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
 @pytest.mark.asyncio
@@ -276,3 +275,22 @@ async def test_code_execution_agent_serialization() -> None:
 
     assert isinstance(deserialized_agent, CodeExecutorAgent)
     assert deserialized_agent.name == "code_executor"
+
+
+@pytest.mark.asyncio
+async def test_code_execution_agent_serialization_with_model_client() -> None:
+    """Test agent config serialization"""
+
+    model_client = ReplayChatCompletionClient(["The capital of France is Paris.", "TERMINATE"])
+
+    agent = CodeExecutorAgent(
+        name="code_executor_agent", code_executor=LocalCommandLineCodeExecutor(), model_client=model_client
+    )
+
+    # Serialize and deserialize the agent
+    serialized_agent = agent.dump_component()
+    deserialized_agent = CodeExecutorAgent.load_component(serialized_agent)
+
+    assert isinstance(deserialized_agent, CodeExecutorAgent)
+    assert deserialized_agent.name == "code_executor_agent"
+    assert deserialized_agent._model_client is not None  # type: ignore
