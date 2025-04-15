@@ -99,9 +99,7 @@ async def test_no_code_response_with_model_client() -> None:
     Tests agent behavior when the model client responds with non-code content.
     """
 
-    model_client = ReplayChatCompletionClient(
-        ["The capital of France is Paris.", "TERMINATE"]
-    )
+    model_client = ReplayChatCompletionClient(["The capital of France is Paris.", "TERMINATE"])
 
     agent = CodeExecutorAgent(
         name="code_executor_agent", code_executor=LocalCommandLineCodeExecutor(), model_client=model_client
@@ -132,6 +130,7 @@ async def test_no_code_response_with_model_client() -> None:
             raise AssertionError(f"Unexpected message type: {type(message)}")
 
     assert response is not None, "Response was not received"
+
 
 @pytest.mark.asyncio
 async def test_code_execution_error() -> None:
