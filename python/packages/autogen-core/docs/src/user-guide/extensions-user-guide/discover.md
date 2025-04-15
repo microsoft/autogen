@@ -42,6 +42,7 @@ Find community samples and examples of how to use AutoGen
 | [autogen-watsonx-client](https://github.com/tsinggggg/autogen-watsonx-client)  | [PyPi](https://pypi.org/project/autogen-watsonx-client/) | Model client for [IBM watsonx.ai](https://www.ibm.com/products/watsonx-ai) |
 | [autogen-openaiext-client](https://github.com/vballoli/autogen-openaiext-client)  | [PyPi](https://pypi.org/project/autogen-openaiext-client/) | Model client for other LLMs like Gemini, etc. through the OpenAI API |
 | [autogen-ext-mcp](https://github.com/richard-gyiko/autogen-ext-mcp) | [PyPi](https://pypi.org/project/autogen-ext-mcp/) | Tool adapter for Model Context Protocol server tools |
+| [autogen-ext-email](https://github.com/masquerlin/autogen-ext-email) | [PyPi](https://pypi.org/project/autogen-ext-email/) | A Email agent for generating email and sending |
 
 <!-- Example -->
 <!-- | [My Model Client](https://github.com/example)  | [PyPi](https://pypi.org/project/example) | Model client for my custom model service | -->

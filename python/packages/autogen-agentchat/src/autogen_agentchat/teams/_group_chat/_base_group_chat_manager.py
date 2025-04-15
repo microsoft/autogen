@@ -56,15 +56,17 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 GroupChatReset,
             ],
         )
-        self._name = name
-        self._group_topic_type = group_topic_type
-        self._output_topic_type = output_topic_type
+        if max_turns is not None and max_turns <= 0:
+            raise ValueError("The maximum number of turns must be greater than 0.")
         if len(participant_topic_types) != len(participant_descriptions):
             raise ValueError("The number of participant topic types, agent types, and descriptions must be the same.")
         if len(set(participant_topic_types)) != len(participant_topic_types):
             raise ValueError("The participant topic types must be unique.")
         if group_topic_type in participant_topic_types:
             raise ValueError("The group topic type must not be in the participant topic types.")
+        self._name = name
+        self._group_topic_type = group_topic_type
+        self._output_topic_type = output_topic_type
         self._participant_names = participant_names
         self._participant_name_to_topic_type = {
             name: topic_type for name, topic_type in zip(participant_names, participant_topic_types, strict=True)
@@ -73,8 +75,6 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._message_thread: List[BaseAgentEvent | BaseChatMessage] = []
         self._output_message_queue = output_message_queue
         self._termination_condition = termination_condition
-        if max_turns is not None and max_turns <= 0:
-            raise ValueError("The maximum number of turns must be greater than 0.")
         self._max_turns = max_turns
         self._current_turn = 0
         self._message_factory = message_factory

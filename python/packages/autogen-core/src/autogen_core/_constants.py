@@ -1,5 +1,5 @@
 ROOT_LOGGER_NAME = "autogen_core"
-"""str: Logger name used for structured event logging"""
+"""str: Logger name used for root logger"""
 
 EVENT_LOGGER_NAME = "autogen_core.events"
 """str: Logger name used for structured event logging"""

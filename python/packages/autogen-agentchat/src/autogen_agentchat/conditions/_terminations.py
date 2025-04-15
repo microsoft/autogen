@@ -502,6 +502,7 @@ class FunctionCallTermination(TerminationCondition, Component[FunctionCallTermin
     """
 
     component_config_schema = FunctionCallTerminationConfig
+    component_provider_override = "autogen_agentchat.conditions.FunctionCallTermination"
     """The schema for the component configuration."""
 
     def __init__(self, function_name: str) -> None:
