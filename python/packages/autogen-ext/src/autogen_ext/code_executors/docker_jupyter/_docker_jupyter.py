@@ -23,7 +23,7 @@ class CodeResult(BaseModel):
 
     output: str
     
-class IPythonCodeResult(CodeResult):
+class DockerJupyterCodeResult(CodeResult):
     """(Experimental) A code result class for IPython code executor."""
     
     output_files: list[Path] | list[str]
