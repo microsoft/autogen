@@ -76,7 +76,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
     async def _close(self) -> None:
         if not self._active or self._actor_task is None:
             return
-        self._shutdown_future = asyncio.Future()
+        self._shutdown_future: asyncio.Future[Any] = asyncio.Future()
         await self._command_queue.put({"type": "shutdown", "future": self._shutdown_future})
         await self._shutdown_future
         await self._actor_task
@@ -100,17 +100,23 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         except Exception as e:
             if self._shutdown_future and not self._shutdown_future.done():
                 self._shutdown_future.set_exception(e)
+        finally:
+            self._active = False
+            self._actor_task = None
+            self._shutdown_future = None
 
     def _sync_shutdown(self) -> None:
-        # Attempt to close the actor synchronously
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.create_task(self._close())
-            else:
-                loop.run_until_complete(self._close())
-        except Exception:
-            pass
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        if loop.is_running():
+            loop.create_task(self._close())
+        else:
+            loop.run_until_complete(self._close())
+    
 
     def _to_config(self) -> McpSessionActorConfig:
         """
@@ -157,6 +163,7 @@ class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
     component_provider_override = "autogen_ext.tools.mcp.McpSession"
 
     __sessions:Dict[int, McpSessionActor] = {}  # singleton instance
+    __session_ref_count:Dict[int, int] = {}  # reference count for each session
 
     def __init__(self, server_params: McpServerParams, session_id:int = 0) -> None:
         """Initialize the MCP session.
@@ -169,13 +176,9 @@ class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
         self._server_params: McpServerParams = server_params
         if session_id == 0:
             self._session_id = max(self.__sessions.keys(), default=0) + 1
-            self.__sessions[self._session_id] = McpSessionActor(server_params)
-            # asyncio.run(self.__sessions[self._session_id].initialize())
         if session_id != 0:
             if session_id not in self.__sessions:
                 self._session_id = session_id
-                self.__sessions[self._session_id] = McpSessionActor(server_params)
-                # asyncio.run(self.__sessions[self._session_id].initialize())
             else:
                 self._session_id = session_id
 
@@ -183,6 +186,28 @@ class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
     def id(self) -> int:
         """Get the session ID."""
         return self._session_id
+
+    def initialize(self) -> None:
+        """Initialize the MCP session."""
+        if self._session_id == 0:
+            raise ValueError("Session ID cannot be 0")
+        if self._session_id not in self.__sessions:
+            self.__sessions[self._session_id] = McpSessionActor(self._server_params)
+            self.__session_ref_count[self._session_id] = 0
+        self.__session_ref_count[self._session_id] += 1
+
+    async def close(self) -> None:
+        """Close the MCP session."""
+        if self._session_id == 0:
+            raise ValueError("Session ID cannot be 0")
+        if self._session_id not in self.__sessions:
+            raise ValueError(f"Session ID {self._session_id} not found")
+        self.__session_ref_count[self._session_id] -= 1
+        if self.__session_ref_count[self._session_id] == 0:
+            await self.__sessions[self._session_id]._close()
+            del self.__sessions[self._session_id]
+            del self.__session_ref_count[self._session_id]
+        
 
     @asynccontextmanager
     async def session(self) -> AsyncGenerator[McpSessionActor, None]:
