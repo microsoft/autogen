@@ -215,8 +215,7 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
     `{name}` in the format string to include the value of that field.
     The format string is used in the :meth:`to_text` method to create a
     human-readable representation of the message.
-    
-    This setting is experimental and may change in the future.
+    This setting is experimental and will change in the future.
     """
 
     @computed_field
