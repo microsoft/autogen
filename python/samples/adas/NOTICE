@@ -1,0 +1,8 @@
+Work was adapted from the work here https://github.com/ShengranHu/ADAS/tree/main, which is under Apache 2.0 license.
+
+@article{hu2024ADAS,
+title={Automated Design of Agentic Systems},
+author={Hu, Shengran and Lu, Cong and Clune, Jeff},
+journal={arXiv preprint arXiv:2408.08435},
+year={2024}
+}
