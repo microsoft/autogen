@@ -520,15 +520,15 @@ class ThoughtEvent(BaseAgentEvent):
 
 
 class SelectSpeakerEvent(BaseAgentEvent):
-    """An event signaling the selection of a speaker for a conversation."""
+    """An event signaling the selection of speakers for a conversation."""
 
-    content: str
-    """The name of the selected speaker."""
+    content: List[str]
+    """The names of the selected speakers."""
 
     type: Literal["SelectSpeakerEvent"] = "SelectSpeakerEvent"
 
     def to_text(self) -> str:
-        return self.content
+        return str(self.content)
 
 
 class MessageFactory:

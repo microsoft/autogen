@@ -143,7 +143,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         )
         # Send the message to the next speaker
         if self._emit_team_events:
-            select_msg = SelectSpeakerEvent(content=speaker_name, source=self._name)
+            select_msg = SelectSpeakerEvent(content=[speaker_name], source=self._name)
             await self.publish_message(
                 GroupChatMessage(message=select_msg),
                 topic_id=DefaultTopicId(type=self._output_topic_type),
@@ -207,7 +207,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             )
             # Send the message to the next speakers
             if self._emit_team_events:
-                select_msg = SelectSpeakerEvent(content=speaker_name, source=self._name)
+                select_msg = SelectSpeakerEvent(content=[speaker_name], source=self._name)
                 await self.publish_message(
                     GroupChatMessage(message=select_msg),
                     topic_id=DefaultTopicId(type=self._output_topic_type),
