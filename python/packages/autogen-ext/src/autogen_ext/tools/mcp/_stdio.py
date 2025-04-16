@@ -35,8 +35,7 @@ class StdioMcpToolAdapter(
 
 
     Args:
-        server_params (StdioServerParams): Parameters for the MCP server connection,
-            including command to run and its arguments
+        session (McpSession): The MCP session to use for communication with the server.
         tool (Tool): The MCP tool to wrap
 
     See :func:`~autogen_ext.tools.mcp.mcp_server_tools` for examples.

@@ -19,7 +19,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
     Base adapter class for MCP tools to make them compatible with AutoGen.
 
     Args:
-        server_params (TServerParams): Parameters for the MCP server connection.
+        session (McpSession): The MCP session to use for communication.
         tool (Tool): The MCP tool to wrap.
     """
 

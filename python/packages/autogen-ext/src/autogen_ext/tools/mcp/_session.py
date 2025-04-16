@@ -106,17 +106,21 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
             self._shutdown_future = None
 
     def _sync_shutdown(self) -> None:
+        if not self._active or self._actor_task is None:
+            return
         try:
-            loop = asyncio.get_running_loop()
+            loop = asyncio.get_event_loop()
         except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # No loop available — interpreter is likely shutting down
+            return
+
+        if loop.is_closed():
+            return
 
         if loop.is_running():
             loop.create_task(self._close())
         else:
             loop.run_until_complete(self._close())
-    
 
     def _to_config(self) -> McpSessionActorConfig:
         """
@@ -154,8 +158,8 @@ class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
     It is used internally by the MCP tool adapters.
 
     Args:
-        session_id (int, optional): Session ID. If 0 or do not insert, a new session will be created.
         server_params (McpServerParams): Parameters for the MCP server connection.
+        session_id (int, optional): Session ID. If 0 or do not insert, a new session will be created.
     """
 
     component_type = "mcp_session"
@@ -207,7 +211,6 @@ class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
             await self.__sessions[self._session_id]._close()
             del self.__sessions[self._session_id]
             del self.__session_ref_count[self._session_id]
-        
 
     @asynccontextmanager
     async def session(self) -> AsyncGenerator[McpSessionActor, None]:

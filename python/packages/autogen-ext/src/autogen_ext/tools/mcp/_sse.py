@@ -35,8 +35,7 @@ class SseMcpToolAdapter(
             pip install -U "autogen-ext[mcp]"
 
     Args:
-        server_params (SseServerParameters): Parameters for the MCP server connection,
-            including URL, headers, and timeouts
+        session (McpSession): The MCP session to use for communication with the server.
         tool (Tool): The MCP tool to wrap
 
     Examples:
