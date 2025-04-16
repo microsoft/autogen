@@ -33,13 +33,13 @@ async def create_mcp_server_session(
                 yield session
 
 
-class McpSessionConfig(BaseModel):
+class McpSessionActorConfig(BaseModel):
     server_params: McpServerParams
 
 
-class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionConfig]):
+class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]):
     component_type = "mcp_session_actor"
-    component_config_schema = McpSessionConfig
+    component_config_schema = McpSessionActorConfig
     component_provider_override = "autogen_ext.tools.mcp.McpSessionActor"
 
     server_params: McpServerParams
@@ -73,7 +73,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionConfig]):
         res = await fut
         return res
 
-    async def close(self) -> None:
+    async def _close(self) -> None:
         if not self._active or self._actor_task is None:
             return
         self._shutdown_future = asyncio.Future()
@@ -106,23 +106,23 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionConfig]):
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
-                loop.create_task(self.close())
+                loop.create_task(self._close())
             else:
-                loop.run_until_complete(self.close())
+                loop.run_until_complete(self._close())
         except Exception:
             pass
 
-    def _to_config(self) -> McpSessionConfig:
+    def _to_config(self) -> McpSessionActorConfig:
         """
         Convert the adapter to its configuration representation.
 
         Returns:
             McpSessionConfig: The configuration of the adapter.
         """
-        return McpSessionConfig(server_params=self.server_params)
+        return McpSessionActorConfig(server_params=self.server_params)
 
     @classmethod
-    def _from_config(cls, config: McpSessionConfig) -> Self:
+    def _from_config(cls, config: McpSessionActorConfig) -> Self:
         """
         Create an instance of McpSessionActor from its configuration.
 
@@ -133,3 +133,74 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionConfig]):
             McpSessionActor: An instance of SseMcpToolAdapter.
         """
         return cls(server_params=config.server_params)
+
+
+class McpSessionConfig(BaseModel):
+    """Configuration for the MCP session actor."""
+    session_id: int = 0
+    server_params: McpServerParams|None = None
+
+
+class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
+    """MCP session component.
+
+    This component is used to manage the MCP session and provide access to the MCP server.
+    It is used internally by the MCP tool adapters.
+
+    Args:
+        server_params (McpServerParams): Parameters for the MCP server connection.
+    """
+
+    component_type = "mcp_session"
+    component_config_schema = McpSessionConfig
+    component_provider_override = "autogen_ext.tools.mcp.McpSession"
+
+    __sessions:Dict[int, McpSessionActor|None] = {}  # singleton instance
+
+    def __init__(self, session_id:int = 0, server_params: McpServerParams|None = None) -> None:
+        """Initialize the MCP session.
+        Args:
+            session_id (int): Session ID. If 0, a new session will be created.
+            server_params (McpServerParams): Parameters for the MCP server connection.
+        """
+        self._server_params: McpServerParams|None = server_params
+        if server_params is None:
+            self._session_id = 0
+            self.__sessions[self._session_id] = None
+            return
+        if session_id == 0:
+            self._session_id = max(self.__sessions.keys(), default=0) + 1
+            self.__sessions[self._session_id] = McpSessionActor(server_params)
+            # asyncio.run(self.__sessions[self._session_id].initialize())
+        if session_id != 0:
+            if session_id not in self.__sessions:
+                self._session_id = session_id
+                self.__sessions[self._session_id] = McpSessionActor(server_params)
+                # asyncio.run(self.__sessions[self._session_id].initialize())
+            else:
+                self._session_id = session_id
+
+    @property
+    def id(self) -> int:
+        """Get the session ID."""
+        return self._session_id
+
+    @asynccontextmanager
+    async def session(self) -> AsyncGenerator[McpSessionActor, None]:
+        """Create a new MCP session."""
+        if self._session_id == 0:
+            raise ValueError("Session ID cannot be 0")
+        """
+        if session_id not in self.__sessions:
+            self.__sessions[session_id] = McpSessionActor(server_params)
+        """
+        await self.__sessions[self._session_id].initialize()
+        yield self.__sessions[self._session_id]
+        # do not close the session here, cause all of MCP tools share the same session
+
+    def _to_config(self):
+        return McpSessionConfig(session_id=self._session_id, server_params=self._server_params)
+    
+    @classmethod
+    def _from_config(cls, config: McpSessionConfig) -> Self:
+        return cls(session_id=config.session_id, server_params=config.server_params)

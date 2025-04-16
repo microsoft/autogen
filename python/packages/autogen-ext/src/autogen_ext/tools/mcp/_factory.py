@@ -1,5 +1,5 @@
 from ._config import McpServerParams, SseServerParams, StdioServerParams
-from ._session import McpSessionActor, create_mcp_server_session
+from ._session import McpSession, create_mcp_server_session
 from ._sse import SseMcpToolAdapter
 from ._stdio import StdioMcpToolAdapter
 
@@ -135,12 +135,9 @@ async def mcp_server_tools(
 
         tools = await session.list_tools()
 
+    session = McpSession(server_params=server_params)
     if isinstance(server_params, StdioServerParams):
-        actor = McpSessionActor(server_params)
-        await actor.initialize()
-        return [StdioMcpToolAdapter(actor=actor, tool=tool) for tool in tools.tools]
+        return [StdioMcpToolAdapter(session=session, tool=tool) for tool in tools.tools]
     elif isinstance(server_params, SseServerParams):
-        actor = McpSessionActor(server_params)
-        await actor.initialize()
-        return [SseMcpToolAdapter(actor=actor, tool=tool) for tool in tools.tools]
+        return [SseMcpToolAdapter(session=session, tool=tool) for tool in tools.tools]
     raise ValueError(f"Unsupported server params type: {type(server_params)}")

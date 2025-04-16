@@ -9,7 +9,7 @@ from mcp import Tool
 from pydantic import BaseModel
 
 from ._config import McpServerParams
-from ._session import McpSessionActor, create_mcp_server_session
+from ._session import McpSession, create_mcp_server_session
 
 TServerParams = TypeVar("TServerParams", bound=McpServerParams)
 
@@ -25,10 +25,9 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
     component_type = "tool"
 
-    def __init__(self, actor: McpSessionActor, tool: Tool) -> None:
+    def __init__(self, session: McpSession, tool: Tool) -> None:
         self._tool = tool
-        self._actor = actor
-        # self.actor = self._actor.actor
+        self._session = session
 
         # Extract name and description
         name = tool.name
@@ -65,8 +64,10 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         try:
             if cancellation_token.is_cancelled():
                 raise Exception("Operation cancelled")
-            result_future = await self._actor.call(name=self._tool.name, kwargs=kwargs)
-            cancellation_token.link_future(result_future)
+
+            async with self._session.session() as session:
+                result_future = await session.call(name=self._tool.name, kwargs=kwargs)
+                cancellation_token.link_future(result_future)
             result = await result_future
 
             if result.isError:
@@ -102,9 +103,8 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                     f"Tool '{tool_name}' not found, available tools: {', '.join([t.name for t in tools_response.tools])}"
                 )
 
-        actor = McpSessionActor(server_params)
-        await actor.initialize()
-        return cls(actor=actor, tool=matching_tool)
+        session = McpSession(server_params=server_params)
+        return cls(session=session, tool=matching_tool)
 
     def _format_errors(self, error: Exception) -> str:
         """Recursively format errors into a string."""
@@ -118,7 +118,3 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         else:
             error_message += f"{str(error)}\n"
         return error_message
-
-    async def close(self) -> None:
-        """Close the adapter and release resources."""
-        await self._actor.close()
