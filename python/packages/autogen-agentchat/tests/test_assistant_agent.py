@@ -1154,7 +1154,7 @@ async def test_structured_message_factory_serialization() -> None:
         name="structured_agent",
         model_client=model_client,
         output_content_type=AgentResponse,
-        format_string="{result} - {status}",
+        output_content_type_format="{result} - {status}",
     )
 
     dumped = agent.dump_component()
@@ -1189,7 +1189,7 @@ async def test_structured_message_format_string() -> None:
         name="formatted_agent",
         model_client=model_client,
         output_content_type=AgentResponse,
-        format_string="{field1} - {field2}",
+        output_content_type_format="{field1} - {field2}",
     )
 
     result = await agent.run()

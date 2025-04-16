@@ -185,7 +185,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             This will be used with the model client to generate structured output.
             If this is set, the agent will respond with a :class:`~autogen_agentchat.messages.StructuredMessage` instead of a :class:`~autogen_agentchat.messages.TextMessage`
             in the final response, unless `reflect_on_tool_use` is `False` and a tool call is made.
-        format_string (str | None, optional): The format string used to create the content for a :class:`~autogen_agentchat.messages.StructuredMessage` response.
+        output_content_type_format (str | None, optional): The format string used for the content of a :class:`~autogen_agentchat.messages.StructuredMessage` response.
         tool_call_summary_format (str, optional): The format string used to create the content for a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` response.
             The format string is used to format the tool call summary for every tool call result.
             Defaults to "{result}".
@@ -638,7 +638,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use: bool | None = None,
         tool_call_summary_format: str = "{result}",
         output_content_type: type[BaseModel] | None = None,
-        format_string: str | None = None,
+        output_content_type_format: str | None = None,
         memory: Sequence[Memory] | None = None,
         metadata: Dict[str, str] | None = None,
     ):
@@ -647,11 +647,11 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         self._model_client = model_client
         self._model_client_stream = model_client_stream
         self._output_content_type: type[BaseModel] | None = output_content_type
-        self._format_string = format_string
+        self._output_content_type_format = output_content_type_format
         self._structured_message_factory: StructuredMessageFactory | None = None
         if output_content_type is not None:
             self._structured_message_factory = StructuredMessageFactory(
-                input_model=output_content_type, format_string=format_string
+                input_model=output_content_type, format_string=output_content_type_format
             )
 
         self._memory = None
@@ -782,7 +782,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use = self._reflect_on_tool_use
         tool_call_summary_format = self._tool_call_summary_format
         output_content_type = self._output_content_type
-        format_string = self._format_string
+        format_string = self._output_content_type_format
 
         # STEP 1: Add new user/handoff messages to the model context
         await self._add_messages_to_context(
@@ -1337,6 +1337,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             reflect_on_tool_use=config.reflect_on_tool_use,
             tool_call_summary_format=config.tool_call_summary_format,
             output_content_type=output_content_type,
-            format_string=format_string,
+            output_content_type_format=format_string,
             metadata=config.metadata,
         )

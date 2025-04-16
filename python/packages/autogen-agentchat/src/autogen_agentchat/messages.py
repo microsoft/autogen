@@ -184,6 +184,7 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
         print(message.to_text())  # {"text": "Hello", "number": 42}
 
     .. code-block:: python
+
         from pydantic import BaseModel
         from autogen_agentchat.messages import StructuredMessage
 
@@ -200,6 +201,7 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
         )
 
         print(message.to_text())  # Hello, agent 42!
+
     """
 
     content: StructuredContentType
@@ -239,7 +241,7 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
 
 
 class StructureMessageConfig(BaseModel):
-    """The declarative configuration for the structured input."""
+    """The declarative configuration for the structured output."""
 
     json_schema: Dict[str, Any]
     format_string: Optional[str] = None
@@ -247,7 +249,8 @@ class StructureMessageConfig(BaseModel):
 
 
 class StructuredMessageFactory(ComponentBase[StructureMessageConfig], Component[StructureMessageConfig]):
-    """
+    """:meta private:
+
     A component that creates structured chat messages from Pydantic models or JSON schemas.
 
     This component helps you generate strongly-typed chat messages with content defined using a Pydantic model.
@@ -607,6 +610,7 @@ __all__ = [
     "BaseTextChatMessage",
     "StructuredContentType",
     "StructuredMessage",
+    "StructuredMessageFactory",
     "HandoffMessage",
     "MultiModalMessage",
     "StopMessage",
