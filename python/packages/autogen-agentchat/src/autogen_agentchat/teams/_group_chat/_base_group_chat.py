@@ -526,6 +526,11 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 # Indicate that the team is no longer running.
                 self._is_running = False
 
+                # Close participants.
+                for participant in self._participants:
+                    if hasattr(participant, "close"):
+                        await participant.close()
+
     async def reset(self) -> None:
         """Reset the team and its participants to their initial state.
 

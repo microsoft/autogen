@@ -1251,9 +1251,18 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 ),
             )
 
+    async def close(self) -> None:
+        """Close the assistant agent and release any resources."""
+        for tool in self._tools:
+            if hasattr(tool, "close"):
+                await tool.close()
+
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""
         await self._model_context.clear()
+        for tool in self._tools:
+            if hasattr(tool, "initialize"):
+                await tool.initialize()
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the current state of the assistant agent."""

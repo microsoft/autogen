@@ -28,7 +28,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
     def __init__(self, session: McpSession, tool: Tool) -> None:
         self._tool = tool
         self._session = session
-        session.initialize()
+        self._session.initialize()
 
         # Extract name and description
         name = tool.name
@@ -77,6 +77,10 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         except Exception as e:
             error_message = self._format_errors(e)
             raise Exception(error_message) from e
+
+    async def initialize(self) -> None:
+        """Initialize the MCP tool adapter."""
+        self._session.initialize()
 
     async def close(self) -> None:
         """Close the MCP session."""
