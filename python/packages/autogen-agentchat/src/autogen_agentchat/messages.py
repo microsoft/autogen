@@ -8,15 +8,15 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Literal, Mapping, Optional, Type, TypeVar
 
 from autogen_core import Component, ComponentBase, FunctionCall, Image
-from autogen_core.memory import MemoryContent
-from autogen_core.utils import schema_to_pydantic_model
 from autogen_core.code_executor import CodeBlock, CodeResult
+from autogen_core.memory import MemoryContent
 from autogen_core.models import (
     FunctionExecutionResult,
     LLMMessage,
     RequestUsage,
     UserMessage,
 )
+from autogen_core.utils import schema_to_pydantic_model
 from pydantic import BaseModel, Field, computed_field
 from typing_extensions import Annotated, Self
 
