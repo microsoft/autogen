@@ -229,11 +229,14 @@ class _JSONSchemaToPydantic:
                 item_type = self.get_ref(item_schema["$ref"].split("/")[-1])
             else:
                 item_type_name = item_schema.get("type")
-                if item_type_name not in TYPE_MAPPING:
+                if item_type_name is None:
+                    item_type = List[str]
+                elif item_type_name not in TYPE_MAPPING:
                     raise UnsupportedKeywordError(
                         f"Unsupported or missing item type `{item_type_name}` for array field `{key}` in `{model_name}`"
                     )
-                item_type = TYPE_MAPPING[item_type_name]
+                else:
+                    item_type = TYPE_MAPPING[item_type_name]
 
             base_type = conlist(item_type, **constraints) if constraints else List[item_type]  # type: ignore[valid-type]
 
