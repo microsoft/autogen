@@ -1441,3 +1441,87 @@ async def test_declarative_groupchats_with_config(runtime: AgentRuntime | None) 
     assert selector.dump_component().provider == "autogen_agentchat.teams.SelectorGroupChat"
     assert swarm.dump_component().provider == "autogen_agentchat.teams.Swarm"
     assert magentic.dump_component().provider == "autogen_agentchat.teams.MagenticOneGroupChat"
+
+
+class _StructuredContent(BaseModel):
+    message: str
+
+
+class _StructuredAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str) -> None:
+        super().__init__(name, description)
+        self._message = _StructuredContent(message="Structured hello")
+
+    @property
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+        return (StructuredMessage[_StructuredContent],)
+
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+        return Response(
+            chat_message=StructuredMessage[_StructuredContent](
+                source=self.name,
+                content=self._message,
+                format_string="Structured says: {message}",
+            )
+        )
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        pass
+
+
+@pytest.mark.asyncio
+async def test_message_type_auto_registration(runtime: AgentRuntime | None) -> None:
+    agent1 = _StructuredAgent("structured", description="emits structured messages")
+    agent2 = _EchoAgent("echo", description="echoes input")
+
+    team = RoundRobinGroupChat(participants=[agent1, agent2], max_turns=2, runtime=runtime)
+
+    result = await team.run(task="Say something structured")
+
+    assert len(result.messages) == 3
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], StructuredMessage)
+    assert isinstance(result.messages[2], TextMessage)
+    assert result.messages[1].to_text() == "Structured says: Structured hello"
+
+
+@pytest.mark.asyncio
+async def test_structured_message_state_roundtrip(runtime: AgentRuntime | None) -> None:
+    agent1 = _StructuredAgent("structured", description="sends structured")
+    agent2 = _EchoAgent("echo", description="echoes")
+
+    team1 = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=MaxMessageTermination(2),
+        runtime=runtime,
+    )
+
+    await team1.run(task="Say something structured")
+    state1 = await team1.save_state()
+
+    # Recreate team without needing custom_message_types
+    agent3 = _StructuredAgent("structured", description="sends structured")
+    agent4 = _EchoAgent("echo", description="echoes")
+    team2 = RoundRobinGroupChat(
+        participants=[agent3, agent4],
+        termination_condition=MaxMessageTermination(2),
+        runtime=runtime,
+    )
+
+    await team2.load_state(state1)
+    state2 = await team2.save_state()
+
+    # Assert full state equality
+    assert state1 == state2
+
+    # Assert message thread content match
+    manager1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team1._group_chat_manager_name}_{team1._team_id}", team1._team_id),  # pyright: ignore
+        RoundRobinGroupChatManager,
+    )
+    manager2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
+        RoundRobinGroupChatManager,
+    )
+
+    assert manager1._message_thread == manager2._message_thread  # pyright: ignore

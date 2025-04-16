@@ -21,6 +21,7 @@ from ...messages import (
     MessageFactory,
     ModelClientStreamingChunkEvent,
     StopMessage,
+    StructuredMessage,
     TextMessage,
 )
 from ...state import TeamState
@@ -68,6 +69,15 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         if custom_message_types is not None:
             for message_type in custom_message_types:
                 self._message_factory.register(message_type)
+
+        for agent in participants:
+            for message_type in agent.produced_message_types:
+                try:
+                    if issubclass(message_type, StructuredMessage):
+                        self._message_factory.register(message_type)  # type: ignore[reportUnknownArgumentType]
+                except TypeError:
+                    # Not a class or not a valid subclassable type (skip)
+                    pass
 
         # The team ID is a UUID that is used to identify the team and its participants
         # in the agent runtime. It is used to create unique topic types for each participant.
