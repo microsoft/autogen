@@ -138,7 +138,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
 class McpSessionConfig(BaseModel):
     """Configuration for the MCP session actor."""
     session_id: int = 0
-    server_params: McpServerParams|None = None
+    server_params: McpServerParams
 
 
 class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
@@ -148,6 +148,7 @@ class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
     It is used internally by the MCP tool adapters.
 
     Args:
+        session_id (int, optional): Session ID. If 0 or do not insert, a new session will be created.
         server_params (McpServerParams): Parameters for the MCP server connection.
     """
 
@@ -155,19 +156,17 @@ class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
     component_config_schema = McpSessionConfig
     component_provider_override = "autogen_ext.tools.mcp.McpSession"
 
-    __sessions:Dict[int, McpSessionActor|None] = {}  # singleton instance
+    __sessions:Dict[int, McpSessionActor] = {}  # singleton instance
 
-    def __init__(self, session_id:int = 0, server_params: McpServerParams|None = None) -> None:
+    def __init__(self, server_params: McpServerParams, session_id:int = 0) -> None:
         """Initialize the MCP session.
         Args:
             session_id (int): Session ID. If 0, a new session will be created.
             server_params (McpServerParams): Parameters for the MCP server connection.
         """
-        self._server_params: McpServerParams|None = server_params
         if server_params is None:
-            self._session_id = 0
-            self.__sessions[self._session_id] = None
-            return
+            raise ValueError("Server params cannot be None")
+        self._server_params: McpServerParams = server_params
         if session_id == 0:
             self._session_id = max(self.__sessions.keys(), default=0) + 1
             self.__sessions[self._session_id] = McpSessionActor(server_params)
