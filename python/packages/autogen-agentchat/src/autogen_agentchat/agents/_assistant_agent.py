@@ -185,7 +185,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             This will be used with the model client to generate structured output.
             If this is set, the agent will respond with a :class:`~autogen_agentchat.messages.StructuredMessage` instead of a :class:`~autogen_agentchat.messages.TextMessage`
             in the final response, unless `reflect_on_tool_use` is `False` and a tool call is made.
-        output_content_type_format (str | None, optional): The format string used for the content of a :class:`~autogen_agentchat.messages.StructuredMessage` response.
+        output_content_type_format (str | None, optional): (Experimental) The format string used for the content of a :class:`~autogen_agentchat.messages.StructuredMessage` response.
         tool_call_summary_format (str, optional): The format string used to create the content for a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` response.
             The format string is used to format the tool call summary for every tool call result.
             Defaults to "{result}".

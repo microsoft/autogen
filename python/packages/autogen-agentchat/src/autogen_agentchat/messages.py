@@ -209,13 +209,15 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
     `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_."""
 
     format_string: Optional[str] = None
-    """
-    An optional format string to render the content into a human-readable format.
+    """(Experimental) An optional format string to render the content into a human-readable format.
     The format string can use the fields of the content model as placeholders.
     For example, if the content model has a field `name`, you can use
     `{name}` in the format string to include the value of that field.
     The format string is used in the :meth:`to_text` method to create a
-    human-readable representation of the message."""
+    human-readable representation of the message.
+    
+    This setting is experimental and may change in the future.
+    """
 
     @computed_field
     def type(self) -> str:
