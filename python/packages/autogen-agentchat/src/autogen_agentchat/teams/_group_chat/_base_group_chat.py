@@ -55,6 +55,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
+        emit_team_events: bool = False,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -122,6 +123,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
         # Flag to track if the group chat is running.
         self._is_running = False
+
+        # Flag to track if the team events should be emitted.
+        self._emit_team_events = emit_team_events
 
     @abstractmethod
     def _create_group_chat_manager_factory(

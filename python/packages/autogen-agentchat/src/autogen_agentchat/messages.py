@@ -519,6 +519,18 @@ class ThoughtEvent(BaseAgentEvent):
         return self.content
 
 
+class SelectSpeakerEvent(BaseAgentEvent):
+    """An event signaling the selection of speakers for a conversation."""
+
+    content: List[str]
+    """The names of the selected speakers."""
+
+    type: Literal["SelectSpeakerEvent"] = "SelectSpeakerEvent"
+
+    def to_text(self) -> str:
+        return str(self.content)
+
+
 class MessageFactory:
     """:meta private:
 
@@ -541,6 +553,7 @@ class MessageFactory:
         self._message_types[UserInputRequestedEvent.__name__] = UserInputRequestedEvent
         self._message_types[ModelClientStreamingChunkEvent.__name__] = ModelClientStreamingChunkEvent
         self._message_types[ThoughtEvent.__name__] = ThoughtEvent
+        self._message_types[SelectSpeakerEvent.__name__] = SelectSpeakerEvent
         self._message_types[CodeGenerationEvent.__name__] = CodeGenerationEvent
         self._message_types[CodeExecutionEvent.__name__] = CodeExecutionEvent
 
@@ -596,6 +609,7 @@ AgentEvent = Annotated[
     | UserInputRequestedEvent
     | ModelClientStreamingChunkEvent
     | ThoughtEvent
+    | SelectSpeakerEvent
     | CodeGenerationEvent
     | CodeExecutionEvent,
     Field(discriminator="type"),
@@ -623,6 +637,7 @@ __all__ = [
     "UserInputRequestedEvent",
     "ModelClientStreamingChunkEvent",
     "ThoughtEvent",
+    "SelectSpeakerEvent",
     "MessageFactory",
     "CodeGenerationEvent",
     "CodeExecutionEvent",
