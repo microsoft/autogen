@@ -1,6 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any, List, Sequence
 
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
@@ -118,15 +118,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             self._message_thread.extend(message.messages)
 
             # Check termination condition after processing all messages
-            if self._termination_condition is not None:
-                stop_message = await self._termination_condition(message.messages)
-                if stop_message is not None:
-                    # Reset the termination condition.
-                    await self._termination_condition.reset()
-                    # Signal termination to the caller of the team.
-                    await self._signal_termination(stop_message)
-                    # Stop the group chat.
-                    return
+            if await self._apply_termination_condition(message.messages):
+                # Stop the group chat.
+                return
 
         # Select a speaker to start/continue the conversation
         speaker_name_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
@@ -158,34 +152,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             delta.append(message.agent_response.chat_message)
 
             # Check if the conversation should be terminated.
-            if self._termination_condition is not None:
-                stop_message = await self._termination_condition(delta)
-                if stop_message is not None:
-                    # Reset the termination conditions and turn count.
-                    await self._termination_condition.reset()
-                    self._current_turn = 0
-                    # Signal termination to the caller of the team.
-                    await self._signal_termination(stop_message)
-                    # Stop the group chat.
-                    return
-
-            # Increment the turn count.
-            self._current_turn += 1
-            # Check if the maximum number of turns has been reached.
-            if self._max_turns is not None:
-                if self._current_turn >= self._max_turns:
-                    stop_message = StopMessage(
-                        content=f"Maximum number of turns {self._max_turns} reached.",
-                        source=self._name,
-                    )
-                    # Reset the termination conditions and turn count.
-                    if self._termination_condition is not None:
-                        await self._termination_condition.reset()
-                    self._current_turn = 0
-                    # Signal termination to the caller of the team.
-                    await self._signal_termination(stop_message)
-                    # Stop the group chat.
-                    return
+            if await self._apply_termination_condition(delta, increment_turn_count=True):
+                # Stop the group chat.
+                return
 
             # Select a speaker to continue the conversation.
             speaker_name_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
@@ -209,6 +178,41 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             await self._signal_termination_with_error(error)
             # Raise the exception to the runtime.
             raise
+
+    async def _apply_termination_condition(
+        self, delta: Sequence[BaseAgentEvent | BaseChatMessage], increment_turn_count: bool = False
+    ) -> bool:
+        """Apply the termination condition to the delta and return True if the conversation should be terminated.
+        It also resets the termination condition and turn count, and signals termination to the caller of the team."""
+        if self._termination_condition is not None:
+            stop_message = await self._termination_condition(delta)
+            if stop_message is not None:
+                # Reset the termination conditions and turn count.
+                await self._termination_condition.reset()
+                self._current_turn = 0
+                # Signal termination to the caller of the team.
+                await self._signal_termination(stop_message)
+                # Stop the group chat.
+                return True
+        if increment_turn_count:
+            # Increment the turn count.
+            self._current_turn += 1
+        # Check if the maximum number of turns has been reached.
+        if self._max_turns is not None:
+            if self._current_turn >= self._max_turns:
+                stop_message = StopMessage(
+                    content=f"Maximum number of turns {self._max_turns} reached.",
+                    source=self._name,
+                )
+                # Reset the termination conditions and turn count.
+                if self._termination_condition is not None:
+                    await self._termination_condition.reset()
+                self._current_turn = 0
+                # Signal termination to the caller of the team.
+                await self._signal_termination(stop_message)
+                # Stop the group chat.
+                return True
+        return False
 
     async def _log_speaker_selection(self, speaker_name: str) -> None:
         """Log the selected speaker to the output message queue."""
