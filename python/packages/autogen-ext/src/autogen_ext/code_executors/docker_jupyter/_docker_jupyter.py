@@ -27,7 +27,7 @@ class DockerJupyterCodeExecutorConfig(BaseModel):
     jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo]
     kernel_name: str = "python3"
     timeout: int = 60
-    output_dir: Union[Path, str] = "."
+    output_dir: Union[Path, str] = None
     class Config:
         arbitrary_types_allowed = True  
     
@@ -127,7 +127,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
             kernel_name (str): The kernel name to use. Make sure it is installed.
                 By default, it is "python3".
             timeout (int): The timeout for code execution, by default 60.
-            output_dir (str): The directory to save output files, by default ".".
+            output_dir (str): The directory to save output files, by default None.
         """
     component_config_schema = DockerJupyterCodeExecutorConfig
     component_provider_override = "autogen_ext.code_executors.docker_jupyter.DockerJupyterCodeExecutor"
@@ -136,38 +136,39 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo],
         kernel_name: str = "python3",
         timeout: int = 60,
-        output_dir: Union[Path, str] = Path("."),
+        output_dir: Union[Path, str] = None,
     ):
-       
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
-
-        if isinstance(output_dir, str):
-            output_dir = Path(output_dir)
-
-        if not output_dir.exists():
-            raise ValueError(f"Output directory {output_dir} does not exist.")
+        
         if isinstance(jupyter_server, JupyterConnectable):
             self._connection_info = jupyter_server.connection_info
+            self._jupyter_server = jupyter_server
         elif isinstance(jupyter_server, JupyterConnectionInfo):
             self._connection_info = jupyter_server
+            self._jupyter_server = jupyter_server
         else:
             raise ValueError("jupyter_server must be a JupyterConnectable or JupyterConnectionInfo.")
-        self._jupyter_client = JupyterClient(self._connection_info)
         
+        self._output_dir = output_dir or getattr(self._jupyter_server, '_bind_dir', None) or Path('.')
+        self._output_dir = Path(self._output_dir)
+        
+        if not self._output_dir.exists():
+            raise ValueError(f"Output directory {self._output_dir} does not exist.")
+        
+        self._jupyter_client = JupyterClient(self._connection_info)
         self._kernel_name = kernel_name
+        self._timeout = timeout
+        
         available_kernels = self._jupyter_client.list_kernel_specs()
         if self._kernel_name not in available_kernels["kernelspecs"]:
             raise ValueError(f"Kernel {self._kernel_name} is not installed.")
-        self._jupyter_kernel_client = None
+        
         self._async_jupyter_kernel_client = None
-        self._timeout = timeout
-        self._output_dir = output_dir
-
+        self._kernel_id = self._jupyter_client.start_kernel(self._kernel_name)
     async def _ensure_async_kernel_client(self) -> JupyterKernelClient:
         """Ensure that an async kernel client exists and return it."""
         if self._async_jupyter_kernel_client is None:
-            self._kernel_id = await self._jupyter_client.start_kernel(self._kernel_name)
             self._async_jupyter_kernel_client = await self._jupyter_client.get_kernel_client(self._kernel_id)
         return self._async_jupyter_kernel_client
 
@@ -182,7 +183,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
             code_blocks (List[CodeBlock]): A list of code blocks to execute.
 
         Returns:
-            IPythonCodeResult: The result of the code execution.
+            DockerJupyterCodeResult: The result of the code execution.
         """
         kernel_client = await self._ensure_async_kernel_client()
         # Wait for kernel to be ready using async client
@@ -226,7 +227,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
     async def restart(self) -> None:
         """(Experimental) Restart a new session."""
         # Use async client to restart kernel
-        await self._jupyter_client.restart_kernel_async(self._kernel_id)
+        await self._jupyter_client.restart_kernel(self._kernel_id)
         # Reset the clients to force recreation
         if self._async_jupyter_kernel_client is not None:
             await self._async_jupyter_kernel_client.stop()
@@ -235,7 +236,6 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
     def _save_image(self, image_data_base64: str) -> str:
         """Save image data to a file."""
         image_data = base64.b64decode(image_data_base64)
-        # Randomly generate a filename.
         filename = f"{uuid.uuid4().hex}.png"
         path = os.path.join(self._output_dir, filename)
         with open(path, "wb") as f:
@@ -244,7 +244,6 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
     def _save_html(self, html_data: str) -> str:
         """Save html data to a file."""
-        # Randomly generate a filename.
         filename = f"{uuid.uuid4().hex}.html"
         path = os.path.join(self._output_dir, filename)
         with open(path, "w") as f:
@@ -253,15 +252,10 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
     async def stop(self) -> None:
         """Stop the kernel."""
-        # Clean up async kernel client if it exists
+        await self._jupyter_client.delete_kernel(self._kernel_id)
         if self._async_jupyter_kernel_client is not None:
             await self._async_jupyter_kernel_client.stop()
             self._async_jupyter_kernel_client = None
-            
-        # Delete kernel using async client
-        await self._jupyter_client.delete_kernel(self._kernel_id)
-        
-        # Close the async session
         await self._jupyter_client.close()
         
     async def __aenter__(self) -> Self:
