@@ -135,20 +135,15 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         speaker_name = await speaker_name_future
         if speaker_name not in self._participant_name_to_topic_type:
             raise RuntimeError(f"Speaker {speaker_name} not found in participant names.")
+        await self._log_speaker_selection(speaker_name)
+
+        # Send the message to the next speaker
         speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
         await self.publish_message(
             GroupChatRequestPublish(),
             topic_id=DefaultTopicId(type=speaker_topic_type),
             cancellation_token=ctx.cancellation_token,
         )
-        # Send the message to the next speaker
-        if self._emit_team_events:
-            select_msg = SelectSpeakerEvent(content=[speaker_name], source=self._name)
-            await self.publish_message(
-                GroupChatMessage(message=select_msg),
-                topic_id=DefaultTopicId(type=self._output_topic_type),
-            )
-            await self._output_message_queue.put(select_msg)
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
@@ -199,26 +194,31 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             speaker_name = await speaker_name_future
             if speaker_name not in self._participant_name_to_topic_type:
                 raise RuntimeError(f"Speaker {speaker_name} not found in participant names.")
+            await self._log_speaker_selection(speaker_name)
+
+            # Send the message to the next speakers
             speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
             await self.publish_message(
                 GroupChatRequestPublish(),
                 topic_id=DefaultTopicId(type=speaker_topic_type),
                 cancellation_token=ctx.cancellation_token,
             )
-            # Send the message to the next speakers
-            if self._emit_team_events:
-                select_msg = SelectSpeakerEvent(content=[speaker_name], source=self._name)
-                await self.publish_message(
-                    GroupChatMessage(message=select_msg),
-                    topic_id=DefaultTopicId(type=self._output_topic_type),
-                )
-                await self._output_message_queue.put(select_msg)
         except Exception as e:
             # Handle the exception and signal termination with an error.
             error = SerializableException.from_exception(e)
             await self._signal_termination_with_error(error)
             # Raise the exception to the runtime.
             raise
+
+    async def _log_speaker_selection(self, speaker_name: str) -> None:
+        """Log the selected speaker to the output message queue."""
+        select_msg = SelectSpeakerEvent(content=[speaker_name], source=self._name)
+        if self._emit_team_events:
+            await self.publish_message(
+                GroupChatMessage(message=select_msg),
+                topic_id=DefaultTopicId(type=self._output_topic_type),
+            )
+            await self._output_message_queue.put(select_msg)
 
     async def _signal_termination(self, message: StopMessage) -> None:
         termination_event = GroupChatTermination(message=message)
