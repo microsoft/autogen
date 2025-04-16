@@ -28,7 +28,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
-        emit_team_events: bool = False,
+        emit_team_events: bool,
     ) -> None:
         super().__init__(
             name,
@@ -97,7 +97,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
             Without a termination condition, the group chat will run indefinitely.
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
-        emit_team_events (bool, optinal): Whether to emit team events. Defaults to False.
+        emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
 
     Raises:
         ValueError: If no participants are provided or if participant names are not unique.

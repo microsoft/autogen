@@ -69,7 +69,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         final_answer_prompt: str,
         output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
-        emit_team_events: bool = False,
+        emit_team_events: bool,
     ):
         super().__init__(
             name,

@@ -55,7 +55,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         selector_func: Optional[SelectorFuncType],
         max_selector_attempts: int,
         candidate_func: Optional[CandidateFuncType],
-        emit_team_events: bool = False,
+        emit_team_events: bool,
     ) -> None:
         super().__init__(
             name,
@@ -310,7 +310,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             A custom function that takes the conversation history and returns a filtered list of candidates for the next speaker
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
             This function is only used if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
-        emit_team_events (bool, optional): Whether to emit team events. Defaults to False.
+        emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
 
     Raises:
         ValueError: If the number of participants is less than two or if the selector prompt is invalid.
