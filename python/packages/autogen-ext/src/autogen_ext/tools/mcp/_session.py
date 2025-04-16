@@ -73,10 +73,10 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         res = await fut
         return res
 
-    async def _close(self) -> None:
+    async def close(self) -> None:
         if not self._active or self._actor_task is None:
             return
-        self._shutdown_future: asyncio.Future[Any] = asyncio.Future()
+        self._shutdown_future = asyncio.Future()
         await self._command_queue.put({"type": "shutdown", "future": self._shutdown_future})
         await self._shutdown_future
         await self._actor_task
@@ -103,7 +103,6 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         finally:
             self._active = False
             self._actor_task = None
-            self._shutdown_future = None
 
     def _sync_shutdown(self) -> None:
         if not self._active or self._actor_task is None:
@@ -118,9 +117,9 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
             return
 
         if loop.is_running():
-            loop.create_task(self._close())
+            loop.create_task(self.close())
         else:
-            loop.run_until_complete(self._close())
+            loop.run_until_complete(self.close())
 
     def _to_config(self) -> McpSessionActorConfig:
         """
@@ -147,6 +146,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
 
 class McpSessionConfig(BaseModel):
     """Configuration for the MCP session actor."""
+
     session_id: int = 0
     server_params: McpServerParams
 
@@ -166,17 +166,15 @@ class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
     component_config_schema = McpSessionConfig
     component_provider_override = "autogen_ext.tools.mcp.McpSession"
 
-    __sessions:Dict[int, McpSessionActor] = {}  # singleton instance
-    __session_ref_count:Dict[int, int] = {}  # reference count for each session
+    __sessions: Dict[int, McpSessionActor] = {}  # singleton instance
+    __session_ref_count: Dict[int, int] = {}  # reference count for each session
 
-    def __init__(self, server_params: McpServerParams, session_id:int = 0) -> None:
+    def __init__(self, server_params: McpServerParams, session_id: int = 0) -> None:
         """Initialize the MCP session.
         Args:
             session_id (int): Session ID. If 0, a new session will be created.
             server_params (McpServerParams): Parameters for the MCP server connection.
         """
-        if server_params is None:
-            raise ValueError("Server params cannot be None")
         self._server_params: McpServerParams = server_params
         if session_id == 0:
             self._session_id = max(self.__sessions.keys(), default=0) + 1
@@ -208,7 +206,7 @@ class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
             raise ValueError(f"Session ID {self._session_id} not found")
         self.__session_ref_count[self._session_id] -= 1
         if self.__session_ref_count[self._session_id] == 0:
-            await self.__sessions[self._session_id]._close()
+            await self.__sessions[self._session_id].close()
             del self.__sessions[self._session_id]
             del self.__session_ref_count[self._session_id]
 
@@ -227,7 +225,7 @@ class McpSession(ComponentBase[BaseModel], Component[McpSessionConfig]):
 
     def _to_config(self):
         return McpSessionConfig(session_id=self._session_id, server_params=self._server_params)
-    
+
     @classmethod
     def _from_config(cls, config: McpSessionConfig) -> Self:
         return cls(session_id=config.session_id, server_params=config.server_params)
