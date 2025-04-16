@@ -8,7 +8,7 @@ from loguru import logger
 from sqlalchemy import exc, inspect, text
 from sqlmodel import Session, SQLModel, and_, create_engine, select
 
-from ..datamodel import Response, Team
+from ..datamodel import BaseDBModel, Response, Team
 from ..teammanager import TeamManager
 from .schema_manager import SchemaManager
 
@@ -94,7 +94,7 @@ class DatabaseManager:
         finally:
             self._init_lock.release()
 
-    def reset_db(self, recreate_tables: bool = True):
+    def reset_db(self, recreate_tables: bool = True) -> Response:
         """
         Reset the database by dropping all tables and optionally recreating them.
 
@@ -151,7 +151,7 @@ class DatabaseManager:
                 self._init_lock.release()
                 logger.info("Database reset lock released")
 
-    def upsert(self, model: SQLModel, return_json: bool = True) -> Response:
+    def upsert(self, model: BaseDBModel, return_json: bool = True) -> Response:
         """Create or update an entity
 
         Args:
@@ -199,7 +199,7 @@ class DatabaseManager:
 
     def get(
         self,
-        model_class: SQLModel,
+        model_class: type[BaseDBModel],
         filters: dict | None = None,
         return_json: bool = False,
         order: str = "desc",
@@ -211,7 +211,7 @@ class DatabaseManager:
             status_message = ""
 
             try:
-                statement = select(model_class)
+                statement = select(model_class)  # type: ignore
                 if filters:
                     conditions = [getattr(model_class, col) == value for col, value in filters.items()]
                     statement = statement.where(and_(*conditions))
@@ -231,7 +231,7 @@ class DatabaseManager:
 
             return Response(message=status_message, status=status, data=result)
 
-    def delete(self, model_class: SQLModel, filters: dict = None) -> Response:
+    def delete(self, model_class: type[BaseDBModel], filters: dict | None = None) -> Response:
         """Delete an entity"""
         status_message = ""
         status = True
@@ -239,8 +239,8 @@ class DatabaseManager:
         with Session(self.engine) as session:
             try:
                 if "sqlite" in str(self.engine.url):
-                    session.exec(text("PRAGMA foreign_keys=ON"))
-                statement = select(model_class)
+                    session.exec(text("PRAGMA foreign_keys=ON"))  # type: ignore
+                statement = select(model_class)  # type: ignore
                 if filters:
                     conditions = [getattr(model_class, col) == value for col, value in filters.items()]
                     statement = statement.where(and_(*conditions))
@@ -326,7 +326,7 @@ class DatabaseManager:
                         {
                             "status": result.status,
                             "message": result.message,
-                            "id": result.data.get("id") if result.data else None,
+                            "id": result.data.get("id") if result.data and result.data is not None else None,
                         }
                     )
 
@@ -342,7 +342,8 @@ class DatabaseManager:
 
     async def _check_team_exists(self, config: dict, user_id: str) -> Optional[Team]:
         """Check if identical team config already exists"""
-        teams = self.get(Team, {"user_id": user_id}).data
+        response = self.get(Team, {"user_id": user_id})
+        teams = response.data if response.status and response.data is not None else []
 
         for team in teams:
             if team.component == config:

@@ -42,6 +42,7 @@ export interface FunctionExecutionResult {
 export interface BaseMessageConfig {
   source: string;
   models_usage?: RequestUsage;
+  metadata?: Record<string, string>;
 }
 
 export interface TextMessageConfig extends BaseMessageConfig {
@@ -373,7 +374,7 @@ export interface Run {
   created_at: string;
   updated_at?: string;
   status: RunStatus;
-  task: AgentMessageConfig;
+  task: AgentMessageConfig[];
   team_result: TeamResult | null;
   messages: Message[];
   error_message?: string;

@@ -381,3 +381,12 @@ div#gatsby-focus-wrapper {
   height: 100%;
   /* border: 1px solid green; */
 }
+
+.zero-padding-upload.ant-upload,
+.zero-padding-upload .ant-upload,
+.zero-padding-upload .ant-upload-select,
+.zero-padding-upload .ant-btn {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+}

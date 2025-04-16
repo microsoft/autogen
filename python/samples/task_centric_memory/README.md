@@ -41,7 +41,7 @@ or else modify `utils/client.py` as appropriate for the model you choose.
 ## Running the Samples
 
 The following samples are listed in order of increasing complexity.
-Execute the corresponding commands from this (autogen_ext/task_centric_memory) directory.
+Execute the corresponding commands from the `python/samples/task_centric_memory` directory.
 
 
 ### Making AssistantAgent Teachable
