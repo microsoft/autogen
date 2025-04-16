@@ -27,7 +27,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
-        emit_team_events: bool,
+        emit_team_events: bool = False,
     ) -> None:
         super().__init__(
             name,

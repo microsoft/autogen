@@ -55,7 +55,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         selector_func: Optional[SelectorFuncType],
         max_selector_attempts: int,
         candidate_func: Optional[CandidateFuncType],
-        emit_team_events: bool = True,
+        emit_team_events: bool = False,
     ) -> None:
         super().__init__(
             name,
