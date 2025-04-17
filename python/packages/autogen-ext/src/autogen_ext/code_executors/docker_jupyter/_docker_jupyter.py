@@ -50,6 +50,13 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
         pip install "autogen-ext[docker-jupyter-executor]"
 
+    Args:
+        jupyter_server (Union[JupyterConnectable, JupyterConnectionInfo]): The Jupyter server to use.
+        kernel_name (str): The kernel name to use. Make sure it is installed.
+            By default, it is "python3".
+        timeout (int): The timeout for code execution, by default 60.
+        output_dir (str): The directory to save output files, by default None.
+
     Example of using it directly:
 
     .. code-block:: python
@@ -70,7 +77,9 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         asyncio.run(main())
 
     Example of using it with your own jupyter image:
+
     .. code-block:: python
+
         import asyncio
         from autogen_core.code_executor import CodeBlock
         from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
@@ -121,7 +130,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
 
         async def main() -> None:
-            async with  DockerJupyterServer() as jupyter_server:
+            async with DockerJupyterServer() as jupyter_server:
                 async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
                     code_executor_agent = CodeExecutorAgent("code_executor", code_executor=executor)
                     task = TextMessage(
@@ -137,12 +146,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
 
         asyncio.run(main())
-    Args:
-        jupyter_server (Union[JupyterConnectable, JupyterConnectionInfo]): The Jupyter server to use.
-        kernel_name (str): The kernel name to use. Make sure it is installed.
-            By default, it is "python3".
-        timeout (int): The timeout for code execution, by default 60.
-        output_dir (str): The directory to save output files, by default None.
+
     """
 
     component_config_schema = DockerJupyterCodeExecutorConfig
