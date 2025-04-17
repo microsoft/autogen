@@ -116,6 +116,56 @@ async def mcp_server_tools(
 
             asyncio.run(main())
 
+        **Sharing an MCP client session across multiple tools:**
+
+        You can create a single MCP client session and share it across multiple tools.
+        This is sometimes required when the server maintains a session state
+        (e.g., a browser state) that should be reused for multiple requests.
+
+        The following example show how to create a single MCP client session
+        to a local Playwright server and use it with an agent.
+
+        .. code-block:: python
+
+            import asyncio
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.conditions import TextMentionTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_agentchat.ui import Console
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.tools.mcp import StdioServerParams, create_mcp_server_session, mcp_server_tools
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o", parallel_tool_calls=False)  # type: ignore
+                params = StdioServerParams(
+                    command="npx",
+                    args=["@playwright/mcp@latest"],
+                    read_timeout_seconds=60,
+                )
+                async with create_mcp_server_session(params) as session:
+                    await session.initialize()
+                    tools = await mcp_server_tools(server_params=params, session=session)
+                    print(f"Tools: {[tool.name for tool in tools]}")
+
+                    agent = AssistantAgent(
+                        name="Assistant",
+                        model_client=model_client,
+                        tools=tools,  # type: ignore
+                    )
+
+                    termination = TextMentionTermination("TERMINATE")
+                    team = RoundRobinGroupChat([agent], termination_condition=termination)
+                    await Console(
+                        team.run_stream(
+                            task="Go to https://ekzhu.com/, visit the first link in the page, then tell me about the linked page."
+                        )
+                    )
+
+
+            asyncio.run(main())
+
 
         **Remote MCP service over SSE example:**
 

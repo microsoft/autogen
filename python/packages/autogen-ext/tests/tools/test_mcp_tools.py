@@ -327,8 +327,6 @@ async def test_sse_adapter_from_server_params(
     )
 
 
-# TODO: why is this test not working in CI?
-@pytest.mark.skip(reason="Skipping test_mcp_server_fetch due to CI issues.")
 @pytest.mark.asyncio
 async def test_mcp_server_fetch() -> None:
     params = StdioServerParams(
@@ -343,8 +341,6 @@ async def test_mcp_server_fetch() -> None:
     assert result is not None
 
 
-# TODO: why is this test not working in CI?
-@pytest.mark.skip(reason="Skipping due to CI issues.")
 @pytest.mark.asyncio
 async def test_mcp_server_filesystem() -> None:
     params = StdioServerParams(
@@ -365,8 +361,6 @@ async def test_mcp_server_filesystem() -> None:
     assert result is not None
 
 
-# TODO: why is this test not working in CI?
-# @pytest.mark.skip(reason="Skipping due to CI issues.")
 @pytest.mark.asyncio
 async def test_mcp_server_git() -> None:
     params = StdioServerParams(
@@ -395,11 +389,13 @@ async def test_mcp_server_git_existing_session() -> None:
         await session.initialize()
         tools = await mcp_server_tools(server_params=params, session=session)
         assert tools is not None
-        tools = [tool for tool in tools if tool.name == "git_log"]
-        assert len(tools) == 1
-        tool = tools[0]
+        git_log = [tool for tool in tools if tool.name == "git_log"][0]
         repo_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
-        result = await tool.run_json({"repo_path": repo_path}, CancellationToken())
+        result = await git_log.run_json({"repo_path": repo_path}, CancellationToken())
+        assert result is not None
+
+        git_status = [tool for tool in tools if tool.name == "git_status"][0]
+        result = await git_status.run_json({"repo_path": repo_path}, CancellationToken())
         assert result is not None
 
 
