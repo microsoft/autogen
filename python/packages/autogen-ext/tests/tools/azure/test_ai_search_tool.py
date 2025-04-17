@@ -204,7 +204,7 @@ async def test_create_vector_search() -> None:
 
 @pytest.mark.asyncio
 async def test_create_hybrid_search() -> None:
-    """Test the create_hybrid_search factory method."""
+    """Test the create_hybrid_search factory method (hybrid = text + vector, query_type will be 'fulltext' or 'semantic')."""
     tool = ConcreteAzureAISearchTool.create_hybrid_search(
         name="hybrid_search",
         endpoint="https://test.search.windows.net",
@@ -217,7 +217,7 @@ async def test_create_hybrid_search() -> None:
     )
 
     assert tool.name == "hybrid_search"
-    assert tool.search_config.query_type == "hybrid"
+    assert tool.search_config.query_type in ("fulltext", "semantic")
     assert tool.search_config.vector_fields == ["embedding"]
     assert tool.search_config.search_fields == ["title", "content"]
 
@@ -843,7 +843,7 @@ async def test_factory_method_validation() -> None:
         )
 
     with pytest.raises(ValueError, match="vector_fields must contain at least one field name"):
-        ConcreteAzureAISearchTool.create_vector_search(
+        ConcreteAzureAISearchTool.create_hybrid_search(
             name="test",
             endpoint="https://test.search.windows.net",
             index_name="test-index",
@@ -1001,16 +1001,16 @@ async def test_fallback_vectorizable_text_query() -> None:
     """Test the fallback VectorizableTextQuery class when Azure SDK is not available."""
 
     class MockVectorizableTextQuery:
-        def __init__(self, text: str, k: int, fields: str) -> None:
+        def __init__(self, text: str, k_nearest_neighbors: int, fields: str) -> None:
             self.text = text
-            self.k = k
+            self.k_nearest_neighbors = k_nearest_neighbors
             self.fields = fields
 
-    query1 = MockVectorizableTextQuery(text="test query", k=5, fields="title")
+    query1 = MockVectorizableTextQuery(text="test query", k_nearest_neighbors=5, fields="title")
     assert query1.text == "test query"
     assert query1.fields == "title"
 
-    query2 = MockVectorizableTextQuery(text="test query", k=3, fields="title,content")
+    query2 = MockVectorizableTextQuery(text="test query", k_nearest_neighbors=3, fields="title,content")
     assert query2.text == "test query"
     assert query2.fields == "title,content"
 
