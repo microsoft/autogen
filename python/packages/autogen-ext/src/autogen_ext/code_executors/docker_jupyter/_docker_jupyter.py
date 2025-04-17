@@ -1,138 +1,147 @@
+import asyncio
 import base64
 import json
 import os
-import sys
-import uuid
-from pathlib import Path
 import tempfile
-import asyncio
-from types import TracebackType
-from typing import List, Union, Optional
-from pydantic import BaseModel # type: ignore
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
+import uuid
 from dataclasses import dataclass
+from pathlib import Path
+from types import TracebackType
+from typing import List, Optional, Union
+
+from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
 from autogen_ext.code_executors._common import silence_pip
-from autogen_core import Component, CancellationToken
+from pydantic import BaseModel
+from typing_extensions import Self
+
 from ._jupyter_server import JupyterClient, JupyterConnectable, JupyterConnectionInfo, JupyterKernelClient
+
 
 @dataclass
 class DockerJupyterCodeResult(CodeResult):
     """(Experimental) A code result class for IPython code executor."""
+
     output_files: list[Path]
-    
+
+
 class DockerJupyterCodeExecutorConfig(BaseModel):
     """Configuration for JupyterCodeExecutor"""
+
     jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo]
     kernel_name: str = "python3"
     timeout: int = 60
     output_dir: Optional[Union[Path, str]] = None
+
     class Config:
-        arbitrary_types_allowed = True  
-    
+        arbitrary_types_allowed = True
+
+
 class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecutorConfig]):
     """(Experimental) A code executor class that executes code statefully using
-        a Jupyter server supplied to this class.
+    a Jupyter server supplied to this class.
 
-        Each execution is stateful and can access variables created from previous
-        executions in the same session.
-        
-        Example of using it directly:
+    Each execution is stateful and can access variables created from previous
+    executions in the same session.
 
-        .. code-block:: python
+    Example of using it directly:
 
-            import asyncio
-            from autogen_core.code_executor import CodeBlock
-            from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
+    .. code-block:: python
 
-
-            async def main() -> None:
-                async with  DockerJupyterServer() as jupyter_server:
-                    async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
-                        code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
-                        code_result = await executor.execute_code_blocks(code_blocks, cancellation_token=CancellationToken())
-                        print(code_result)
-                        
-            asyncio.run(main())
-            
-        Example of using it with your own jupyter image:
-        .. code-block:: python
-            import asyncio
-            from autogen_core.code_executor import CodeBlock
-            from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
-
-            async def main() -> None:
-                async with  DockerJupyterServer(custom_image_name='your_custom_images_name', expose_port=8888) as jupyter_server:
-                    async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
-                        code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
-                        code_result = await executor.execute_code_blocks(code_blocks, cancellation_token=CancellationToken())
-                        print(code_result)
-                    
-            asyncio.run(main())
-        
-        Example of using it with :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`:
-
-        .. code-block:: python
-
-            import asyncio
-            from autogen_agentchat.agents import AssistantAgent
-            from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_ext.tools.code_execution import PythonCodeExecutionTool
+        import asyncio
+        from autogen_core.code_executor import CodeBlock
+        from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
 
 
-            async def main() -> None:
-                async with  DockerJupyterServer() as jupyter_server:
-                    async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
-                        tool = PythonCodeExecutionTool(executor)
-                        model_client = OpenAIChatCompletionClient(model="gpt-4o")
-                        agent = AssistantAgent("assistant", model_client=model_client, tools=[tool])
-                        result = await agent.run(task="What is the 10th Fibonacci number? Use Python to calculate it.")
-                        print(result)
+        async def main() -> None:
+            async with DockerJupyterServer() as jupyter_server:
+                async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
+                    code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
+                    code_result = await executor.execute_code_blocks(code_blocks, cancellation_token=CancellationToken())
+                    print(code_result)
 
 
-            asyncio.run(main())
+        asyncio.run(main())
 
-        Example of using it inside a :class:`~autogen_agentchat.agents._code_executor_agent.CodeExecutorAgent`:
-
-        .. code-block:: python
-
-            import asyncio
-            from autogen_agentchat.agents import CodeExecutorAgent
-            from autogen_agentchat.messages import TextMessage
-            from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
-            from autogen_core import CancellationToken
+    Example of using it with your own jupyter image:
+    .. code-block:: python
+        import asyncio
+        from autogen_core.code_executor import CodeBlock
+        from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
 
 
-            async def main() -> None:
-                async with  DockerJupyterServer() as jupyter_server:
-                    async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
-                        code_executor_agent = CodeExecutorAgent("code_executor", code_executor=executor)
-                        task = TextMessage(
-                            content='''Here is some code
-                    ```python
-                    print('Hello world')
-                    ```
-                    ''',
-                            source="user",
-                        )
-                        response = await code_executor_agent.on_messages([task], CancellationToken())
-                        print(response.chat_message)
+        async def main() -> None:
+            async with DockerJupyterServer(custom_image_name="your_custom_images_name", expose_port=8888) as jupyter_server:
+                async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
+                    code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
+                    code_result = await executor.execute_code_blocks(code_blocks, cancellation_token=CancellationToken())
+                    print(code_result)
 
 
-            asyncio.run(main())
-        Args:
-            jupyter_server (Union[JupyterConnectable, JupyterConnectionInfo]): The Jupyter server to use.
-            kernel_name (str): The kernel name to use. Make sure it is installed.
-                By default, it is "python3".
-            timeout (int): The timeout for code execution, by default 60.
-            output_dir (str): The directory to save output files, by default None.
-        """
+        asyncio.run(main())
+
+    Example of using it with :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_agentchat.agents import AssistantAgent
+        from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_ext.tools.code_execution import PythonCodeExecutionTool
+
+
+        async def main() -> None:
+            async with DockerJupyterServer() as jupyter_server:
+                async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
+                    tool = PythonCodeExecutionTool(executor)
+                    model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                    agent = AssistantAgent("assistant", model_client=model_client, tools=[tool])
+                    result = await agent.run(task="What is the 10th Fibonacci number? Use Python to calculate it.")
+                    print(result)
+
+
+        asyncio.run(main())
+
+    Example of using it inside a :class:`~autogen_agentchat.agents._code_executor_agent.CodeExecutorAgent`:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_agentchat.agents import CodeExecutorAgent
+        from autogen_agentchat.messages import TextMessage
+        from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
+        from autogen_core import CancellationToken
+
+
+        async def main() -> None:
+            async with  DockerJupyterServer() as jupyter_server:
+                async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
+                    code_executor_agent = CodeExecutorAgent("code_executor", code_executor=executor)
+                    task = TextMessage(
+                        content='''Here is some code
+                ```python
+                print('Hello world')
+                ```
+                ''',
+                        source="user",
+                    )
+                    response = await code_executor_agent.on_messages([task], CancellationToken())
+                    print(response.chat_message)
+
+
+        asyncio.run(main())
+    Args:
+        jupyter_server (Union[JupyterConnectable, JupyterConnectionInfo]): The Jupyter server to use.
+        kernel_name (str): The kernel name to use. Make sure it is installed.
+            By default, it is "python3".
+        timeout (int): The timeout for code execution, by default 60.
+        output_dir (str): The directory to save output files, by default None.
+    """
+
     component_config_schema = DockerJupyterCodeExecutorConfig
     component_provider_override = "autogen_ext.code_executors.docker_jupyter.DockerJupyterCodeExecutor"
+
     def __init__(
         self,
         jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo],
@@ -150,19 +159,19 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         else:
             raise ValueError("jupyter_server must be a JupyterConnectable or JupyterConnectionInfo.")
 
-        self._output_dir = output_dir or getattr(jupyter_server, '_bind_dir', None)
+        self._output_dir = output_dir or getattr(jupyter_server, "_bind_dir", None)
         if not self._output_dir:
             with tempfile.TemporaryDirectory() as temp_dir:
                 self._output_dir = Path(temp_dir)
                 self._output_dir.mkdir(exist_ok=True)
-        
+
         self._jupyter_client = JupyterClient(self._connection_info)
 
         self._kernel_name = kernel_name
         self._timeout = timeout
         self._async_jupyter_kernel_client: Optional[JupyterKernelClient] = None
         self._kernel_id: Optional[str] = None
-    
+
     async def _ensure_async_kernel_client(self) -> JupyterKernelClient:
         """Ensure that an async kernel client exists and return it."""
         if self._kernel_id is None:
@@ -172,7 +181,9 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
             self._async_jupyter_kernel_client = await self._jupyter_client.get_kernel_client(self._kernel_id)
         return self._async_jupyter_kernel_client
 
-    async def execute_code_blocks(self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken) -> DockerJupyterCodeResult:
+    async def execute_code_blocks(
+        self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
+    ) -> DockerJupyterCodeResult:
         """(Experimental) Execute a list of code blocks and return the result.
 
         This method executes a list of code blocks as cells in the Jupyter kernel.
@@ -189,12 +200,8 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         # Wait for kernel to be ready using async client
         is_ready = await kernel_client.wait_for_ready(timeout_seconds=self._timeout)
         if not is_ready:
-            return DockerJupyterCodeResult(
-                exit_code=1,
-                output="ERROR: Kernel not ready",
-                output_files=[]
-            )
-            
+            return DockerJupyterCodeResult(exit_code=1, output="ERROR: Kernel not ready", output_files=[])
+
         outputs = []
         output_files = []
         for code_block in code_blocks:
@@ -217,11 +224,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
                     else:
                         outputs.append(json.dumps(data.data))
             else:
-                return DockerJupyterCodeResult(
-                    exit_code=1,
-                    output=f"ERROR: {result.output}",
-                    output_files=output_files
-                )
+                return DockerJupyterCodeResult(exit_code=1, output=f"ERROR: {result.output}", output_files=output_files)
         return DockerJupyterCodeResult(
             exit_code=0, output="\n".join([str(output) for output in outputs]), output_files=output_files
         )
@@ -235,7 +238,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         if self._async_jupyter_kernel_client is not None:
             await self._async_jupyter_kernel_client.stop()
             self._async_jupyter_kernel_client = None
-            
+
     async def start(self) -> None:
         """(Experimental) Start a new session."""
         available_kernels = await self._jupyter_client.list_kernel_specs()
@@ -268,7 +271,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
             await self._async_jupyter_kernel_client.stop()
             self._async_jupyter_kernel_client = None
         await self._jupyter_client.close()
-        
+
     async def __aenter__(self) -> Self:
         await self.start()
         return self

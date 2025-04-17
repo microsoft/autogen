@@ -1,28 +1,26 @@
-from __future__ import annotations
-import docker # type: ignore
-import atexit
-import io
-import logging
-import secrets
-import sys
-import uuid
-import os
-from pathlib import Path
-from types import TracebackType
-from typing import Dict, Optional, Type, Union, Any, List, cast, Protocol, runtime_checkable
-from dataclasses import dataclass
-import datetime
-import json
-import requests
 import asyncio
-import aiohttp # type: ignore
-from requests.adapters import HTTPAdapter, Retry
-import websockets # type: ignore
+import atexit
+import datetime
+import io
+import json
+import logging
+import os
+import secrets
+import uuid
+from dataclasses import dataclass
+from pathlib import Path
 from time import sleep
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
+from types import TracebackType
+from typing import Any, Dict, List, Optional, Protocol, Type, Union, cast, runtime_checkable
+
+import aiohttp
+import docker
+import docker.errors
+import requests
+import websockets
+from requests.adapters import HTTPAdapter, Retry
+from typing_extensions import Self
+
 
 @dataclass
 class JupyterConnectionInfo:
@@ -47,6 +45,7 @@ class JupyterConnectable(Protocol):
         """Return the connection information for this connectable."""
         pass
 
+
 class JupyterClient:
     def __init__(self, connection_info: JupyterConnectionInfo):
         """(Experimental) A client for communicating with a Jupyter gateway server.
@@ -59,8 +58,8 @@ class JupyterClient:
         retries = Retry(total=5, backoff_factor=0.1)
         self._session.mount("http://", HTTPAdapter(max_retries=retries))
         # Create aiohttp session for async requests
-        self._async_session = None
-    
+        self._async_session: aiohttp.ClientSession | None = None
+
     async def _ensure_async_session(self) -> aiohttp.ClientSession:
         if self._async_session is None:
             self._async_session = aiohttp.ClientSession()
@@ -79,7 +78,6 @@ class JupyterClient:
     def _get_ws_base_url(self) -> str:
         port = f":{self._connection_info.port}" if self._connection_info.port else ""
         return f"ws://{self._connection_info.host}{port}"
-
 
     async def list_kernel_specs(self) -> Dict[str, Dict[str, str]]:
         response = self._session.get(f"{self._get_api_base_url()}/api/kernelspecs", headers=self._get_headers())
@@ -106,7 +104,7 @@ class JupyterClient:
         ) as response:
             data = await response.json()
             return cast(str, data["id"])
-        
+
     async def delete_kernel(self, kernel_id: str) -> None:
         session = await self._ensure_async_session()
         async with session.delete(
@@ -121,18 +119,19 @@ class JupyterClient:
         ) as response:
             response.raise_for_status()
 
-    async def get_kernel_client(self, kernel_id: str) -> JupyterKernelClient:
+    async def get_kernel_client(self, kernel_id: str) -> "JupyterKernelClient":
         ws_url = f"{self._get_ws_base_url()}/api/kernels/{kernel_id}/channels"
         # Using websockets library for async websocket connections
         ws = await websockets.connect(ws_url, extra_headers=self._get_headers())
         return JupyterKernelClient(ws)
-    
+
     async def close(self) -> None:
         """Close the async session"""
         if self._async_session is not None:
             await self._async_session.close()
             self._async_session = None
         self._session.close()
+
 
 class JupyterKernelClient:
     """An asynchronous client for communicating with a Jupyter kernel."""
@@ -261,6 +260,7 @@ class JupyterKernelClient:
             is_ok=True, output="\n".join([str(output) for output in text_output]), data_items=data_output
         )
 
+
 class DockerJupyterServer(JupyterConnectable):
     DEFAULT_DOCKERFILE = """FROM quay.io/jupyter/docker-stacks-foundation
 
@@ -297,7 +297,7 @@ class DockerJupyterServer(JupyterConnectable):
         docker_env: Optional[Dict[str, str]] = None,
         expose_port: int = 8888,
         token: Optional[Union[str, GenerateToken]] = None,
-        work_dir: Union[Path, str] = '/workspace',
+        work_dir: Union[Path, str] = "/workspace",
         bind_dir: Optional[Union[Path, str]] = None,
     ):
         """Start a Jupyter kernel gateway server in a Docker container.
@@ -315,7 +315,7 @@ class DockerJupyterServer(JupyterConnectable):
         """
         # Generate container name if not provided
         container_name = container_name or f"autogen-jupyterkernelgateway-{uuid.uuid4()}"
-        
+
         # Initialize Docker client
         client = docker.from_env()
         # Set up bind directory if specified
@@ -324,7 +324,7 @@ class DockerJupyterServer(JupyterConnectable):
             self._bind_dir = Path(bind_dir) if isinstance(bind_dir, str) else bind_dir
             self._bind_dir.mkdir(exist_ok=True)
             os.chmod(bind_dir, 0o777)
-            
+
         # Determine and prepare Docker image
         image_name = custom_image_name or "autogen-jupyterkernelgateway"
         if not custom_image_name:
@@ -349,14 +349,14 @@ class DockerJupyterServer(JupyterConnectable):
             token = DockerJupyterServer.GenerateToken()
         # Set up authentication token
         self._token = secrets.token_hex(32) if isinstance(token, DockerJupyterServer.GenerateToken) else token
-        
+
         # Prepare environment variables
         env = {"TOKEN": self._token}
         env.update(docker_env)
-        
+
         # Define volume configuration if bind directory is specified
         volumes = {str(self._bind_dir): {"bind": str(work_dir), "mode": "rw"}} if self._bind_dir else None
-        
+
         # Start the container
         container = client.containers.run(
             image_name,
@@ -368,16 +368,16 @@ class DockerJupyterServer(JupyterConnectable):
             volumes=volumes,
             working_dir=str(work_dir),
         )
-        
+
         # Wait for container to be ready
         self._wait_for_ready(container)
-        
+
         # Store container information
         self._container = container
         self._port = int(container.ports[f"{expose_port}/tcp"][0]["HostPort"])
         self._container_id = container.id
         self._expose_port = expose_port
-        
+
         # Define cleanup function
         def cleanup():
             try:
@@ -386,11 +386,11 @@ class DockerJupyterServer(JupyterConnectable):
             except docker.errors.NotFound:
                 pass
             atexit.unregister(cleanup)
-        
+
         # Register cleanup if container should be stopped automatically
         if stop_container:
             atexit.register(cleanup)
-        
+
         self._cleanup_func = cleanup
         self._stop_container = stop_container
 
@@ -407,7 +407,7 @@ class DockerJupyterServer(JupyterConnectable):
             continue
         if container.status != "running":
             raise ValueError("Container failed to start")
-    
+
     async def stop(self) -> None:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self._cleanup_func)
@@ -415,12 +415,10 @@ class DockerJupyterServer(JupyterConnectable):
     async def get_client(self) -> JupyterClient:
         return JupyterClient(self.connection_info)
 
-        
     async def __aenter__(self) -> Self:
         return self
-        
+
     async def __aexit__(
         self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         await self.stop()
-        
