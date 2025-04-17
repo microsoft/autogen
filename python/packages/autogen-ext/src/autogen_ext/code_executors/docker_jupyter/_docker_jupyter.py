@@ -44,6 +44,12 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
     Each execution is stateful and can access variables created from previous
     executions in the same session.
 
+    To use this, you need to install the following dependencies:
+
+    .. code-block:: shell
+
+        pip install "autogen-ext[docker-jupyter-executor]"
+
     Example of using it directly:
 
     .. code-block:: python
@@ -202,8 +208,8 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         if not is_ready:
             return DockerJupyterCodeResult(exit_code=1, output="ERROR: Kernel not ready", output_files=[])
 
-        outputs = []
-        output_files = []
+        outputs: List[str] = []
+        output_files: List[Path] = []
         for code_block in code_blocks:
             code = silence_pip(code_block.code, code_block.language)
             # Execute code using async client

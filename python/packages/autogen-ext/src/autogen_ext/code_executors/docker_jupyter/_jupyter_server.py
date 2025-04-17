@@ -43,7 +43,7 @@ class JupyterConnectable(Protocol):
     @property
     def connection_info(self) -> JupyterConnectionInfo:
         """Return the connection information for this connectable."""
-        pass
+        ...
 
 
 class JupyterClient:
@@ -133,22 +133,24 @@ class JupyterClient:
         self._session.close()
 
 
+@dataclass
+class DataItem:
+    mime_type: str
+    data: str
+
+
+@dataclass
+class ExecutionResult:
+    is_ok: bool
+    output: str
+    data_items: List[DataItem]
+
+
 class JupyterKernelClient:
     """An asynchronous client for communicating with a Jupyter kernel."""
 
-    @dataclass
-    class ExecutionResult:
-        @dataclass
-        class DataItem:
-            mime_type: str
-            data: str
-
-        is_ok: bool
-        output: str
-        data_items: List[DataItem]
-
-    def __init__(self, websocket):
-        self._session_id: str = uuid.uuid4().hex
+    def __init__(self, websocket: websockets.ClientConnection) -> None:
+        self._session_id = uuid.uuid4().hex
         self._websocket = websocket
 
     async def __aenter__(self) -> Self:
@@ -190,7 +192,7 @@ class JupyterKernelClient:
             else:
                 data = await self._websocket.recv()
             if isinstance(data, bytes):
-                data = data.decode("utf-8")
+                return cast(Dict[str, Any], json.loads(data.decode("utf-8")))
             return cast(Dict[str, Any], json.loads(data))
         except asyncio.TimeoutError:
             return None
@@ -222,12 +224,12 @@ class JupyterKernelClient:
             message_type="execute_request",
         )
 
-        text_output = []
-        data_output = []
+        text_output: List[str] = []
+        data_output: List[DataItem] = []
         while True:
             message = await self._receive_message(timeout_seconds)
             if message is None:
-                return JupyterKernelClient.ExecutionResult(
+                return ExecutionResult(
                     is_ok=False, output="ERROR: Timeout waiting for output from code block.", data_items=[]
                 )
 
@@ -242,21 +244,21 @@ class JupyterKernelClient:
                     if data_type == "text/plain":
                         text_output.append(data)
                     elif data_type.startswith("image/") or data_type == "text/html":
-                        data_output.append(self.ExecutionResult.DataItem(mime_type=data_type, data=data))
+                        data_output.append(DataItem(mime_type=data_type, data=data))
                     else:
                         text_output.append(json.dumps(data))
             elif msg_type == "stream":
                 text_output.append(content["text"])
             elif msg_type == "error":
                 # Output is an error.
-                return JupyterKernelClient.ExecutionResult(
+                return ExecutionResult(
                     is_ok=False,
                     output=f"ERROR: {content['ename']}: {content['evalue']}\n{content['traceback']}",
                     data_items=[],
                 )
             if msg_type == "status" and content["execution_state"] == "idle":
                 break
-        return JupyterKernelClient.ExecutionResult(
+        return ExecutionResult(
             is_ok=True, output="\n".join([str(output) for output in text_output]), data_items=data_output
         )
 
@@ -335,7 +337,7 @@ class DockerJupyterServer(JupyterConnectable):
                 here = Path(__file__).parent
                 dockerfile = io.BytesIO(self.DEFAULT_DOCKERFILE.encode("utf-8"))
                 logging.info(f"Building image {image_name}...")
-                client.images.build(path=here, fileobj=dockerfile, tag=image_name)
+                client.images.build(path=str(here), fileobj=dockerfile, tag=image_name)
                 logging.info(f"Image {image_name} built successfully")
         else:
             # Verify custom image exists
@@ -378,10 +380,14 @@ class DockerJupyterServer(JupyterConnectable):
         self._container_id = container.id
         self._expose_port = expose_port
 
+        if self._container_id is None:
+            raise ValueError("Failed to obtain container id.")
+
         # Define cleanup function
         def cleanup():
             try:
-                inner_container = client.containers.get(container.id)
+                assert self._container_id is not None
+                inner_container = client.containers.get(self._container_id)
                 inner_container.stop()
             except docker.errors.NotFound:
                 pass

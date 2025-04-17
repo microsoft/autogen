@@ -1,4 +1,3 @@
-# mypy: disable-error-code="no-any-unimported"
 import inspect
 import os
 import tempfile
@@ -7,12 +6,10 @@ from typing import AsyncGenerator, TypeAlias
 
 import pytest
 import pytest_asyncio
-from aiofiles import open
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock
 from autogen_ext.code_executors.docker_jupyter import (
     DockerJupyterCodeExecutor,
-    DockerJupyterCodeResult,
     DockerJupyterServer,
 )
 
@@ -141,6 +138,8 @@ async def test_docker_commandline_code_executor_start_stop() -> None:
 
 @pytest.mark.asyncio
 async def test_invalid_timeout() -> None:
+    if not docker_tests_enabled():
+        pytest.skip("Docker tests are disabled")
     with pytest.raises(ValueError, match="Timeout must be greater than or equal to 1."):
         with tempfile.TemporaryDirectory() as temp_dir:
             async with DockerJupyterServer(bind_dir=temp_dir) as jupyter_server:
@@ -149,6 +148,8 @@ async def test_invalid_timeout() -> None:
 
 @pytest.mark.asyncio
 async def test_execute_code_with_image_output() -> None:
+    if not docker_tests_enabled():
+        pytest.skip("Docker tests are disabled")
     with tempfile.TemporaryDirectory() as temp_dir:
         async with DockerJupyterServer(bind_dir=temp_dir) as jupyter_server:
             async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
