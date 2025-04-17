@@ -78,6 +78,14 @@ jupyter-executor = [
     "nbclient>=0.10.2",
 ]
 
+docker-jupyter-executor = [
+    "docker~=7.0",
+    "asyncio_atexit>=1.0.1",
+    "websockets>=15.0.1",
+    "requests>=2.32.3",
+    "aiohttp>=3.11.16",
+]
+
 task-centric-memory = ["chromadb>=1.0.0"]
 
 semantic-kernel-core = [
