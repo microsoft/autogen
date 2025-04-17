@@ -241,6 +241,12 @@ class BaseAzureAISearchTool(BaseTool[SearchQuery, SearchResults], ABC):
         self._client: Optional[SearchClient] = None
         self._cache: Dict[str, Dict[str, Any]] = {}
 
+    async def aclose(self) -> None:
+        """Explicitly close the Azure SearchClient if needed (for cleanup in long-running apps/tests)."""
+        if self._client is not None:
+            await self._client.close()
+            self._client = None
+
     def _process_credential(
         self, credential: Union[AzureKeyCredential, TokenCredential, Dict[str, str]]
     ) -> Union[AzureKeyCredential, TokenCredential]:
@@ -362,21 +368,22 @@ class BaseAzureAISearchTool(BaseTool[SearchQuery, SearchResults], ABC):
             client = await self._get_client()
             results: List[SearchResult] = []
 
-            async with client:
-                search_future = client.search(text_query, **search_options)  # type: ignore
+            # Use the persistent client directly. Do NOT close after each operation.
+            # WARNING: The SearchClient must live as long as the tool/agent is in use.
+            search_future = client.search(text_query, **search_options)  # type: ignore
 
-                if cancellation_token is not None:
-                    import asyncio
+            if cancellation_token is not None:
+                import asyncio
 
-                    # Using explicit type ignores to handle Azure SDK type complexity
-                    async def awaitable_wrapper():  # type: ignore # pyright: ignore[reportUnknownVariableType,reportUnknownLambdaType,reportUnknownMemberType]
-                        return await search_future  # pyright: ignore[reportUnknownVariableType]
+                # Using explicit type ignores to handle Azure SDK type complexity
+                async def awaitable_wrapper():  # type: ignore # pyright: ignore[reportUnknownVariableType,reportUnknownLambdaType,reportUnknownMemberType]
+                    return await search_future  # pyright: ignore[reportUnknownVariableType]
 
-                    task = asyncio.create_task(awaitable_wrapper())  # type: ignore # pyright: ignore[reportUnknownVariableType]
-                    cancellation_token.link_future(task)  # pyright: ignore[reportUnknownArgumentType]
-                    search_results = await task  # pyright: ignore[reportUnknownVariableType]
-                else:
-                    search_results = await search_future  # pyright: ignore[reportUnknownVariableType]
+                task = asyncio.create_task(awaitable_wrapper())  # type: ignore # pyright: ignore[reportUnknownVariableType]
+                cancellation_token.link_future(task)  # pyright: ignore[reportUnknownArgumentType]
+                search_results = await task  # pyright: ignore[reportUnknownVariableType]
+            else:
+                search_results = await search_future  # pyright: ignore[reportUnknownVariableType]
 
                 async for doc in search_results:  # type: ignore
                     search_doc: Any = doc
