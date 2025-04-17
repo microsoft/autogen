@@ -82,6 +82,16 @@ class _EchoAgent(BaseChatAgent):
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
 
+    async def save_state(self) -> Mapping[str, Any]:
+        return {
+            "last_message": self._last_message,
+            "total_messages": self._total_messages,
+        }
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        self._last_message = state.get("last_message")
+        self._total_messages = state.get("total_messages", 0)
+
 
 class _FlakyAgent(BaseChatAgent):
     def __init__(self, name: str, description: str) -> None:
