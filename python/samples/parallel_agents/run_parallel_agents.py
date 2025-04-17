@@ -1,14 +1,15 @@
+import argparse
 import asyncio
 import os
 import re
 import logging
-from team_swarm.utils import LogHandler
+from utils import LogHandler
 import yaml
 import warnings
 import contextvars
 import builtins
 import shutil
-from typing import List, Optional, Dict
+from typing import List, Optional
 from collections import deque
 from autogen_agentchat import TRACE_LOGGER_NAME as AGENTCHAT_TRACE_LOGGER_NAME, EVENT_LOGGER_NAME as AGENTCHAT_EVENT_LOGGER_NAME
 from autogen_core import TRACE_LOGGER_NAME as CORE_TRACE_LOGGER_NAME, EVENT_LOGGER_NAME as CORE_EVENT_LOGGER_NAME
@@ -22,15 +23,12 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_agentchat.conditions import TextMentionTermination
 from autogen_core.models import ChatCompletionClient
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.messages import (
     TextMessage,
-    AgentEvent,
-    ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
@@ -351,8 +349,13 @@ If you are asked for a comma separated list, apply the above rules depending on 
     print("FINAL AGGREGATED ANSWER: ", final_answer)
 
 if __name__ == "__main__":
-    num_teams = 3
-    num_answers = 3
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_teams", type=int, default=3, help="Number of teams to run in parallel.")
+    parser.add_argument("--num_answers", type=int, default=3, help="Number of answers to aggregate from the teams.")
+
+    args = parser.parse_args()
+    num_teams = args.num_teams
+    num_answers = args.num_answers
 
     agentchat_trace_logger.setLevel(logging.DEBUG)
     file_handler = logging.FileHandler("trace.log", mode="w")
@@ -375,6 +378,5 @@ if __name__ == "__main__":
     fh = logging.FileHandler("aggregator_log.txt", mode="w")
     fh.setLevel(logging.DEBUG)
     aggregator_logger.addHandler(fh)
-
 
     asyncio.run(main(num_teams, num_answers))
