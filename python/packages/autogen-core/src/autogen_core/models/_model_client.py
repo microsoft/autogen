@@ -123,6 +123,8 @@ class ModelInfo(TypedDict, total=False):
     """Model family should be one of the constants from :py:class:`ModelFamily` or a string representing an unknown model family."""
     structured_output: Required[bool]
     """True if the model supports structured output, otherwise False. This is different to json_output."""
+    multiple_system_messages: Optional[bool]
+    """True if the model supports multiple system messages, otherwise False. This is different to json_output."""
 
 
 def validate_model_info(model_info: ModelInfo) -> None:
