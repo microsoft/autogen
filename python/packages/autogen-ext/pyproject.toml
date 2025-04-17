@@ -135,10 +135,7 @@ semantic-kernel-all = [
 
 rich = ["rich>=13.9.4"]
 
-mcp = [
-    "mcp>=1.6.0",
-    "json-schema-to-pydantic>=0.2.4"
-]
+mcp = ["mcp>=1.6.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
