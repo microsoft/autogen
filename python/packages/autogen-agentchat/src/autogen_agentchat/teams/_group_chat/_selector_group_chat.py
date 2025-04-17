@@ -23,11 +23,14 @@ from ...messages import (
     BaseAgentEvent,
     BaseChatMessage,
     MessageFactory,
+    ModelClientStreamingChunkEvent,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
-from ._events import GroupChatTermination
+from ._events import (
+    GroupChatTermination,
+)
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 
@@ -207,6 +210,11 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 message: CreateResult | str = ""
                 async for _message in self._model_client.create_stream(messages=select_speaker_messages):
                     message = _message
+                    if self._emit_team_events:
+                        if isinstance(message, str):
+                            await self._output_message_queue.put(
+                                ModelClientStreamingChunkEvent(content=cast(str, _message), source=self._name)
+                            )
                 if isinstance(message, CreateResult):
                     response = message
                 else:
