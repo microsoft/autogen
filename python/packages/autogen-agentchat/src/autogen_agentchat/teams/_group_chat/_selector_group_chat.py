@@ -4,8 +4,18 @@ import re
 from inspect import iscoroutinefunction
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Sequence, Union, cast
 
-from autogen_core import AgentRuntime, Component, ComponentModel
-from autogen_core.models import AssistantMessage, ChatCompletionClient, ModelFamily, SystemMessage, UserMessage
+from autogen_core import AgentRuntime, CancellationToken, Component, ComponentModel
+from autogen_core.model_context import (
+    ChatCompletionContext,
+    UnboundedChatCompletionContext,
+)
+from autogen_core.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    ModelFamily,
+    SystemMessage,
+    UserMessage,
+)
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -56,6 +66,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         max_selector_attempts: int,
         candidate_func: Optional[CandidateFuncType],
         emit_team_events: bool,
+        model_context: ChatCompletionContext | None,
     ) -> None:
         super().__init__(
             name,
@@ -79,6 +90,11 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._max_selector_attempts = max_selector_attempts
         self._candidate_func = candidate_func
         self._is_candidate_func_async = iscoroutinefunction(self._candidate_func)
+        if model_context is not None:
+            self._model_context = model_context
+        else:
+            self._model_context = UnboundedChatCompletionContext()
+        self._cancellation_token = CancellationToken()
 
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         pass
@@ -153,16 +169,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         assert len(participants) > 0
 
         # Construct the history of the conversation.
-        history_messages: List[str] = []
-        for msg in thread:
-            if not isinstance(msg, BaseChatMessage):
-                # Only process chat messages.
-                continue
-            message = f"{msg.source}: {msg.to_model_text()}"
-            history_messages.append(
-                message.rstrip() + "\n\n"
-            )  # Create some consistency for how messages are separated in the transcript
-        history = "\n".join(history_messages)
+        history = self.construct_message_history(thread)
 
         # Construct agent roles.
         # Each agent sould appear on a single line.
@@ -180,10 +187,33 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         trace_logger.debug(f"Selected speaker: {agent_name}")
         return agent_name
 
+    def construct_message_history(
+        self, message_history: Sequence[Union[BaseChatMessage, BaseAgentEvent, UserMessage, AssistantMessage]]
+    ) -> str:
+        # Construct the history of the conversation.
+        history_messages: List[str] = []
+        for msg in message_history:
+            if isinstance(msg, BaseChatMessage):
+                message = f"{msg.source}: {msg.to_model_text()}"
+                history_messages.append(message.rstrip() + "\n\n")
+            elif isinstance(msg, UserMessage) or isinstance(msg, AssistantMessage):
+                message = f"{msg.source}: {msg.content}"
+                history_messages.append(
+                    message.rstrip() + "\n\n"
+                )  # Create some consistency for how messages are separated in the transcript
+
+        history: str = "\n".join(history_messages)
+        return history
+
     async def _select_speaker(self, roles: str, participants: List[str], history: str, max_attempts: int) -> str:
+        model_context_messages = await self._model_context.get_messages()
+        model_context_history = self.construct_message_history(model_context_messages)  # type: ignore
+        history = model_context_history + history
+
         select_speaker_prompt = self._selector_prompt.format(
             roles=roles, participants=str(participants), history=history
         )
+
         select_speaker_messages: List[SystemMessage | UserMessage | AssistantMessage]
         if ModelFamily.is_openai(self._model_client.model_info["family"]):
             select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
@@ -453,6 +483,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         candidate_func: Optional[CandidateFuncType] = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
+        model_context: ChatCompletionContext | None = None,
     ):
         super().__init__(
             participants,
@@ -473,6 +504,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         self._selector_func = selector_func
         self._max_selector_attempts = max_selector_attempts
         self._candidate_func = candidate_func
+        self._model_context = model_context
 
     def _create_group_chat_manager_factory(
         self,
@@ -505,6 +537,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._max_selector_attempts,
             self._candidate_func,
             self._emit_team_events,
+            self._model_context,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:
