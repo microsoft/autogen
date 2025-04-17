@@ -88,9 +88,12 @@ class ModelFamily:
     @staticmethod
     def is_openai(family: str) -> bool:
         return family in (
+            ModelFamily.GPT_45,
+            ModelFamily.GPT_41,
             ModelFamily.GPT_4O,
             ModelFamily.O1,
             ModelFamily.O3,
+            ModelFamily.O4,
             ModelFamily.GPT_4,
             ModelFamily.GPT_35,
         )
