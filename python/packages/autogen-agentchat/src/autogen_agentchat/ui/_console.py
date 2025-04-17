@@ -173,7 +173,9 @@ async def Console(
             message = cast(BaseAgentEvent | BaseChatMessage, message)  # type: ignore
             if not streaming_chunks:
                 # Print message sender.
-                await aprint(f"{'-' * 10} {message.source} {'-' * 10}", end="\n", flush=True)
+                await aprint(
+                    f"{'-' * 10} {message.__class__.__name__} ({message.source}) {'-' * 10}", end="\n", flush=True
+                )
             if isinstance(message, ModelClientStreamingChunkEvent):
                 await aprint(message.to_text(), end="")
                 streaming_chunks.append(message.content)
