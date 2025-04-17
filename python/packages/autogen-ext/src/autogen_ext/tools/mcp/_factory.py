@@ -123,7 +123,9 @@ async def mcp_server_tools(
         (e.g., a browser state) that should be reused for multiple requests.
 
         The following example show how to create a single MCP client session
-        to a local Playwright server and use it with an agent.
+        to a local `Playwright <https://github.com/microsoft/playwright-mcp>`_
+        server and share it across multiple tools.
+
 
         .. code-block:: python
 
