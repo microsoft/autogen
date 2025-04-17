@@ -63,6 +63,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         selector_func: Optional[SelectorFuncType],
         max_selector_attempts: int,
         candidate_func: Optional[CandidateFuncType],
+        emit_team_events: bool,
         streaming: bool = False,
     ) -> None:
         super().__init__(
@@ -76,6 +77,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             termination_condition,
             max_turns,
             message_factory,
+            emit_team_events,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -297,6 +299,7 @@ class SelectorGroupChatConfig(BaseModel):
     allow_repeated_speaker: bool
     # selector_func: ComponentModel | None
     max_selector_attempts: int = 3
+    emit_team_events: bool = False
     streaming: bool = False
 
 
@@ -327,6 +330,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             A custom function that takes the conversation history and returns a filtered list of candidates for the next speaker
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
             This function is only used if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
+        emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
         streaming (bool, optional): Whether to use streaming for the model.(Only use for specify case e.g. QwQ) Defaults to False.
 
     Raises:
@@ -469,6 +473,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         selector_func: Optional[SelectorFuncType] = None,
         candidate_func: Optional[CandidateFuncType] = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
+        emit_team_events: bool = False,
         streaming: bool = False,
     ):
         super().__init__(
@@ -479,6 +484,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             max_turns=max_turns,
             runtime=runtime,
             custom_message_types=custom_message_types,
+            emit_team_events=emit_team_events,
         )
         # Validate the participants.
         if len(participants) < 2:
@@ -521,6 +527,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._selector_func,
             self._max_selector_attempts,
             self._candidate_func,
+            self._emit_team_events,
             self._streaming,
         )
 
@@ -534,6 +541,8 @@ Read the above conversation. Then select the next role from {participants} to pl
             allow_repeated_speaker=self._allow_repeated_speaker,
             max_selector_attempts=self._max_selector_attempts,
             # selector_func=self._selector_func.dump_component() if self._selector_func else None,
+            emit_team_events=self._emit_team_events,
+            streaming=self._streaming,
         )
 
     @classmethod
@@ -551,4 +560,6 @@ Read the above conversation. Then select the next role from {participants} to pl
             # selector_func=ComponentLoader.load_component(config.selector_func, Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], str | None])
             # if config.selector_func
             # else None,
+            emit_team_events=config.emit_team_events,
+            streaming=config.streaming,
         )
