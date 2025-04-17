@@ -1,5 +1,5 @@
 from __future__ import annotations
-import docker
+import docker # type: ignore
 import atexit
 import io
 import logging
@@ -15,9 +15,9 @@ import datetime
 import json
 import requests
 import asyncio
-import aiohttp
+import aiohttp # type: ignore
 from requests.adapters import HTTPAdapter, Retry
-import websockets
+import websockets # type: ignore
 from time import sleep
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -61,7 +61,7 @@ class JupyterClient:
         # Create aiohttp session for async requests
         self._async_session = None
     
-    async def _ensure_async_session(self):
+    async def _ensure_async_session(self) -> aiohttp.ClientSession:
         if self._async_session is None:
             self._async_session = aiohttp.ClientSession()
         return self._async_session
@@ -81,28 +81,14 @@ class JupyterClient:
         return f"ws://{self._connection_info.host}{port}"
 
 
-    def list_kernel_specs(self) -> Dict[str, Dict[str, str]]:
+    async def list_kernel_specs(self) -> Dict[str, Dict[str, str]]:
         response = self._session.get(f"{self._get_api_base_url()}/api/kernelspecs", headers=self._get_headers())
         return cast(Dict[str, Dict[str, str]], response.json())
 
-    def list_kernels(self) -> List[Dict[str, str]]:
+    async def list_kernels(self) -> List[Dict[str, str]]:
         response = self._session.get(f"{self._get_api_base_url()}/api/kernels", headers=self._get_headers())
         return cast(List[Dict[str, str]], response.json())
-    def start_kernel(self, kernel_spec_name: str) -> str:
-        """Start a new kernel.
 
-        Args:
-            kernel_spec_name (str): Name of the kernel spec to start
-
-        Returns:
-            str: ID of the started kernel
-        """
-        response = self._session.post(
-            f"{self._get_api_base_url()}/api/kernels",
-            headers=self._get_headers(),
-            json={"name": kernel_spec_name},
-        )
-        return cast(str, response.json()["id"])
     async def start_kernel_async(self, kernel_spec_name: str) -> str:
         """Start a new kernel asynchronously.
 
@@ -141,7 +127,7 @@ class JupyterClient:
         ws = await websockets.connect(ws_url, extra_headers=self._get_headers())
         return JupyterKernelClient(ws)
     
-    async def close(self):
+    async def close(self) -> None:
         """Close the async session"""
         if self._async_session is not None:
             await self._async_session.close()
@@ -308,9 +294,9 @@ class DockerJupyterServer(JupyterConnectable):
         container_name: Optional[str] = None,
         auto_remove: bool = True,
         stop_container: bool = True,
-        docker_env: Dict[str, str] = {},
+        docker_env: Optional[Dict[str, str]] = None,
         expose_port: int = 8888,
-        token: Union[str, GenerateToken] = GenerateToken(),
+        token: Optional[Union[str, GenerateToken]] = None,
         work_dir: Union[Path, str] = '/workspace',
         bind_dir: Optional[Union[Path, str]] = None,
     ):
@@ -332,14 +318,13 @@ class DockerJupyterServer(JupyterConnectable):
         
         # Initialize Docker client
         client = docker.from_env()
-        
         # Set up bind directory if specified
+        self._bind_dir: Optional[Path] = None
         if bind_dir:
-            bind_dir = str(bind_dir.resolve()) if isinstance(bind_dir, Path) else bind_dir
-            os.makedirs(bind_dir, exist_ok=True)
+            self._bind_dir = Path(bind_dir) if isinstance(bind_dir, str) else bind_dir
+            self._bind_dir.mkdir(exist_ok=True)
             os.chmod(bind_dir, 0o777)
-        self._bind_dir = bind_dir
-        
+            
         # Determine and prepare Docker image
         image_name = custom_image_name or "autogen-jupyterkernelgateway"
         if not custom_image_name:
@@ -356,9 +341,12 @@ class DockerJupyterServer(JupyterConnectable):
             # Verify custom image exists
             try:
                 client.images.get(image_name)
-            except docker.errors.ImageNotFound:
-                raise ValueError(f"Custom image {image_name} does not exist")
-        
+            except docker.errors.ImageNotFound as err:
+                raise ValueError(f"Custom image {image_name} does not exist") from err
+        if docker_env is None:
+            docker_env = {}
+        if token is None:
+            token = DockerJupyterServer.GenerateToken()
         # Set up authentication token
         self._token = secrets.token_hex(32) if isinstance(token, DockerJupyterServer.GenerateToken) else token
         
@@ -367,7 +355,7 @@ class DockerJupyterServer(JupyterConnectable):
         env.update(docker_env)
         
         # Define volume configuration if bind directory is specified
-        volumes = {bind_dir: {"bind": work_dir, "mode": "rw"}} if bind_dir else None
+        volumes = {str(self._bind_dir): {"bind": str(work_dir), "mode": "rw"}} if self._bind_dir else None
         
         # Start the container
         container = client.containers.run(
@@ -378,7 +366,7 @@ class DockerJupyterServer(JupyterConnectable):
             publish_all_ports=True,
             name=container_name,
             volumes=volumes,
-            working_dir=work_dir,
+            working_dir=str(work_dir),
         )
         
         # Wait for container to be ready
