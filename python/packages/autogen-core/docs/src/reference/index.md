@@ -14,6 +14,7 @@ myst:
 python/autogen_agentchat
 python/autogen_agentchat.messages
 python/autogen_agentchat.agents
+python/autogen_agentchat.tools
 python/autogen_agentchat.teams
 python/autogen_agentchat.base
 python/autogen_agentchat.conditions
