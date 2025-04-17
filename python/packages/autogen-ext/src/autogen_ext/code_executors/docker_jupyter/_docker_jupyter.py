@@ -62,6 +62,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
     .. code-block:: python
 
         import asyncio
+        from autogen_core import CancellationToken
         from autogen_core.code_executor import CodeBlock
         from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
 
@@ -81,6 +82,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
     .. code-block:: python
 
         import asyncio
+        from autogen_core import CancellationToken
         from autogen_core.code_executor import CodeBlock
         from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
 
