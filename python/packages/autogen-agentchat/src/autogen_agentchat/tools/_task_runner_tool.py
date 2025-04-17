@@ -5,9 +5,10 @@ from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 from pydantic import BaseModel
 
-from autogen_agentchat.agents import BaseChatAgent
-from autogen_agentchat.base._task import TaskResult
-from autogen_agentchat.teams._group_chat._base_group_chat import BaseGroupChat
+from ..agents import BaseChatAgent
+from ..base import TaskResult
+from ..messages import BaseChatMessage
+from ..teams import BaseGroupChat
 
 
 class TaskRunnerToolArgs(BaseModel):
@@ -32,6 +33,16 @@ class TaskRunnerTool(BaseTool[TaskRunnerToolArgs, TaskResult], ABC):
 
     async def run(self, args: TaskRunnerToolArgs, cancellation_token: CancellationToken) -> TaskResult:
         return await self._task_runner.run(task=args.task, cancellation_token=cancellation_token)
+
+    def return_value_as_string(self, value: TaskResult) -> str:
+        """Convert the task result to a string."""
+        parts = []
+        for message in value.messages:
+            if isinstance(message, BaseChatMessage):
+                if message.source == "user":
+                    continue
+                parts.append(f"{message.source}: {message.to_model_text()}")
+        return "\n\n".join(parts)
 
     async def save_state_json(self) -> Mapping[str, Any]:
         return await self._task_runner.save_state()

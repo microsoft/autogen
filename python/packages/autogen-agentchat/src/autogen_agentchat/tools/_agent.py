@@ -20,6 +20,38 @@ class AgentTool(TaskRunnerTool, Component[AgentToolConfig]):
 
     Args:
         agent (BaseChatAgent): The agent to be used for running the task.
+
+    Example:
+
+        .. code-block:: python
+
+            import asyncio
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.tools import AgentTool
+            from autogen_agentchat.ui import Console
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4")
+                writer = AssistantAgent(
+                    name="writer",
+                    description="A writer agent for generating text.",
+                    model_client=model_client,
+                    system_message="Write well.",
+                )
+                writer_tool = AgentTool(agent=writer)
+                assistant = AssistantAgent(
+                    name="assistant",
+                    model_client=model_client,
+                    tools=[writer_tool],
+                    system_message="You are a helpful assistant.",
+                )
+                await Console(assistant.run_stream(task="Write a poem about the sea."))
+
+
+            asyncio.run(main())
     """
 
     component_config_schema = AgentToolConfig
