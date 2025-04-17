@@ -1,9 +1,12 @@
-from autogen_agentchat.agents import BaseChatAgent
-from autogen_agentchat.state import BaseState
+from typing import Any, Mapping
+
 from autogen_core import Component, ComponentModel
 from pydantic import BaseModel
 from typing_extensions import Self
-from typing import Mapping, Any
+
+from autogen_agentchat.agents import BaseChatAgent
+from autogen_agentchat.state import BaseState
+
 from ._task_runner_tool import TaskRunnerTool
 
 

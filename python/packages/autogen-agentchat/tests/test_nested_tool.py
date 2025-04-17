@@ -9,11 +9,19 @@ from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.teams import AgentChatRuntimeContext
 from autogen_agentchat.teams._group_chat._base_group_chat import BaseGroupChat
 from autogen_agentchat.teams._group_chat._events import GroupChatMessage
-from autogen_core import CancellationToken, ComponentModel
-from autogen_core import SingleThreadedAgentRuntime, ClosureAgent, ClosureContext, MessageContext, DefaultSubscription, DefaultTopicId
+from autogen_core import (
+    CancellationToken,
+    ClosureAgent,
+    ClosureContext,
+    ComponentModel,
+    DefaultSubscription,
+    DefaultTopicId,
+    MessageContext,
+    SingleThreadedAgentRuntime,
+)
 from autogen_ext.tools.nested import AgentTool, TeamTool
-from autogen_ext.tools.nested._task_runner_tool import TaskRunnerToolInput
 from autogen_ext.tools.nested._agent import AgentToolState
+from autogen_ext.tools.nested._task_runner_tool import TaskRunnerToolInput
 from autogen_ext.tools.nested._team import TeamToolState
 
 
@@ -31,11 +39,11 @@ class MockTaskRunner:
 
     async def run_stream(self, task, cancellation_token):
         """Implement an async generator that can be used with 'async for'."""
-        
+
         # Yield each message
         for message in self.messages:
             yield message
-        
+
         # Finally yield the TaskResult
         yield TaskResult(messages=self.messages)
 
@@ -51,19 +59,19 @@ def mock_group_chat():
     """Create a mock group chat that implements BaseGroupChat."""
     mock = MagicMock(spec=BaseGroupChat)
     task_runner = MockTaskRunner()
-    
+
     # Add all the methods from MockTaskRunner to the mock
     mock.run_stream = task_runner.run_stream
     mock.save_state = task_runner.save_state
     mock.dump_component = task_runner.dump_component
-    
+
     # Add tracking properties
     mock.component_model = task_runner.component_model
-    
+
     # Add name and description for TeamTool
     mock.name = "Mock Group Chat"
     mock.description = "A mock group chat for testing"
-    
+
     return mock
 
 
@@ -72,19 +80,19 @@ def mock_chat_agent():
     """Create a mock chat agent that implements BaseChatAgent."""
     mock = MagicMock(spec=BaseChatAgent)
     task_runner = MockTaskRunner()
-    
+
     # Add all the methods from MockTaskRunner to the mock
     mock.run_stream = task_runner.run_stream
     mock.save_state = task_runner.save_state
     mock.dump_component = task_runner.dump_component
-    
+
     # Add tracking properties
     mock.component_model = task_runner.component_model
-    
+
     # Add name and description for AgentTool
     mock.name = "Mock Agent"
     mock.description = "A mock agent for testing"
-    
+
     return mock
 
 
@@ -109,11 +117,13 @@ async def test_agent_tool_run(mock_chat_agent):
     async def output_result(_ctx: ClosureContext, message: GroupChatMessage, ctx: MessageContext) -> None:
         print(f"Received message: {message}")
         await queue.put(message)
-    
+
     runtime = SingleThreadedAgentRuntime()
-    await ClosureAgent.register_closure(runtime, "test_output_topic", output_result, subscriptions=lambda: [DefaultSubscription()])
+    await ClosureAgent.register_closure(
+        runtime, "test_output_topic", output_result, subscriptions=lambda: [DefaultSubscription()]
+    )
     runtime.start()
-    
+
     with AgentChatRuntimeContext.populate_context((runtime, DefaultTopicId())):
         result = await tool.run(args=TaskRunnerToolInput(task="Test task"), cancellation_token=CancellationToken())
 
@@ -206,11 +216,13 @@ async def test_team_tool_run(mock_group_chat):
     async def output_result(_ctx: ClosureContext, message: GroupChatMessage, ctx: MessageContext) -> None:
         print(f"Received message: {message}")
         await queue.put(message)
-    
+
     runtime = SingleThreadedAgentRuntime()
-    await ClosureAgent.register_closure(runtime, "test_output_topic", output_result, subscriptions=lambda: [DefaultSubscription()])
+    await ClosureAgent.register_closure(
+        runtime, "test_output_topic", output_result, subscriptions=lambda: [DefaultSubscription()]
+    )
     runtime.start()
-    
+
     with AgentChatRuntimeContext.populate_context((runtime, DefaultTopicId())):
         result = await tool.run(args=TaskRunnerToolInput(task="Test task"), cancellation_token=CancellationToken())
 
