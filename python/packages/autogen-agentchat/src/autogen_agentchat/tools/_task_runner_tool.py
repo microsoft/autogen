@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Annotated, Any, Mapping
+from typing import Annotated, Any, List, Mapping
 
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
@@ -36,7 +36,7 @@ class TaskRunnerTool(BaseTool[TaskRunnerToolArgs, TaskResult], ABC):
 
     def return_value_as_string(self, value: TaskResult) -> str:
         """Convert the task result to a string."""
-        parts = []
+        parts: List[str] = []
         for message in value.messages:
             if isinstance(message, BaseChatMessage):
                 if message.source == "user":
