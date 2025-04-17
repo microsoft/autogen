@@ -1077,7 +1077,7 @@ class AzureAISearchTool(BaseAzureAISearchTool):
 
             .. warning::
                 If you set ``query_type="semantic"``, you must also provide a valid ``semantic_config_name``.
-            If you do not, the tool will default to the config name ``"semantic"``.
+                If you do not, the tool will default to the config name ``"semantic"``.
         """
         cls._validate_common_params(name, endpoint, index_name, credential)
 
