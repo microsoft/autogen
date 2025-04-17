@@ -241,7 +241,7 @@ class BaseAzureAISearchTool(BaseTool[SearchQuery, SearchResults], ABC):
         self._client: Optional[SearchClient] = None
         self._cache: Dict[str, Dict[str, Any]] = {}
 
-    async def aclose(self) -> None:
+    async def close(self) -> None:
         """Explicitly close the Azure SearchClient if needed (for cleanup in long-running apps/tests)."""
         if self._client is not None:
             await self._client.close()
