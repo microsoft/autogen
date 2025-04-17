@@ -11,6 +11,7 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     StopMessage,
     StructuredMessage,
+    StructuredMessageFactory,
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
@@ -50,6 +51,28 @@ def test_structured_message() -> None:
     assert dumped_message["content"]["field1"] == "test"
     assert dumped_message["content"]["field2"] == 42
     assert dumped_message["type"] == "StructuredMessage[TestContent]"
+
+
+def test_structured_message_component() -> None:
+    # Create a structured message with the test contentformat_string="this is a string {field1} and this is an int {field2}"
+    format_string = "this is a string {field1} and this is an int {field2}"
+    s_m = StructuredMessageFactory(input_model=TestContent, format_string=format_string)
+    config = s_m.dump_component()
+    s_m_dyn = StructuredMessageFactory.load_component(config)
+    message = s_m_dyn.StructuredMessage(
+        source="test_agent", content=s_m_dyn.ContentModel(field1="test", field2=42), format_string=s_m_dyn.format_string
+    )
+
+    assert isinstance(message.content, s_m_dyn.ContentModel)
+    assert not isinstance(message.content, TestContent)
+    assert message.content.field1 == "test"  # type: ignore[attr-defined]
+    assert message.content.field2 == 42  # type: ignore[attr-defined]
+
+    dumped_message = message.model_dump()
+    assert dumped_message["source"] == "test_agent"
+    assert dumped_message["content"]["field1"] == "test"
+    assert dumped_message["content"]["field2"] == 42
+    assert message.to_model_text() == format_string.format(field1="test", field2=42)
 
 
 def test_message_factory() -> None:
@@ -108,6 +131,22 @@ def test_message_factory() -> None:
     assert structured_message.content.field1 == "test"
     assert structured_message.content.field2 == 42
     assert structured_message.type == "StructuredMessage[TestContent]"  # type: ignore[comparison-overlap]
+
+    sm_factory = StructuredMessageFactory(input_model=TestContent, format_string=None, content_model_name="TestContent")
+    config = sm_factory.dump_component()
+    config.config["content_model_name"] = "DynamicTestContent"
+    sm_factory_dynamic = StructuredMessageFactory.load_component(config)
+
+    factory.register(sm_factory_dynamic.StructuredMessage)
+    msg = sm_factory_dynamic.StructuredMessage(
+        content=sm_factory_dynamic.ContentModel(field1="static", field2=123), source="static_agent"
+    )
+    restored = factory.create(msg.dump())
+    assert isinstance(restored, StructuredMessage)
+    assert isinstance(restored.content, sm_factory_dynamic.ContentModel)  # type: ignore[reportUnkownMemberType]
+    assert restored.source == "static_agent"
+    assert restored.content.field1 == "static"  # type: ignore[attr-defined]
+    assert restored.content.field2 == 123  # type: ignore[attr-defined]
 
 
 class TestContainer(BaseModel):
