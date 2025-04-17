@@ -122,7 +122,7 @@ class JupyterClient:
     async def get_kernel_client(self, kernel_id: str) -> "JupyterKernelClient":
         ws_url = f"{self._get_ws_base_url()}/api/kernels/{kernel_id}/channels"
         # Using websockets library for async websocket connections
-        ws = await websockets.connect(ws_url, extra_headers=self._get_headers())
+        ws = await websockets.connect(ws_url, additional_headers=self._get_headers())
         return JupyterKernelClient(ws)
 
     async def close(self) -> None:
@@ -384,7 +384,7 @@ class DockerJupyterServer(JupyterConnectable):
             raise ValueError("Failed to obtain container id.")
 
         # Define cleanup function
-        def cleanup():
+        def cleanup() -> None:
             try:
                 assert self._container_id is not None
                 inner_container = client.containers.get(self._container_id)

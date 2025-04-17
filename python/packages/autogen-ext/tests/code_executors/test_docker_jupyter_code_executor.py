@@ -74,7 +74,7 @@ async def test_execute_code(executor_and_temp_dir: ExecutorFixture) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_jupyter_persist_variable(executor_and_temp_dir: ExecutorFixture) -> None:
+async def test_execute_code_and_persist_variable(executor_and_temp_dir: ExecutorFixture) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         async with DockerJupyterServer(bind_dir=temp_dir) as jupyter_server:
             async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
@@ -96,7 +96,7 @@ async def test_jupyter_persist_variable(executor_and_temp_dir: ExecutorFixture) 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_commandline_code_executor_timeout(executor_and_temp_dir: ExecutorFixture) -> None:
+async def test_timeout(executor_and_temp_dir: ExecutorFixture) -> None:
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
     async with DockerJupyterServer() as jupyter_server:
         async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server, timeout=1) as executor:
@@ -109,7 +109,7 @@ async def test_commandline_code_executor_timeout(executor_and_temp_dir: Executor
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_commandline_code_executor_cancellation(executor_and_temp_dir: ExecutorFixture) -> None:
+async def test_canncellation(executor_and_temp_dir: ExecutorFixture) -> None:
     _executor, temp_dir = executor_and_temp_dir
     # Write code that sleep for 10 seconds and then write "hello world!"
     # to a file.
@@ -126,7 +126,7 @@ with open("hello.txt", "w") as f:
 
 
 @pytest.mark.asyncio
-async def test_docker_commandline_code_executor_start_stop() -> None:
+async def test_start_stop() -> None:
     if not docker_tests_enabled():
         pytest.skip("Docker tests are disabled")
     with tempfile.TemporaryDirectory() as temp_dir:
