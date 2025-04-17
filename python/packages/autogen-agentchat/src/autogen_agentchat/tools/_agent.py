@@ -1,11 +1,8 @@
-from typing import Any, Mapping
-
 from autogen_core import Component, ComponentModel
 from pydantic import BaseModel
 from typing_extensions import Self
 
 from autogen_agentchat.agents import BaseChatAgent
-from autogen_agentchat.state import BaseState
 
 from ._task_runner_tool import TaskRunnerTool
 
@@ -17,10 +14,16 @@ class AgentToolConfig(BaseModel):
 
 
 class AgentTool(TaskRunnerTool, Component[AgentToolConfig]):
-    """Tool that can be used to run a task."""
+    """Tool that can be used to run a task using an agent.
+
+    The tool returns the result of the task execution as a :class:`~autogen_agentchat.base.TaskResult` object.
+
+    Args:
+        agent (BaseChatAgent): The agent to be used for running the task.
+    """
 
     component_config_schema = AgentToolConfig
-    component_provider_override = "autogen_ext.tools.nested.AgentTool"
+    component_provider_override = "autogen_agentchat.tools.AgentTool"
 
     def __init__(self, agent: BaseChatAgent) -> None:
         self._agent = agent

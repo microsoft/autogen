@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import AsyncGenerator, Protocol, Sequence
 
 from autogen_core import CancellationToken
