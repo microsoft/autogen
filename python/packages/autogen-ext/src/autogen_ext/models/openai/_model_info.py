@@ -11,6 +11,8 @@ trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``
 _MODEL_POINTERS = {
     # OpenAI models
+    "o4-mini": "o4-mini-2025-04-16",
+    "o3": "o3-2025-04-16",
     "o3-mini": "o3-mini-2025-01-31",
     "o1": "o1-2024-12-17",
     "o1-preview": "o1-preview-2024-09-12",
@@ -34,6 +36,20 @@ _MODEL_POINTERS = {
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
+    "o4-mini-2025-04-16": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.O4,
+        "structured_output": True,
+    },
+    "o3-2025-04-16": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.O3,
+        "structured_output": True,
+    },
     "o3-mini-2025-01-31": {
         "vision": False,
         "function_calling": True,
@@ -261,6 +277,8 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
+    "o4-mini-2025-04-16": 200000,
+    "o3-2025-04-16": 200000,
     "o3-mini-2025-01-31": 200000,
     "o1-2024-12-17": 200000,
     "o1-preview-2024-09-12": 128000,

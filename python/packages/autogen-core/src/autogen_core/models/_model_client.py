@@ -22,6 +22,7 @@ class ModelFamily:
     GPT_4O = "gpt-4o"
     O1 = "o1"
     O3 = "o3"
+    O4 = "o4"
     GPT_4 = "gpt-4"
     GPT_35 = "gpt-35"
     R1 = "r1"
