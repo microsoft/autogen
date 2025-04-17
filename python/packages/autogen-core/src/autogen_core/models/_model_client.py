@@ -124,7 +124,7 @@ class ModelInfo(TypedDict, total=False):
     structured_output: Required[bool]
     """True if the model supports structured output, otherwise False. This is different to json_output."""
     multiple_system_messages: Optional[bool]
-    """True if the model supports multiple system messages, otherwise False. This is different to json_output."""
+    """True if the model supports multiple, non-consecutive system messages, otherwise False."""
 
 
 def validate_model_info(model_info: ModelInfo) -> None:
