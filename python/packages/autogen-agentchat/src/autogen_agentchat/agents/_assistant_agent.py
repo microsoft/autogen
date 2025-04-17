@@ -1111,6 +1111,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     )
                 )
                 handoff_context.append(FunctionExecutionResultMessage(content=tool_call_results))
+            elif model_result.thought:
+                # If no tool calls, but a thought exists, include it in the context
+                handoff_context.append(
+                    AssistantMessage(
+                        content=model_result.thought,
+                        source=agent_name,
+                    )
+                )
 
             # Return response for the first handoff
             return Response(
