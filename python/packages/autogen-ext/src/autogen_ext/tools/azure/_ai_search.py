@@ -385,45 +385,45 @@ class BaseAzureAISearchTool(BaseTool[SearchQuery, SearchResults], ABC):
             else:
                 search_results = await search_future  # pyright: ignore[reportUnknownVariableType]
 
-                async for doc in search_results:  # type: ignore
-                    search_doc: Any = doc
-                    doc_dict: Dict[str, Any] = {}
+            async for doc in search_results:  # type: ignore
+                search_doc: Any = doc
+                doc_dict: Dict[str, Any] = {}
 
-                    try:
-                        if hasattr(search_doc, "items") and callable(search_doc.items):
-                            dict_like_doc = cast(Dict[str, Any], search_doc)
-                            for key, value in dict_like_doc.items():
-                                doc_dict[str(key)] = value
-                        else:
-                            for key in [
-                                k
-                                for k in dir(search_doc)
-                                if not k.startswith("_") and not callable(getattr(search_doc, k, None))
-                            ]:
-                                doc_dict[key] = getattr(search_doc, key)
-                    except Exception as e:
-                        logger.warning(f"Error processing search document: {e}")
-                        continue
+                try:
+                    if hasattr(search_doc, "items") and callable(search_doc.items):
+                        dict_like_doc = cast(Dict[str, Any], search_doc)
+                        for key, value in dict_like_doc.items():
+                            doc_dict[str(key)] = value
+                    else:
+                        for key in [
+                            k
+                            for k in dir(search_doc)
+                            if not k.startswith("_") and not callable(getattr(search_doc, k, None))
+                        ]:
+                            doc_dict[key] = getattr(search_doc, key)
+                except Exception as e:
+                    logger.warning(f"Error processing search document: {e}")
+                    continue
 
-                    metadata: Dict[str, Any] = {}
-                    content: Dict[str, Any] = {}
-                    for key, value in doc_dict.items():
-                        key_str: str = str(key)
-                        if key_str.startswith("@") or key_str.startswith("_"):
-                            metadata[key_str] = value
-                        else:
-                            content[key_str] = value
+                metadata: Dict[str, Any] = {}
+                content: Dict[str, Any] = {}
+                for key, value in doc_dict.items():
+                    key_str: str = str(key)
+                    if key_str.startswith("@") or key_str.startswith("_"):
+                        metadata[key_str] = value
+                    else:
+                        content[key_str] = value
 
-                    score: float = 0.0
-                    if "@search.score" in doc_dict:
-                        score = float(doc_dict["@search.score"])
+                score: float = 0.0
+                if "@search.score" in doc_dict:
+                    score = float(doc_dict["@search.score"])
 
-                    result = SearchResult(
-                        score=score,
-                        content=content,
-                        metadata=metadata,
-                    )
-                    results.append(result)
+                result = SearchResult(
+                    score=score,
+                    content=content,
+                    metadata=metadata,
+                )
+                results.append(result)
 
             if self.search_config.enable_caching:
                 cache_key = f"{text_query}_{self.search_config.top}"
