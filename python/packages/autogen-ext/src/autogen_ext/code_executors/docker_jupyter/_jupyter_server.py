@@ -89,7 +89,7 @@ class JupyterClient:
         response = self._session.get(f"{self._get_api_base_url()}/api/kernels", headers=self._get_headers())
         return cast(List[Dict[str, str]], response.json())
 
-    async def start_kernel_async(self, kernel_spec_name: str) -> str:
+    async def start_kernel(self, kernel_spec_name: str) -> str:
         """Start a new kernel asynchronously.
 
         Args:

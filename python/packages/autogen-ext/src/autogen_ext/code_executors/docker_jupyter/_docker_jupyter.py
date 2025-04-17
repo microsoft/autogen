@@ -241,7 +241,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         available_kernels = await self._jupyter_client.list_kernel_specs()
         if self._kernel_name not in available_kernels["kernelspecs"]:
             raise ValueError(f"Kernel {self._kernel_name} is not installed.")
-        self._kernel_id = await self._jupyter_client.start_kernel_async(self._kernel_name)
+        self._kernel_id = await self._jupyter_client.start_kernel(self._kernel_name)
 
     def _save_image(self, image_data_base64: str) -> str:
         """Save image data to a file."""
