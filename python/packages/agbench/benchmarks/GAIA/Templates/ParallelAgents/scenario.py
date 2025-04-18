@@ -1,15 +1,15 @@
-import argparse
 import asyncio
 import os
 import re
 import logging
-from utils import LogHandler
 import yaml
 import warnings
 import contextvars
 import builtins
 import shutil
-from typing import List, Optional
+import json
+from datetime import datetime
+from typing import List, Optional, Dict
 from collections import deque
 from autogen_agentchat import TRACE_LOGGER_NAME as AGENTCHAT_TRACE_LOGGER_NAME, EVENT_LOGGER_NAME as AGENTCHAT_EVENT_LOGGER_NAME
 from autogen_core import TRACE_LOGGER_NAME as CORE_TRACE_LOGGER_NAME, EVENT_LOGGER_NAME as CORE_EVENT_LOGGER_NAME
@@ -22,13 +22,17 @@ from autogen_core.models import (
     LLMMessage,
     UserMessage,
 )
+from autogen_core.logging import LLMCallEvent
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_agentchat.conditions import TextMentionTermination
 from autogen_core.models import ChatCompletionClient
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.messages import (
     TextMessage,
+    AgentEvent,
+    ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
@@ -40,6 +44,7 @@ from autogen_agentchat.messages import (
 from autogen_core import CancellationToken
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai._model_info import _MODEL_TOKEN_LIMITS, resolve_model
+from autogen_agentchat.utils import content_to_str
 
 # Suppress warnings about the requests.Session() not being closed
 warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
@@ -56,6 +61,43 @@ current_team_id = contextvars.ContextVar("current_team_id", default=None)
 original_print = builtins.print
 original_agentchat_event_logger_info = agentchat_event_logger.info
 original_core_event_logger_info = core_event_logger.info
+
+class LogHandler(logging.FileHandler):
+    def __init__(self, filename: str = "log.jsonl", print_message: bool = True) -> None:
+        super().__init__(filename, mode="w")
+        self.print_message = print_message
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            ts = datetime.fromtimestamp(record.created).isoformat()
+            if AGENTCHAT_EVENT_LOGGER_NAME in record.name:
+                original_msg = record.msg
+                record.msg = json.dumps(
+                    {
+                        "timestamp": ts,
+                        "source": record.msg.source,
+                        "message": content_to_str(record.msg.content),
+                        "type": record.msg.type,
+                    }
+                )
+                super().emit(record)
+                record.msg = original_msg
+            elif CORE_EVENT_LOGGER_NAME in record.name:
+                if isinstance(record.msg, LLMCallEvent):
+                    original_msg = record.msg
+                    record.msg = json.dumps(
+                        {
+                            "timestamp": ts,
+                            "prompt_tokens": record.msg.kwargs["prompt_tokens"],
+                            "completion_tokens": record.msg.kwargs["completion_tokens"],
+                            "type": "LLMCallEvent",
+                        }
+                    )
+                    super().emit(record)
+                    record.msg = original_msg
+        except Exception:
+            print("error in logHandler.emit", flush=True)
+            self.handleError(record)
 
 def tee_print(*args, **kwargs):
     # Get the current log file from the context.
@@ -140,13 +182,13 @@ async def aggregate_final_answer(task: str, client: ChatCompletionClient, team_r
                     # Ignore tool call messages.
                     pass
                 elif isinstance(m, StopMessage | HandoffMessage):
-                    aggregator_messages_to_send[team_idx].appendleft(UserMessage(content=m.content, source=m.source))
+                    aggregator_messages_to_send[team_idx].appendleft(UserMessage(content=m.to_model_text(), source=m.source))
                 elif m.source == "MagenticOneOrchestrator":
                     assert isinstance(m, TextMessage | ToolCallSummaryMessage)
-                    aggregator_messages_to_send[team_idx].appendleft(AssistantMessage(content=m.content, source=m.source))
+                    aggregator_messages_to_send[team_idx].appendleft(AssistantMessage(content=m.to_model_text(), source=m.source))
                 else:
                     assert isinstance(m, (TextMessage, MultiModalMessage, ToolCallSummaryMessage))
-                    aggregator_messages_to_send[team_idx].appendleft(UserMessage(content=m.content, source=m.source))
+                    aggregator_messages_to_send[team_idx].appendleft(UserMessage(content=m.to_model_text(), source=m.source))
                 team_results[team_idx].messages.pop()
             current_round += 1
 
@@ -219,7 +261,7 @@ async def aggregate_final_answer(task: str, client: ChatCompletionClient, team_r
             f"{source} (Response):\n{final_answer}"
         )
 
-        return response.content
+        return re.sub(r"FINAL ANSWER:", "FINAL AGGREGATED ANSWER:", response.content)
 
 
 async def main(num_teams: int, num_answers: int) -> None:
@@ -228,33 +270,33 @@ async def main(num_teams: int, num_answers: int) -> None:
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    orchestrator_client = ChatCompletionClient.load_component(config["orchestrator_client"])
-    coder_client = ChatCompletionClient.load_component(config["coder_client"])
-    web_surfer_client = ChatCompletionClient.load_component(config["web_surfer_client"])
-    file_surfer_client = ChatCompletionClient.load_component(config["file_surfer_client"])
+    # orchestrator_client = ChatCompletionClient.load_component(config["orchestrator_client"])
+    # coder_client = ChatCompletionClient.load_component(config["coder_client"])
+    # web_surfer_client = ChatCompletionClient.load_component(config["web_surfer_client"])
+    # file_surfer_client = ChatCompletionClient.load_component(config["file_surfer_client"])
 
     # Use Ollama model
-    # model_client = OpenAIChatCompletionClient(
-    #     model="llama3.2:latest",
-    #     base_url="http://localhost:11434/v1",
-    #     api_key="placeholder",
-    #     model_info={
-    #         "vision": False,
-    #         "function_calling": True,
-    #         "json_output": True,
-    #         "family": "unknown",
-    #     },
-    # )
-    # orchestrator_client = model_client
-    # coder_client = model_client
-    # web_surfer_client = model_client
-    # file_surfer_client = model_client
+    model_client = OpenAIChatCompletionClient(
+        model="llama3.2:latest",
+        base_url="http://host.docker.internal:11434/v1",
+        api_key="placeholder",
+        model_info={
+            "vision": False,
+            "function_calling": True,
+            "json_output": True,
+            "family": "unknown",
+        },
+    )
+    orchestrator_client = model_client
+    coder_client = model_client
+    web_surfer_client = model_client
+    file_surfer_client = model_client
 
     # Read the prompt
     prompt = ""
     with open("prompt.txt", "rt") as fh:
         prompt = fh.read().strip()
-    filename = ""
+    filename = "__FILE_NAME__".strip()
 
     # Prepare the prompt
     filename_prompt = ""
@@ -294,7 +336,7 @@ async def main(num_teams: int, num_answers: int) -> None:
         team = MagenticOneGroupChat(
             [coder, executor, file_surfer, web_surfer],
             model_client=orchestrator_client,
-            max_turns=20,
+            max_turns=30,
             final_answer_prompt= f""",
 We have completed the following task:
 
@@ -329,7 +371,6 @@ If you are asked for a comma separated list, apply the above rules depending on 
     for future in asyncio.as_completed(async_tasks):
         try:
             team_id, result = await future
-            # team_results: {"team_key": {"answer": str, "chat_history": List[LLMMessage]}}
             team_results[team_id] = result
         except Exception as e:
             # Optionally log exception.
@@ -349,13 +390,8 @@ If you are asked for a comma separated list, apply the above rules depending on 
     print("FINAL AGGREGATED ANSWER: ", final_answer)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--num_teams", type=int, default=3, help="Number of teams to run in parallel.")
-    parser.add_argument("--num_answers", type=int, default=3, help="Number of answers to aggregate from the teams.")
-
-    args = parser.parse_args()
-    num_teams = args.num_teams
-    num_answers = args.num_answers
+    num_teams = 3
+    num_answers = 3
 
     agentchat_trace_logger.setLevel(logging.DEBUG)
     file_handler = logging.FileHandler("trace.log", mode="w")
@@ -378,5 +414,6 @@ if __name__ == "__main__":
     fh = logging.FileHandler("aggregator_log.txt", mode="w")
     fh.setLevel(logging.DEBUG)
     aggregator_logger.addHandler(fh)
+
 
     asyncio.run(main(num_teams, num_answers))
