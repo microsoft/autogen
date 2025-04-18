@@ -9,7 +9,7 @@ from typing import (
 )
 
 from autogen_core import CancellationToken, Component, ComponentModel
-from autogen_core.code_executor import CodeBlock, CodeExecutor
+from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
 from autogen_core.memory import Memory
 from autogen_core.model_context import (
     ChatCompletionContext,
@@ -358,7 +358,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_client_stream = self._model_client_stream
         max_retries_on_error = self._max_retries_on_error
 
-        execution_result: CodeExecutionEvent | None = None
+        execution_result: CodeResult | None = None
         if model_client is None:  # default behaviour for backward compatibility
             # execute generated code if present
             code_blocks: List[CodeBlock] = await self.extract_code_blocks_from_messages(messages)
@@ -371,12 +371,12 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 )
                 return
             execution_result = await self.execute_code_block(code_blocks, cancellation_token)
-            yield Response(chat_message=TextMessage(content=execution_result.to_text(), source=execution_result.source))
+            yield Response(chat_message=TextMessage(content=execution_result.output, source=self.name))
             return
 
         inner_messages: List[BaseAgentEvent | BaseChatMessage] = []
 
-        for nth_try in range(max_retries_on_error):
+        for nth_try in range(max_retries_on_error + 1):  # Do one default generation, execution and inference loop
             # STEP 1: Add new user/handoff messages to the model context
             await self._add_messages_to_context(
                 model_context=model_context,
@@ -440,6 +440,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             #       For now we can assume that there are no FunctionCalls in the response because we are not providing tools to the CodeExecutorAgent.
             #       So, for now we cast model_result.content to string
             inferred_text_message: CodeGenerationEvent = CodeGenerationEvent(
+                retry_attempt=nth_try,
                 content=str(model_result.content),
                 code_blocks=code_blocks,
                 source=agent_name,
@@ -452,21 +453,21 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             # Add the code execution result to the model context
             await model_context.add_message(
                 UserMessage(
-                    content=execution_result.result.output,
+                    content=execution_result.output,
                     source=agent_name,
                 )
             )
 
-            yield execution_result
+            yield CodeExecutionEvent(retry_attempt=nth_try, result=execution_result, source=self.name)
 
-            # if execution was successful, then exit
-            if execution_result.result.exit_code == 0:
+            # if execution was successful or last retry, then exit
+            if execution_result.exit_code == 0 or nth_try == max_retries_on_error:
                 break
 
             chat_context = await model_context.get_messages()
 
             retry_prompt = (
-                f"The most recent code execution resulted in an error:\n{execution_result.result.output}\n\n"
+                f"The most recent code execution resulted in an error:\n{execution_result.output}\n\n"
                 "Should we attempt to resolve it? Please respond with:\n"
                 "- A boolean value for 'retry' indicating whether it should be retried.\n"
                 "- A detailed explanation in 'reason' that identifies the issue, justifies your decision to retry or not, and outlines how you would resolve the error if a retry is attempted."
@@ -490,7 +491,8 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
             # TODO: Should we have separate event for retry? maybe yes
             yield CodeGenerationEvent(
-                content=f"Remaining retry attempts: {max_retries_on_error - nth_try - 1}\nReason: {should_retry_generation.reason}",
+                retry_attempt=nth_try,
+                content=f"Attempt number: {nth_try + 1}\nProposed correction: {should_retry_generation.reason}",
                 code_blocks=[],
                 source=agent_name,
             )
@@ -518,7 +520,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
     async def execute_code_block(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
-    ) -> CodeExecutionEvent:
+    ) -> CodeResult:
         # Execute the code blocks.
         result = await self._code_executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
 
@@ -529,7 +531,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             # Error
             result.output = f"The script ran, then exited with an error (POSIX exit code: {result.exit_code})\nIts output was:\n{result.output}"
 
-        return CodeExecutionEvent(result=result, source=self.name)
+        return result
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Its a no-op as the code executor agent has no mutable state."""
