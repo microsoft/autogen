@@ -387,7 +387,7 @@ If you are asked for a comma separated list, apply the above rules depending on 
 
     print("len(team_results):", len(team_results))
     final_answer = await aggregate_final_answer(prompt, orchestrator_client, team_results)
-    print("FINAL AGGREGATED ANSWER: ", final_answer)
+    print(final_answer)
 
 if __name__ == "__main__":
     num_teams = 3
