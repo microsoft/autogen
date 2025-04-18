@@ -20,6 +20,7 @@ from ....messages import (
     HandoffMessage,
     MessageFactory,
     MultiModalMessage,
+    SelectSpeakerEvent,
     StopMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -68,6 +69,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         final_answer_prompt: str,
         output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
+        emit_team_events: bool,
     ):
         super().__init__(
             name,
@@ -80,6 +82,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             termination_condition,
             max_turns,
             message_factory,
+            emit_team_events=emit_team_events,
         )
         self._model_client = model_client
         self._max_stalls = max_stalls
@@ -404,6 +407,15 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             topic_id=DefaultTopicId(type=participant_topic_type),
             cancellation_token=cancellation_token,
         )
+
+        # Send the message to the next speaker
+        if self._emit_team_events:
+            select_msg = SelectSpeakerEvent(content=[next_speaker], source=self._name)
+            await self.publish_message(
+                GroupChatMessage(message=select_msg),
+                topic_id=DefaultTopicId(type=self._output_topic_type),
+            )
+            await self._output_message_queue.put(select_msg)
 
     async def _update_task_ledger(self, cancellation_token: CancellationToken) -> None:
         """Update the task ledger (outer loop) with the latest facts and plan."""
