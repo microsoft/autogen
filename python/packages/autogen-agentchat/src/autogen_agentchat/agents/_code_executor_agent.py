@@ -430,12 +430,6 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
             code_blocks = self._extract_markdown_code_blocks(str(model_result.content))
 
-            # TODO: How should we handle the case where model generated no code block
-            #       while retrying?
-            #       My guess is if only one try is remaining then we can just return
-            #       the model result as is, with message indicating no code block was found.
-            #       And if retries are remaining then we can continue to next iteration
-            #       yielding a event indicating no code block was found hence retrying.
             if not code_blocks:
                 yield Response(
                     chat_message=TextMessage(
