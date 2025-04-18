@@ -1274,6 +1274,39 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 ),
             )
 
+    async def update_system_message(self, system_message: str) -> None:
+        self._system_messages = [SystemMessage(content=system_message)]
+
+    async def register_tools(self, tools: List[BaseTool[Any, Any] | Callable[..., Any] | Callable[..., Awaitable[Any]]]) -> None:
+        """Register tools with the assistant agent.
+
+        Args:
+            tools: The tools to register.
+
+        Raises:
+            ValueError: If the model does not support function calling.
+            ValueError: If a tool is not a `BaseTool` instance or a callable.
+            ValueError: If a tool name is not unique.
+        """
+        if tools is not None:
+            if self._model_client.model_info["function_calling"] is False:
+                raise ValueError("The model does not support function calling.")
+            for tool in tools:
+                if isinstance(tool, BaseTool):
+                    self._tools.append(tool)
+                elif callable(tool):
+                    if hasattr(tool, "__doc__") and tool.__doc__ is not None:
+                        description = tool.__doc__
+                    else:
+                        description = ""
+                    self._tools.append(FunctionTool(tool, description=description))
+                else:
+                    raise ValueError(f"Unsupported tool type: {type(tool)}")
+        # Check if tool names are unique.
+        tool_names = [tool.name for tool in self._tools]
+        if len(tool_names) != len(set(tool_names)):
+            raise ValueError(f"Tool names must be unique: {tool_names}")
+        
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""
         await self._model_context.clear()
