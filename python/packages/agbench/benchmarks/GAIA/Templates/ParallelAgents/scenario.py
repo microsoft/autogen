@@ -270,27 +270,10 @@ async def main(num_teams: int, num_answers: int) -> None:
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    # orchestrator_client = ChatCompletionClient.load_component(config["orchestrator_client"])
-    # coder_client = ChatCompletionClient.load_component(config["coder_client"])
-    # web_surfer_client = ChatCompletionClient.load_component(config["web_surfer_client"])
-    # file_surfer_client = ChatCompletionClient.load_component(config["file_surfer_client"])
-
-    # Use Ollama model
-    model_client = OpenAIChatCompletionClient(
-        model="llama3.2:latest",
-        base_url="http://host.docker.internal:11434/v1",
-        api_key="placeholder",
-        model_info={
-            "vision": False,
-            "function_calling": True,
-            "json_output": True,
-            "family": "unknown",
-        },
-    )
-    orchestrator_client = model_client
-    coder_client = model_client
-    web_surfer_client = model_client
-    file_surfer_client = model_client
+    orchestrator_client = ChatCompletionClient.load_component(config["orchestrator_client"])
+    coder_client = ChatCompletionClient.load_component(config["coder_client"])
+    web_surfer_client = ChatCompletionClient.load_component(config["web_surfer_client"])
+    file_surfer_client = ChatCompletionClient.load_component(config["file_surfer_client"])
 
     # Read the prompt
     prompt = ""
