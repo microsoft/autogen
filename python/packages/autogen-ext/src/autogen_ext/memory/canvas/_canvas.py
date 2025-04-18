@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Union
+from typing import Any, Dict, Union
 
 
 class BaseCanvas(ABC):

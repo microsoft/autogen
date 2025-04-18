@@ -1,7 +1,6 @@
-import json
-from pydantic import BaseModel
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
+from pydantic import BaseModel
 
 from ._text_canvas import TextCanvas
 

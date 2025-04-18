@@ -1,16 +1,18 @@
+from typing import Any, Optional
+
+from autogen_core import CancellationToken
 from autogen_core.memory import (
     Memory,
     MemoryContent,
+    MemoryMimeType,
     MemoryQueryResult,
     UpdateContextResult,
-    MemoryMimeType,
 )
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
 
-from typing import Any, Optional
+from ._canvas_writer import ApplyPatchTool, UpdateFileTool
 from ._text_canvas import TextCanvas
-from ._canvas_writer import UpdateFileTool, ApplyPatchTool
 
 
 class TextCanvasMemory(Memory):
@@ -187,14 +189,16 @@ class TextCanvasMemory(Memory):
 
         return UpdateContextResult(memories=MemoryQueryResult(results=[]))
 
-    async def query(self, query: str | MemoryContent, cancellation_token=None, **kwargs: Any) -> MemoryQueryResult:
+    async def query(
+        self, query: str | MemoryContent, cancellation_token: Optional[CancellationToken] = None, **kwargs: Any
+    ) -> MemoryQueryResult:
         """
         Potentially search for matching filenames or file content.
         This example returns empty.
         """
         return MemoryQueryResult(results=[])
 
-    async def add(self, content: MemoryContent, cancellation_token=None) -> None:
+    async def add(self, content: MemoryContent, cancellation_token: Optional[CancellationToken] = None) -> None:
         """
         Example usage: Possibly interpret content as a patch or direct file update.
         Could also be done by a specialized "CanvasTool" instead.
