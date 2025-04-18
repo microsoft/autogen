@@ -9,6 +9,8 @@ __all__ = [
     "AnthropicChatCompletionClient",
     "BaseAnthropicChatCompletionClient",
     "AnthropicClientConfiguration",
+    "AnthropicBedrockClientConfiguration",
     "AnthropicClientConfigurationConfigModel",
+    "AnthropicBedrockClientConfigurationConfigModel",
     "CreateArgumentsConfigModel",
 ]
