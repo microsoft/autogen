@@ -300,7 +300,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_client: ChatCompletionClient | None = None,
         model_context: ChatCompletionContext | None = None,
         model_client_stream: bool = False,
-        n_retry_on_failure: int | None = None,
+        max_retries_on_error: int = 0,
         description: str | None = None,
         system_message: str | None = DEFAULT_SYSTEM_MESSAGE,
         sources: Sequence[str] | None = None,
@@ -315,10 +315,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         self._code_executor = code_executor
         self._sources = sources
         self._model_client_stream = model_client_stream
-        if n_retry_on_failure is None or n_retry_on_failure <= 0:
-            self._n_retry_on_failure = 1
-        else:
-            self._n_retry_on_failure = n_retry_on_failure
+        self._max_retries_on_error = max_retries_on_error
 
         self._model_client = None
         if model_client is not None:
@@ -359,7 +356,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         system_messages = self._system_messages
         model_client = self._model_client
         model_client_stream = self._model_client_stream
-        n_retry_on_failure = self._n_retry_on_failure
+        max_retries_on_error = self._max_retries_on_error
 
         execution_result: CodeExecutionEvent | None = None
         if model_client is None:  # default behaviour for backward compatibility
@@ -379,7 +376,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
         inner_messages: List[BaseAgentEvent | BaseChatMessage] = []
 
-        for nth_try in range(n_retry_on_failure):
+        for nth_try in range(max_retries_on_error):
             # STEP 1: Add new user/handoff messages to the model context
             await self._add_messages_to_context(
                 model_context=model_context,
@@ -493,7 +490,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
             # TODO: Should we have separate event for retry? maybe yes
             yield CodeGenerationEvent(
-                content=f"Remaining retry attempts: {n_retry_on_failure - nth_try - 1}\nReason: {should_retry_generation.reason}",
+                content=f"Remaining retry attempts: {max_retries_on_error - nth_try - 1}\nReason: {should_retry_generation.reason}",
                 code_blocks=[],
                 source=agent_name,
             )
