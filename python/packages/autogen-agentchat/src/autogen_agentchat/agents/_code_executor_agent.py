@@ -381,12 +381,13 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         inner_messages: List[BaseAgentEvent | BaseChatMessage] = []
 
         for nth_try in range(max_retries_on_error + 1):  # Do one default generation, execution and inference loop
-            # STEP 1: Add new user/handoff messages to the model context
+            # Step 1: Add new user/handoff messages to the model context
             await self._add_messages_to_context(
                 model_context=model_context,
                 messages=messages,
             )
 
+            # Step 2: Run inference with the model context
             model_result = None
             async for inference_output in self._call_llm(
                 model_client=model_client,
@@ -404,13 +405,13 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
             assert model_result is not None, "No model result was produced."
 
-            # --- NEW: If the model produced a hidden "thought," yield it as an event ---
+            # Step 3: [NEW] If the model produced a hidden "thought," yield it as an event
             if model_result.thought:
                 thought_event = ThoughtEvent(content=model_result.thought, source=agent_name)
                 yield thought_event
                 inner_messages.append(thought_event)
 
-            # Add the assistant message to the model context (including thought if present)
+            # Step 4: Add the assistant message to the model context (including thought if present)
             await model_context.add_message(
                 AssistantMessage(
                     content=model_result.content,
@@ -419,8 +420,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 )
             )
 
+            # Step 5: Extract the code blocks from inferred text
             code_blocks = self._extract_markdown_code_blocks(str(model_result.content))
 
+            # Step 6: Exit the loop if no code blocks found
             if not code_blocks:
                 yield Response(
                     chat_message=TextMessage(
@@ -441,9 +444,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
             yield inferred_text_message
 
+            # Step 8: Execute the extracted code blocks
             execution_result = await self.execute_code_block(inferred_text_message.code_blocks, cancellation_token)
 
-            # Add the code execution result to the model context
+            # Step 9: Update model context with the code execution result
             await model_context.add_message(
                 UserMessage(
                     content=execution_result.output,
@@ -451,12 +455,15 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 )
             )
 
+            # Step 10: Yield a CodeExecutionEvent
             yield CodeExecutionEvent(retry_attempt=nth_try, result=execution_result, source=self.name)
 
-            # if execution was successful or last retry, then exit
+            # If execution was successful or last retry, then exit
             if execution_result.exit_code == 0 or nth_try == max_retries_on_error:
                 break
 
+            # Step 11: If exit code is non-zero and retries are available then
+            #          make an inference asking if we should retry or not
             chat_context = await model_context.get_messages()
 
             retry_prompt = (
@@ -473,16 +480,17 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 )
             ]
 
-            # TODO: add support for model that don't support structured output
             response = await model_client.create(messages=chat_context, json_output=RetryDecision)
 
-            # NOTE: casting to str as no function calls are expected
+            assert isinstance(
+                response.content, str
+            ), "Expected structured response for retry decision to be of type str."
             should_retry_generation = RetryDecision.model_validate_json(str(response.content))
 
+            # Exit if no-retry is needed
             if not should_retry_generation.retry:
                 break
 
-            # TODO: Should we have separate event for retry? maybe yes
             yield CodeGenerationEvent(
                 retry_attempt=nth_try,
                 content=f"Attempt number: {nth_try + 1}\nProposed correction: {should_retry_generation.reason}",
@@ -490,7 +498,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 source=agent_name,
             )
 
-        # always reflect on the execution result
+        # Always reflect on the execution result
         async for reflection_response in CodeExecutorAgent._reflect_on_code_block_results_flow(
             system_messages=system_messages,
             model_client=model_client,
@@ -499,7 +507,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             agent_name=agent_name,
             inner_messages=inner_messages,
         ):
-            yield reflection_response  # last reflection_response is of type Response so it will finish the routine
+            yield reflection_response  # Last reflection_response is of type Response so it will finish the routine
 
     async def extract_code_blocks_from_messages(self, messages: Sequence[BaseChatMessage]) -> List[CodeBlock]:
         # Extract code blocks from the messages.
