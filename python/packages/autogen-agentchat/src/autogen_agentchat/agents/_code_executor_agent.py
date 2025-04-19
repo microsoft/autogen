@@ -330,6 +330,12 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         else:
             self._system_messages = [SystemMessage(content=system_message)]
 
+        if self._max_retries_on_error > 0:
+            if not self._model_client or not self._model_client.model_info:
+                raise ValueError("model_client.model_info must be provided when max_retries_on_error > 0")
+            if not self._model_client.model_info["structured_output"]:
+                raise ValueError("Specified model_client doesn't support structured output mode.")
+
     @property
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         """The types of messages that the code executor agent produces."""
