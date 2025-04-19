@@ -24,6 +24,7 @@ from ...messages import (
     BaseChatMessage,
     MessageFactory,
     ModelClientStreamingChunkEvent,
+    SelectorEvent,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -215,10 +216,19 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                             await self._output_message_queue.put(
                                 ModelClientStreamingChunkEvent(content=cast(str, _message), source=self._name)
                             )
-                if isinstance(message, CreateResult):
-                    response = message
                 else:
-                    raise ValueError("Model failed to select a speaker.")
+                    if isinstance(message, CreateResult):
+                        response = message
+                    else:
+                        raise ValueError("Model failed to select a speaker.")
+                    
+                    if isinstance(response.content, str):
+                        if self._emit_team_events:
+                            await self._output_message_queue.put(SelectorEvent(content=response.content, source=self._name))
+                    else:
+                        response.content = ""  # fallback to empty string
+                        if self._emit_team_events:
+                            await self._output_message_queue.put(SelectorEvent(content="Model failed to select a valid content type(it must str)", source=self._name))
             else:
                 response = await self._model_client.create(messages=select_speaker_messages)
             assert isinstance(response.content, str)

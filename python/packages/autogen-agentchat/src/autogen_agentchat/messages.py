@@ -529,6 +529,18 @@ class SelectSpeakerEvent(BaseAgentEvent):
 
     def to_text(self) -> str:
         return str(self.content)
+    
+
+class SelectorEvent(BaseAgentEvent):
+    """An event signaling the selection of a specific agent."""
+
+    content: str
+    """The names of the selected agent."""
+
+    type: Literal["SelectorEvent"] = "SelectorEvent"
+
+    def to_text(self) -> str:
+        return str(self.content)
 
 
 class MessageFactory:
