@@ -10,7 +10,6 @@ from typing import (
 
 from autogen_core import CancellationToken, Component, ComponentModel
 from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
-from autogen_core.memory import Memory
 from autogen_core.model_context import (
     ChatCompletionContext,
     UnboundedChatCompletionContext,
@@ -34,7 +33,6 @@ from ..messages import (
     CodeExecutionEvent,
     CodeGenerationEvent,
     HandoffMessage,
-    MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
     TextMessage,
     ThoughtEvent,
@@ -383,16 +381,6 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 messages=messages,
             )
 
-            # STEP 2: Update model context with any relevant memory
-            for event_msg in await self._update_model_context_with_memory(
-                memory=None,
-                model_context=model_context,
-                agent_name=agent_name,
-            ):
-                inner_messages.append(event_msg)
-                yield event_msg
-
-            # STEP 3: Run the first inference
             model_result = None
             async for inference_output in self._call_llm(
                 model_client=model_client,
@@ -619,27 +607,6 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         else:
             model_result = await model_client.create(llm_messages, tools=[], cancellation_token=cancellation_token)
             yield model_result
-
-    @staticmethod
-    async def _update_model_context_with_memory(
-        memory: Optional[Sequence[Memory]],
-        model_context: ChatCompletionContext,
-        agent_name: str,
-    ) -> List[MemoryQueryEvent]:
-        """
-        If memory modules are present, update the model context and return the events produced.
-        """
-        events: List[MemoryQueryEvent] = []
-        if memory:
-            for mem in memory:
-                update_context_result = await mem.update_context(model_context)
-                if update_context_result and len(update_context_result.memories.results) > 0:
-                    memory_query_event_msg = MemoryQueryEvent(
-                        content=update_context_result.memories.results,
-                        source=agent_name,
-                    )
-                    events.append(memory_query_event_msg)
-        return events
 
     @staticmethod
     async def _add_messages_to_context(
