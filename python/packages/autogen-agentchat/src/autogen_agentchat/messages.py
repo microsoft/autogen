@@ -529,7 +529,7 @@ class SelectSpeakerEvent(BaseAgentEvent):
 
     def to_text(self) -> str:
         return str(self.content)
-    
+
 
 class SelectorEvent(BaseAgentEvent):
     """An event signaling the selection of a specific agent."""
