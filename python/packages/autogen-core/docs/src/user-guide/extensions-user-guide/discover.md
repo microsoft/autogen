@@ -43,6 +43,8 @@ Find community samples and examples of how to use AutoGen
 | [autogen-openaiext-client](https://github.com/vballoli/autogen-openaiext-client)  | [PyPi](https://pypi.org/project/autogen-openaiext-client/) | Model client for other LLMs like Gemini, etc. through the OpenAI API |
 | [autogen-ext-mcp](https://github.com/richard-gyiko/autogen-ext-mcp) | [PyPi](https://pypi.org/project/autogen-ext-mcp/) | Tool adapter for Model Context Protocol server tools |
 | [autogen-ext-email](https://github.com/masquerlin/autogen-ext-email) | [PyPi](https://pypi.org/project/autogen-ext-email/) | A Email agent for generating email and sending |
+| [autogen-oaiapi](https://github.com/SongChiYoung/autogen-oaiapi)  | [PyPi](https://pypi.org/project/autogen-oaiapi/) | an OpenAI-style API server built on top of AutoGen |
+| [autogen-contextplus](https://github.com/SongChiYoung/autogen-contextplus)  | [PyPi](https://pypi.org/project/autogen-contextplus/) | User defined AutoGen model_context |
 
 <!-- Example -->
 <!-- | [My Model Client](https://github.com/example)  | [PyPi](https://pypi.org/project/example) | Model client for my custom model service | -->
