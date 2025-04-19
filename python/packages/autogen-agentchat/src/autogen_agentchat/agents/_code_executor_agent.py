@@ -176,9 +176,12 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             from autogen_core import CancellationToken
             from docker.types import DeviceRequest
 
+
             async def run_code_executor_agent() -> None:
                 # Create a code executor agent that uses a Docker container to execute code.
-                code_executor = DockerCommandLineCodeExecutor(work_dir="coding", device_requests=[DeviceRequest(count=-1, capabilities=[['gpu']])])
+                code_executor = DockerCommandLineCodeExecutor(
+                    work_dir="coding", device_requests=[DeviceRequest(count=-1, capabilities=[["gpu"]])]
+                )
                 await code_executor.start()
                 code_executor_agent = CodeExecutorAgent("code_executor", code_executor=code_executor)
 

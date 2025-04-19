@@ -14,7 +14,6 @@ from collections.abc import Sequence
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Tuple, Union
-from docker.types import DeviceRequest
 
 from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import (
@@ -25,6 +24,8 @@ from autogen_core.code_executor import (
 )
 from pydantic import BaseModel
 from typing_extensions import Self
+
+from docker.types import DeviceRequest
 
 from .._common import (
     CommandLineCodeResult,
@@ -117,7 +118,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor, Component[DockerCommandLineCod
         stop_container (bool, optional): If true, will automatically stop the
             container when stop is called, when the context manager exits or when
             the Python process exits with atext. Defaults to True.
-        device_requests (Optional[List[DeviceRequest]], optional): A list of device request instances to add to the container for exposing GPUs (e.g., [docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])]) Defaults to None.
+        device_requests (Optional[List[DeviceRequest]], optional): A list of device request instances to add to the container for exposing GPUs (e.g., [docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])]). Defaults to None.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
         extra_volumes (Optional[Dict[str, Dict[str, str]]], optional): A dictionary of extra volumes (beyond the work_dir) to mount to the container;
