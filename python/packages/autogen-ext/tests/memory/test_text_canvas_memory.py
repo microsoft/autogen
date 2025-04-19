@@ -1,7 +1,6 @@
 import difflib
 
 import pytest
-
 from autogen_core import CancellationToken
 from autogen_core.model_context import UnboundedChatCompletionContext
 from autogen_ext.memory.canvas import TextCanvasMemory

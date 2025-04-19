@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12.4' and sys_platform == 'darwin'",
@@ -798,7 +797,6 @@ requires-dist = [
     { name = "unidiff", marker = "extra == 'canvas'", specifier = ">=0.7.5" },
     { name = "websockets", marker = "extra == 'docker-jupyter-executor'", specifier = ">=15.0.1" },
 ]
-provides-extras = ["anthropic", "langchain", "azure", "docker", "ollama", "openai", "file-surfer", "llama-cpp", "graphrag", "chromadb", "web-surfer", "magentic-one", "video-surfer", "diskcache", "redis", "grpc", "jupyter-executor", "docker-jupyter-executor", "task-centric-memory", "semantic-kernel-core", "gemini", "semantic-kernel-google", "semantic-kernel-hugging-face", "semantic-kernel-mistralai", "semantic-kernel-ollama", "semantic-kernel-onnx", "semantic-kernel-anthropic", "semantic-kernel-pandas", "semantic-kernel-aws", "semantic-kernel-dapr", "http-tool", "semantic-kernel-all", "rich", "mcp", "canvas"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -881,7 +879,6 @@ requires-dist = [
     { name = "uvicorn", marker = "extra == 'web'" },
     { name = "websockets" },
 ]
-provides-extras = ["web", "database"]
 
 [[package]]
 name = "autograd"
@@ -3068,14 +3065,14 @@ wheels = [
 
 [[package]]
 name = "json-schema-to-pydantic"
-version = "0.2.4"
+version = "0.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/5a/82ce52917b4b021e739dc02384bb3257b5ddd04e40211eacdc32c88bdda5/json_schema_to_pydantic-0.2.4.tar.gz", hash = "sha256:c24060aa7694ae7be0465ce11339a6d1cc8a72cd8f4378c889d19722fa7da1ee", size = 37816 }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/8d/da0e791baf63a957ff67e0706d59386b72ab87858e616b6fcfc9b58cd910/json_schema_to_pydantic-0.2.3.tar.gz", hash = "sha256:c76db1f6001996895328e7aa174aae201d85d1f5e79d592c272ea03c8586e453", size = 35305 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2e/86/35135e8e4b1da50e6e8ed2afcacce589e576f3460c892d5e616390a4eb71/json_schema_to_pydantic-0.2.4-py3-none-any.whl", hash = "sha256:5c46675df0ab2685d92ed805da38348a34488654cb95ceb1a564dda23dcc3a89", size = 11940 },
+    { url = "https://files.pythonhosted.org/packages/4a/55/81bbfbc806aab8dc4a21ad1c9c7fd61f94f2b4076ea64f1730a0368831a2/json_schema_to_pydantic-0.2.3-py3-none-any.whl", hash = "sha256:fe0c04357aa8d27ad5a46e54c2d6a8f35ca6c10b36e76a95c39827e38397f427", size = 11699 },
 ]
 
 [[package]]
