@@ -430,12 +430,11 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 )
                 return
 
-            # NOTE: error: Argument of type "str | List[FunctionCall]" cannot be assigned to parameter "content" of type "str" in function "__init__".
-            #       For now we can assume that there are no FunctionCalls in the response because we are not providing tools to the CodeExecutorAgent.
-            #       So, for now we cast model_result.content to string
+            # Step 7: Yield a CodeGenerationEvent
+            assert isinstance(model_result.content, str), "Expected inferred model_result.content to be of type str."
             inferred_text_message: CodeGenerationEvent = CodeGenerationEvent(
                 retry_attempt=nth_try,
-                content=str(model_result.content),
+                content=model_result.content,
                 code_blocks=code_blocks,
                 source=agent_name,
             )
