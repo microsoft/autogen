@@ -75,11 +75,11 @@ class AzureAISearchConfig(BaseModel):
         credential (Union[AzureKeyCredential, TokenCredential]): Azure authentication credential:
             - AzureKeyCredential: For API key authentication (admin/query key)
             - TokenCredential: For Azure AD authentication (e.g., DefaultAzureCredential)
-        query_type (Literal["keyword", "fulltext", "vector", "hybrid"]): The search query mode to use:
+        query_type (Literal["keyword", "fulltext", "vector", "semantic"]): The search query mode to use:
             - 'keyword': Basic keyword search (default)
-            - 'full': Full Lucene query syntax
+            - 'fulltext': Full Lucene query syntax
             - 'vector': Vector similarity search
-            - 'hybrid': Hybrid search combining multiple techniques
+            - 'semantic': Semantic search using semantic configuration
         search_fields (Optional[List[str]]): List of index fields to search within. If not specified,
             searches all searchable fields. Example: ['title', 'content'].
         select_fields (Optional[List[str]]): Fields to return in search results. If not specified,
@@ -104,8 +104,9 @@ class AzureAISearchConfig(BaseModel):
     credential: Union[AzureKeyCredential, TokenCredential] = Field(
         description="The credential to use for authentication"
     )
-    query_type: Literal["keyword", "fulltext", "vector", "hybrid"] = Field(
-        default="keyword", description="Type of query to perform"
+    query_type: Literal["keyword", "fulltext", "vector", "semantic"] = Field(
+        default="keyword",
+        description="Type of query to perform (keyword for classic, fulltext for Lucene, vector for embedding, semantic for semantic/AI search)",
     )
     search_fields: Optional[List[str]] = Field(default=None, description="Optional list of fields to search in")
     select_fields: Optional[List[str]] = Field(default=None, description="Optional list of fields to return in results")

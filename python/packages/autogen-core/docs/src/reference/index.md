@@ -14,6 +14,7 @@ myst:
 python/autogen_agentchat
 python/autogen_agentchat.messages
 python/autogen_agentchat.agents
+python/autogen_agentchat.tools
 python/autogen_agentchat.teams
 python/autogen_agentchat.base
 python/autogen_agentchat.conditions
@@ -65,6 +66,7 @@ python/autogen_ext.tools.semantic_kernel
 python/autogen_ext.code_executors.local
 python/autogen_ext.code_executors.docker
 python/autogen_ext.code_executors.jupyter
+python/autogen_ext.code_executors.docker_jupyter
 python/autogen_ext.code_executors.azure
 python/autogen_ext.cache_store.diskcache
 python/autogen_ext.cache_store.redis

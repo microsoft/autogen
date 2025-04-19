@@ -1,5 +1,5 @@
 from autogen_core import Component
-from mcp import Tool
+from mcp import ClientSession, Tool
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -37,6 +37,9 @@ class StdioMcpToolAdapter(
         server_params (StdioServerParams): Parameters for the MCP server connection,
             including command to run and its arguments
         tool (Tool): The MCP tool to wrap
+        session (ClientSession, optional): The MCP client session to use. If not provided,
+            a new session will be created. This is useful for testing or when you want to
+            manage the session lifecycle yourself.
 
     See :func:`~autogen_ext.tools.mcp.mcp_server_tools` for examples.
     """
@@ -44,8 +47,8 @@ class StdioMcpToolAdapter(
     component_config_schema = StdioMcpToolAdapterConfig
     component_provider_override = "autogen_ext.tools.mcp.StdioMcpToolAdapter"
 
-    def __init__(self, server_params: StdioServerParams, tool: Tool) -> None:
-        super().__init__(server_params=server_params, tool=tool)
+    def __init__(self, server_params: StdioServerParams, tool: Tool, session: ClientSession | None = None) -> None:
+        super().__init__(server_params=server_params, tool=tool, session=session)
 
     def _to_config(self) -> StdioMcpToolAdapterConfig:
         """

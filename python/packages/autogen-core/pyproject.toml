@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-core"
-version = "0.5.2"
+version = "0.5.4"
 license = {file = "LICENSE-CODE"}
 description = "Foundational interfaces and agent runtime implementation for AutoGen"
 readme = "README.md"
@@ -69,7 +69,7 @@ dev = [
     "pygments",
     "sphinxext-rediraffe",
 
-    "autogen_ext==0.5.2",
+    "autogen_ext==0.5.4",
 
     # Documentation tooling
     "diskcache",

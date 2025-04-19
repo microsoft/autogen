@@ -11,10 +11,15 @@ trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``
 _MODEL_POINTERS = {
     # OpenAI models
+    "o4-mini": "o4-mini-2025-04-16",
+    "o3": "o3-2025-04-16",
     "o3-mini": "o3-mini-2025-01-31",
     "o1": "o1-2024-12-17",
     "o1-preview": "o1-preview-2024-09-12",
     "o1-mini": "o1-mini-2024-09-12",
+    "gpt-4.1": "gpt-4.1-2025-04-14",
+    "gpt-4.1-mini": "gpt-4.1-mini-2025-04-14",
+    "gpt-4.1-nano": "gpt-4.1-nano-2025-04-14",
     "gpt-4.5-preview": "gpt-4.5-preview-2025-02-27",
     "gpt-4o": "gpt-4o-2024-08-06",
     "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
@@ -34,12 +39,29 @@ _MODEL_POINTERS = {
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
+    "o4-mini-2025-04-16": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.O4,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "o3-2025-04-16": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.O3,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
     "o3-mini-2025-01-31": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
         "family": ModelFamily.O3,
         "structured_output": True,
+        "multiple_system_messages": True,
     },
     "o1-2024-12-17": {
         "vision": False,
@@ -47,6 +69,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,
         "family": ModelFamily.O1,
         "structured_output": True,
+        "multiple_system_messages": True,
     },
     "o1-preview-2024-09-12": {
         "vision": False,
@@ -54,6 +77,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,
         "family": ModelFamily.O1,
         "structured_output": True,
+        "multiple_system_messages": True,
     },
     "o1-mini-2024-09-12": {
         "vision": False,
@@ -61,6 +85,31 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,
         "family": ModelFamily.O1,
         "structured_output": False,
+        "multiple_system_messages": True,
+    },
+    "gpt-4.1-2025-04-14": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_41,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "gpt-4.1-mini-2025-04-14": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_41,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "gpt-4.1-nano-2025-04-14": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_41,
+        "structured_output": True,
+        "multiple_system_messages": True,
     },
     "gpt-4.5-preview-2025-02-27": {
         "vision": True,
@@ -68,6 +117,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_45,
         "structured_output": True,
+        "multiple_system_messages": True,
     },
     "gpt-4o-2024-11-20": {
         "vision": True,
@@ -75,6 +125,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_4O,
         "structured_output": True,
+        "multiple_system_messages": True,
     },
     "gpt-4o-2024-08-06": {
         "vision": True,
@@ -82,6 +133,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_4O,
         "structured_output": True,
+        "multiple_system_messages": True,
     },
     "gpt-4o-2024-05-13": {
         "vision": True,
@@ -89,6 +141,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_4O,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-4o-mini-2024-07-18": {
         "vision": True,
@@ -96,6 +149,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_4O,
         "structured_output": True,
+        "multiple_system_messages": True,
     },
     "gpt-4-turbo-2024-04-09": {
         "vision": True,
@@ -103,6 +157,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_4,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-4-0125-preview": {
         "vision": False,
@@ -110,6 +165,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_4,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-4-1106-preview": {
         "vision": False,
@@ -117,6 +173,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_4,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-4-1106-vision-preview": {
         "vision": True,
@@ -124,6 +181,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,
         "family": ModelFamily.GPT_4,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-4-0613": {
         "vision": False,
@@ -131,6 +189,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_4,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-4-32k-0613": {
         "vision": False,
@@ -138,6 +197,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_4,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-3.5-turbo-0125": {
         "vision": False,
@@ -145,6 +205,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_35,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-3.5-turbo-1106": {
         "vision": False,
@@ -152,6 +213,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_35,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-3.5-turbo-instruct": {
         "vision": False,
@@ -159,6 +221,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_35,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-3.5-turbo-0613": {
         "vision": False,
@@ -166,6 +229,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_35,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gpt-3.5-turbo-16k-0613": {
         "vision": False,
@@ -173,6 +237,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_35,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "gemini-1.5-flash": {
         "vision": True,
@@ -180,6 +245,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GEMINI_1_5_FLASH,
         "structured_output": True,
+        "multiple_system_messages": False,
     },
     "gemini-1.5-flash-8b": {
         "vision": True,
@@ -187,6 +253,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GEMINI_1_5_FLASH,
         "structured_output": True,
+        "multiple_system_messages": False,
     },
     "gemini-1.5-pro": {
         "vision": True,
@@ -194,6 +261,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GEMINI_1_5_PRO,
         "structured_output": True,
+        "multiple_system_messages": False,
     },
     "gemini-2.0-flash": {
         "vision": True,
@@ -201,6 +269,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GEMINI_2_0_FLASH,
         "structured_output": True,
+        "multiple_system_messages": False,
     },
     "gemini-2.0-flash-lite-preview-02-05": {
         "vision": True,
@@ -208,6 +277,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GEMINI_2_0_FLASH,
         "structured_output": True,
+        "multiple_system_messages": False,
     },
     "gemini-2.5-pro-preview-03-25": {
         "vision": True,
@@ -215,6 +285,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GEMINI_2_5_PRO,
         "structured_output": True,
+        "multiple_system_messages": False,
     },
     "claude-3-haiku-20240307": {
         "vision": True,
@@ -222,6 +293,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_HAIKU,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "claude-3-sonnet-20240229": {
         "vision": True,
@@ -229,6 +301,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_SONNET,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "claude-3-opus-20240229": {
         "vision": True,
@@ -236,6 +309,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_OPUS,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "claude-3-5-haiku-20241022": {
         "vision": True,
@@ -243,6 +317,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_5_HAIKU,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "claude-3-5-sonnet-20241022": {
         "vision": True,
@@ -250,6 +325,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_5_SONNET,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
     "claude-3-7-sonnet-20250219": {
         "vision": True,
@@ -257,14 +333,20 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,  # Update this when Anthropic supports structured output
         "family": ModelFamily.CLAUDE_3_7_SONNET,
         "structured_output": False,
+        "multiple_system_messages": True,
     },
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
+    "o4-mini-2025-04-16": 200000,
+    "o3-2025-04-16": 200000,
     "o3-mini-2025-01-31": 200000,
     "o1-2024-12-17": 200000,
     "o1-preview-2024-09-12": 128000,
     "o1-mini-2024-09-12": 128000,
+    "gpt-4.1-2025-04-14": 1047576,
+    "gpt-4.1-mini-2025-04-14": 1047576,
+    "gpt-4.1-nano-2025-04-14": 1047576,
     "gpt-4.5-preview-2025-02-27": 128000,
     "gpt-4o-2024-11-20": 128000,
     "gpt-4o-2024-08-06": 128000,
