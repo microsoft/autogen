@@ -286,6 +286,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
             description=self.description,
             instruction=self._instruction,
             response_prompt=self._response_prompt,
+            model_context=self._model_context.dump_component(),
         )
 
     @classmethod
@@ -299,4 +300,5 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
             description=config.description or cls.DEFAULT_DESCRIPTION,
             instruction=config.instruction or cls.DEFAULT_INSTRUCTION,
             response_prompt=config.response_prompt or cls.DEFAULT_RESPONSE_PROMPT,
+            model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
         )
