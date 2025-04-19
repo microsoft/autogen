@@ -14,6 +14,7 @@ from collections.abc import Sequence
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Tuple, Union
+from docker.types import DeviceRequest
 
 from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import (
@@ -116,6 +117,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor, Component[DockerCommandLineCod
         stop_container (bool, optional): If true, will automatically stop the
             container when stop is called, when the context manager exits or when
             the Python process exits with atext. Defaults to True.
+        device_requests (Optional[List[DeviceRequest]], optional): A list of device request instances to add to the container for exposing GPUs (e.g., [docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])]) Defaults to None.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
         extra_volumes (Optional[Dict[str, Dict[str, str]]], optional): A dictionary of extra volumes (beyond the work_dir) to mount to the container;
@@ -163,6 +165,7 @@ $functions"""
         bind_dir: Optional[Union[Path, str]] = None,
         auto_remove: bool = True,
         stop_container: bool = True,
+        device_requests: Optional[List[DeviceRequest]] = None,
         functions: Sequence[
             Union[
                 FunctionWithRequirements[Any, A],
@@ -229,6 +232,7 @@ $functions"""
         self._extra_hosts = extra_hosts if extra_hosts is not None else {}
         self._init_command = init_command
         self._delete_tmp_files = delete_tmp_files
+        self._device_requests = device_requests
 
         # Setup could take some time so we intentionally wait for the first code block to do it.
         if len(functions) > 0:
@@ -488,6 +492,7 @@ $functions"""
             volumes={str(self.bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}, **self._extra_volumes},
             working_dir="/workspace",
             extra_hosts=self._extra_hosts,
+            device_requests=self._device_requests,
         )
         await asyncio.to_thread(self._container.start)
 
