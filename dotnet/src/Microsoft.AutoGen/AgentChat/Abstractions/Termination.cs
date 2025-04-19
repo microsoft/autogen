@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Termination.cs
-
 namespace Microsoft.AutoGen.AgentChat.Abstractions;
 
 public static class TerminationConditionExtensions
