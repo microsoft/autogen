@@ -5,6 +5,7 @@ from typing import Any, List, Literal, Mapping, Optional, Type
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Self
 
+from .._cancellation_token import CancellationToken
 from .._component_config import ComponentBase
 from .._image import Image
 from ._base import ToolSchema
@@ -69,7 +70,9 @@ class WorkBench(ABC, ComponentBase[BaseModel]):
         ...
 
     @abstractmethod
-    async def call_tool(self, name: str, arguments: Mapping[str, Any] | None = None) -> ToolResult:
+    async def call_tool(
+        self, name: str, arguments: Mapping[str, Any] | None = None, cancellation_token: CancellationToken | None = None
+    ) -> ToolResult:
         """
         Call a tool in the workbench.
 
@@ -77,6 +80,8 @@ class WorkBench(ABC, ComponentBase[BaseModel]):
             name (str): The name of the tool to call.
             arguments (Mapping[str, Any] | None): The arguments to pass to the tool.
                 If None, the tool will be called with no arguments.
+            cancellation_token (CancellationToken | None): An optional cancellation token
+                to cancel the tool execution.
         Returns:
             ToolResult: The result of the tool execution.
         """

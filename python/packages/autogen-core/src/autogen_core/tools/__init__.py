@@ -1,5 +1,6 @@
 from ._base import BaseTool, BaseToolWithState, ParametersSchema, Tool, ToolSchema
 from ._function_tool import FunctionTool
+from ._static_workbench import StaticWorkBench
 from ._workbench import ImageResultContent, TextResultContent, ToolResult, WorkBench
 
 __all__ = [
@@ -13,4 +14,5 @@ __all__ = [
     "ToolResult",
     "TextResultContent",
     "ImageResultContent",
+    "StaticWorkBench",
 ]
