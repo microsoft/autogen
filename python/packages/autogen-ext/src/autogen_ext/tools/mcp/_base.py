@@ -85,7 +85,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         except ExceptionGroup as eg:
             # Construct a message with all nested exception messages and args
             exception_msg = "\n".join(
-                [f"{e.__class__.__name__}: {str(e)}\n{e.args}" for e in eg.exceptions if e is not None]
+                [f"{e.__class__.__name__}: {str(e)}\n{e.args}" for e in eg.exceptions]
             )
             raise Exception(exception_msg) from eg
         except Exception as e:

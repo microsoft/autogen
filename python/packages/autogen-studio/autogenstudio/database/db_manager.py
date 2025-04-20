@@ -8,8 +8,7 @@ from loguru import logger
 from sqlalchemy import exc, inspect, text
 from sqlmodel import Session, SQLModel, and_, create_engine, select
 
-from ..datamodel import Response, Team, Tool
-from ..datamodel import BaseDBModel, Response, Team
+from ..datamodel import BaseDBModel, Response, Team, Tool
 from ..teammanager import TeamManager
 from ..toolmanager import ToolManager
 from .schema_manager import SchemaManager
@@ -291,7 +290,7 @@ class DatabaseManager:
 
                 try:
                     tool_db = Tool(user_id=user_id, component=cfg)
-                    r = self.upsert(tool_db)
+                    self.upsert(tool_db)
                     logger.debug(f"Tool imported: {cfg.get('label')}")
                 except Exception as e:
                     logger.error(f"Failed to import tool: {str(e)}")
