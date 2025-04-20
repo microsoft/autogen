@@ -74,8 +74,15 @@ class AzureAIAgentState(BaseModel):
 
 
 class AzureAIAgent(BaseChatAgent):
+    # noqa: W293
     """
     Azure AI Assistant agent for AutoGen.
+
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[azure]"  # For Azure AI Foundry Agent Service
 
     This agent leverages the Azure AI Assistant API to create AI assistants with capabilities like:
 
@@ -97,26 +104,149 @@ class AzureAIAgent(BaseChatAgent):
         5. It cannot start with a digit.
 
     Examples:
-        ```python
-        # Create an Azure AI Agent with code interpreter capability
-        from autogen_ext.agents.azure import AzureAIAgent
-        from azure.ai.projects.aio import AIProjectClient
-        from azure.identity.aio import DefaultAzureCredential
 
-        # Create a client
-        credential = DefaultAzureCredential()
-        project_client = AIProjectClient(credential=credential)
+        Use the AzureAIAgent to create an agent grounded with Bing:
 
-        # Create an agent
-        agent = AzureAIAgent(
-            name="code_assistant",
-            description="A coding assistant",
-            project_client=project_client,
-            model="gpt-4",
-            instructions="You are a helpful coding assistant.",
-            tools=["code_interpreter"],
-        )
-        ```
+        .. code-block:: python
+
+            import asyncio
+            import os
+
+            from autogen_agentchat.messages import TextMessage
+            from autogen_core import CancellationToken
+            from autogen_ext.agents.azure._azure_ai_agent import AzureAIAgent
+            from azure.ai.projects.aio import AIProjectClient
+            from azure.identity.aio import DefaultAzureCredential
+
+
+            async def bing_example():
+                credential = DefaultAzureCredential()
+
+                async with AIProjectClient.from_connection_string(
+                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", None)
+                ) as project_client:
+                    conn = await project_client.connections.get(connection_name=os.getenv("BING_CONNECTION_NAME", None))
+
+                    bing_tool = models.BingGroundingTool(conn.id)
+                    agent_with_bing_grounding = AzureAIAgent(
+                        name="bing_agent",
+                        description="An AI assistant with Bing grounding",
+                        project_client=project_client,
+                        model="gpt-4o",
+                        instructions="You are a helpful assistant.",
+                        tools=bing_tool.definitions,
+                        metadata={"source": "AzureAIAgent"},
+                    )
+
+                    result = await agent_with_bing_grounding.on_messages(
+                        messages=[TextMessage(content="What is Microsoft's annual leave policy?", source="user")],
+                        cancellation_token=CancellationToken(),
+                        message_limit=5,
+                    )
+                    print(result)
+
+
+            await bing_example()
+
+        Use the AzureAIAgent to create an agent with file search capability:
+
+        .. code-block:: python
+
+            from azure.ai.projects import models
+            import asyncio
+            import os
+
+            import dotenv
+            from autogen_agentchat.messages import TextMessage
+            from autogen_core import CancellationToken
+            from autogen_ext.agents.azure._azure_ai_agent import AzureAIAgent
+            from azure.ai.projects.aio import AIProjectClient
+            from azure.identity.aio import DefaultAzureCredential
+
+
+            async def file_search_example():
+                credential = DefaultAzureCredential()
+                async with AIProjectClient.from_connection_string(
+                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", None)
+                ) as project_client:
+                    agent_with_file_search = AzureAIAgent(
+                        name="file_search_agent",
+                        description="An AI assistant with file search capabilities",
+                        project_client=project_client,
+                        model="gpt-4o",
+                        instructions="You are a helpful assistant.",
+                        tools=["file_search"],
+                        metadata={"source": "AzureAIAgent"},
+                    )
+
+                    await agent_with_file_search.on_upload_for_file_search(
+                        file_paths=[
+                            "/workspaces/autogen/python/packages/autogen-core/docs/src/user-guide/core-user-guide/cookbook/data/product_info_1.md"
+                        ],
+                        vector_store_name="file_upload_index",
+                        vector_store_metadata={"source": "AzureAIAgent"},
+                        cancellation_token=CancellationToken(),
+                    )
+                    result = await agent_with_file_search.on_messages(
+                        messages=[TextMessage(content="Hello, what Contoso products do you know?", source="user")],
+                        cancellation_token=CancellationToken(),
+                        message_limit=5,
+                    )
+                    print(result)
+
+
+            await file_search_example()
+
+        Use the AzureAIAgent to create an agent with code interpreter capability:
+
+        .. code-block:: python
+
+            from azure.ai.projects import models
+            import asyncio
+            import os
+
+            import dotenv
+            from autogen_agentchat.messages import TextMessage
+            from autogen_core import CancellationToken
+            from autogen_ext.agents.azure._azure_ai_agent import AzureAIAgent
+            from azure.ai.projects.aio import AIProjectClient
+            from azure.identity.aio import DefaultAzureCredential
+
+
+            async def code_interpreter_example():
+                credential = DefaultAzureCredential()
+                async with AIProjectClient.from_connection_string(
+                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", None)
+                ) as project_client:
+                    agent_with_code_interpreter = AzureAIAgent(
+                        name="code_interpreter_agent",
+                        description="An AI assistant with code interpreter capabilities",
+                        project_client=project_client,
+                        model="gpt-4o",
+                        instructions="You are a helpful assistant.",
+                        tools=["code_interpreter"],
+                        metadata={"source": "AzureAIAgent"},
+                    )
+
+                    await agent_with_code_interpreter.on_upload_for_code_interpreter(
+                        file_paths="/workspaces/autogen/python/packages/autogen-core/docs/src/user-guide/core-user-guide/cookbook/data/nifty_500_quarterly_results.csv",
+                        cancellation_token=CancellationToken(),
+                    )
+
+                    result = await agent_with_code_interpreter.on_messages(
+                        messages=[
+                            TextMessage(
+                                content="Aggregate the number of stocks per industry and give me a markdown table as a result?",
+                                source="user",
+                            )
+                        ],
+                        cancellation_token=CancellationToken(),
+                    )
+
+                    print(result)
+
+
+            await code_interpreter_example()
     """
 
     def __init__(

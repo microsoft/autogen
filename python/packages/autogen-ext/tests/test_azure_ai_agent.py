@@ -354,7 +354,8 @@ async def test_thread_id_validation(mock_project_client):
     )
 
     with pytest.raises(ValueError, match="Thread not"):
-       thread_id =  agent._thread_id
+        _ = agent._thread_id  # Using _ for intentionally unused variable
+
 
 @pytest.mark.asyncio
 async def test_get_agent_id_validation(mock_project_client):
@@ -367,7 +368,7 @@ async def test_get_agent_id_validation(mock_project_client):
     )
 
     with pytest.raises(ValueError, match="Agent not"):
-        agent_id = agent._get_agent_id
+        _ = agent._get_agent_id  # Using _ for intentionally unused variable
 
 
 @pytest.mark.asyncio
