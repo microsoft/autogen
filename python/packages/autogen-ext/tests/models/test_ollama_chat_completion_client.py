@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, AsyncGenerator, Dict, List, Mapping
+from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional
 
 import httpx
 import pytest
@@ -14,11 +14,12 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import FunctionTool
-from autogen_ext.models.ollama import OllamaChatCompletionClient
-from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CREATE_KWARGS_KEYS
 from httpx import Response
 from ollama import AsyncClient, ChatResponse, Message
 from pydantic import BaseModel
+
+from autogen_ext.models.ollama import OllamaChatCompletionClient
+from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CREATE_KWARGS_KEYS, convert_tools
 
 
 def _mock_request(*args: Any, **kwargs: Any) -> Response:
@@ -204,6 +205,39 @@ async def test_create_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert create_result.usage is not None
     assert create_result.usage.prompt_tokens == 10
     assert create_result.usage.completion_tokens == 12
+
+
+@pytest.mark.asyncio
+async def test_convert_tools() -> None:
+    def add(x: int, y: Optional[int]) -> str:
+        return str(x + y)
+
+    add_tool = FunctionTool(add, description="Add two numbers")
+
+
+    tool_schema_noparam = {
+        "name": "manual_tool",
+        "description": "A tool defined manually",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "param_with_type": {"type": "integer", "description": "An integer param"},
+                "param_without_type": {"description": "A param without explicit type"},
+            },
+            "required": ["param_with_type"],
+        },
+    }
+
+    converted_tools = convert_tools([add_tool, tool_schema_noparam])
+    assert len(converted_tools) == 2
+    assert converted_tools[0].function.name == add_tool.name
+    assert converted_tools[0].function.parameters.properties["y"].type == "integer"
+
+    # test it defaults to string
+    assert converted_tools[1].function.name == "manual_tool"
+    assert converted_tools[1].function.parameters.properties["param_with_type"].type == "integer"
+    assert converted_tools[1].function.parameters.properties["param_without_type"].type == "string"
+    assert converted_tools[1].function.parameters.required == ["param_with_type"]
 
 
 @pytest.mark.asyncio
