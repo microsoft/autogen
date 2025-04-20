@@ -14,6 +14,8 @@ from autogen_core.models import (
 
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
+from ....message_store._memory_message_store import MemoryMessageStore
+from ....message_store._message_store import MessageStore
 from ....messages import (
     BaseAgentEvent,
     BaseChatMessage,
@@ -70,6 +72,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         emit_team_events: bool,
+        message_store: MessageStore | None = None,
     ):
         super().__init__(
             name,
@@ -83,6 +86,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events=emit_team_events,
+            message_store=message_store if message_store else MemoryMessageStore(),
         )
         self._model_client = model_client
         self._max_stalls = max_stalls
@@ -191,7 +195,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         if message.agent_response.inner_messages is not None:
             for inner_message in message.agent_response.inner_messages:
                 delta.append(inner_message)
-        self._message_thread.append(message.agent_response.chat_message)
+        await self._message_store.add_message(message.agent_response.chat_message)
         delta.append(message.agent_response.chat_message)
 
         if self._termination_condition is not None:
@@ -209,7 +213,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def save_state(self) -> Mapping[str, Any]:
         state = MagenticOneOrchestratorState(
-            message_thread=[msg.dump() for msg in self._message_thread],
+            message_thread=[msg.dump() for msg in await self._message_store.get_messages()],
             current_turn=self._current_turn,
             task=self._task,
             facts=self._facts,
@@ -221,7 +225,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         orchestrator_state = MagenticOneOrchestratorState.model_validate(state)
-        self._message_thread = [self._message_factory.create(message) for message in orchestrator_state.message_thread]
+        await self._message_store.reset_messages(
+            [self._message_factory.create(message) for message in orchestrator_state.message_thread]
+        )
         self._current_turn = orchestrator_state.current_turn
         self._task = orchestrator_state.task
         self._facts = orchestrator_state.facts
@@ -235,7 +241,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def reset(self) -> None:
         """Reset the group chat manager."""
-        self._message_thread.clear()
+        await self._message_store.reset_messages()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._n_rounds = 0
@@ -254,7 +260,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 cancellation_token=cancellation_token,
             )
         # Reset partially the group chat manager
-        self._message_thread.clear()
+        await self._message_store.reset_messages()
 
         # Prepare the ledger
         ledger_message = TextMessage(
@@ -263,7 +269,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         )
 
         # Save my copy
-        self._message_thread.append(ledger_message)
+        await self._message_store.add_message(ledger_message)
 
         # Log it to the output topic.
         await self.publish_message(
@@ -291,7 +297,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._n_rounds += 1
 
         # Update the progress ledger
-        context = self._thread_to_context()
+        context = await self._thread_to_context()
 
         progress_ledger_prompt = self._get_progress_ledger_prompt(
             self._task, self._team_description, self._participant_names
@@ -376,7 +382,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast the next step
         message = TextMessage(content=progress_ledger["instruction_or_question"]["answer"], source=self._name)
-        self._message_thread.append(message)  # My copy
+        await self._message_store.add_message(message)  # My copy
 
         await self._log_message(f"Next Speaker: {progress_ledger['next_speaker']['answer']}")
         # Log it to the output topic.
@@ -419,7 +425,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def _update_task_ledger(self, cancellation_token: CancellationToken) -> None:
         """Update the task ledger (outer loop) with the latest facts and plan."""
-        context = self._thread_to_context()
+        context = await self._thread_to_context()
 
         # Update the facts
         update_facts_prompt = self._get_task_ledger_facts_update_prompt(self._task, self._facts)
@@ -446,7 +452,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def _prepare_final_answer(self, reason: str, cancellation_token: CancellationToken) -> None:
         """Prepare the final answer for the task."""
-        context = self._thread_to_context()
+        context = await self._thread_to_context()
 
         # Get the final answer
         final_answer_prompt = self._get_final_answer_prompt(self._task)
@@ -458,7 +464,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         assert isinstance(response.content, str)
         message = TextMessage(content=response.content, source=self._name)
 
-        self._message_thread.append(message)  # My copy
+        await self._message_store.add_message(message)  # My copy
 
         # Log it to the output topic.
         await self.publish_message(
@@ -480,10 +486,10 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         # Signal termination
         await self._signal_termination(StopMessage(content=reason, source=self._name))
 
-    def _thread_to_context(self) -> List[LLMMessage]:
+    async def _thread_to_context(self) -> List[LLMMessage]:
         """Convert the message thread to a context for the model."""
         context: List[LLMMessage] = []
-        for m in self._message_thread:
+        for m in await self._message_store.get_messages():
             if isinstance(m, ToolCallRequestEvent | ToolCallExecutionEvent):
                 # Ignore tool call messages.
                 continue

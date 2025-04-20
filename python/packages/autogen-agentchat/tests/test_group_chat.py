@@ -438,7 +438,7 @@ async def test_round_robin_group_chat_state(task: TaskType, runtime: AgentRuntim
         RoundRobinGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
     assert manager_1._current_turn == manager_2._current_turn  # pyright: ignore
-    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
+    assert await manager_1._message_store.get_messages() == await manager_2._message_store.get_messages()  # pyright: ignore
 
 
 @pytest.mark.asyncio
@@ -819,7 +819,7 @@ async def test_selector_group_chat_state(task: TaskType, runtime: AgentRuntime |
         AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
         SelectorGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
-    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
+    assert await manager_1._message_store.get_messages() == await manager_2._message_store.get_messages()  # pyright: ignore
     assert manager_1._previous_speaker == manager_2._previous_speaker  # pyright: ignore
 
 
@@ -1141,8 +1141,11 @@ async def test_swarm_handoff(runtime: AgentRuntime | None) -> None:
         AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
         SwarmGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
-    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
+    assert await manager_1._message_store.get_messages() == await manager_2._message_store.get_messages()  # pyright: ignore
     assert manager_1._current_speaker == manager_2._current_speaker  # pyright: ignore
+
+    await team.reset()
+    await team2.reset()
 
 
 @pytest.mark.asyncio
@@ -1197,6 +1200,8 @@ async def test_swarm_handoff_with_team_events(runtime: AgentRuntime | None) -> N
         else:
             assert message == result.messages[index]
         index += 1
+
+    await team.reset()
 
 
 @pytest.mark.asyncio
@@ -1254,8 +1259,11 @@ async def test_swarm_handoff_state(task: TaskType, runtime: AgentRuntime | None)
         AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
         SwarmGroupChatManager,  # pyright: ignore
     )
-    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
+    assert await manager_1._message_store.get_messages() == await manager_2._message_store.get_messages()  # pyright: ignore
     assert manager_1._current_speaker == manager_2._current_speaker  # pyright: ignore
+
+    await team1.reset()
+    await team2.reset()
 
 
 @pytest.mark.asyncio
@@ -1324,6 +1332,8 @@ async def test_swarm_handoff_using_tool_calls(runtime: AgentRuntime | None) -> N
     result2 = await Console(team.run_stream(task="task"))
     assert result2 == result
 
+    await team.reset()
+
 
 @pytest.mark.asyncio
 async def test_swarm_pause_and_resume(runtime: AgentRuntime | None) -> None:
@@ -1352,6 +1362,8 @@ async def test_swarm_pause_and_resume(runtime: AgentRuntime | None) -> None:
     assert len(result.messages) == 1
     assert isinstance(result.messages[0], HandoffMessage)
     assert result.messages[0].content == "Transferred to second_agent."
+
+    await team.reset()
 
 
 @pytest.mark.asyncio
@@ -1438,6 +1450,8 @@ async def test_swarm_with_parallel_tool_calls(runtime: AgentRuntime | None) -> N
     assert agent2_model_ctx_messages[1] == expected_handoff_context[0]
     assert agent2_model_ctx_messages[2] == expected_handoff_context[1]
 
+    await team.reset()
+
 
 @pytest.mark.asyncio
 async def test_swarm_with_handoff_termination(runtime: AgentRuntime | None) -> None:
@@ -1476,6 +1490,8 @@ async def test_swarm_with_handoff_termination(runtime: AgentRuntime | None) -> N
     assert result.messages[2].content == "Transferred to second_agent."
     assert result.messages[3].content == "Transferred to third_agent."
 
+    await team.reset()
+
     # Handoff to a non-existing agent.
     third_agent = _HandOffAgent("third_agent", description="third agent", next_agent="non_existing_agent")
     termination = HandoffTermination(target="non_existing_agent")
@@ -1506,6 +1522,8 @@ async def test_swarm_with_handoff_termination(runtime: AgentRuntime | None) -> N
     assert result.messages[1].content == "Transferred to second_agent."
     assert result.messages[2].content == "Transferred to third_agent."
     assert result.messages[3].content == "Transferred to non_existing_agent."
+
+    await team.reset()
 
 
 @pytest.mark.asyncio
@@ -1706,7 +1724,7 @@ async def test_structured_message_state_roundtrip(runtime: AgentRuntime | None) 
         RoundRobinGroupChatManager,
     )
 
-    assert manager1._message_thread == manager2._message_thread  # pyright: ignore
+    assert await manager1._message_store.get_messages() == await manager2._message_store.get_messages()  # pyright: ignore
 
 
 @pytest.mark.asyncio

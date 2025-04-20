@@ -5,6 +5,8 @@ from typing import Any, List, Sequence
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
 from ...base import TerminationCondition
+from ...message_store._memory_message_store import MemoryMessageStore
+from ...message_store._message_store import MessageStore
 from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectSpeakerEvent, StopMessage
 from ._events import (
     GroupChatAgentResponse,
@@ -46,6 +48,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool = False,
+        message_store: MessageStore | None = None,
     ):
         super().__init__(
             description="Group chat manager",
@@ -72,13 +75,13 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             name: topic_type for name, topic_type in zip(participant_names, participant_topic_types, strict=True)
         }
         self._participant_descriptions = participant_descriptions
-        self._message_thread: List[BaseAgentEvent | BaseChatMessage] = []
         self._output_message_queue = output_message_queue
         self._termination_condition = termination_condition
         self._max_turns = max_turns
         self._current_turn = 0
         self._message_factory = message_factory
         self._emit_team_events = emit_team_events
+        self._message_store = message_store if message_store else MemoryMessageStore()
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -115,7 +118,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             )
 
             # Append all messages to thread
-            self._message_thread.extend(message.messages)
+            await self._message_store.add_messages(message.messages)
 
             # Check termination condition after processing all messages
             if await self._apply_termination_condition(message.messages):
@@ -123,7 +126,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 return
 
         # Select a speaker to start/continue the conversation
-        speaker_name_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
+        messages = list(await self._message_store.get_messages())
+        speaker_name_future = asyncio.ensure_future(self.select_speaker(messages))
         # Link the select speaker future to the cancellation token.
         ctx.cancellation_token.link_future(speaker_name_future)
         speaker_name = await speaker_name_future
@@ -146,9 +150,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             delta: List[BaseAgentEvent | BaseChatMessage] = []
             if message.agent_response.inner_messages is not None:
                 for inner_message in message.agent_response.inner_messages:
-                    self._message_thread.append(inner_message)
+                    await self._message_store.add_message(inner_message)
                     delta.append(inner_message)
-            self._message_thread.append(message.agent_response.chat_message)
+            await self._message_store.add_message(message.agent_response.chat_message)
             delta.append(message.agent_response.chat_message)
 
             # Check if the conversation should be terminated.
@@ -157,7 +161,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 return
 
             # Select a speaker to continue the conversation.
-            speaker_name_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
+            messages = list(await self._message_store.get_messages())
+            speaker_name_future = asyncio.ensure_future(self.select_speaker(messages))
             # Link the select speaker future to the cancellation token.
             ctx.cancellation_token.link_future(speaker_name_future)
             speaker_name = await speaker_name_future

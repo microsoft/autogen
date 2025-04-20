@@ -154,7 +154,7 @@ async def test_magentic_one_group_chat_basic(runtime: AgentRuntime | None) -> No
         AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
         MagenticOneOrchestrator,  # pyright: ignore
     )  # pyright: ignore
-    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
+    assert await manager_1._message_store.get_messages() == await manager_2._message_store.get_messages()  # pyright: ignore
     assert manager_1._task == manager_2._task  # pyright: ignore
     assert manager_1._facts == manager_2._facts  # pyright: ignore
     assert manager_1._plan == manager_2._plan  # pyright: ignore

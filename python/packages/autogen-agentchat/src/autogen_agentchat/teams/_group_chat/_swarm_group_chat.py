@@ -5,6 +5,8 @@ from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
 
 from ...base import ChatAgent, TerminationCondition
+from ...message_store._memory_message_store import MemoryMessageStore
+from ...message_store._message_store import MessageStore
 from ...messages import BaseAgentEvent, BaseChatMessage, HandoffMessage, MessageFactory
 from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
@@ -28,6 +30,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool,
+        message_store: MessageStore | None = None,
     ) -> None:
         super().__init__(
             name,
@@ -41,6 +44,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
+            message_store if message_store else MemoryMessageStore(),
         )
         self._current_speaker = self._participant_names[0]
 
@@ -58,7 +62,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
                     return
 
         # Check if there is a handoff message in the thread that is not targeting a valid participant.
-        for existing_message in reversed(self._message_thread):
+        for existing_message in reversed(await self._message_store.get_messages()):
             if isinstance(existing_message, HandoffMessage):
                 if existing_message.target not in self._participant_names:
                     raise ValueError(
@@ -74,7 +78,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
 
     async def reset(self) -> None:
         self._current_turn = 0
-        self._message_thread.clear()
+        await self._message_store.reset_messages()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._current_speaker = self._participant_names[0]
@@ -94,7 +98,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
 
     async def save_state(self) -> Mapping[str, Any]:
         state = SwarmManagerState(
-            message_thread=[msg.dump() for msg in self._message_thread],
+            message_thread=[msg.dump() for msg in await self._message_store.get_messages()],
             current_turn=self._current_turn,
             current_speaker=self._current_speaker,
         )
@@ -102,7 +106,9 @@ class SwarmGroupChatManager(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         swarm_state = SwarmManagerState.model_validate(state)
-        self._message_thread = [self._message_factory.create(message) for message in swarm_state.message_thread]
+        await self._message_store.reset_messages(
+            [self._message_factory.create(message) for message in swarm_state.message_thread]
+        )
         self._current_turn = swarm_state.current_turn
         self._current_speaker = swarm_state.current_speaker
 
@@ -129,10 +135,13 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
             Without a termination condition, the group chat will run indefinitely.
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
+        runtime (AgentRuntime, optional): The runtime to use for the group chat. Defaults to None.
         custom_message_types (List[type[BaseAgentEvent | BaseChatMessage]], optional): A list of custom message types that will be used in the group chat.
             If you are using custom message types or your agents produces custom message types, you need to specify them here.
             Make sure your custom message types are subclasses of :class:`~autogen_agentchat.messages.BaseAgentEvent` or :class:`~autogen_agentchat.messages.BaseChatMessage`.
         emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
+        message_store (MessageStore, optional): The message store to use for the group chat. Defaults to :class:`MemoryMessageStore`.
+            If not provided, a new :class:`MemoryMessageStore` will be created. This is useful for testing and debugging purposes.
 
     Basic example:
 
@@ -221,6 +230,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
+        message_store: MessageStore | None = None,
     ) -> None:
         super().__init__(
             participants,
@@ -231,6 +241,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
             runtime=runtime,
             custom_message_types=custom_message_types,
             emit_team_events=emit_team_events,
+            message_store=message_store if message_store else MemoryMessageStore(),
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
@@ -263,6 +274,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
                 max_turns,
                 message_factory,
                 self._emit_team_events,
+                self._message_store,
             )
 
         return _factory

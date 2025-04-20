@@ -15,6 +15,8 @@ from autogen_core import (
 from pydantic import BaseModel, ValidationError
 
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
+from ...message_store._memory_message_store import MemoryMessageStore
+from ...message_store._message_store import MessageStore
 from ...messages import (
     BaseAgentEvent,
     BaseChatMessage,
@@ -56,6 +58,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
+        message_store: MessageStore | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -127,6 +130,8 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
         # Flag to track if the team events should be emitted.
         self._emit_team_events = emit_team_events
+
+        self._message_store = message_store if message_store else MemoryMessageStore()
 
     @abstractmethod
     def _create_group_chat_manager_factory(

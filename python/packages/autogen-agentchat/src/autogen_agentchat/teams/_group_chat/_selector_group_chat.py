@@ -19,6 +19,8 @@ from typing_extensions import Self
 from ... import TRACE_LOGGER_NAME
 from ...agents import BaseChatAgent
 from ...base import ChatAgent, TerminationCondition
+from ...message_store._memory_message_store import MemoryMessageStore
+from ...message_store._message_store import MessageStore
 from ...messages import (
     BaseAgentEvent,
     BaseChatMessage,
@@ -66,6 +68,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         candidate_func: Optional[CandidateFuncType],
         emit_team_events: bool,
         model_client_streaming: bool = False,
+        message_store: MessageStore | None = None,
     ) -> None:
         super().__init__(
             name,
@@ -79,6 +82,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
+            message_store if message_store else MemoryMessageStore(),
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -96,14 +100,14 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
     async def reset(self) -> None:
         self._current_turn = 0
-        self._message_thread.clear()
+        await self._message_store.reset_messages()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._previous_speaker = None
 
     async def save_state(self) -> Mapping[str, Any]:
         state = SelectorManagerState(
-            message_thread=[msg.dump() for msg in self._message_thread],
+            message_thread=[msg.dump() for msg in await self._message_store.get_messages()],
             current_turn=self._current_turn,
             previous_speaker=self._previous_speaker,
         )
@@ -111,7 +115,9 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         selector_state = SelectorManagerState.model_validate(state)
-        self._message_thread = [self._message_factory.create(msg) for msg in selector_state.message_thread]
+        await self._message_store.reset_messages(
+            [self._message_factory.create(msg) for msg in selector_state.message_thread]
+        )
         self._current_turn = selector_state.current_turn
         self._previous_speaker = selector_state.previous_speaker
 
@@ -349,6 +355,10 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             Make sure your custom message types are subclasses of :class:`~autogen_agentchat.messages.BaseAgentEvent` or :class:`~autogen_agentchat.messages.BaseChatMessage`.
         emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
         model_client_streaming (bool, optional): Whether to use streaming for the model client. (This is useful for reasoning models like QwQ). Defaults to False.
+        message_store (MessageStore, optional): The message store to use for storing messages. Defaults to None.
+            If None, a new MemoryMessageStore will be created. This is useful for testing and debugging purposes.
+            If a custom message store is provided, it must be compatible with the message store interface.
+            The message store is used to store the conversation history and manage the messages in the group chat.
 
     Raises:
         ValueError: If the number of participants is less than two or if the selector prompt is invalid.
@@ -492,6 +502,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
         model_client_streaming: bool = False,
+        message_store: MessageStore | None = None,
     ):
         super().__init__(
             participants,
@@ -502,6 +513,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             runtime=runtime,
             custom_message_types=custom_message_types,
             emit_team_events=emit_team_events,
+            message_store=message_store if message_store else MemoryMessageStore(),
         )
         # Validate the participants.
         if len(participants) < 2:
@@ -546,6 +558,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._candidate_func,
             self._emit_team_events,
             self._model_client_streaming,
+            self._message_store,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:

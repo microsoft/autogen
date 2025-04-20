@@ -9,6 +9,8 @@ from typing_extensions import Self
 
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition
+from ....message_store._memory_message_store import MemoryMessageStore
+from ....message_store._message_store import MessageStore
 from ....messages import BaseAgentEvent, BaseChatMessage, MessageFactory
 from .._base_group_chat import BaseGroupChat
 from .._events import GroupChatTermination
@@ -51,6 +53,9 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             If you are using custom message types or your agents produces custom message types, you need to specify them here.
             Make sure your custom message types are subclasses of :class:`~autogen_agentchat.messages.BaseAgentEvent` or :class:`~autogen_agentchat.messages.BaseChatMessage`.
         emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
+        message_store (MessageStore, optional): The message store used for storing messages. Defaults to a memory message store.
+            If a message store is provided, it will be used to store messages instead of the default memory message store.
+            This allows for more persistent storage of messages and can be useful for debugging or analysis purposes.
 
     Raises:
         ValueError: In orchestration logic if progress ledger does not have required keys or if next speaker is not valid.
@@ -110,6 +115,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         final_answer_prompt: str = ORCHESTRATOR_FINAL_ANSWER_PROMPT,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
+        message_store: MessageStore | None = None,
     ):
         super().__init__(
             participants,
@@ -120,6 +126,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             runtime=runtime,
             custom_message_types=custom_message_types,
             emit_team_events=emit_team_events,
+            message_store=message_store if message_store else MemoryMessageStore(),
         )
 
         # Validate the participants.
@@ -157,6 +164,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             output_message_queue,
             termination_condition,
             self._emit_team_events,
+            self._message_store,
         )
 
     def _to_config(self) -> MagenticOneGroupChatConfig:
