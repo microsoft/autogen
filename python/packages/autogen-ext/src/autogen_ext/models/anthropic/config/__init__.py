@@ -25,11 +25,11 @@ class BedrockInfo(TypedDict, total=False):
 
     """
 
-    aws_access_key: Required[str]
+    aws_access_key: Required[SecretStr]
     """Access key for the aws account to gain bedrock model access"""
-    aws_secret_key: Required[str]
+    aws_secret_key: Required[SecretStr]
     """Access secret key for the aws account to gain bedrock model access"""
-    aws_session_token: Required[str]
+    aws_session_token: Required[SecretStr]
     """aws session token for the aws account to gain bedrock model access"""
     aws_region: Required[str]
     """aws region for the aws account to gain bedrock model access"""

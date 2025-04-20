@@ -67,7 +67,7 @@ from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
 from . import _model_info
-from .config import AnthropicClientConfiguration, AnthropicClientConfigurationConfigModel, AnthropicBedrockClientConfiguration, AnthropicBedrockClientConfigurationConfigModel
+from .config import BedrockInfo, AnthropicClientConfiguration, AnthropicClientConfigurationConfigModel, AnthropicBedrockClientConfiguration, AnthropicBedrockClientConfigurationConfigModel
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -1147,14 +1147,17 @@ class AnthropicBedrockChatCompletionClient(
             model_info = kwargs["model_info"]
             del copied_args["model_info"]
 
+        bedrock_info: BedrockInfo = kwargs["bedrock_info"]
+
         if "bedrock_info" not in kwargs:
             raise ValueError("bedrock_info is required for AnthropicBedrockChatCompletionClient")
-        # Authenticate by either providing the keys below or use the default AWS credential providers, such as
-        # using ~/.aws/credentials or the "AWS_SECRET_ACCESS_KEY" and "AWS_ACCESS_KEY_ID" environment variables.
-        aws_region = kwargs["bedrock_info"]["aws_region"]
-        aws_access_key=kwargs["bedrock_info"]["aws_access_key"]
-        aws_secret_key=kwargs["bedrock_info"]["aws_secret_key"]
-        aws_session_token=kwargs["bedrock_info"]["aws_session_token"]
+        
+        # Handle bedrock_info as secretestr
+        aws_region = bedrock_info.aws_region
+        aws_access_key = bedrock_info.aws_access_key.get_secret_value()
+        aws_secret_key = bedrock_info.aws_secret_key.get_secret_value()
+        aws_session_token = bedrock_info.aws_session_token.get_secret_value()
+
         client = AnthropicBedrock(aws_access_key=aws_access_key,
                                   aws_secret_key=aws_secret_key,
                                   aws_session_token=aws_session_token,
@@ -1187,5 +1190,14 @@ class AnthropicBedrockChatCompletionClient(
         # Handle api_key as SecretStr
         if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
             copied_config["api_key"] = config.api_key.get_secret_value()
+
+        # Handle bedrock_info as SecretStr
+        if "bedrock_info" in copied_config and isinstance(config.bedrock_info, BedrockInfo):
+            copied_config["bedrock_info"] = {
+                "aws_access_key": config.bedrock_info.aws_access_key.get_secret_value(),
+                "aws_secret_key": config.bedrock_info.aws_secret_key.get_secret_value(),
+                "aws_session_token": config.bedrock_info.aws_session_token.get_secret_value(),
+                "aws_region": config.bedrock_info.aws_region,
+            }
 
         return cls(**copied_config)
