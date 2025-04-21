@@ -74,6 +74,7 @@ class TextCanvasMemory(Memory):
                     You are a Writer Agent. Your focus is to generate a story based on the user's request.
 
                     Instructions for using the canvas:
+
                     - The story should be stored on the canvas in a file named "story.md".
                     - If "story.md" does not exist, create it by calling the 'update_file' tool.
                     - If "story.md" already exists, generate a unified diff (patch) from the current
@@ -87,16 +88,14 @@ class TextCanvasMemory(Memory):
                 )
 
                 # Send a message to the agent
-                response = await writer_agent.on_messages(
+                await writer_agent.on_messages(
                     [TextMessage(content="Write a short story about a bunny and a sunflower.", source="user")],
                     CancellationToken(),
                 )
 
-                print(response.chat_message.content)
-
                 # Retrieve the content from the canvas
                 story_content = text_canvas_memory.canvas.get_latest_content("story.md")
-                print("\nStory content from canvas:")
+                print("Story content from canvas:")
                 print(story_content)
 
 
@@ -111,7 +110,6 @@ class TextCanvasMemory(Memory):
         .. code-block:: python
 
             import asyncio
-            from autogen_core import CancellationToken
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
