@@ -76,6 +76,9 @@ class BaseChatMessage(BaseMessage, ABC):
     message using models and return a response as another :class:`BaseChatMessage`.
     """
 
+    id: str
+    """A unique identifier for the message."""
+
     source: str
     """The name of the agent that sent this message."""
 
@@ -144,6 +147,9 @@ class BaseAgentEvent(BaseMessage, ABC):
     You should override the :meth:`to_text` method if you want to provide
     a custom rendering of the content.
     """
+
+    id: str
+    """Unique identifier for the event."""
 
     source: str
     """The name of the agent that sent this message."""
@@ -498,6 +504,9 @@ class ModelClientStreamingChunkEvent(BaseAgentEvent):
 
     content: str
     """A string chunk from the model client."""
+
+    full_message_id: str | None = None
+    """The ID of the full message that this chunk belongs to, if available."""
 
     type: Literal["ModelClientStreamingChunkEvent"] = "ModelClientStreamingChunkEvent"
 

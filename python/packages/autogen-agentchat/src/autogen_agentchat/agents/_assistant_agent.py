@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import uuid
 import warnings
 from typing import (
     Any,
@@ -913,6 +914,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         all_tools = tools + handoff_tools
 
         if model_client_stream:
+            full_message_id = str(uuid.uuid4())
             model_result: Optional[CreateResult] = None
             async for chunk in model_client.create_stream(
                 llm_messages,
@@ -922,8 +924,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             ):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
+                    model_result.id = full_message_id
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name, full_message_id=full_message_id)
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
@@ -978,6 +981,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             else:
                 yield Response(
                     chat_message=TextMessage(
+                        id=model_result.id,
                         content=model_result.content,
                         source=agent_name,
                         models_usage=model_result.usage,
