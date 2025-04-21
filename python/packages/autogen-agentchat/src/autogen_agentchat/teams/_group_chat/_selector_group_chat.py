@@ -205,18 +205,21 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         num_attempts = 0
         while num_attempts < max_attempts:
             num_attempts += 1
-            if self._model_client_streaming and self._emit_team_events:
+            if self._model_client_streaming:
                 chunk: CreateResult | str = ""
                 async for _chunk in self._model_client.create_stream(messages=select_speaker_messages):
                     chunk = _chunk
-                    if isinstance(chunk, str):
-                        await self._output_message_queue.put(
-                            ModelClientStreamingChunkEvent(content=cast(str, _chunk), source=self._name)
-                        )
-                    else:
-                        assert isinstance(chunk, CreateResult)
-                        assert isinstance(chunk.content, str)
-                        await self._output_message_queue.put(SelectorEvent(content=chunk.content, source=self._name))
+                    if self._emit_team_events:
+                        if isinstance(chunk, str):
+                            await self._output_message_queue.put(
+                                ModelClientStreamingChunkEvent(content=cast(str, _chunk), source=self._name)
+                            )
+                        else:
+                            assert isinstance(chunk, CreateResult)
+                            assert isinstance(chunk.content, str)
+                            await self._output_message_queue.put(
+                                SelectorEvent(content=chunk.content, source=self._name)
+                            )
                 # The last chunk must be CreateResult.
                 assert isinstance(chunk, CreateResult)
                 response = chunk
