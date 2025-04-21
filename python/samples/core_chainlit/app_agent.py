@@ -14,10 +14,13 @@ from autogen_core import (
     MessageContext,
     RoutedAgent,
     SingleThreadedAgentRuntime,
+    DefaultTopicId,
+    default_subscription,
     message_handler,
     CancellationToken
 )
 from autogen_core.models import (
+    AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
     SystemMessage,
@@ -25,34 +28,32 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage
 )
+
 from autogen_core.tools import FunctionTool, Tool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-
 from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_core.models import AssistantMessage, ChatCompletionClient, SystemMessage, UserMessage
-
 
 @dataclass
 class Message:
     content: str
-    source: str
 
-
+@default_subscription
 class WeatherAgent(RoutedAgent):
-    def __init__(self, model_client: ChatCompletionClient, tool_schema: List[Tool]) -> None:
+    def __init__(self, model_client: ChatCompletionClient, tool_schema: List[Tool], context: MessageContext) -> None:
         super().__init__("An agent with a weather tool")
         self._system_messages: List[LLMMessage] = [SystemMessage(content="You are a helpful AI assistant.")]
         self._model_client = model_client
         self._tools = tool_schema
-        self._model_context = BufferedChatCompletionContext(buffer_size=5)
+        self._model_context = context 
 
     @message_handler
-    async def handle_user_message(self, message: Message, ctx: MessageContext) -> Message:
+    async def handle_message(self, message: UserMessage, ctx: MessageContext) -> Message:
         # Create a session of messages.
         session: List[LLMMessage] = self._system_messages + [UserMessage(content=message.content, source="user")]
 
         # Add message to model context.
         await self._model_context.add_message(UserMessage(content=message.content, source="user"))
+        #ctx = self._model_context
 
         # Run the chat completion with the tools.
         create_result = await self._model_client.create(
@@ -125,27 +126,27 @@ async def set_starts() -> List[cl.Starter]:
 async def get_weather(city: str) -> str:
     return f"The weather in {city} is 73 degrees and Sunny."
 
-
 @cl.on_chat_start  # type: ignore
 async def start_chat() -> None:
     # Load model configuration and create the model client.
     with open("model_config.yaml", "r") as f:
         model_config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(model_config)
+    context = BufferedChatCompletionContext(buffer_size=5)
 
+    # Create a runtime.
     runtime = SingleThreadedAgentRuntime()
     
-    # Create the agent with the get_weather tool.
-    #assistant = WeatherAgent(
-    #    model_client = model_client,
-    #    tool_schema = [get_weather]
-    #)
+    # Create tools
+    tools: List[Tool] = [FunctionTool(get_weather, description="Get weather tool.")]
 
     # Register the weather agent to runtime
 
     await WeatherAgent.register(runtime, "weather_agent", lambda: WeatherAgent(
         model_client = model_client,
-        tool_schema = [get_weather]
+       # tool_schema = [get_weather]
+        tool_schema=tools,
+        context = context,
     ))
     
     runtime.start()  # Start processing messages in the background.
@@ -153,26 +154,34 @@ async def start_chat() -> None:
     # Set the assistant agent in the user session.
     cl.user_session.set("prompt_history", "")  # type: ignore
     cl.user_session.set("agent", WeatherAgent)  # type: ignore
-    #agent = cast(WeatherAgent, cl.user_session.get("agent"))  # type: ignore
-    #print(agent)
+    cl.user_session.set("context", context)  # type: ignore
+    cl.user_session.set("run_time", runtime) # type: ignore
     
-
-    
-
-
 @cl.on_message  # type: ignore
 async def chat(message: cl.Message) -> None:
-    # Get the agent from the user session.
-    agent = cast(WeatherAgent, cl.user_session.get("agent"))  # type: ignore
     # Construct the response message.
     response = cl.Message(content="")
-    async for msg in agent.on_message(
-        message=[Message(content=message.content, source="user")],
-        ctx=cl.chat_context.to_openai(),
-    ):
-        if isinstance(msg, ModelClientStreamingChunkEvent):
-            # Stream the model client response to the user.
-            await response.stream_token(msg.content)
-        elif isinstance(msg, Response):
-            # Done streaming the model client response. Send the message.
-            await response.send()
+
+    # Get the agent from the user session.
+    agent = cast(WeatherAgent, cl.user_session.get("agent"))  # type: ignore
+    context = cast(MessageContext, cl.user_session.get("context"))
+    runtime = cast(SingleThreadedAgentRuntime, cl.user_session.get("run_time"))
+    response = await runtime.send_message(UserMessage(content=message.content, source="User"), AgentId("weather_agent", "default"))
+    
+    # Forward the reponse to cl
+
+    #  
+    # Call agent hadle
+    # Construct the response message.
+    # agent = cast(AssistantAgent, cl.user_session.get("agent"))  # type: ignore
+    # Construct the response message.
+    msg = cl.Message(content="")
+    msg.content = response.content or ""
+    await msg.send()
+    #for msg in msg_resp:
+    #    if isinstance(msg, ModelClientStreamingChunkEvent):
+    #        # Stream the model client response to the user.
+    #        await response.stream_token(msg.content)
+    #    elif isinstance(msg, Response):
+    #        # Done streaming the model client response. Send the message.
+    #        await response.send()
