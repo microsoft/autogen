@@ -591,82 +591,80 @@ class AzureAIAgent(BaseChatAgent):
                 return message
         raise AssertionError("The stream should have returned the final result.")
 
-    async def on_messages_stream(
-        self,
-        messages: Sequence[BaseChatMessage],
-        cancellation_token: Optional[CancellationToken] = None,
-        message_limit: int = 1,
-        sleep_interval: float = 0.5,
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
-        """
-        Process incoming messages and yield streaming responses from the Azure AI agent.
-
-        This method handles the complete interaction flow with the Azure AI agent:
-        1. Processing input messages
-        2. Creating and monitoring a run
-        3. Handling tool calls and their results
-        4. Retrieving and returning the agent's final response
-
-        The method yields events during processing (like tool calls) and finally yields
-        the complete Response with the agent's message.
-
-        Args:
-            messages (Sequence[ChatMessage]): The messages to process
-            cancellation_token (CancellationToken): Token for cancellation handling
-            message_limit (int, optional): Maximum number of messages to retrieve from the thread
-            sleep_interval (float, optional): Time to sleep between polling for run status
-
-        Yields:
-            AgentEvent | ChatMessage | Response: Events during processing and the final response
-
-        Raises:
-            ValueError: If the run fails or no message is received from the assistant
-        """
-        await self._ensure_initialized()
-
-        if cancellation_token is None:
-            cancellation_token = CancellationToken()
-
-        # Process all messages in sequence
-        for message in messages:
-            if isinstance(message, (TextMessage, MultiModalMessage)):
-                await self.handle_text_message(str(message.content), cancellation_token)
-            elif isinstance(message, (StopMessage, HandoffMessage)):
-                await self.handle_text_message(message.content, cancellation_token)
-
-        # Inner messages for tool calls
-        inner_messages: List[AgentEvent | ChatMessage] = []
-
-        # Create and start a run
-        run: models.ThreadRun = await cancellation_token.link_future(
-            asyncio.ensure_future(
-                self._project_client.agents.create_run(
-                    thread_id=self.thread_id,
-                    agent_id=self._get_agent_id,
-                )
-            )
-        )
-
-        # Wait for run completion by polling
-        while True:
-            run = await cancellation_token.link_future(
+        async def on_messages_stream(
+            self,
+            messages: Sequence[ChatMessage],
+            message_limit: int = 1,
+            cancellation_token: CancellationToken = None,
+            sleep_interval: float = 0.5,
+        ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+            """
+            Process incoming messages and yield streaming responses from the Azure AI agent.
+    
+            This method handles the complete interaction flow with the Azure AI agent:
+            1. Processing input messages
+            2. Creating and monitoring a run
+            3. Handling tool calls and their results
+            4. Retrieving and returning the agent's final response
+    
+            The method yields events during processing (like tool calls) and finally yields
+            the complete Response with the agent's message.
+    
+            Args:
+                messages (Sequence[ChatMessage]): The messages to process
+                message_limit (int, optional): Maximum number of messages to retrieve from the thread
+                cancellation_token (CancellationToken, optional): Token for cancellation handling
+                sleep_interval (float, optional): Time to sleep between polling for run status
+    
+            Yields:
+                AgentEvent | ChatMessage | Response: Events during processing and the final response
+    
+            Raises:
+                ValueError: If the run fails or no message is received from the assistant
+            """
+            if cancellation_token is None:
+                cancellation_token = CancellationToken()
+    
+            await self._ensure_initialized()
+    
+            # Process all messages in sequence
+            for message in messages:
+                if isinstance(message, (TextMessage, MultiModalMessage)):
+                    await self.handle_text_message(str(message.content), cancellation_token)
+                elif isinstance(message, (StopMessage, HandoffMessage)):
+                    await self.handle_text_message(message.content, cancellation_token)
+    
+            # Inner messages for tool calls
+            inner_messages: List[AgentEvent | ChatMessage] = []
+    
+            # Create and start a run
+            run: models.ThreadRun = await cancellation_token.link_future(
                 asyncio.ensure_future(
-                    self._project_client.agents.get_run(
-                        thread_id=self.thread_id,
-                        run_id=run.id,
+                    self._project_client.agents.create_run(
+                        thread_id=self._thread_id,
+                        agent_id=self._get_agent_id,
                     )
                 )
             )
-
-            if run.status == models.RunStatus.FAILED:
-                raise ValueError(f"Run failed: {run.last_error}")
-
-            # If the run requires action (function calls), execute tools and continue
-            if run.status == models.RunStatus.REQUIRES_ACTION and run.required_action is not None:
-                tool_calls: List[FunctionCall] = []
-                submit_tool_outputs = getattr(run.required_action, "submit_tool_outputs", None)
-                if submit_tool_outputs and hasattr(submit_tool_outputs, "tool_calls"):
-                    for required_tool_call in submit_tool_outputs.tool_calls:
+    
+            # Wait for run completion by polling
+            while True:
+                run = await cancellation_token.link_future(
+                    asyncio.ensure_future(
+                        self._project_client.agents.get_run(
+                            thread_id=self._thread_id,
+                            run_id=run.id,
+                        )
+                    )
+                )
+    
+                if run.status == models.RunStatus.FAILED:
+                    raise ValueError(f"Run failed: {run.last_error}")
+    
+                # If the run requires action (function calls), execute tools and continue
+                if run.status == models.RunStatus.REQUIRES_ACTION and run.required_action is not None:
+                    tool_calls: List[FunctionCall] = []
+                    for required_tool_call in run.required_action.submit_tool_outputs.tool_calls:
                         if required_tool_call.type == "function":
                             tool_calls.append(
                                 FunctionCall(
@@ -675,90 +673,120 @@ class AzureAIAgent(BaseChatAgent):
                                     arguments=required_tool_call.function.arguments,
                                 )
                             )
-
-                # Add tool call message to inner messages
-                tool_call_msg = ToolCallRequestEvent(source=self.name, content=tool_calls)
-                inner_messages.append(tool_call_msg)
-                event_logger.debug(tool_call_msg)
-                yield tool_call_msg
-
-                # Execute tool calls and get results
-                tool_outputs: List[FunctionExecutionResult] = []
-
-                # TODO: Support parallel execution of tool calls
-
-                for tool_call in tool_calls:
-                    try:
-                        result = await self._execute_tool_call(tool_call, cancellation_token)
-                        is_error = False
-                    except Exception as e:
-                        result = f"Error: {e}"
-                        is_error = True
-                    tool_outputs.append(
-                        FunctionExecutionResult(
-                            content=result, call_id=tool_call.id, is_error=is_error, name=tool_call.name
+    
+                    # Add tool call message to inner messages
+                    tool_call_msg = ToolCallRequestEvent(source=self.name, content=tool_calls)
+                    inner_messages.append(tool_call_msg)
+                    event_logger.debug(tool_call_msg)
+                    yield tool_call_msg
+    
+                    # Execute tool calls and get results
+                    tool_outputs: List[FunctionExecutionResult] = []
+    
+                    # TODO: Support parallel execution of tool calls
+    
+                    for tool_call in tool_calls:
+                        try:
+                            result = await self._execute_tool_call(tool_call, cancellation_token)
+                            is_error = False
+                        except Exception as e:
+                            result = f"Error: {e}"
+                            is_error = True
+                        tool_outputs.append(
+                            FunctionExecutionResult(
+                                content=result, call_id=tool_call.id, is_error=is_error, name=tool_call.name
+                            )
+                        )
+    
+                    # Add tool result message to inner messages
+                    tool_result_msg = ToolCallExecutionEvent(source=self.name, content=tool_outputs)
+                    inner_messages.append(tool_result_msg)
+                    event_logger.debug(tool_result_msg)
+                    yield tool_result_msg
+    
+                    # Submit tool outputs back to the run
+                    run = await cancellation_token.link_future(
+                        asyncio.ensure_future(
+                            self._project_client.agents.submit_tool_outputs_to_run(
+                                thread_id=self._thread_id,
+                                run_id=run.id,
+                                tool_outputs=[
+                                    models.ToolOutput(tool_call_id=t.call_id, output=t.content) for t in tool_outputs
+                                ],
+                            )
                         )
                     )
-
-                # Add tool result message to inner messages
-                tool_result_msg = ToolCallExecutionEvent(source=self.name, content=tool_outputs)
-                inner_messages.append(tool_result_msg)
-                event_logger.debug(tool_result_msg)
-                yield tool_result_msg
-
-                # Submit tool outputs back to the run
-                run = await cancellation_token.link_future(
-                    asyncio.ensure_future(
-                        self._project_client.agents.submit_tool_outputs_to_run(
-                            thread_id=self.thread_id,
-                            run_id=run.id,
-                            tool_outputs=[
-                                models.ToolOutput(tool_call_id=t.call_id, output=t.content) for t in tool_outputs
-                            ],
-                        )
+                    continue
+    
+                if run.status == models.RunStatus.COMPLETED:
+                    break
+    
+                # TODO support for parameter to control polling interval
+                await asyncio.sleep(sleep_interval)
+    
+            # After run is completed, get the messages
+            event_logger.debug("Retrieving messages from thread")
+            agent_messages: models.OpenAIPageableListOfThreadMessage = await cancellation_token.link_future(
+                asyncio.ensure_future(
+                    self._project_client.agents.list_messages(
+                        thread_id=self._thread_id, order=models.ListSortOrder.DESCENDING, limit=message_limit
                     )
-                )
-                continue
-
-            if run.status == models.RunStatus.COMPLETED:
-                break
-
-            # TODO support for parameter to control polling interval
-            await asyncio.sleep(sleep_interval)
-
-        # run_steps: models.OpenAIPageableListOfRunStep = await cancellation_token.link_future(
-        #     asyncio.ensure_future(
-        #         self._project_client.agents.list_run_steps(
-        #             thread_id=self.thread_id,
-        #             run_id=run.id,
-        #         )
-        #     )
-        # )
-        # Get messages after run completion
-        agent_messages: models.OpenAIPageableListOfThreadMessage = await cancellation_token.link_future(
-            asyncio.ensure_future(
-                self._project_client.agents.list_messages(
-                    thread_id=self.thread_id, order=models.ListSortOrder.DESCENDING, limit=message_limit
                 )
             )
-        )
-
-        if not agent_messages.data:
-            raise ValueError("No messages received from assistant")
-
-        # Get the last message's content
-        last_message = agent_messages.data[0]
-        if not last_message.content:
-            raise ValueError(f"No content in the last message: {last_message}")
-
-        # Extract text content
-        text_content = agent_messages.text_messages
-        if not text_content:
-            raise ValueError(f"Expected text content in the last message: {last_message.content}")
-
-        # Return the assistant's response as a Response with inner messages
-        chat_message = TextMessage(source=self.name, content=text_content[0].text.value)
-        yield Response(chat_message=chat_message, inner_messages=inner_messages)
+    
+            if not agent_messages.data:
+                raise ValueError("No messages received from assistant")
+                
+            # Get the last message from the agent
+            last_message = agent_messages.get_last_message_by_role(models.MessageRole.AGENT)
+            if not last_message:
+                event_logger.debug("No message with AGENT role found, falling back to first message")
+                last_message = agent_messages.data[0]  # Fallback to first message
+                
+            if not last_message.content:
+                raise ValueError(f"No content in the last message")
+    
+            # Extract text content
+            message_text = ""
+            for text_message in last_message.text_messages:
+                message_text += text_message.text.value
+    
+            # Extract citations
+            citations = []
+            
+            # Try accessing annotations directly
+            if hasattr(last_message, 'annotations') and last_message.annotations:
+                event_logger.debug(f"Found {len(last_message.annotations)} annotations")
+                for annotation in last_message.annotations:
+                    if hasattr(annotation, 'url_citation'):
+                        event_logger.debug(f"Citation found: {annotation.url_citation.url}")
+                        citations.append({
+                            "url": annotation.url_citation.url,
+                            "title": annotation.url_citation.title,
+                            "text": None
+                        })
+            
+            # For backwards compatibility
+            elif hasattr(last_message, 'url_citation_annotations') and last_message.url_citation_annotations:
+                event_logger.debug(f"Found {len(last_message.url_citation_annotations)} URL citations")
+                for annotation in last_message.url_citation_annotations:
+                    citations.append({
+                        "url": annotation.url_citation.url,
+                        "title": annotation.url_citation.title,
+                        "text": None
+                    })
+            
+            event_logger.debug(f"Total citations extracted: {len(citations)}")
+            
+            # Create the response message with citations as JSON string
+            chat_message = TextMessage(
+                source=self.name, 
+                content=message_text,
+                metadata={"citations": json.dumps(citations)} if citations else {}
+            )
+    
+            # Return the assistant's response as a Response with inner messages
+            yield Response(chat_message=chat_message, inner_messages=inner_messages)
 
     async def handle_text_message(self, content: str, cancellation_token: Optional[CancellationToken] = None) -> None:
         """
