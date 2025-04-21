@@ -3,7 +3,6 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
 from unittest.mock import AsyncMock, MagicMock, call
 
-from autogen_ext.agents.azure._types import ListToolType
 import azure.ai.projects.models as models
 import pytest
 from autogen_agentchat.base._chat_agent import Response
@@ -13,6 +12,7 @@ from autogen_core._types import FunctionCall
 from autogen_core.tools._base import Tool
 from autogen_core.tools._function_tool import FunctionTool
 from autogen_ext.agents.azure._azure_ai_agent import AzureAIAgent
+from autogen_ext.agents.azure._types import ListToolType
 from azure.ai.projects.aio import AIProjectClient
 from azure.ai.projects.models import ThreadMessage, ToolDefinition
 
@@ -61,12 +61,33 @@ class FakeOpenAIPageableListOfThreadMessage:
 
         :rtype: List[FakeMessage]
         """
-        texts = [content for msg in self.data for content in msg.text_messages] # type: ignore
-        return texts # type: ignore
+        texts = [content for msg in self.data for content in msg.text_messages]  # type: ignore
+        return texts  # type: ignore
 
 
 def mock_list() -> FakeOpenAIPageableListOfThreadMessage:
     return FakeOpenAIPageableListOfThreadMessage([FakeMessage("msg-mock", "response")])
+
+
+def create_agent(
+    mock_project_client: MagicMock,
+    tools: Optional[ListToolType] = None,
+    agent_name: str = "test_agent",
+    description: str = "Test Azure AI Agent",
+    instructions: str = "Test instructions",
+    agent_id: Optional[str] = None,
+    thread_id: Optional[str] = None,
+) -> AzureAIAgent:
+    return AzureAIAgent(
+        name=agent_name,
+        description=description,
+        project_client=mock_project_client,
+        deployment_name="test_model",
+        tools=tools,
+        instructions=instructions,
+        agent_id=agent_id,
+        thread_id=thread_id,
+    )
 
 
 @pytest.fixture
@@ -98,31 +119,18 @@ def mock_project_client() -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_azure_ai_agent_initialization(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-        tools=["file_search"],
-    )
+    agent = create_agent(mock_project_client, ["file_search"])
 
     assert agent.name == "test_agent"
     assert agent.description == "Test Azure AI Agent"
-    assert agent._model == "test_model"
+    assert agent._deployment_name == "test_model"
     assert agent._instructions == "Test instructions"
     assert len(agent._api_tools) == 1
 
 
 @pytest.mark.asyncio
 async def test_on_messages(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     messages = [TextMessage(content="Hello", source="user")]
     response = await agent.on_messages(messages)
@@ -132,13 +140,7 @@ async def test_on_messages(mock_project_client: MagicMock) -> None:
 
 @pytest.mark.asyncio
 async def test_on_reset(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     await agent.on_reset(CancellationToken())
 
@@ -147,15 +149,7 @@ async def test_on_reset(mock_project_client: MagicMock) -> None:
 
 @pytest.mark.asyncio
 async def test_save_and_load_state(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        agent_id="agent-mock",
-        thread_id="thread-mock",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client, agent_id="agent-mock", thread_id="thread-mock")
 
     state = await agent.save_state()
     assert state is not None
@@ -181,12 +175,8 @@ async def test_on_upload_for_code_interpreter(mock_project_client: MagicMock) ->
     mock_project_client.agents.get_thread = AsyncMock(return_value=thread_mock)
     mock_project_client.agents.update_thread = AsyncMock()
 
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
+    agent = create_agent(
+        mock_project_client,
     )
 
     file_paths = ["test_file_1.txt", "test_file_2.txt"]
@@ -208,14 +198,7 @@ async def test_on_upload_for_file_search(mock_project_client: MagicMock) -> None
     mock_project_client.agents.update_agent = AsyncMock()
     mock_project_client.agents.create_vector_store_file_batch_and_poll = AsyncMock()
 
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-        tools=["file_search"],
-    )
+    agent = create_agent(mock_project_client, tools=["file_search"])
 
     file_paths = ["test_file_1.txt", "test_file_2.txt"]
     await agent.on_upload_for_file_search(file_paths, cancellation_token=CancellationToken())
@@ -228,13 +211,7 @@ async def test_on_upload_for_file_search(mock_project_client: MagicMock) -> None
 
 @pytest.mark.asyncio
 async def test_add_tools(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     tools: Optional[ListToolType] = ["file_search", "code_interpreter"]
     converted_tools: List[ToolDefinition] = []
@@ -247,13 +224,7 @@ async def test_add_tools(mock_project_client: MagicMock) -> None:
 
 @pytest.mark.asyncio
 async def test_ensure_initialized(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     await agent._ensure_initialized(create_new_agent=True, create_new_thread=True)
 
@@ -268,13 +239,7 @@ async def test_execute_tool_call(mock_project_client: MagicMock) -> None:
     mock_tool.run_json = AsyncMock(return_value={"result": "success"})
     mock_tool.return_value_as_string = MagicMock(return_value="success")
 
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     agent._original_tools = [mock_tool]
 
@@ -291,13 +256,7 @@ async def test_upload_files(mock_project_client: MagicMock) -> None:
         return_value=AsyncMock(id="file-id", status=models.FileState.PROCESSED)
     )
 
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     file_ids = await agent._upload_files(["test_file.txt"], purpose="assistant")
 
@@ -313,13 +272,7 @@ async def test_on_messages_stream(mock_project_client: MagicMock) -> None:
     )
     mock_project_client.agents.list_messages = AsyncMock(return_value=mock_list())
 
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     messages = [TextMessage(content="Hello", source="user")]
     async for response in agent.on_messages_stream(messages):
@@ -329,14 +282,7 @@ async def test_on_messages_stream(mock_project_client: MagicMock) -> None:
 
 @pytest.mark.asyncio
 async def test_on_messages_stream_with_tool(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-        tools=["file_search"],
-    )
+    agent = create_agent(mock_project_client, tools=["file_search"])
 
     messages = [TextMessage(content="Hello", source="user")]
     async for response in agent.on_messages_stream(messages):
@@ -346,13 +292,7 @@ async def test_on_messages_stream_with_tool(mock_project_client: MagicMock) -> N
 
 @pytest.mark.asyncio
 async def test_thread_id_validation(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     with pytest.raises(ValueError, match="Thread not"):
         _ = agent._thread_id  # Using _ for intentionally unused variable
@@ -360,13 +300,7 @@ async def test_thread_id_validation(mock_project_client: MagicMock) -> None:
 
 @pytest.mark.asyncio
 async def test_get_agent_id_validation(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     with pytest.raises(ValueError, match="Agent not"):
         _ = agent._get_agent_id  # Using _ for intentionally unused variable
@@ -385,26 +319,14 @@ async def test_get_agent_id_validation(mock_project_client: MagicMock) -> None:
         ("unknown_tool", True),
     ],
 )
-async def test_adding_tools_as_literals(mock_project_client: MagicMock, tool_name: Any, should_raise_error: bool) -> None:
+async def test_adding_tools_as_literals(
+    mock_project_client: MagicMock, tool_name: Any, should_raise_error: bool
+) -> None:
     if should_raise_error:
         with pytest.raises(ValueError, match=tool_name):
-            agent = AzureAIAgent(
-                name="test_agent",
-                description="Test Azure AI Agent",
-                project_client=mock_project_client,
-                model="test_model",
-                tools=[tool_name],
-                instructions="Test instructions",
-            )
+            agent = create_agent(mock_project_client, tools=[tool_name])  # mypy ignore
     else:
-        agent = AzureAIAgent(
-            name="test_agent",
-            description="Test Azure AI Agent",
-            project_client=mock_project_client,
-            model="test_model",
-            tools=[tool_name],
-            instructions="Test instructions",
-        )
+        agent = agent = create_agent(mock_project_client, tools=[tool_name])
         assert agent._api_tools[0].type == tool_name
 
 
@@ -414,21 +336,15 @@ async def test_adding_tools_as_literals(mock_project_client: MagicMock, tool_nam
     [
         models.FileSearchToolDefinition(),
         models.CodeInterpreterToolDefinition(),
-        models.BingGroundingToolDefinition(), # type: ignore
+        models.BingGroundingToolDefinition(),  # type: ignore
         models.AzureFunctionToolDefinition(),  # type: ignore
         models.AzureAISearchToolDefinition(),
         models.SharepointToolDefinition(),  # type: ignore
     ],
 )
-async def test_adding_tools_as_typed_definition(mock_project_client: MagicMock, tool_definition : Any) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        tools=[tool_definition],
-        instructions="Test instructions",
-    )
+async def test_adding_tools_as_typed_definition(mock_project_client: MagicMock, tool_definition: Any) -> None:
+    agent = agent = create_agent(mock_project_client, tools=[tool_definition])
+
     assert len(agent._api_tools) == 1
     assert agent._api_tools[0].type == tool_definition.type
 
@@ -439,14 +355,7 @@ async def test_adding_callable_func_as_tool(mock_project_client: MagicMock) -> N
         """Mock tool function."""
         pass
 
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        tools=[mock_tool_func],
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client, tools=[mock_tool_func])
     assert len(agent._api_tools) == 1
 
     assert agent._api_tools[0].type == "function"
@@ -464,14 +373,7 @@ async def test_adding_core_autogen_tool(mock_project_client: MagicMock) -> None:
         description="Mock tool function",
     )
 
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        tools=[tool],
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client, tools=[tool])
 
     assert len(agent._api_tools) == 1
     assert agent._api_tools[0].type == "function"
@@ -479,47 +381,27 @@ async def test_adding_core_autogen_tool(mock_project_client: MagicMock) -> None:
 
 @pytest.mark.asyncio
 async def test_adding_core_autogen_tool_without_doc_string(mock_project_client: MagicMock) -> None:
-    def mock_tool_func() -> None: 
+    def mock_tool_func() -> None:
         pass
 
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        tools=[mock_tool_func],
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client, tools=[mock_tool_func])
 
     assert len(agent._api_tools) == 1
     assert agent._api_tools[0].type == "function"
-    assert agent._api_tools[0].function.description == "" # type: ignore
+    assert agent._api_tools[0].function.description == ""  # type: ignore
 
 
 @pytest.mark.asyncio
 async def test_adding_unsupported_tool(mock_project_client: MagicMock) -> None:
     tool_name: Any = 5
-    
+
     with pytest.raises(ValueError, match="class 'int'"):
-        AzureAIAgent(
-            name="test_agent",
-            description="Test Azure AI Agent",
-            project_client=mock_project_client,
-            model="test_model",
-            tools=[tool_name], # mypy ignore
-            instructions="Test instructions",
-        )
+        create_agent(mock_project_client, tools=[tool_name])
 
 
 @pytest.mark.asyncio
 async def test_agent_initialization_with_no_agent_id(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     await agent.on_messages([TextMessage(content="Hello", source="user")])
 
@@ -528,14 +410,7 @@ async def test_agent_initialization_with_no_agent_id(mock_project_client: MagicM
 
 @pytest.mark.asyncio
 async def test_agent_initialization_with_agent_id(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        agent_id="agent-mock",
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client, agent_id="agent-mock")
 
     await agent.on_messages([TextMessage(content="Hello", source="user")])
 
@@ -544,13 +419,7 @@ async def test_agent_initialization_with_agent_id(mock_project_client: MagicMock
 
 @pytest.mark.asyncio
 async def test_agent_initialization_with_no_thread_id(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     await agent.on_messages([TextMessage(content="Hello", source="user")])
 
@@ -559,14 +428,7 @@ async def test_agent_initialization_with_no_thread_id(mock_project_client: Magic
 
 @pytest.mark.asyncio
 async def test_agent_initialization_with_thread_id(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        thread_id="thread-id",
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client, thread_id="thread-mock")
 
     await agent.on_messages([TextMessage(content="Hello", source="user")])
 
@@ -587,14 +449,7 @@ async def test_agent_initialization_fetching_multiple_pages_of_thread_messages(m
     # Mock the list_messages method to return multiple pages of messages
     mock_project_client.agents.list_messages = AsyncMock(side_effect=list_messages)
 
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        thread_id="thread-id",
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client, thread_id="thread-id")
 
     def assert_messages(actual: list[str], expected: List[str]) -> None:
         assert len(actual) == len(expected)
@@ -615,13 +470,7 @@ async def test_agent_initialization_fetching_multiple_pages_of_thread_messages(m
 
 @pytest.mark.asyncio
 async def test_on_messages_with_cancellation(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     # Create a cancellation token that's already cancelled
     token = CancellationToken()
@@ -662,27 +511,20 @@ def mock_run(action: str, run_id: str, required_action: Optional[models.Required
 async def test_on_messages_return_required_action_with_no_tool_raise_error(
     mock_project_client: MagicMock, tool_name: str, registered_tools: ListToolType, error: str
 ) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        tools=registered_tools,
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client, tools=registered_tools)
 
     complete_run = mock_run("completed", "run-mock")
     mock_project_client.agents.submit_tool_outputs_to_run = AsyncMock(return_value=complete_run)
 
-    required_action = models.SubmitToolOutputsAction() # type: ignore
-    
-    required_action.submit_tool_outputs = SimpleNamespace( # type: ignore
+    required_action = models.SubmitToolOutputsAction()  # type: ignore
+
+    required_action.submit_tool_outputs = SimpleNamespace(  # type: ignore
         tool_calls=[
             SimpleNamespace(
                 type="function", id="tool-mock", name=tool_name, function=SimpleNamespace(arguments={}, name="function")
             )
         ]
-    ) # mypy ignore
+    )  # mypy ignore
 
     requires_action_run = mock_run("requires_action", "run-mock", required_action)
     mock_project_client.agents.get_run = AsyncMock(side_effect=[requires_action_run, complete_run])
@@ -692,7 +534,7 @@ async def test_on_messages_return_required_action_with_no_tool_raise_error(
     response: Response = await agent.on_messages(messages)
 
     # check why there are 2 inner messages
-    tool_call_events = [event for event in response.inner_messages if isinstance(event, ToolCallExecutionEvent)] # type: ignore
+    tool_call_events = [event for event in response.inner_messages if isinstance(event, ToolCallExecutionEvent)]  # type: ignore
     assert len(tool_call_events) == 1
 
     event: ToolCallExecutionEvent = tool_call_events[0]
@@ -702,16 +544,10 @@ async def test_on_messages_return_required_action_with_no_tool_raise_error(
 
 @pytest.mark.asyncio
 async def test_on_message_raise_error_when_stream_return_nothing(mock_project_client: MagicMock) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+    agent = create_agent(mock_project_client)
 
     messages = [TextMessage(content="Hello", source="user")]
-    agent.on_messages_stream = MagicMock(name="on_messages_stream") # type: ignore
+    agent.on_messages_stream = MagicMock(name="on_messages_stream")  # type: ignore
     agent.on_messages_stream.__aiter__.return_value = []
 
     with pytest.raises(AssertionError, match="have returned the final result"):
@@ -726,15 +562,10 @@ async def test_on_message_raise_error_when_stream_return_nothing(mock_project_cl
         (["file3.txt"], models.FileState.ERROR, True),
     ],
 )
-async def test_uploading_multiple_files(mock_project_client: MagicMock, file_paths: list[str],
-                                        file_status: models.FileState, should_raise_error: bool) -> None:
-    agent = AzureAIAgent(
-        name="test_agent",
-        description="Test Azure AI Agent",
-        project_client=mock_project_client,
-        model="test_model",
-        instructions="Test instructions",
-    )
+async def test_uploading_multiple_files(
+    mock_project_client: MagicMock, file_paths: list[str], file_status: models.FileState, should_raise_error: bool
+) -> None:
+    agent = create_agent(mock_project_client)
 
     file_mock = AsyncMock(id="file-id", status=file_status)
     mock_project_client.agents.update_thread = AsyncMock()

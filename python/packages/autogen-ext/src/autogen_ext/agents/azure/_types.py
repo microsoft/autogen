@@ -1,7 +1,3 @@
-from typing import Awaitable, Optional, Iterable, Union, Literal, Callable, Any
-import azure.ai.projects.models as models
-from autogen_core.tools import  Tool
-from pydantic import BaseModel, Field
 from typing import (
     Any,
     Awaitable,
@@ -13,27 +9,33 @@ from typing import (
     Union,
 )
 
+from autogen_core.tools import Tool
+from pydantic import BaseModel, Field
+
+import azure.ai.projects.models as models
+
 ListToolType = Iterable[
-        Union[
-            Literal[
-                "file_search",
-                "code_interpreter",
-                "bing_grounding",
-                "azure_ai_search",
-                "azure_function",
-                "sharepoint_grounding",
-            ],
-            models.BingGroundingToolDefinition,
-            models.CodeInterpreterToolDefinition,
-            models.SharepointToolDefinition,
-            models.AzureAISearchToolDefinition,
-            models.FileSearchToolDefinition,
-            models.AzureFunctionToolDefinition,
-            Tool,
-            Callable[..., Any],
-            Callable[..., Awaitable[Any]],
-        ]
+    Union[
+        Literal[
+            "file_search",
+            "code_interpreter",
+            "bing_grounding",
+            "azure_ai_search",
+            "azure_function",
+            "sharepoint_grounding",
+        ],
+        models.BingGroundingToolDefinition,
+        models.CodeInterpreterToolDefinition,
+        models.SharepointToolDefinition,
+        models.AzureAISearchToolDefinition,
+        models.FileSearchToolDefinition,
+        models.AzureFunctionToolDefinition,
+        Tool,
+        Callable[..., Any],
+        Callable[..., Awaitable[Any]],
+    ]
 ]
+
 
 class AzureAIAgentState(BaseModel):
     """

@@ -46,12 +46,13 @@ import azure.ai.projects.models as models
 from azure.ai.projects import _types
 from azure.ai.projects.aio import AIProjectClient
 from azure.identity.aio import DefaultAzureCredential
-from ._types import ListToolType, AzureAIAgentState
+
+from ._types import AzureAIAgentState, ListToolType
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
+
 class AzureAIAgent(BaseChatAgent):
-    # noqa: W293
     """
     Azure AI Assistant agent for AutoGen.
 
@@ -80,10 +81,10 @@ class AzureAIAgent(BaseChatAgent):
         4. It cannot contain spaces or special characters.
         5. It cannot start with a digit.
 
-    
+
     Check here on how to create a new secured agent with user-managed identity:
     https://learn.microsoft.com/en-us/azure/ai-services/agents/how-to/virtual-networks
-    
+
     Examples:
 
         Use the AzureAIAgent to create an agent grounded with Bing:
@@ -113,7 +114,7 @@ class AzureAIAgent(BaseChatAgent):
                         name="bing_agent",
                         description="An AI assistant with Bing grounding",
                         project_client=project_client,
-                        model="gpt-4o",
+                        deployment_name="gpt-4o",
                         instructions="You are a helpful assistant.",
                         tools=bing_tool.definitions,
                         metadata={"source": "AzureAIAgent"},
@@ -154,7 +155,7 @@ class AzureAIAgent(BaseChatAgent):
                         name="file_search_agent",
                         description="An AI assistant with file search capabilities",
                         project_client=project_client,
-                        model="gpt-4o",
+                        deployment_name="gpt-4o",
                         instructions="You are a helpful assistant.",
                         tools=["file_search"],
                         metadata={"source": "AzureAIAgent"},
@@ -203,7 +204,7 @@ class AzureAIAgent(BaseChatAgent):
                         name="code_interpreter_agent",
                         description="An AI assistant with code interpreter capabilities",
                         project_client=project_client,
-                        model="gpt-4o",
+                        deployment_name="gpt-4o",
                         instructions="You are a helpful assistant.",
                         tools=["code_interpreter"],
                         metadata={"source": "AzureAIAgent"},
@@ -283,7 +284,7 @@ class AzureAIAgent(BaseChatAgent):
         self._agent: Optional["models.Agent"] = None
         self._thread: Optional["models.AgentThread"] = None
         self._init_thread_id = thread_id
-        self._deployment_name = deployment_name,
+        self._deployment_name = deployment_name
         self._instructions = instructions
         self._api_tools = converted_tools
         self._agent_id = agent_id
@@ -321,17 +322,17 @@ class AzureAIAgent(BaseChatAgent):
     def _add_tools(self, tools: Optional[ListToolType], converted_tools: List["models.ToolDefinition"]) -> None:
         """
         Convert various tool formats to Azure AI Agent tool definitions.
-        
+
         Args:
             tools: List of tools in various formats (string identifiers, ToolDefinition objects, Tool objects, or callables)
             converted_tools: List to which converted tool definitions will be added
-            
+
         Raises:
             ValueError: If an unsupported tool type is provided
         """
         if tools is None:
             return
-            
+
         for tool in tools:
             if isinstance(tool, str):
                 if tool == "file_search":
@@ -339,13 +340,13 @@ class AzureAIAgent(BaseChatAgent):
                 elif tool == "code_interpreter":
                     converted_tools.append(models.CodeInterpreterToolDefinition())
                 elif tool == "bing_grounding":
-                    converted_tools.append(models.BingGroundingToolDefinition()) # type: ignore
+                    converted_tools.append(models.BingGroundingToolDefinition())  # type: ignore
                 elif tool == "azure_ai_search":
                     converted_tools.append(models.AzureAISearchToolDefinition())
                 elif tool == "azure_function":
-                    converted_tools.append(models.AzureFunctionToolDefinition()) # type: ignore
+                    converted_tools.append(models.AzureFunctionToolDefinition())  # type: ignore
                 elif tool == "sharepoint_grounding":
-                    converted_tools.append(models.SharepointToolDefinition()) # type: ignore
+                    converted_tools.append(models.SharepointToolDefinition())  # type: ignore
                 else:
                     raise ValueError(f"Unsupported tool string: {tool}")
             elif isinstance(tool, models.ToolDefinition):
@@ -599,9 +600,9 @@ class AzureAIAgent(BaseChatAgent):
         """
         await self._ensure_initialized()
 
-        if(cancellation_token is None):
+        if cancellation_token is None:
             cancellation_token = CancellationToken()
-            
+
         # Process all messages in sequence
         for message in messages:
             if isinstance(message, (TextMessage, MultiModalMessage)):
@@ -746,10 +747,10 @@ class AzureAIAgent(BaseChatAgent):
         Returns:
             None
         """
-        
+
         if cancellation_token is None:
             cancellation_token = CancellationToken()
-            
+
         await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._project_client.agents.create_message(
