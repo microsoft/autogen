@@ -80,6 +80,10 @@ class AzureAIAgent(BaseChatAgent):
         4. It cannot contain spaces or special characters.
         5. It cannot start with a digit.
 
+    
+    Check here on how to create a new secured agent with user-managed identity:
+    https://learn.microsoft.com/en-us/azure/ai-services/agents/how-to/virtual-networks
+    
     Examples:
 
         Use the AzureAIAgent to create an agent grounded with Bing:
