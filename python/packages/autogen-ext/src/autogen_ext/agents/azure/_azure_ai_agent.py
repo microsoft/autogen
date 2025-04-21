@@ -306,7 +306,7 @@ class AzureAIAgent(BaseChatAgent):
         return (TextMessage,)
 
     @property
-    def _thread_id(self) -> str:
+    def thread_id(self) -> str:
         if self._thread is None:
             raise ValueError("Thread not initialized")
         return self._thread.id
@@ -317,7 +317,39 @@ class AzureAIAgent(BaseChatAgent):
             raise ValueError("Agent not initialized")
         return self._agent.id
 
-    # Internal Methods
+    @property
+    def description(self) -> str:
+        if self._description is None:
+            raise ValueError("Description not initialized")
+        return self._description
+    
+    @property
+    def agent_id(self) -> str:
+        if self._agent_id is None:
+            raise ValueError("Agent not initialized")
+        return self._agent_id
+    @property
+    def deployment_name(self) -> str:
+        if self._deployment_name is None:
+            raise ValueError("Deployment name not initialized")
+        return self._deployment_name
+    
+    @property
+    def instructions(self) -> str:
+        if self._instructions is None:
+            raise ValueError("Instructions not initialized")
+        return self._instructions
+    
+    @property
+    def tools(self) -> List[models.ToolDefinition]:
+        """
+        Get the list of tools available to the agent.
+
+        Returns:
+            List[models.ToolDefinition]: The list of tool definitions.
+        """
+        return self._api_tools
+    
 
     def _add_tools(self, tools: Optional[ListToolType], converted_tools: List["models.ToolDefinition"]) -> None:
         """
@@ -448,7 +480,7 @@ class AzureAIAgent(BaseChatAgent):
         after: str | None = None
         while True:
             msgs: models.OpenAIPageableListOfThreadMessage = await self._project_client.agents.list_messages(
-                thread_id=self._thread_id, after=after, order=models.ListSortOrder.ASCENDING, limit=100
+                thread_id=self.thread_id, after=after, order=models.ListSortOrder.ASCENDING, limit=100
             )
 
             for msg in msgs.data:
@@ -617,7 +649,7 @@ class AzureAIAgent(BaseChatAgent):
         run: models.ThreadRun = await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._project_client.agents.create_run(
-                    thread_id=self._thread_id,
+                    thread_id=self.thread_id,
                     agent_id=self._get_agent_id,
                 )
             )
@@ -628,7 +660,7 @@ class AzureAIAgent(BaseChatAgent):
             run = await cancellation_token.link_future(
                 asyncio.ensure_future(
                     self._project_client.agents.get_run(
-                        thread_id=self._thread_id,
+                        thread_id=self.thread_id,
                         run_id=run.id,
                     )
                 )
@@ -686,7 +718,7 @@ class AzureAIAgent(BaseChatAgent):
                 run = await cancellation_token.link_future(
                     asyncio.ensure_future(
                         self._project_client.agents.submit_tool_outputs_to_run(
-                            thread_id=self._thread_id,
+                            thread_id=self.thread_id,
                             run_id=run.id,
                             tool_outputs=[
                                 models.ToolOutput(tool_call_id=t.call_id, output=t.content) for t in tool_outputs
@@ -705,7 +737,7 @@ class AzureAIAgent(BaseChatAgent):
         # run_steps: models.OpenAIPageableListOfRunStep = await cancellation_token.link_future(
         #     asyncio.ensure_future(
         #         self._project_client.agents.list_run_steps(
-        #             thread_id=self._thread_id,
+        #             thread_id=self.thread_id,
         #             run_id=run.id,
         #         )
         #     )
@@ -714,7 +746,7 @@ class AzureAIAgent(BaseChatAgent):
         agent_messages: models.OpenAIPageableListOfThreadMessage = await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._project_client.agents.list_messages(
-                    thread_id=self._thread_id, order=models.ListSortOrder.DESCENDING, limit=message_limit
+                    thread_id=self.thread_id, order=models.ListSortOrder.DESCENDING, limit=message_limit
                 )
             )
         )
@@ -754,7 +786,7 @@ class AzureAIAgent(BaseChatAgent):
         await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._project_client.agents.create_message(
-                    thread_id=self._thread_id,
+                    thread_id=self.thread_id,
                     content=content,
                     role=models.MessageRole.USER,
                 )
@@ -847,7 +879,7 @@ class AzureAIAgent(BaseChatAgent):
 
         # Update thread with the new files
         thread: models.AgentThread = await cancellation_token.link_future(
-            asyncio.ensure_future(self._project_client.agents.get_thread(thread_id=self._thread_id))
+            asyncio.ensure_future(self._project_client.agents.get_thread(thread_id=self.thread_id))
         )
 
         tool_resources: models.ToolResources = thread.tool_resources or models.ToolResources()
@@ -858,7 +890,7 @@ class AzureAIAgent(BaseChatAgent):
         await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._project_client.agents.update_thread(
-                    thread_id=self._thread_id,
+                    thread_id=self.thread_id,
                     tool_resources=models.ToolResources(
                         code_interpreter=models.CodeInterpreterToolResource(file_ids=existing_file_ids)
                     ),
