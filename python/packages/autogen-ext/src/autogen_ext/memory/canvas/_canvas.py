@@ -7,6 +7,11 @@ class BaseCanvas(ABC):
     An abstract protocol for "canvas" objects that maintain
     revision history for file-like data. Concrete subclasses
     can handle text, images, structured data, etc.
+
+    .. warning::
+
+        This is an experimental API and may change in the future.
+
     """
 
     @abstractmethod
