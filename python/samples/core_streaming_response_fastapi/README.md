@@ -22,15 +22,8 @@ pip install "fastapi" "uvicorn[standard]" "autogen-core" "autogen-ext[openai]"
 
 ## Configuration
 
-**API Key**: In the `app.py` file, find the instantiation of `OpenAIChatCompletionClient` and replace `"YOUR_API_KEY_HERE"` with your actual OpenAI API key.
-
-```python
-# In the startup_event function of app.py
-OpenAIChatCompletionClient(
-    model="gemini-2.0-flash",  # Or other OpenAI style models
-    api_key="YOUR_ACTUAL_API_KEY",  # Configure your API Key here
-)
-```
+Create a new file named `model_config.yaml` in the same directory as this README file to configure your model settings.
+See `model_config_template.yaml` for an example.
 
 **Note**: Hardcoding API keys directly in the code is only suitable for local testing. For production environments, it is strongly recommended to use environment variables or other secure methods to manage keys.
 
