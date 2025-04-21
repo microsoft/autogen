@@ -322,24 +322,25 @@ class AzureAIAgent(BaseChatAgent):
         if self._description is None:
             raise ValueError("Description not initialized")
         return self._description
-    
+
     @property
     def agent_id(self) -> str:
         if self._agent_id is None:
             raise ValueError("Agent not initialized")
         return self._agent_id
+
     @property
     def deployment_name(self) -> str:
         if self._deployment_name is None:
             raise ValueError("Deployment name not initialized")
         return self._deployment_name
-    
+
     @property
     def instructions(self) -> str:
         if self._instructions is None:
             raise ValueError("Instructions not initialized")
         return self._instructions
-    
+
     @property
     def tools(self) -> List[models.ToolDefinition]:
         """
@@ -349,7 +350,6 @@ class AzureAIAgent(BaseChatAgent):
             List[models.ToolDefinition]: The list of tool definitions.
         """
         return self._api_tools
-    
 
     def _add_tools(self, tools: Optional[ListToolType], converted_tools: List["models.ToolDefinition"]) -> None:
         """

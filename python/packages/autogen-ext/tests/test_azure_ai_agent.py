@@ -251,10 +251,10 @@ async def test_on_upload_for_file_search(mock_project_client: MagicMock) -> None
 @pytest.mark.asyncio
 async def test_upload_files(mock_project_client: MagicMock) -> None:
     mock_project_client.agents.create_vector_store_file_batch_and_poll = AsyncMock()
-    
+
     mock_project_client.agents.update_agent = AsyncMock()
     mock_project_client.agents.create_vector_store_and_poll = AsyncMock(return_value=AsyncMock(id="vector_store_id"))
-    
+
     mock_project_client.agents.upload_file_and_poll = AsyncMock(
         return_value=AsyncMock(id="file-id", status=models.FileState.PROCESSED)
     )
@@ -262,10 +262,10 @@ async def test_upload_files(mock_project_client: MagicMock) -> None:
     agent = create_agent(mock_project_client, tools=["file_search"])
 
     await agent.on_upload_for_file_search(["test_file.txt"], cancellation_token=CancellationToken())
-    
+
     mock_project_client.agents.upload_file_and_poll.assert_any_await(
-        file_path="test_file.txt",
-        purpose=models.FilePurpose.AGENTS, sleep_interval=0.5)
+        file_path="test_file.txt", purpose=models.FilePurpose.AGENTS, sleep_interval=0.5
+    )
 
 
 @pytest.mark.asyncio
