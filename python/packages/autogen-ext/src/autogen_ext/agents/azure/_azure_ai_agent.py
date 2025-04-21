@@ -94,7 +94,7 @@ class AzureAIAgent(BaseChatAgent):
                 credential = DefaultAzureCredential()
 
                 async with AIProjectClient.from_connection_string(
-                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", None)
+                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
                 ) as project_client:
                     conn = await project_client.connections.get(connection_name=os.getenv("BING_CONNECTION_NAME", None))
 
@@ -117,7 +117,9 @@ class AzureAIAgent(BaseChatAgent):
                     print(result)
 
 
-            await bing_example()
+            if __name__ == "__main__":
+                dotenv.load_dotenv()
+                asyncio.run(bing_example())
 
         Use the AzureAIAgent to create an agent with file search capability:
 
@@ -138,7 +140,7 @@ class AzureAIAgent(BaseChatAgent):
             async def file_search_example():
                 credential = DefaultAzureCredential()
                 async with AIProjectClient.from_connection_string(
-                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", None)
+                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
                 ) as project_client:
                     agent_with_file_search = AzureAIAgent(
                         name="file_search_agent",
@@ -165,8 +167,9 @@ class AzureAIAgent(BaseChatAgent):
                     )
                     print(result)
 
-
-            await file_search_example()
+                if __name__ == "__main__":
+                    dotenv.load_dotenv()
+                    asyncio.run(file_search_example())
 
         Use the AzureAIAgent to create an agent with code interpreter capability:
 
@@ -187,7 +190,7 @@ class AzureAIAgent(BaseChatAgent):
             async def code_interpreter_example():
                 credential = DefaultAzureCredential()
                 async with AIProjectClient.from_connection_string(
-                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", None)
+                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
                 ) as project_client:
                     agent_with_code_interpreter = AzureAIAgent(
                         name="code_interpreter_agent",
@@ -217,7 +220,9 @@ class AzureAIAgent(BaseChatAgent):
                     print(result)
 
 
-            await code_interpreter_example()
+            if __name__ == "__main__":
+                dotenv.load_dotenv()
+                asyncio.run(code_interpreter_example())
     """
 
     def __init__(
