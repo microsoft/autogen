@@ -132,6 +132,7 @@ class Tool(SQLModel, table=True):
 
     server_id: Optional[int] = Field(default=None, foreign_key="toolserver.id", index=True)
 
+
 class ToolServer(SQLModel, table=True):
     """Represents a tool server that provides tools"""
 
@@ -148,6 +149,7 @@ class ToolServer(SQLModel, table=True):
     last_connected: Optional[datetime] = None
     version: Optional[str] = "0.0.1"
     component: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
+
 
 class Gallery(BaseDBModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}

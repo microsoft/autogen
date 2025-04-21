@@ -33,9 +33,7 @@ class NoAuthProvider(AuthProvider):
     """Default provider that always authenticates (for development)."""
 
     def __init__(self):
-        self.default_user = User(
-            id="admin@kagent.dev", name="Default User", email="admin@kagent.dev", provider="none"
-        )
+        self.default_user = User(id="admin@kagent.dev", name="Default User", email="admin@kagent.dev", provider="none")
 
     async def get_login_url(self) -> str:
         """Return the URL for initiating login."""
