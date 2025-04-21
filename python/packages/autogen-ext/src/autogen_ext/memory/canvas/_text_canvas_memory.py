@@ -20,7 +20,7 @@ class TextCanvasMemory(Memory):
     A memory implementation that uses a Canvas for storing file-like content.
     Inserts the current state of the canvas into the ChatCompletionContext on each turn.
 
-    ... warning::
+    .. warning::
 
         This is an experimental API and may change in the future.
 

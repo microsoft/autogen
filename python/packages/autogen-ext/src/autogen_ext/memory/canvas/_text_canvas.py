@@ -22,7 +22,7 @@ class FileRevision:
 class TextCanvas(BaseCanvas):
     """An in‑memory canvas that stores *text* files with full revision history.
 
-    ... warning::
+    .. warning::
 
         This is an experimental API and may change in the future.
 
