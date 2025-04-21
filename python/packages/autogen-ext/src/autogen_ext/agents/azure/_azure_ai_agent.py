@@ -2,26 +2,18 @@ import asyncio
 import json
 import logging
 import os
-import time
 from typing import (
     Any,
     AsyncGenerator,
-    Awaitable,
-    Callable,
     Dict,
     Iterable,
     List,
-    Literal,
     Mapping,
     Optional,
     Sequence,
     Set,
-    Union,
-    cast,
 )
 
-import aiofiles
-import dotenv
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
@@ -37,15 +29,12 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
 )
 from autogen_core import CancellationToken, FunctionCall
-from autogen_core.models._model_client import ChatCompletionClient
 from autogen_core.models._types import FunctionExecutionResult
 from autogen_core.tools import FunctionTool, Tool
-from pydantic import BaseModel, Field
 
 import azure.ai.projects.models as models
 from azure.ai.projects import _types
 from azure.ai.projects.aio import AIProjectClient
-from azure.identity.aio import DefaultAzureCredential
 
 from ._types import AzureAIAgentState, ListToolType
 
@@ -319,25 +308,25 @@ class AzureAIAgent(BaseChatAgent):
 
     @property
     def description(self) -> str:
-        if self._description is None:
+        if not self._description:
             raise ValueError("Description not initialized")
         return self._description
 
     @property
     def agent_id(self) -> str:
-        if self._agent_id is None:
+        if not self._agent_id:
             raise ValueError("Agent not initialized")
         return self._agent_id
 
     @property
     def deployment_name(self) -> str:
-        if self._deployment_name is None:
+        if not self._deployment_name:
             raise ValueError("Deployment name not initialized")
         return self._deployment_name
 
     @property
     def instructions(self) -> str:
-        if self._instructions is None:
+        if not self._instructions:
             raise ValueError("Instructions not initialized")
         return self._instructions
 
