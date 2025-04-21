@@ -2096,7 +2096,7 @@ async def test_muliple_system_message(model: str, openai_client: OpenAIChatCompl
 
 
 @pytest.mark.asyncio
-async def test_system_message_merge_for_gemini_models() -> None:
+async def test_system_message_merge_with_continuous_system_messages_models() -> None:
     """Tests that system messages are merged correctly for Gemini models."""
     # Create a mock client
     mock_client = MagicMock()
@@ -2109,6 +2109,7 @@ async def test_system_message_merge_for_gemini_models() -> None:
             "json_output": False,
             "family": "unknown",
             "structured_output": False,
+            "multiple_system_messages": False,
         },
     )
 
@@ -2157,6 +2158,7 @@ async def test_system_message_merge_with_non_continuous_messages() -> None:
             "json_output": False,
             "family": "unknown",
             "structured_output": False,
+            "multiple_system_messages": False,
         },
     )
 
@@ -2180,7 +2182,7 @@ async def test_system_message_merge_with_non_continuous_messages() -> None:
 
 
 @pytest.mark.asyncio
-async def test_system_message_not_merged_for_non_gemini_models() -> None:
+async def test_system_message_not_merged_for_multiple_system_messages_true() -> None:
     """Tests that system messages aren't modified for non-Gemini models."""
     # Create a mock client
     mock_client = MagicMock()
@@ -2193,6 +2195,7 @@ async def test_system_message_not_merged_for_non_gemini_models() -> None:
             "json_output": False,
             "family": "unknown",
             "structured_output": False,
+            "multiple_system_messages": True,
         },
     )
 
