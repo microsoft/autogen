@@ -125,7 +125,6 @@ class AzureAIAgent(BaseChatAgent):
 
         .. code-block:: python
 
-            from azure.ai.projects import models
             import asyncio
             import os
 
@@ -175,7 +174,6 @@ class AzureAIAgent(BaseChatAgent):
 
         .. code-block:: python
 
-            from azure.ai.projects import models
             import asyncio
             import os
 
