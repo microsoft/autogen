@@ -61,6 +61,7 @@ async def test_azure_can_load_function_with_reqs() -> None:
     azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[load_data]
     )
+    await azure_executor.start()
     # ACADynamicSessionsCodeExecutor doesn't use the functions module import
     code = """import polars
 
@@ -77,6 +78,8 @@ print(data['name'][0])"""
     assert azure_result.output == "John\n"
     assert azure_result.exit_code == 0
 
+    await azure_executor.stop()
+
 
 @pytest.mark.skipif(
     not POOL_ENDPOINT,
@@ -90,6 +93,8 @@ async def test_azure_can_load_function() -> None:
     azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[add_two_numbers]
     )
+    await azure_executor.start()
+
     # ACADynamicSessionsCodeExecutor doesn't use the functions module import
     code = """print(add_two_numbers(1, 2))"""
 
@@ -101,6 +106,8 @@ async def test_azure_can_load_function() -> None:
     )
     assert azure_result.output == "3\n"
     assert azure_result.exit_code == 0
+
+    await azure_executor.stop()
 
 
 @pytest.mark.skipif(
@@ -116,6 +123,8 @@ async def test_azure_fails_for_function_incorrect_import() -> None:
         credential=DefaultAzureCredential(),
         functions=[function_incorrect_import],
     )
+    await azure_executor.start()
+
     code = """function_incorrect_import()"""
 
     with pytest.raises(ValueError):
@@ -125,6 +134,8 @@ async def test_azure_fails_for_function_incorrect_import() -> None:
             ],
             cancellation_token=cancellation_token,
         )
+
+    await azure_executor.stop()
 
 
 @pytest.mark.skipif(
@@ -138,6 +149,7 @@ async def test_azure_fails_for_function_incorrect_dep() -> None:
     azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[function_incorrect_dep]
     )
+    await azure_executor.start()
     code = """function_incorrect_dep()"""
 
     with pytest.raises(ValueError):
@@ -147,6 +159,8 @@ async def test_azure_fails_for_function_incorrect_dep() -> None:
             ],
             cancellation_token=cancellation_token,
         )
+
+    await azure_executor.stop()
 
 
 def test_azure_formatted_prompt() -> None:
@@ -200,6 +214,8 @@ def add_two_numbers(a: int, b: int) -> int:
     azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[func]
     )
+    await azure_executor.start()
+
     code = """print(add_two_numbers(1, 2))"""
 
     azure_result = await azure_executor.execute_code_blocks(
@@ -210,6 +226,8 @@ def add_two_numbers(a: int, b: int) -> int:
     )
     assert azure_result.output == "3\n"
     assert azure_result.exit_code == 0
+
+    await azure_executor.stop()
 
 
 @pytest.mark.skipif(
@@ -231,6 +249,8 @@ def add_two_numbers(a: int, b: int) -> int:
     azure_executor = ACADynamicSessionsCodeExecutor(
         pool_management_endpoint=POOL_ENDPOINT, credential=DefaultAzureCredential(), functions=[func]
     )
+    await azure_executor.start()
+
     code = """print(add_two_numbers(object(), False))"""
 
     azure_result = await azure_executor.execute_code_blocks(
@@ -242,3 +262,5 @@ def add_two_numbers(a: int, b: int) -> int:
     # result.output = result.output.encode().decode('unicode_escape')
     assert "TypeError: unsupported operand type(s) for +:" in azure_result.output
     assert azure_result.exit_code == 1
+
+    await azure_executor.stop()

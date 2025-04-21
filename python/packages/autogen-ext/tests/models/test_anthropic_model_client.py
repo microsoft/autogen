@@ -317,13 +317,9 @@ async def test_anthropic_multimodal() -> None:
 async def test_anthropic_serialization() -> None:
     """Test serialization and deserialization of component."""
 
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
-
     client = AnthropicChatCompletionClient(
         model="claude-3-haiku-20240307",
-        api_key=api_key,
+        api_key="api-key",
     )
 
     # Serialize and deserialize
@@ -337,6 +333,42 @@ async def test_anthropic_serialization() -> None:
 
 
 @pytest.mark.asyncio
+async def test_anthropic_message_serialization_with_tools(caplog: pytest.LogCaptureFixture) -> None:
+    """Test that complex messages with tool calls are properly serialized in logs."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    # Use existing tools from the test file
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
+
+    # Set up logging capture - capture all loggers
+    with caplog.at_level(logging.INFO):
+        # Make a request that should trigger a tool call
+        await client.create(
+            messages=[
+                SystemMessage(content="Use the tools available to help the user."),
+                UserMessage(content="Process the text 'hello world' using the process_text tool.", source="user"),
+            ],
+            tools=[pass_tool, add_tool],
+        )
+
+        # Look for any log containing serialized messages, not just with 'LLMCallEvent'
+        serialized_message_logs = [
+            record for record in caplog.records if '"messages":' in str(record.msg) or "messages" in str(record.msg)
+        ]
+
+        # Verify we have at least one log with serialized messages
+        assert len(serialized_message_logs) > 0, "No logs with serialized messages found"
+
+
+@pytest.mark.asyncio
 async def test_anthropic_muliple_system_message() -> None:
     """Test multiple system messages in a single request."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -347,7 +379,6 @@ async def test_anthropic_muliple_system_message() -> None:
         model="claude-3-haiku-20240307",
         api_key=api_key,
     )
-
     # Test multiple system messages
     messages: List[LLMMessage] = [
         SystemMessage(content="When you say anything Start with 'FOO'"),
@@ -584,3 +615,40 @@ async def test_empty_assistant_content_string_with_anthropic() -> None:
     # Verify we got a response
     assert isinstance(result.content, str)
     assert len(result.content) > 0
+
+
+@pytest.mark.asyncio
+async def test_claude_trailing_whitespace_at_last_assistant_content() -> None:
+    """Test that an empty assistant content string is handled correctly."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
+
+    messages: list[LLMMessage] = [
+        UserMessage(content="foo", source="user"),
+        UserMessage(content="bar", source="user"),
+        AssistantMessage(content="foobar ", source="assistant"),
+    ]
+
+    result = await client.create(messages=messages)
+    assert isinstance(result.content, str)
+
+
+def test_rstrip_railing_whitespace_at_last_assistant_content() -> None:
+    messages: list[LLMMessage] = [
+        UserMessage(content="foo", source="user"),
+        UserMessage(content="bar", source="user"),
+        AssistantMessage(content="foobar ", source="assistant"),
+    ]
+
+    # This will crash if _rstrip_railing_whitespace_at_last_assistant_content is not applied to "content"
+    dummy_client = AnthropicChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
+    result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
+
+    assert isinstance(result[-1].content, str)
+    assert result[-1].content == "foobar"

@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
@@ -15,7 +14,6 @@ from autogen_core import (
 )
 from pydantic import BaseModel, ValidationError
 
-from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import (
     BaseAgentEvent,
@@ -27,10 +25,15 @@ from ...messages import (
 )
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
-from ._events import GroupChatPause, GroupChatReset, GroupChatResume, GroupChatStart, GroupChatTermination
+from ._events import (
+    GroupChatPause,
+    GroupChatReset,
+    GroupChatResume,
+    GroupChatStart,
+    GroupChatTermination,
+    SerializableException,
+)
 from ._sequential_routed_agent import SequentialRoutedAgent
-
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
@@ -447,13 +450,26 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 try:
                     # This will propagate any exceptions raised.
                     await self._runtime.stop_when_idle()
-                finally:
-                    # Stop the consumption of messages and end the stream.
-                    # NOTE: we also need to put a GroupChatTermination event here because when the group chat
-                    # has an exception, the group chat manager may not be able to put a GroupChatTermination event in the queue.
+                    # Put a termination message in the queue to indicate that the group chat is stopped for whatever reason
+                    # but not due to an exception.
                     await self._output_message_queue.put(
                         GroupChatTermination(
-                            message=StopMessage(content="Exception occurred.", source=self._group_chat_manager_name)
+                            message=StopMessage(
+                                content="The group chat is stopped.", source=self._group_chat_manager_name
+                            )
+                        )
+                    )
+                except Exception as e:
+                    # Stop the consumption of messages and end the stream.
+                    # NOTE: we also need to put a GroupChatTermination event here because when the runtime
+                    # has an exception, the group chat manager may not be able to put a GroupChatTermination event in the queue.
+                    # This may not be necessary if the group chat manager is able to handle the exception and put the event in the queue.
+                    await self._output_message_queue.put(
+                        GroupChatTermination(
+                            message=StopMessage(
+                                content="An exception occurred in the runtime.", source=self._group_chat_manager_name
+                            ),
+                            error=SerializableException.from_exception(e),
                         )
                     )
 
@@ -481,11 +497,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 # Wait for the next message, this will raise an exception if the task is cancelled.
                 message = await message_future
                 if isinstance(message, GroupChatTermination):
-                    # If the message is None, it means the group chat has terminated.
-                    # TODO: how do we handle termination when the runtime is not embedded
-                    # and there is an exception in the group chat?
-                    # The group chat manager may not be able to put a GroupChatTermination event in the queue,
-                    # and this loop will never end.
+                    # If the message contains an error, we need to raise it here.
+                    # This will stop the team and propagate the error.
+                    if message.error is not None:
+                        raise RuntimeError(str(message.error))
                     stop_reason = message.message.content
                     break
                 yield message
