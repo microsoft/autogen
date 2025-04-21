@@ -5,7 +5,7 @@ from autogen_agentchat.base import ChatAgent
 from ._digraph_group_chat import DiGraph, DiGraphEdge, DiGraphNode
 
 
-class AGGraphBuilder:
+class DiGraphBuilder:
     """
     A fluent builder for constructing `DiGraph` execution graphs used in `DiGraphGroupChat`.
 
