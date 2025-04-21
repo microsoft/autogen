@@ -525,9 +525,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
-        if create_args.get("model", "unknown").startswith("gemini-"):
-            # Gemini models accept only one system message(else, it will read only the last one)
-            # So, merge system messages into one
+        if not self.model_info.get("multiple_system_messages", False):
+            # Some models accept only one system message(or, it will read only the last one)
+            # So, merge system messages into one (if multiple and continuous)
             system_message_content = ""
             _messages: List[LLMMessage] = []
             _first_system_message_idx = -1
@@ -540,7 +540,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     elif _last_system_message_idx + 1 != idx:
                         # That case, system message is not continuous
                         # Merge system messages only contiues system messages
-                        raise ValueError("Multiple and Not continuous system messages are not supported")
+                        raise ValueError(
+                            "Multiple and Not continuous system messages are not supported if model_info['multiple_system_messages'] is False"
+                        )
                     system_message_content += message.content + "\n"
                     _last_system_message_idx = idx
                 else:

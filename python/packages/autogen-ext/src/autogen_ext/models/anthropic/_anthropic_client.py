@@ -766,6 +766,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         stop_reason: Optional[str] = None
 
         first_chunk = True
+        serialized_messages: List[Dict[str, Any]] = [self._serialize_message(msg) for msg in anthropic_messages]
 
         # Process the stream
         async for chunk in stream:
@@ -774,7 +775,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                 # Emit the start event.
                 logger.info(
                     LLMStreamStartEvent(
-                        messages=cast(List[Dict[str, Any]], anthropic_messages),
+                        messages=serialized_messages,
                     )
                 )
             # Handle different event types
