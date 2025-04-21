@@ -27,6 +27,7 @@ from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
     AgentEvent,
+    BaseChatMessage,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
@@ -45,33 +46,9 @@ import azure.ai.projects.models as models
 from azure.ai.projects import _types
 from azure.ai.projects.aio import AIProjectClient
 from azure.identity.aio import DefaultAzureCredential
+from ._types import ListToolType, AzureAIAgentState
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
-
-
-class AzureAIAgentState(BaseModel):
-    """
-    Represents the state of an AzureAIAgent that can be saved and loaded.
-
-    This state model keeps track of persistent information about an agent session
-    including agent and thread identifiers, message history, and associated resources.
-
-    Attributes:
-        type (str): The type identifier for the state object, always "AzureAIAgentState"
-        agent_id (Optional[str]): The ID of the Azure AI agent
-        thread_id (Optional[str]): The ID of the conversation thread
-        initial_message_ids (List[str]): List of message IDs from the initial state
-        vector_store_id (Optional[str]): The ID of the associated vector store for file search
-        uploaded_file_ids (List[str]): List of IDs for files uploaded to the agent
-    """
-
-    type: str = Field(default="AzureAIAgentState")
-    agent_id: Optional[str] = None
-    thread_id: Optional[str] = None
-    initial_message_ids: List[str] = Field(default_factory=list)
-    vector_store_id: Optional[str] = None
-    uploaded_file_ids: List[str] = Field(default_factory=list)
-
 
 class AzureAIAgent(BaseChatAgent):
     # noqa: W293
@@ -256,27 +233,7 @@ class AzureAIAgent(BaseChatAgent):
         project_client: AIProjectClient,
         model: str,
         instructions: str,
-        tools: Optional[
-            Iterable[
-                Union[
-                    Literal[
-                        "file_search",
-                        "code_interpreter",
-                        "bing_grounding",
-                        "azure_ai_search",
-                        "azure_function",
-                        "sharepoint_grounding",
-                    ],
-                    models.BingGroundingToolDefinition
-                    | models.CodeInterpreterToolDefinition
-                    | models.SharepointToolDefinition
-                    | models.AzureAISearchToolDefinition
-                    | models.FileSearchToolDefinition
-                    | models.AzureFunctionToolDefinition,
-                    Tool | Callable[..., Any] | Callable[..., Awaitable[Any]],
-                ]
-            ]
-        ] = None,
+        tools: Optional[ListToolType] = None,
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         metadata: Optional[Dict[str, str]] = None,
@@ -357,17 +314,20 @@ class AzureAIAgent(BaseChatAgent):
 
     # Internal Methods
 
-    def _add_tools(self, tools, converted_tools):
+    def _add_tools(self, tools: Optional[ListToolType], converted_tools: List["models.ToolDefinition"]) -> None:
         """
         Convert various tool formats to Azure AI Agent tool definitions.
-
+        
         Args:
             tools: List of tools in various formats (string identifiers, ToolDefinition objects, Tool objects, or callables)
             converted_tools: List to which converted tool definitions will be added
-
+            
         Raises:
             ValueError: If an unsupported tool type is provided
         """
+        if tools is None:
+            return
+            
         for tool in tools:
             if isinstance(tool, str):
                 if tool == "file_search":
@@ -375,13 +335,13 @@ class AzureAIAgent(BaseChatAgent):
                 elif tool == "code_interpreter":
                     converted_tools.append(models.CodeInterpreterToolDefinition())
                 elif tool == "bing_grounding":
-                    converted_tools.append(models.BingGroundingToolDefinition())
+                    converted_tools.append(models.BingGroundingToolDefinition()) # type: ignore
                 elif tool == "azure_ai_search":
                     converted_tools.append(models.AzureAISearchToolDefinition())
                 elif tool == "azure_function":
-                    converted_tools.append(models.AzureFunctionToolDefinition())
+                    converted_tools.append(models.AzureFunctionToolDefinition()) # type: ignore
                 elif tool == "sharepoint_grounding":
-                    converted_tools.append(models.SharepointToolDefinition())
+                    converted_tools.append(models.SharepointToolDefinition()) # type: ignore
                 else:
                     raise ValueError(f"Unsupported tool string: {tool}")
             elif isinstance(tool, models.ToolDefinition):
@@ -521,7 +481,7 @@ class AzureAIAgent(BaseChatAgent):
         file_paths: str | Iterable[str],
         purpose: str = "assistant",
         sleep_interval: float = 0.5,
-        cancellation_token: CancellationToken = None,
+        cancellation_token: Optional[CancellationToken] = None,
     ) -> List[str]:
         """
         Upload files to the Azure AI Assistant API.
@@ -533,7 +493,7 @@ class AzureAIAgent(BaseChatAgent):
             file_paths (str | Iterable[str]): Path(s) to file(s) to upload
             purpose (str): The purpose of the file, defaults to "assistant"
             sleep_interval (float): Time to sleep between polling for file status
-            cancellation_token (CancellationToken): Token for cancellation handling
+            cancellation_token (Optional[CancellationToken]): Token for cancellation handling
 
         Returns:
             List[str]: List of file IDs for the uploaded files
@@ -574,8 +534,8 @@ class AzureAIAgent(BaseChatAgent):
     # Public Methods
     async def on_messages(
         self,
-        messages: Sequence[ChatMessage],
-        cancellation_token: CancellationToken = None,
+        messages: Sequence[BaseChatMessage],
+        cancellation_token: Optional[CancellationToken] = None,
         message_limit: int = 1,
     ) -> Response:
         """
@@ -586,7 +546,7 @@ class AzureAIAgent(BaseChatAgent):
 
         Args:
             messages (Sequence[ChatMessage]): The messages to process
-            cancellation_token (CancellationToken, optional): Token for cancellation handling
+            cancellation_token (CancellationToken): Token for cancellation handling
             message_limit (int, optional): Maximum number of messages to retrieve from the thread
 
         Returns:
@@ -595,10 +555,6 @@ class AzureAIAgent(BaseChatAgent):
         Raises:
             AssertionError: If the stream doesn't return a final result
         """
-
-        if cancellation_token is None:
-            cancellation_token = CancellationToken()
-
         async for message in self.on_messages_stream(
             messages=messages, cancellation_token=cancellation_token, message_limit=message_limit
         ):
@@ -608,9 +564,9 @@ class AzureAIAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self,
-        messages: Sequence[ChatMessage],
+        messages: Sequence[BaseChatMessage],
+        cancellation_token: Optional[CancellationToken] = None,
         message_limit: int = 1,
-        cancellation_token: CancellationToken = None,
         sleep_interval: float = 0.5,
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """
@@ -627,8 +583,8 @@ class AzureAIAgent(BaseChatAgent):
 
         Args:
             messages (Sequence[ChatMessage]): The messages to process
+            cancellation_token (CancellationToken): Token for cancellation handling
             message_limit (int, optional): Maximum number of messages to retrieve from the thread
-            cancellation_token (CancellationToken, optional): Token for cancellation handling
             sleep_interval (float, optional): Time to sleep between polling for run status
 
         Yields:
@@ -637,11 +593,11 @@ class AzureAIAgent(BaseChatAgent):
         Raises:
             ValueError: If the run fails or no message is received from the assistant
         """
-        if cancellation_token is None:
-            cancellation_token = CancellationToken()
-
         await self._ensure_initialized()
 
+        if(cancellation_token is None):
+            cancellation_token = CancellationToken()
+            
         # Process all messages in sequence
         for message in messages:
             if isinstance(message, (TextMessage, MultiModalMessage)):
@@ -679,15 +635,17 @@ class AzureAIAgent(BaseChatAgent):
             # If the run requires action (function calls), execute tools and continue
             if run.status == models.RunStatus.REQUIRES_ACTION and run.required_action is not None:
                 tool_calls: List[FunctionCall] = []
-                for required_tool_call in run.required_action.submit_tool_outputs.tool_calls:
-                    if required_tool_call.type == "function":
-                        tool_calls.append(
-                            FunctionCall(
-                                id=required_tool_call.id,
-                                name=required_tool_call.function.name,
-                                arguments=required_tool_call.function.arguments,
+                submit_tool_outputs = getattr(run.required_action, "submit_tool_outputs", None)
+                if submit_tool_outputs and hasattr(submit_tool_outputs, "tool_calls"):
+                    for required_tool_call in submit_tool_outputs.tool_calls:
+                        if required_tool_call.type == "function":
+                            tool_calls.append(
+                                FunctionCall(
+                                    id=required_tool_call.id,
+                                    name=required_tool_call.function.name,
+                                    arguments=required_tool_call.function.arguments,
+                                )
                             )
-                        )
 
                 # Add tool call message to inner messages
                 tool_call_msg = ToolCallRequestEvent(source=self.name, content=tool_calls)
@@ -773,7 +731,7 @@ class AzureAIAgent(BaseChatAgent):
         chat_message = TextMessage(source=self.name, content=text_content[0].text.value)
         yield Response(chat_message=chat_message, inner_messages=inner_messages)
 
-    async def handle_text_message(self, content: str, cancellation_token: CancellationToken) -> None:
+    async def handle_text_message(self, content: str, cancellation_token: Optional[CancellationToken] = None) -> None:
         """
         Handle a text message by adding it to the conversation thread.
 
@@ -784,6 +742,10 @@ class AzureAIAgent(BaseChatAgent):
         Returns:
             None
         """
+        
+        if cancellation_token is None:
+            cancellation_token = CancellationToken()
+            
         await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._project_client.agents.create_message(
@@ -849,7 +811,7 @@ class AzureAIAgent(BaseChatAgent):
     async def on_upload_for_code_interpreter(
         self,
         file_paths: str | Iterable[str],
-        cancellation_token: CancellationToken = None,
+        cancellation_token: Optional[CancellationToken] = None,
         sleep_interval: float = 0.5,
     ) -> None:
         """
@@ -860,8 +822,8 @@ class AzureAIAgent(BaseChatAgent):
 
         Args:
             file_paths (str | Iterable[str]): Path(s) to file(s) to upload
-            cancellation_token (CancellationToken, optional): Token for cancellation handling
-            sleep_interval (float, optional): Time to sleep between polling for file status
+            cancellation_token (Optional[CancellationToken]): Token for cancellation handling
+            sleep_interval (float): Time to sleep between polling for file status
 
         Raises:
             ValueError: If file upload fails or the agent doesn't have code interpreter capability
@@ -884,10 +846,8 @@ class AzureAIAgent(BaseChatAgent):
         )
 
         tool_resources: models.ToolResources = thread.tool_resources or models.ToolResources()
-        code_interpreter: models.CodeInterpreterTool = (
-            tool_resources.code_interpreter or models.CodeInterpreterToolResource()
-        )
-        existing_file_ids: List[str] = code_interpreter.file_ids or []
+        code_interpreter_resource = tool_resources.code_interpreter or models.CodeInterpreterToolResource()
+        existing_file_ids: List[str] = code_interpreter_resource.file_ids or []
         existing_file_ids.extend(file_ids)
 
         await cancellation_token.link_future(
