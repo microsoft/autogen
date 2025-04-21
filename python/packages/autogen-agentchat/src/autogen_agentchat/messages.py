@@ -532,10 +532,10 @@ class SelectSpeakerEvent(BaseAgentEvent):
 
 
 class SelectorEvent(BaseAgentEvent):
-    """An event signaling the selection of a specific agent."""
+    """An event emitted from the `SelectorGroupChat`."""
 
     content: str
-    """The names of the selected agent."""
+    """The content of the event."""
 
     type: Literal["SelectorEvent"] = "SelectorEvent"
 
