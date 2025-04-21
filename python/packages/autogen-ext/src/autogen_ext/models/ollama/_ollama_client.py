@@ -320,7 +320,7 @@ def convert_tools(
                 if prop_type is None and "anyOf" in prop_schema:
                     prop_type = next(
                         (opt.get("type") for opt in prop_schema["anyOf"] if opt.get("type") != "null"),
-                        None # Default to None if no non-null type found in anyOf
+                        None,  # Default to None if no non-null type found in anyOf
                     )
                 prop_type = prop_type or "string"
 
