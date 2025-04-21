@@ -13,7 +13,12 @@ from autogen_agentchat.agents import (
     CodeExecutorAgent,
 )
 from autogen_agentchat.base import Handoff, Response, TaskResult, TerminationCondition
-from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination, StopMessageTermination
+from autogen_agentchat.conditions import (
+    HandoffTermination,
+    MaxMessageTermination,
+    StopMessageTermination,
+    TextMentionTermination,
+)
 from autogen_agentchat.messages import (
     BaseAgentEvent,
     BaseChatMessage,
@@ -1738,15 +1743,16 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
     await team.reset()
     model_client.reset()
     index = 0
-    streaming = []
+    streaming: List[str] = []
     async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
         if isinstance(message, TaskResult):
             assert message == result
         elif isinstance(message, ModelClientStreamingChunkEvent):
-            streaming.append(message)
+            streaming.append(message.content)
         else:
             if streaming:
-                assert message.content == "".join([chunk.content for chunk in streaming])
+                assert isinstance(message, SelectorEvent)
+                assert message.content == "".join([chunk for chunk in streaming])
                 streaming = []
             assert message == result.messages[index]
             index += 1

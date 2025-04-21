@@ -216,9 +216,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                     else:
                         assert isinstance(chunk, CreateResult)
                         assert isinstance(chunk.content, str)
-                        await self._output_message_queue.put(
-                            SelectorEvent(content=chunk.content, source=self._name)
-                        )
+                        await self._output_message_queue.put(SelectorEvent(content=chunk.content, source=self._name))
                 # The last chunk must be CreateResult.
                 assert isinstance(chunk, CreateResult)
                 response = chunk
