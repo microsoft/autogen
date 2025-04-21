@@ -24,9 +24,8 @@ class TextCanvas(BaseCanvas):
 
     Besides the original CRUD‑like operations, this enhanced implementation adds:
 
-    * **apply_patch** – smarter patch application.  It first attempts to use
-      ``unidiff``.  When that is not available it falls back to a naïve parser
-      that is sufficient for simple unified‑diff hunks (| +, -,  , @@ |).
+    * **apply_patch** – applies patches using the ``unidiff`` library for accurate
+      hunk application and context line validation.
     * **get_revision_content** – random access to any historical revision.
     * **get_revision_diffs** – obtain the list of diffs applied between every
       consecutive pair of revisions so that a caller can replay or audit the
@@ -56,7 +55,7 @@ class TextCanvas(BaseCanvas):
             raise ValueError(f"File '{filename}' does not exist on the canvas; create it first.")
 
     # ----------------------------------------------------------------------------------
-    # Revision inspection helpers (new)
+    # Revision inspection helpers
     # ----------------------------------------------------------------------------------
 
     def get_revision_content(self, filename: str, revision: int) -> str:  # NEW 🚀
@@ -74,7 +73,7 @@ class TextCanvas(BaseCanvas):
         """Return a *chronological* list of unified‑diffs for *filename*.
 
         Each element in the returned list represents the diff that transformed
-        revision *n* into revision *n+1* (starting at revision 1 → 2).
+        revision *n* into revision *n+1* (starting at revision 1 → 2).
         """
         revisions = self._files.get(filename, [])
         diffs: List[str] = []
@@ -135,11 +134,7 @@ class TextCanvas(BaseCanvas):
     def apply_patch(self, filename: str, patch_data: Union[str, bytes, Any]) -> None:
         """Apply *patch_text* (unified diff) to the latest revision and save a new revision.
 
-        The algorithm follows two strategies:
-        1. **Preferred** – Use *unidiff* when available because it accurately applies
-           hunks and validates context lines.
-        2. **Fallback** – A simplified in‑house parser that works for typical agent‑
-           generated patches where each hunk is small and unlikely to conflict.
+        Uses the *unidiff* library to accurately apply hunks and validate context lines.
         """
         if isinstance(patch_data, bytes):
             patch_data = patch_data.decode("utf-8")
@@ -148,66 +143,39 @@ class TextCanvas(BaseCanvas):
         self._ensure_file(filename)
         original_content = self.get_latest_content(filename)
 
-        new_content: Union[str, None] = None
+        if PatchSet is None:
+            raise ImportError(
+                "The 'unidiff' package is required for patch application. Install with 'pip install unidiff'."
+            )
 
-        # Strategy 1 – robust path via unidiff
-        if PatchSet is not None:
-            try:
-                patch = PatchSet(patch_data)
-                # Our canvas stores exactly one file per patch operation so we
-                # use the first (and only) patched_file object.
-                if not patch:
-                    raise ValueError("Empty patch text provided.")
-                patched_file = patch[0]
-                working_lines = original_content.splitlines(keepends=True)
-                line_offset = 0
-                for hunk in patched_file:
-                    # Calculate the slice boundaries in the *current* working copy.
-                    start = hunk.source_start - 1 + line_offset
-                    end = start + hunk.source_length
-                    # Build the replacement block for this hunk.
-                    replacement: List[str] = []
-                    for line in hunk:
-                        if line.is_added or line.is_context:
-                            replacement.append(line.value)
-                        # removed lines (line.is_removed) are *not* added.
-                    # Replace the slice with the hunk‑result.
-                    working_lines[start:end] = replacement
-                    line_offset += len(replacement) - (end - start)
-                new_content = "".join(working_lines)
-            except Exception:  # pragma: no cover – let’s fall back on best‑effort
-                new_content = None  # trigger fallback
-
-        # Strategy 2 – naïve best‑effort patcher
-        if new_content is None:
-            patched_lines: List[str] = []
-            for line in patch_data.splitlines(keepends=True):
-                if line.startswith(("---", "+++", "@@")):
-                    # metadata – ignore
-                    continue
-                if line.startswith("+"):
-                    patched_lines.append(line[1:])  # addition (strip leading '+')
-                elif line.startswith("-"):
-                    # removal – skip the line (do *not* add to patched_lines)
-                    continue
-                elif line.startswith(" "):
-                    # context line – keep as‑is (without the leading space)
-                    patched_lines.append(line[1:])
-                else:
-                    # Lines that do not start with a recognised diff symbol are
-                    # copied verbatim.  This makes the parser reasonably tolerant
-                    # of hand‑edited patch blocks.
-                    patched_lines.append(line)
-            # The simple parser rebuilds the *entire* file from the patch.  When
-            # the diff is generated by ``difflib.unified_diff`` all unchanged
-            # lines appear as context lines so the reconstruction is safe.
-            new_content = "".join(patched_lines)
+        patch = PatchSet(patch_data)
+        # Our canvas stores exactly one file per patch operation so we
+        # use the first (and only) patched_file object.
+        if not patch:
+            raise ValueError("Empty patch text provided.")
+        patched_file = patch[0]
+        working_lines = original_content.splitlines(keepends=True)
+        line_offset = 0
+        for hunk in patched_file:
+            # Calculate the slice boundaries in the *current* working copy.
+            start = hunk.source_start - 1 + line_offset
+            end = start + hunk.source_length
+            # Build the replacement block for this hunk.
+            replacement: List[str] = []
+            for line in hunk:
+                if line.is_added or line.is_context:
+                    replacement.append(line.value)
+                # removed lines (line.is_removed) are *not* added.
+            # Replace the slice with the hunk‑result.
+            working_lines[start:end] = replacement
+            line_offset += len(replacement) - (end - start)
+        new_content = "".join(working_lines)
 
         # Finally commit the new revision.
         self.add_or_update_file(filename, new_content)
 
     # ----------------------------------------------------------------------------------
-    # Convenience helpers (unchanged)
+    # Convenience helpers
     # ----------------------------------------------------------------------------------
 
     def get_all_contents_for_context(self) -> str:  # noqa: D401 – keep public API stable
