@@ -62,6 +62,7 @@ python/autogen_ext.tools.graphrag
 python/autogen_ext.tools.http
 python/autogen_ext.tools.langchain
 python/autogen_ext.tools.mcp
+python/autogen_ext.memory.canvas
 python/autogen_ext.tools.semantic_kernel
 python/autogen_ext.code_executors.local
 python/autogen_ext.code_executors.docker
