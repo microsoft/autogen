@@ -6,8 +6,8 @@ from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Sequ
 
 from autogen_core import AgentRuntime, CancellationToken, Component, ComponentModel
 from autogen_core.model_context import (
+    BufferedChatCompletionContext,
     ChatCompletionContext,
-    UnboundedChatCompletionContext,
 )
 from autogen_core.models import (
     AssistantMessage,
@@ -25,6 +25,7 @@ from ...base import ChatAgent, TerminationCondition
 from ...messages import (
     BaseAgentEvent,
     BaseChatMessage,
+    HandoffMessage,
     MessageFactory,
 )
 from ...state import SelectorManagerState
@@ -93,7 +94,8 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         if model_context is not None:
             self._model_context = model_context
         else:
-            self._model_context = UnboundedChatCompletionContext()
+            # TODO: finalize the best default context class
+            self._model_context = BufferedChatCompletionContext(buffer_size=5)
         self._cancellation_token = CancellationToken()
 
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
@@ -102,6 +104,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
     async def reset(self) -> None:
         self._current_turn = 0
         self._message_thread.clear()
+        await self._model_context.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._previous_speaker = None
@@ -117,8 +120,25 @@ class SelectorGroupChatManager(BaseGroupChatManager):
     async def load_state(self, state: Mapping[str, Any]) -> None:
         selector_state = SelectorManagerState.model_validate(state)
         self._message_thread = [self._message_factory.create(msg) for msg in selector_state.message_thread]
+        await self._add_messages_to_context(
+            self._model_context, [msg for msg in self._message_thread if isinstance(msg, BaseChatMessage)]
+        )
         self._current_turn = selector_state.current_turn
         self._previous_speaker = selector_state.previous_speaker
+
+    @staticmethod
+    async def _add_messages_to_context(
+        model_context: ChatCompletionContext,
+        messages: Sequence[BaseChatMessage],
+    ) -> None:
+        """
+        Add incoming messages to the model context.
+        """
+        for msg in messages:
+            if isinstance(msg, HandoffMessage):
+                for llm_msg in msg.context:
+                    await model_context.add_message(llm_msg)
+            await model_context.add_message(msg.to_model_message())
 
     async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client,
@@ -126,6 +146,10 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
         A key assumption is that the agent type is the same as the topic type, which we use as the agent name.
         """
+        # TODO: A hacky solution - Update model context from _message_thread at every speaker selection
+        # Add last BaseChatMessage to model context
+        if isinstance(thread[-1], BaseChatMessage):
+            await self._model_context.add_message(thread[-1].to_model_message())
 
         # Use the selector function if provided.
         if self._selector_func is not None:
@@ -168,9 +192,6 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
         assert len(participants) > 0
 
-        # Construct the history of the conversation.
-        history = self.construct_message_history(thread)
-
         # Construct agent roles.
         # Each agent sould appear on a single line.
         roles = ""
@@ -180,7 +201,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
         # Select the next speaker.
         if len(participants) > 1:
-            agent_name = await self._select_speaker(roles, participants, history, self._max_selector_attempts)
+            agent_name = await self._select_speaker(roles, participants, self._max_selector_attempts)
         else:
             agent_name = participants[0]
         self._previous_speaker = agent_name
@@ -205,13 +226,12 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         history: str = "\n".join(history_messages)
         return history
 
-    async def _select_speaker(self, roles: str, participants: List[str], history: str, max_attempts: int) -> str:
+    async def _select_speaker(self, roles: str, participants: List[str], max_attempts: int) -> str:
         model_context_messages = await self._model_context.get_messages()
         model_context_history = self.construct_message_history(model_context_messages)  # type: ignore
-        history = model_context_history + history
 
         select_speaker_prompt = self._selector_prompt.format(
-            roles=roles, participants=str(participants), history=history
+            roles=roles, participants=str(participants), history=model_context_history
         )
 
         select_speaker_messages: List[SystemMessage | UserMessage | AssistantMessage]
