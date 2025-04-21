@@ -20,6 +20,10 @@ class TextCanvasMemory(Memory):
     A memory implementation that uses a Canvas for storing file-like content.
     Inserts the current state of the canvas into the ChatCompletionContext on each turn.
 
+    ... warning::
+
+        This is an experimental API and may change in the future.
+
     The TextCanvasMemory provides a persistent, file-like storage mechanism that can be used
     by agents to read and write content. It automatically injects the current state of all files
     in the canvas into the model context before each inference.
