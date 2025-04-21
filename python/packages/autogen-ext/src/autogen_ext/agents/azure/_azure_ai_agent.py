@@ -231,7 +231,7 @@ class AzureAIAgent(BaseChatAgent):
         name: str,
         description: str,
         project_client: AIProjectClient,
-        model: str,
+        deployment_name: str,
         instructions: str,
         tools: Optional[ListToolType] = None,
         agent_id: Optional[str] = None,
@@ -249,7 +249,7 @@ class AzureAIAgent(BaseChatAgent):
             name (str): The name of the agent. Must be a valid Python identifier.
             description (str): A brief description of the agent's purpose.
             project_client (AIProjectClient): The Azure AI Project client for API interactions.
-            model (str): The model identifier to use for the agent (e.g., "gpt-4").
+            deployment_name (str): The model deployment name to use for the agent (e.g., "gpt-4").
             instructions (str): Detailed instructions for the agent's behavior.
             tools (Optional[Iterable[Union[str, ToolDefinition, Tool, Callable]]]): A list of tools the agent can use.
                 Supported string values: "file_search", "code_interpreter", "bing_grounding",
@@ -279,7 +279,7 @@ class AzureAIAgent(BaseChatAgent):
         self._agent: Optional["models.Agent"] = None
         self._thread: Optional["models.AgentThread"] = None
         self._init_thread_id = thread_id
-        self._model = model
+        self._deployment_name = deployment_name,
         self._instructions = instructions
         self._api_tools = converted_tools
         self._agent_id = agent_id
@@ -409,7 +409,7 @@ class AzureAIAgent(BaseChatAgent):
             else:
                 self._agent = await self._project_client.agents.create_agent(
                     name=self.name,
-                    model=self._model,
+                    model=self._deployment_name,
                     description=self.description,
                     instructions=self._instructions,
                     tools=self._api_tools,
