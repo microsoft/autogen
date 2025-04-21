@@ -205,35 +205,23 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         num_attempts = 0
         while num_attempts < max_attempts:
             num_attempts += 1
-            if self._model_client_streaming:
-                message: CreateResult | str = ""
-                async for _message in self._model_client.create_stream(messages=select_speaker_messages):
-                    message = _message
-                    if self._emit_team_events:
-                        if isinstance(message, str):
-                            await self._output_message_queue.put(
-                                ModelClientStreamingChunkEvent(content=cast(str, _message), source=self._name)
-                            )
-                else:
-                    if isinstance(message, CreateResult):
-                        response = message
+            if self._model_client_streaming and self._emit_team_events:
+                chunk: CreateResult | str = ""
+                async for _chunk in self._model_client.create_stream(messages=select_speaker_messages):
+                    chunk = _chunk
+                    if isinstance(chunk, str):
+                        await self._output_message_queue.put(
+                            ModelClientStreamingChunkEvent(content=cast(str, _chunk), source=self._name)
+                        )
                     else:
-                        raise ValueError("Model failed to select a speaker.")
-
-                    if isinstance(response.content, str):
-                        if self._emit_team_events:
-                            await self._output_message_queue.put(
-                                SelectorEvent(content=response.content, source=self._name)
-                            )
-                    else:
-                        response.content = ""  # fallback to empty string
-                        if self._emit_team_events:
-                            await self._output_message_queue.put(
-                                SelectorEvent(
-                                    content="Model failed to select a valid content type(it must str)",
-                                    source=self._name,
-                                )
-                            )
+                        assert isinstance(chunk, CreateResult)
+                        assert isinstance(chunk.content, str)
+                        await self._output_message_queue.put(
+                            SelectorEvent(content=chunk.content, source=self._name)
+                        )
+                # The last chunk must be CreateResult.
+                assert isinstance(chunk, CreateResult)
+                response = chunk
             else:
                 response = await self._model_client.create(messages=select_speaker_messages)
             assert isinstance(response.content, str)

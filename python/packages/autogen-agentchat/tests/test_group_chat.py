@@ -13,11 +13,12 @@ from autogen_agentchat.agents import (
     CodeExecutorAgent,
 )
 from autogen_agentchat.base import Handoff, Response, TaskResult, TerminationCondition
-from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination, StopMessageTermination
 from autogen_agentchat.messages import (
     BaseAgentEvent,
     BaseChatMessage,
     HandoffMessage,
+    ModelClientStreamingChunkEvent,
     MultiModalMessage,
     SelectorEvent,
     SelectSpeakerEvent,
@@ -1704,14 +1705,13 @@ async def test_structured_message_state_roundtrip(runtime: AgentRuntime | None) 
 @pytest.mark.asyncio
 async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient(
-        ["agent3", "agent2", "agent1", "agent2", "agent1"],
+        ["the agent should be agent2"],
     )
-    agent1 = _StopAgent("agent1", description="echo agent 1", stop_at=2)
-    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent2 = _StopAgent("agent2", description="stop agent 2", stop_at=0)
     agent3 = _EchoAgent("agent3", description="echo agent 3")
-    termination = TextMentionTermination("TERMINATE")
+    termination = StopMessageTermination()
     team = SelectorGroupChat(
-        participants=[agent1, agent2, agent3],
+        participants=[agent2, agent3],
         model_client=model_client,
         termination_condition=termination,
         runtime=runtime,
@@ -1722,38 +1722,31 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
         task="Write a program that prints 'Hello, world!'",
     )
 
-    assert len(result.messages) == 16
+    assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
     assert isinstance(result.messages[1], SelectorEvent)
     assert isinstance(result.messages[2], SelectSpeakerEvent)
-    assert isinstance(result.messages[3], TextMessage)
-    assert isinstance(result.messages[4], SelectorEvent)
-    assert isinstance(result.messages[5], SelectSpeakerEvent)
-    assert isinstance(result.messages[6], TextMessage)
-    assert isinstance(result.messages[7], SelectorEvent)
-    assert isinstance(result.messages[8], SelectSpeakerEvent)
-    assert isinstance(result.messages[9], TextMessage)
-    assert isinstance(result.messages[10], SelectorEvent)
-    assert isinstance(result.messages[11], SelectSpeakerEvent)
-    assert isinstance(result.messages[12], TextMessage)
-    assert isinstance(result.messages[13], SelectorEvent)
-    assert isinstance(result.messages[14], SelectSpeakerEvent)
-    assert isinstance(result.messages[15], StopMessage)
+    assert isinstance(result.messages[3], StopMessage)
 
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
-    assert result.messages[1].content == "agent3"
-    assert result.messages[2].content == ["agent3"]
-    assert result.messages[3].source == "agent3"
-    assert result.messages[4].content == "agent2"
-    assert result.messages[5].content == ["agent2"]
-    assert result.messages[6].source == "agent2"
-    assert result.messages[7].content == "agent1"
-    assert result.messages[8].content == ["agent1"]
-    assert result.messages[9].source == "agent1"
-    assert result.messages[10].content == "agent2"
-    assert result.messages[11].content == ["agent2"]
-    assert result.messages[12].source == "agent2"
-    assert result.messages[13].content == "agent1"
-    assert result.messages[14].content == ["agent1"]
-    assert result.messages[15].source == "agent1"
-    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
+    assert result.messages[1].content == "the agent should be agent2"
+    assert result.messages[2].content == ["agent2"]
+    assert result.messages[3].source == "agent2"
+    assert result.stop_reason is not None and result.stop_reason == "Stop message received"
+
+    # Test streaming
+    await team.reset()
+    model_client.reset()
+    index = 0
+    streaming = []
+    async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        elif isinstance(message, ModelClientStreamingChunkEvent):
+            streaming.append(message)
+        else:
+            if streaming:
+                assert message.content == "".join([chunk.content for chunk in streaming])
+                streaming = []
+            assert message == result.messages[index]
+            index += 1
