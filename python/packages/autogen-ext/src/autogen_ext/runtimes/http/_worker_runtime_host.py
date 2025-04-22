@@ -55,6 +55,7 @@ class HttpWorkerAgentRuntimeHost:
             req = JsonRpcRequest(**req_data)
 
             try:
+                # Agent communication methods
                 if req.method == "agent.call":
                     logger.info(f"Processing agent.call from client {client_id}")
                     result = await self._servicer.rpc_agent_call(client_id, **req.params)
@@ -64,6 +65,35 @@ class HttpWorkerAgentRuntimeHost:
                     await self._servicer.rpc_agent_publish(client_id, **req.params)
                     result = None  # notifications ignore result
                     logger.info(f"Completed agent.publish for client {client_id}")
+
+                # Runtime administrative methods
+                elif req.method == "runtime.register_agent":
+                    logger.info(f"Processing runtime.register_agent from client {client_id}")
+                    agent_type = req.params.get("type")
+                    if not agent_type:
+                        raise ValueError("Missing 'type' in params for runtime.register_agent")
+                    await self._servicer.register_agent_type(client_id, agent_type)
+                    result = {"ok": True}
+                    logger.info(f"Completed runtime.register_agent for client {client_id}")
+                elif req.method == "runtime.add_subscription":
+                    logger.info(f"Processing runtime.add_subscription from client {client_id}")
+                    sub = subscription_from_json(req.params) # Expects the subscription JSON as params
+                    await self._servicer.add_subscription(client_id, sub)
+                    result = {"ok": True}
+                    logger.info(f"Completed runtime.add_subscription for client {client_id}")
+                elif req.method == "runtime.remove_subscription":
+                    logger.info(f"Processing runtime.remove_subscription from client {client_id}")
+                    sub_id = req.params.get("id")
+                    if not sub_id:
+                         raise ValueError("Missing 'id' in params for runtime.remove_subscription")
+                    await self._servicer.remove_subscription(client_id, sub_id)
+                    result = {"ok": True}
+                    logger.info(f"Completed runtime.remove_subscription for client {client_id}")
+                elif req.method == "runtime.get_subscriptions":
+                     logger.info(f"Processing runtime.get_subscriptions from client {client_id}")
+                     subs = await self._servicer.get_subscriptions()
+                     result = {"subscriptions": [subscription_to_json(s) for s in subs]}
+                     logger.info(f"Completed runtime.get_subscriptions for client {client_id}")
                 else:
                     logger.error(f"Unknown method {req.method}")
                     raise ValueError(f"Unknown method {req.method}")
@@ -76,44 +106,6 @@ class HttpWorkerAgentRuntimeHost:
                     error={"code": -32000, "message": str(ex)},
                     id=req.id
                 ).model_dump()
-
-        @self._app.post("/register_agent")
-        async def register_agent(client_id: str, payload: dict):
-            # payload has { "type": "<agent_type>" }
-            agent_type = payload.get("type")
-            if not agent_type:
-                return {"error": "missing agent type"}
-            try:
-                await self._servicer.register_agent_type(client_id, agent_type)
-            except ValueError as ex:
-                return {"error": str(ex)}
-            return {"ok": True}
-
-        @self._app.post("/add_subscription")
-        async def add_subscription(client_id: str, payload: dict):
-            # payload -> { "id":"...", "type_subscription": {...} } or "type_prefix_subscription"
-            sub = subscription_from_json(payload)
-            try:
-                await self._servicer.add_subscription(client_id, sub)
-            except ValueError as ex:
-                return {"error": str(ex)}
-            return {"ok": True}
-
-        @self._app.post("/remove_subscription")
-        async def remove_subscription(client_id: str, payload: dict):
-            sub_id = payload.get("id")
-            if not sub_id:
-                return {"error": "missing sub id"}
-            try:
-                await self._servicer.remove_subscription(client_id, sub_id)
-            except ValueError as ex:
-                return {"error": str(ex)}
-            return {"ok": True}
-
-        @self._app.get("/get_subscriptions")
-        async def get_subscriptions(client_id: str):
-            subs = await self._servicer.get_subscriptions()
-            return {"subscriptions": [subscription_to_json(s) for s in subs]}
 
     def start(self) -> None:
         if self._runner_task is not None:

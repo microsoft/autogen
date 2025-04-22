@@ -3,7 +3,7 @@ import json
 import logging
 import signal
 import uuid
-from typing import Any, Awaitable, Callable, Dict, Mapping, Optional, Sequence, Set, Tuple, Type, Union
+from typing import Any, Awaitable, Callable, Dict, Mapping, Optional, Sequence, Set, Tuple, Type, TypedDict, Union
 
 import httpx
 from autogen_core import (
@@ -25,9 +25,65 @@ from autogen_core._telemetry import MessageRuntimeTracingConfig, TraceHelper
 from opentelemetry.trace import TracerProvider
 
 from ._json_rpc import JsonRpcRequest, JsonRpcResponse
+# Import Subscription related types directly
+from autogen_core import Subscription
+from autogen_core import TypeSubscription
+from autogen_core import TypePrefixSubscription
+
 logger = logging.getLogger(__name__)
 
+# TypedDicts for subscription serialization
+class _TypeSubscriptionDict(TypedDict):
+    topic_type: str
+    agent_type: str
 
+class _TypePrefixSubscriptionDict(TypedDict):
+    topic_type_prefix: str
+    agent_type: str
+
+class _SubscriptionDict(TypedDict, total=False):
+    id: str
+    type_subscription: _TypeSubscriptionDict
+    type_prefix_subscription: _TypePrefixSubscriptionDict
+
+# Helper functions moved/duplicated here as they are now needed by client
+def _subscription_from_json(data: _SubscriptionDict) -> Subscription:
+    sub_id = data.get("id", "")
+    ts = data.get("type_subscription")
+    tps = data.get("type_prefix_subscription")
+
+    if ts:
+        return Subscription(
+            id=sub_id,
+            type_subscription=TypeSubscription(
+                topic_type=ts["topic_type"],
+                agent_type=ts["agent_type"],
+            ),
+        )
+    elif tps:
+        return Subscription(
+            id=sub_id,
+            type_prefix_subscription=TypePrefixSubscription(
+                topic_type_prefix=tps["topic_type_prefix"],
+                agent_type=tps["agent_type"],
+            ),
+        )
+    else:
+        raise ValueError("Invalid subscription JSON")
+
+def _subscription_to_json(s: Subscription) -> _SubscriptionDict:
+    d: _SubscriptionDict = {"id": s.id}
+    if s.type_subscription is not None:
+        d["type_subscription"] = {
+            "topic_type": s.type_subscription.topic_type,
+            "agent_type": s.type_subscription.agent_type,
+        }
+    elif s.type_prefix_subscription is not None:
+        d["type_prefix_subscription"] = {
+            "topic_type_prefix": s.type_prefix_subscription.topic_type_prefix,
+            "agent_type": s.type_prefix_subscription.agent_type,
+        }
+    return d
 
 class HttpHostConnection:
     """
@@ -150,34 +206,6 @@ class HttpHostConnection:
         Receive the next inbound message from the WebSocket channel.
         """
         return await self._recv_queue.get()
-
-    # --- The unary request portion (register, subscribe, etc.) go over normal HTTP ---
-    async def register_agent(self, agent_type: str) -> None:
-        """
-        Example: POST /register_agent
-        """
-        url = f"{self._base_url}/register_agent?client_id={self._client_id}"
-        resp = await self._http.post(url, json={"type": agent_type})
-        resp.raise_for_status()
-
-    async def add_subscription(self, subscription_dict: dict) -> None:
-        """
-        Example: POST /add_subscription
-        """
-        url = f"{self._base_url}/add_subscription?client_id={self._client_id}"
-        resp = await self._http.post(url, json=subscription_dict)
-        resp.raise_for_status()
-
-    async def remove_subscription(self, sub_id: str) -> None:
-        url = f"{self._base_url}/remove_subscription?client_id={self._client_id}"
-        resp = await self._http.post(url, json={"id": sub_id})
-        resp.raise_for_status()
-
-    async def get_subscriptions(self) -> dict:
-        url = f"{self._base_url}/get_subscriptions?client_id={self._client_id}"
-        resp = await self._http.get(url)
-        resp.raise_for_status()
-        return resp.json()
 
 
 class HttpWorkerAgentRuntime(AgentRuntime):
@@ -346,8 +374,12 @@ class HttpWorkerAgentRuntime(AgentRuntime):
             raise ValueError(f"Agent type {type} already registered.")
         self._agent_factories[type.type] = agent_factory
 
-        # Send a REST call to the host to register
-        await self._host_connection.register_agent(type.type)
+        # Send a JSON-RPC call to the host to register
+        await self._host_connection.call_rpc(
+            method="runtime.register_agent",
+            params={"type": type.type},
+            rpc_id=await self._new_request_id() # Use new_request_id for admin tasks too
+        )
 
         return type
 
@@ -360,27 +392,23 @@ class HttpWorkerAgentRuntime(AgentRuntime):
         return agent
 
     async def add_subscription(self, subscription: Subscription) -> None:
-        # Send request to host
-        sub_dict = {
-            "id": subscription.id,
-        }
-        # We check if it's TypeSubscription or TypePrefixSubscription, etc.
-        if subscription.type_subscription is not None:
-            sub_dict["type_subscription"] = {
-                "topic_type": subscription.type_subscription.topic_type,
-                "agent_type": subscription.type_subscription.agent_type,
-            }
-        elif subscription.type_prefix_subscription is not None:
-            sub_dict["type_prefix_subscription"] = {
-                "topic_type_prefix": subscription.type_prefix_subscription.topic_type_prefix,
-                "agent_type": subscription.type_prefix_subscription.agent_type,
-            }
+        # Send request to host via JSON-RPC
+        sub_dict = _subscription_to_json(subscription)
 
-        await self._host_connection.add_subscription(sub_dict)
+        await self._host_connection.call_rpc(
+            method="runtime.add_subscription",
+            params=sub_dict,
+            rpc_id=await self._new_request_id()
+        )
         await self._subscription_manager.add_subscription(subscription)
 
     async def remove_subscription(self, id: str) -> None:
-        await self._host_connection.remove_subscription(id)
+        # Send request to host via JSON-RPC
+        await self._host_connection.call_rpc(
+            method="runtime.remove_subscription",
+            params={"id": id},
+            rpc_id=await self._new_request_id()
+        )
         await self._subscription_manager.remove_subscription(id)
 
     async def get(
