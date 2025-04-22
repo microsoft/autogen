@@ -129,6 +129,8 @@ class AzureAIAgent(BaseChatAgent):
 
             import asyncio
             import os
+            import tempfile
+            import urllib.request
 
             import dotenv
             from autogen_agentchat.messages import TextMessage
@@ -139,38 +141,56 @@ class AzureAIAgent(BaseChatAgent):
 
 
             async def file_search_example():
-                credential = DefaultAzureCredential()
-                async with AIProjectClient.from_connection_string(  # type: ignore
-                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
-                ) as project_client:
-                    agent_with_file_search = AzureAIAgent(
-                        name="file_search_agent",
-                        description="An AI assistant with file search capabilities",
-                        project_client=project_client,
-                        deployment_name="gpt-4o",
-                        instructions="You are a helpful assistant.",
-                        tools=["file_search"],
-                        metadata={"source": "AzureAIAgent"},
-                    )
+                # Download README.md from GitHub
+                readme_url = "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/README.md"
+                temp_file = None
 
-                    await agent_with_file_search.on_upload_for_file_search(
-                        file_paths=[
-                            "/workspaces/autogen/python/packages/autogen-core/docs/src/user-guide/core-user-guide/cookbook/data/product_info_1.md"
-                        ],
-                        vector_store_name="file_upload_index",
-                        vector_store_metadata={"source": "AzureAIAgent"},
-                        cancellation_token=CancellationToken(),
-                    )
-                    result = await agent_with_file_search.on_messages(
-                        messages=[TextMessage(content="Hello, what Contoso products do you know?", source="user")],
-                        cancellation_token=CancellationToken(),
-                        message_limit=5,
-                    )
-                    print(result)
+                try:
+                    # Create a temporary file to store the downloaded README
+                    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".md")
+                    urllib.request.urlretrieve(readme_url, temp_file.name)
+                    print(f"Downloaded README.md to {temp_file.name}")
 
-                if __name__ == "__main__":
-                    dotenv.load_dotenv()
-                    asyncio.run(file_search_example())
+                    credential = DefaultAzureCredential()
+                    async with AIProjectClient.from_connection_string(  # type: ignore
+                        credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
+                    ) as project_client:
+                        agent_with_file_search = AzureAIAgent(
+                            name="file_search_agent",
+                            description="An AI assistant with file search capabilities",
+                            project_client=project_client,
+                            deployment_name="gpt-4o",
+                            instructions="You are a helpful assistant.",
+                            tools=["file_search"],
+                            metadata={"source": "AzureAIAgent"},
+                        )
+
+                        ct: CancellationToken = CancellationToken()
+                        # Use the downloaded README file for file search
+                        await agent_with_file_search.on_upload_for_file_search(
+                            file_paths=[temp_file.name],
+                            vector_store_name="file_upload_index",
+                            vector_store_metadata={"source": "AzureAIAgent"},
+                            cancellation_token=ct,
+                        )
+                        result = await agent_with_file_search.on_messages(
+                            messages=[
+                                TextMessage(content="Hello, what is AutoGen and what capabilities does it have?", source="user")
+                            ],
+                            cancellation_token=ct,
+                            message_limit=5,
+                        )
+                        print(result)
+                finally:
+                    # Clean up the temporary file
+                    if temp_file and os.path.exists(temp_file.name):
+                        os.unlink(temp_file.name)
+                        print(f"Removed temporary file {temp_file.name}")
+
+
+            if __name__ == "__main__":
+                dotenv.load_dotenv()
+                asyncio.run(file_search_example())
 
         Use the AzureAIAgent to create an agent with code interpreter capability:
 
