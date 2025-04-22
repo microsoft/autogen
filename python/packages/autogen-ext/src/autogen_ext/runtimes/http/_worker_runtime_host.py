@@ -1,0 +1,202 @@
+import asyncio
+import logging
+import signal
+from typing import Optional, Sequence
+
+import uvicorn
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from autogen_core import Subscription
+from ._json_rpc import JsonRpcRequest, JsonRpcResponse
+from ._worker_runtime_host_servicer import HttpWorkerAgentRuntimeHostServicer
+
+logger = logging.getLogger("autogen_core")
+
+
+class HttpWorkerAgentRuntimeHost:
+    """
+    Wraps a FastAPI app that uses `HttpWorkerAgentRuntimeHostServicer` behind the scenes.
+    Provides endpoints (REST + WebSocket) for agent workers to connect and register, add subscriptions, etc.
+    """
+
+    def __init__(self, address: str = "127.0.0.1", port: int = 8000):
+        self._address = address
+        self._port = port
+        self._app = FastAPI()
+        self._servicer = HttpWorkerAgentRuntimeHostServicer()
+        self._runner_task: Optional[asyncio.Task] = None
+        self._server: Optional[uvicorn.Server] = None
+
+        # define routes
+        @self._app.websocket("/open_channel")
+        async def open_channel(ws: WebSocket, client_id: str):
+            # accept connection
+            await ws.accept()
+            await self._servicer.on_client_connected(client_id, ws)
+            try:
+                while True:
+                    data = await ws.receive_json()
+                    await self._servicer.handle_websocket_message(client_id, data)
+            except WebSocketDisconnect:
+                await self._servicer.on_client_disconnected(client_id)
+
+        @self._app.post("/rpc")
+        async def rpc_handler(request: Request):
+            client_id = request.headers.get("x-client-id")
+            logger.info(f"Received RPC request from client_id={client_id}")
+            if not client_id:
+                logger.error("Missing client_id in RPC request")
+                return JsonRpcResponse(
+                    error={"code": -32000, "message": "Missing client_id header"},
+                    id=None
+                ).model_dump()
+
+            req_data = await request.json()
+            logger.info(f"RPC request data: {req_data}")
+            req = JsonRpcRequest(**req_data)
+
+            try:
+                if req.method == "agent.call":
+                    logger.info(f"Processing agent.call from client {client_id}")
+                    result = await self._servicer.rpc_agent_call(client_id, **req.params)
+                    logger.info(f"Completed agent.call for client {client_id}")
+                elif req.method == "agent.publish":
+                    logger.info(f"Processing agent.publish from client {client_id}")
+                    await self._servicer.rpc_agent_publish(client_id, **req.params)
+                    result = None  # notifications ignore result
+                    logger.info(f"Completed agent.publish for client {client_id}")
+                else:
+                    logger.error(f"Unknown method {req.method}")
+                    raise ValueError(f"Unknown method {req.method}")
+
+                logger.info(f"Sending RPC response for request_id={req.id}")
+                return JsonRpcResponse(result=result, id=req.id).model_dump()
+            except Exception as ex:
+                logger.error(f"Error processing RPC request: {str(ex)}", exc_info=ex)
+                return JsonRpcResponse(
+                    error={"code": -32000, "message": str(ex)},
+                    id=req.id
+                ).model_dump()
+
+        @self._app.post("/register_agent")
+        async def register_agent(client_id: str, payload: dict):
+            # payload has { "type": "<agent_type>" }
+            agent_type = payload.get("type")
+            if not agent_type:
+                return {"error": "missing agent type"}
+            try:
+                await self._servicer.register_agent_type(client_id, agent_type)
+            except ValueError as ex:
+                return {"error": str(ex)}
+            return {"ok": True}
+
+        @self._app.post("/add_subscription")
+        async def add_subscription(client_id: str, payload: dict):
+            # payload -> { "id":"...", "type_subscription": {...} } or "type_prefix_subscription"
+            sub = subscription_from_json(payload)
+            try:
+                await self._servicer.add_subscription(client_id, sub)
+            except ValueError as ex:
+                return {"error": str(ex)}
+            return {"ok": True}
+
+        @self._app.post("/remove_subscription")
+        async def remove_subscription(client_id: str, payload: dict):
+            sub_id = payload.get("id")
+            if not sub_id:
+                return {"error": "missing sub id"}
+            try:
+                await self._servicer.remove_subscription(client_id, sub_id)
+            except ValueError as ex:
+                return {"error": str(ex)}
+            return {"ok": True}
+
+        @self._app.get("/get_subscriptions")
+        async def get_subscriptions(client_id: str):
+            subs = await self._servicer.get_subscriptions()
+            return {"subscriptions": [subscription_to_json(s) for s in subs]}
+
+    def start(self) -> None:
+        if self._runner_task is not None:
+            raise RuntimeError("Already started")
+        config = uvicorn.Config(self._app, host=self._address, port=self._port, loop="asyncio")
+        self._server = uvicorn.Server(config)
+
+        async def run_server():
+            if self._server: # check necessary for type checker
+                await self._server.serve()
+
+        self._runner_task = asyncio.create_task(run_server())
+
+    async def stop(self, grace: int = 2) -> None:
+        if self._runner_task is None or self._server is None:
+            raise RuntimeError("Not started")
+        
+        self._server.should_exit = True
+        try:
+            # Wait for the server task to finish gracefully
+            await asyncio.wait_for(self._runner_task, timeout=grace)
+        except asyncio.TimeoutError:
+            pass
+        
+        self._runner_task = None
+        self._server = None
+
+    async def stop_when_signal(
+        self, grace: int = 5, signals: Sequence[signal.Signals] = (signal.SIGTERM, signal.SIGINT)
+    ) -> None:
+        loop = asyncio.get_running_loop()
+        stop_event = asyncio.Event()
+
+        def do_stop():
+            stop_event.set()
+
+        for s in signals:
+            loop.add_signal_handler(s, do_stop)
+
+        await stop_event.wait()
+        await self.stop(grace=grace)
+
+
+def subscription_from_json(data: dict) -> Subscription:
+    # naive example converting the JSON posted into a Subscription
+    from autogen_core._subscription import Subscription
+    from autogen_core._type_subscription import TypeSubscription
+    from autogen_core._type_prefix_subscription import TypePrefixSubscription
+
+    sub_id = data.get("id", "")
+    ts = data.get("type_subscription")
+    tps = data.get("type_prefix_subscription")
+
+    if ts:
+        return Subscription(
+            id=sub_id,
+            type_subscription=TypeSubscription(
+                topic_type=ts["topic_type"],
+                agent_type=ts["agent_type"],
+            ),
+        )
+    elif tps:
+        return Subscription(
+            id=sub_id,
+            type_prefix_subscription=TypePrefixSubscription(
+                topic_type_prefix=tps["topic_type_prefix"],
+                agent_type=tps["agent_type"],
+            ),
+        )
+    else:
+        raise ValueError("Invalid subscription JSON")
+
+
+def subscription_to_json(s: Subscription) -> dict:
+    d = {"id": s.id}
+    if s.type_subscription is not None:
+        d["type_subscription"] = {
+            "topic_type": s.type_subscription.topic_type,
+            "agent_type": s.type_subscription.agent_type,
+        }
+    elif s.type_prefix_subscription is not None:
+        d["type_prefix_subscription"] = {
+            "topic_type_prefix": s.type_prefix_subscription.topic_type_prefix,
+            "agent_type": s.type_prefix_subscription.agent_type,
+        }
+    return d
