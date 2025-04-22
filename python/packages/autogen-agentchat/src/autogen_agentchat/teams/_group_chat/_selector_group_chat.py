@@ -6,8 +6,8 @@ from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Sequ
 
 from autogen_core import AgentRuntime, CancellationToken, Component, ComponentModel
 from autogen_core.model_context import (
-    UnboundedChatCompletionContext,
     ChatCompletionContext,
+    UnboundedChatCompletionContext,
 )
 from autogen_core.models import (
     AssistantMessage,
@@ -139,17 +139,17 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                     await model_context.add_message(llm_msg)
             await model_context.add_message(msg.to_model_message())
 
+    async def update_message_thread(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> None:
+        self._message_thread.extend(messages)
+        base_chat_messages = [m for m in messages if isinstance(m, BaseChatMessage)]
+        await self._add_messages_to_context(self._model_context, base_chat_messages)
+
     async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client,
         with the selector function as override if it returns a speaker name.
 
         A key assumption is that the agent type is the same as the topic type, which we use as the agent name.
         """
-        # TODO: A hacky solution - Update model context from _message_thread at every speaker selection
-        # Add last BaseChatMessage to model context
-        if isinstance(thread[-1], BaseChatMessage):
-            await self._model_context.add_message(thread[-1].to_model_message())
-
         # Use the selector function if provided.
         if self._selector_func is not None:
             if self._is_selector_func_async:
