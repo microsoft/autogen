@@ -25,6 +25,7 @@ from autogen_core._telemetry import MessageRuntimeTracingConfig, TraceHelper
 from opentelemetry.trace import TracerProvider
 
 from ._json_rpc import JsonRpcRequest, JsonRpcResponse
+
 # Import Subscription related types directly
 from autogen_core import Subscription
 from autogen_core import TypeSubscription
@@ -32,22 +33,26 @@ from autogen_core import TypePrefixSubscription
 
 logger = logging.getLogger(__name__)
 
+
 # TypedDicts for subscription serialization
-class _TypeSubscriptionDict(TypedDict):
+class TypeSubscriptionDict(TypedDict):
     topic_type: str
     agent_type: str
 
-class _TypePrefixSubscriptionDict(TypedDict):
+
+class TypePrefixSubscriptionDict(TypedDict):
     topic_type_prefix: str
     agent_type: str
 
-class _SubscriptionDict(TypedDict, total=False):
+
+class SubscriptionDict(TypedDict, total=False):
     id: str
-    type_subscription: _TypeSubscriptionDict
-    type_prefix_subscription: _TypePrefixSubscriptionDict
+    type_subscription: TypeSubscriptionDict
+    type_prefix_subscription: TypePrefixSubscriptionDict
+
 
 # Helper functions moved/duplicated here as they are now needed by client
-def _subscription_from_json(data: _SubscriptionDict) -> Subscription:
+def subscription_from_json(data: SubscriptionDict) -> Subscription:
     sub_id = data.get("id", "")
     ts = data.get("type_subscription")
     tps = data.get("type_prefix_subscription")
@@ -71,8 +76,9 @@ def _subscription_from_json(data: _SubscriptionDict) -> Subscription:
     else:
         raise ValueError("Invalid subscription JSON")
 
-def _subscription_to_json(s: Subscription) -> _SubscriptionDict:
-    d: _SubscriptionDict = {"id": s.id}
+
+def subscription_to_json(s: Subscription) -> SubscriptionDict:
+    d: SubscriptionDict = {"id": s.id}
     if s.type_subscription is not None:
         d["type_subscription"] = {
             "topic_type": s.type_subscription.topic_type,
@@ -84,6 +90,7 @@ def _subscription_to_json(s: Subscription) -> _SubscriptionDict:
             "agent_type": s.type_prefix_subscription.agent_type,
         }
     return d
+
 
 class HttpHostConnection:
     """
@@ -182,8 +189,7 @@ class HttpHostConnection:
         payload = JsonRpcRequest(method=method, params=params, id=rpc_id).model_dump()
         logger.info(f"Sending RPC request to {self._base_url}/rpc with method={method}, id={rpc_id}")
         try:
-            r = await self._http.post(f"{self._base_url}/rpc", json=payload,
-                                    headers={"x-client-id": self._client_id})
+            r = await self._http.post(f"{self._base_url}/rpc", json=payload, headers={"x-client-id": self._client_id})
             r.raise_for_status()
             reply = JsonRpcResponse(**r.json())
             if reply.error is not None:
@@ -296,12 +302,14 @@ class HttpWorkerAgentRuntime(AgentRuntime):
             raise RuntimeError("Not running")
 
         data_type = self._serialization_registry.type_name(message)
-        blob = self._serialization_registry.serialize(message, type_name=data_type, data_content_type=self._payload_format)
+        blob = self._serialization_registry.serialize(
+            message, type_name=data_type, data_content_type=self._payload_format
+        )
         req_id = await self._new_request_id()
 
         params = {
             "target": {"type": recipient.type, "key": recipient.key},
-            "source": ({"type": sender.type,"key": sender.key} if sender else None),
+            "source": ({"type": sender.type, "key": sender.key} if sender else None),
             "data_type": data_type,
             "data_content_type": self._payload_format,
             "data": blob.decode() if isinstance(blob, bytes) else blob,
@@ -333,7 +341,9 @@ class HttpWorkerAgentRuntime(AgentRuntime):
             message_id = str(uuid.uuid4())
 
         data_type = self._serialization_registry.type_name(message)
-        blob = self._serialization_registry.serialize(message, type_name=data_type, data_content_type=self._payload_format)
+        blob = self._serialization_registry.serialize(
+            message, type_name=data_type, data_content_type=self._payload_format
+        )
 
         payload = {
             "topic": {"type": topic_id.type, "source": topic_id.source},
@@ -378,7 +388,7 @@ class HttpWorkerAgentRuntime(AgentRuntime):
         await self._host_connection.call_rpc(
             method="runtime.register_agent",
             params={"type": type.type},
-            rpc_id=await self._new_request_id() # Use new_request_id for admin tasks too
+            rpc_id=await self._new_request_id(),  # Use new_request_id for admin tasks too
         )
 
         return type
@@ -393,21 +403,17 @@ class HttpWorkerAgentRuntime(AgentRuntime):
 
     async def add_subscription(self, subscription: Subscription) -> None:
         # Send request to host via JSON-RPC
-        sub_dict = _subscription_to_json(subscription)
+        sub_dict = subscription_to_json(subscription)
 
         await self._host_connection.call_rpc(
-            method="runtime.add_subscription",
-            params=sub_dict,
-            rpc_id=await self._new_request_id()
+            method="runtime.add_subscription", params=sub_dict, rpc_id=await self._new_request_id()
         )
         await self._subscription_manager.add_subscription(subscription)
 
     async def remove_subscription(self, id: str) -> None:
         # Send request to host via JSON-RPC
         await self._host_connection.call_rpc(
-            method="runtime.remove_subscription",
-            params={"id": id},
-            rpc_id=await self._new_request_id()
+            method="runtime.remove_subscription", params={"id": id}, rpc_id=await self._new_request_id()
         )
         await self._subscription_manager.remove_subscription(id)
 
@@ -422,8 +428,7 @@ class HttpWorkerAgentRuntime(AgentRuntime):
         return await get_impl(id_or_type=id_or_type, key=key, lazy=lazy, instance_getter=self._get_agent)
 
     def add_message_serializer(
-        self,
-        serializer: Union[MessageSerializer[Any], Sequence[MessageSerializer[Any]]]
+        self, serializer: Union[MessageSerializer[Any], Sequence[MessageSerializer[Any]]]
     ) -> None:
         self._serialization_registry.add_serializer(serializer)
 
@@ -462,17 +467,17 @@ class HttpWorkerAgentRuntime(AgentRuntime):
             target = raw["target"]
             agent_id = AgentId(target["type"], target["key"])
             logger.info(f"Processing request with ID={req_id} for agent {agent_id}")
-            
+
             sender = raw.get("source")
             if sender:
                 sender_id = AgentId(sender["type"], sender["key"])
             else:
                 sender_id = None
-                
+
             data_type = raw.get("data_type", "unknown")
             data_content_type = raw.get("data_content_type", JSON_DATA_CONTENT_TYPE)
             body_str = raw.get("data", "")
-            
+
             # deserialize
             logger.info(f"Deserializing message of type {data_type} with content type {data_content_type}")
             try:
@@ -502,7 +507,7 @@ class HttpWorkerAgentRuntime(AgentRuntime):
                     cancellation_token=CancellationToken(),
                     message_id=req_id,
                 )
-                
+
                 logger.info(f"Calling on_message for agent {agent_id}")
                 result = await agent.on_message(body, ctx=ctx)
                 logger.info(f"Received result from agent {agent_id}")
@@ -510,7 +515,9 @@ class HttpWorkerAgentRuntime(AgentRuntime):
                 # serialize
                 res_type = self._serialization_registry.type_name(result)
                 logger.info(f"Serializing result of type {res_type}")
-                serialized = self._serialization_registry.serialize(result, type_name=res_type, data_content_type=data_content_type)
+                serialized = self._serialization_registry.serialize(
+                    result, type_name=res_type, data_content_type=data_content_type
+                )
 
                 envelope = {
                     "type": "response",
@@ -519,7 +526,7 @@ class HttpWorkerAgentRuntime(AgentRuntime):
                     "data_type": res_type,
                     "data_content_type": data_content_type,
                     "data": serialized.decode("utf-8") if isinstance(serialized, bytes) else serialized,
-                    "original_sender": raw.get("original_sender")
+                    "original_sender": raw.get("original_sender"),
                 }
                 logger.info(f"Sending response for request {req_id}")
                 await self._host_connection.send_channel_message(envelope)
@@ -530,7 +537,7 @@ class HttpWorkerAgentRuntime(AgentRuntime):
                     "type": "response",
                     "request_id": req_id,
                     "error": str(ex),
-                    "original_sender": raw.get("original_sender")
+                    "original_sender": raw.get("original_sender"),
                 }
                 await self._host_connection.send_channel_message(envelope)
         except Exception as ex:
@@ -554,7 +561,7 @@ class HttpWorkerAgentRuntime(AgentRuntime):
             data_type = raw.get("data_type", "unknown")
             data_content_type = raw.get("data_content_type", JSON_DATA_CONTENT_TYPE)
             body_str = raw.get("data", "")
-            
+
             logger.info(f"Deserializing response of type {data_type} with content type {data_content_type}")
             try:
                 body = self._serialization_registry.deserialize(
@@ -573,12 +580,12 @@ class HttpWorkerAgentRuntime(AgentRuntime):
 
     async def _process_event(self, raw: dict) -> None:
         """
-        A 'cloud_event' from the host. 
+        A 'cloud_event' from the host.
         We'll check topic -> see which local agent is subscribed -> deliver it.
         (For brevity, the example does direct dispatch to agents the same way the gRPC runtime does.)
         """
         topic_info = raw.get("topic", {})
-        topic_id = TopicId(topic_info.get("type",""), topic_info.get("source",""))
+        topic_id = TopicId(topic_info.get("type", ""), topic_info.get("source", ""))
         data_content_type = raw.get("data_content_type", JSON_DATA_CONTENT_TYPE)
         data_type = raw.get("data_type", "unknown")
         payload_str = raw.get("payload", "")
@@ -600,7 +607,7 @@ class HttpWorkerAgentRuntime(AgentRuntime):
         for agent_id in recipients:
             if agent_id == sender_id:
                 continue
-            coros.append(self._deliver_event(agent_id, body, topic_id, raw.get("id","")))
+            coros.append(self._deliver_event(agent_id, body, topic_id, raw.get("id", "")))
 
         await asyncio.gather(*coros, return_exceptions=True)
 

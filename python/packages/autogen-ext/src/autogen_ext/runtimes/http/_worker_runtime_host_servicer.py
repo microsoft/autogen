@@ -62,7 +62,7 @@ class HttpWorkerAgentRuntimeHostServicer:
           - 'type': 'request' -> forward to the correct agent client
           - 'type': 'cloud_event' -> publish
           - 'type': 'response' -> fulfill a pending future, etc.
-        But in this HTTP sample host, we assume we are the "router" for multiple worker-clients, 
+        But in this HTTP sample host, we assume we are the "router" for multiple worker-clients,
         so we dispatch from one client to another or to local logic, the same as gRPC version does.
         """
 
@@ -94,7 +94,7 @@ class HttpWorkerAgentRuntimeHostServicer:
 
     async def get_subscriptions(self) -> list[Subscription]:
         return list(self._subscription_manager.subscriptions)
-    
+
     async def rpc_agent_call(self, sender_cid: str, **params):
         target = params["target"]
         agent_type = target["type"]
@@ -122,17 +122,17 @@ class HttpWorkerAgentRuntimeHostServicer:
         logger.info(f"Creating future for request_id={request_id}")
         fut = asyncio.get_running_loop().create_future()
         self._pending.setdefault(tgt_cid, {})[request_id] = fut
-        
+
         try:
             logger.info(f"Sending request to target {tgt_cid}")
             await ws.send_json(forward)
-            
+
             # Wait for response with a timeout to prevent hanging
             try:
                 logger.info(f"Waiting for response to request_id={request_id}")
                 reply = await asyncio.wait_for(fut, timeout=20.0)  # 20 second timeout
                 logger.info(f"Received response for request_id={request_id}")
-                return reply                  # returned to caller as JSON‑RPC result
+                return reply  # returned to caller as JSON‑RPC result
             except asyncio.TimeoutError:
                 # Clean up the pending future
                 if tgt_cid in self._pending and request_id in self._pending[tgt_cid]:
@@ -148,10 +148,7 @@ class HttpWorkerAgentRuntimeHostServicer:
 
     async def rpc_agent_publish(self, sender_cid: str, **payload):
         # Re‑use existing _process_cloud_event
-        await self._process_cloud_event(sender_cid, {
-            "type": "cloud_event",
-            **payload
-        })
+        await self._process_cloud_event(sender_cid, {"type": "cloud_event", **payload})
 
     # ----------------------------------------------------------------
     # Internals to route requests among multiple clients
@@ -166,9 +163,9 @@ class HttpWorkerAgentRuntimeHostServicer:
         request_id = data.get("request_id")
         target = data.get("target", {})
         agent_type = target.get("type")
-        
+
         logger.info(f"Processing request from {client_id} to agent_type={agent_type}, request_id={request_id}")
-        
+
         # find the client that registered that agent type
         if agent_type not in self._agent_type_to_client_id:
             logger.error(f"Agent type {agent_type} not found for request {request_id}")
@@ -204,7 +201,7 @@ class HttpWorkerAgentRuntimeHostServicer:
         # but for brevity, let's define a simpler approach or skip the details.
         # We'll attach the 'original_sender' so we know whom to respond to.
         data["original_sender"] = client_id
-        
+
         logger.info(f"Forwarding request {request_id} to target client {target_client_id}")
         await forward_ws.send_json(data)
         logger.info(f"Successfully forwarded request {request_id}")
@@ -216,7 +213,7 @@ class HttpWorkerAgentRuntimeHostServicer:
         """
         request_id = data.get("request_id")
         logger.info(f"Processing response from {client_id} for request_id={request_id}")
-        
+
         original_sender = data.get("original_sender")
         if not original_sender:
             # This means we are missing info. Possibly a logic error in this example.
@@ -227,13 +224,13 @@ class HttpWorkerAgentRuntimeHostServicer:
         if client_id in self._pending and request_id in self._pending[client_id]:
             logger.info(f"Setting result for future with request_id={request_id}")
             future = self._pending[client_id][request_id]
-            
+
             if "error" in data and data["error"]:
                 logger.error(f"Response contains error: {data['error']}")
                 future.set_exception(RuntimeError(data["error"]))
             else:
                 future.set_result(data)
-            
+
             # Remove the future from pending
             del self._pending[client_id][request_id]
         else:
@@ -255,7 +252,7 @@ class HttpWorkerAgentRuntimeHostServicer:
         to the relevant worker(s).
         """
         topic_info = data.get("topic", {})
-        topic_id = TopicId(topic_info.get("type",""), topic_info.get("source",""))
+        topic_id = TopicId(topic_info.get("type", ""), topic_info.get("source", ""))
         recipients = await self._subscription_manager.get_subscribed_recipients(topic_id)
         # For each recipient, find that agent_type -> find the client_id -> send
         for agent_id in recipients:
