@@ -94,6 +94,8 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             (:py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` recommended. See example below)
         model_client (ChatCompletionClient, optional): The model client to use for inference and generating code.
             If not provided, the agent will only execute code blocks found in input messages.
+            Currently, the model must support structured output mode, which is required for
+            the automatic retry mechanism to work.
         model_client_stream (bool, optional): If `True`, the model client will be used in streaming mode.
             :meth:`on_messages_stream` and :meth:`BaseChatAgent.run_stream` methods will
             also yield :class:`~autogen_agentchat.messages.ModelClientStreamingChunkEvent`
@@ -106,6 +108,8 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             This is useful when the agent is part of a group chat and you want to limit the code execution to messages from specific agents.
             If not provided, all messages will be checked for code blocks.
             This is only used if `model_client` is not provided.
+        max_retries_on_error (int, optional): The maximum number of retries on error. If the code execution fails, the agent will retry up to this number of times.
+            If the code execution fails after this number of retries, the agent will yield a reflection result.
 
 
     .. note::
