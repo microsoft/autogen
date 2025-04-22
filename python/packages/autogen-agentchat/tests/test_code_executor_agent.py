@@ -1,9 +1,4 @@
 import pytest
-from autogen_core import CancellationToken
-from autogen_core.models import ModelFamily, ModelInfo
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.replay import ReplayChatCompletionClient
-
 from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
@@ -11,6 +6,10 @@ from autogen_agentchat.messages import (
     CodeGenerationEvent,
     TextMessage,
 )
+from autogen_core import CancellationToken
+from autogen_core.models import ModelFamily, ModelInfo
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
 @pytest.mark.asyncio

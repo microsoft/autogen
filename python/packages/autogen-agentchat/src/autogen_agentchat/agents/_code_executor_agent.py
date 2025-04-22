@@ -421,6 +421,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             )
 
             # Step 5: Extract the code blocks from inferred text
+            assert isinstance(model_result.content, str), "Expected inferred model_result.content to be of type str."
             code_blocks = self._extract_markdown_code_blocks(str(model_result.content))
 
             # Step 6: Exit the loop if no code blocks found
@@ -434,7 +435,6 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 return
 
             # Step 7: Yield a CodeGenerationEvent
-            assert isinstance(model_result.content, str), "Expected inferred model_result.content to be of type str."
             inferred_text_message: CodeGenerationEvent = CodeGenerationEvent(
                 retry_attempt=nth_try,
                 content=model_result.content,
