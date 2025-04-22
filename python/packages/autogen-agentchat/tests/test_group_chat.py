@@ -12,13 +12,21 @@ from autogen_agentchat.agents import (
     BaseChatAgent,
     CodeExecutorAgent,
 )
-from autogen_agentchat.base import Handoff, Response, TaskResult
-from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.base import Handoff, Response, TaskResult, TerminationCondition
+from autogen_agentchat.conditions import (
+    HandoffTermination,
+    MaxMessageTermination,
+    StopMessageTermination,
+    TextMentionTermination,
+)
 from autogen_agentchat.messages import (
     BaseAgentEvent,
     BaseChatMessage,
     HandoffMessage,
+    ModelClientStreamingChunkEvent,
     MultiModalMessage,
+    SelectorEvent,
+    SelectSpeakerEvent,
     StopMessage,
     StructuredMessage,
     TextMessage,
@@ -81,6 +89,16 @@ class _EchoAgent(BaseChatAgent):
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
 
+    async def save_state(self) -> Mapping[str, Any]:
+        return {
+            "last_message": self._last_message,
+            "total_messages": self._total_messages,
+        }
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        self._last_message = state.get("last_message")
+        self._total_messages = state.get("total_messages", 0)
+
 
 class _FlakyAgent(BaseChatAgent):
     def __init__(self, name: str, description: str) -> None:
@@ -101,6 +119,26 @@ class _FlakyAgent(BaseChatAgent):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
+
+
+class _FlakyTermination(TerminationCondition):
+    def __init__(self, raise_on_count: int) -> None:
+        self._raise_on_count = raise_on_count
+        self._count = 0
+
+    @property
+    def terminated(self) -> bool:
+        """Check if the termination condition has been reached"""
+        return False
+
+    async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
+        self._count += 1
+        if self._count == self._raise_on_count:
+            raise ValueError("I am a flaky termination...")
+        return None
+
+    async def reset(self) -> None:
+        pass
 
 
 class _UnknownMessageType(BaseChatMessage):
@@ -258,6 +296,55 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
 
 
 @pytest.mark.asyncio
+async def test_round_robin_group_chat_with_team_event(runtime: AgentRuntime | None) -> None:
+    model_client = ReplayChatCompletionClient(
+        [
+            'Here is the program\n ```python\nprint("Hello, world!")\n```',
+            "TERMINATE",
+        ],
+    )
+    with tempfile.TemporaryDirectory() as temp_dir:
+        code_executor_agent = CodeExecutorAgent(
+            "code_executor", code_executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)
+        )
+        coding_assistant_agent = AssistantAgent(
+            "coding_assistant",
+            model_client=model_client,
+        )
+        termination = TextMentionTermination("TERMINATE")
+        team = RoundRobinGroupChat(
+            participants=[coding_assistant_agent, code_executor_agent],
+            termination_condition=termination,
+            runtime=runtime,
+            emit_team_events=True,
+        )
+        result = await team.run(
+            task="Write a program that prints 'Hello, world!'",
+        )
+        assert len(result.messages) == 7
+        assert isinstance(result.messages[0], TextMessage)
+        assert isinstance(result.messages[1], SelectSpeakerEvent)
+        assert isinstance(result.messages[2], TextMessage)
+        assert isinstance(result.messages[3], SelectSpeakerEvent)
+        assert isinstance(result.messages[4], TextMessage)
+        assert isinstance(result.messages[5], SelectSpeakerEvent)
+        assert isinstance(result.messages[6], TextMessage)
+
+        # Test streaming.
+        model_client.reset()
+        index = 0
+        await team.reset()
+        async for message in team.run_stream(
+            task="Write a program that prints 'Hello, world!'",
+        ):
+            if isinstance(message, TaskResult):
+                assert message == result
+            else:
+                assert message == result.messages[index]
+            index += 1
+
+
+@pytest.mark.asyncio
 async def test_round_robin_group_chat_unknown_task_message_type(runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient([])
     agent1 = AssistantAgent("agent1", model_client=model_client)
@@ -285,7 +372,7 @@ async def test_round_robin_group_chat_unknown_agent_message_type() -> None:
     agent2 = _UnknownMessageTypeAgent("agent2", "I am an unknown message type agent")
     termination = TextMentionTermination("TERMINATE")
     team1 = RoundRobinGroupChat(participants=[agent1, agent2], termination_condition=termination)
-    with pytest.raises(ValueError, match="Message type .*UnknownMessageType.* not registered"):
+    with pytest.raises(RuntimeError, match=".* Message type .*UnknownMessageType.* not registered"):
         await team1.run(task=TextMessage(content="Write a program that prints 'Hello, world!'", source="user"))
 
 
@@ -457,10 +544,8 @@ async def test_round_robin_group_chat_with_resume_and_reset(runtime: AgentRuntim
     assert result.stop_reason is not None
 
 
-# TODO: add runtime fixture for testing with custom runtime once the issue regarding
-# hanging on exception is resolved.
 @pytest.mark.asyncio
-async def test_round_robin_group_chat_with_exception_raised() -> None:
+async def test_round_robin_group_chat_with_exception_raised_from_agent(runtime: AgentRuntime | None) -> None:
     agent_1 = _EchoAgent("agent_1", description="echo agent 1")
     agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
@@ -468,9 +553,29 @@ async def test_round_robin_group_chat_with_exception_raised() -> None:
     team = RoundRobinGroupChat(
         participants=[agent_1, agent_2, agent_3],
         termination_condition=termination,
+        runtime=runtime,
     )
 
-    with pytest.raises(ValueError, match="I am a flaky agent..."):
+    with pytest.raises(RuntimeError, match="I am a flaky agent..."):
+        await team.run(
+            task="Write a program that prints 'Hello, world!'",
+        )
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_with_exception_raised_from_termination_condition(
+    runtime: AgentRuntime | None,
+) -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    team = RoundRobinGroupChat(
+        participants=[agent_1, agent_2, agent_3],
+        termination_condition=_FlakyTermination(raise_on_count=1),
+        runtime=runtime,
+    )
+
+    with pytest.raises(Exception, match="I am a flaky termination..."):
         await team.run(
             task="Write a program that prints 'Hello, world!'",
         )
@@ -591,6 +696,65 @@ async def test_selector_group_chat(runtime: AgentRuntime | None) -> None:
     await team.reset()
     result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
     assert result2 == result
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_with_team_event(runtime: AgentRuntime | None) -> None:
+    model_client = ReplayChatCompletionClient(
+        ["agent3", "agent2", "agent1", "agent2", "agent1"],
+    )
+    agent1 = _StopAgent("agent1", description="echo agent 1", stop_at=2)
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    termination = TextMentionTermination("TERMINATE")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        termination_condition=termination,
+        runtime=runtime,
+        emit_team_events=True,
+    )
+    result = await team.run(
+        task="Write a program that prints 'Hello, world!'",
+    )
+    assert len(result.messages) == 11
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], SelectSpeakerEvent)
+    assert isinstance(result.messages[2], TextMessage)
+    assert isinstance(result.messages[3], SelectSpeakerEvent)
+    assert isinstance(result.messages[4], TextMessage)
+    assert isinstance(result.messages[5], SelectSpeakerEvent)
+    assert isinstance(result.messages[6], TextMessage)
+    assert isinstance(result.messages[7], SelectSpeakerEvent)
+    assert isinstance(result.messages[8], TextMessage)
+    assert isinstance(result.messages[9], SelectSpeakerEvent)
+    assert isinstance(result.messages[10], StopMessage)
+    assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
+    assert result.messages[1].content == ["agent3"]
+    assert result.messages[2].source == "agent3"
+    assert result.messages[3].content == ["agent2"]
+    assert result.messages[4].source == "agent2"
+    assert result.messages[5].content == ["agent1"]
+    assert result.messages[6].source == "agent1"
+    assert result.messages[7].content == ["agent2"]
+    assert result.messages[8].source == "agent2"
+    assert result.messages[9].content == ["agent1"]
+    assert result.messages[10].source == "agent1"
+    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
+
+    # Test streaming.
+    model_client.reset()
+    agent1._count = 0  # pyright: ignore
+    index = 0
+    await team.reset()
+    async for message in team.run_stream(
+        task="Write a program that prints 'Hello, world!'",
+    ):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1
 
 
 @pytest.mark.asyncio
@@ -979,6 +1143,60 @@ async def test_swarm_handoff(runtime: AgentRuntime | None) -> None:
     )  # pyright: ignore
     assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
     assert manager_1._current_speaker == manager_2._current_speaker  # pyright: ignore
+
+
+@pytest.mark.asyncio
+async def test_swarm_handoff_with_team_events(runtime: AgentRuntime | None) -> None:
+    first_agent = _HandOffAgent("first_agent", description="first agent", next_agent="second_agent")
+    second_agent = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
+    third_agent = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
+
+    termination = MaxMessageTermination(6)
+    team = Swarm(
+        [second_agent, first_agent, third_agent],
+        termination_condition=termination,
+        runtime=runtime,
+        emit_team_events=True,
+    )
+    result = await team.run(task="task")
+    assert len(result.messages) == 11
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], SelectSpeakerEvent)
+    assert isinstance(result.messages[2], HandoffMessage)
+    assert isinstance(result.messages[3], SelectSpeakerEvent)
+    assert isinstance(result.messages[4], HandoffMessage)
+    assert isinstance(result.messages[5], SelectSpeakerEvent)
+    assert isinstance(result.messages[6], HandoffMessage)
+    assert isinstance(result.messages[7], SelectSpeakerEvent)
+    assert isinstance(result.messages[8], HandoffMessage)
+    assert isinstance(result.messages[9], SelectSpeakerEvent)
+    assert isinstance(result.messages[10], HandoffMessage)
+    assert result.messages[0].content == "task"
+    assert result.messages[1].content == ["second_agent"]
+    assert result.messages[2].content == "Transferred to third_agent."
+    assert result.messages[3].content == ["third_agent"]
+    assert result.messages[4].content == "Transferred to first_agent."
+    assert result.messages[5].content == ["first_agent"]
+    assert result.messages[6].content == "Transferred to second_agent."
+    assert result.messages[7].content == ["second_agent"]
+    assert result.messages[8].content == "Transferred to third_agent."
+    assert result.messages[9].content == ["third_agent"]
+    assert result.messages[10].content == "Transferred to first_agent."
+    assert (
+        result.stop_reason is not None
+        and result.stop_reason == "Maximum number of messages 6 reached, current message count: 6"
+    )
+
+    # Test streaming.
+    index = 0
+    await team.reset()
+    stream = team.run_stream(task="task")
+    async for message in stream:
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1
 
 
 @pytest.mark.asyncio
@@ -1403,3 +1621,138 @@ async def test_declarative_groupchats_with_config(runtime: AgentRuntime | None) 
     assert selector.dump_component().provider == "autogen_agentchat.teams.SelectorGroupChat"
     assert swarm.dump_component().provider == "autogen_agentchat.teams.Swarm"
     assert magentic.dump_component().provider == "autogen_agentchat.teams.MagenticOneGroupChat"
+
+
+class _StructuredContent(BaseModel):
+    message: str
+
+
+class _StructuredAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str) -> None:
+        super().__init__(name, description)
+        self._message = _StructuredContent(message="Structured hello")
+
+    @property
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+        return (StructuredMessage[_StructuredContent],)
+
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+        return Response(
+            chat_message=StructuredMessage[_StructuredContent](
+                source=self.name,
+                content=self._message,
+                format_string="Structured says: {message}",
+            )
+        )
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        pass
+
+
+@pytest.mark.asyncio
+async def test_message_type_auto_registration(runtime: AgentRuntime | None) -> None:
+    agent1 = _StructuredAgent("structured", description="emits structured messages")
+    agent2 = _EchoAgent("echo", description="echoes input")
+
+    team = RoundRobinGroupChat(participants=[agent1, agent2], max_turns=2, runtime=runtime)
+
+    result = await team.run(task="Say something structured")
+
+    assert len(result.messages) == 3
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], StructuredMessage)
+    assert isinstance(result.messages[2], TextMessage)
+    assert result.messages[1].to_text() == "Structured says: Structured hello"
+
+
+@pytest.mark.asyncio
+async def test_structured_message_state_roundtrip(runtime: AgentRuntime | None) -> None:
+    agent1 = _StructuredAgent("structured", description="sends structured")
+    agent2 = _EchoAgent("echo", description="echoes")
+
+    team1 = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=MaxMessageTermination(2),
+        runtime=runtime,
+    )
+
+    await team1.run(task="Say something structured")
+    state1 = await team1.save_state()
+
+    # Recreate team without needing custom_message_types
+    agent3 = _StructuredAgent("structured", description="sends structured")
+    agent4 = _EchoAgent("echo", description="echoes")
+    team2 = RoundRobinGroupChat(
+        participants=[agent3, agent4],
+        termination_condition=MaxMessageTermination(2),
+        runtime=runtime,
+    )
+
+    await team2.load_state(state1)
+    state2 = await team2.save_state()
+
+    # Assert full state equality
+    assert state1 == state2
+
+    # Assert message thread content match
+    manager1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team1._group_chat_manager_name}_{team1._team_id}", team1._team_id),  # pyright: ignore
+        RoundRobinGroupChatManager,
+    )
+    manager2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
+        RoundRobinGroupChatManager,
+    )
+
+    assert manager1._message_thread == manager2._message_thread  # pyright: ignore
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> None:
+    model_client = ReplayChatCompletionClient(
+        ["the agent should be agent2"],
+    )
+    agent2 = _StopAgent("agent2", description="stop agent 2", stop_at=0)
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    termination = StopMessageTermination()
+    team = SelectorGroupChat(
+        participants=[agent2, agent3],
+        model_client=model_client,
+        termination_condition=termination,
+        runtime=runtime,
+        emit_team_events=True,
+        model_client_streaming=True,
+    )
+    result = await team.run(
+        task="Write a program that prints 'Hello, world!'",
+    )
+
+    assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], SelectorEvent)
+    assert isinstance(result.messages[2], SelectSpeakerEvent)
+    assert isinstance(result.messages[3], StopMessage)
+
+    assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
+    assert result.messages[1].content == "the agent should be agent2"
+    assert result.messages[2].content == ["agent2"]
+    assert result.messages[3].source == "agent2"
+    assert result.stop_reason is not None and result.stop_reason == "Stop message received"
+
+    # Test streaming
+    await team.reset()
+    model_client.reset()
+    index = 0
+    streaming: List[str] = []
+    async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        elif isinstance(message, ModelClientStreamingChunkEvent):
+            streaming.append(message.content)
+        else:
+            if streaming:
+                assert isinstance(message, SelectorEvent)
+                assert message.content == "".join([chunk for chunk in streaming])
+                streaming = []
+            assert message == result.messages[index]
+            index += 1

@@ -432,6 +432,25 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
+    def _serialize_message(self, message: MessageParam) -> Dict[str, Any]:
+        """Convert an Anthropic MessageParam to a JSON-serializable format."""
+        if isinstance(message, dict):
+            result: Dict[str, Any] = {}
+            for key, value in message.items():
+                if key == "content" and isinstance(value, list):
+                    serialized_blocks: List[Any] = []
+                    for block in value:  # type: ignore
+                        if isinstance(block, BaseModel):
+                            serialized_blocks.append(block.model_dump())
+                        else:
+                            serialized_blocks.append(block)
+                    result[key] = serialized_blocks
+                else:
+                    result[key] = value
+            return result
+        else:
+            return {"role": "unknown", "content": str(message)}
+
     def _merge_system_messages(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
         """
         Merge continuous system messages into a single message.
@@ -458,6 +477,17 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             system_message = SystemMessage(content=system_message_content)
             _messages.insert(_first_system_message_idx, system_message)
         messages = _messages
+
+        return messages
+
+    def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
+        """
+        Remove the last assistant message if it is empty.
+        """
+        # When Claude models last message is AssistantMessage, It could not end with whitespace
+        if isinstance(messages[-1], AssistantMessage):
+            if isinstance(messages[-1].content, str):
+                messages[-1].content = messages[-1].content.rstrip()
 
         return messages
 
@@ -497,6 +527,8 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         # Merge continuous system messages into a single message
         messages = self._merge_system_messages(messages)
+        messages = self._rstrip_last_assistant_message(messages)
+
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
@@ -560,10 +592,11 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             prompt_tokens=result.usage.input_tokens,
             completion_tokens=result.usage.output_tokens,
         )
+        serializable_messages: List[Dict[str, Any]] = [self._serialize_message(msg) for msg in anthropic_messages]
 
         logger.info(
             LLMCallEvent(
-                messages=cast(List[Dict[str, Any]], anthropic_messages),
+                messages=serializable_messages,
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
@@ -662,6 +695,8 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         # Merge continuous system messages into a single message
         messages = self._merge_system_messages(messages)
+        messages = self._rstrip_last_assistant_message(messages)
+
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
@@ -731,6 +766,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         stop_reason: Optional[str] = None
 
         first_chunk = True
+        serialized_messages: List[Dict[str, Any]] = [self._serialize_message(msg) for msg in anthropic_messages]
 
         # Process the stream
         async for chunk in stream:
@@ -739,7 +775,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                 # Emit the start event.
                 logger.info(
                     LLMStreamStartEvent(
-                        messages=cast(List[Dict[str, Any]], anthropic_messages),
+                        messages=serialized_messages,
                     )
                 )
             # Handle different event types

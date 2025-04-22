@@ -2,10 +2,12 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <MicrosoftSemanticKernelVersion>1.22.0</MicrosoftSemanticKernelVersion>
-    <MicrosoftSemanticKernelExperimentalVersion>1.22.0-alpha</MicrosoftSemanticKernelExperimentalVersion>
-    <MicrosoftExtensionsAIVersion>9.0.0-preview.9.24525.1</MicrosoftExtensionsAIVersion>
+    <MicrosoftSemanticKernelStableVersion>1.45.0</MicrosoftSemanticKernelStableVersion>
+    <MicrosoftSemanticKernelPreviewVersion>$(MicrosoftSemanticKernelStableVersion)-preview</MicrosoftSemanticKernelPreviewVersion>
+    <MicrosoftSemanticKernelAlphaVersion>$(MicrosoftSemanticKernelStableVersion)-alpha</MicrosoftSemanticKernelAlphaVersion>
+    <MicrosoftExtensionsAIVersion>9.3.0-preview.1.25161.3</MicrosoftExtensionsAIVersion>
     <MicrosoftExtensionConfiguration>9.0.0</MicrosoftExtensionConfiguration>
-    <MicrosoftExtensionDependencyInjection>9.0.0</MicrosoftExtensionDependencyInjection>
+    <MicrosoftExtensionDependencyInjection>9.0.3</MicrosoftExtensionDependencyInjection>
     <MicrosoftExtensionLogging>9.0.0</MicrosoftExtensionLogging>
     <MicrosoftExtensionOptions>9.0.0</MicrosoftExtensionOptions>
     <MicrosoftOrleans>9.0.1</MicrosoftOrleans>
@@ -18,7 +20,7 @@
     <PackageVersion Include="Aspire.Hosting" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Python" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="9.0.0" />
-    <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="8.0.1-preview.8.24267.1" />
+    <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="9.0.0-preview.5.24551.3" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="9.0.0" />
@@ -27,9 +29,10 @@
     <PackageVersion Include="Aspire.Hosting.Qdrant" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="8.2.0" />
     <PackageVersion Include="AspNetCore.Authentication.ApiKey" Version="8.0.1" />
-    <PackageVersion Include="Azure.AI.OpenAI" Version="2.1.0-beta.2" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version="2.2.0-beta.4" />
     <PackageVersion Include="Azure.AI.Inference" Version="1.0.0-beta.1" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.9.1" />
+    <PackageVersion Include="Azure.Core" Version="1.44.1" />
     <PackageVersion Include="Azure.Identity" Version="1.13.1" />
     <PackageVersion Include="Azure.ResourceManager.ContainerInstance" Version="1.2.1" />
     <PackageVersion Include="Azure.Storage.Files.Shares" Version="12.21.0" />
@@ -100,18 +103,18 @@
     <PackageVersion Include="Microsoft.Orleans.Streaming.EventHubs" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="9.0.1" />
     <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.5.0" />
-    <PackageVersion Include="Microsoft.SemanticKernel" Version="1.29.0" />
-    <PackageVersion Include="Microsoft.SemanticKernel.Agents.Core" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
-    <PackageVersion Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.29.0" />
-    <PackageVersion Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
-    <PackageVersion Include="Microsoft.SemanticKernel.Plugins.Memory" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
-    <PackageVersion Include="Microsoft.SemanticKernel.Plugins.Web" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel" Version="$(MicrosoftSemanticKernelStableVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.Agents.Core" Version="$(MicrosoftSemanticKernelStableVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="$(MicrosoftSemanticKernelStableVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="$(MicrosoftSemanticKernelPreviewVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.Plugins.Memory" Version="$(MicrosoftSemanticKernelAlphaVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.Plugins.Web" Version="$(MicrosoftSemanticKernelAlphaVersion)" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="Octokit" Version="13.0.1" />
     <PackageVersion Include="Octokit.Webhooks.AspNetCore" Version="2.4.1" />
-    <PackageVersion Include="OpenAI" Version="2.1.0-beta.2" />
+    <PackageVersion Include="OpenAI" Version="2.2.0-beta.4" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryInstrumentation)" />
@@ -127,7 +130,7 @@
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
     <PackageVersion Include="System.IO.Packaging" Version="9.0.0" />
     <PackageVersion Include="System.Memory.Data" Version="9.0.0" />
-    <PackageVersion Include="System.Text.Json" Version="9.0.0" />
+    <PackageVersion Include="System.Text.Json" Version="9.0.3" />
     <PackageVersion Include="xunit" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.console" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />

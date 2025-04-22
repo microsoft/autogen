@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import os
+import tempfile
+import warnings
 from pathlib import Path
 from string import Template
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, List, Optional, Protocol, Sequence, Union
@@ -68,9 +70,13 @@ class ACADynamicSessionsCodeExecutor(CodeExecutor):
         timeout (int): The timeout for the execution of any single code block. Default is 60.
         work_dir (str): The working directory for the code execution. If None,
             a default working directory will be used. The default working
-            directory is the current directory ".".
+            directory is a temporal directory.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         suppress_result_output bool: By default the executor will attach any result info in the execution response to the result outpu. Set this to True to prevent this.
+        session_id (str): The session id for the code execution (passed to Dynamic Sessions). If None, a new session id will be generated. Default is None. Note this value will be reset when calling `restart`
+
+    .. note::
+        Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
     """
 
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
@@ -87,7 +93,7 @@ $functions"""
         pool_management_endpoint: str,
         credential: TokenProvider,
         timeout: int = 60,
-        work_dir: Union[Path, str] = Path("."),
+        work_dir: Union[Path, str, None] = None,
         functions: Sequence[
             Union[
                 FunctionWithRequirements[Any, A],
@@ -97,25 +103,36 @@ $functions"""
         ] = [],
         functions_module: str = "functions",
         suppress_result_output: bool = False,
+        session_id: Optional[str] = None,
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
-        if isinstance(work_dir, str):
-            work_dir = Path(work_dir)
+        self._work_dir: Optional[Path] = None
+        self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
 
-        if not functions_module.isidentifier():
-            raise ValueError("Module name must be a valid Python identifier")
+        # If a user specifies a working directory, use that
+        if work_dir is not None:
+            if isinstance(work_dir, str):
+                self._work_dir = Path(work_dir)
+            else:
+                self._work_dir = work_dir
+            # Create the directory if it doesn't exist
+            self._work_dir.mkdir(exist_ok=True, parents=True)
+        # If a user does not specify a working directory, use the default directory (tempfile.TemporaryDirectory)
+        else:
+            self._temp_dir = tempfile.TemporaryDirectory()
+            temp_dir_path = Path(self._temp_dir.name)
+            temp_dir_path.mkdir(exist_ok=True, parents=True)
 
+        self._started = False
+
+        # Rest of initialization remains the same
         self._functions_module = functions_module
-
-        work_dir.mkdir(exist_ok=True)
-        self._work_dir: Path = work_dir
-
         self._timeout = timeout
-
         self._functions = functions
-        self._func_code: str | None = None
+        self._func_code: Optional[str] = None
+
         # Setup could take some time so we intentionally wait for the first code block to do it.
         if len(functions) > 0:
             self._setup_functions_complete = False
@@ -126,7 +143,7 @@ $functions"""
 
         self._pool_management_endpoint = pool_management_endpoint
         self._access_token: str | None = None
-        self._session_id: str = str(uuid4())
+        self._session_id: str = session_id or str(uuid4())
         self._available_packages: set[str] | None = None
         self._credential: TokenProvider = credential
         # cwd needs to be set to /mnt/data to properly read uploaded files and download written files
@@ -172,8 +189,21 @@ $functions"""
 
     @property
     def work_dir(self) -> Path:
-        """(Experimental) The working directory for the code execution."""
-        return self._work_dir
+        # If a user specifies a working directory, use that
+        if self._work_dir is not None:
+            # If a user specifies the current directory, warn them that this is deprecated
+            if self._work_dir == Path("."):
+                warnings.warn(
+                    "Using the current directory as work_dir is deprecated",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            return self._work_dir
+        # If a user does not specify a working directory, use the default directory (tempfile.TemporaryDirectory)
+        elif self._temp_dir is not None:
+            return Path(self._temp_dir.name)
+        else:
+            raise RuntimeError("Working directory not properly initialized")
 
     def _construct_url(self, path: str) -> str:
         endpoint = self._pool_management_endpoint
@@ -210,10 +240,17 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
 
             flattened_packages = [item for sublist in lists_of_packages for item in sublist]
             required_packages = set(flattened_packages)
+
+            if self._available_packages is None:
+                await self._populate_available_packages(cancellation_token)
+
             if self._available_packages is not None:
                 missing_pkgs = set(required_packages - self._available_packages)
                 if len(missing_pkgs) > 0:
                     raise ValueError(f"Packages unavailable in environment: {missing_pkgs}")
+
+        func_file = self.work_dir / f"{self._functions_module}.py"
+        func_file.write_text(self._func_code)
 
         # Attempt to load the function file to check for syntax errors, imports etc.
         exec_result = await self._execute_code_dont_check_setup(
@@ -278,8 +315,8 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
         timeout = aiohttp.ClientTimeout(total=float(self._timeout))
         async with aiohttp.ClientSession(timeout=timeout) as client:
             for file in files:
-                file_path = os.path.join(self._work_dir, file)
-                if not os.path.isfile(file_path):
+                file_path = self.work_dir / file
+                if not file_path.is_file():
                     # TODO: what to do here?
                     raise FileNotFoundError(f"{file} does not exist")
 
@@ -339,8 +376,8 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
                 try:
                     resp = await task
                     resp.raise_for_status()
-                    local_path = os.path.join(self._work_dir, file)
-                    local_paths.append(local_path)
+                    local_path = self.work_dir / file
+                    local_paths.append(str(local_path))
                     async with await open_file(local_path, "wb") as f:
                         await f.write(await resp.read())
                 except asyncio.TimeoutError as e:
@@ -457,7 +494,11 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
         return CodeResult(exit_code=exitcode, output=logs_all)
 
     async def restart(self) -> None:
-        """(Experimental) Restart the code executor."""
+        """(Experimental) Restart the code executor.
+
+        Resets the internal state of the executor by generating a new session ID and resetting the setup variables.
+        This causes the next code execution to reinitialize the environment and re-run any setup code.
+        """
         self._session_id = str(uuid4())
         self._setup_functions_complete = False
         self._access_token = None
@@ -465,11 +506,17 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
         self._setup_cwd_complete = False
 
     async def start(self) -> None:
-        """(Experimental) Start the code executor."""
+        """(Experimental) Start the code executor.
+
+        Marks the code executor as started."""
         # No setup needed for this executor
-        pass
+        self._started = True
 
     async def stop(self) -> None:
-        """(Experimental) Stop the code executor."""
-        # No cleanup needed for this executor
-        pass
+        """(Experimental) Stop the code executor.
+
+        Stops the code executor after cleaning up the temporary working directory (if it was created)."""
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+            self._temp_dir = None
+        self._started = False
