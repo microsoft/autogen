@@ -162,12 +162,12 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
 
 
 def to_oai_type(
-    message: LLMMessage, prepend_name: bool = False, model_family: str = "gpt-4o"
+    message: LLMMessage, prepend_name: bool = False, model: str = "unknown", model_family: str = ModelFamily.UNKNOWN
 ) -> Sequence[ChatCompletionMessageParam]:
     context = {
         "prepend_name": prepend_name,
     }
-    transformers = get_transformer("openai", model_family)
+    transformers = get_transformer("openai", model, model_family)
 
     def raise_value_error(message: LLMMessage, context: Dict[str, Any]) -> Sequence[ChatCompletionMessageParam]:
         raise ValueError(f"Unknown message type: {type(message)}")
@@ -280,6 +280,7 @@ def count_tokens_openai(
     *,
     add_name_prefixes: bool = False,
     tools: Sequence[Tool | ToolSchema] = [],
+    model_family: str = ModelFamily.UNKNOWN,
 ) -> int:
     try:
         encoding = tiktoken.encoding_for_model(model)
@@ -293,7 +294,7 @@ def count_tokens_openai(
     # Message tokens.
     for message in messages:
         num_tokens += tokens_per_message
-        oai_message = to_oai_type(message, prepend_name=add_name_prefixes, model_family=model)
+        oai_message = to_oai_type(message, prepend_name=add_name_prefixes, model=model, model_family=model_family)
         for oai_message_part in oai_message:
             for key, value in oai_message_part.items():
                 if value is None:
@@ -433,6 +434,17 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
         return OpenAIChatCompletionClient(**config)
 
+    def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
+        """
+        Remove the last assistant message if it is empty.
+        """
+        # When Claude models last message is AssistantMessage, It could not end with whitespace
+        if isinstance(messages[-1], AssistantMessage):
+            if isinstance(messages[-1].content, str):
+                messages[-1].content = messages[-1].content.rstrip()
+
+        return messages
+
     def _process_create_args(
         self,
         messages: Sequence[LLMMessage],
@@ -513,9 +525,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
-        if create_args.get("model", "unknown").startswith("gemini-"):
-            # Gemini models accept only one system message(else, it will read only the last one)
-            # So, merge system messages into one
+        if not self.model_info.get("multiple_system_messages", False):
+            # Some models accept only one system message(or, it will read only the last one)
+            # So, merge system messages into one (if multiple and continuous)
             system_message_content = ""
             _messages: List[LLMMessage] = []
             _first_system_message_idx = -1
@@ -528,7 +540,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     elif _last_system_message_idx + 1 != idx:
                         # That case, system message is not continuous
                         # Merge system messages only contiues system messages
-                        raise ValueError("Multiple and Not continuous system messages are not supported")
+                        raise ValueError(
+                            "Multiple and Not continuous system messages are not supported if model_info['multiple_system_messages'] is False"
+                        )
                     system_message_content += message.content + "\n"
                     _last_system_message_idx = idx
                 else:
@@ -539,8 +553,18 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 _messages.insert(_first_system_message_idx, system_message)
             messages = _messages
 
+        # in that case, for ad-hoc, we using startswith instead of model_family for code consistency
+        if create_args.get("model", "unknown").startswith("claude-"):
+            # When Claude models last message is AssistantMessage, It could not end with whitespace
+            messages = self._rstrip_last_assistant_message(messages)
+
         oai_messages_nested = [
-            to_oai_type(m, prepend_name=self._add_name_prefixes, model_family=create_args.get("model", "unknown"))
+            to_oai_type(
+                m,
+                prepend_name=self._add_name_prefixes,
+                model=create_args.get("model", "unknown"),
+                model_family=self._model_info["family"],
+            )
             for m in messages
         ]
 
@@ -1033,6 +1057,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             self._create_args["model"],
             add_name_prefixes=self._add_name_prefixes,
             tools=tools,
+            model_family=self._model_info["family"],
         )
 
     def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:

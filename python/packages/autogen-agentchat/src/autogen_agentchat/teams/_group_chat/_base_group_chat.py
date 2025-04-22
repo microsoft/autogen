@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
@@ -15,7 +14,6 @@ from autogen_core import (
 )
 from pydantic import BaseModel, ValidationError
 
-from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import (
     BaseAgentEvent,
@@ -23,14 +21,20 @@ from ...messages import (
     MessageFactory,
     ModelClientStreamingChunkEvent,
     StopMessage,
+    StructuredMessage,
     TextMessage,
 )
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
-from ._events import GroupChatPause, GroupChatReset, GroupChatResume, GroupChatStart, GroupChatTermination
+from ._events import (
+    GroupChatPause,
+    GroupChatReset,
+    GroupChatResume,
+    GroupChatStart,
+    GroupChatTermination,
+    SerializableException,
+)
 from ._sequential_routed_agent import SequentialRoutedAgent
-
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
@@ -51,6 +55,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
+        emit_team_events: bool = False,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -64,6 +69,15 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         if custom_message_types is not None:
             for message_type in custom_message_types:
                 self._message_factory.register(message_type)
+
+        for agent in participants:
+            for message_type in agent.produced_message_types:
+                try:
+                    if issubclass(message_type, StructuredMessage):
+                        self._message_factory.register(message_type)  # type: ignore[reportUnknownArgumentType]
+                except TypeError:
+                    # Not a class or not a valid subclassable type (skip)
+                    pass
 
         # The team ID is a UUID that is used to identify the team and its participants
         # in the agent runtime. It is used to create unique topic types for each participant.
@@ -109,6 +123,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
         # Flag to track if the group chat is running.
         self._is_running = False
+
+        # Flag to track if the team events should be emitted.
+        self._emit_team_events = emit_team_events
 
     @abstractmethod
     def _create_group_chat_manager_factory(
@@ -447,13 +464,26 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 try:
                     # This will propagate any exceptions raised.
                     await self._runtime.stop_when_idle()
-                finally:
-                    # Stop the consumption of messages and end the stream.
-                    # NOTE: we also need to put a GroupChatTermination event here because when the group chat
-                    # has an exception, the group chat manager may not be able to put a GroupChatTermination event in the queue.
+                    # Put a termination message in the queue to indicate that the group chat is stopped for whatever reason
+                    # but not due to an exception.
                     await self._output_message_queue.put(
                         GroupChatTermination(
-                            message=StopMessage(content="Exception occurred.", source=self._group_chat_manager_name)
+                            message=StopMessage(
+                                content="The group chat is stopped.", source=self._group_chat_manager_name
+                            )
+                        )
+                    )
+                except Exception as e:
+                    # Stop the consumption of messages and end the stream.
+                    # NOTE: we also need to put a GroupChatTermination event here because when the runtime
+                    # has an exception, the group chat manager may not be able to put a GroupChatTermination event in the queue.
+                    # This may not be necessary if the group chat manager is able to handle the exception and put the event in the queue.
+                    await self._output_message_queue.put(
+                        GroupChatTermination(
+                            message=StopMessage(
+                                content="An exception occurred in the runtime.", source=self._group_chat_manager_name
+                            ),
+                            error=SerializableException.from_exception(e),
                         )
                     )
 
@@ -481,11 +511,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 # Wait for the next message, this will raise an exception if the task is cancelled.
                 message = await message_future
                 if isinstance(message, GroupChatTermination):
-                    # If the message is None, it means the group chat has terminated.
-                    # TODO: how do we handle termination when the runtime is not embedded
-                    # and there is an exception in the group chat?
-                    # The group chat manager may not be able to put a GroupChatTermination event in the queue,
-                    # and this loop will never end.
+                    # If the message contains an error, we need to raise it here.
+                    # This will stop the team and propagate the error.
+                    if message.error is not None:
+                        raise RuntimeError(str(message.error))
                     stop_reason = message.message.content
                     break
                 yield message

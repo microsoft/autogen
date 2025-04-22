@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, AsyncGenerator, Dict, List, Mapping
+from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional
 
 import httpx
 import pytest
@@ -13,11 +13,11 @@ from autogen_core.models import (
     FunctionExecutionResultMessage,
     UserMessage,
 )
-from autogen_core.tools import FunctionTool
+from autogen_core.tools import FunctionTool, ToolSchema
 from autogen_ext.models.ollama import OllamaChatCompletionClient
-from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CREATE_KWARGS_KEYS
+from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CREATE_KWARGS_KEYS, convert_tools
 from httpx import Response
-from ollama import AsyncClient, ChatResponse, Message
+from ollama import AsyncClient, ChatResponse, Message, Tool
 from pydantic import BaseModel
 
 
@@ -204,6 +204,117 @@ async def test_create_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert create_result.usage is not None
     assert create_result.usage.prompt_tokens == 10
     assert create_result.usage.completion_tokens == 12
+
+
+@pytest.mark.asyncio
+async def test_convert_tools() -> None:
+    def add(x: int, y: Optional[int]) -> str:
+        if y is None:
+            return str(x)
+        return str(x + y)
+
+    add_tool = FunctionTool(add, description="Add two numbers")
+
+    tool_schema_noparam: ToolSchema = {
+        "name": "manual_tool",
+        "description": "A tool defined manually",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "param_with_type": {"type": "integer", "description": "An integer param"},
+                "param_without_type": {"description": "A param without explicit type"},
+            },
+            "required": ["param_with_type"],
+        },
+    }
+
+    converted_tools = convert_tools([add_tool, tool_schema_noparam])
+    assert len(converted_tools) == 2
+    assert isinstance(converted_tools[0].function, Tool.Function)
+    assert isinstance(converted_tools[0].function.parameters, Tool.Function.Parameters)
+    assert converted_tools[0].function.parameters.properties is not None
+    assert converted_tools[0].function.name == add_tool.name
+    assert converted_tools[0].function.parameters.properties["y"].type == "integer"
+
+    # test it defaults to string
+    assert isinstance(converted_tools[1].function, Tool.Function)
+    assert isinstance(converted_tools[1].function.parameters, Tool.Function.Parameters)
+    assert converted_tools[1].function.parameters.properties is not None
+    assert converted_tools[1].function.name == "manual_tool"
+    assert converted_tools[1].function.parameters.properties["param_with_type"].type == "integer"
+    assert converted_tools[1].function.parameters.properties["param_without_type"].type == "string"
+    assert converted_tools[1].function.parameters.required == ["param_with_type"]
+
+
+@pytest.mark.asyncio
+async def test_create_stream_tools(monkeypatch: pytest.MonkeyPatch) -> None:
+    def add(x: int, y: int) -> str:
+        return str(x + y)
+
+    add_tool = FunctionTool(add, description="Add two numbers")
+    model = "llama3.2"
+    content_raw = "Hello world! This is a test response. Test response."
+
+    async def _mock_chat(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatResponse, None]:
+        assert "stream" in kwargs
+        assert kwargs["stream"] is True
+
+        async def _mock_stream() -> AsyncGenerator[ChatResponse, None]:
+            chunks = [content_raw[i : i + 5] for i in range(0, len(content_raw), 5)]
+            # Simulate streaming by yielding chunks of the response
+            for chunk in chunks[:-1]:
+                yield ChatResponse(
+                    model=model,
+                    done=False,
+                    message=Message(
+                        role="assistant",
+                        content=chunk,
+                    ),
+                )
+            yield ChatResponse(
+                model=model,
+                done=True,
+                done_reason="stop",
+                message=Message(
+                    content=chunks[-1],
+                    role="assistant",
+                    tool_calls=[
+                        Message.ToolCall(
+                            function=Message.ToolCall.Function(
+                                name=add_tool.name,
+                                arguments={"x": 2, "y": 2},
+                            ),
+                        ),
+                    ],
+                ),
+                prompt_eval_count=10,
+                eval_count=12,
+            )
+
+        return _mock_stream()
+
+    monkeypatch.setattr(AsyncClient, "chat", _mock_chat)
+    client = OllamaChatCompletionClient(model=model)
+    stream = client.create_stream(
+        messages=[
+            UserMessage(content="hi", source="user"),
+        ],
+        tools=[add_tool],
+    )
+    chunks: List[str | CreateResult] = []
+    async for chunk in stream:
+        chunks.append(chunk)
+    assert len(chunks) > 0
+    assert isinstance(chunks[-1], CreateResult)
+    assert isinstance(chunks[-1].content, list)
+    assert len(chunks[-1].content) > 0
+    assert isinstance(chunks[-1].content[0], FunctionCall)
+    assert chunks[-1].content[0].name == add_tool.name
+    assert chunks[-1].content[0].arguments == json.dumps({"x": 2, "y": 2})
+    assert chunks[-1].finish_reason == "stop"
+    assert chunks[-1].usage is not None
+    assert chunks[-1].usage.prompt_tokens == 10
+    assert chunks[-1].usage.completion_tokens == 12
 
 
 @pytest.mark.asyncio
@@ -541,7 +652,6 @@ async def test_ollama_create_structured_output_with_tools(
     assert ResponseType.model_validate_json(create_result.thought)
 
 
-@pytest.mark.skip("TODO: Fix streaming with tools")
 @pytest.mark.asyncio
 @pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b"])
 async def test_ollama_create_stream_tools(model: str, ollama_client: OllamaChatCompletionClient) -> None:
@@ -569,7 +679,7 @@ async def test_ollama_create_stream_tools(model: str, ollama_client: OllamaChatC
     assert len(create_result.content) > 0
     assert isinstance(create_result.content[0], FunctionCall)
     assert create_result.content[0].name == add_tool.name
-    assert create_result.finish_reason == "function_calls"
+    assert create_result.finish_reason == "stop"
 
     execution_result = FunctionExecutionResult(
         content="4",
