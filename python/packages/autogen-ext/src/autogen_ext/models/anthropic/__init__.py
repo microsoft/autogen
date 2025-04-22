@@ -13,4 +13,5 @@ __all__ = [
     "AnthropicClientConfigurationConfigModel",
     "AnthropicBedrockClientConfigurationConfigModel",
     "CreateArgumentsConfigModel",
+    "BedrockInfo",
 ]

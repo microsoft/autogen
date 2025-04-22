@@ -19,7 +19,8 @@ class CreateArguments(TypedDict, total=False):
     response_format: Optional[ResponseFormat]
     metadata: Optional[Dict[str, str]]
 
-class BedrockInfo(TypedDict, total=False):
+
+class BedrockInfo(TypedDict):
     """BedrockInfo is a dictionary that contains information about a bedrock's properties.
     It is expected to be used in the bedrock_info property of a model client.
 
@@ -33,6 +34,7 @@ class BedrockInfo(TypedDict, total=False):
     """aws session token for the aws account to gain bedrock model access"""
     aws_region: Required[str]
     """aws region for the aws account to gain bedrock model access"""
+
 
 class BaseAnthropicClientConfiguration(CreateArguments, total=False):
     api_key: str
@@ -49,8 +51,10 @@ class AnthropicClientConfiguration(BaseAnthropicClientConfiguration, total=False
     tools: Optional[List[Dict[str, Any]]]
     tool_choice: Optional[Union[Literal["auto", "any", "none"], Dict[str, Any]]]
 
+
 class AnthropicBedrockClientConfiguration(AnthropicClientConfiguration, total=False):
     bedrock_info: BedrockInfo
+
 
 # Pydantic equivalents of the above TypedDicts
 class CreateArgumentsConfigModel(BaseModel):
@@ -77,7 +81,6 @@ class BaseAnthropicClientConfigurationConfigModel(CreateArgumentsConfigModel):
 class AnthropicClientConfigurationConfigModel(BaseAnthropicClientConfigurationConfigModel):
     tools: List[Dict[str, Any]] | None = None
     tool_choice: Union[Literal["auto", "any", "none"], Dict[str, Any]] | None = None
-
 
 
 class AnthropicBedrockClientConfigurationConfigModel(AnthropicClientConfigurationConfigModel):
