@@ -5,7 +5,14 @@ from inspect import iscoroutinefunction
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Sequence, Union, cast
 
 from autogen_core import AgentRuntime, Component, ComponentModel
-from autogen_core.models import AssistantMessage, ChatCompletionClient, ModelFamily, SystemMessage, UserMessage
+from autogen_core.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    CreateResult,
+    ModelFamily,
+    SystemMessage,
+    UserMessage,
+)
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -16,6 +23,8 @@ from ...messages import (
     BaseAgentEvent,
     BaseChatMessage,
     MessageFactory,
+    ModelClientStreamingChunkEvent,
+    SelectorEvent,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -56,6 +65,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         max_selector_attempts: int,
         candidate_func: Optional[CandidateFuncType],
         emit_team_events: bool,
+        model_client_streaming: bool = False,
     ) -> None:
         super().__init__(
             name,
@@ -79,6 +89,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._max_selector_attempts = max_selector_attempts
         self._candidate_func = candidate_func
         self._is_candidate_func_async = iscoroutinefunction(self._candidate_func)
+        self._model_client_streaming = model_client_streaming
 
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         pass
@@ -194,7 +205,26 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         num_attempts = 0
         while num_attempts < max_attempts:
             num_attempts += 1
-            response = await self._model_client.create(messages=select_speaker_messages)
+            if self._model_client_streaming:
+                chunk: CreateResult | str = ""
+                async for _chunk in self._model_client.create_stream(messages=select_speaker_messages):
+                    chunk = _chunk
+                    if self._emit_team_events:
+                        if isinstance(chunk, str):
+                            await self._output_message_queue.put(
+                                ModelClientStreamingChunkEvent(content=cast(str, _chunk), source=self._name)
+                            )
+                        else:
+                            assert isinstance(chunk, CreateResult)
+                            assert isinstance(chunk.content, str)
+                            await self._output_message_queue.put(
+                                SelectorEvent(content=chunk.content, source=self._name)
+                            )
+                # The last chunk must be CreateResult.
+                assert isinstance(chunk, CreateResult)
+                response = chunk
+            else:
+                response = await self._model_client.create(messages=select_speaker_messages)
             assert isinstance(response.content, str)
             select_speaker_messages.append(AssistantMessage(content=response.content, source="selector"))
             # NOTE: we use all participant names to check for mentions, even if the previous speaker is not allowed.
@@ -281,6 +311,7 @@ class SelectorGroupChatConfig(BaseModel):
     # selector_func: ComponentModel | None
     max_selector_attempts: int = 3
     emit_team_events: bool = False
+    model_client_streaming: bool = False
 
 
 class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
@@ -311,6 +342,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
             This function is only used if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
         emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
+        model_client_streaming (bool, optional): Whether to use streaming for the model client. (This is useful for reasoning models like QwQ). Defaults to False.
 
     Raises:
         ValueError: If the number of participants is less than two or if the selector prompt is invalid.
@@ -453,6 +485,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         candidate_func: Optional[CandidateFuncType] = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
+        model_client_streaming: bool = False,
     ):
         super().__init__(
             participants,
@@ -473,6 +506,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         self._selector_func = selector_func
         self._max_selector_attempts = max_selector_attempts
         self._candidate_func = candidate_func
+        self._model_client_streaming = model_client_streaming
 
     def _create_group_chat_manager_factory(
         self,
@@ -505,6 +539,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._max_selector_attempts,
             self._candidate_func,
             self._emit_team_events,
+            self._model_client_streaming,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:
@@ -518,6 +553,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             max_selector_attempts=self._max_selector_attempts,
             # selector_func=self._selector_func.dump_component() if self._selector_func else None,
             emit_team_events=self._emit_team_events,
+            model_client_streaming=self._model_client_streaming,
         )
 
     @classmethod
@@ -536,4 +572,5 @@ Read the above conversation. Then select the next role from {participants} to pl
             # if config.selector_func
             # else None,
             emit_team_events=config.emit_team_events,
+            model_client_streaming=config.model_client_streaming,
         )
