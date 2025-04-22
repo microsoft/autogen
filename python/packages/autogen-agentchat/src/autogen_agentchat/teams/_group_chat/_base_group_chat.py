@@ -131,7 +131,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         # Flag to track if the team events should be emitted.
         self._emit_team_events = emit_team_events
 
-        self._message_store = message_store if message_store else MemoryMessageStore()
+        self._message_store = message_store if message_store else MemoryMessageStore(self._message_factory)
 
     @abstractmethod
     def _create_group_chat_manager_factory(

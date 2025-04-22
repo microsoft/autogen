@@ -81,7 +81,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._current_turn = 0
         self._message_factory = message_factory
         self._emit_team_events = emit_team_events
-        self._message_store = message_store if message_store else MemoryMessageStore()
+        self._message_store = message_store if message_store else MemoryMessageStore(message_factory)
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:

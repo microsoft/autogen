@@ -44,7 +44,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
-            message_store if message_store else MemoryMessageStore(),
+            message_store if message_store else MemoryMessageStore(message_factory),
         )
         self._current_speaker = self._participant_names[0]
 
@@ -241,7 +241,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
             runtime=runtime,
             custom_message_types=custom_message_types,
             emit_team_events=emit_team_events,
-            message_store=message_store if message_store else MemoryMessageStore(),
+            message_store=message_store,
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]

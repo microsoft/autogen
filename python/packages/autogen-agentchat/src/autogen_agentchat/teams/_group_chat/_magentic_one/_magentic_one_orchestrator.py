@@ -86,7 +86,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events=emit_team_events,
-            message_store=message_store if message_store else MemoryMessageStore(),
+            message_store=message_store if message_store else MemoryMessageStore(message_factory),
         )
         self._model_client = model_client
         self._max_stalls = max_stalls

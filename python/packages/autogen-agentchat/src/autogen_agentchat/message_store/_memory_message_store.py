@@ -7,7 +7,7 @@ from autogen_core._component_config import Component
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
-from ..messages import BaseAgentEvent, BaseChatMessage, TextMessage
+from ..messages import BaseAgentEvent, BaseChatMessage, MessageFactory, TextMessage
 from ._message_store import MessageStore
 
 
@@ -24,7 +24,7 @@ class MemoryMessage(BaseModel):
 
 
 class MemoryMessageStoreConfig(BaseModel):
-    ttl_sec: int
+    ttl_sec: Optional[int] = None
 
 
 class MemoryMessageStore(MessageStore, Component[MemoryMessageStoreConfig]):
@@ -37,8 +37,8 @@ class MemoryMessageStore(MessageStore, Component[MemoryMessageStoreConfig]):
     component_config_schema = MemoryMessageStoreConfig
     component_provider_override = "autogen_agentchat.message_store.MemoryMessageStore"
 
-    def __init__(self, ttl_sec: Optional[int] = None):
-        super().__init__()
+    def __init__(self, message_factory: MessageFactory, ttl_sec: Optional[int] = None):
+        super().__init__(message_factory)
         self._messages: deque[MemoryMessage] = deque()
         self._lock = asyncio.Lock()
         self._ttl_sec = ttl_sec

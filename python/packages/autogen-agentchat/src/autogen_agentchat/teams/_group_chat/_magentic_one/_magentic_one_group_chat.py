@@ -9,7 +9,6 @@ from typing_extensions import Self
 
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition
-from ....message_store._memory_message_store import MemoryMessageStore
 from ....message_store._message_store import MessageStore
 from ....messages import BaseAgentEvent, BaseChatMessage, MessageFactory
 from .._base_group_chat import BaseGroupChat
@@ -126,7 +125,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             runtime=runtime,
             custom_message_types=custom_message_types,
             emit_team_events=emit_team_events,
-            message_store=message_store if message_store else MemoryMessageStore(),
+            message_store=message_store,
         )
 
         # Validate the participants.

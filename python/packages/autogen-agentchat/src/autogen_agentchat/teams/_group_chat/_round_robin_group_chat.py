@@ -45,7 +45,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
-            message_store if message_store else MemoryMessageStore(),
+            message_store if message_store else MemoryMessageStore(message_factory),
         )
         self._next_speaker_index = 0
 
@@ -198,7 +198,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
             runtime=runtime,
             custom_message_types=custom_message_types,
             emit_team_events=emit_team_events,
-            message_store=message_store if message_store else MemoryMessageStore(),
+            message_store=message_store,
         )
 
     def _create_group_chat_manager_factory(

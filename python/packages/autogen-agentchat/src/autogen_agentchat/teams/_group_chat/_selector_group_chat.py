@@ -82,7 +82,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
-            message_store if message_store else MemoryMessageStore(),
+            message_store if message_store else MemoryMessageStore(message_factory),
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -513,7 +513,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             runtime=runtime,
             custom_message_types=custom_message_types,
             emit_team_events=emit_team_events,
-            message_store=message_store if message_store else MemoryMessageStore(),
+            message_store=message_store,
         )
         # Validate the participants.
         if len(participants) < 2:

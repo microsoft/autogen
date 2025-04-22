@@ -77,3 +77,8 @@ class SocietyOfMindAgentState(BaseState):
 
     inner_team_state: Mapping[str, Any] = Field(default_factory=dict)
     type: str = Field(default="SocietyOfMindAgentState")
+
+
+class MessageStoreState(BaseState):
+    messages: List[Mapping[str, Any]] = Field(default_factory=list)
+    type: str = Field(default="MessageStoreState")

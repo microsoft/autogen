@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Any, Mapping, Optional, Sequence
 
+from autogen_agentchat.state._states import MessageStoreState
 from autogen_core import ComponentBase
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from ..messages import BaseAgentEvent, BaseChatMessage, TextMessage
+from ..messages import BaseAgentEvent, BaseChatMessage, MessageFactory, TextMessage
 
 
 class MessageStore(ABC, ComponentBase[BaseModel]):
@@ -18,6 +19,10 @@ class MessageStore(ABC, ComponentBase[BaseModel]):
     """
 
     component_type = "message_store"
+
+    def __init__(self, message_factory: MessageFactory) -> None:
+        super().__init__()
+        self._message_factory = message_factory
 
     @abstractmethod
     async def add_message(self, message: BaseAgentEvent | BaseChatMessage | TextMessage) -> None: ...
@@ -64,13 +69,13 @@ class MessageStore(ABC, ComponentBase[BaseModel]):
     """
 
     async def save_state(self) -> Mapping[str, Any]:
-        messages = await self.get_messages()
-        return MessageStoreState(messages=messages).model_dump()
+        state = MessageStoreState(
+            messages=[msg.dump() for msg in await self.get_messages()],
+        )
+        return state.model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        messages = MessageStoreState.model_validate(state).messages
-        await self.reset_messages(messages)
-
-
-class MessageStoreState(BaseModel):
-    messages: Sequence[BaseAgentEvent | BaseChatMessage] = Field(default_factory=list)
+        store_state = MessageStoreState.model_validate(state)
+        await self.reset_messages(
+            [self._message_factory.create(msg) for msg in store_state.messages],
+        )
