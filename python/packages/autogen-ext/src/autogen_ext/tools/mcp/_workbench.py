@@ -1,9 +1,7 @@
-import asyncio
 import builtins
-from datetime import timedelta
-from typing import Any, Dict, List, Literal, Mapping, Optional
+from typing import Any, List, Literal, Mapping
 
-from autogen_core import CancellationToken, Component, ComponentModel, Image
+from autogen_core import CancellationToken, Component, Image
 from autogen_core.tools import (
     ImageResultContent,
     ParametersSchema,
@@ -12,13 +10,11 @@ from autogen_core.tools import (
     ToolSchema,
     WorkBench,
 )
-from mcp import ClientSession
-from mcp.client.sse import sse_client
-from mcp.client.stdio import stdio_client
-from mcp.types import EmbeddedResource, ImageContent, TextContent
+from mcp.types import CallToolResult, EmbeddedResource, ImageContent, ListToolsResult, TextContent
 from pydantic import BaseModel
-from typing_extensions import Annotated, Self
+from typing_extensions import Self
 
+from ._actor import McpSessionActor
 from ._config import McpServerParams, SseServerParams, StdioServerParams
 
 
@@ -38,15 +34,24 @@ class McpWorkBench(WorkBench, Component[McpWorkBenchConfig]):
 
     def __init__(self, server_params: McpServerParams) -> None:
         self._server_params = server_params
-        self._session: ClientSession | None = None
+        # self._session: ClientSession | None = None
+        self._actor: McpSessionActor | None = None
         self._read = None
         self._write = None
 
     async def list_tools(self) -> List[ToolSchema]:
-        if not self._session:
-            raise RuntimeError("Session is not initialized. Call start() first.")
-        list_tool_result = await self._session.list_tools()
-        schema = []
+        if not self._actor:
+            await self.start()  # fallback to start the actor if not initialized instead of raising an error
+            # Why? Because when deserializing the workbench, the actor might not be initialized yet.
+            # raise RuntimeError("Actor is not initialized. Call start() first.")
+        if self._actor is None:
+            raise RuntimeError("Actor is not initialized. Please check the server connection.")
+        result_future = await self._actor.call("list_tools", None)
+        list_tool_result = await result_future
+        assert isinstance(
+            list_tool_result, ListToolsResult
+        ), f"list_tools must return a CallToolResult, instead of : {str(type(list_tool_result))}"
+        schema: List[ToolSchema] = []
         for tool in list_tool_result.tools:
             name = tool.name
             description = tool.description or ""
@@ -67,16 +72,23 @@ class McpWorkBench(WorkBench, Component[McpWorkBenchConfig]):
     async def call_tool(
         self, name: str, arguments: Mapping[str, Any] | None = None, cancellation_token: CancellationToken | None = None
     ) -> ToolResult:
-        if not self._session:
-            raise RuntimeError("Session is not initialized. Call start() first.")
+        if not self._actor:
+            await self.start()  # fallback to start the actor if not initialized instead of raising an error
+            # Why? Because when deserializing the workbench, the actor might not be initialized yet.
+            # raise RuntimeError("Actor is not initialized. Call start() first.")
+        if self._actor is None:
+            raise RuntimeError("Actor is not initialized. Please check the server connection.")
         if not cancellation_token:
             cancellation_token = CancellationToken()
         if not arguments:
             arguments = {}
         try:
-            result_future = asyncio.ensure_future(self._session.call_tool(name=name, arguments=dict(arguments)))
+            result_future = await self._actor.call("call_tool", {"name": name, "kargs": arguments})
             cancellation_token.link_future(result_future)
             result = await result_future
+            assert isinstance(
+                result, CallToolResult
+            ), f"call_tool must return a CallToolResult, instead of : {str(type(result))}"
             result_parts: List[TextResultContent | ImageResultContent] = []
             is_error = result.isError
             for content in result.content:
@@ -110,50 +122,24 @@ class McpWorkBench(WorkBench, Component[McpWorkBenchConfig]):
         return error_message
 
     async def start(self) -> None:
-        if self._session:
-            raise RuntimeError("Session is already initialized. Call stop() first.")
+        if self._actor:
+            return  # Already initialized, no need to start again
+            raise RuntimeError("Actor is already initialized. Call stop() first.")
 
-        if isinstance(self._server_params, StdioServerParams):
-            read, write = await stdio_client(self._server_params).__aenter__()
-            self._read = read
-            self._write = write
-            session = await ClientSession(
-                read_stream=read,
-                write_stream=write,
-                read_timeout_seconds=timedelta(seconds=self._server_params.read_timeout_seconds),
-            ).__aenter__()
-            self._session = session
-        elif isinstance(self._server_params, SseServerParams):
-            read, write = await sse_client(**self._server_params.model_dump()).__aenter__()
-            self._read = read
-            self._write = write
-            session = await ClientSession(read_stream=read, write_stream=write).__aenter__()
-            self._session = session
+        if isinstance(self._server_params, (StdioServerParams, SseServerParams)):
+            self._actor = McpSessionActor(self._server_params)
+            await self._actor.initialize()
         else:
             raise ValueError(f"Unsupported server params type: {type(self._server_params)}")
 
     async def stop(self) -> None:
-        if self._session:
-            # Close the session and streams in reverse order
-            await self._session.__aexit__(None, None, None)
-            self._session = None
-
-            # If streams exist, close them
-            if hasattr(self, "_write") and self._write:
-                # Determine the context manager based on the server params type
-                if isinstance(self._server_params, StdioServerParams):
-                    cm = stdio_client(self._server_params)
-                elif isinstance(self._server_params, SseServerParams):
-                    cm = sse_client(**self._server_params.model_dump())
-                else:
-                    raise ValueError(f"Unsupported server params type: {type(self._server_params)}")
-
-                # Exit the context manager to properly close streams
-                await cm.__aexit__(None, None, None)
-                self._read = None
-                self._write = None
+        if self._actor:
+            # Close the actor
+            # await self._session.__aexit__(None, None, None)
+            await self._actor.close()
+            self._actor = None
         else:
-            raise RuntimeError("Session is not initialized. Call start() first.")
+            raise RuntimeError("Actor is not initialized. Call start() first.")
 
     async def reset(self) -> None:
         pass
