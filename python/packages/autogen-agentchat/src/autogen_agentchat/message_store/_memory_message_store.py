@@ -3,7 +3,9 @@ import time
 from collections import deque
 from typing import Optional, Sequence
 
+from autogen_core._component_config import Component
 from pydantic import BaseModel, Field
+from typing_extensions import Self
 
 from ..messages import BaseAgentEvent, BaseChatMessage, TextMessage
 from ._message_store import MessageStore
@@ -21,12 +23,19 @@ class MemoryMessage(BaseModel):
     ts: int = Field(default_factory=lambda: int(time.time()))
 
 
-class MemoryMessageStore(MessageStore):
+class MemoryMessageStoreConfig(BaseModel):
+    ttl_sec: int
+
+
+class MemoryMessageStore(MessageStore, Component[MemoryMessageStoreConfig]):
     """A message store that stores messages in memory with optional time-to-live.
 
     Args:
         ttl_sec (Optional[int]): Time-to-live in seconds for messages. If None, messages don't expire.
     """
+
+    component_config_schema = MemoryMessageStoreConfig
+    component_provider_override = "autogen_agentchat.message_store.MemoryMessageStore"
 
     def __init__(self, ttl_sec: Optional[int] = None):
         super().__init__()
@@ -67,3 +76,10 @@ class MemoryMessageStore(MessageStore):
 
         time_threshold = current_ts - self._ttl_sec
         self._messages = deque(m for m in self._messages if m.ts > time_threshold)
+
+    def _to_config(self) -> MemoryMessageStoreConfig:
+        return MemoryMessageStoreConfig(ttl_sec=self._ttl_sec)
+
+    @classmethod
+    def _from_config(cls, config: MemoryMessageStoreConfig) -> Self:
+        return cls(**config.model_dump())
