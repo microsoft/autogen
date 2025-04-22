@@ -22,6 +22,10 @@ class FileRevision:
 class TextCanvas(BaseCanvas):
     """An in‑memory canvas that stores *text* files with full revision history.
 
+    .. warning::
+
+        This is an experimental API and may change in the future.
+
     Besides the original CRUD‑like operations, this enhanced implementation adds:
 
     * **apply_patch** – applies patches using the ``unidiff`` library for accurate
