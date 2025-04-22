@@ -73,7 +73,8 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         for agent in participants:
             for message_type in agent.produced_message_types:
                 try:
-                    if issubclass(message_type, StructuredMessage):
+                    is_registered = self._message_factory.is_registered(message_type)  # type: ignore[reportUnknownArgumentType]
+                    if issubclass(message_type, StructuredMessage) and not is_registered:
                         self._message_factory.register(message_type)  # type: ignore[reportUnknownArgumentType]
                 except TypeError:
                     # Not a class or not a valid subclassable type (skip)

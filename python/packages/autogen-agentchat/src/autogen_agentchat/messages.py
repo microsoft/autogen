@@ -531,6 +531,18 @@ class SelectSpeakerEvent(BaseAgentEvent):
         return str(self.content)
 
 
+class SelectorEvent(BaseAgentEvent):
+    """An event emitted from the `SelectorGroupChat`."""
+
+    content: str
+    """The content of the event."""
+
+    type: Literal["SelectorEvent"] = "SelectorEvent"
+
+    def to_text(self) -> str:
+        return str(self.content)
+
+
 class MessageFactory:
     """:meta private:
 

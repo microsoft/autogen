@@ -41,6 +41,7 @@ python/autogen_core.logging
 :caption: AutoGen Extensions
 :maxdepth: 2
 
+python/autogen_ext.agents.azure
 python/autogen_ext.agents.magentic_one
 python/autogen_ext.agents.openai
 python/autogen_ext.agents.web_surfer
