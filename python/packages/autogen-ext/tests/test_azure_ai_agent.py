@@ -62,6 +62,20 @@ class FakeOpenAIPageableListOfThreadMessage:
         texts = [content for msg in self.data for content in msg.text_messages]  # type: ignore
         return texts  # type: ignore
 
+    def get_last_message_by_role(self, role: models.MessageRole) -> Optional[ThreadMessage]:
+        """Returns the last message from a sender in the specified role.
+
+        :param role: The role of the sender.
+        :type role: MessageRole
+
+        :return: The last message from a sender in the specified role.
+        :rtype: ~azure.ai.projects.models.ThreadMessage
+        """
+        for msg in self.data: 
+            if msg.role == role:
+                return msg # type: ignore
+        return None
+
 
 def mock_list() -> FakeOpenAIPageableListOfThreadMessage:
     return FakeOpenAIPageableListOfThreadMessage([FakeMessage("msg-mock", "response")])
