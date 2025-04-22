@@ -6,7 +6,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Sequ
 
 from autogen_core import AgentRuntime, CancellationToken, Component, ComponentModel
 from autogen_core.model_context import (
-    BufferedChatCompletionContext,
+    UnboundedChatCompletionContext,
     ChatCompletionContext,
 )
 from autogen_core.models import (
@@ -94,8 +94,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         if model_context is not None:
             self._model_context = model_context
         else:
-            # TODO: finalize the best default context class
-            self._model_context = BufferedChatCompletionContext(buffer_size=5)
+            self._model_context = UnboundedChatCompletionContext()
         self._cancellation_token = CancellationToken()
 
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
