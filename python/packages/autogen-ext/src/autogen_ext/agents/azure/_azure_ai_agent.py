@@ -88,15 +88,16 @@ class AzureAIAgent(BaseChatAgent):
             from autogen_ext.agents.azure._azure_ai_agent import AzureAIAgent
             from azure.ai.projects.aio import AIProjectClient
             from azure.identity.aio import DefaultAzureCredential
-
+            import azure.ai.projects.models as models
+            import dotenv
 
             async def bing_example():
                 credential = DefaultAzureCredential()
 
-                async with AIProjectClient.from_connection_string(
+                async with AIProjectClient.from_connection_string( # type: ignore
                     credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
                 ) as project_client:
-                    conn = await project_client.connections.get(connection_name=os.getenv("BING_CONNECTION_NAME", None))
+                    conn = await project_client.connections.get(connection_name=os.getenv("BING_CONNECTION_NAME", ""))
 
                     bing_tool = models.BingGroundingTool(conn.id)
                     agent_with_bing_grounding = AzureAIAgent(
@@ -138,7 +139,7 @@ class AzureAIAgent(BaseChatAgent):
 
             async def file_search_example():
                 credential = DefaultAzureCredential()
-                async with AIProjectClient.from_connection_string(
+                async with AIProjectClient.from_connection_string( # type: ignore
                     credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
                 ) as project_client:
                     agent_with_file_search = AzureAIAgent(
@@ -187,7 +188,7 @@ class AzureAIAgent(BaseChatAgent):
 
             async def code_interpreter_example():
                 credential = DefaultAzureCredential()
-                async with AIProjectClient.from_connection_string(
+                async with AIProjectClient.from_connection_string( # type: ignore
                     credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
                 ) as project_client:
                     agent_with_code_interpreter = AzureAIAgent(
