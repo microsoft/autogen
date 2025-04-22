@@ -12,6 +12,7 @@ from autogen_ext.tools.mcp import (
     StdioServerParams,
     create_mcp_server_session,
     mcp_server_tools,
+    McpWorkBench,
 )
 from mcp import ClientSession, Tool
 
@@ -422,3 +423,43 @@ async def test_mcp_server_github() -> None:
         {"owner": "microsoft", "repo": "autogen", "path": "python", "branch": "main"}, CancellationToken()
     )
     assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_start_stop():
+    params = StdioServerParams(
+        command="uvx",
+        args=["mcp-server-fetch"],
+        read_timeout_seconds=60,
+    )
+
+    workbench = McpWorkBench(params)
+    assert workbench is not None
+    assert workbench._server_params == params
+    await workbench.start()
+    assert workbench._actor is not None
+    await workbench.stop()
+    assert workbench._actor is None
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_server_fetch():
+    params = StdioServerParams(
+        command="uvx",
+        args=["mcp-server-fetch"],
+        read_timeout_seconds=60,
+    )
+
+    workbench = McpWorkBench(server_params=params)
+    await workbench.start()
+
+    tools = await workbench.list_tools()
+    assert tools is not None
+    assert tools[0]["name"] == "fetch"
+
+    result = await workbench.call_tool(tools[0]["name"], {"url": "https://github.com/"}, CancellationToken())
+    assert result is not None
+
+    await workbench.stop()
+
+        
