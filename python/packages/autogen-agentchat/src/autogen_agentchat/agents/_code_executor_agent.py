@@ -369,6 +369,13 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         """The types of messages that the code executor agent produces."""
         return (TextMessage,)
 
+    @property
+    def model_context(self) -> ChatCompletionContext:
+        """
+        The model context in use by the agent.
+        """
+        return self._model_context
+
     async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
@@ -566,7 +573,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             sources=config.sources,
             system_message=config.system_message,
             model_client_stream=config.model_client_stream,
-            model_context=None,
+            model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
         )
 
     @staticmethod
