@@ -48,7 +48,7 @@ class ToolResult(BaseModel):
     is_error: bool = False
 
 
-class WorkBench(ABC, ComponentBase[BaseModel]):
+class Workbench(ABC, ComponentBase[BaseModel]):
     """
     A workbench is a component that provides a set of tools that may share
     resources and state.

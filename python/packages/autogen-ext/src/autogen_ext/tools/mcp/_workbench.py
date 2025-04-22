@@ -8,7 +8,7 @@ from autogen_core.tools import (
     TextResultContent,
     ToolResult,
     ToolSchema,
-    WorkBench,
+    Workbench,
 )
 from mcp.types import CallToolResult, EmbeddedResource, ImageContent, ListToolsResult, TextContent
 from pydantic import BaseModel
@@ -18,15 +18,15 @@ from ._actor import McpSessionActor
 from ._config import McpServerParams, SseServerParams, StdioServerParams
 
 
-class McpWorkBenchConfig(BaseModel):
+class McpWorkbenchConfig(BaseModel):
     server_params: McpServerParams
 
 
-class McpWorkBenchState(BaseModel):
+class McpWorkbenchState(BaseModel):
     type: Literal["McpWorkBenchState"] = "McpWorkBenchState"
 
 
-class McpWorkBench(WorkBench, Component[McpWorkBenchConfig]):
+class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     """
     A workbench that wraps an MCP server and provides an interface
     to list and call tools provided by the server.
@@ -145,14 +145,14 @@ class McpWorkBench(WorkBench, Component[McpWorkBenchConfig]):
         pass
 
     async def save_state(self) -> Mapping[str, Any]:
-        return McpWorkBenchState().model_dump()
+        return McpWorkbenchState().model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         pass
 
-    def _to_config(self) -> McpWorkBenchConfig:
-        return McpWorkBenchConfig(server_params=self._server_params)
+    def _to_config(self) -> McpWorkbenchConfig:
+        return McpWorkbenchConfig(server_params=self._server_params)
 
     @classmethod
-    def from_config(cls, config: McpWorkBenchConfig) -> Self:
+    def from_config(cls, config: McpWorkbenchConfig) -> Self:
         return cls(server_params=config.server_params)

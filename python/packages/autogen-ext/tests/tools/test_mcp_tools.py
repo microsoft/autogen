@@ -12,7 +12,7 @@ from autogen_ext.tools.mcp import (
     StdioServerParams,
     create_mcp_server_session,
     mcp_server_tools,
-    McpWorkBench,
+    McpWorkbench,
 )
 from mcp import ClientSession, Tool
 
@@ -433,7 +433,7 @@ async def test_mcp_workbench_start_stop():
         read_timeout_seconds=60,
     )
 
-    workbench = McpWorkBench(params)
+    workbench = McpWorkbench(params)
     assert workbench is not None
     assert workbench._server_params == params
     await workbench.start()
@@ -450,7 +450,7 @@ async def test_mcp_workbench_server_fetch():
         read_timeout_seconds=60,
     )
 
-    workbench = McpWorkBench(server_params=params)
+    workbench = McpWorkbench(server_params=params)
     await workbench.start()
 
     tools = await workbench.list_tools()

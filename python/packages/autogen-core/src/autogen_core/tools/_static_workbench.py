@@ -7,7 +7,7 @@ from typing_extensions import Self
 from .._cancellation_token import CancellationToken
 from .._component_config import Component, ComponentModel
 from ._base import BaseTool, ToolSchema
-from ._workbench import TextResultContent, ToolResult, WorkBench
+from ._workbench import TextResultContent, ToolResult, Workbench
 
 
 class StaticWorkbenchConfig(BaseModel):
@@ -19,7 +19,7 @@ class StateicWorkbenchState(BaseModel):
     tools: Dict[str, Mapping[str, Any]] = {}
 
 
-class StaticWorkBench(WorkBench, Component[StaticWorkbenchConfig]):
+class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
     """
     A workbench that provides a static set of tools that do not change after
     each tool execution.
