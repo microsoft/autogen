@@ -91,10 +91,11 @@ class AzureAIAgent(BaseChatAgent):
             import azure.ai.projects.models as models
             import dotenv
 
+
             async def bing_example():
                 credential = DefaultAzureCredential()
 
-                async with AIProjectClient.from_connection_string( # type: ignore
+                async with AIProjectClient.from_connection_string(  # type: ignore
                     credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
                 ) as project_client:
                     conn = await project_client.connections.get(connection_name=os.getenv("BING_CONNECTION_NAME", ""))
@@ -139,7 +140,7 @@ class AzureAIAgent(BaseChatAgent):
 
             async def file_search_example():
                 credential = DefaultAzureCredential()
-                async with AIProjectClient.from_connection_string( # type: ignore
+                async with AIProjectClient.from_connection_string(  # type: ignore
                     credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
                 ) as project_client:
                     agent_with_file_search = AzureAIAgent(
@@ -188,7 +189,7 @@ class AzureAIAgent(BaseChatAgent):
 
             async def code_interpreter_example():
                 credential = DefaultAzureCredential()
-                async with AIProjectClient.from_connection_string( # type: ignore
+                async with AIProjectClient.from_connection_string(  # type: ignore
                     credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
                 ) as project_client:
                     agent_with_code_interpreter = AzureAIAgent(
