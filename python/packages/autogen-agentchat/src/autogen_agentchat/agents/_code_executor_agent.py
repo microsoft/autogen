@@ -565,7 +565,9 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                     model_result = chunk
                     model_result.id = full_message_id
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name, full_message_id=full_message_id)
+                    yield ModelClientStreamingChunkEvent(
+                        content=chunk, source=agent_name, full_message_id=full_message_id
+                    )
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
