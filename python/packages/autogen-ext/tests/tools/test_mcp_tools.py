@@ -15,7 +15,14 @@ from autogen_ext.tools.mcp import (
     mcp_server_tools,
 )
 from mcp import ClientSession, Tool
-from mcp.types import EmbeddedResource, ImageContent, TextContent, TextResourceContents
+from mcp.types import (
+    AnyUrl,
+    Annotations,
+    EmbeddedResource,
+    ImageContent,
+    TextContent,
+    TextResourceContents,
+)
 
 
 @pytest.fixture
@@ -201,29 +208,29 @@ async def test_adapter_from_server_params_with_return_value_as_string(
 
     adapter = await StdioMcpToolAdapter.from_server_params(sample_server_params, "test_tool")
 
-    assert (
-        adapter.return_value_as_string(
+    assert adapter.return_value_as_string(
             [
-                TextContent(text="this is a sample text", type="text"),
+                TextContent(
+                    text="this is a sample text",
+                    type="text",
+                    annotations=Annotations(audience=["user", "assistant"], priority=0.7),
+                ),
                 ImageContent(
                     data="this is a sample base64 encoded image",
                     mimeType="image/png",
                     type="image",
+                    annotations=None,
                 ),
                 EmbeddedResource(
                     type="resource",
                     resource=TextResourceContents(
                         text="this is a sample text",
-                        uri="http://example.com/test",
+                        uri=AnyUrl(url="http://example.com/test"),
                     ),
+                    annotations=Annotations(audience=["user"], priority=0.3),
                 ),
             ]
-        )
-    ) == [
-        '{"type":"text","text":"this is a sample text","annotations":null}',
-        '{"type":"image","data":"this is a sample base64 encoded image","mimeType":"image/png","annotations":null}',
-        '{"type":"resource","resource":{"uri":"http://example.com/test","mimeType":null,"text":"this is a sample text"},"annotations":null}',
-    ]
+    ) == '[{"type": "text", "text": "this is a sample text", "annotations": {"audience": ["user", "assistant"], "priority": 0.7}}, {"type": "image", "data": "this is a sample base64 encoded image", "mimeType": "image/png", "annotations": null}, {"type": "resource", "resource": {"uri": "http://example.com/test"}, "annotations": {"audience": ["user"], "priority": 0.3}}]'
 
 
 @pytest.mark.asyncio
