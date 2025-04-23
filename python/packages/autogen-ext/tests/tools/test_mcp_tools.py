@@ -209,7 +209,8 @@ async def test_adapter_from_server_params_with_return_value_as_string(
 
     adapter = await StdioMcpToolAdapter.from_server_params(sample_server_params, "test_tool")
 
-    assert adapter.return_value_as_string(
+    assert (
+        adapter.return_value_as_string(
             [
                 TextContent(
                     text="this is a sample text",
@@ -231,7 +232,9 @@ async def test_adapter_from_server_params_with_return_value_as_string(
                     annotations=Annotations(audience=["user"], priority=0.3),
                 ),
             ]
-    ) == '[{"type": "text", "text": "this is a sample text", "annotations": {"audience": ["user", "assistant"], "priority": 0.7}}, {"type": "image", "data": "this is a sample base64 encoded image", "mimeType": "image/png", "annotations": null}, {"type": "resource", "resource": {"uri": "http://example.com/test", "mimeType": null, "text": "this is a sample text"}, "annotations": {"audience": ["user"], "priority": 0.3}}]'
+        )
+        == '[{"type": "text", "text": "this is a sample text", "annotations": {"audience": ["user", "assistant"], "priority": 0.7}}, {"type": "image", "data": "this is a sample base64 encoded image", "mimeType": "image/png", "annotations": null}, {"type": "resource", "resource": {"uri": "http://example.com/test", "mimeType": null, "text": "this is a sample text"}, "annotations": {"audience": ["user"], "priority": 0.3}}]'
+    )
 
 
 @pytest.mark.asyncio

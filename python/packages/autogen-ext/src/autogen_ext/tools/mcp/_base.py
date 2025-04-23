@@ -135,6 +135,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 return {"type": type, "resource": resource, "annotations": annotations}
             else:
                 return str(item)
+
         return json.dumps([serialize_item(item) for item in value])
 
     def _format_errors(self, error: Exception) -> str:
