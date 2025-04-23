@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from autogen_core import CancellationToken
+from autogen_core.tools import Workbench
 from autogen_core.utils import schema_to_pydantic_model
 from autogen_ext.tools.mcp import (
     McpWorkbench,
@@ -492,7 +493,7 @@ async def test_mcp_workbench_server_filesystem() -> None:
     config = workbench.dump_component()
 
     # Deserialize the workbench.
-    async with McpWorkbench.load_component(config) as new_workbench:
+    async with Workbench.load_component(config) as new_workbench:
         tools = await new_workbench.list_tools()
         assert tools is not None
         tools = [tool for tool in tools if tool["name"] == "read_file"]

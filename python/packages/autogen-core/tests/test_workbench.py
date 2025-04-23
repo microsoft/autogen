@@ -2,7 +2,7 @@ from typing import Annotated
 
 import pytest
 from autogen_core.code_executor import ImportFromModule
-from autogen_core.tools import FunctionTool, StaticWorkbench
+from autogen_core.tools import FunctionTool, StaticWorkbench, Workbench
 
 
 @pytest.mark.asyncio
@@ -76,7 +76,7 @@ async def test_static_workbench() -> None:
         config = workbench.dump_component()
 
     # Load the workbench from the config.
-    async with StaticWorkbench.load_component(config) as workbench:
+    async with Workbench.load_component(config) as workbench:
         # Load state.
         await workbench.load_state(state)
 
