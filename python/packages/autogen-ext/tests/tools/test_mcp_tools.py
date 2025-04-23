@@ -6,13 +6,13 @@ import pytest
 from autogen_core import CancellationToken
 from autogen_core.utils import schema_to_pydantic_model
 from autogen_ext.tools.mcp import (
+    McpWorkbench,
     SseMcpToolAdapter,
     SseServerParams,
     StdioMcpToolAdapter,
     StdioServerParams,
     create_mcp_server_session,
     mcp_server_tools,
-    McpWorkbench,
 )
 from mcp import ClientSession, Tool
 
@@ -461,5 +461,3 @@ async def test_mcp_workbench_server_fetch():
     assert result is not None
 
     await workbench.stop()
-
-        

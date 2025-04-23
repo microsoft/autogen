@@ -58,6 +58,8 @@ class Workbench(ABC, ComponentBase[BaseModel]):
     may be dynamic and their availabilities may change after each tool execution.
     """
 
+    component_type = "workbench"
+
     @abstractmethod
     async def list_tools(self) -> List[ToolSchema]:
         """

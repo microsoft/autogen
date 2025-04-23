@@ -29,6 +29,9 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
             The tools should be subclasses of :class:`~autogen_core.tools.BaseTool`.
     """
 
+    component_provider_override = "autogen_core.tools.StaticWorkbench"
+    component_config_schema = StaticWorkbenchConfig
+
     def __init__(self, tools: List[BaseTool[Any, Any]]) -> None:
         self._tools = tools
 
@@ -81,5 +84,5 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         return StaticWorkbenchConfig(tools=[tool.dump_component() for tool in self._tools])
 
     @classmethod
-    def from_config(cls, config: StaticWorkbenchConfig) -> Self:
+    def _from_config(cls, config: StaticWorkbenchConfig) -> Self:
         return cls(tools=[BaseTool.load_component(tool) for tool in config.tools])
