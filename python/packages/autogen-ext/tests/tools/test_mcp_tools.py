@@ -16,6 +16,7 @@ from autogen_ext.tools.mcp import (
     mcp_server_tools,
 )
 from mcp import ClientSession, Tool
+from mcp.types import EmbeddedResource, ImageContent, TextContent, TextResourceContents
 
 
 @pytest.fixture
@@ -180,6 +181,50 @@ async def test_adapter_from_server_params(
     assert (
         params_schema["properties"]["test_param"]["type"] == sample_tool.inputSchema["properties"]["test_param"]["type"]
     )
+
+
+@pytest.mark.asyncio
+async def test_adapter_from_server_params_with_return_value_as_string(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that adapter can be created from server parameters."""
+    mock_context = AsyncMock()
+    mock_context.__aenter__.return_value = mock_session
+    monkeypatch.setattr(
+        "autogen_ext.tools.mcp._base.create_mcp_server_session",
+        lambda *args, **kwargs: mock_context,  # type: ignore
+    )
+
+    mock_session.list_tools.return_value.tools = [sample_tool]
+
+    adapter = await StdioMcpToolAdapter.from_server_params(sample_server_params, "test_tool")
+
+    assert (
+        adapter.return_value_as_string(
+            [
+                TextContent(text="this is a sample text", type="text"),
+                ImageContent(
+                    data="this is a sample base64 encoded image",
+                    mimeType="image/png",
+                    type="image",
+                ),
+                EmbeddedResource(
+                    type="resource",
+                    resource=TextResourceContents(
+                        text="this is a sample text",
+                        uri="http://example.com/test",
+                    ),
+                ),
+            ]
+        )
+    ) == [
+        '{"type":"text","text":"this is a sample text","annotations":null}',
+        '{"type":"image","data":"this is a sample base64 encoded image","mimeType":"image/png","annotations":null}',
+        '{"type":"resource","resource":{"uri":"http://example.com/test","mimeType":null,"text":"this is a sample text"},"annotations":null}',
+    ]
 
 
 @pytest.mark.asyncio
@@ -421,7 +466,8 @@ async def test_mcp_server_github() -> None:
     assert len(tools) == 1
     tool = tools[0]
     result = await tool.run_json(
-        {"owner": "microsoft", "repo": "autogen", "path": "python", "branch": "main"}, CancellationToken()
+        {"owner": "microsoft", "repo": "autogen", "path": "python", "branch": "main"},
+        CancellationToken(),
     )
     assert result is not None
 
