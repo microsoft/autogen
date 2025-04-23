@@ -1,4 +1,5 @@
 import builtins
+import warnings
 from typing import Any, List, Literal, Mapping
 
 from autogen_core import CancellationToken, Component, Image
@@ -161,8 +162,12 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
 
     async def start(self) -> None:
         if self._actor:
+            warnings.warn(
+                "McpWorkbench is already started. No need to start again.",
+                UserWarning,
+                stacklevel=2,
+            )
             return  # Already initialized, no need to start again
-            raise RuntimeError("Actor is already initialized. Call stop() first.")
 
         if isinstance(self._server_params, (StdioServerParams, SseServerParams)):
             self._actor = McpSessionActor(self._server_params)
@@ -173,11 +178,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     async def stop(self) -> None:
         if self._actor:
             # Close the actor
-            # await self._session.__aexit__(None, None, None)
             await self._actor.close()
             self._actor = None
         else:
-            raise RuntimeError("Actor is not initialized. Call start() first.")
+            raise RuntimeError("McpWorkbench is not started. Call start() first.")
 
     async def reset(self) -> None:
         pass
