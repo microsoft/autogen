@@ -103,7 +103,7 @@ class AzureAIAgent(BaseChatAgent):
                     bing_tool = models.BingGroundingTool(conn.id)
                     agent_with_bing_grounding = AzureAIAgent(
                         name="bing_agent",
-                        description="An AI assistant with Bing grounding, please make sure to provide citations for the answers",
+                        description="An AI assistant with Bing grounding",
                         project_client=project_client,
                         deployment_name="gpt-4o",
                         instructions="You are a helpful assistant.",
@@ -642,8 +642,8 @@ class AzureAIAgent(BaseChatAgent):
 
         Args:
             messages (Sequence[ChatMessage]): The messages to process
+            cancellation_token (CancellationToken): Token for cancellation handling
             message_limit (int, optional): Maximum number of messages to retrieve from the thread
-            cancellation_token (CancellationToken, optional): Token for cancellation handling
             sleep_interval (float, optional): Time to sleep between polling for run status
 
         Yields:
@@ -694,15 +694,17 @@ class AzureAIAgent(BaseChatAgent):
             # If the run requires action (function calls), execute tools and continue
             if run.status == models.RunStatus.REQUIRES_ACTION and run.required_action is not None:
                 tool_calls: List[FunctionCall] = []
-                for required_tool_call in run.required_action.submit_tool_outputs.tool_calls: # type: ignore
-                    if required_tool_call.type == "function": # type: ignore
-                        tool_calls.append(
-                            FunctionCall( # type: ignore
-                                id=required_tool_call.id, # type: ignore
-                                name=required_tool_call.function.name, # type: ignore
-                                arguments=required_tool_call.function.arguments, # type: ignore
+                submit_tool_outputs = getattr(run.required_action, "submit_tool_outputs", None)
+                if submit_tool_outputs and hasattr(submit_tool_outputs, "tool_calls"):
+                    for required_tool_call in submit_tool_outputs.tool_calls:
+                        if required_tool_call.type == "function":
+                            tool_calls.append(
+                                FunctionCall(
+                                    id=required_tool_call.id,
+                                    name=required_tool_call.function.name,
+                                    arguments=required_tool_call.function.arguments,
+                                )
                             )
-                        )
 
                 # Add tool call message to inner messages
                 tool_call_msg = ToolCallRequestEvent(source=self.name, content=tool_calls)
