@@ -1,0 +1,5 @@
+autogen-core==0.5.4
+autogen-ext[openai,azure]==0.5.4
+fastapi==0.115.12
+uvicorn==0.34.2
+PyYAML==6.0.2
