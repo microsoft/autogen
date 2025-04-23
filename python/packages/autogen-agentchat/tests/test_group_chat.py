@@ -2,10 +2,27 @@ import asyncio
 import json
 import logging
 import tempfile
-from typing import Any, AsyncGenerator, List, Mapping, Sequence
+from typing import Any, AsyncGenerator, Dict, List, Mapping, Sequence
 
 import pytest
 import pytest_asyncio
+from autogen_core import AgentId, AgentRuntime, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
+from autogen_core.models import (
+    AssistantMessage,
+    CreateResult,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    LLMMessage,
+    RequestUsage,
+    UserMessage,
+)
+from autogen_core.tools import FunctionTool
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.replay import ReplayChatCompletionClient
+from pydantic import BaseModel
+from utils import FileLogHandler
+
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import (
     AssistantAgent,
@@ -32,22 +49,6 @@ from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRob
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
-from autogen_core import AgentId, AgentRuntime, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
-from autogen_core.models import (
-    AssistantMessage,
-    CreateResult,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
-    LLMMessage,
-    RequestUsage,
-    UserMessage,
-)
-from autogen_core.tools import FunctionTool
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_ext.models.replay import ReplayChatCompletionClient
-from pydantic import BaseModel
-from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
@@ -689,6 +690,50 @@ async def test_selector_group_chat(runtime: AgentRuntime | None) -> None:
     await team.reset()
     result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
     assert result2 == result
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_with_model_context(runtime: AgentRuntime | None) -> None:
+    selector_group_chat_model_client = ReplayChatCompletionClient(["agent2", "agent1", "agent1", "agent2"])
+    agent_one_model_client = ReplayChatCompletionClient(
+        ["[Agent One] First generation", "[Agent One] Second generation", "TERMINATE"]
+    )
+    agent_two_model_client = ReplayChatCompletionClient(
+        ["[Agent Two] First generation", "[Agent Two] Second generation", "TERMINATE"]
+    )
+
+    agent1 = AssistantAgent("agent1", model_client=agent_one_model_client, description="Assistant agent 1")
+    agent2 = AssistantAgent("agent2", model_client=agent_two_model_client, description="Assistant agent 2")
+
+    termination = TextMentionTermination("TERMINATE")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2],
+        model_client=selector_group_chat_model_client,
+        termination_condition=termination,
+        runtime=runtime,
+        emit_team_events=True,
+    )
+    await team.run(
+        task="[GroupChat] Task",
+    )
+
+    messages_to_check = {
+        "1": "user: [GroupChat] Task",
+        "2": "agent2: [Agent Two] First generation",
+        "3": "agent1: [Agent One] First generation",
+        "4": "agent1: [Agent One] Second generation",
+        "5": "agent2: [Agent Two] Second generation",
+    }
+
+    create_calls: List[Dict[str, Any]] = selector_group_chat_model_client.create_calls
+    for idx, call in enumerate(create_calls):
+        messages = call["messages"]
+        prompt = messages[0].content
+        prompt_lines = prompt.split("\n")
+        chat_history = [value for _, value in list(messages_to_check.items())[: idx + 1]]
+        assert all(
+            line.strip() in prompt_lines for line in chat_history
+        ), f"Expected all lines {chat_history} to be in prompt, but got {prompt_lines}"
 
 
 @pytest.mark.asyncio
