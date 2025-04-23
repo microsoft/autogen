@@ -6,7 +6,7 @@ from autogen_core.tools import FunctionTool, StaticWorkbench
 
 
 @pytest.mark.asyncio
-async def test_static_workbench():
+async def test_static_workbench() -> None:
     def test_tool_func_1(x: Annotated[int, "The number to double."]) -> int:
         return x * 2
 
