@@ -426,7 +426,7 @@ async def test_mcp_server_github() -> None:
 
 
 @pytest.mark.asyncio
-async def test_mcp_workbench_start_stop():
+async def test_mcp_workbench_start_stop() -> None:
     params = StdioServerParams(
         command="uvx",
         args=["mcp-server-fetch"],
@@ -437,13 +437,13 @@ async def test_mcp_workbench_start_stop():
     assert workbench is not None
     assert workbench.server_params == params
     await workbench.start()
-    assert workbench._actor is not None  # type: ignore["reportPrivateUsage"]
+    assert workbench._actor is not None  # type: ignore[reportPrivateUsage]
     await workbench.stop()
-    assert workbench._actor is None  # type: ignore["reportPrivateUsage"]
+    assert workbench._actor is None  # type: ignore[reportPrivateUsage]
 
 
 @pytest.mark.asyncio
-async def test_mcp_workbench_server_fetch():
+async def test_mcp_workbench_server_fetch() -> None:
     params = StdioServerParams(
         command="uvx",
         args=["mcp-server-fetch"],
@@ -464,7 +464,7 @@ async def test_mcp_workbench_server_fetch():
 
 
 @pytest.mark.asyncio
-async def test_mcp_workbench_server_filesystem():
+async def test_mcp_workbench_server_filesystem() -> None:
     params = StdioServerParams(
         command="npx",
         args=[

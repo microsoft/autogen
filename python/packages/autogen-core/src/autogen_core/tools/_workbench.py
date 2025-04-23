@@ -34,7 +34,7 @@ ResultContent = Annotated[TextResultContent | ImageResultContent, Field(discrimi
 
 class ToolResult(BaseModel):
     """
-    A result of a tool execution.
+    A result of a tool execution by a workbench.
 
     Attributes:
         name: The name of the tool that was executed.
