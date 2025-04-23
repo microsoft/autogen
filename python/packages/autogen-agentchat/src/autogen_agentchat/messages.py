@@ -6,6 +6,7 @@ class and includes specific fields relevant to the type of message being sent.
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, List, Literal, Mapping, Optional, Type, TypeVar
+from uuid import uuid4
 
 from autogen_core import Component, ComponentBase, FunctionCall, Image
 from autogen_core.code_executor import CodeBlock, CodeResult
@@ -76,7 +77,7 @@ class BaseChatMessage(BaseMessage, ABC):
     message using models and return a response as another :class:`BaseChatMessage`.
     """
 
-    id: str
+    id: str = Field(default_factory=lambda: str(uuid4()))
     """A unique identifier for the message."""
 
     source: str
@@ -148,7 +149,7 @@ class BaseAgentEvent(BaseMessage, ABC):
     a custom rendering of the content.
     """
 
-    id: str
+    id: str = Field(default_factory=lambda: str(uuid4()))
     """Unique identifier for the event."""
 
     source: str

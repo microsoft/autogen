@@ -1,5 +1,6 @@
 import logging
 import re
+import uuid
 from typing import (
     AsyncGenerator,
     List,
@@ -555,14 +556,16 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         llm_messages = cls._get_compatible_context(model_client=model_client, messages=system_messages + all_messages)
 
         if model_client_stream:
+            full_message_id = str(uuid.uuid4())
             model_result: Optional[CreateResult] = None
             async for chunk in model_client.create_stream(
                 llm_messages, tools=[], cancellation_token=cancellation_token
             ):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
+                    model_result.id = full_message_id
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name, full_message_id=full_message_id)
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
