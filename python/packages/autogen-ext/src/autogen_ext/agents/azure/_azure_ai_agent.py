@@ -787,20 +787,20 @@ class AzureAIAgent(BaseChatAgent):
         citations: list[Any] = []
 
         # Try accessing annotations directly
-        if hasattr(last_message, "annotations") and last_message.annotations: # type: ignore
-            event_logger.debug(f"Found {len(last_message.annotations)} annotations") # type: ignore
-            for annotation in last_message.annotations: # type: ignore
-                if hasattr(annotation, "url_citation"): # type: ignore
-                    event_logger.debug(f"Citation found: {annotation.url_citation.url}") # type: ignore
+        if hasattr(last_message, "annotations") and last_message.annotations:  # type: ignore
+            event_logger.debug(f"Found {len(last_message.annotations)} annotations")  # type: ignore
+            for annotation in last_message.annotations:  # type: ignore
+                if hasattr(annotation, "url_citation"):  # type: ignore
+                    event_logger.debug(f"Citation found: {annotation.url_citation.url}")  # type: ignore
                     citations.append(
-                        {"url": annotation.url_citation.url, "title": annotation.url_citation.title, "text": None} # type: ignore
+                        {"url": annotation.url_citation.url, "title": annotation.url_citation.title, "text": None}  # type: ignore
                     )
         # For backwards compatibility
-        elif hasattr(last_message, "url_citation_annotations") and last_message.url_citation_annotations: # type: ignore
-            event_logger.debug(f"Found {len(last_message.url_citation_annotations)} URL citations") # type: ignore
-            for annotation in last_message.url_citation_annotations: # type: ignore
+        elif hasattr(last_message, "url_citation_annotations") and last_message.url_citation_annotations:  # type: ignore
+            event_logger.debug(f"Found {len(last_message.url_citation_annotations)} URL citations")  # type: ignore
+            for annotation in last_message.url_citation_annotations:  # type: ignore
                 citations.append(
-                    {"url": annotation.url_citation.url, "title": annotation.url_citation.title, "text": None} # type: ignore
+                    {"url": annotation.url_citation.url, "title": annotation.url_citation.title, "text": None}  # type: ignore
                 )
 
         event_logger.debug(f"Total citations extracted: {len(citations)}")

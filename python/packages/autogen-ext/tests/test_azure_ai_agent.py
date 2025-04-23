@@ -71,9 +71,9 @@ class FakeOpenAIPageableListOfThreadMessage:
         :return: The last message from a sender in the specified role.
         :rtype: ~azure.ai.projects.models.ThreadMessage
         """
-        for msg in self.data: 
+        for msg in self.data:
             if msg.role == role:
-                return msg # type: ignore
+                return msg  # type: ignore
         return None
 
 
