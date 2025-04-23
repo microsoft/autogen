@@ -129,6 +129,8 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 for key, val in item.resource.model_dump().items():
                     if isinstance(val, AnyUrl):
                         resource[key] = str(val)
+                    else:
+                        resource[key] = val
                 annotations = item.annotations.model_dump() if item.annotations else None
                 return {"type": type, "resource": resource, "annotations": annotations}
             else:
