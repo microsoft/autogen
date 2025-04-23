@@ -149,10 +149,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             delta: List[BaseAgentEvent | BaseChatMessage] = []
             if message.agent_response.inner_messages is not None:
                 for inner_message in message.agent_response.inner_messages:
-                    await self.update_message_thread([inner_message])
                     delta.append(inner_message)
-            await self.update_message_thread([message.agent_response.chat_message])
             delta.append(message.agent_response.chat_message)
+            await self.update_message_thread(delta)
 
             # Check if the conversation should be terminated.
             if await self._apply_termination_condition(delta, increment_turn_count=True):
