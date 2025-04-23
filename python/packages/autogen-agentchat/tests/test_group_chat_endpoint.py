@@ -98,7 +98,7 @@ async def test_selector_group_chat_openai() -> None:
         pytest.skip("OPENAI_API_KEY not set in environment variables.")
 
     model_client = OpenAIChatCompletionClient(
-        model="gpt-4o-mini",
+        model="gpt-4.1-nano",
         api_key=api_key,
     )
     await _test_selector_group_chat(model_client)
