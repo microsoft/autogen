@@ -1,6 +1,7 @@
 import json
 import time
 import os
+import re
 
 from autogen_core import (
     SingleThreadedAgentRuntime,
@@ -201,9 +202,13 @@ async def chat_completions_stream(request: Request):
     if not isinstance(conversation_id, str):
         raise HTTPException(status_code=400, detail="Invalid input: 'conversation_id' must be a string.")
 
+    # Validate conversation_id to prevent path traversal attacks
+    if not re.match(r'^[A-Za-z0-9_-]+$', conversation_id):
+        raise HTTPException(status_code=400, detail="Invalid input: 'conversation_id' contains invalid characters.")
+
     # Construct the chat history file path
     chat_history_dir = "chat_history"
-    chat_history_file = os.path.join(chat_history_dir, f"{conversation_id}.json")
+    chat_history_file = os.path.join(chat_history_dir, f"history-{conversation_id}.json")
     
     messages = []
     # Initialize chat_history and route_agent with default values
