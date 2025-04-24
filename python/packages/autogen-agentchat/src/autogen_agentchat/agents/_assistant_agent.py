@@ -337,7 +337,45 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             asyncio.run(main())
 
-        **Example 4: agent with structured output and tool**
+        **Example 4: agent with Model-Context Protocol (MCP) workbench**
+
+        The following example demonstrates how to create an assistant agent with
+        a model client and an :class:`~autogen_ext.tools.mcp.McpWorkbench` for
+        interacting with a Model-Context Protocol (MCP) server.
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench
+
+
+            async def main() -> None:
+                params = StdioServerParams(
+                    command="uvx",
+                    args=["mcp-server-fetch"],
+                    read_timeout_seconds=60,
+                )
+
+                # You can also use `start()` and `stop()` to manage the session.
+                async with McpWorkbench(server_params=params) as workbench:
+                    model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
+                    assistant = AssistantAgent(
+                        name="Assistant",
+                        model_client=model_client,
+                        workbench=workbench,
+                        reflect_on_tool_use=True,
+                    )
+                    await Console(
+                        assistant.run_stream(task="Go to https://github.com/microsoft/autogen and tell me what you see.")
+                    )
+
+
+            asyncio.run(main())
+
+        **Example 5: agent with structured output and tool**
 
         The following example demonstrates how to create an assistant agent with
         a model client configured to use structured output and a tool.
@@ -407,7 +445,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             ---------- assistant ----------
             {"thoughts":"The user expresses a clear positive emotion by stating they are happy today, suggesting an upbeat mood.","response":"happy"}
 
-        **Example 5: agent with bounded model context**
+        **Example 6: agent with bounded model context**
 
         The following example shows how to use a
         :class:`~autogen_core.model_context.BufferedChatCompletionContext`
@@ -468,7 +506,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             That's great! Blue is often associated with calmness and serenity. Do you have a specific shade of blue that you like, or any particular reason why it's your favorite?
             No, you didn't ask a question. I apologize for any misunderstanding. If you have something specific you'd like to discuss or ask, feel free to let me know!
 
-        **Example 6: agent with memory**
+        **Example 7: agent with memory**
 
         The following example shows how to use a list-based memory with the assistant agent.
         The memory is preloaded with some initial content.
@@ -528,7 +566,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             Serve it with a side salad or some garlic bread to complete the meal! Enjoy your dinner!
 
-        **Example 7: agent with `o1-mini`**
+        **Example 8: agent with `o1-mini`**
 
         The following example shows how to use `o1-mini` model with the assistant agent.
 
@@ -564,7 +602,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             See `o1 beta limitations <https://platform.openai.com/docs/guides/reasoning#beta-limitations>`_ for more details.
 
 
-        **Example 8: agent using reasoning model with custom model context.**
+        **Example 9: agent using reasoning model with custom model context.**
 
         The following example shows how to use a reasoning model (DeepSeek R1) with the assistant agent.
         The model context is used to filter out the thought field from the assistant message.
