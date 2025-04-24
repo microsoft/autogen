@@ -524,28 +524,24 @@ Read the above conversation. Then select the next role from {participants} to pl
         
         # Wrap the selector_func in IndividualFunction if it's a function and not already an IndividualFunction
         if selector_func is not None and not isinstance(selector_func, IndividualFunction):
+            if not callable(selector_func):
+                raise ValueError("Selector function should be callable")
             self._selector_func = IndividualFunction(
                 selector_func,
                 description="Function to select the next speaker in a group chat",
                 name="selector_func",
-                global_imports=[
-                    ImportFromModule("typing", imports=("Sequence", "List")),
-                    ImportFromModule("autogen_agentchat.messages", imports=("BaseAgentEvent", "BaseChatMessage"))
-                ]
             )
         else:
             self._selector_func = selector_func
             
         # Wrap the candidate_func in IndividualFunction if it's a function and not already an IndividualFunction
         if candidate_func is not None and not isinstance(candidate_func, IndividualFunction):
+            if not callable(candidate_func):
+                raise ValueError("Candidate function should be callable")
             self._candidate_func = IndividualFunction(
                 candidate_func,
                 description="Function to filter candidate speakers in a group chat",
                 name="candidate_func",
-                global_imports=[
-                    ImportFromModule("typing", imports=("Sequence", "List")),
-                    ImportFromModule("autogen_agentchat.messages", imports=("BaseAgentEvent", "BaseChatMessage"))
-                ]
             )
         else:
             self._candidate_func = candidate_func

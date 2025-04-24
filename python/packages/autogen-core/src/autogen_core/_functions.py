@@ -11,6 +11,7 @@ from ._function_utils import (
     args_base_model_from_signature,
     get_typed_signature,
     normalize_annotated_type,
+    get_imports_from_func,
 )
 from .code_executor._func_with_reqs import Import, import_to_str, to_code
 from textwrap import dedent
@@ -102,6 +103,9 @@ class IndividualFunction(ComponentBase[BaseModel], IndividualFunctionProtocol, C
         self._description = description
         self._strict = strict
         self._global_imports = global_imports
+
+        if not self._global_imports:
+            self._global_imports = get_imports_from_func(self._func)
         
         # Create args model from function signature
         self._args_type = args_base_model_from_signature(func_name + "args", self._signature)
