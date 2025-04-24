@@ -202,7 +202,7 @@ def agent(client: AsyncOpenAI) -> OpenAIAssistantAgent:
     return OpenAIAssistantAgent(
         name="assistant",
         instructions="Help the user with their task.",
-        model="gpt-4o-mini",
+        model="gpt-4.1-nano",
         description="OpenAI Assistant Agent",
         client=client,
         tools=tools,
@@ -346,7 +346,7 @@ async def test_on_reset_behavior(client: AsyncOpenAI, cancellation_token: Cancel
     agent = OpenAIAssistantAgent(
         name="assistant",
         instructions="Help the user with their task.",
-        model="gpt-4o-mini",
+        model="gpt-4.1-nano",
         description="OpenAI Assistant Agent",
         client=client,
         thread_id=thread.id,
