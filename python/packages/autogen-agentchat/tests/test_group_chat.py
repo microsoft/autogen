@@ -455,7 +455,7 @@ async def test_round_robin_group_chat_with_tools(runtime: AgentRuntime | None) -
             "TERMINATE",
         ],
         model_info={
-            "family": "gpt-4o",
+            "family": "gpt-4.1-nano",
             "function_calling": True,
             "json_output": True,
             "vision": True,
@@ -1272,7 +1272,7 @@ async def test_swarm_handoff_using_tool_calls(runtime: AgentRuntime | None) -> N
             "TERMINATE",
         ],
         model_info={
-            "family": "gpt-4o",
+            "family": "gpt-4.1-nano",
             "function_calling": True,
             "json_output": True,
             "vision": True,
@@ -1372,7 +1372,7 @@ async def test_swarm_with_parallel_tool_calls(runtime: AgentRuntime | None) -> N
             "TERMINATE",
         ],
         model_info={
-            "family": "gpt-4o",
+            "family": "gpt-4.1-nano",
             "function_calling": True,
             "json_output": True,
             "vision": True,
@@ -1562,12 +1562,14 @@ async def test_declarative_groupchats_with_config(runtime: AgentRuntime | None) 
     # Create basic agents and components for testing
     agent1 = AssistantAgent(
         "agent_1",
-        model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-05-13", api_key=""),
+        model_client=OpenAIChatCompletionClient(model="gpt-4.1-nano-2025-04-14", api_key=""),
         handoffs=["agent_2"],
     )
-    agent2 = AssistantAgent("agent_2", model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-05-13", api_key=""))
+    agent2 = AssistantAgent(
+        "agent_2", model_client=OpenAIChatCompletionClient(model="gpt-4.1-nano-2025-04-14", api_key="")
+    )
     termination = MaxMessageTermination(4)
-    model_client = OpenAIChatCompletionClient(model="gpt-4o-2024-05-13", api_key="")
+    model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano-2025-04-14", api_key="")
 
     # Test round robin - verify config is preserved
     round_robin = RoundRobinGroupChat(participants=[agent1, agent2], termination_condition=termination, max_turns=5)

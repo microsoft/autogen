@@ -61,7 +61,7 @@ logger.addHandler(FileLogHandler("test_websurfer_agent.log"))
 
 @pytest.mark.asyncio
 async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
-    model = "gpt-4o-2024-05-13"
+    model = "gpt-4.1-nano-2025-04-14"
     chat_completions = [
         ChatCompletion(
             id="id2",
@@ -149,7 +149,7 @@ async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_run_websurfer_declarative(monkeypatch: pytest.MonkeyPatch) -> None:
-    model = "gpt-4o-2024-05-13"
+    model = "gpt-4.1-nano-2025-04-14"
     chat_completions = [
         ChatCompletion(
             id="id1",
