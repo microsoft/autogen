@@ -9,7 +9,8 @@ from autogen_core import (
 )
 from autogen_core.models import (
     SystemMessage,
-    UserMessage
+    UserMessage,
+    AssistantMessage
 )
 
 from autogen_core.model_context import BufferedChatCompletionContext
@@ -205,6 +206,10 @@ async def chat_completions_stream(request: Request):
     chat_history_file = os.path.join(chat_history_dir, f"{conversation_id}.json")
     
     messages = []
+    # Initialize chat_history and route_agent with default values
+    chat_history = {} 
+    route_agent = triage_agent_topic_type
+
     # Load chat history if it exists.
     # Chat history is saved inside the UserAgent. Use redis if possible.
     # There may be a better way to do this.
@@ -215,15 +220,26 @@ async def chat_completions_stream(request: Request):
                 content = await f.read()
                 if content: # Check if file is not empty
                     chat_history = json.loads(content)
+                    await context.load_state(chat_history) # Load state only if history is loaded
+                    loaded_messages = await context.get_messages()
+                    if loaded_messages:
+                        messages = loaded_messages
+                        last_message = messages[-1]
+                        if isinstance(last_message, AssistantMessage) and isinstance(last_message.source, str):
+                            route_agent = last_message.source
         except json.JSONDecodeError:
             print(f"Error decoding JSON from {chat_history_file}. Starting with empty history.")
+            # Reset to defaults if loading fails
+            messages = []
+            route_agent = triage_agent_topic_type
+            chat_history = {}
         except Exception as e:
             print(f"Error loading chat history for {conversation_id}: {e}")
-        await context.load_state(chat_history)
-        messages = await context.get_messages()
-        route_agent = messages[-1].source
-    else:
-        route_agent = triage_agent_topic_type
+            # Reset to defaults on other errors
+            messages = []
+            route_agent = triage_agent_topic_type
+            chat_history = {}
+    # else: route_agent remains the default triage_agent_topic_type if file doesn't exist
 
     messages.append(UserMessage(content=message,source="User"))
 
@@ -232,7 +248,7 @@ async def chat_completions_stream(request: Request):
     async def response_stream() -> AsyncGenerator[str, None]:
         task1 = asyncio.create_task(runtime.publish_message(
             UserTask(context=messages),
-            topic_id=TopicId(route_agent, source=conversation_id),
+            topic_id=TopicId(type=route_agent, source=conversation_id), # Explicitly use 'type' parameter
         ))
         # Consume items from the response queue until the stream ends or an error occurs
         while True:
