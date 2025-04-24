@@ -46,29 +46,26 @@ class AIAgent(RoutedAgent):
 
     @message_handler
     async def handle_task(self, message: UserTask, ctx: MessageContext) -> None:
-        # Send the task to the LLM.
-        llm_result = self._model_client.create_stream(
+        # Start streaming LLM responses
+        llm_stream = self._model_client.create_stream(
             messages=[self._system_message] + message.context,
             tools=self._tool_schema + self._delegate_tool_schema,
-            cancellation_token=ctx.cancellation_token,
-            max_consecutive_empty_chunk_tolerance = 2
+            cancellation_token=ctx.cancellation_token
         )
-
-        async for response in llm_result:
-            if(isinstance(response,str)):
-                await self._response_queue.put({'type':"string","message":response})
+        final_response = None
+        async for chunk in llm_stream:
+            if isinstance(chunk, str):
+                await self._response_queue.put({'type': "string", 'message': chunk})
             else:
-                llm_result = response
-
-
-        
-        print(f"{'-'*80}\n{self.id.type}:\n{llm_result.content}", flush=True)
+                final_response = chunk
+        assert final_response is not None, "No response from model"
+        print(f"{'-'*80}\n{self.id.type}:\n{final_response.content}", flush=True)
         # Process the LLM result.
-        while isinstance(llm_result.content, list) and all(isinstance(m, FunctionCall) for m in llm_result.content):
+        while isinstance(final_response.content, list) and all(isinstance(m, FunctionCall) for m in final_response.content):
             tool_call_results: List[FunctionExecutionResult] = []
             delegate_targets: List[Tuple[str, UserTask]] = []
             # Process each function call.
-            for call in llm_result.content:
+            for call in final_response.content:
                 arguments = json.loads(call.arguments)
                 await self._response_queue.put({"type":"function","message":f"Executing {call.name}"})
                 if call.name in self._tools:
@@ -108,31 +105,29 @@ class AIAgent(RoutedAgent):
             if len(tool_call_results) > 0:
                 print(f"{'-'*80}\n{self.id.type}:\n{tool_call_results}", flush=True)
                 # Make another LLM call with the results.
-                message.context.extend(
-                    [
-                        AssistantMessage(content=llm_result.content, source=self.id.type),
-                        FunctionExecutionResultMessage(content=tool_call_results),
-                    ]
-                )
-                llm_result = self._model_client.create_stream(
+                message.context.extend([
+                    AssistantMessage(content=final_response.content, source=self.id.type),
+                    FunctionExecutionResultMessage(content=tool_call_results),
+                ])
+                llm_stream = self._model_client.create_stream(
                     messages=[self._system_message] + message.context,
                     tools=self._tool_schema + self._delegate_tool_schema,
-                    cancellation_token=ctx.cancellation_token,
-                    max_consecutive_empty_chunk_tolerance = 2
-                    )
-
-                async for response in llm_result:
-                    if(isinstance(response,str)):
-                        await self._response_queue.put({'type':"string","message":response})
+                    cancellation_token=ctx.cancellation_token
+                )
+                final_response = None
+                async for chunk in llm_stream:
+                    if isinstance(chunk, str):
+                        await self._response_queue.put({'type': 'string', 'message': chunk})
                     else:
-                        llm_result = response
-                print(f"{'-'*80}\n{self.id.type}:\n{llm_result.content}", flush=True)
+                        final_response = chunk
+                assert final_response is not None, "No response from model"
+                print(f"{'-'*80}\n{self.id.type}:\n{final_response.content}", flush=True)
             else:
                 # The task has been delegated, so we are done.
                 return
         # The task has been completed, publish the final result.
-        assert isinstance(llm_result.content, str)
-        message.context.append(AssistantMessage(content=llm_result.content, source=self.id.type))
+        assert isinstance(final_response.content, str)
+        message.context.append(AssistantMessage(content=final_response.content, source=self.id.type))
         await self.publish_message(
             AgentResponse(context=message.context, reply_to_topic_type=self._agent_topic_type),
             topic_id=TopicId(self._user_topic_type, source=self.id.key),
