@@ -1,4 +1,5 @@
 import builtins
+import warnings
 from typing import Any, List, Literal, Mapping
 
 from autogen_core import CancellationToken, Component, Image
@@ -30,7 +31,41 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     """
     A workbench that wraps an MCP server and provides an interface
     to list and call tools provided by the server.
+
+    Args:
+        server_params (McpServerParams): The parameters to connect to the MCP server.
+            This can be either a :class:`StdioServerParams` or :class:`SseServerParams`.
+
+    Example:
+
+        .. code-block:: python
+
+            import asyncio
+
+            from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+
+
+            async def main() -> None:
+                params = StdioServerParams(
+                    command="uvx",
+                    args=["mcp-server-fetch"],
+                    read_timeout_seconds=60,
+                )
+
+                # You can also use `start()` and `stop()` to manage the session.
+                async with McpWorkbench(server_params=params) as workbench:
+                    tools = await workbench.list_tools()
+                    print(tools)
+                    result = await workbench.call_tool(tools[0]["name"], {"url": "https://github.com/"})
+                    print(result)
+
+
+            asyncio.run(main())
+
     """
+
+    component_provider_override = "autogen_ext.tools.mcp.McpWorkbench"
+    component_config_schema = McpWorkbenchConfig
 
     def __init__(self, server_params: McpServerParams) -> None:
         self._server_params = server_params
@@ -38,6 +73,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         self._actor: McpSessionActor | None = None
         self._read = None
         self._write = None
+
+    @property
+    def server_params(self) -> McpServerParams:
+        return self._server_params
 
     async def list_tools(self) -> List[ToolSchema]:
         if not self._actor:
@@ -123,8 +162,12 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
 
     async def start(self) -> None:
         if self._actor:
+            warnings.warn(
+                "McpWorkbench is already started. No need to start again.",
+                UserWarning,
+                stacklevel=2,
+            )
             return  # Already initialized, no need to start again
-            raise RuntimeError("Actor is already initialized. Call stop() first.")
 
         if isinstance(self._server_params, (StdioServerParams, SseServerParams)):
             self._actor = McpSessionActor(self._server_params)
@@ -135,11 +178,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     async def stop(self) -> None:
         if self._actor:
             # Close the actor
-            # await self._session.__aexit__(None, None, None)
             await self._actor.close()
             self._actor = None
         else:
-            raise RuntimeError("Actor is not initialized. Call start() first.")
+            raise RuntimeError("McpWorkbench is not started. Call start() first.")
 
     async def reset(self) -> None:
         pass
@@ -154,5 +196,5 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         return McpWorkbenchConfig(server_params=self._server_params)
 
     @classmethod
-    def from_config(cls, config: McpWorkbenchConfig) -> Self:
+    def _from_config(cls, config: McpWorkbenchConfig) -> Self:
         return cls(server_params=config.server_params)

@@ -2,11 +2,11 @@ from typing import Annotated
 
 import pytest
 from autogen_core.code_executor import ImportFromModule
-from autogen_core.tools import FunctionTool, StaticWorkbench
+from autogen_core.tools import FunctionTool, StaticWorkbench, Workbench
 
 
 @pytest.mark.asyncio
-async def test_static_workbench():
+async def test_static_workbench() -> None:
     def test_tool_func_1(x: Annotated[int, "The number to double."]) -> int:
         return x * 2
 
@@ -76,12 +76,12 @@ async def test_static_workbench():
         config = workbench.dump_component()
 
     # Load the workbench from the config.
-    async with StaticWorkbench.load_component(config) as workbench:
+    async with Workbench.load_component(config) as new_workbench:
         # Load state.
-        await workbench.load_state(state)
+        await new_workbench.load_state(state)
 
         # Verify that the tools are still available after loading the state.
-        tools = await workbench.list_tools()
+        tools = await new_workbench.list_tools()
         assert len(tools) == 2
         assert "description" in tools[0]
         assert "parameters" in tools[0]
@@ -105,14 +105,14 @@ async def test_static_workbench():
         }
 
         # Call tools
-        result_1 = await workbench.call_tool("test_tool_1", {"x": 5})
+        result_1 = await new_workbench.call_tool("test_tool_1", {"x": 5})
         assert result_1.name == "test_tool_1"
         assert result_1.result[0].type == "TextResultContent"
         assert result_1.result[0].content == "10"
         assert result_1.is_error is False
 
         # Call tool with error
-        result_2 = await workbench.call_tool("test_tool_2", {"x": 5})
+        result_2 = await new_workbench.call_tool("test_tool_2", {"x": 5})
         assert result_2.name == "test_tool_2"
         assert result_2.result[0].type == "TextResultContent"
         assert result_2.result[0].content == "This is a test error"

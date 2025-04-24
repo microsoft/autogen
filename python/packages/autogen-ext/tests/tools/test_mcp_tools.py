@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from autogen_core import CancellationToken
+from autogen_core.tools import Workbench
 from autogen_core.utils import schema_to_pydantic_model
 from autogen_ext.tools.mcp import (
     McpWorkbench,
@@ -482,7 +483,7 @@ async def test_mcp_server_github() -> None:
 
 
 @pytest.mark.asyncio
-async def test_mcp_workbench_start_stop():
+async def test_mcp_workbench_start_stop() -> None:
     params = StdioServerParams(
         command="uvx",
         args=["mcp-server-fetch"],
@@ -491,15 +492,15 @@ async def test_mcp_workbench_start_stop():
 
     workbench = McpWorkbench(params)
     assert workbench is not None
-    assert workbench._server_params == params
+    assert workbench.server_params == params
     await workbench.start()
-    assert workbench._actor is not None
+    assert workbench._actor is not None  # type: ignore[reportPrivateUsage]
     await workbench.stop()
-    assert workbench._actor is None
+    assert workbench._actor is None  # type: ignore[reportPrivateUsage]
 
 
 @pytest.mark.asyncio
-async def test_mcp_workbench_server_fetch():
+async def test_mcp_workbench_server_fetch() -> None:
     params = StdioServerParams(
         command="uvx",
         args=["mcp-server-fetch"],
@@ -517,3 +518,42 @@ async def test_mcp_workbench_server_fetch():
     assert result is not None
 
     await workbench.stop()
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_server_filesystem() -> None:
+    params = StdioServerParams(
+        command="npx",
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            ".",
+        ],
+        read_timeout_seconds=60,
+    )
+
+    workbench = McpWorkbench(server_params=params)
+    await workbench.start()
+
+    tools = await workbench.list_tools()
+    assert tools is not None
+    tools = [tool for tool in tools if tool["name"] == "read_file"]
+    assert len(tools) == 1
+    tool = tools[0]
+    result = await workbench.call_tool(tool["name"], {"path": "README.md"}, CancellationToken())
+    assert result is not None
+
+    await workbench.stop()
+
+    # Serialize the workbench.
+    config = workbench.dump_component()
+
+    # Deserialize the workbench.
+    async with Workbench.load_component(config) as new_workbench:
+        tools = await new_workbench.list_tools()
+        assert tools is not None
+        tools = [tool for tool in tools if tool["name"] == "read_file"]
+        assert len(tools) == 1
+        tool = tools[0]
+        result = await new_workbench.call_tool(tool["name"], {"path": "README.md"}, CancellationToken())
+        assert result is not None

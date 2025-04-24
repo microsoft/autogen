@@ -17,7 +17,9 @@ class TextResultContent(BaseModel):
     """
 
     type: Literal["TextResultContent"] = "TextResultContent"
+
     content: str
+    """The text content of the result."""
 
 
 class ImageResultContent(BaseModel):
@@ -26,7 +28,9 @@ class ImageResultContent(BaseModel):
     """
 
     type: Literal["ImageResultContent"] = "ImageResultContent"
+
     content: Image
+    """The image content of the result."""
 
 
 ResultContent = Annotated[TextResultContent | ImageResultContent, Field(discriminator="type")]
@@ -34,18 +38,19 @@ ResultContent = Annotated[TextResultContent | ImageResultContent, Field(discrimi
 
 class ToolResult(BaseModel):
     """
-    A result of a tool execution.
-
-    Attributes:
-        name: The name of the tool that was executed.
-        result: The result of the tool execution.
-        is_error: Whether the tool execution resulted in an error.
+    A result of a tool execution by a workbench.
     """
 
     type: Literal["ToolResult"] = "ToolResult"
+
     name: str
+    """The name of the tool that was executed."""
+
     result: List[ResultContent]
+    """The result of the tool execution."""
+
     is_error: bool = False
+    """Whether the tool execution resulted in an error."""
 
 
 class Workbench(ABC, ComponentBase[BaseModel]):
@@ -53,9 +58,14 @@ class Workbench(ABC, ComponentBase[BaseModel]):
     A workbench is a component that provides a set of tools that may share
     resources and state.
 
-    The workbench is responsible for managing the lifecycle of the tools and
+    A workbench is responsible for managing the lifecycle of the tools and
     providing a single interface to call them. The tools provided by the workbench
     may be dynamic and their availabilities may change after each tool execution.
+
+    A workbench can be started by calling the :meth:`~autogen_core.tools.Workbench.start` method
+    and stopped by calling the :meth:`~autogen_core.tools.Workbench.stop` method.
+    It can also be used as an asynchronous context manager, which will automatically
+    start and stop the workbench when entering and exiting the context.
     """
 
     component_type = "workbench"
