@@ -368,15 +368,15 @@ def get_imports_from_func(func: AnyCallable) -> list[Import]:
     used_names: set[ast.FunctionDef] = set()
     
     class NameVisitor(ast.NodeVisitor):
-        def visit_Name(self, node):
+        def visit_Name(self, node): # type: ignore
             if isinstance(node.ctx, ast.Load):
-                used_names.add(node.id)
+                used_names.add(node.id) # type: ignore
             self.generic_visit(node)
         
-        def visit_Attribute(self, node):
+        def visit_Attribute(self, node): # type: ignore
             # Check for module.attribute pattern
             if isinstance(node.value, ast.Name):
-                used_names.add(node.value.id)
+                used_names.add(node.value.id) # type: ignore
             self.generic_visit(node)
     
     name_visitor = NameVisitor()
@@ -397,7 +397,7 @@ def get_imports_from_func(func: AnyCallable) -> list[Import]:
     from_imports = {}  # Map from alias to (module, imported_name)
     
     class ImportVisitor(ast.NodeVisitor):
-        def visit_Import(self, node):
+        def visit_Import(self, node): # type: ignore
             for name in node.names:
                 if name.asname:
                     all_imports[name.asname] = name.name
@@ -405,7 +405,7 @@ def get_imports_from_func(func: AnyCallable) -> list[Import]:
                     all_imports[name.name] = name.name
             self.generic_visit(node)
         
-        def visit_ImportFrom(self, node):
+        def visit_ImportFrom(self, node): # type: ignore
             for name in node.names:
                 if name.asname:
                     from_imports[name.asname] = (node.module, name.name)
@@ -425,10 +425,10 @@ def get_imports_from_func(func: AnyCallable) -> list[Import]:
         if used_name in all_imports:
             if all_imports[used_name] == used_name:
                 # Regular import (import X)
-                result.append(used_name)
+                result.append(used_name) # type: ignore
             else:
                 # Aliased import (import X as Y)
-                result.append(Alias(name=all_imports[used_name], alias=used_name))
+                result.append(Alias(name=all_imports[used_name], alias=used_name))  # type: ignore
     
     # Process from-imports
     from_modules: dict[str, list[str]] = {}
@@ -441,7 +441,7 @@ def get_imports_from_func(func: AnyCallable) -> list[Import]:
             
             if name == used_name:
                 # Regular from-import (from X import Y)
-                from_modules[module].append(name)
+                from_modules[module].append(name) # type: ignore
             else:
                 # Aliased from-import (from X import Y as Z)
                 from_modules[module].append(Alias(name=name, alias=used_name)) # type: ignore
@@ -449,6 +449,6 @@ def get_imports_from_func(func: AnyCallable) -> list[Import]:
     # Add from-imports to result
     for module, imports in from_modules.items():
         if imports:  # Only add if there are actually used imports
-            result.append(ImportFromModule(module=module, imports=imports))
+            result.append(ImportFromModule(module=module, imports=imports)) # type: ignore
     
     return result
