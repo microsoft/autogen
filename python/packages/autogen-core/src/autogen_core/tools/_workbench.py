@@ -63,7 +63,7 @@ class ToolResult(BaseModel):
         Returns:
             str: The text representation of the result.
         """
-        parts = []
+        parts: List[str] = []
         for content in self.result:
             if isinstance(content, TextResultContent):
                 parts.append(content.content)
