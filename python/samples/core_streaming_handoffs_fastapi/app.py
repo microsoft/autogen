@@ -206,9 +206,12 @@ async def chat_completions_stream(request: Request):
     if not re.match(r'^[A-Za-z0-9_-]+$', conversation_id):
         raise HTTPException(status_code=400, detail="Invalid input: 'conversation_id' contains invalid characters.")
 
-    # Construct the chat history file path
     chat_history_dir = "chat_history"
-    chat_history_file = os.path.join(chat_history_dir, f"history-{conversation_id}.json")
+    base_dir = os.path.abspath(chat_history_dir)
+    full_path = os.path.normpath(os.path.join(base_dir, f"history-{conversation_id}.json"))
+    if not full_path.startswith(base_dir + os.sep):
+        raise HTTPException(status_code=400, detail="Invalid input: 'conversation_id' leads to invalid path.")
+    chat_history_file = full_path
     
     messages = []
     # Initialize chat_history and route_agent with default values
