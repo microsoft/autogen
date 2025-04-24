@@ -36,6 +36,11 @@ _MODEL_POINTERS = {
     "claude-3-5-haiku": "claude-3-5-haiku-20241022",
     "claude-3-5-sonnet": "claude-3-5-sonnet-20241022",
     "claude-3-7-sonnet": "claude-3-7-sonnet-20250219",
+    # Llama models
+    "llama-3.3-8b": "llama-3.3-8b-instruct",
+    "llama-3.3-70b": "llama-3.3-70b-instruct",
+    "llama-4-scout": "llama-4-scout-17b-16e-instruct-fp8",
+    "llama-4-maverick": "llama-4-maverick-17b-128e-instruct-fp8",
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
@@ -335,6 +340,38 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": False,
         "multiple_system_messages": True,
     },
+    "llama-3.3-8b-instruct": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.LLAMA_3_3_8B,
+        "structured_output": False,
+        "multiple_system_messages": True,
+    },
+    "llama-3.3-70b-instruct": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.LLAMA_3_3_70B,
+        "structured_output": False,
+        "multiple_system_messages": True,
+    },
+    "llama-4-scout-17b-16e-instruct-fp8": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.LLAMA_4_SCOUT,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "llama-4-maverick-17b-128e-instruct-fp8": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.LLAMA_4_MAVERICK,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
@@ -375,10 +412,15 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "claude-3-5-haiku-20241022": 50000,
     "claude-3-5-sonnet-20241022": 40000,
     "claude-3-7-sonnet-20250219": 20000,
+    "llama-3.3-8b-instruct": 128000,
+    "llama-3.3-70b-instruct": 128000,
+    "llama-4-scout-17b-16e-instruct-fp8" : 128000,
+    "llama-4-maverick-17b-128e-instruct-fp8" : 128000,
 }
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1/"
+LLAMA_API_BASE_URL = "https://api.llama.com/compat/v1/"
 
 
 def resolve_model(model: str) -> str:
