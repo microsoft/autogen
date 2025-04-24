@@ -2,6 +2,8 @@
 
 This sample demonstrates how to build a streaming chat API featuring multi-agent handoffs and persistent conversation history using `autogen-core` and FastAPI. For more details on the handoff pattern, see the [AutoGen documentation](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/design-patterns/handoffs.html).
 
+Inspired by `@ToryPan`'s example for streaming with Core API.
+
 ## Key Features
 
 1.  **Streaming Response**: Implements real-time streaming of agent responses using FastAPI's `StreamingResponse`, `autogen-core`'s asynchronous features, and an `asyncio.Queue` to manage the data stream.
@@ -80,7 +82,7 @@ import json
 import uuid
 
 url = "http://localhost:8501/chat/completions"
-conversation_id = f"conv_{uuid.uuid4()}" # Generate a unique conversation ID
+conversation_id = f"conv-id" # Generate a unique conversation ID for a different session.
 
 def send_message(message_text):
     data = {
@@ -97,11 +99,31 @@ def send_message(message_text):
         for chunk in response.iter_content(chunk_size=None):
             if chunk:
                 try:
-                    content = json.loads(chunk.decode('utf-8'))["content"]
-                    print(content, end='', flush=True)
-                    full_response += content
+                    # Decode the chunk
+                    chunk_str = chunk.decode('utf-8')
+                    # Handle potential multiple JSON objects in a single chunk
+                    for line in chunk_str.strip().split('\n'):
+                        if line:
+                            data = json.loads(line)
+                            # Check the new structure
+                            if 'content' in data and isinstance(data['content'], dict) and 'message' in data['content']:
+                                message_content = data['content']['message']
+                                message_type = data['content'].get('type', 'string') # Default to string if type is missing
+
+                                # Print based on type (optional, could just print message_content)
+                                if message_type == 'function':
+                                    print(f"[{message_type.upper()}] {message_content}", end='\n', flush=True) # Print function calls on new lines for clarity
+                                    print("<<< Assistant: ", end="", flush=True) # Reprint prefix for next string part
+                                else:
+                                    print(message_content, end='', flush=True)
+
+                                full_response += message_content # Append only the message part
+                            else:
+                                print(f"\nUnexpected chunk format: {line}")
+
                 except json.JSONDecodeError:
-                    print(f"\nError decoding chunk: {chunk}")
+                    print(f"\nError decoding chunk/line: '{line if 'line' in locals() else chunk_str}'")
+
         print("\n--- End of Response ---")
         return full_response
 
@@ -111,11 +133,12 @@ def send_message(message_text):
         print(f"\nAn unexpected error occurred: {e}")
 
 # Start conversation
-send_message("Hello, I need some help.")
+send_message("I want refund")
 # Continue conversation (example)
 # send_message("I want the rocket my friend Amith bought.")
-# send_message("Tell me about the Giant Rubber Band.")
+# send_message("They are the SpaceX 3000s")
 # send_message("That sounds great, I'll take it!")
 # send_message("Yes, I agree to the price and the caveat.")
+
 
 ```
