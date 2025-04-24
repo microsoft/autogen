@@ -90,10 +90,20 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     the inner messages as they are created, and the :class:`~autogen_agentchat.base.Response`
     object as the last item before closing the generator.
 
+    The :meth:`BaseChatAgent.run` method returns a :class:`~autogen_agentchat.base.TaskResult`
+    containing the messages produced by the agent. In the list of messages,
+    :attr:`~autogen_agentchat.base.TaskResult.messages`,
+    the last message is the final response message.
+
+    The :meth:`BaseChatAgent.run_stream` method creates an async generator that produces
+    the inner messages as they are created, and the :class:`~autogen_agentchat.base.TaskResult`
+    object as the last item before closing the generator.
+
     .. attention::
 
         The caller must only pass the new messages to the agent on each call
-        to the :meth:`on_messages` or :meth:`on_messages_stream` method.
+        to the :meth:`on_messages`, :meth:`on_messages_stream`, :meth:`BaseChatAgent.run`,
+        or :meth:`BaseChatAgent.run_stream` methods.
         The agent maintains its state between calls to these methods.
         Do not pass the entire conversation history to the agent on each call.
 
@@ -215,10 +225,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         .. code-block:: python
 
             import asyncio
-            from autogen_core import CancellationToken
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
 
 
             async def main() -> None:
@@ -228,10 +236,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 )
                 agent = AssistantAgent(name="assistant", model_client=model_client)
 
-                response = await agent.on_messages(
-                    [TextMessage(content="What is the capital of France?", source="user")], CancellationToken()
-                )
-                print(response)
+                result = await agent.run(task="Name two cities in North America.")
+                print(result)
 
 
             asyncio.run(main())
@@ -246,8 +252,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             import asyncio
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
-            from autogen_core import CancellationToken
 
 
             async def main() -> None:
@@ -261,9 +265,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     model_client_stream=True,
                 )
 
-                stream = agent.on_messages_stream(
-                    [TextMessage(content="Name two cities in North America.", source="user")], CancellationToken()
-                )
+                stream = agent.run_stream(task="Name two cities in North America.")
                 async for message in stream:
                     print(message)
 
@@ -272,27 +274,23 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         .. code-block:: text
 
-            source='assistant' models_usage=None content='Two' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' cities' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' in' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' North' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' America' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' are' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' New' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' York' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' City' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' in' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' the' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' United' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' States' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' and' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' Toronto' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' in' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' Canada' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content='.' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' TERMIN' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content='ATE' type='ModelClientStreamingChunkEvent'
-            Response(chat_message=TextMessage(source='assistant', models_usage=RequestUsage(prompt_tokens=0, completion_tokens=0), content='Two cities in North America are New York City in the United States and Toronto in Canada. TERMINATE', type='TextMessage'), inner_messages=[])
+            source='user' models_usage=None metadata={} content='Name two cities in North America.' type='TextMessage'
+            source='assistant' models_usage=None metadata={} content='Two' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' cities' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' in' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' North' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' America' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' are' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' New' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' York' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' City' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' and' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' Toronto' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content='.' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' TERMIN' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content='ATE' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=RequestUsage(prompt_tokens=0, completion_tokens=0) metadata={} content='Two cities in North America are New York City and Toronto. TERMINATE' type='TextMessage'
+            messages=[TextMessage(source='user', models_usage=None, metadata={}, content='Name two cities in North America.', type='TextMessage'), TextMessage(source='assistant', models_usage=RequestUsage(prompt_tokens=0, completion_tokens=0), metadata={}, content='Two cities in North America are New York City and Toronto. TERMINATE', type='TextMessage')] stop_reason=None
 
 
         **Example 3: agent with tools**
@@ -312,9 +310,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             import asyncio
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
             from autogen_agentchat.ui import Console
-            from autogen_core import CancellationToken
 
 
             async def get_current_time() -> str:
@@ -327,12 +323,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     # api_key = "your_openai_api_key"
                 )
                 agent = AssistantAgent(name="assistant", model_client=model_client, tools=[get_current_time])
-
-                await Console(
-                    agent.on_messages_stream(
-                        [TextMessage(content="What is the current time?", source="user")], CancellationToken()
-                    )
-                )
+                await Console(agent.run_stream(task="What is the current time?"))
 
 
             asyncio.run(main())
@@ -390,9 +381,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             from typing import Literal
 
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
             from autogen_agentchat.ui import Console
-            from autogen_core import CancellationToken
             from autogen_core.tools import FunctionTool
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from pydantic import BaseModel
@@ -430,7 +419,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
 
             async def main() -> None:
-                stream = agent.on_messages_stream([TextMessage(content="I am happy today!", source="user")], CancellationToken())
+                stream = agent.run_stream(task="I am happy today!")
                 await Console(stream)
 
 
@@ -458,8 +447,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             import asyncio
 
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
-            from autogen_core import CancellationToken
             from autogen_core.model_context import BufferedChatCompletionContext
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
@@ -482,20 +469,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     system_message="You are a helpful assistant.",
                 )
 
-                response = await agent.on_messages(
-                    [TextMessage(content="Name two cities in North America.", source="user")], CancellationToken()
-                )
-                print(response.chat_message.content)  # type: ignore
+                result = await agent.run(task="Name two cities in North America.")
+                print(result.messages[-1].content)  # type: ignore
 
-                response = await agent.on_messages(
-                    [TextMessage(content="My favorite color is blue.", source="user")], CancellationToken()
-                )
-                print(response.chat_message.content)  # type: ignore
+                result = await agent.run(task="My favorite color is blue.")
+                print(result.messages[-1].content)  # type: ignore
 
-                response = await agent.on_messages(
-                    [TextMessage(content="Did I ask you any question?", source="user")], CancellationToken()
-                )
-                print(response.chat_message.content)  # type: ignore
+                result = await agent.run(task="Did I ask you any question?")
+                print(result.messages[-1].content)  # type: ignore
 
 
             asyncio.run(main())
@@ -518,8 +499,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             import asyncio
 
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
-            from autogen_core import CancellationToken
             from autogen_core.memory import ListMemory, MemoryContent
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
@@ -544,10 +523,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     system_message="You are a helpful assistant.",
                 )
 
-                response = await agent.on_messages(
-                    [TextMessage(content="One idea for a dinner.", source="user")], CancellationToken()
-                )
-                print(response.chat_message.content)  # type: ignore
+                result = await agent.run(task="What is a good dinner idea?")
+                print(result.messages[-1].content)  # type: ignore
 
 
             asyncio.run(main())
@@ -573,10 +550,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         .. code-block:: python
 
             import asyncio
-            from autogen_core import CancellationToken
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
 
 
             async def main() -> None:
@@ -587,10 +562,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 # The system message is not supported by the o1 series model.
                 agent = AssistantAgent(name="assistant", model_client=model_client, system_message=None)
 
-                response = await agent.on_messages(
-                    [TextMessage(content="What is the capital of France?", source="user")], CancellationToken()
-                )
-                print(response)
+                result = await agent.run(task="What is the capital of France?")
+                print(result.messages[-1].content)  # type: ignore
 
 
             asyncio.run(main())
