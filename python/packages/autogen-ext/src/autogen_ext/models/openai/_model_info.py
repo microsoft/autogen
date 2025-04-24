@@ -357,7 +357,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "multiple_system_messages": True,
     },
     "llama-4-scout-17b-16e-instruct-fp8": {
-        "vision": False,
+        "vision": True,
         "function_calling": True,
         "json_output": True,
         "family": ModelFamily.LLAMA_4_SCOUT,
@@ -365,7 +365,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "multiple_system_messages": True,
     },
     "llama-4-maverick-17b-128e-instruct-fp8": {
-        "vision": False,
+        "vision": True,
         "function_calling": True,
         "json_output": True,
         "family": ModelFamily.LLAMA_4_MAVERICK,
