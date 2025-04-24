@@ -52,6 +52,28 @@ class ToolResult(BaseModel):
     is_error: bool = False
     """Whether the tool execution resulted in an error."""
 
+    def to_text(self, replace_image: str | None = None) -> str:
+        """
+        Convert the result to a text string.
+
+        Args:
+            replace_image (str | None): The string to replace the image content with.
+                If None, the image content will be included in the text as base64 string.
+
+        Returns:
+            str: The text representation of the result.
+        """
+        parts: List[str] = []
+        for content in self.result:
+            if isinstance(content, TextResultContent):
+                parts.append(content.content)
+            elif isinstance(content, ImageResultContent):
+                if replace_image is not None:
+                    parts.append(replace_image)
+                else:
+                    parts.append(f"[Image: {content.content.to_base64()}]")
+        return "\n".join(parts)
+
 
 class Workbench(ABC, ComponentBase[BaseModel]):
     """
