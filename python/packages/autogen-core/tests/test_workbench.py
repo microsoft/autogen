@@ -57,6 +57,7 @@ async def test_static_workbench() -> None:
         assert result_1.name == "test_tool_1"
         assert result_1.result[0].type == "TextResultContent"
         assert result_1.result[0].content == "10"
+        assert result_1.to_text() == "10"
         assert result_1.is_error is False
 
         # Call tool with error
@@ -64,6 +65,7 @@ async def test_static_workbench() -> None:
         assert result_2.name == "test_tool_2"
         assert result_2.result[0].type == "TextResultContent"
         assert result_2.result[0].content == "This is a test error"
+        assert result_2.to_text() == "This is a test error"
         assert result_2.is_error is True
 
         # Save state.
@@ -109,6 +111,7 @@ async def test_static_workbench() -> None:
         assert result_1.name == "test_tool_1"
         assert result_1.result[0].type == "TextResultContent"
         assert result_1.result[0].content == "10"
+        assert result_1.to_text() == "10"
         assert result_1.is_error is False
 
         # Call tool with error
@@ -116,4 +119,5 @@ async def test_static_workbench() -> None:
         assert result_2.name == "test_tool_2"
         assert result_2.result[0].type == "TextResultContent"
         assert result_2.result[0].content == "This is a test error"
+        assert result_2.to_text() == "This is a test error"
         assert result_2.is_error is True
