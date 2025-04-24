@@ -15,6 +15,7 @@ from .._function_utils import (
 )
 from ..code_executor._func_with_reqs import Import, import_to_str, to_code
 from ._base import BaseTool
+from autogen_core import get_imports_from_func
 
 
 class FunctionToolConfig(BaseModel):
@@ -95,6 +96,8 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
     ) -> None:
         self._func = func
         self._global_imports = global_imports
+        if not self._global_imports:
+            self._global_imports = get_imports_from_func(self._func)
         self._signature = get_typed_signature(func)
         func_name = name or func.func.__name__ if isinstance(func, functools.partial) else name or func.__name__
         args_model = args_base_model_from_signature(func_name + "args", self._signature)
@@ -178,4 +181,4 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         if not callable(func):
             raise TypeError(f"Expected function but got {type(func)}")
 
-        return cls(func, "", None)
+        return cls(func, "", None, config.global_imports)

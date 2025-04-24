@@ -1,7 +1,9 @@
 # File based from: https://github.com/microsoft/autogen/blob/47f905267245e143562abfb41fcba503a9e1d56d/autogen/function_utils.py
 # Credit to original authors
 
+import ast
 import inspect
+import textwrap
 import typing
 from functools import partial
 from logging import getLogger
@@ -12,6 +14,7 @@ from typing import (
     Dict,
     List,
     Optional,
+    Protocol,
     Set,
     Tuple,
     Type,
@@ -25,6 +28,7 @@ from typing import (
 from pydantic import BaseModel, Field, TypeAdapter, create_model  # type: ignore
 from pydantic_core import PydanticUndefined
 from typing_extensions import Literal
+from .code_executor import Import, Alias, ImportFromModule
 
 logger = getLogger(__name__)
 
@@ -322,3 +326,129 @@ def args_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[Ba
         fields[param_name] = (type, Field(default=default_value, description=description))
 
     return cast(BaseModel, create_model(name, **fields))  # type: ignore
+
+
+class AnyCallable(Protocol):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
+
+def get_imports_from_func(func: AnyCallable) -> list[Import]:
+    """Extract global imports actually used by a function.
+    
+    Args:
+        func: The function to analyze
+        
+    Returns:
+        List of imported modules that are actually used within the function body
+    """
+    # Get the source code of the module and function
+    module = inspect.getmodule(func)
+    if module is None:
+        return []
+    module_source = inspect.getsource(module)
+    
+    # Get function source and dedent it
+    func_source = inspect.getsource(func)
+    func_source = textwrap.dedent(func_source)
+    
+    # Parse the source code into ASTs
+    module_ast = ast.parse(module_source)
+    func_ast = ast.parse(func_source)
+    
+    # Find the function definition node in the parsed tree
+    function_def = None
+    for node in ast.walk(func_ast):
+        if isinstance(node, ast.FunctionDef) and hasattr(func, "__name__") and node.name == func.__name__:
+            function_def = node
+            break
+    
+    if not function_def:
+        return []
+    
+    # Collect names used within the function
+    used_names: set[ast.FunctionDef] = set()
+    
+    class NameVisitor(ast.NodeVisitor):
+        def visit_Name(self, node):
+            if isinstance(node.ctx, ast.Load):
+                used_names.add(node.id)
+            self.generic_visit(node)
+        
+        def visit_Attribute(self, node):
+            # Check for module.attribute pattern
+            if isinstance(node.value, ast.Name):
+                used_names.add(node.value.id)
+            self.generic_visit(node)
+    
+    name_visitor = NameVisitor()
+    for node in function_def.body:
+        name_visitor.visit(node)
+
+    # Visit function argument annotations
+    for arg in function_def.args.args:
+        if arg.annotation:
+            name_visitor.visit(arg.annotation)
+    
+    # Visit function return type annotation
+    if function_def.returns:
+        name_visitor.visit(function_def.returns)
+    
+    # Extract all import statements from the module - including nested blocks
+    all_imports = {}  # Map from alias to original module
+    from_imports = {}  # Map from alias to (module, imported_name)
+    
+    class ImportVisitor(ast.NodeVisitor):
+        def visit_Import(self, node):
+            for name in node.names:
+                if name.asname:
+                    all_imports[name.asname] = name.name
+                else:
+                    all_imports[name.name] = name.name
+            self.generic_visit(node)
+        
+        def visit_ImportFrom(self, node):
+            for name in node.names:
+                if name.asname:
+                    from_imports[name.asname] = (node.module, name.name)
+                else:
+                    from_imports[name.name] = (node.module, name.name)
+            self.generic_visit(node)
+    
+    # Visit all nodes to find imports everywhere in the module
+    import_visitor = ImportVisitor()
+    import_visitor.visit(module_ast)
+    
+    # Filter imports that are actually used in the function
+    result: list[Import] = []
+    
+    # Check regular imports
+    for used_name in used_names:
+        if used_name in all_imports:
+            if all_imports[used_name] == used_name:
+                # Regular import (import X)
+                result.append(used_name)
+            else:
+                # Aliased import (import X as Y)
+                result.append(Alias(name=all_imports[used_name], alias=used_name))
+    
+    # Process from-imports
+    from_modules: dict[str, list[str]] = {}
+    
+    for used_name in used_names:
+        if used_name in from_imports:
+            module, name = from_imports[used_name] # type: ignore
+            if module not in from_modules:
+                from_modules[module] = []
+            
+            if name == used_name:
+                # Regular from-import (from X import Y)
+                from_modules[module].append(name)
+            else:
+                # Aliased from-import (from X import Y as Z)
+                from_modules[module].append(Alias(name=name, alias=used_name)) # type: ignore
+    
+    # Add from-imports to result
+    for module, imports in from_modules.items():
+        if imports:  # Only add if there are actually used imports
+            result.append(ImportFromModule(module=module, imports=imports))
+    
+    return result
