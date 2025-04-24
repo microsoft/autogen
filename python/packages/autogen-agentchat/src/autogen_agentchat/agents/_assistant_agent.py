@@ -1337,7 +1337,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client=ChatCompletionClient.load_component(config.model_client),
             tools=[BaseTool.load_component(tool) for tool in config.tools] if config.tools else None,
             handoffs=config.handoffs,
-            model_context=None,
+            model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
             memory=[Memory.load_component(memory) for memory in config.memory] if config.memory else None,
             description=config.description,
             system_message=config.system_message,

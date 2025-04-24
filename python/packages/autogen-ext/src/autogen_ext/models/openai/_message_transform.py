@@ -281,7 +281,6 @@ base_user_transformer_funcs: List[Callable[[LLMMessage, Dict[str, Any]], Dict[st
 
 base_assistant_transformer_funcs: List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]] = [
     _assert_valid_name,
-    _set_name,
     _set_role("assistant"),
 ]
 
