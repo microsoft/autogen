@@ -7,7 +7,9 @@ from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 from autogen_core.utils import schema_to_pydantic_model
 from mcp import ClientSession, Tool
+from mcp.types import AnyUrl, EmbeddedResource, ImageContent, TextContent
 from pydantic import BaseModel
+import json
 
 from ._config import McpServerParams
 from ._session import create_mcp_server_session
@@ -114,6 +116,27 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 )
 
         return cls(server_params=server_params, tool=matching_tool)
+
+    def return_value_as_string(self, value: list) -> str:
+        """Return a string representation of the result."""
+
+        def serialize_item(item):
+            if isinstance(item, (TextContent, ImageContent)):
+                return item.model_dump()
+            elif isinstance(item, EmbeddedResource):
+                type = item.type
+                resource = {}
+                for key, val in item.resource.model_dump().items():
+                    if isinstance(val, AnyUrl):
+                        resource[key] = str(val)
+                    else:
+                        resource[key] = val
+                annotations = item.annotations.model_dump() if item.annotations else None
+                return {"type": type, "resource": resource, "annotations": annotations}
+            else:
+                return str(item)
+
+        return json.dumps([serialize_item(item) for item in value])
 
     def _format_errors(self, error: Exception) -> str:
         """Recursively format errors into a string."""
