@@ -23,6 +23,6 @@ async def create_mcp_server_session(
             ) as session:
                 yield session
     elif isinstance(server_params, SseServerParams):
-        async with sse_client(**server_params.model_dump(exclude="type")) as (read, write):
+        async with sse_client(**server_params.model_dump(exclude={"type"})) as (read, write):
             async with ClientSession(read_stream=read, write_stream=write) as session:
                 yield session
