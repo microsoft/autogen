@@ -1,7 +1,8 @@
+from typing import Dict, Union
 from autogen_core.tools import FunctionTool
 
 
-def execute_order(product: str, price: int) -> str:
+def execute_order(product: str, price: int) -> Dict[str, Union[str, int]]:
     print("\n\n=== Order Summary ===")
     print(f"Product: {product}")
     print(f"Price: ${price}")
@@ -10,12 +11,12 @@ def execute_order(product: str, price: int) -> str:
     
 
 
-def look_up_item(search_query: str) -> str:
+def look_up_item(search_query: str) -> Dict[str, str]:
     item_id = "item_132612938"
     return {"item_id":item_id,"status":"found"}
 
 
-def execute_refund(item_id: str, reason: str = "not provided") -> str:
+def execute_refund(item_id: str, reason: str = "not provided") -> Dict[str, str]:
     print("\n\n=== Refund Summary ===")
     print(f"Item ID: {item_id}")
     print(f"Reason: {reason}")
