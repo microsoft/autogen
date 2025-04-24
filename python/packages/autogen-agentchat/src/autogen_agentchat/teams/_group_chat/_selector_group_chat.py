@@ -12,6 +12,7 @@ from autogen_core.model_context import (
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
+    LLMMessage,
     ModelFamily,
     SystemMessage,
     UserMessage,
@@ -207,16 +208,11 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         trace_logger.debug(f"Selected speaker: {agent_name}")
         return agent_name
 
-    def construct_message_history(
-        self, message_history: Sequence[Union[BaseChatMessage, BaseAgentEvent, UserMessage, AssistantMessage]]
-    ) -> str:
+    def construct_message_history(self, message_history: Sequence[LLMMessage]) -> str:
         # Construct the history of the conversation.
         history_messages: List[str] = []
         for msg in message_history:
-            if isinstance(msg, BaseChatMessage):
-                message = f"{msg.source}: {msg.to_model_text()}"
-                history_messages.append(message.rstrip() + "\n\n")
-            elif isinstance(msg, UserMessage) or isinstance(msg, AssistantMessage):
+            if isinstance(msg, UserMessage) or isinstance(msg, AssistantMessage):
                 message = f"{msg.source}: {msg.content}"
                 history_messages.append(
                     message.rstrip() + "\n\n"
