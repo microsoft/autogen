@@ -43,7 +43,11 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
     ) -> ToolResult:
         tool = next((tool for tool in self._tools if tool.name == name), None)
         if tool is None:
-            raise ValueError(f"Tool {name} not found in workbench.")
+            return ToolResult(
+                name=name,
+                result=[TextResultContent(content=f"Tool {name} not found.")],
+                is_error=True,
+            )
         if not cancellation_token:
             cancellation_token = CancellationToken()
         if not arguments:
