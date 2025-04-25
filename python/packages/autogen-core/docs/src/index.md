@@ -46,46 +46,20 @@ A framework for building AI agents and applications
 ::::{grid}
 :gutter: 2
 
-:::{grid-item-card}
-:shadow: none
-:margin: 2 0 0 0
-:columns: 12 12 6 6
-
-<div class="sd-card-title sd-font-weight-bold docutils">
-
-{fas}`book;pst-color-primary`
-Magentic-One CLI [![PyPi magentic-one-cli](https://img.shields.io/badge/PyPi-magentic--one--cli-blue?logo=pypi)](https://pypi.org/project/magentic-one-cli/)
-</div>
-A console-based multi-agent assistant for web and file-based tasks.
-Built on AgentChat.
-
-```bash
-pip install -U magentic-one-cli
-m1 "Find flights from Seattle to Paris and format the result in a table"
-```
-
-+++
-
-```{button-ref} user-guide/agentchat-user-guide/magentic-one
-:color: secondary
-
-Get Started
-```
-
-:::
-
 :::{grid-item-card} {fas}`palette;pst-color-primary` Studio [![PyPi autogenstudio](https://img.shields.io/badge/PyPi-autogenstudio-blue?logo=pypi)](https://pypi.org/project/autogenstudio/)
 :shadow: none
 :margin: 2 0 0 0
-:columns: 12 12 6 6
+:columns: 12 12 12 12
 
-An app for prototyping and managing agents without writing code.
+An web-based UI for prototyping with agents without writing code.
 Built on AgentChat.
 
 ```bash
 pip install -U autogenstudio
 autogenstudio ui --port 8080 --appdir ./myapp
 ```
+
+_Start here if you are new to AutoGen and want to prototype with agents without writing code._
 
 +++
 
@@ -124,7 +98,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-_Start here if you are building conversational agents. [Migrating from AutoGen 0.2?](./user-guide/agentchat-user-guide/migration-guide.md)._
+_Start here if you are prototyping with agents using Python. [Migrating from AutoGen 0.2?](./user-guide/agentchat-user-guide/migration-guide.md)._
 
 +++
 
@@ -147,7 +121,7 @@ An event-driven programming framework for building scalable multi-agent AI syste
 * Research on multi-agent collaboration.
 * Distributed agents for multi-language applications.
 
-_Start here if you are building workflows or distributed agent systems._
+_Start here if you are getting serious about building multi-agent systems._
 
 +++
 
@@ -167,7 +141,7 @@ Get Started
 Implementations of Core and AgentChat components that interface with external services or other libraries.
 You can find and use community extensions or create your own. Examples of built-in extensions:
 
-* {py:class}`~autogen_ext.tools.langchain.LangChainToolAdapter` for using LangChain tools.
+* {py:class}`~autogen_ext.tools.mcp.McpWorkbench` for using Model-Context Protocol (MCP) servers.
 * {py:class}`~autogen_ext.agents.openai.OpenAIAssistantAgent` for using Assistant API.
 * {py:class}`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` for running model-generated code in a Docker container.
 * {py:class}`~autogen_ext.runtimes.grpc.GrpcWorkerAgentRuntime` for distributed agents.

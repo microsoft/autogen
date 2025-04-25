@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ACME Agent Chat</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Full viewport height */
+        }
+        #chat-container {
+            width: 600px; /* Increased width */
+            height: 80vh; /* Relative height */
+            max-height: 700px; /* Max height */
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevent content spill */
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            padding: 15px 0;
+            margin: 0;
+            background-color: #eee;
+            border-bottom: 1px solid #ddd;
+            font-size: 1.2em;
+        }
+        #chatbox {
+            flex-grow: 1; /* Takes available space */
+            overflow-y: auto; /* Changed to auto for scrollbar only when needed */
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            background-color: #fafafa; /* Slightly different background */
+        }
+        .message {
+            margin-bottom: 12px; /* Increased spacing */
+            padding: 10px 15px; /* Increased padding */
+            border-radius: 15px; /* More rounded corners */
+            max-width: 75%; /* Limit message width */
+            line-height: 1.4;
+            word-wrap: break-word; /* Ensure long words break */
+        }
+        .user {
+            background-color: #dcf8c6; /* Light green */
+            margin-left: auto; /* Align to right */
+            border-bottom-right-radius: 5px; /* Slightly different corner */
+        }
+        .agent {
+            background-color: #e5e5ea; /* Light grey */
+            margin-right: auto; /* Align to left */
+            border-bottom-left-radius: 5px; /* Slightly different corner */
+        }
+        /* Style for function call messages */
+        .function-call {
+            background-color: #f0f0f0; /* Slightly different grey */
+            border: 1px dashed #ccc;
+            font-style: italic;
+            color: #555;
+        }
+        #input-area {
+            display: flex;
+            padding: 15px;
+            background-color: #eee;
+        }
+        #message {
+            flex-grow: 1;
+            margin-right: 10px; /* Increased margin */
+            padding: 10px 15px; /* Increased padding */
+            border: 1px solid #ccc;
+            border-radius: 20px; /* Pill shape */
+            font-size: 1em;
+        }
+        #message:focus {
+            outline: none;
+            border-color: #aaa;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff; /* Blue */
+            color: white;
+            border-radius: 20px; /* Pill shape */
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease;
+        }
+        button:hover {
+            background-color: #0056b3; /* Darker blue */
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container"> <!-- Added container -->
+        <h1>Chat with ACME Agent</h1>
+        <div id="chatbox"></div>
+        <div id="input-area">
+            <input type="text" id="message" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div> <!-- Close container -->
+
+    <script>
+        const chatbox = document.getElementById('chatbox');
+        const messageInput = document.getElementById('message');
+        let conversationId = `conv_${Date.now()}_${Math.random().toString(36).substring(7)}`; // Basic unique ID
+
+        function scrollToBottom() {
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        function displayMessage(content, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender);
+            messageElement.textContent = content;
+            chatbox.appendChild(messageElement);
+            scrollToBottom(); // Use dedicated scroll function
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            displayMessage(message, 'user');
+            messageInput.value = ''; // Clear input
+            // No need to scroll here, displayMessage handles it
+
+            try {
+                const response = await fetch('/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message, conversation_id: conversationId }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let agentMessageElement = null; // To hold the current agent message div
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    // Responses might contain multiple JSON objects if they arrive quickly
+                    // Handle potential incomplete JSON objects at the end of a chunk
+                    const potentialJsons = chunk.split('\n').filter(s => s.trim() !== ''); // Split by newline, common for streaming JSON
+
+                    potentialJsons.forEach(jsonString => {
+                         // Add potential prefix if needed from previous incomplete chunk handling (not shown here for simplicity)
+                        try {
+                            const data = JSON.parse(jsonString);
+                            // --- MODIFICATION START ---
+                            if (data.content && typeof data.content === 'object' && data.content.message) {
+                                const messageContent = data.content.message;
+                                const messageType = data.content.type; // e.g., "string" or "function"
+
+                                if (messageType === 'string') {
+                                    if (!agentMessageElement) {
+                                        // Create a new div for the agent's text message stream
+                                        agentMessageElement = document.createElement('div');
+                                        agentMessageElement.classList.add('message', 'agent');
+                                        chatbox.appendChild(agentMessageElement);
+                                    }
+                                    // Append content to the existing agent text message div
+                                    agentMessageElement.textContent += messageContent;
+                                } else if (messageType === 'function') {
+                                    // Create a distinct bubble for function calls
+                                    const funcMessageElement = document.createElement('div');
+                                    funcMessageElement.classList.add('message', 'agent', 'function-call'); // Add specific class
+                                    funcMessageElement.textContent = messageContent;
+                                    chatbox.appendChild(funcMessageElement);
+                                    // Reset agentMessageElement so the next string chunk starts a new bubble
+                                    agentMessageElement = null;
+                                }
+                                scrollToBottom(); // Scroll after adding/appending chunk
+                            }
+                            // --- MODIFICATION END ---
+                        } catch (e) {
+                            console.warn("Skipping non-JSON chunk or parse error:", e, "Chunk:", jsonString);
+                            // Implement logic here to handle incomplete JSON chunks if necessary
+                        }
+                    });
+                }
+                 // Optional: Scroll one last time after stream ends, though usually not needed
+                 // scrollToBottom();
+            } catch (error) {
+                console.error('Error sending message:', error);
+                displayMessage(`Error: ${error.message}`, 'agent'); // Display error in chat
+                // scrollToBottom(); // Scroll after displaying error
+            }
+        }
+
+        // Allow sending message with Enter key
+        messageInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+    </script>
+</body>
+</html>

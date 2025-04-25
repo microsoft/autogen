@@ -7,7 +7,7 @@ from typing import Any, ClassVar, Dict, Generic, Literal, Type, TypeGuard, cast,
 from pydantic import BaseModel
 from typing_extensions import Self, TypeVar
 
-ComponentType = Literal["model", "agent", "tool", "termination", "token_provider"] | str
+ComponentType = Literal["model", "agent", "tool", "termination", "token_provider", "workbench"] | str
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
 FromConfigT = TypeVar("FromConfigT", bound=BaseModel, contravariant=True)
 ToConfigT = TypeVar("ToConfigT", bound=BaseModel, covariant=True)

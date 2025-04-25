@@ -48,6 +48,7 @@ framework/component-config
 components/model-clients
 components/model-context
 components/tools
+components/workbench
 components/command-line-code-executors
 ```
 
