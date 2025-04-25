@@ -11,6 +11,7 @@ import tempfile
 import uuid
 import warnings
 from collections.abc import Sequence
+from concurrent.futures import Future as ConcurrentFuture
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Tuple, Union
@@ -245,6 +246,9 @@ $functions"""
         self._running = False
         self._cancellation_tasks: List[asyncio.Task[None]] = []
 
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._cancellation_futures: List[ConcurrentFuture[None]] = []
+
     @property
     def timeout(self) -> int:
         """(Experimental) The timeout for code execution."""
@@ -305,7 +309,22 @@ $functions"""
             return output, exit_code
         except asyncio.CancelledError:
             # Schedule a task to kill the running command in the background.
-            self._cancellation_tasks.append(asyncio.create_task(self._kill_running_command(command)))
+            if self._loop and not self._loop.is_closed():
+                try:
+                    logging.debug(f"Scheduling kill command via run_coroutine_threadsafe on loop {self._loop!r}")
+                    future: ConcurrentFuture[None] = asyncio.run_coroutine_threadsafe(
+                        self._kill_running_command(command), self._loop
+                    )
+                    self._cancellation_futures.append(future)
+                    logging.debug(f"Kill command scheduled, future: {future!r}")
+                except RuntimeError as e:
+                    logging.error(f"Failed to schedule kill command on loop {self._loop!r}: {e}")
+                except Exception as e:
+                    logging.exception(f"Unexpected error scheduling kill command: {e}")
+            else:
+                logging.warning(
+                    f"Cannot schedule kill command: Executor loop is not available or closed (loop: {self._loop!r})."
+                )
             return "Code execution was cancelled.", 1
 
     async def _execute_code_dont_check_setup(
@@ -429,15 +448,52 @@ $functions"""
 
         client = docker.from_env()
         try:
-            container = await asyncio.to_thread(client.containers.get, self.container_name)
-            # Wait for all cancellation tasks to finish before stopping the container.
-            await asyncio.gather(*self._cancellation_tasks)
-            # Stop the container.
+            try:
+                container = await asyncio.to_thread(client.containers.get, self.container_name)
+            except NotFound:
+                logging.debug(f"Container {self.container_name} not found during stop...")
+                self._running = False
+                self._cancellation_futures.clear()
+                return
+
+            if self._cancellation_futures:
+                if not self._loop or self._loop.is_closed():
+                    logging.warning(
+                        f"Executor loop ({self._loop!r}) is closed or unavailable. Cannot reliably wait for "
+                        f"{len(self._cancellation_futures)} cancellation futures."
+                    )
+                    self._cancellation_futures.clear()
+                else:
+                    # concurrent.futures.Future -> asyncio.Future
+                    asyncio_futures = [asyncio.wrap_future(f, loop=self._loop) for f in self._cancellation_futures]
+
+                    if asyncio_futures:
+                        logging.debug(
+                            f"Waiting for {len(asyncio_futures)} cancellation futures to complete on loop {self._loop!r}..."
+                        )
+                        results = await asyncio.gather(*asyncio_futures, return_exceptions=True)
+                        for i, result in enumerate(results):
+                            original_future = self._cancellation_futures[i]
+                            if isinstance(result, Exception):
+                                logging.warning(f"Cancellation future {original_future!r} failed: {result}")
+                            else:
+                                logging.debug(f"Cancellation future {original_future!r} completed successfully.")
+                    else:
+                        logging.debug("No valid cancellation futures to await.")
+
+                    self._cancellation_futures.clear()
+
+            logging.debug(f"Stopping container {self.container_name}...")
             await asyncio.to_thread(container.stop)
-        except NotFound:
-            pass
+            logging.debug(f"Container {self.container_name} stopped.")
+
+        except DockerException as e:
+            logging.error(f"Docker error while stopping container {self.container_name}: {e}")
+        except Exception as e:
+            logging.exception(f"Unexpected error during stop operation for container {self.container_name}: {e}")
         finally:
             self._running = False
+            self._cancellation_futures.clear()
 
     async def start(self) -> None:
         """(Experimental) Start the code executor.
@@ -510,6 +566,14 @@ $functions"""
         if self._container.status != "running":
             logs_str = self._container.logs().decode("utf-8")
             raise ValueError(f"Failed to start container from image {self._image}. Logs: {logs_str}")
+
+        # --- 추가된 부분 ---
+        # 현재 이벤트 루프 저장
+        self._loop = asyncio.get_running_loop()
+        # 퓨처 리스트 초기화
+        self._cancellation_futures = []
+        logging.debug(f"Executor started, associated with event loop: {self._loop!r}")
+        # -----------------
 
         self._running = True
 
