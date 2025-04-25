@@ -4,10 +4,7 @@ from typing import List, Sequence
 import pytest
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import (
-    AgentEvent,
-    ChatMessage,
-)
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core.models import ChatCompletionClient
@@ -36,7 +33,7 @@ async def _test_selector_group_chat(model_client: ChatCompletionClient) -> None:
 async def _test_selector_group_chat_with_candidate_func(model_client: ChatCompletionClient) -> None:
     filtered_participants = ["developer", "tester"]
 
-    def dummy_candidate_func(thread: Sequence[AgentEvent | ChatMessage]) -> List[str]:
+    def dummy_candidate_func(thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
         # Dummy candidate function that will return
         # only return developer and reviewer
         return filtered_participants
@@ -101,7 +98,7 @@ async def test_selector_group_chat_openai() -> None:
         pytest.skip("OPENAI_API_KEY not set in environment variables.")
 
     model_client = OpenAIChatCompletionClient(
-        model="gpt-4o-mini",
+        model="gpt-4.1-nano",
         api_key=api_key,
     )
     await _test_selector_group_chat(model_client)

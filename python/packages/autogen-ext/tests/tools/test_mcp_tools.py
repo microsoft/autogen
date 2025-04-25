@@ -1,15 +1,20 @@
 import logging
+import os
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from autogen_core import CancellationToken
+from autogen_core.tools import Workbench
+from autogen_core.utils import schema_to_pydantic_model
 from autogen_ext.tools.mcp import (
+    McpWorkbench,
     SseMcpToolAdapter,
     SseServerParams,
     StdioMcpToolAdapter,
     StdioServerParams,
+    create_mcp_server_session,
+    mcp_server_tools,
 )
-from json_schema_to_pydantic import create_model
 from mcp import ClientSession, Tool
 
 
@@ -125,7 +130,7 @@ async def test_mcp_tool_execution(
     with caplog.at_level(logging.INFO):
         adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool)
         result = await adapter.run_json(
-            args=create_model(sample_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
+            args=schema_to_pydantic_model(sample_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
             cancellation_token=cancellation_token,
         )
 
@@ -175,6 +180,48 @@ async def test_adapter_from_server_params(
     assert (
         params_schema["properties"]["test_param"]["type"] == sample_tool.inputSchema["properties"]["test_param"]["type"]
     )
+
+
+@pytest.mark.asyncio
+async def test_adapter_from_factory(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that factory function returns a list of tools."""
+    mock_context = AsyncMock()
+    mock_context.__aenter__.return_value = mock_session
+    monkeypatch.setattr(
+        "autogen_ext.tools.mcp._factory.create_mcp_server_session",
+        lambda *args, **kwargs: mock_context,  # type: ignore
+    )
+    mock_session.list_tools.return_value.tools = [sample_tool]
+    tools = await mcp_server_tools(server_params=sample_server_params)
+    assert tools is not None
+    assert len(tools) > 0
+    assert isinstance(tools[0], StdioMcpToolAdapter)
+
+
+@pytest.mark.asyncio
+async def test_adapter_from_factory_existing_session(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that factory function returns a list of tools with an existing session."""
+    mock_context = AsyncMock()
+    mock_context.__aenter__.return_value = mock_session
+    monkeypatch.setattr(
+        "autogen_ext.tools.mcp._factory.create_mcp_server_session",
+        lambda *args, **kwargs: mock_context,  # type: ignore
+    )
+    mock_session.list_tools.return_value.tools = [sample_tool]
+    tools = await mcp_server_tools(server_params=sample_server_params, session=mock_session)
+    assert tools is not None
+    assert len(tools) > 0
+    assert isinstance(tools[0], StdioMcpToolAdapter)
 
 
 @pytest.mark.asyncio
@@ -229,7 +276,7 @@ async def test_sse_tool_execution(
     with caplog.at_level(logging.INFO):
         adapter = SseMcpToolAdapter(server_params=params, tool=sample_sse_tool)
         result = await adapter.run_json(
-            args=create_model(sample_sse_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
+            args=schema_to_pydantic_model(sample_sse_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
             cancellation_token=CancellationToken(),
         )
 
@@ -280,3 +327,177 @@ async def test_sse_adapter_from_server_params(
         params_schema["properties"]["test_param"]["type"]
         == sample_sse_tool.inputSchema["properties"]["test_param"]["type"]
     )
+
+
+@pytest.mark.asyncio
+async def test_mcp_server_fetch() -> None:
+    params = StdioServerParams(
+        command="uvx",
+        args=["mcp-server-fetch"],
+        read_timeout_seconds=60,
+    )
+    tools = await mcp_server_tools(server_params=params)
+    assert tools is not None
+    assert tools[0].name == "fetch"
+    result = await tools[0].run_json({"url": "https://github.com/"}, CancellationToken())
+    assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_mcp_server_filesystem() -> None:
+    params = StdioServerParams(
+        command="npx",
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            ".",
+        ],
+        read_timeout_seconds=60,
+    )
+    tools = await mcp_server_tools(server_params=params)
+    assert tools is not None
+    tools = [tool for tool in tools if tool.name == "read_file"]
+    assert len(tools) == 1
+    tool = tools[0]
+    result = await tool.run_json({"path": "README.md"}, CancellationToken())
+    assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_mcp_server_git() -> None:
+    params = StdioServerParams(
+        command="uvx",
+        args=["mcp-server-git"],
+        read_timeout_seconds=60,
+    )
+    tools = await mcp_server_tools(server_params=params)
+    assert tools is not None
+    tools = [tool for tool in tools if tool.name == "git_log"]
+    assert len(tools) == 1
+    tool = tools[0]
+    repo_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
+    result = await tool.run_json({"repo_path": repo_path}, CancellationToken())
+    assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_mcp_server_git_existing_session() -> None:
+    params = StdioServerParams(
+        command="uvx",
+        args=["mcp-server-git"],
+        read_timeout_seconds=60,
+    )
+    async with create_mcp_server_session(params) as session:
+        await session.initialize()
+        tools = await mcp_server_tools(server_params=params, session=session)
+        assert tools is not None
+        git_log = [tool for tool in tools if tool.name == "git_log"][0]
+        repo_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
+        result = await git_log.run_json({"repo_path": repo_path}, CancellationToken())
+        assert result is not None
+
+        git_status = [tool for tool in tools if tool.name == "git_status"][0]
+        result = await git_status.run_json({"repo_path": repo_path}, CancellationToken())
+        assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_mcp_server_github() -> None:
+    # Check if GITHUB_TOKEN is set.
+    if "GITHUB_TOKEN" not in os.environ:
+        pytest.skip("GITHUB_TOKEN environment variable is not set. Skipping test.")
+    params = StdioServerParams(
+        command="npx",
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-github",
+        ],
+        env={"GITHUB_PERSONAL_ACCESS_TOKEN": os.environ["GITHUB_TOKEN"]},
+        read_timeout_seconds=60,
+    )
+    tools = await mcp_server_tools(server_params=params)
+    assert tools is not None
+    tools = [tool for tool in tools if tool.name == "get_file_contents"]
+    assert len(tools) == 1
+    tool = tools[0]
+    result = await tool.run_json(
+        {"owner": "microsoft", "repo": "autogen", "path": "python", "branch": "main"}, CancellationToken()
+    )
+    assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_start_stop() -> None:
+    params = StdioServerParams(
+        command="uvx",
+        args=["mcp-server-fetch"],
+        read_timeout_seconds=60,
+    )
+
+    workbench = McpWorkbench(params)
+    assert workbench is not None
+    assert workbench.server_params == params
+    await workbench.start()
+    assert workbench._actor is not None  # type: ignore[reportPrivateUsage]
+    await workbench.stop()
+    assert workbench._actor is None  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_server_fetch() -> None:
+    params = StdioServerParams(
+        command="uvx",
+        args=["mcp-server-fetch"],
+        read_timeout_seconds=60,
+    )
+
+    workbench = McpWorkbench(server_params=params)
+    await workbench.start()
+
+    tools = await workbench.list_tools()
+    assert tools is not None
+    assert tools[0]["name"] == "fetch"
+
+    result = await workbench.call_tool(tools[0]["name"], {"url": "https://github.com/"}, CancellationToken())
+    assert result is not None
+
+    await workbench.stop()
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_server_filesystem() -> None:
+    params = StdioServerParams(
+        command="npx",
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            ".",
+        ],
+        read_timeout_seconds=60,
+    )
+
+    workbench = McpWorkbench(server_params=params)
+    await workbench.start()
+
+    tools = await workbench.list_tools()
+    assert tools is not None
+    tools = [tool for tool in tools if tool["name"] == "read_file"]
+    assert len(tools) == 1
+    tool = tools[0]
+    result = await workbench.call_tool(tool["name"], {"path": "README.md"}, CancellationToken())
+    assert result is not None
+
+    await workbench.stop()
+
+    # Serialize the workbench.
+    config = workbench.dump_component()
+
+    # Deserialize the workbench.
+    async with Workbench.load_component(config) as new_workbench:
+        tools = await new_workbench.list_tools()
+        assert tools is not None
+        tools = [tool for tool in tools if tool["name"] == "read_file"]
+        assert len(tools) == 1
+        tool = tools[0]
+        result = await new_workbench.call_tool(tool["name"], {"path": "README.md"}, CancellationToken())
+        assert result is not None

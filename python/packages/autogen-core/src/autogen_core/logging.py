@@ -113,7 +113,7 @@ class LLMStreamEndEvent:
         completion_tokens: int,
         **kwargs: Any,
     ) -> None:
-        """To be used by model   to log the call to the LLM.
+        """To be used by model clients to log the end of a stream.
 
         Args:
             response (Dict[str, Any]): The response of the call. Must be json serializable.

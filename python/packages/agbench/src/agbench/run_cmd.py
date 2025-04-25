@@ -7,12 +7,13 @@ import pathlib
 import random
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
 import traceback
 from multiprocessing import Pool
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 import docker
 import yaml
@@ -375,7 +376,7 @@ def substitute_env_variables(json_data: Any) -> None:
         replace_in_list(cast(List[Any], json_data))  # type: ignore
 
 
-def run_scenario_natively(work_dir: str, env: Mapping[str, str], timeout: int = TASK_TIMEOUT) -> None:
+def run_scenario_natively(work_dir: str, env: Dict[str, str], timeout: int = TASK_TIMEOUT) -> None:
     """
     Run a scenario in the native environment.
 
@@ -479,7 +480,7 @@ echo RUN.SH COMPLETE !#!#
 
 
 def run_scenario_in_docker(
-    work_dir: str, env: Mapping[str, str], timeout: int = TASK_TIMEOUT, docker_image: Optional[str] = None
+    work_dir: str, env: Dict[str, str], timeout: int = TASK_TIMEOUT, docker_image: Optional[str] = None
 ) -> None:
     """
     Run a scenario in a Docker environment.
@@ -594,8 +595,26 @@ echo RUN.SH COMPLETE !#!#
     autogen_repo_base = os.path.join(autogen_repo_base, "python")
     volumes[str(pathlib.Path(autogen_repo_base).absolute())] = {"bind": "/autogen_python", "mode": "rw"}
 
+    # Add the Docker socket if we are running on Linux
+    # This allows docker-out-of-docker to work, but provides access to the Docker daemon on the host.
+    # This maintains good isolation for experiment purposes (e.g., ensuring consistent initial conditions),
+    # but deminishes the security benefits of using Docker (e.g., when facing a deliberately malicious agent).
+    # since it would allow clients to mount privalaged images, volumes, etc.
+    docker_host = os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock")
+    if docker_host.startswith("unix://"):
+        docker_socket = os.path.abspath(docker_host[7:])
+        if os.path.exists(docker_socket):
+            st_mode = os.stat(docker_socket).st_mode
+            if stat.S_ISSOCK(st_mode):
+                volumes[docker_socket] = {"bind": "/var/run/docker.sock", "mode": "rw"}
+
+                # Update the environment variables so that the inner docker client can
+                # mount the workspace
+                env = {k: v for k, v in env.items()}
+                env["HOST_WORKSPACE"] = str(pathlib.Path(work_dir).absolute())
+
     print("Mounting:")
-    for k in volumes:
+    for k in volumes.keys():
         bind = volumes[k]["bind"]
         mode = volumes[k]["mode"].upper()
         if bind == "/workspace":
@@ -609,7 +628,7 @@ echo RUN.SH COMPLETE !#!#
         image,
         command=["sh", "run.sh"],
         working_dir="/workspace",
-        environment=dict(env),
+        environment=env,
         detach=True,
         remove=True,
         auto_remove=True,

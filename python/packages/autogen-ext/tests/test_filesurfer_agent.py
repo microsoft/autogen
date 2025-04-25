@@ -8,6 +8,7 @@ from typing import Any, AsyncGenerator, List
 import aiofiles
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
+from autogen_agentchat.messages import TextMessage
 from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
@@ -73,7 +74,7 @@ async def test_run_filesurfer(monkeypatch: pytest.MonkeyPatch) -> None:
 </html>""")
 
     # Mock the API calls
-    model = "gpt-4o-2024-05-13"
+    model = "gpt-4.1-nano-2025-04-14"
     chat_completions = [
         ChatCompletion(
             id="id1",
@@ -140,9 +141,11 @@ async def test_run_filesurfer(monkeypatch: pytest.MonkeyPatch) -> None:
     # Get the FileSurfer to read the file, and the directory
     assert agent._name == "FileSurfer"  # pyright: ignore[reportPrivateUsage]
     result = await agent.run(task="Please read the test file")
+    assert isinstance(result.messages[1], TextMessage)
     assert "# FileSurfer test H1" in result.messages[1].content
 
     result = await agent.run(task="Please read the test directory")
+    assert isinstance(result.messages[1], TextMessage)
     assert "# Index of " in result.messages[1].content
     assert "test_filesurfer_agent.html" in result.messages[1].content
 
@@ -150,7 +153,7 @@ async def test_run_filesurfer(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_file_surfer_serialization() -> None:
     """Test that FileSurfer can be serialized and deserialized properly."""
-    model = "gpt-4o-2024-05-13"
+    model = "gpt-4.1-nano-2025-04-14"
     agent = FileSurfer(
         "FileSurfer",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),

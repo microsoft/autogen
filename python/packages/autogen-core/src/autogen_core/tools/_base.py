@@ -2,12 +2,12 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeVar, cast, runtime_checkable
+from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypeVar, cast, runtime_checkable
 
 import jsonref
 from opentelemetry.trace import get_tracer
 from pydantic import BaseModel
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, TypedDict
 
 from .. import EVENT_LOGGER_NAME, CancellationToken
 from .._component_config import ComponentBase
@@ -54,9 +54,9 @@ class Tool(Protocol):
 
     async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any: ...
 
-    def save_state_json(self) -> Mapping[str, Any]: ...
+    async def save_state_json(self) -> Mapping[str, Any]: ...
 
-    def load_state_json(self, state: Mapping[str, Any]) -> None: ...
+    async def load_state_json(self, state: Mapping[str, Any]) -> None: ...
 
 
 ArgsT = TypeVar("ArgsT", bound=BaseModel, contravariant=True)
@@ -169,10 +169,10 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
 
         return return_value
 
-    def save_state_json(self) -> Mapping[str, Any]:
+    async def save_state_json(self) -> Mapping[str, Any]:
         return {}
 
-    def load_state_json(self, state: Mapping[str, Any]) -> None:
+    async def load_state_json(self, state: Mapping[str, Any]) -> None:
         pass
 
 
@@ -196,8 +196,8 @@ class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, S
     @abstractmethod
     def load_state(self, state: StateT) -> None: ...
 
-    def save_state_json(self) -> Mapping[str, Any]:
+    async def save_state_json(self) -> Mapping[str, Any]:
         return self.save_state().model_dump()
 
-    def load_state_json(self, state: Mapping[str, Any]) -> None:
+    async def load_state_json(self, state: Mapping[str, Any]) -> None:
         self.load_state(self._state_type.model_validate(state))
