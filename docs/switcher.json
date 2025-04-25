@@ -5,10 +5,15 @@
         "url": "/autogen/dev/"
     },
     {
-        "name": "0.5.4 (stable)",
+        "name": "0.5.5 (stable)",
         "version": "stable",
         "url": "/autogen/stable/",
         "preferred": true
+    },
+    {
+        "name": "0.5.4",
+        "version": "0.5.4",
+        "url": "/autogen/0.5.4/"
     },
     {
         "name": "0.5.3",
