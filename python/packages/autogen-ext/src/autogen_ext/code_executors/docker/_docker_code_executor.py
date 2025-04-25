@@ -244,7 +244,6 @@ $functions"""
 
         self._container: Container | None = None
         self._running = False
-        self._cancellation_tasks: List[asyncio.Task[None]] = []
 
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._cancellation_futures: List[ConcurrentFuture[None]] = []
@@ -567,13 +566,9 @@ $functions"""
             logs_str = self._container.logs().decode("utf-8")
             raise ValueError(f"Failed to start container from image {self._image}. Logs: {logs_str}")
 
-        # --- 추가된 부분 ---
-        # 현재 이벤트 루프 저장
         self._loop = asyncio.get_running_loop()
-        # 퓨처 리스트 초기화
         self._cancellation_futures = []
         logging.debug(f"Executor started, associated with event loop: {self._loop!r}")
-        # -----------------
 
         self._running = True
 
