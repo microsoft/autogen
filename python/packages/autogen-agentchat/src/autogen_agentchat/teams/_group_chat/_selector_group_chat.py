@@ -328,6 +328,9 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
         selector_prompt (str, optional): The prompt template to use for selecting the next speaker.
             Available fields: '{roles}', '{participants}', and '{history}'.
+            `{participants}` is the names of candidates for selection. The format is `["<name1>", "<name2>", ...]`.
+            `{roles}` is a newline-separated list of names and descriptions of the candidate agents. The format for each line is: `"<name> : <description>"`.
+            `{history}` is the conversation history formatted as a double newline separated of names and message content. The format for each message is: `"<name> : <message content>"`.
         allow_repeated_speaker (bool, optional): Whether to include the previous speaker in the list of candidates to be selected for the next turn.
             Defaults to False. The model may still select the previous speaker -- a warning will be logged if this happens.
         max_selector_attempts (int, optional): The maximum number of attempts to select a speaker using the model. Defaults to 3.
