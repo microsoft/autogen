@@ -165,7 +165,7 @@ class FunctionalTermination(TerminationCondition):
 
     Example:
 
-        ... code-block:: python
+        .. code-block:: python
 
             import asyncio
             from typing import Sequence
@@ -192,7 +192,7 @@ class FunctionalTermination(TerminationCondition):
 
             asyncio.run(run())
 
-        ... code-block:: text
+        .. code-block:: text
 
             StopMessage(source="FunctionalTermination", content="Functional termination condition met")
 
