@@ -17,13 +17,13 @@ from autogen_ext.tools.mcp import (
 )
 from mcp import ClientSession, Tool
 from mcp.types import (
-    AnyUrl,
     Annotations,
     EmbeddedResource,
     ImageContent,
     TextContent,
     TextResourceContents,
 )
+from pydantic.networks import AnyUrl
 
 
 @pytest.fixture
@@ -204,7 +204,6 @@ async def test_adapter_from_server_params_with_return_value_as_string(
         "autogen_ext.tools.mcp._base.create_mcp_server_session",
         lambda *args, **kwargs: mock_context,  # type: ignore
     )
-
     mock_session.list_tools.return_value.tools = [sample_tool]
 
     adapter = await StdioMcpToolAdapter.from_server_params(sample_server_params, "test_tool")

@@ -1,5 +1,6 @@
 import asyncio
 import builtins
+import json
 from abc import ABC
 from typing import Any, Dict, Generic, Type, TypeVar
 
@@ -7,9 +8,9 @@ from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 from autogen_core.utils import schema_to_pydantic_model
 from mcp import ClientSession, Tool
-from mcp.types import AnyUrl, EmbeddedResource, ImageContent, TextContent
+from mcp.types import EmbeddedResource, ImageContent, TextContent
 from pydantic import BaseModel
-import json
+from pydantic.networks import AnyUrl
 
 from ._config import McpServerParams
 from ._session import create_mcp_server_session
@@ -117,10 +118,10 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
         return cls(server_params=server_params, tool=matching_tool)
 
-    def return_value_as_string(self, value: list) -> str:
+    def return_value_as_string(self, value: list[Any]) -> str:
         """Return a string representation of the result."""
 
-        def serialize_item(item):
+        def serialize_item(item: Any) -> dict[str, Any]:
             if isinstance(item, (TextContent, ImageContent)):
                 return item.model_dump()
             elif isinstance(item, EmbeddedResource):
@@ -134,7 +135,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 annotations = item.annotations.model_dump() if item.annotations else None
                 return {"type": type, "resource": resource, "annotations": annotations}
             else:
-                return str(item)
+                return {}
 
         return json.dumps([serialize_item(item) for item in value])
 
