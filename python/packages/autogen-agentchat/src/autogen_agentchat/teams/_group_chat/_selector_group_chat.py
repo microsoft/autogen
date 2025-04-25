@@ -344,6 +344,9 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             A custom function that takes the conversation history and returns a filtered list of candidates for the next speaker
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
             This function is only used if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
+        custom_message_types (List[type[BaseAgentEvent | BaseChatMessage]], optional): A list of custom message types that will be used in the group chat.
+            If you are using custom message types or your agents produces custom message types, you need to specify them here.
+            Make sure your custom message types are subclasses of :class:`~autogen_agentchat.messages.BaseAgentEvent` or :class:`~autogen_agentchat.messages.BaseChatMessage`.
         emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
         model_client_streaming (bool, optional): Whether to use streaming for the model client. (This is useful for reasoning models like QwQ). Defaults to False.
 
