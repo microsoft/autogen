@@ -15,7 +15,7 @@ from autogen_core.models import (
 )
 
 from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
+from autogen_core.models import ChatCompletionClient
 from agent_user import UserAgent
 from agent_base import AIAgent
 
@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Get model client from config.
     async with aiofiles.open("model_config.yaml", "r") as file:
         model_config = yaml.safe_load(await file.read())
-    model_client = AzureOpenAIChatCompletionClient.load_component(model_config)
+    model_client = ChatCompletionClient.load_component(model_config)
 
     # Register the triage agent.
     triage_agent_type = await AIAgent.register(
