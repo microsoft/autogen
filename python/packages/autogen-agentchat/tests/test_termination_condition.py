@@ -1,9 +1,11 @@
 import asyncio
+from typing import Sequence
 
 import pytest
 from autogen_agentchat.base import TerminatedException
 from autogen_agentchat.conditions import (
     ExternalTermination,
+    FunctionalTermination,
     FunctionCallTermination,
     HandoffTermination,
     MaxMessageTermination,
@@ -15,6 +17,8 @@ from autogen_agentchat.conditions import (
     TokenUsageTermination,
 )
 from autogen_agentchat.messages import (
+    BaseAgentEvent,
+    BaseChatMessage,
     HandoffMessage,
     StopMessage,
     TextMessage,
@@ -375,3 +379,43 @@ async def test_function_call_termination() -> None:
     )
     assert not termination.terminated
     await termination.reset()
+
+
+@pytest.mark.asyncio
+async def test_functional_termination() -> None:
+    async def async_termination_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> bool:
+        if len(messages) < 1:
+            return False
+        if isinstance(messages[-1], TextMessage):
+            return messages[-1].content == "stop"
+        return False
+
+    termination = FunctionalTermination(async_termination_func)
+    assert await termination([]) is None
+    await termination.reset()
+
+    assert await termination([TextMessage(content="Hello", source="user")]) is None
+    await termination.reset()
+
+    assert await termination([TextMessage(content="stop", source="user")]) is not None
+    assert termination.terminated
+    await termination.reset()
+
+    assert await termination([TextMessage(content="Hello", source="user")]) is None
+
+    def sync_termination_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> bool:
+        if len(messages) < 1:
+            return False
+        if isinstance(messages[-1], TextMessage):
+            return messages[-1].content == "stop"
+        return False
+
+    termination = FunctionalTermination(sync_termination_func)
+    assert await termination([]) is None
+    await termination.reset()
+    assert await termination([TextMessage(content="Hello", source="user")]) is None
+    await termination.reset()
+    assert await termination([TextMessage(content="stop", source="user")]) is not None
+    assert termination.terminated
+    await termination.reset()
+    assert await termination([TextMessage(content="Hello", source="user")]) is None

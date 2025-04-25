@@ -1,7 +1,10 @@
+import asyncio
 import time
-from typing import List, Sequence
+from typing import Awaitable, Callable, List, Sequence
 
-from autogen_core import Component
+from autogen_core import Component, ComponentModel
+from autogen_core.code_executor import ImportFromModule
+from autogen_core.tools import FunctionTool
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -152,6 +155,43 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
     @classmethod
     def _from_config(cls, config: TextMentionTerminationConfig) -> Self:
         return cls(text=config.text)
+
+
+class FunctionalTermination(TerminationCondition):
+    """Terminate the conversation if an functional expression is met.
+
+    Args:
+        func (Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], bool] | Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[bool]]): A function that takes a sequence of messages
+            and returns True if the termination condition is met, False otherwise.
+            The function can be a callable or an async callable.
+    """
+
+    def __init__(
+        self,
+        func: Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], bool]
+        | Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[bool]],
+    ) -> None:
+        self._func = func
+        self._terminated = False
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+        if asyncio.iscoroutinefunction(self._func):
+            result = await self._func(messages)
+        else:
+            result = self._func(messages)
+        if result is True:
+            self._terminated = True
+            return StopMessage(content="Functional termination condition met", source="FunctionalTermination")
+        return None
+
+    async def reset(self) -> None:
+        self._terminated = False
 
 
 class TokenUsageTerminationConfig(BaseModel):
