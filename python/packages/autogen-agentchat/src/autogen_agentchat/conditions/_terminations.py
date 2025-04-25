@@ -2,9 +2,7 @@ import asyncio
 import time
 from typing import Awaitable, Callable, List, Sequence
 
-from autogen_core import Component, ComponentModel
-from autogen_core.code_executor import ImportFromModule
-from autogen_core.tools import FunctionTool
+from autogen_core import Component
 from pydantic import BaseModel
 from typing_extensions import Self
 

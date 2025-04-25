@@ -21,11 +21,13 @@ from autogen_agentchat.messages import (
     BaseChatMessage,
     HandoffMessage,
     StopMessage,
+    StructuredMessage,
     TextMessage,
     ToolCallExecutionEvent,
     UserInputRequestedEvent,
 )
 from autogen_core.models import FunctionExecutionResult, RequestUsage
+from pydantic import BaseModel
 
 
 @pytest.mark.asyncio
@@ -403,11 +405,16 @@ async def test_functional_termination() -> None:
 
     assert await termination([TextMessage(content="Hello", source="user")]) is None
 
+    class TestContentType(BaseModel):
+        content: str
+        data: str
+
     def sync_termination_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> bool:
         if len(messages) < 1:
             return False
-        if isinstance(messages[-1], TextMessage):
-            return messages[-1].content == "stop"
+        last_message = messages[-1]
+        if isinstance(last_message, StructuredMessage) and isinstance(last_message.content, TestContentType):  # type: ignore[reportUnknownMemberType]
+            return last_message.content.data == "stop"
         return False
 
     termination = FunctionalTermination(sync_termination_func)
@@ -415,7 +422,12 @@ async def test_functional_termination() -> None:
     await termination.reset()
     assert await termination([TextMessage(content="Hello", source="user")]) is None
     await termination.reset()
-    assert await termination([TextMessage(content="stop", source="user")]) is not None
+    assert (
+        await termination(
+            [StructuredMessage[TestContentType](content=TestContentType(content="1", data="stop"), source="user")]
+        )
+        is not None
+    )
     assert termination.terminated
     await termination.reset()
     assert await termination([TextMessage(content="Hello", source="user")]) is None
