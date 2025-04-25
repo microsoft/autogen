@@ -79,7 +79,13 @@ def mock_session() -> AsyncMock:
 def mock_tool_response() -> MagicMock:
     response = MagicMock()
     response.isError = False
-    response.content = {"result": "test_output"}
+    response.content = [
+        TextContent(
+            text="test_output",
+            type="text",
+            annotations=Annotations(audience=["user", "assistant"], priority=0.7),
+        ),
+    ]
     return response
 
 
@@ -320,7 +326,13 @@ async def test_sse_tool_execution(
     mock_context = AsyncMock()
     mock_context.__aenter__.return_value = mock_sse_session
 
-    mock_sse_session.call_tool.return_value = MagicMock(isError=False, content={"result": "test_output"})
+    mock_sse_session.call_tool.return_value = MagicMock(isError=False, content=[
+        TextContent(
+            text="test_output",
+            type="text",
+            annotations=Annotations(audience=["user", "assistant"], priority=0.7),
+        ),
+    ])
 
     monkeypatch.setattr(
         "autogen_ext.tools.mcp._base.create_mcp_server_session",
