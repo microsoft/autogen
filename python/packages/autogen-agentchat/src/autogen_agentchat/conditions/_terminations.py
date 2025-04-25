@@ -162,6 +162,40 @@ class FunctionalTermination(TerminationCondition):
         func (Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], bool] | Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[bool]]): A function that takes a sequence of messages
             and returns True if the termination condition is met, False otherwise.
             The function can be a callable or an async callable.
+
+    Example:
+
+        ... code-block:: python
+
+            import asyncio
+            from typing import Sequence
+
+            from autogen_agentchat.conditions import FunctionalTermination
+            from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, StopMessage
+
+
+            def expression(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> bool:
+                # Check if the last message is a stop message
+                return isinstance(messages[-1], StopMessage)
+
+
+            termination = FunctionalTermination(expression)
+
+
+            async def run() -> None:
+                messages = [
+                    StopMessage(source="agent1", content="Stop"),
+                ]
+                result = await termination(messages)
+                print(result)
+
+
+            asyncio.run(run())
+
+        ... code-block:: text
+
+            StopMessage(source="FunctionalTermination", content="Functional termination condition met")
+
     """
 
     def __init__(
