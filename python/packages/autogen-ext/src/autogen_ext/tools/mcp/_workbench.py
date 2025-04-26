@@ -69,7 +69,6 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         .. code-block:: python
 
             import asyncio
-            import os
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.ui import Console
             from autogen_ext.models.openai import OpenAIChatCompletionClient
