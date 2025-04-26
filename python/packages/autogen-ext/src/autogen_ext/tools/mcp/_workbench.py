@@ -36,7 +36,9 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         server_params (McpServerParams): The parameters to connect to the MCP server.
             This can be either a :class:`StdioServerParams` or :class:`SseServerParams`.
 
-    Example:
+    Examples:
+
+        Here is a simple example of how to use the workbench with a `mcp-server-fetch` server:
 
         .. code-block:: python
 
@@ -58,6 +60,85 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                     print(tools)
                     result = await workbench.call_tool(tools[0]["name"], {"url": "https://github.com/"})
                     print(result)
+
+
+            asyncio.run(main())
+
+        Example of using the workbench with the `GitHub MCP Server <https://github.com/github/github-mcp-server>`_:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
+                server_params = StdioServerParams(
+                    command="docker",
+                    args=[
+                        "run",
+                        "-i",
+                        "--rm",
+                        "-e",
+                        "GITHUB_PERSONAL_ACCESS_TOKEN",
+                        "ghcr.io/github/github-mcp-server",
+                    ],
+                    env={
+                        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+                    },
+                )
+                async with McpWorkbench(server_params) as mcp:
+                    agent = AssistantAgent(
+                        "github_assistant",
+                        model_client=model_client,
+                        workbench=mcp,
+                        reflect_on_tool_use=True,
+                        model_client_stream=True,
+                    )
+                    await Console(agent.run_stream(task="Is there a repository named Autogen"))
+
+
+            asyncio.run(main())
+
+        Example of using the workbench with the `Playwright MCP Server <https://github.com/microsoft/playwright-mcp>`_:
+
+        .. code-block:: python
+
+            # First run `npm install -g @playwright/mcp@latest` to install the MCP server.
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_agentchat.conditions import TextMessageTermination
+            from autogen_agentchat.ui import Console
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
+                server_params = StdioServerParams(
+                    command="npx",
+                    args=[
+                        "@playwright/mcp@latest",
+                        "--headless",
+                    ],
+                )
+                async with McpWorkbench(server_params) as mcp:
+                    agent = AssistantAgent(
+                        "web_browsing_assistant",
+                        model_client=model_client,
+                        workbench=mcp,
+                        model_client_stream=True,
+                    )
+                    team = RoundRobinGroupChat(
+                        [agent],
+                        termination_condition=TextMessageTermination(source="web_browsing_assistant"),
+                    )
+                    await Console(team.run_stream(task="Find out how many contributors for the microsoft/autogen repository"))
 
 
             asyncio.run(main())
