@@ -12,9 +12,10 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    cast,
 )
 
-from autogen_agentchat import EVENT_LOGGER_NAME
+from autogen_agentchat import TRACE_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
@@ -30,15 +31,17 @@ from autogen_agentchat.messages import (
 )
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models._types import FunctionExecutionResult
+
 from autogen_core.tools import FunctionTool, Tool
 
 import azure.ai.projects.models as models
+
 from azure.ai.projects import _types
 from azure.ai.projects.aio import AIProjectClient
 
 from ._types import AzureAIAgentState, ListToolType
 
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
+trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 
 
 class AzureAIAgent(BaseChatAgent):
@@ -583,7 +586,7 @@ class AzureAIAgent(BaseChatAgent):
             if file.status != models.FileState.PROCESSED:
                 raise ValueError(f"File upload failed with status {file.status}")
 
-            event_logger.debug(f"File uploaded successfully: {file.id}, {file_name}")
+            trace_logger.debug(f"File uploaded successfully: {file.id}, {file_name}")
 
             file_ids.append(file.id)
             self._uploaded_file_ids.append(file.id)
@@ -709,7 +712,7 @@ class AzureAIAgent(BaseChatAgent):
                 # Add tool call message to inner messages
                 tool_call_msg = ToolCallRequestEvent(source=self.name, content=tool_calls)
                 inner_messages.append(tool_call_msg)
-                event_logger.debug(tool_call_msg)
+                trace_logger.debug(tool_call_msg)
                 yield tool_call_msg
 
                 # Execute tool calls and get results
@@ -733,7 +736,7 @@ class AzureAIAgent(BaseChatAgent):
                 # Add tool result message to inner messages
                 tool_result_msg = ToolCallExecutionEvent(source=self.name, content=tool_outputs)
                 inner_messages.append(tool_result_msg)
-                event_logger.debug(tool_result_msg)
+                trace_logger.debug(tool_result_msg)
                 yield tool_result_msg
 
                 # Submit tool outputs back to the run
@@ -757,7 +760,7 @@ class AzureAIAgent(BaseChatAgent):
             await asyncio.sleep(sleep_interval)
 
         # After run is completed, get the messages
-        event_logger.debug("Retrieving messages from thread")
+        trace_logger.debug("Retrieving messages from thread")
         agent_messages: models.OpenAIPageableListOfThreadMessage = await cancellation_token.link_future(
             asyncio.ensure_future(
                 self._project_client.agents.list_messages(
@@ -770,9 +773,10 @@ class AzureAIAgent(BaseChatAgent):
             raise ValueError("No messages received from assistant")
 
         # Get the last message from the agent
-        last_message = agent_messages.get_last_message_by_role(models.MessageRole.AGENT)
+        last_message: Optional[models.ThreadMessage] = agent_messages.get_last_message_by_role(models.MessageRole.AGENT)
+
         if not last_message:
-            event_logger.debug("No message with AGENT role found, falling back to first message")
+            trace_logger.debug("No message with AGENT role found, falling back to first message")
             last_message = agent_messages.data[0]  # Fallback to first message
 
         if not last_message.content:
@@ -787,23 +791,41 @@ class AzureAIAgent(BaseChatAgent):
         citations: list[Any] = []
 
         # Try accessing annotations directly
-        if hasattr(last_message, "annotations") and last_message.annotations:  # type: ignore
-            event_logger.debug(f"Found {len(last_message.annotations)} annotations")  # type: ignore
-            for annotation in last_message.annotations:  # type: ignore
+
+        annotations = getattr(last_message, "annotations", [])
+
+        if isinstance(annotations, list) and annotations:
+            annotations = cast(List[models.MessageTextUrlCitationAnnotation], annotations)
+
+            trace_logger.debug(f"Found {len(annotations)} annotations")
+            for annotation in annotations:
                 if hasattr(annotation, "url_citation"):  # type: ignore
-                    event_logger.debug(f"Citation found: {annotation.url_citation.url}")  # type: ignore
+                    trace_logger.debug(f"Citation found: {annotation.url_citation.url}")
                     citations.append(
                         {"url": annotation.url_citation.url, "title": annotation.url_citation.title, "text": None}  # type: ignore
                     )
         # For backwards compatibility
-        elif hasattr(last_message, "url_citation_annotations") and last_message.url_citation_annotations:  # type: ignore
-            event_logger.debug(f"Found {len(last_message.url_citation_annotations)} URL citations")  # type: ignore
-            for annotation in last_message.url_citation_annotations:  # type: ignore
+        elif hasattr(last_message, "url_citation_annotations") and last_message.url_citation_annotations:
+            url_annotations = cast(List[Any], last_message.url_citation_annotations)
+
+            trace_logger.debug(f"Found {len(url_annotations)} URL citations")
+
+            for annotation in url_annotations:
                 citations.append(
                     {"url": annotation.url_citation.url, "title": annotation.url_citation.title, "text": None}  # type: ignore
                 )
 
-        event_logger.debug(f"Total citations extracted: {len(citations)}")
+        elif hasattr(last_message, "file_citation_annotations") and last_message.file_citation_annotations:
+            file_annotations = cast(List[Any], last_message.file_citation_annotations)
+
+            trace_logger.debug(f"Found {len(file_annotations)} URL citations")
+
+            for annotation in file_annotations:
+                citations.append(
+                    {"file_id": annotation.file_citation.file_id, "title": None, "text": annotation.file_citation.quote}  # type: ignore
+                )
+
+        trace_logger.debug(f"Total citations extracted: {len(citations)}")
 
         # Create the response message with citations as JSON string
         chat_message = TextMessage(
