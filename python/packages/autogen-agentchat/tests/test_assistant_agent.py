@@ -36,6 +36,10 @@ from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import BaseTool, FunctionTool, StaticWorkbench
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
+from autogen_ext.tools.mcp import (
+    McpWorkbench,
+    SseServerParams,
+)
 from pydantic import BaseModel, ValidationError
 from utils import FileLogHandler
 
@@ -1399,3 +1403,48 @@ async def test_structured_message_format_string() -> None:
 
     # Check that the format_string was applied correctly
     assert message.to_model_text() == "foo - bar"
+
+
+@pytest.mark.asyncio
+async def test_tools_serialize_and_deserialize() -> None:
+    def test() -> str:
+        return "hello world"
+
+    client = OpenAIChatCompletionClient(
+        model="gpt-4o",
+        api_key="API_KEY",
+    )
+
+    agent = AssistantAgent(
+        name="test",
+        model_client=client,
+        tools=[test],
+    )
+
+    serialize = agent.dump_component()
+    deserialize = AssistantAgent.load_component(serialize)
+
+    assert deserialize.name == agent.name
+    assert await deserialize._workbench.list_tools() == await agent._workbench.list_tools()  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_workbenchs_serialize_and_deserialize() -> None:
+    workbench = McpWorkbench(server_params=SseServerParams(url="http://test-url"))
+
+    client = OpenAIChatCompletionClient(
+        model="gpt-4o",
+        api_key="API_KEY",
+    )
+
+    agent = AssistantAgent(
+        name="test",
+        model_client=client,
+        workbench=workbench,
+    )
+
+    serialize = agent.dump_component()
+    deserialize = AssistantAgent.load_component(serialize)
+
+    assert deserialize.name == agent.name
+    assert deserialize._workbench._to_config() == agent._workbench._to_config()  # type: ignore

@@ -65,7 +65,6 @@ class AssistantAgentConfig(BaseModel):
 
     name: str
     model_client: ComponentModel
-    tools: List[ComponentModel] | None
     workbench: ComponentModel | None = None
     handoffs: List[HandoffBase | str] | None = None
     model_context: ComponentModel | None = None
@@ -1342,7 +1341,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         return AssistantAgentConfig(
             name=self.name,
             model_client=self._model_client.dump_component(),
-            tools=[tool.dump_component() for tool in self._tools],
             workbench=self._workbench.dump_component() if self._workbench else None,
             handoffs=list(self._handoffs.values()) if self._handoffs else None,
             model_context=self._model_context.dump_component(),
@@ -1375,7 +1373,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         return cls(
             name=config.name,
             model_client=ChatCompletionClient.load_component(config.model_client),
-            tools=[BaseTool.load_component(tool) for tool in config.tools] if config.tools else None,
             workbench=Workbench.load_component(config.workbench) if config.workbench else None,
             handoffs=config.handoffs,
             model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
