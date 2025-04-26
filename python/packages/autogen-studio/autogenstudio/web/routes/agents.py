@@ -1,18 +1,31 @@
 # api/routes/agents.py
 import asyncio
-from typing import Dict, List
+import json
+from typing import Dict, List, Any, Optional
 
 from pydantic import BaseModel
 from autogen_agentchat.base._task import TaskResult
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from ...datamodel import Agent
+from ...datamodel import Agent, LLMCallEventMessage, TeamResult
 from ...gallery.builder import create_default_gallery
 from ..deps import get_db
 
 from autogen_agentchat.agents import BaseChatAgent
-from autogen_agentchat.messages import MessageFactory, BaseChatMessage
+from autogen_agentchat.messages import BaseAgentEvent, MessageFactory, BaseChatMessage
+from autogen_agentchat.messages import (
+    BaseAgentEvent,
+    BaseChatMessage,
+    ChatMessage,
+    HandoffMessage,
+    ModelClientStreamingChunkEvent,
+    MultiModalMessage,
+    StopMessage,
+    TextMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
+)
 
 
 router = APIRouter()
@@ -23,13 +36,6 @@ router = APIRouter()
 async def list_agents(user_id: str, db=Depends(get_db)) -> Dict:
     """List all agents for a user"""
     response = db.get(Agent, filters={"user_id": user_id})
-
-    if not response.data or len(response.data) == 0:
-        default_gallery = create_default_gallery()
-        default_agent = Agent(user_id=user_id, component=default_gallery.components.agents[0].model_dump())
-
-        db.upsert(default_agent)
-        response = db.get(Agent, filters={"user_id": user_id})
 
     return {"status": True, "data": response.data}
 
@@ -59,15 +65,104 @@ async def delete_agent(agent_id: int, user_id: str, db=Depends(get_db)) -> Dict:
     return {"status": True, "message": "Agent deleted successfully"}
 
 class InvokeInput(BaseModel):
-    user_id: str
     messages: List[Dict]
 
 
 
 @router.post("/{agent_id}/run")
-async def run_agent(agent_id: int, input: InvokeInput, db=Depends(get_db)) -> Dict:
+async def run_agent(agent_id: int, user_id: str, input: InvokeInput, db=Depends(get_db)) -> Dict:
     """Run a agent"""
-    agent_response = db.get(Agent, filters={"id": agent_id, "user_id": input.user_id}, return_json=False)
+    agent_response = db.get(Agent, filters={"id": agent_id, "user_id": user_id}, return_json=False)
+    if not agent_response.status or not agent_response.data:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    agent_model: Agent = agent_response.data[0]
+    agent_config = agent_model.component
+    try:
+        agent = BaseChatAgent.load_component(agent_config)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    message_factory = MessageFactory()
+    messages: List[BaseChatMessage] = []
+    for message in input.messages:
+        try: 
+          marshalled_message = message_factory.create(message)
+          if isinstance(marshalled_message, BaseChatMessage):
+              messages.append(marshalled_message)
+          else:
+              raise HTTPException(status_code=400, detail="Invalid message type")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    try:
+        result: TaskResult = await agent.run(task=messages)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    values = []
+    for message in result.messages:
+        formatted_message = format_message(message)
+        if formatted_message:
+            values.append(formatted_message)
+    return {"status": True, "data": values}
+
+def format_message(message: Any) -> Optional[dict]:
+    """Format message for WebSocket transmission
+
+    Args:
+        message: Message to format
+
+    Returns:
+        Optional[dict]: Formatted message or None if formatting fails
+    """
+
+    try:
+        if isinstance(message, MultiModalMessage):
+            message_dump = message.model_dump()
+
+            message_content = []
+            for row in message_dump["content"]:
+                if isinstance(row, dict) and "data" in row:
+                    message_content.append(
+                        {
+                            "url": f"data:image/png;base64,{row['data']}",
+                            "alt": "WebSurfer Screenshot",
+                        }
+                    )
+                else:
+                    message_content.append(row)
+            message_dump["content"] = message_content
+
+            return {"type": "message", "data": message_dump}
+
+        elif isinstance(message, TeamResult):
+            return {
+                "type": "result",
+                "data": message.model_dump(),
+                "status": "complete",
+            }
+        elif isinstance(message, ModelClientStreamingChunkEvent):
+            return {"type": "message_chunk", "data": message.model_dump()}
+
+        elif isinstance(
+            message,
+            (
+                TextMessage,
+                StopMessage,
+                HandoffMessage,
+                ToolCallRequestEvent,
+                ToolCallExecutionEvent,
+                LLMCallEventMessage,
+                ModelClientStreamingChunkEvent,
+            ),
+        ):
+            return {"type": "message", "data": message.model_dump()}
+
+        return None
+    except Exception as e:
+        return None
+
+@router.post("/{agent_id}/invoke", response_class=StreamingResponse)
+async def invoke_agent(agent_id: int, user_id: str, input: InvokeInput, db=Depends(get_db)):
+    """Run a agent"""
+    agent_response = db.get(Agent, filters={"id": agent_id, "user_id": user_id}, return_json=False)
     if not agent_response.status or not agent_response.data:
         raise HTTPException(status_code=404, detail="Agent not found")
     agent_model: Agent = agent_response.data[0]
@@ -76,61 +171,13 @@ async def run_agent(agent_id: int, input: InvokeInput, db=Depends(get_db)) -> Di
     message_factory = MessageFactory()
     messages: List[BaseChatMessage] = []
     for message in input.messages:
-        marshalled_message = message_factory.create(message)
+        marshalled_message: BaseAgentEvent | BaseChatMessage = message_factory.create(message)
         if isinstance(marshalled_message, BaseChatMessage):
             messages.append(marshalled_message)
         else:
             raise HTTPException(status_code=400, detail="Invalid message type")
-    result: TaskResult = await agent.run(task=messages)
-    return {"status": True, "data": result}
-
-
-# # Placeholder for the actual agent execution logic
-# async def stream_agent_execution(agent_config: Dict):
-#     """
-#     Placeholder function to simulate streaming agent execution.
-#     Replace this with actual logic to instantiate and run the agent,
-#     yielding messages in SSE format.
-#     """
-#     # 1. Instantiate agent from config (using autogen library)
-#     # 2. Define a task/message for the agent
-#     # 3. Execute the agent and capture its output
-#     # 4. Yield messages in SSE format ("data: message\n\n")
-
-#     # Example placeholder:
-#     agent_name = agent_config.get("config", {}).get("name", "Unknown Agent")
-#     yield f"data: Starting agent execution for: {agent_name}\n\n"
-#     await asyncio.sleep(1)
-#     yield "data: Agent processing...\n\n"
-#     await asyncio.sleep(2)
-#     # Simulate potential errors or specific outputs
-#     if "error" in agent_name.lower():
-#          yield "event: error\ndata: Simulated agent error\n\n"
-#          return # Stop streaming on error example
-#     yield f"data: Agent {agent_name} completed task chunk.\n\n"
-#     await asyncio.sleep(1)
-#     yield "event: complete\ndata: Agent finished.\n\n"
-
-# @router.get("/invoke/{agent_id}", response_class=StreamingResponse)
-# async def invoke_agent(agent_id: int, user_id: str, db=Depends(get_db)):
-#     """Invoke an agent and stream its output using SSE"""
-#     agent_response = db.get(Agent, filters={"id": agent_id, "user_id": user_id}, return_json=False)
-#     if not agent_response.status or not agent_response.data:
-#         raise HTTPException(status_code=404, detail="Agent not found")
-
-#     agent_model: Agent = agent_response.data[0]
-#     # Assuming agent_model.component holds the necessary configuration dictionary
-#     agent_config = agent_model.component
-
-#     # Define the SSE stream generator using the placeholder
-#     async def event_generator():
-#         try:
-#             async for message in stream_agent_execution(agent_config):
-#                 yield message
-#         except Exception as e:
-#             # TODO: Use proper logging instead of print
-#             print(f"Error during agent execution stream for agent {agent_id}: {e}")
-#             # Send an error event to the client
-#             yield f"event: error\ndata: Error executing agent: {str(e)}\n\n"
-
-#     return StreamingResponse(event_generator(), media_type="text/event-stream")
+    
+    async def event_generator():
+        async for event in agent.run_stream(task=messages):
+            yield json.dumps(format_message(event))
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
