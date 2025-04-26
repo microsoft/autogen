@@ -828,7 +828,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             logprobs=None,
-            raw_response=result,
+            raw_response=None,
             thought=thought,
         )
 

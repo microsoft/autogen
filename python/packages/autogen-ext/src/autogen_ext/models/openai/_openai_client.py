@@ -957,6 +957,28 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1 and thought is None:
                 thought, content = parse_r1_content(content)
 
+        create_params = self._process_create_args(
+            messages,
+            tools,
+            json_output,
+            extra_create_args,
+        )
+
+        if create_params.response_format is not None:
+            result = await self._client.beta.chat.completions.parse(
+                messages=create_params.messages,
+                tools=(create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN),
+                response_format=create_params.response_format,
+                **create_params.create_args,
+            )
+        else:
+            result = await self._client.chat.completions.create(
+                messages=create_params.messages,
+                stream=False,
+                tools=(create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN),
+                **create_params.create_args,
+            )
+
         # Create the result.
         result = CreateResult(
             finish_reason=normalize_stop_reason(stop_reason),

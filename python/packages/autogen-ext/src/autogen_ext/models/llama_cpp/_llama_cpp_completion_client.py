@@ -357,7 +357,11 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         if not response_tool_calls and not response_text:
             logger.debug("DEBUG: No response text found. Returning empty response.")
             return CreateResult(
-                content="", usage=RequestUsage(prompt_tokens=0, completion_tokens=0), finish_reason="stop", cached=False, raw_response=response
+                content="",
+                usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
+                finish_reason="stop",
+                cached=False,
+                raw_response=response,
             )
 
         # Create a CreateResult object
