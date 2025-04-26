@@ -1,7 +1,7 @@
 import json
 from asyncio import CancelledError
 from types import SimpleNamespace
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from unittest.mock import AsyncMock, MagicMock, call
 
 import azure.ai.projects.models as models
@@ -143,16 +143,19 @@ class FakeMessageWithAnnotation:
         return [content for content in self.content if isinstance(content, FakeTextContent)]
 
 
+FakeMessageType = Union[
+    ThreadMessage
+    | FakeMessage
+    | FakeMessageWithAnnotation
+    | FakeMessageWithUrlCitationAnnotation
+    | FakeMessageWithFileCitationAnnotation
+]
+
+
 class FakeOpenAIPageableListOfThreadMessage:
     def __init__(
         self,
-        data: List[
-            ThreadMessage
-            | FakeMessage
-            | FakeMessageWithAnnotation
-            | FakeMessageWithUrlCitationAnnotation
-            | FakeMessageWithFileCitationAnnotation
-        ],
+        data: List[FakeMessageType],
         has_more: bool = False,
     ) -> None:
         self.data = data
@@ -189,18 +192,11 @@ class FakeOpenAIPageableListOfThreadMessage:
 
 
 def mock_list(
-    data: list[
-        ThreadMessage
-        | FakeMessage
-        | FakeMessageWithAnnotation
-        | FakeMessageWithUrlCitationAnnotation
-        | FakeMessageWithFileCitationAnnotation
-    ] = None,
+    data: Optional[List[FakeMessageType]] = None,
     has_more: bool = False,
 ) -> FakeOpenAIPageableListOfThreadMessage:
-
-    if len(data) == 0 or data is None:
-        data = FakeMessage("msg-mock", "response")
+    if data is None or len(data) == 0:
+        data = [FakeMessage("msg-mock", "response")]
 
     return FakeOpenAIPageableListOfThreadMessage(data, has_more=has_more)
 
