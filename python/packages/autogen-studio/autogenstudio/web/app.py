@@ -15,7 +15,7 @@ from .auth.middleware import AuthMiddleware
 from .config import settings
 from .deps import cleanup_managers, init_auth_manager, init_managers, register_auth_dependencies
 from .initialization import AppInitializer
-from .routes import gallery, runs, sessions, settingsroute, teams, tool_servers, tools, validation, ws
+from .routes import agents, gallery, runs, sessions, settingsroute, teams, tool_servers, tools, validation, ws
 
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -152,6 +152,13 @@ api.include_router(
     tool_servers.router,
     prefix="/toolservers",
     tags=["tool servers"],
+    responses={404: {"description": "Not found"}},
+)
+
+api.include_router(
+    agents.router,
+    prefix="/agents",
+    tags=["agents"],
     responses={404: {"description": "Not found"}},
 )
 
