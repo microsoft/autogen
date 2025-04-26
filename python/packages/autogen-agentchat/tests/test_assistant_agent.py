@@ -1452,24 +1452,6 @@ async def test_workbenchs_serialize_and_deserialize() -> None:
 
 @pytest.mark.asyncio
 async def test_tools_deserialize_aware() -> None:
-    client = ReplayChatCompletionClient(
-        chat_completions=[
-            CreateResult(
-                finish_reason="function_calls",
-                content=[FunctionCall(id="hello", arguments="{}", name="hello")],
-                usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
-                cached=False,
-            )
-        ],
-        model_info={
-            "vision": False,
-            "function_calling": True,
-            "json_output": False,
-            "family": "unknown",
-            "structured_output": False,
-        },
-    )
-    # Why does not serialize the client? Ans: Now(0.5.5) the ReplayChatCompletionClient is not deserializable with FunctionCall
     dump = """
     {
         "provider": "autogen_agentchat.agents.AssistantAgent",
@@ -1480,43 +1462,65 @@ async def test_tools_deserialize_aware() -> None:
         "label": "AssistantAgent",
         "config": {
             "name": "TestAgent",
-            "model_client": {
-            "provider": "autogen_ext.models.openai.OpenAIChatCompletionClient",
-            "component_type": "model",
-            "version": 1,
-            "component_version": 1,
-            "description": "Chat completion client for OpenAI hosted models.",
-            "label": "OpenAIChatCompletionClient",
-            "config": {
-                "model": "gpt-4",
-                "api_key": "**********"
-            }
-            },
-            "tools": [
-            {
-                "provider": "autogen_core.tools.FunctionTool",
-                "component_type": "tool",
+            "model_client":{
+                "provider": "autogen_ext.models.replay.ReplayChatCompletionClient",
+                "component_type": "replay_chat_completion_client",
                 "version": 1,
                 "component_version": 1,
-                "description": "Create custom tools by wrapping standard Python functions.",
-                "label": "FunctionTool",
+                "description": "A mock chat completion client that replays predefined responses using an index-based approach.",
+                "label": "ReplayChatCompletionClient",
                 "config": {
-                "source_code": "def hello():\\n    return 'Hello, World!'\\n",
-                "name": "hello",
-                "description": "",
-                "global_imports": [],
-                "has_cancellation_support": false
+                    "chat_completions": [
+                        {
+                            "finish_reason": "function_calls",
+                            "content": [
+                                {
+                                    "id": "hello",
+                                    "arguments": "{}",
+                                    "name": "hello"
+                                }
+                            ],
+                            "usage": {
+                                "prompt_tokens": 0,
+                                "completion_tokens": 0
+                            },
+                            "cached": false
+                        }
+                    ],
+                    "model_info": {
+                        "vision": false,
+                        "function_calling": true,
+                        "json_output": false,
+                        "family": "unknown",
+                        "structured_output": false
+                    }
                 }
-            }
+            },
+            "tools": [
+                {
+                    "provider": "autogen_core.tools.FunctionTool",
+                    "component_type": "tool",
+                    "version": 1,
+                    "component_version": 1,
+                    "description": "Create custom tools by wrapping standard Python functions.",
+                    "label": "FunctionTool",
+                    "config": {
+                        "source_code": "def hello():\\n    return 'Hello, World!'\\n",
+                        "name": "hello",
+                        "description": "",
+                        "global_imports": [],
+                        "has_cancellation_support": false
+                    }
+                }
             ],
             "model_context": {
-            "provider": "autogen_core.model_context.UnboundedChatCompletionContext",
-            "component_type": "chat_completion_context",
-            "version": 1,
-            "component_version": 1,
-            "description": "An unbounded chat completion context that keeps a view of the all the messages.",
-            "label": "UnboundedChatCompletionContext",
-            "config": {}
+                "provider": "autogen_core.model_context.UnboundedChatCompletionContext",
+                "component_type": "chat_completion_context",
+                "version": 1,
+                "component_version": 1,
+                "description": "An unbounded chat completion context that keeps a view of the all the messages.",
+                "label": "UnboundedChatCompletionContext",
+                "config": {}
             },
             "description": "An agent that provides assistance with ability to use tools.",
             "system_message": "You are a helpful assistant.",
@@ -1528,7 +1532,6 @@ async def test_tools_deserialize_aware() -> None:
     }
     """
     agent = AssistantAgent.load_component(json.loads(dump))
-    agent._model_client = client  # type: ignore
     result = await agent.run(task="hello")
 
     assert len(result.messages) == 4
