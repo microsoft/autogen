@@ -7,7 +7,7 @@ An example showing human-in-the-loop which waits for human input before making t
 First, you need a shell with AutoGen core and required dependencies installed.
 
 ```bash
-pip install "autogen-ext[openai,azure]"
+pip install "autogen-ext[openai,azure]" "pyyaml"
 ```
 
 ## Model Configuration
