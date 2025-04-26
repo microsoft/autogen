@@ -21,7 +21,7 @@ def sample_config():
     agent = AssistantAgent(
         name="weather_agent",
         model_client=OpenAIChatCompletionClient(
-            model="gpt-4o-mini",
+            model="gpt-4.1-nano",
         ),
     )
     

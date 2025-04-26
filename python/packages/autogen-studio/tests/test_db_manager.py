@@ -37,7 +37,7 @@ def sample_team(test_user: str) -> Team:
     agent = AssistantAgent(
         name="weather_agent",
         model_client=OpenAIChatCompletionClient(
-            model="gpt-4",
+            model="gpt-4.1-nano",
         ), 
     )
 
