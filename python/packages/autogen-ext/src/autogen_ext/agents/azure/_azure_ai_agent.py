@@ -31,11 +31,9 @@ from autogen_agentchat.messages import (
 )
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models._types import FunctionExecutionResult
-
 from autogen_core.tools import FunctionTool, Tool
 
 import azure.ai.projects.models as models
-
 from azure.ai.projects import _types
 from azure.ai.projects.aio import AIProjectClient
 
@@ -780,7 +778,7 @@ class AzureAIAgent(BaseChatAgent):
             last_message = agent_messages.data[0]  # Fallback to first message
 
         if not last_message.content:
-            raise ValueError(f"No content in the last message")
+            raise ValueError("No content in the last message")
 
         # Extract text content
         message_text = ""

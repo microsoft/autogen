@@ -1,10 +1,9 @@
-from typing import Any, Awaitable, Callable, Iterable, List, Literal, Optional, Union, TypeGuard
+from typing import Any, Awaitable, Callable, Iterable, List, Literal, Optional, TypeGuard, Union
 
 from autogen_core.tools import Tool
 from pydantic import BaseModel, Field
 
 import azure.ai.projects.models as models
-from typing import TypeGuard
 
 ListToolType = Iterable[
     Union[

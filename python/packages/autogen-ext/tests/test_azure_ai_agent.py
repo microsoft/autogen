@@ -1,5 +1,5 @@
-from asyncio import CancelledError
 import json
+from asyncio import CancelledError
 from types import SimpleNamespace
 from typing import Any, List, Optional
 from unittest.mock import AsyncMock, MagicMock, call
@@ -195,9 +195,13 @@ def mock_list(
         | FakeMessageWithAnnotation
         | FakeMessageWithUrlCitationAnnotation
         | FakeMessageWithFileCitationAnnotation
-    ] = [FakeMessage("msg-mock", "response")],
+    ] = None,
     has_more: bool = False,
 ) -> FakeOpenAIPageableListOfThreadMessage:
+
+    if len(data) == 0 or data is None:
+        data = FakeMessage("msg-mock", "response")
+
     return FakeOpenAIPageableListOfThreadMessage(data, has_more=has_more)
 
 
