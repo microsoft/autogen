@@ -368,7 +368,7 @@ async def test_docker_commandline_code_executor_with_multiple_tasks() -> None:
     if not docker_tests_enabled():
         pytest.skip("Docker tests are disabled")
 
-    async def run_cancellation_scenario(executor: DockerCommandLineCodeExecutor):
+    async def run_cancellation_scenario(executor: DockerCommandLineCodeExecutor) -> None:
         token = CancellationToken()
         code_block = CodeBlock(language="bash", code="sleep 10")
         exec_task = asyncio.create_task(executor.execute_code_blocks([code_block], cancellation_token=token))
@@ -379,7 +379,7 @@ async def test_docker_commandline_code_executor_with_multiple_tasks() -> None:
         except asyncio.CancelledError:
             pass
 
-    def run_scenario_in_new_loop(executor_instance: DockerCommandLineCodeExecutor):
+    def run_scenario_in_new_loop(executor_instance: DockerCommandLineCodeExecutor) -> None:
         asyncio.run(run_cancellation_scenario(executor_instance))
 
     with tempfile.TemporaryDirectory() as temp_dir:
