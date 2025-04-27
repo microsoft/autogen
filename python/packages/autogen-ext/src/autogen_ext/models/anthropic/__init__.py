@@ -1,7 +1,10 @@
 from ._anthropic_client import AnthropicChatCompletionClient, BaseAnthropicChatCompletionClient
 from .config import (
+    AnthropicBedrockClientConfiguration,
+    AnthropicBedrockClientConfigurationConfigModel,
     AnthropicClientConfiguration,
     AnthropicClientConfigurationConfigModel,
+    BedrockInfo,
     CreateArgumentsConfigModel,
 )
 

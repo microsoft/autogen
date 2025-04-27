@@ -25,7 +25,7 @@ from typing import (
 )
 
 import tiktoken
-from anthropic import AsyncAnthropic, AsyncStream, AnthropicBedrock
+from anthropic import AnthropicBedrock, AsyncAnthropic, AsyncStream
 from anthropic.types import (
     Base64ImageSourceParam,
     ContentBlock,
@@ -68,11 +68,11 @@ from typing_extensions import Self, Unpack
 
 from . import _model_info
 from .config import (
-    BedrockInfo,
-    AnthropicClientConfiguration,
-    AnthropicClientConfigurationConfigModel,
     AnthropicBedrockClientConfiguration,
     AnthropicBedrockClientConfigurationConfigModel,
+    AnthropicClientConfiguration,
+    AnthropicClientConfigurationConfigModel,
+    BedrockInfo,
 )
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -416,7 +416,7 @@ def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
 class BaseAnthropicChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
-        client: AsyncAnthropic,
+        client: Any,
         *,
         create_args: Dict[str, Any],
         model_info: Optional[ModelInfo] = None,
@@ -1047,9 +1047,7 @@ class AnthropicChatCompletionClient(
                 api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
             )
 
-            result = await anthropic_client.create(
-                [UserMessage(content="What is the capital of France?", source="user")]
-            )  # type: ignore
+            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
             print(result)
 
 
@@ -1170,9 +1168,7 @@ class AnthropicBedrockChatCompletionClient(
             }
             anthropic_client = AnthropicBedrockChatCompletionClient(**config)
 
-            result = await anthropic_client.create(
-                [UserMessage(content="What is the capital of France?", source="user")]
-            )  # type: ignore
+            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
             print(result)
 
 
@@ -1196,9 +1192,11 @@ class AnthropicBedrockChatCompletionClient(
             model_info = kwargs["model_info"]
             del copied_args["model_info"]
 
-        bedrock_info: BedrockInfo = kwargs["bedrock_info"]
+        bedrock_info: Optional[BedrockInfo] = None
+        if "bedrock_info" in kwargs:
+            bedrock_info = kwargs["bedrock_info"]
 
-        if "bedrock_info" not in kwargs:
+        if bedrock_info is None:
             raise ValueError("bedrock_info is required for AnthropicBedrockChatCompletionClient")
 
         # Handle bedrock_info as secretestr
@@ -1243,7 +1241,7 @@ class AnthropicBedrockChatCompletionClient(
             copied_config["api_key"] = config.api_key.get_secret_value()
 
         # Handle bedrock_info as SecretStr
-        if "bedrock_info" in copied_config and isinstance(config.bedrock_info, BedrockInfo):
+        if "bedrock_info" in copied_config and isinstance(config.bedrock_info, dict):
             copied_config["bedrock_info"] = {
                 "aws_access_key": config.bedrock_info["aws_access_key"].get_secret_value(),
                 "aws_secret_key": config.bedrock_info["aws_secret_key"].get_secret_value(),
