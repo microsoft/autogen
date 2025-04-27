@@ -1,10 +1,8 @@
 from typing import List, cast
-
 import chainlit as cl
 import yaml
 
 import asyncio
-import json
 from dataclasses import dataclass
 from typing import List
 
@@ -12,101 +10,25 @@ from autogen_core import (
     AgentId,
     FunctionCall,
     MessageContext,
-    RoutedAgent,
     SingleThreadedAgentRuntime,
-    DefaultTopicId,
-    default_subscription,
-    message_handler,
-    CancellationToken
+    ClosureAgent,
+    ClosureContext,
+    TopicId,
+    TypeSubscription
 )
 from autogen_core.models import (
-    AssistantMessage,
     ChatCompletionClient,
-    LLMMessage,
-    SystemMessage,
     UserMessage,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage
 )
 
 from autogen_core.tools import FunctionTool, Tool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_core.model_context import BufferedChatCompletionContext
+from SimpleAssistantAgent import SimpleAssistantAgent, FinalResult 
 
-@dataclass
-class Message:
-    content: str
-
-@default_subscription
-class WeatherAgent(RoutedAgent):
-    def __init__(self, model_client: ChatCompletionClient, tool_schema: List[Tool], context: MessageContext) -> None:
-        super().__init__("An agent with a weather tool")
-        self._system_messages: List[LLMMessage] = [SystemMessage(content="You are a helpful AI assistant.")]
-        self._model_client = model_client
-        self._tools = tool_schema
-        self._model_context = context 
-
-    @message_handler
-    async def handle_message(self, message: UserMessage, ctx: MessageContext) -> Message:
-        # Create a session of messages.
-        session: List[LLMMessage] = self._system_messages + [UserMessage(content=message.content, source="user")]
-
-        # Add message to model context.
-        await self._model_context.add_message(UserMessage(content=message.content, source="user"))
-        #ctx = self._model_context
-
-        # Run the chat completion with the tools.
-        create_result = await self._model_client.create(
-            messages=session,
-            tools=self._tools,
-            cancellation_token=ctx.cancellation_token,
-        )
-
-        # If there are no tool calls, return the result.
-        if isinstance(create_result.content, str):
-            return Message(content=create_result.content)
-        assert isinstance(create_result.content, list) and all(
-            isinstance(call, FunctionCall) for call in create_result.content
-        )
-
-        # Add the first model create result to the session.
-        session.append(AssistantMessage(content=create_result.content, source="assistant"))
-
-        # Execute the tool calls.
-        results = await asyncio.gather(
-            *[self._execute_tool_call(call, ctx.cancellation_token) for call in create_result.content]
-        )
-
-        # Add the function execution results to the session.
-        session.append(FunctionExecutionResultMessage(content=results))
-
-        # Run the chat completion again to reflect on the history and function execution results.
-        create_result = await self._model_client.create(
-            messages=session,
-            cancellation_token=ctx.cancellation_token,
-        )
-        assert isinstance(create_result.content, str)
-
-        # Return the result as a message.
-        return Message(content=create_result.content)
-
-    async def _execute_tool_call(
-        self, call: FunctionCall, cancellation_token: CancellationToken
-    ) -> FunctionExecutionResult:
-        # Find the tool by name.
-        tool = next((tool for tool in self._tools if tool.name == call.name), None)
-        assert tool is not None
-
-        # Run the tool and capture the result.
-        try:
-            arguments = json.loads(call.arguments)
-            result = await tool.run_json(arguments, cancellation_token)
-            return FunctionExecutionResult(
-                call_id=call.id, content=tool.return_value_as_string(result), is_error=False, name=tool.name
-            )
-        except Exception as e:
-            return FunctionExecutionResult(call_id=call.id, content=str(e), is_error=True, name=tool.name)
-
+TASK_RESULTS_TOPIC_TYPE = "task-results"
+task_results_topic_id = TopicId(type=TASK_RESULTS_TOPIC_TYPE, source="default")
+CLOSURE_AGENT_TYPE = "collect_result_agent"
 
 @cl.set_starters  # type: ignore
 async def set_starts() -> List[cl.Starter]:
@@ -121,6 +43,11 @@ async def set_starts() -> List[cl.Starter]:
         ),
     ]
 
+# Function called when closure agent receives message. It put the messages to the output queue
+async def output_result(_agent: ClosureContext, message: FinalResult, ctx: MessageContext) -> None:
+    queue = cast(asyncio.Queue[FinalResult], cl.user_session.get("output_queue"))  # type: ignore
+    print( "Adding " + message.value + "to queue")
+    await queue.put(message)
 
 @cl.step(type="tool")  # type: ignore
 async def get_weather(city: str) -> str:
@@ -132,56 +59,57 @@ async def start_chat() -> None:
     with open("model_config.yaml", "r") as f:
         model_config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(model_config)
-    context = BufferedChatCompletionContext(buffer_size=5)
+    context = BufferedChatCompletionContext(buffer_size=10)
 
     # Create a runtime.
     runtime = SingleThreadedAgentRuntime()
     
     # Create tools
     tools: List[Tool] = [FunctionTool(get_weather, description="Get weather tool.")]
+    # Create a queue for output stream data
+    queue = asyncio.Queue[FinalResult]()
 
-    # Register the weather agent to runtime
-
-    await WeatherAgent.register(runtime, "weather_agent", lambda: WeatherAgent(
-        model_client = model_client,
-       # tool_schema = [get_weather]
+    # Create the assistant agent with the get_weather tool.
+    await SimpleAssistantAgent.register(runtime, "weather_agent", lambda: SimpleAssistantAgent(
+        name="weather_agent",
         tool_schema=tools,
-        context = context,
+        model_client=model_client,
+        system_message="You are a helpful assistant",
+        context=context,
+        #model_client_stream=True,  # Enable model client streaming.
+        #reflect_on_tool_use=True,  # Reflect on tool use.
     ))
-    
+
+    # Register the Closure Agent, it will place streamed response into the output queue by calling output_result function
+    await ClosureAgent.register_closure(
+        runtime, CLOSURE_AGENT_TYPE, output_result, subscriptions=lambda:[TypeSubscription(topic_type=TASK_RESULTS_TOPIC_TYPE, agent_type=CLOSURE_AGENT_TYPE)] 
+    )
     runtime.start()  # Start processing messages in the background.
 
-    # Set the assistant agent in the user session.
+    # Save the runtime and output_queue into chainlit user session for later use when messages are processed.
     cl.user_session.set("prompt_history", "")  # type: ignore
-    cl.user_session.set("agent", WeatherAgent)  # type: ignore
-    cl.user_session.set("context", context)  # type: ignore
     cl.user_session.set("run_time", runtime) # type: ignore
+    cl.user_session.set("output_queue", queue) # type: ignore
     
 @cl.on_message  # type: ignore
 async def chat(message: cl.Message) -> None:
     # Construct the response message.
     response = cl.Message(content="")
 
-    # Get the agent from the user session.
-    agent = cast(WeatherAgent, cl.user_session.get("agent"))  # type: ignore
-    context = cast(MessageContext, cl.user_session.get("context"))
+    # Get the session data for process messages 
     runtime = cast(SingleThreadedAgentRuntime, cl.user_session.get("run_time"))
+    queue = cast(asyncio.Queue[FinalResult], cl.user_session.get("output_queue"))
+
+    # Send message to the Weather Assistant Agent
     response = await runtime.send_message(UserMessage(content=message.content, source="User"), AgentId("weather_agent", "default"))
     
-    # Forward the reponse to cl
-
-    #  
-    # Call agent hadle
-    # Construct the response message.
-    # agent = cast(AssistantAgent, cl.user_session.get("agent"))  # type: ignore
-    # Construct the response message.
-    msg = cl.Message(content="")
-    msg.content = response.content or ""
-    await msg.send()
-    #for msg in msg_resp:
-    #    if isinstance(msg, ModelClientStreamingChunkEvent):
-    #        # Stream the model client response to the user.
-    #        await response.stream_token(msg.content)
-    #    elif isinstance(msg, Response):
-    #        # Done streaming the model client response. Send the message.
-    #        await response.send()
+    # Forward the reponses inside the output queue to the chainlit UI 
+    ui_resp = cl.Message(content="")
+    while not queue.empty():
+        #print((result := await queue.get()).value)
+        result := await queue.get()).value
+        if (result.type == "chunk"):
+            await ui_resp.stream_token(result.value)
+        elif (result.type == "response"):
+            await ui_resp.send()
+            
