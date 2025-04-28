@@ -1,21 +1,21 @@
 from ._digraph_group_chat import (
+    AGGraph,
+    AGGraphManager,
     DiGraph,
     DiGraphEdge,
-    DiGraphGroupChat,
-    DiGraphGroupChatManager,
     DiGraphNode,
 )
-from ._graph_builder import DiGraphBuilder
+from ._graph_builder import AGGraphBuilder
 from ._message_filter_agent import MessageFilterAgent, MessageFilterConfig, PerSourceFilter
 
 __all__ = [
-    "DiGraphGroupChat",
+    "AGGraph",
     "DiGraph",
-    "DiGraphGroupChatManager",
+    "AGGraphManager",
     "DiGraphNode",
     "DiGraphEdge",
     "MessageFilterAgent",
     "MessageFilterConfig",
     "PerSourceFilter",
-    "DiGraphBuilder",
+    "AGGraphBuilder",
 ]

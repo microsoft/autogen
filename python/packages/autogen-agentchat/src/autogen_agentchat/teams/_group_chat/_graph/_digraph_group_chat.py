@@ -147,14 +147,14 @@ class DiGraph(BaseModel):
         self._has_cycles = self.has_cycles_with_exit()
 
 
-class DiGraphManagerState(BaseGroupChatManagerState):
+class AGGraphManagerState(BaseGroupChatManagerState):
     """Tracks active execution state for DAG-based execution."""
 
     active_nodes: List[str] = []  # Currently executing nodes
-    type: str = "DiGraphManagerState"
+    type: str = "AGGraphManagerState"
 
 
-class DiGraphGroupChatManager(BaseGroupChatManager):
+class AGGraphManager(BaseGroupChatManager):
     """Manages execution of agents using a Directed Graph execution model."""
 
     def __init__(
@@ -372,7 +372,7 @@ class DiGraphGroupChatManager(BaseGroupChatManager):
 
 class _StopAgent(BaseChatAgent):
     def __init__(self) -> None:
-        super().__init__(_DIGRAPH_STOP_AGENT_NAME, "Agent that terminates the DiGraphGroupChat.")
+        super().__init__(_DIGRAPH_STOP_AGENT_NAME, "Agent that terminates the AGGraph.")
 
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
@@ -385,8 +385,8 @@ class _StopAgent(BaseChatAgent):
         pass
 
 
-class DiGraphGroupChatConfig(BaseModel):
-    """The declarative configuration for DiGraphGroupChat."""
+class AGGraphConfig(BaseModel):
+    """The declarative configuration for AGGraph."""
 
     participants: List[ComponentModel]
     termination_condition: ComponentModel | None = None
@@ -394,7 +394,7 @@ class DiGraphGroupChatConfig(BaseModel):
     graph: DiGraph  # The execution graph for agents
 
 
-class DiGraphGroupChat(BaseGroupChat, Component[DiGraphGroupChatConfig]):
+class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
     """A team that runs a group chat following a Directed Graph execution pattern.
 
     This group chat executes agents based on a directed graph (DiGraph) structure,
@@ -439,7 +439,7 @@ class DiGraphGroupChat(BaseGroupChat, Component[DiGraphGroupChatConfig]):
                     }
                 )
 
-                team = DiGraphGroupChat(
+                team = AGGraph(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(5),
@@ -463,7 +463,7 @@ class DiGraphGroupChat(BaseGroupChat, Component[DiGraphGroupChatConfig]):
                     }
                 )
 
-                team = DiGraphGroupChat(
+                team = AGGraph(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(5),
@@ -489,7 +489,7 @@ class DiGraphGroupChat(BaseGroupChat, Component[DiGraphGroupChatConfig]):
                     }
                 )
 
-                team = DiGraphGroupChat(
+                team = AGGraph(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(5),
@@ -519,7 +519,7 @@ class DiGraphGroupChat(BaseGroupChat, Component[DiGraphGroupChatConfig]):
                     }
                 )
 
-                team = DiGraphGroupChat(
+                team = AGGraph(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(10),
@@ -528,8 +528,8 @@ class DiGraphGroupChat(BaseGroupChat, Component[DiGraphGroupChatConfig]):
 
     """
 
-    component_config_schema = DiGraphGroupChatConfig
-    component_provider_override = "autogen_agentchat.teams.DiGraphGroupChat"
+    component_config_schema = AGGraphConfig
+    component_provider_override = "autogen_agentchat.teams.AGGraph"
 
     def __init__(
         self,
@@ -551,8 +551,8 @@ class DiGraphGroupChat(BaseGroupChat, Component[DiGraphGroupChatConfig]):
         participants = [stop_agent] + participants
         super().__init__(
             participants,
-            group_chat_manager_name="DiGraphGroupChatManager",
-            group_chat_manager_class=DiGraphGroupChatManager,
+            group_chat_manager_name="AGGraphManager",
+            group_chat_manager_class=AGGraphManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
             runtime=runtime,
@@ -572,11 +572,11 @@ class DiGraphGroupChat(BaseGroupChat, Component[DiGraphGroupChatConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
-    ) -> Callable[[], DiGraphGroupChatManager]:
+    ) -> Callable[[], AGGraphManager]:
         """Creates the factory method for initializing the DiGraph-based chat manager."""
 
-        def _factory() -> DiGraphGroupChatManager:
-            return DiGraphGroupChatManager(
+        def _factory() -> AGGraphManager:
+            return AGGraphManager(
                 name=name,
                 group_topic_type=group_topic_type,
                 output_topic_type=output_topic_type,
@@ -592,11 +592,11 @@ class DiGraphGroupChat(BaseGroupChat, Component[DiGraphGroupChatConfig]):
 
         return _factory
 
-    def _to_config(self) -> DiGraphGroupChatConfig:
+    def _to_config(self) -> AGGraphConfig:
         """Converts the instance into a configuration object."""
         participants = [participant.dump_component() for participant in self._participants]
         termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
-        return DiGraphGroupChatConfig(
+        return AGGraphConfig(
             participants=participants,
             termination_condition=termination_condition,
             max_turns=self._max_turns,
@@ -604,7 +604,7 @@ class DiGraphGroupChat(BaseGroupChat, Component[DiGraphGroupChatConfig]):
         )
 
     @classmethod
-    def _from_config(cls, config: DiGraphGroupChatConfig) -> Self:
+    def _from_config(cls, config: AGGraphConfig) -> Self:
         """Reconstructs an instance from a configuration object."""
         participants = [ChatAgent.load_component(participant) for participant in config.participants]
         termination_condition = (
