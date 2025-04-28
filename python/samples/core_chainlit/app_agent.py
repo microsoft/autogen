@@ -45,7 +45,7 @@ async def set_starts() -> List[cl.Starter]:
 # Function called when closure agent receives message. It put the messages to the output queue
 async def output_result(_agent: ClosureContext, message: FinalResult, ctx: MessageContext) -> None:
     queue = cast(asyncio.Queue[FinalResult], cl.user_session.get("output_queue"))  # type: ignore
-    print( "Adding " + message.value + "to queue")
+    #print( "Adding " + message.value + "to queue")
     await queue.put(message)
 
 @cl.step(type="tool")  # type: ignore
@@ -92,21 +92,18 @@ async def start_chat() -> None:
     
 @cl.on_message  # type: ignore
 async def chat(message: cl.Message) -> None:
-    # Construct the response message.
-    response = cl.Message(content="")
-
     # Get the session data for process messages 
     runtime = cast(SingleThreadedAgentRuntime, cl.user_session.get("run_time"))
     queue = cast(asyncio.Queue[FinalResult], cl.user_session.get("output_queue"))
 
     # Send message to the Weather Assistant Agent
+    # Construct the response message.
     response = await runtime.send_message(UserMessage(content=message.content, source="User"), AgentId("weather_agent", "default"))
     
     # Forward the reponses inside the output queue to the chainlit UI 
     ui_resp = cl.Message(content="")
     while not queue.empty():
-        #print((result := await queue.get()).value)
-        result := await queue.get()).value
+        result = await queue.get()
         if (result.type == "chunk"):
             await ui_resp.stream_token(result.value)
         elif (result.type == "response"):
