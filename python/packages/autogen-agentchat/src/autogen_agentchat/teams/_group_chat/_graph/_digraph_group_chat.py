@@ -31,6 +31,11 @@ class DiGraphEdge(BaseModel):
 
     target: str  # Target node name
     condition: str | None = None  # Optional execution condition (trigger-based)
+    """(Experimental) Condition to execute this edge.
+    If None, the edge is unconditional. If a string, the edge is conditional on the presence of that string in the last agent chat message.
+    NOTE: This is an experimental feature WILL change in the future releases to allow for better spcification of branching conditions
+    similar to the `TerminationCondition` class.
+    """
 
 
 class DiGraphNode(BaseModel):
@@ -410,6 +415,16 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
     Conditional branching is supported using edge conditions, where the next agent(s) are selected
     based on content in the chat history. Loops are permitted as long as there is a condition
     that eventually exits the loop.
+
+    .. note::
+        Use the `AGGraphBuilder` class to create a `DiGraph` easily. It provides a fluent API
+        for adding nodes and edges, setting entry points, and validating the graph structure.
+        See the `AGGraphBuilder` documentation for more details.
+        The `AGGraph` class is designed to be used with the `AGGraphBuilder` for creating complex workflows.
+
+    .. warning::
+        This is an experimental feature, and the API will change in the future releases.
+
 
     Args:
         participants (List[ChatAgent]): The participants in the group chat.
