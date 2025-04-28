@@ -123,6 +123,7 @@ tutorial/models
 tutorial/messages
 tutorial/agents
 tutorial/teams
+tutorial/graph
 tutorial/human-in-the-loop
 tutorial/termination
 tutorial/state
