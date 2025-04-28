@@ -41,7 +41,6 @@ class RequestToSpeak(BaseModel):
 
 assistant_topic_type = "assistant"
 critic_topic_type = "critic"
-user_topic_type = "User"
 group_chat_topic_type = "group_chat"
 
 TASK_RESULTS_TOPIC_TYPE = "task-results"
@@ -85,6 +84,7 @@ class BaseGroupChatAgent(RoutedAgent):
         ):
             if isinstance(chunk, CreateResult):
                 model_result = chunk
+                await self.runtime.publish_message(FinalResult("complete", self.id.type), topic_id=task_results_topic_id)
             elif isinstance(chunk, str):
                 #yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
                 # foward the stream tokent to the Queue
@@ -100,22 +100,7 @@ class BaseGroupChatAgent(RoutedAgent):
             GroupChatMessage(body=UserMessage(content=model_result.content, source=self.id.type)),
             topic_id=DefaultTopicId(type=self._group_chat_topic_type),
         )
-"""
-    @message_handler
-    async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
-        print(f"### {self.id.type}: ")
-        self._chat_history.append(
-            UserMessage(content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
-        )
-        completion = await self._model_client.create([self._system_message] + self._chat_history)
-        assert isinstance(completion.content, str)
-        self._chat_history.append(AssistantMessage(content=completion.content, source=self.id.type))
-        print(completion.content, flush=True)
-        await self.publish_message(
-            GroupChatMessage(body=UserMessage(content=completion.content, source=self.id.type)),
-            topic_id=DefaultTopicId(type=self._group_chat_topic_type),
-        )
-"""
+
 class AssistantAgent(BaseGroupChatAgent):
     def __init__(self, description: str, group_chat_topic_type: str, model_client: ChatCompletionClient) -> None:
         super().__init__(
@@ -157,7 +142,12 @@ class GroupChatManager(RoutedAgent):
             assert isinstance(message.body.content, str)
             if message.body.content.lower().strip(string.punctuation).endswith("approve"):
                 return
-
+        print("Message source " + message.body.source + "My Message content " + message.body.content)
+        if message.body.source == "critic":
+            if ("approve" in message.body.content.lower().strip(string.punctuation)):
+                print("Received approval from critic agent")
+                await self.runtime.publish_message(FinalResult("stop", self.id.type), topic_id=task_results_topic_id)
+                return
         # Simple round robin algorithm to call next client to speak
         selected_topic_type: str
 
@@ -174,11 +164,24 @@ class GroupChatManager(RoutedAgent):
         #completion = await self._model_client.create([system_message], cancellation_token=ctx.cancellation_token)
         # assert isinstance(completion.content, str)
 
-# Function called when closure agent receives message. It put the messages to the output queue
+# Function called when closure agent receives message. It put the messages chunks to the output queue
+# when the message is complete, it sends the message to Chainlit UI
+
 async def output_result(_agent: ClosureContext, message: FinalResult, ctx: MessageContext) -> None:
     queue = cast(asyncio.Queue[FinalResult], cl.user_session.get("output_queue"))  # type: ignore
-    print( "Adding " + message.value + "to queue")
     await queue.put(message)
+    if (message.type == "complete"):
+        ui_resp = cl.Message(content= message.value + ": ")
+        #print("In output result, reading the queue")
+        while not queue.empty():
+            result = await queue.get()
+            if (result.type == "chunk"):
+                #print("get chunk "+ result.value +" from queue")
+                await ui_resp.stream_token(result.value)
+            elif (result.type == "complete"):
+                #print("get chunk "+ result.value +" from queue")
+                await ui_resp.send()
+                break
 
 @cl.on_chat_start  # type: ignore
 async def start_chat() -> None:
@@ -201,16 +204,8 @@ async def start_chat() -> None:
         #context=context,
         #model_client_stream=True,  # Enable model client streaming.
     ))
-    """
-    assistant_agent_type = await SimpleAssistantAgent.register(runtime, "assistant", lambda: SimpleAssistantAgent(
-        name="assistant",
-        model_client=model_client,
-        #system_message="You are a helpful assistant",
-        #context=context,
-        #model_client_stream=True,  # Enable model client streaming.
-    ))
-    """
 
+    # Assistant agent listen to assistant topic and group chat topic
     await runtime.add_subscription(TypeSubscription(topic_type=assistant_topic_type, agent_type=assistant_agent_type.type))
     await runtime.add_subscription(TypeSubscription(topic_type=group_chat_topic_type, agent_type=assistant_agent_type.type))
 
@@ -224,21 +219,13 @@ async def start_chat() -> None:
         #context=context,
         #model_client_stream=True,  # Enable model client streaming.
     ))
-    """
-    critic_agent_type = await SimpleAssistantAgent.register(runtime, "critic", lambda: SimpleAssistantAgent(
-        name="critic",
-        model_client=model_client,
-        system_message="You are a critic. Provide constructive feedback. "
-        "Respond with 'APPROVE' if your feedback has been addressed.",
-        #context=context,
-        #model_client_stream=True,  # Enable model client streaming.
-    ))
-    """
+
+    # Critic agent listen to critic topic and group chat topic
     await runtime.add_subscription(TypeSubscription(topic_type=critic_topic_type, agent_type=critic_agent_type.type))
     await runtime.add_subscription(TypeSubscription(topic_type=group_chat_topic_type, agent_type=critic_agent_type.type))
 
     # Termination condition.
-    # termination = TextMentionTermination("APPROVE", sources=["critic"])
+    #termination = TextMentionTermination("APPROVE", sources=["critic"])
 
     # Chain the assistant and critic agents using RoundRobinGroupChat.
     # group_chat = RoundRobinGroupChat([assistant, critic], termination_condition=termination)
@@ -247,7 +234,7 @@ async def start_chat() -> None:
         runtime,
         "group_chat_manager",
         lambda: GroupChatManager(
-            participant_topic_types=[assistant_topic_type, critic_topic_type, user_topic_type],
+            participant_topic_types=[assistant_topic_type, critic_topic_type],
             model_client=model_client,
         ),
     )
@@ -260,11 +247,11 @@ async def start_chat() -> None:
         runtime, CLOSURE_AGENT_TYPE, output_result, subscriptions=lambda:[TypeSubscription(topic_type=TASK_RESULTS_TOPIC_TYPE, agent_type=CLOSURE_AGENT_TYPE)]
     )
     runtime.start()  # Start processing messages in the background.
-    # Set the assistant agent in the user session.
+
+    # Save the runtime and output_queue in the chainlit user session.
     cl.user_session.set("prompt_history", "")  # type: ignore
     cl.user_session.set("run_time", runtime)  # type: ignore
     cl.user_session.set("output_queue", queue)  # type: ignore
-
 
 
 @cl.set_starters  # type: ignore
@@ -284,42 +271,6 @@ async def set_starts() -> List[cl.Starter]:
         ),
     ]
 
-"""
-@cl.on_message  # type: ignore
-async def chat(message: cl.Message) -> None:
-    # Get the team from the user session.
-    team = cast(RoundRobinGroupChat, cl.user_session.get("team"))  # type: ignore
-    # Streaming response message.
-    streaming_response: cl.Message | None = None
-    # Stream the messages from the team.
-    async for msg in team.run_stream(
-        task=[TextMessage(content=message.content, source="user")],
-        cancellation_token=CancellationToken(),
-    ):
-        if isinstance(msg, ModelClientStreamingChunkEvent):
-            # Stream the model client response to the user.
-            if streaming_response is None:
-                # Start a new streaming response.
-                streaming_response = cl.Message(content=msg.source + ": ", author=msg.source)
-            await streaming_response.stream_token(msg.content)
-        elif streaming_response is not None:
-            # Done streaming the model client response.
-            # We can skip the current message as it is just the complete message
-            # of the streaming response.
-            await streaming_response.send()
-            # Reset the streaming response so we won't enter this block again
-            # until the next streaming response is complete.
-            streaming_response = None
-        elif isinstance(msg, TaskResult):
-            # Send the task termination message.
-            final_message = "Task terminated. "
-            if msg.stop_reason:
-                final_message += msg.stop_reason
-            await cl.Message(content=final_message).send()
-        else:
-            # Skip all other message types.
-            pass
-"""
 @cl.on_message  # type: ignore
 async def chat(message: cl.Message) -> None:
     # Construct the response message.
@@ -329,8 +280,8 @@ async def chat(message: cl.Message) -> None:
     runtime = cast(SingleThreadedAgentRuntime, cl.user_session.get("run_time"))
     queue = cast(asyncio.Queue[FinalResult], cl.user_session.get("output_queue"))
 
-    # Send message to the Assistant Agent
-    # response = await runtime.send_message(UserMessage(content=message.content, source="User"), AgentId("assistant_agent", "default"))
+    # Publish the user message to the Group Chat
+
     session_id = str(uuid.uuid4())
     await runtime.publish_message(
         GroupChatMessage(
@@ -341,33 +292,3 @@ async def chat(message: cl.Message) -> None:
         ),
         TopicId(type=group_chat_topic_type, source=session_id),
     )
-    #await runtime.stop_when_idle()
-    # Forward the reponses inside the output queue to the chainlit UI
-    # task1 = asyncio.create_task(runtime.send_message(message, AgentId("simple_agent", "default")))
-
-    # Consume items from the response queue until the stream ends or an error occurs
-    """
-    while TRUE:
-        item = await queue.get().value
-        if item is STREAM_DONE:
-            print(f"{time.time():.2f} - MAIN: Received STREAM_DONE. Exiting loop.")
-            break
-        elif isinstance(item, str) and item.startswith("ERROR:"):
-            print(f"{time.time():.2f} - MAIN: Received error message from agent: {item}")
-            break
-        else:
-            yield json.dumps({'content': item}) + '\n'
-    await task1       
-    """
-    ui_resp = cl.Message(content="")
-    print("Reading the queue")
-    while not queue.empty():
-        #print((result := await queue.get()).value)
-        result = await queue.get().value
-        print("Queue is not Empty")
-        if (result.type == "chunk"):
-            await ui_resp.stream_token(result.value)
-        elif (result.type == "response"):
-            await ui_resp.send()
-            break
-    print("Queue is empty") 

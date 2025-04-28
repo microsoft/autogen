@@ -4,7 +4,6 @@ import yaml
 
 import asyncio
 from dataclasses import dataclass
-from typing import List
 
 from autogen_core import (
     AgentId,
