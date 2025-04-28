@@ -31,7 +31,7 @@ class DiGraphBuilder:
         - get_participants(): Return the list of added agents.
 
     Example — Sequential Flow A → B → C:
-        >>> builder = AGGraphBuilder()
+        >>> builder = DiGraphBuilder()
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
         >>> builder.add_edge(agent_a, agent_b).add_edge(agent_b, agent_c)
         >>> team = DiGraphGroupChat(
@@ -41,17 +41,17 @@ class DiGraphBuilder:
         ... )
 
     Example — Parallel Fan-out A → (B, C):
-        >>> builder = AGGraphBuilder()
+        >>> builder = DiGraphBuilder()
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
         >>> builder.add_edge(agent_a, agent_b).add_edge(agent_a, agent_c)
 
     Example — Conditional Branching A → B ("yes"), A → C ("no"):
-        >>> builder = AGGraphBuilder()
+        >>> builder = DiGraphBuilder()
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
         >>> builder.add_conditional_edges(agent_a, {"yes": agent_b, "no": agent_c})
 
     Example — Loop: A → B → A ("loop"), B → C ("exit"):
-        >>> builder = AGGraphBuilder()
+        >>> builder = DiGraphBuilder()
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
         >>> builder.add_edge(agent_a, agent_b)
         >>> builder.add_conditional_edges(agent_b, {"loop": agent_a, "exit": agent_c})
@@ -65,7 +65,7 @@ class DiGraphBuilder:
     def _get_name(self, obj: Union[str, ChatAgent]) -> str:
         return obj if isinstance(obj, str) else obj.name
 
-    def add_node(self, agent: ChatAgent, activation: Literal["all", "any"] = "all") -> "AGGraphBuilder":
+    def add_node(self, agent: ChatAgent, activation: Literal["all", "any"] = "all") -> "DiGraphBuilder":
         """Add a node to the graph and register its agent."""
         name = agent.name
         if name not in self.nodes:
@@ -75,7 +75,7 @@ class DiGraphBuilder:
 
     def add_edge(
         self, source: Union[str, ChatAgent], target: Union[str, ChatAgent], condition: Optional[str] = None
-    ) -> "AGGraphBuilder":
+    ) -> "DiGraphBuilder":
         """Add a directed edge from source to target, optionally with a condition."""
         source_name = self._get_name(source)
         target_name = self._get_name(target)
@@ -90,13 +90,13 @@ class DiGraphBuilder:
 
     def add_conditional_edges(
         self, source: Union[str, ChatAgent], condition_to_target: Dict[str, Union[str, ChatAgent]]
-    ) -> "AGGraphBuilder":
+    ) -> "DiGraphBuilder":
         """Add multiple conditional edges from a source node based on condition strings."""
         for condition, target in condition_to_target.items():
             self.add_edge(source, target, condition)
         return self
 
-    def set_entry_point(self, name: Union[str, ChatAgent]) -> "AGGraphBuilder":
+    def set_entry_point(self, name: Union[str, ChatAgent]) -> "DiGraphBuilder":
         """Set the default start node of the graph."""
         node_name = self._get_name(name)
         if node_name not in self.nodes:

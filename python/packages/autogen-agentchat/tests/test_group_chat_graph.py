@@ -13,7 +13,7 @@ from autogen_agentchat.conditions import MaxMessageTermination
 from autogen_agentchat.messages import BaseChatMessage, ChatMessage, MessageFactory, TextMessage
 from autogen_agentchat.messages import BaseTextChatMessage as TextChatMessage
 from autogen_agentchat.teams import (
-    AGGraphBuilder,
+    DiGraphBuilder,
     DiGraphGroupChat,
     MessageFilterAgent,
     MessageFilterConfig,
@@ -1191,7 +1191,7 @@ async def test_message_filter_agent_loop_graph_visibility(runtime: AgentRuntime 
 def test_add_node() -> None:
     client = ReplayChatCompletionClient(["response"])
     agent = AssistantAgent("A", model_client=client)
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(agent)
 
     assert "A" in builder.nodes
@@ -1204,7 +1204,7 @@ def test_add_edge() -> None:
     a = AssistantAgent("A", model_client=client)
     b = AssistantAgent("B", model_client=client)
 
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b)
     builder.add_edge(a, b)
 
@@ -1218,7 +1218,7 @@ def test_add_conditional_edges() -> None:
     b = AssistantAgent("B", model_client=client)
     c = AssistantAgent("C", model_client=client)
 
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_conditional_edges(a, {"yes": b, "no": c})
 
@@ -1233,7 +1233,7 @@ def test_add_conditional_edges() -> None:
 def test_set_entry_point() -> None:
     client = ReplayChatCompletionClient(["ok"])
     a = AssistantAgent("A", model_client=client)
-    builder = AGGraphBuilder().add_node(a).set_entry_point(a)
+    builder = DiGraphBuilder().add_node(a).set_entry_point(a)
     graph = builder.build()
 
     assert graph.default_start_node == "A"
@@ -1245,7 +1245,7 @@ def test_build_graph_validation() -> None:
     b = AssistantAgent("B", model_client=client)
     c = AssistantAgent("C", model_client=client)
 
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_edge("A", "B").add_edge("B", "C")
     builder.set_entry_point("A")
@@ -1263,7 +1263,7 @@ def test_build_fan_out() -> None:
     b = AssistantAgent("B", model_client=client)
     c = AssistantAgent("C", model_client=client)
 
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_edge(a, b).add_edge(a, c)
     builder.set_entry_point(a)
@@ -1279,7 +1279,7 @@ def test_build_parallel_join() -> None:
     b = AssistantAgent("B", model_client=client)
     c = AssistantAgent("C", model_client=client)
 
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c, activation="all")
     builder.add_edge(a, c).add_edge(b, c)
     builder.set_entry_point(a)
@@ -1297,7 +1297,7 @@ def test_build_conditional_loop() -> None:
     b = AssistantAgent("B", model_client=client)
     c = AssistantAgent("C", model_client=client)
 
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_edge(a, b)
     builder.add_conditional_edges(b, {"loop": a, "exit": c})
@@ -1315,7 +1315,7 @@ async def test_graph_builder_sequential_execution(runtime: AgentRuntime | None) 
     b = _EchoAgent("B", description="Echo B")
     c = _EchoAgent("C", description="Echo C")
 
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_edge(a, b).add_edge(b, c)
 
@@ -1337,7 +1337,7 @@ async def test_graph_builder_fan_out(runtime: AgentRuntime | None) -> None:
     b = _EchoAgent("B", description="Echo B")
     c = _EchoAgent("C", description="Echo C")
 
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_edge(a, b).add_edge(a, c)
 
@@ -1360,7 +1360,7 @@ async def test_graph_builder_conditional_execution(runtime: AgentRuntime | None)
     b = _EchoAgent("B", description="Echo B")
     c = _EchoAgent("C", description="Echo C")
 
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_conditional_edges(a, {"yes": b, "no": c})
 
@@ -1386,7 +1386,7 @@ async def test_graph_builder_with_filter_agent(runtime: AgentRuntime | None) -> 
         filter=MessageFilterConfig(per_source=[PerSourceFilter(source="user", position="last", count=1)]),
     )
 
-    builder = AGGraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(filter_agent)
 
     team = DiGraphGroupChat(
