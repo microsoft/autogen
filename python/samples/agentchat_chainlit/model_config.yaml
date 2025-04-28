@@ -2,3 +2,4 @@
 provider: autogen_ext.models.openai.OpenAIChatCompletionClient
 config:
   model: gpt-4o
+  api_key: REPLACE_WITH_YOUR_API_KEY
