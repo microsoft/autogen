@@ -152,14 +152,14 @@ class DiGraph(BaseModel):
         self._has_cycles = self.has_cycles_with_exit()
 
 
-class AGGraphManagerState(BaseGroupChatManagerState):
+class GraphManagerState(BaseGroupChatManagerState):
     """Tracks active execution state for DAG-based execution."""
 
     active_nodes: List[str] = []  # Currently executing nodes
-    type: str = "AGGraphManagerState"
+    type: str = "GraphManagerState"
 
 
-class AGGraphManager(BaseGroupChatManager):
+class GraphManager(BaseGroupChatManager):
     """Manages execution of agents using a Directed Graph execution model."""
 
     def __init__(
@@ -377,7 +377,7 @@ class AGGraphManager(BaseGroupChatManager):
 
 class _StopAgent(BaseChatAgent):
     def __init__(self) -> None:
-        super().__init__(_DIGRAPH_STOP_AGENT_NAME, "Agent that terminates the AGGraph.")
+        super().__init__(_DIGRAPH_STOP_AGENT_NAME, "Agent that terminates the Graph.")
 
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
@@ -390,8 +390,8 @@ class _StopAgent(BaseChatAgent):
         pass
 
 
-class AGGraphConfig(BaseModel):
-    """The declarative configuration for AGGraph."""
+class GraphConfig(BaseModel):
+    """The declarative configuration for Graph."""
 
     participants: List[ComponentModel]
     termination_condition: ComponentModel | None = None
@@ -399,7 +399,7 @@ class AGGraphConfig(BaseModel):
     graph: DiGraph  # The execution graph for agents
 
 
-class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
+class Graph(BaseGroupChat, Component[GraphConfig]):
     """A team that runs a group chat following a Directed Graph execution pattern.
 
     This group chat executes agents based on a directed graph (DiGraph) structure,
@@ -417,10 +417,10 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
     that eventually exits the loop.
 
     .. note::
-        Use the `AGGraphBuilder` class to create a `DiGraph` easily. It provides a fluent API
+        Use the `GraphBuilder` class to create a `DiGraph` easily. It provides a fluent API
         for adding nodes and edges, setting entry points, and validating the graph structure.
-        See the `AGGraphBuilder` documentation for more details.
-        The `AGGraph` class is designed to be used with the `AGGraphBuilder` for creating complex workflows.
+        See the `GraphBuilder` documentation for more details.
+        The `Graph` class is designed to be used with the `GraphBuilder` for creating complex workflows.
 
     .. warning::
         This is an experimental feature, and the API will change in the future releases.
@@ -454,7 +454,7 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
                     }
                 )
 
-                team = AGGraph(
+                team = Graph(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(5),
@@ -478,7 +478,7 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
                     }
                 )
 
-                team = AGGraph(
+                team = Graph(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(5),
@@ -504,7 +504,7 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
                     }
                 )
 
-                team = AGGraph(
+                team = Graph(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(5),
@@ -534,7 +534,7 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
                     }
                 )
 
-                team = AGGraph(
+                team = Graph(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(10),
@@ -543,8 +543,8 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
 
     """
 
-    component_config_schema = AGGraphConfig
-    component_provider_override = "autogen_agentchat.teams.AGGraph"
+    component_config_schema = GraphConfig
+    component_provider_override = "autogen_agentchat.teams.Graph"
 
     def __init__(
         self,
@@ -566,8 +566,8 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
         participants = [stop_agent] + participants
         super().__init__(
             participants,
-            group_chat_manager_name="AGGraphManager",
-            group_chat_manager_class=AGGraphManager,
+            group_chat_manager_name="GraphManager",
+            group_chat_manager_class=GraphManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
             runtime=runtime,
@@ -587,11 +587,11 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
-    ) -> Callable[[], AGGraphManager]:
+    ) -> Callable[[], GraphManager]:
         """Creates the factory method for initializing the DiGraph-based chat manager."""
 
-        def _factory() -> AGGraphManager:
-            return AGGraphManager(
+        def _factory() -> GraphManager:
+            return GraphManager(
                 name=name,
                 group_topic_type=group_topic_type,
                 output_topic_type=output_topic_type,
@@ -607,11 +607,11 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
 
         return _factory
 
-    def _to_config(self) -> AGGraphConfig:
+    def _to_config(self) -> GraphConfig:
         """Converts the instance into a configuration object."""
         participants = [participant.dump_component() for participant in self._participants]
         termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
-        return AGGraphConfig(
+        return GraphConfig(
             participants=participants,
             termination_condition=termination_condition,
             max_turns=self._max_turns,
@@ -619,7 +619,7 @@ class AGGraph(BaseGroupChat, Component[AGGraphConfig]):
         )
 
     @classmethod
-    def _from_config(cls, config: AGGraphConfig) -> Self:
+    def _from_config(cls, config: GraphConfig) -> Self:
         """Reconstructs an instance from a configuration object."""
         participants = [ChatAgent.load_component(participant) for participant in config.participants]
         termination_condition = (
