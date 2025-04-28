@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import warnings
-from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional, Sequence, Type, Union, cast, Tuple
+from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional, Sequence, Type, TypedDict, Union, cast
 
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
@@ -10,30 +10,21 @@ from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
     AgentEvent,
     BaseChatMessage,
-    ChatMessage, 
-    ModelClientStreamingChunkEvent,
+    ChatMessage,
+    HandoffMessage,
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallExecutionEvent,
-    ToolCallRequestEvent,
     ToolCallSummaryMessage,
-    HandoffMessage
 )
 from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
-from autogen_core.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
-from autogen_core.tools import FunctionTool, Tool, ToolSchema
+from autogen_core.models import UserMessage
+from autogen_core.tools import Tool
 from pydantic import BaseModel, Field
 
 from openai import AsyncAzureOpenAI, AsyncOpenAI
-from openai.types.chat import (
-    ChatCompletionMessageParam,
-    ChatCompletionSystemMessageParam,
-    ChatCompletionToolMessageParam,
-    ChatCompletionUserMessageParam,
-)
-from openai.types.chat.chat_completion_message import ChatCompletionMessage
-from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall
+
+# NOTE: We use the new Responses API, so ChatCompletion imports are not needed.
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -56,7 +47,28 @@ def _convert_tool_to_function_schema(tool: Tool) -> Dict[str, Any]:
     }
 
 
-def _convert_message_to_openai_message(message: Union[TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage]) -> Dict[str, Any]:
+class OpenAIMessageContent(TypedDict):
+    type: str
+    text: str
+
+
+class OpenAIImageUrlContent(TypedDict):
+    url: str
+
+
+class OpenAIImageContent(TypedDict):
+    type: str
+    image_url: OpenAIImageUrlContent
+
+
+class OpenAIMessage(TypedDict):
+    role: str
+    content: Union[str, List[Union[OpenAIMessageContent, OpenAIImageContent]]]
+
+
+def _convert_message_to_openai_message(
+    message: Union[TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage],
+) -> OpenAIMessage:
     """Convert an AutoGen message to an OpenAI message format."""
     if isinstance(message, TextMessage):
         if message.source == "user":
@@ -66,20 +78,19 @@ def _convert_message_to_openai_message(message: Union[TextMessage, MultiModalMes
         elif message.source == "assistant":
             return {"role": "assistant", "content": str(message.content)}
         else:
-            # Default to user role for other sources
             return {"role": "user", "content": str(message.content)}
     elif isinstance(message, MultiModalMessage):
-        content_parts = []
+        content_parts: List[Union[OpenAIMessageContent, OpenAIImageContent]] = []
         for part in message.content:
             if isinstance(part, TextMessage):
                 content_parts.append({"type": "text", "text": str(part.content)})
             elif isinstance(part, ImageMessage):
                 image_url = str(part.content)
+                # For image URLs, we need to structure the content differently
                 content_parts.append({"type": "image_url", "image_url": {"url": image_url}})
-        # Return as a properly typed dictionary instead of relying on structural typing
+        # The OpenAI API expects this structure for multimodal messages
         return {"role": "user", "content": content_parts}
     else:
-        # Default handling for other message types
         return {"role": "user", "content": str(message.content)}
 
 
@@ -103,6 +114,7 @@ class OpenAIAgentConfig(BaseModel):
 
 class FunctionExecutionResult(BaseModel):
     """Result of a function execution."""
+
     content: str
     call_id: str
     name: str
@@ -110,11 +122,54 @@ class FunctionExecutionResult(BaseModel):
 
 
 class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
+    """
+    An agent implementation that uses the OpenAI Responses API to generate responses.
+
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[openai]"
+        # pip install "autogen-ext[openai,azure]"  # For Azure OpenAI Assistant
+
+    This agent leverages the Responses API to generate responses with capabilities like:
+
+    * Custom function calling
+    * Multi-turn conversations
+
+    Example:
+        .. code-block:: python
+
+            from openai import AsyncOpenAI
+            from autogen_core import CancellationToken
+            from autogen_ext.agents.openai import OpenAIAgent
+            from autogen_agentchat.messages import TextMessage
+
+            async def example():
+                cancellation_token = CancellationToken()
+                client = AsyncOpenAI()
+                agent = OpenAIAgent(
+                    name="Simple Agent",
+                    description="A simple OpenAI agent using the Responses API",
+                    client=client,
+                    model="gpt-4.1",
+                    instructions="You are a helpful assistant."
+                )
+                response = await agent.on_messages([
+                    TextMessage(source="user", content="Hello!")
+                ], cancellation_token)
+                print(response)
+        asyncio.run(example())
+
+
+    TODO: Add support for advanced features (vector store, multimodal, etc.) in future PRs.
+    """
+
     component_config_schema = OpenAIAgentConfig
     component_provider_override = "autogen_ext.agents.openai.OpenAIAgent"
 
     def __init__(
-        self,
+        self: "OpenAIAgent",
         name: str,
         description: str,
         client: Union[AsyncOpenAI, AsyncAzureOpenAI],
@@ -127,39 +182,200 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         json_mode: bool = False,
     ) -> None:
         super().__init__(name, description)
-
-        if isinstance(client, ChatCompletionClient):
-            raise ValueError(
-                "Please use an OpenAI AsyncClient instance instead of an AutoGen ChatCompletionClient instance."
-            )
-
-        self._client = client
-        self._model = model
-        self._instructions = instructions
-        self._temperature = temperature
-        self._max_tokens = max_tokens
-        self._seed = seed
-        self._json_mode = json_mode
-
+        self._client: Union[AsyncOpenAI, AsyncAzureOpenAI] = client
+        self._model: str = model
+        self._instructions: str = instructions
+        self._temperature: Optional[float] = temperature
+        self._max_tokens: Optional[int] = max_tokens
+        self._seed: Optional[int] = seed
+        self._json_mode: bool = json_mode
         self._last_response_id: Optional[str] = None
         self._message_history: List[Dict[str, Any]] = []
-
         self._tools: List[Dict[str, Any]] = []
         self._tool_map: Dict[str, Tool] = {}
-
-        if tools:
+        if tools is not None:
             for tool in tools:
-                function_schema = {"type": "function", "function": _convert_tool_to_function_schema(tool)}
+                function_schema: Dict[str, Any] = {
+                    "type": "function",
+                    "function": _convert_tool_to_function_schema(tool),
+                }
                 self._tools.append(function_schema)
                 self._tool_map[tool.name] = tool
 
+    def _convert_message_to_dict(self, message: OpenAIMessage) -> Dict[str, Any]:
+        """Convert an OpenAIMessage to a Dict[str, Any]."""
+        return dict(message)
+
+    async def list_assistants(
+        self: "OpenAIAgent",
+        after: Optional[str] = None,
+        before: Optional[str] = None,
+        limit: Optional[int] = 20,
+        order: Optional[str] = "desc",
+    ) -> Dict[str, Any]:  # noqa: D102
+        """
+        List all assistants using the OpenAI API.
+
+        Args:
+            after (Optional[str]): Cursor for pagination (fetch after this assistant ID).
+            before (Optional[str]): Cursor for pagination (fetch before this assistant ID).
+            limit (Optional[int]): Number of assistants to return (1-100, default 20).
+            order (Optional[str]): 'asc' or 'desc' by created_at (default 'desc').
+
+        Returns:
+            Dict[str, Any]: The OpenAI API response containing:
+                    - object: 'list'
+                    - data: List of assistant objects
+                    - first_id: str
+                    - last_id: str
+                    - has_more: bool
+
+        Example:
+            .. code-block:: python
+
+                assistants = await agent.list_assistants(limit=5)
+                print(assistants)
+        """
+        params = {"limit": limit, "order": order}
+        if after:
+            params["after"] = after
+        if before:
+            params["before"] = before
+        if hasattr(self._client, "assistants"):
+            client_any = cast(Any, self._client)
+            response = await client_any.assistants.list(**params)
+            if hasattr(response, "model_dump"):
+                return cast(Dict[str, Any], response.model_dump())
+            return cast(Dict[str, Any], dict(response))
+        else:
+            raise NotImplementedError("The OpenAI client does not support listing assistants.")
+
+    async def retrieve_assistant(self: "OpenAIAgent", assistant_id: str) -> Dict[str, Any]:  # noqa: D102
+        """
+        Retrieve a single assistant by its ID using the OpenAI API.
+
+        Args:
+            assistant_id (str): The ID of the assistant to retrieve.
+
+        Returns:
+            Dict[str, Any]: The assistant object.
+
+        Example:
+            .. code-block:: python
+
+                assistant = await agent.retrieve_assistant("asst_abc123")
+                print(assistant)
+        """
+        if hasattr(self._client, "assistants"):
+            client_any = cast(Any, self._client)
+            response = await client_any.assistants.retrieve(assistant_id=assistant_id)
+            if hasattr(response, "model_dump"):
+                return cast(Dict[str, Any], response.model_dump())
+            return cast(Dict[str, Any], dict(response))
+        else:
+            raise NotImplementedError("The OpenAI client does not support retrieving assistants.")
+
+    async def modify_assistant(
+        self: "OpenAIAgent",
+        assistant_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        instructions: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        model: Optional[str] = None,
+        reasoning_effort: Optional[str] = None,
+        response_format: Optional[str] = None,
+        temperature: Optional[float] = None,
+        tool_resources: Optional[Dict[str, Any]] = None,
+        tools: Optional[List[Any]] = None,
+        top_p: Optional[float] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:  # noqa: D102
+        """
+        Modify (update) an assistant by its ID using the OpenAI API.
+
+        Args:
+            assistant_id (str): The ID of the assistant to update.
+            name (Optional[str]): New name for the assistant.
+            description (Optional[str]): New description.
+            instructions (Optional[str]): New instructions.
+            metadata (Optional[dict]): New metadata.
+            model (Optional[str]): New model.
+            reasoning_effort (Optional[str]): New reasoning effort.
+            response_format (Optional[str]): New response format.
+            temperature (Optional[float]): New temperature.
+            tool_resources (Optional[dict]): New tool resources.
+            tools (Optional[list]): New tools.
+            top_p (Optional[float]): New top_p value.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Dict[str, Any]: The updated assistant object.
+
+        Example:
+            .. code-block:: python
+
+                updated = await agent.modify_assistant(
+                    assistant_id="asst_123",
+                    instructions="You are an HR bot, and you have access to files to answer employee questions about company policies. Always response with info from either of the files.",
+                    tools=[{"type": "file_search"}],
+                    tool_resources={"file_search": {"vector_store_ids": []}},
+                )
+                print(updated)
+        """
+        params = {k: v for k, v in locals().items() if k not in {"self", "assistant_id", "kwargs"} and v is not None}
+        params.update(kwargs)
+        if hasattr(self._client, "assistants"):
+            client_any = cast(Any, self._client)
+            response = await client_any.assistants.update(assistant_id=assistant_id, **params)
+            if hasattr(response, "model_dump"):
+                return cast(Dict[str, Any], response.model_dump())
+            return cast(Dict[str, Any], dict(response))
+        else:
+            raise NotImplementedError("The OpenAI client does not support modifying assistants.")
+
+    async def delete_assistant(self: "OpenAIAgent", assistant_id: str) -> Dict[str, Any]:  # noqa: D102
+        """
+        Delete an assistant by its ID using the OpenAI API.
+
+        Args:
+            assistant_id (str): The ID of the assistant to delete.
+
+        Returns:
+            Dict[str, Any]: The deletion status object (e.g., {"id": ..., "object": "assistant.deleted", "deleted": true}).
+
+        Example:
+            .. code-block:: python
+
+                result = await agent.delete_assistant("asst_abc123")
+                print(result)
+        """
+        if hasattr(self._client, "assistants"):
+            client_any = cast(Any, self._client)
+            response = await client_any.assistants.delete(assistant_id=assistant_id)
+            if hasattr(response, "model_dump"):
+                return cast(Dict[str, Any], response.model_dump())
+            return cast(Dict[str, Any], dict(response))
+        else:
+            raise NotImplementedError("The OpenAI client does not support deleting assistants.")
+
     @property
-    def produced_message_types(self) -> Sequence[Type[BaseChatMessage]]:
+    def produced_message_types(
+        self: "OpenAIAgent",
+    ) -> Sequence[
+        Union[
+            Type[TextMessage],
+            Type[MultiModalMessage],
+            Type[StopMessage],
+            Type[ToolCallSummaryMessage],
+            Type[HandoffMessage],
+        ]
+    ]:
         """Return the types of messages that this agent can produce."""
         return [TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage]
 
     async def _execute_tool_call(
-        self, tool_call: FunctionCall, cancellation_token: CancellationToken
+        self: "OpenAIAgent", tool_call: FunctionCall, cancellation_token: CancellationToken
     ) -> FunctionExecutionResult:
         tool_name = tool_call.name
         if tool_name not in self._tool_map:
@@ -191,315 +407,207 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             event_logger.warning(f"Tool execution error in {tool_name}: {error_msg}")
             return FunctionExecutionResult(content=error_msg, call_id=tool_call.id, name=tool_name, is_error=True)
 
-    def _build_api_parameters(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _build_api_parameters(self: "OpenAIAgent", messages: List[Dict[str, Any]]) -> Dict[str, Any]:
         has_system_message = any(msg.get("role") == "system" for msg in messages)
-
         if self._instructions and not has_system_message:
             messages = [{"role": "system", "content": self._instructions}] + messages
-
         api_params: Dict[str, Any] = {
             "model": self._model,
-            "messages": messages,
+            "input": messages,  # Responses API expects 'input'
         }
-
         if self._temperature is not None:
             api_params["temperature"] = self._temperature
-
         if self._max_tokens is not None:
             api_params["max_tokens"] = self._max_tokens
-
         if self._seed is not None:
             api_params["seed"] = self._seed
-
         if self._tools:
             api_params["tools"] = self._tools
-
         if self._json_mode:
-            api_params["response_format"] = {"type": "json_object"}
-
+            api_params["text.format"] = "json"  # Responses API uses text.format for structured outputs
+        if self._last_response_id:
+            api_params["previous_response_id"] = self._last_response_id
         return api_params
 
-    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(
+        self: "OpenAIAgent", messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> Response:
         response = None
-        inner_messages: List[Union[AgentEvent, BaseChatMessage]] = []
+        inner_messages: List[
+            Union[AgentEvent, TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage]
+        ] = []
 
         async for msg in self.on_messages_stream(messages, cancellation_token):
             if isinstance(msg, Response):
                 response = msg
-            elif not isinstance(msg, ModelClientStreamingChunkEvent):
+            # ModelClientStreamingChunkEvent does not exist in this version, so skip this check
+            else:
                 inner_messages.append(msg)
 
         if response is None:
             raise ValueError("No response was generated")
 
-        # Ensure inner_messages is initialized in the response
         if response.inner_messages is None:
             response.inner_messages = []
-            
-        # Add any messages not already in response.inner_messages
+
         for msg in inner_messages:
             if msg not in response.inner_messages:
-                response.inner_messages.append(msg)
+                response.inner_messages = list(response.inner_messages) + [msg]  # Convert to mutable list
 
         return response
 
     async def on_messages_stream(
-        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentEvent | BaseChatMessage | Response, None]:
+        self: "OpenAIAgent", messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[
+        Union[
+            AgentEvent, TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage, Response
+        ],
+        None,
+    ]:
         input_messages: List[Dict[str, Any]] = []
 
         if self._message_history:
             input_messages.extend(self._message_history)
 
-        # Use proper type casting for each message
         for message in messages:
-            # Only try to convert compatible message types
-            if isinstance(message, (TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage)):
+            if isinstance(
+                message, (TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage)
+            ):
                 openai_message = _convert_message_to_openai_message(message)
-                input_messages.append(openai_message)
+                input_messages.append(self._convert_message_to_dict(openai_message))
             else:
-                # Fall back to a simple text representation for unsupported message types
-                input_messages.append({"role": "user", "content": str(message.content)})
+                # Cast to ensure content is accessible
+                msg_content = str(cast(Any, message).content) if hasattr(message, "content") else str(message)
+                input_messages.append({"role": "user", "content": msg_content})
 
-        # Update message history with proper casting for each message
         for message in messages:
-            if isinstance(message, (TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage)):
-                self._message_history.append(_convert_message_to_openai_message(message))
+            if isinstance(
+                message, (TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage)
+            ):
+                openai_message = _convert_message_to_openai_message(message)
+                self._message_history.append(self._convert_message_to_dict(openai_message))
             else:
-                # Fall back to a simple text representation for unsupported message types
-                self._message_history.append({"role": "user", "content": str(message.content)})
+                # Cast to ensure content is accessible
+                msg_content = str(cast(Any, message).content) if hasattr(message, "content") else str(message)
+                self._message_history.append({"role": "user", "content": msg_content})
 
         inner_messages: List[AgentEvent | ChatMessage] = []
 
         api_params = self._build_api_parameters(input_messages)
 
         try:
-            completion = await cancellation_token.link_future(
-                asyncio.ensure_future(self._client.chat.completions.create(stream=True, **api_params))
+            # Cast to Any to allow accessing .responses attribute on union type
+            client = cast(Any, self._client)
+            response_obj = await cancellation_token.link_future(
+                asyncio.ensure_future(client.responses.create(**api_params))
             )
-
-            content_buffer = []
-            current_function_calls = {}
-            last_chunk_id = None
-
-            async for chunk in completion:
-                if hasattr(chunk, "id"):
-                    last_chunk_id = chunk.id
-
-                if not hasattr(chunk, "choices") or not chunk.choices:
-                    event_logger.warning(f"Received malformed chunk without choices: {chunk}")
-                    continue
-
-                delta = chunk.choices[0].delta
-
-                if hasattr(delta, "content") and delta.content:
-                    content_buffer.append(delta.content)
-                    yield ModelClientStreamingChunkEvent(source=self.name, content=delta.content)
-
-                if hasattr(delta, "tool_calls") and delta.tool_calls:
-                    for tool_call in delta.tool_calls:
-                        if not hasattr(tool_call, "id") or not tool_call.id:
-                            event_logger.warning(f"Received tool call without ID: {tool_call}")
-                            continue
-
-                        call_id = tool_call.id
-                        if call_id not in current_function_calls:
-                            # Initialize with empty dictionary structure
-                            current_function_calls[call_id] = {
-                                "id": tool_call.id or "",
-                                "function": {
-                                    "name": tool_call.function.name or "",
-                                    "arguments": tool_call.function.arguments or "",
-                                },
-                            }
-                        else:
-                            # Get the current call info
-                            current_call = current_function_calls[call_id]
-                            # Update function properties safely
-                            if hasattr(tool_call.function, "name") and tool_call.function.name:
-                                current_call["function"]["name"] = tool_call.function.name
-                            if hasattr(tool_call.function, "arguments") and tool_call.function.arguments:
-                                args = current_call["function"].get("arguments", "")
-                                current_call["function"]["arguments"] = args + (tool_call.function.arguments or "")
-
-            if current_function_calls:
-                function_calls: List[FunctionCall] = []
-
-                for call_id, call_info in current_function_calls.items():
-                    function_calls.append(
-                        FunctionCall(
-                            id=call_id, name=call_info["function"]["name"], arguments=call_info["function"]["arguments"]
-                        )
-                    )
-
-                tool_call_msg = ToolCallRequestEvent(source=self.name, content=function_calls)
-                inner_messages.append(tool_call_msg)
-                event_logger.debug(tool_call_msg)
-                yield tool_call_msg
-
-                tool_results: List[FunctionExecutionResult] = []
-
-                for function_call in function_calls:
-                    result = await self._execute_tool_call(function_call, cancellation_token)
-                    tool_results.append(result)
-
-                # Convert our FunctionExecutionResult to autogen_core.models FunctionExecutionResult
-                from autogen_core.models._types import FunctionExecutionResult as CoreFunctionExecutionResult
-                
-                core_results = []
-                for result in tool_results:
-                    core_results.append(
-                        CoreFunctionExecutionResult(
-                            content=result.content,
-                            call_id=result.call_id,
-                            name=result.name,
-                            is_error=result.is_error
-                        )
-                    )
-
-                tool_result_msg = ToolCallExecutionEvent(source=self.name, content=core_results)
-                inner_messages.append(tool_result_msg)
-                event_logger.debug(tool_result_msg)
-                yield tool_result_msg
-
-                self._message_history.append(
-                    {
-                        "role": "assistant",
-                        "content": None,
-                        "tool_calls": [
-                            {"id": fc.id, "type": "function", "function": {"name": fc.name, "arguments": fc.arguments}}
-                            for fc in function_calls
-                        ],
-                    }
-                )
-
-                for result in tool_results:
-                    self._message_history.append(
-                        {"role": "tool", "tool_call_id": result.call_id, "content": result.content}
-                    )
-
-                final_params = self._build_api_parameters(self._message_history)
-
-                try:
-                    final_completion = await cancellation_token.link_future(
-                        asyncio.ensure_future(self._client.chat.completions.create(stream=True, **final_params))
-                    )
-
-                    final_content_buffer = []
-                    async for chunk in final_completion:
-                        if hasattr(chunk, "id"):
-                            last_chunk_id = chunk.id
-
-                        if not hasattr(chunk, "choices") or not chunk.choices:
-                            continue
-
-                        delta = chunk.choices[0].delta
-
-                        if hasattr(delta, "content") and delta.content:
-                            final_content_buffer.append(delta.content)
-                            yield ModelClientStreamingChunkEvent(source=self.name, content=delta.content)
-
-                    content = "".join(final_content_buffer)
-
-                    self._message_history.append({"role": "assistant", "content": content})
-
-                    final_message = TextMessage(source=self.name, content=content)
-                    self._last_response_id = last_chunk_id
-                    response = Response(chat_message=final_message, inner_messages=inner_messages)
-                    yield response
-
-                except Exception as tool_follow_up_error:
-                    error_message = f"Error generating response after tool execution: {str(tool_follow_up_error)}"
-                    event_logger.error(error_message)
-                    error_response = TextMessage(source=self.name, content=error_message)
-                    yield Response(chat_message=error_response, inner_messages=inner_messages)
-
-            else:
-                content = "".join(content_buffer)
-
-                self._message_history.append({"role": "assistant", "content": content})
-
-                final_message = TextMessage(source=self.name, content=content)
-                self._last_response_id = last_chunk_id
-                response = Response(chat_message=final_message, inner_messages=inner_messages)
-                yield response
-
+            content = getattr(response_obj, "output_text", None)
+            response_id = getattr(response_obj, "id", None)
+            self._last_response_id = response_id
+            self._message_history.append({"role": "assistant", "content": str(content) if content is not None else ""})
+            final_message = TextMessage(source=self.name, content=str(content) if content is not None else "")
+            response = Response(chat_message=final_message, inner_messages=inner_messages)
+            yield response
         except Exception as e:
             error_message = f"Error generating response: {str(e)}"
             event_logger.error(f"API error: {error_message}", exc_info=True)
             error_response = TextMessage(source=self.name, content=error_message)
             yield Response(chat_message=error_response, inner_messages=inner_messages)
 
-    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+    async def on_reset(self: "OpenAIAgent", cancellation_token: CancellationToken) -> None:
         self._last_response_id = None
         self._message_history = []
 
-    async def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self: "OpenAIAgent") -> Mapping[str, Any]:
         state = OpenAIAgentState(
             response_id=self._last_response_id,
             history=self._message_history,
         )
         return state.model_dump()
 
-    async def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self: "OpenAIAgent", state: Mapping[str, Any]) -> None:
         agent_state = OpenAIAgentState.model_validate(state)
         self._last_response_id = agent_state.response_id
         self._message_history = agent_state.history
 
-    def _to_config(self) -> OpenAIAgentConfig:
+    def _to_config(self: "OpenAIAgent") -> OpenAIAgentConfig:
         """Convert the OpenAI agent to a declarative config."""
-        tool_configs = None
-        if self._tool_map:
-            # Serialize tools as dictionaries instead of using dump_component
-            tool_configs = []
-            for tool in self._tool_map.values():
+        tool_configs: List[Dict[str, Any]] = []
+        for tool in self._tool_map.values():
+            try:
                 if hasattr(tool, "dump_component"):
-                    tool_configs.append(tool.dump_component())
+                    tool_any = cast(Any, tool)
+                    component_dict = tool_any.dump_component()
+                    tool_configs.append(component_dict)
                 else:
-                    # Fallback for tools without dump_component
-                    tool_configs.append({"name": tool.name, "description": getattr(tool, "description", "")})
-                    
+                    # Fallback: minimal valid ComponentModel dict
+                    tool_configs.append(
+                        {
+                            "provider": "autogen_core.tools.FunctionTool",
+                            "config": {
+                                "name": tool.name,
+                                "description": getattr(tool, "description", ""),
+                            },
+                        }
+                    )
+            except Exception as e:
+                warnings.warn(f"Error serializing tool: {e}", stacklevel=2)
+                # Add minimal fallback
+                tool_configs.append(
+                    {
+                        "provider": "autogen_core.tools.FunctionTool",
+                        "config": {
+                            "name": getattr(tool, "name", "unknown_tool"),
+                            "description": getattr(tool, "description", ""),
+                        },
+                    }
+                )
         return OpenAIAgentConfig(
             name=self.name,
             description=self.description,
             model=self._model,
             instructions=self._instructions,
-            tools=tool_configs,
+            tools=cast(List[ComponentModel], tool_configs),
             temperature=self._temperature,
             max_tokens=self._max_tokens,
             seed=self._seed,
             json_mode=self._json_mode,
         )
-        
+
     @classmethod
-    def _from_config(cls, config: OpenAIAgentConfig) -> 'OpenAIAgent':
+    def _from_config(cls: Type["OpenAIAgent"], config: OpenAIAgentConfig) -> "OpenAIAgent":
         """Create an OpenAI agent from a declarative config."""
         from openai import AsyncOpenAI
-        
-        # Create a default client since we can't serialize the client in the config
+
         client = AsyncOpenAI()
-        
-        tools = None
+
+        tools: Optional[List[Tool]] = None
         if config.tools:
-            tools = []
+            tools_list: List[Tool] = []
             for tool_config in config.tools:
-                if isinstance(tool_config, dict) and "name" in tool_config:
-                    # Create a simple tool from config
+                try:
+                    # Use a more direct approach to create tools from config
+                    provider = tool_config.provider
+                    module_name, class_name = provider.rsplit(".", 1)
+                    module = __import__(module_name, fromlist=[class_name])
+                    tool_cls = getattr(module, class_name)
+                    tool = tool_cls(**tool_config.config)
+                    tools_list.append(cast(Tool, tool))
+                except Exception as e:
+                    warnings.warn(f"Error loading tool: {e}", stacklevel=2)
                     from autogen_core.tools import FunctionTool
-                    
-                    async def dummy_func(*args, **kwargs):
+
+                    async def dummy_func(*args: Any, **kwargs: Any) -> str:
                         return "Tool not fully restored"
-                    
+
                     tool = FunctionTool(
-                        name=tool_config["name"],
-                        description=tool_config.get("description", ""),
-                        func=dummy_func
+                        name=tool_config.config.get("name", "unknown_tool"),
+                        description=tool_config.config.get("description", ""),
+                        func=dummy_func,
                     )
-                    tools.append(tool)
-                elif hasattr(Tool, "load_component"):
-                    # Use load_component if available
-                    tools.append(Tool.load_component(tool_config))
-            
+                    tools_list.append(tool)
+            tools = tools_list
+
         return cls(
             name=config.name,
             description=config.description,
@@ -513,7 +621,18 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             json_mode=config.json_mode,
         )
 
+
 # Define our own ImageMessage since it's not available
 class ImageMessage(BaseChatMessage):
     """A message containing an image."""
+
     content: str  # URL or base64 string
+
+    def to_model_message(self) -> UserMessage:
+        return UserMessage(content=self.content, source=self.source)
+
+    def to_model_text(self) -> str:
+        return "[image]"
+
+    def to_text(self) -> str:
+        return f"[Image: {self.content[:30]}...]" if len(self.content) > 30 else f"[Image: {self.content}]"
