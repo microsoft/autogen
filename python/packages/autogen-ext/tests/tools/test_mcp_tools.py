@@ -16,6 +16,14 @@ from autogen_ext.tools.mcp import (
     mcp_server_tools,
 )
 from mcp import ClientSession, Tool
+from mcp.types import (
+    Annotations,
+    EmbeddedResource,
+    ImageContent,
+    TextContent,
+    TextResourceContents,
+)
+from pydantic.networks import AnyUrl
 
 
 @pytest.fixture
@@ -71,7 +79,13 @@ def mock_session() -> AsyncMock:
 def mock_tool_response() -> MagicMock:
     response = MagicMock()
     response.isError = False
-    response.content = {"result": "test_output"}
+    response.content = [
+        TextContent(
+            text="test_output",
+            type="text",
+            annotations=Annotations(audience=["user", "assistant"], priority=0.7),
+        ),
+    ]
     return response
 
 
@@ -183,6 +197,52 @@ async def test_adapter_from_server_params(
 
 
 @pytest.mark.asyncio
+async def test_adapter_from_server_params_with_return_value_as_string(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that adapter can be created from server parameters."""
+    mock_context = AsyncMock()
+    mock_context.__aenter__.return_value = mock_session
+    monkeypatch.setattr(
+        "autogen_ext.tools.mcp._base.create_mcp_server_session",
+        lambda *args, **kwargs: mock_context,  # type: ignore
+    )
+    mock_session.list_tools.return_value.tools = [sample_tool]
+
+    adapter = await StdioMcpToolAdapter.from_server_params(sample_server_params, "test_tool")
+
+    assert (
+        adapter.return_value_as_string(
+            [
+                TextContent(
+                    text="this is a sample text",
+                    type="text",
+                    annotations=Annotations(audience=["user", "assistant"], priority=0.7),
+                ),
+                ImageContent(
+                    data="this is a sample base64 encoded image",
+                    mimeType="image/png",
+                    type="image",
+                    annotations=None,
+                ),
+                EmbeddedResource(
+                    type="resource",
+                    resource=TextResourceContents(
+                        text="this is a sample text",
+                        uri=AnyUrl(url="http://example.com/test"),
+                    ),
+                    annotations=Annotations(audience=["user"], priority=0.3),
+                ),
+            ]
+        )
+        == '[{"type": "text", "text": "this is a sample text", "annotations": {"audience": ["user", "assistant"], "priority": 0.7}}, {"type": "image", "data": "this is a sample base64 encoded image", "mimeType": "image/png", "annotations": null}, {"type": "resource", "resource": {"uri": "http://example.com/test", "mimeType": null, "text": "this is a sample text"}, "annotations": {"audience": ["user"], "priority": 0.3}}]'
+    )
+
+
+@pytest.mark.asyncio
 async def test_adapter_from_factory(
     sample_tool: Tool,
     sample_server_params: StdioServerParams,
@@ -266,7 +326,16 @@ async def test_sse_tool_execution(
     mock_context = AsyncMock()
     mock_context.__aenter__.return_value = mock_sse_session
 
-    mock_sse_session.call_tool.return_value = MagicMock(isError=False, content={"result": "test_output"})
+    mock_sse_session.call_tool.return_value = MagicMock(
+        isError=False,
+        content=[
+            TextContent(
+                text="test_output",
+                type="text",
+                annotations=Annotations(audience=["user", "assistant"], priority=0.7),
+            ),
+        ],
+    )
 
     monkeypatch.setattr(
         "autogen_ext.tools.mcp._base.create_mcp_server_session",
@@ -421,7 +490,8 @@ async def test_mcp_server_github() -> None:
     assert len(tools) == 1
     tool = tools[0]
     result = await tool.run_json(
-        {"owner": "microsoft", "repo": "autogen", "path": "python", "branch": "main"}, CancellationToken()
+        {"owner": "microsoft", "repo": "autogen", "path": "python", "branch": "main"},
+        CancellationToken(),
     )
     assert result is not None
 
