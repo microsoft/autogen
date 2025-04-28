@@ -33,7 +33,7 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.models._model_client import ModelFamily
-from autogen_core.tools import BaseTool, FunctionTool
+from autogen_core.tools import BaseTool, FunctionTool, StaticWorkbench
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
 from pydantic import BaseModel, ValidationError
@@ -395,6 +395,124 @@ async def test_run_with_parallel_tools_with_empty_call_ids() -> None:
         "tool_use_agent",
         model_client=model_client,
         tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
+    )
+    await agent2.load_state(state)
+    state2 = await agent2.save_state()
+    assert state == state2
+
+
+@pytest.mark.asyncio
+async def test_run_with_workbench() -> None:
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            CreateResult(
+                finish_reason="stop",
+                content="Hello",
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            CreateResult(
+                finish_reason="stop",
+                content="TERMINATE",
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    workbench = StaticWorkbench(
+        [
+            FunctionTool(_pass_function, description="Pass"),
+            FunctionTool(_fail_function, description="Fail"),
+            FunctionTool(_echo_function, description="Echo"),
+        ]
+    )
+
+    # Test raise error when both workbench and tools are provided.
+    with pytest.raises(ValueError):
+        AssistantAgent(
+            "tool_use_agent",
+            model_client=model_client,
+            tools=[
+                _pass_function,
+                _fail_function,
+                FunctionTool(_echo_function, description="Echo"),
+            ],
+            workbench=workbench,
+        )
+
+    agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        workbench=workbench,
+        reflect_on_tool_use=True,
+    )
+    result = await agent.run(task="task")
+
+    # Make sure the create call was made with the correct parameters.
+    assert len(model_client.create_calls) == 2
+    llm_messages = model_client.create_calls[0]["messages"]
+    assert len(llm_messages) == 2
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
+    llm_messages = model_client.create_calls[1]["messages"]
+    assert len(llm_messages) == 4
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
+    assert isinstance(llm_messages[2], AssistantMessage)
+    assert isinstance(llm_messages[3], FunctionExecutionResultMessage)
+
+    assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].models_usage is None
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
+    assert result.messages[1].models_usage is not None
+    assert result.messages[1].models_usage.completion_tokens == 5
+    assert result.messages[1].models_usage.prompt_tokens == 10
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
+    assert result.messages[2].models_usage is None
+    assert isinstance(result.messages[3], TextMessage)
+    assert result.messages[3].content == "Hello"
+    assert result.messages[3].models_usage is not None
+    assert result.messages[3].models_usage.completion_tokens == 5
+    assert result.messages[3].models_usage.prompt_tokens == 10
+
+    # Test streaming.
+    model_client.reset()
+    index = 0
+    async for message in agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1
+
+    # Test state saving and loading.
+    state = await agent.save_state()
+    agent2 = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[
+            _pass_function,
+            _fail_function,
+            FunctionTool(_echo_function, description="Echo"),
+        ],
     )
     await agent2.load_state(state)
     state2 = await agent2.save_state()
