@@ -27,8 +27,8 @@ To run this sample, you will need:
 
 To run this sample, you will need to install the following packages:
 
-```shell
-
+```shell 
+pip install -U chainlit autogen-core autogen-ext[openai] pyyaml
 ```
 
 To use other model providers, you will need to install a different extra
@@ -45,8 +45,20 @@ you want to use. Use `model_config_template.yaml` as a template.
 
 The first sample demonstrate how to interact with a single AssistantAgent
 from the chat interface.
+Note: cd to the sample directory.
 
 ```shell
-chainlit run main.py
+chainlit run app_agent.py
 ```
 
+## Running the Team Sample
+
+The second sample demonstrate how to interact with a team of agents from the
+chat interface.
+
+```shell
+chainlit run app_team.py -h
+```
+
+There are two agents in the team: one is instructed to be generally helpful
+and the other one is instructed to be a critic and provide feedback. 
