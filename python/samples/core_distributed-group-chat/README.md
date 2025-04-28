@@ -10,7 +10,7 @@ This example runs a gRPC server using [GrpcWorkerAgentRuntimeHost](../../src/aut
 2. Install dependencies.
 
 ```bash
-pip install "autogen-ext[openai,azure,chainlit,rich,pyyaml]"
+pip install "autogen-ext[openai,azure,rich]>=0.4.5" chainlit pyyaml
 ```
 
 ### General Configuration
@@ -113,4 +113,3 @@ graph TD;
 ## TODO:
 
 - [ ] Properly handle chat restarts. It complains about group chat manager being already registered
-- [ ] Add streaming to the UI like [this example](https://docs.chainlit.io/advanced-features/streaming) when [this bug](https://github.com/microsoft/autogen/issues/4213) is resolved
