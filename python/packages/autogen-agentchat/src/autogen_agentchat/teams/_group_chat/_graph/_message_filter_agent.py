@@ -52,7 +52,7 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
     - If position is `None`, all messages from that source are included
 
     This agent is compatible with both direct message passing and team-based execution
-    such as `AGGraph`.
+    such as `Graph`.
 
     Example:
         >>> agent_a = MessageFilterAgent(
@@ -66,7 +66,7 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
         ...     ),
         ... )
 
-    Example use case with AGGraph:
+    Example use case with Graph:
         Suppose you have a looping multi-agent graph: A → B → A → B → C.
 
         You want:
