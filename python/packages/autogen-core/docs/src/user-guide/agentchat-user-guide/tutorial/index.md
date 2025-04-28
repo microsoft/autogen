@@ -52,9 +52,9 @@ Work with teams of agents and get started with {py:class}`~autogen_agentchat.tea
 
 :::{grid-item-card} {fas}`sitemap;pst-color-primary` Graphs (Workflow agents)
 :link: ./graph.html
-:link-alt: Graphs: Work with Directed Graph of agents and get started with autogen_agentchat.teams.AGGraph.
+:link-alt: Graphs: Work with Directed Graph of agents and get started with autogen_agentchat.teams.Graph.
 
-Work with teams of agents and get started with {py:class}`~autogen_agentchat.teams.AGGraph`.
+Work with teams of agents and get started with {py:class}`~autogen_agentchat.teams.Graph`.
 :::
 
 :::{grid-item-card} {fas}`person-chalkboard;pst-color-primary` Human-in-the-Loop
