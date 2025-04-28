@@ -119,7 +119,7 @@ async def test_unbounded_model_context() -> None:
 @pytest.mark.parametrize(
     "model_client,token_limit",
     [
-        (OpenAIChatCompletionClient(model="gpt-4o", temperature=0.0, api_key="test"), 30),
+        (OpenAIChatCompletionClient(model="gpt-4.1-nano", temperature=0.0, api_key="test"), 30),
         (OllamaChatCompletionClient(model="llama3.3"), 20),
     ],
     ids=["openai", "ollama"],
@@ -159,7 +159,7 @@ async def test_token_limited_model_context_with_token_limit(
 @pytest.mark.parametrize(
     "model_client",
     [
-        OpenAIChatCompletionClient(model="gpt-4o", temperature=0.0, api_key="test_key"),
+        OpenAIChatCompletionClient(model="gpt-4.1-nano", temperature=0.0, api_key="test_key"),
         OllamaChatCompletionClient(model="llama3.3"),
     ],
     ids=["openai", "ollama"],
@@ -182,7 +182,7 @@ async def test_token_limited_model_context_without_token_limit(model_client: Cha
 @pytest.mark.parametrize(
     "model_client,token_limit",
     [
-        (OpenAIChatCompletionClient(model="gpt-4o", temperature=0.0, api_key="test"), 60),
+        (OpenAIChatCompletionClient(model="gpt-4.1-nano", temperature=0.0, api_key="test"), 60),
         (OllamaChatCompletionClient(model="llama3.3"), 50),
     ],
     ids=["openai", "ollama"],
