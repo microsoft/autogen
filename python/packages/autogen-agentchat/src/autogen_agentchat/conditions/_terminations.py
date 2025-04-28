@@ -1,5 +1,6 @@
+import asyncio
 import time
-from typing import List, Sequence
+from typing import Awaitable, Callable, List, Sequence
 
 from autogen_core import Component
 from pydantic import BaseModel
@@ -152,6 +153,77 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
     @classmethod
     def _from_config(cls, config: TextMentionTerminationConfig) -> Self:
         return cls(text=config.text)
+
+
+class FunctionalTermination(TerminationCondition):
+    """Terminate the conversation if an functional expression is met.
+
+    Args:
+        func (Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], bool] | Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[bool]]): A function that takes a sequence of messages
+            and returns True if the termination condition is met, False otherwise.
+            The function can be a callable or an async callable.
+
+    Example:
+
+        .. code-block:: python
+
+            import asyncio
+            from typing import Sequence
+
+            from autogen_agentchat.conditions import FunctionalTermination
+            from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, StopMessage
+
+
+            def expression(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> bool:
+                # Check if the last message is a stop message
+                return isinstance(messages[-1], StopMessage)
+
+
+            termination = FunctionalTermination(expression)
+
+
+            async def run() -> None:
+                messages = [
+                    StopMessage(source="agent1", content="Stop"),
+                ]
+                result = await termination(messages)
+                print(result)
+
+
+            asyncio.run(run())
+
+        .. code-block:: text
+
+            StopMessage(source="FunctionalTermination", content="Functional termination condition met")
+
+    """
+
+    def __init__(
+        self,
+        func: Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], bool]
+        | Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[bool]],
+    ) -> None:
+        self._func = func
+        self._terminated = False
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+        if asyncio.iscoroutinefunction(self._func):
+            result = await self._func(messages)
+        else:
+            result = self._func(messages)
+        if result is True:
+            self._terminated = True
+            return StopMessage(content="Functional termination condition met", source="FunctionalTermination")
+        return None
+
+    async def reset(self) -> None:
+        self._terminated = False
 
 
 class TokenUsageTerminationConfig(BaseModel):
@@ -502,6 +574,7 @@ class FunctionCallTermination(TerminationCondition, Component[FunctionCallTermin
     """
 
     component_config_schema = FunctionCallTerminationConfig
+    component_provider_override = "autogen_agentchat.conditions.FunctionCallTermination"
     """The schema for the component configuration."""
 
     def __init__(self, function_name: str) -> None:

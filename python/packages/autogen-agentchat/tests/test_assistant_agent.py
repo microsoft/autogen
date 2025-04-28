@@ -33,10 +33,10 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.models._model_client import ModelFamily
-from autogen_core.tools import BaseTool, FunctionTool
+from autogen_core.tools import BaseTool, FunctionTool, StaticWorkbench
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -402,6 +402,124 @@ async def test_run_with_parallel_tools_with_empty_call_ids() -> None:
 
 
 @pytest.mark.asyncio
+async def test_run_with_workbench() -> None:
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            CreateResult(
+                finish_reason="stop",
+                content="Hello",
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            CreateResult(
+                finish_reason="stop",
+                content="TERMINATE",
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    workbench = StaticWorkbench(
+        [
+            FunctionTool(_pass_function, description="Pass"),
+            FunctionTool(_fail_function, description="Fail"),
+            FunctionTool(_echo_function, description="Echo"),
+        ]
+    )
+
+    # Test raise error when both workbench and tools are provided.
+    with pytest.raises(ValueError):
+        AssistantAgent(
+            "tool_use_agent",
+            model_client=model_client,
+            tools=[
+                _pass_function,
+                _fail_function,
+                FunctionTool(_echo_function, description="Echo"),
+            ],
+            workbench=workbench,
+        )
+
+    agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        workbench=workbench,
+        reflect_on_tool_use=True,
+    )
+    result = await agent.run(task="task")
+
+    # Make sure the create call was made with the correct parameters.
+    assert len(model_client.create_calls) == 2
+    llm_messages = model_client.create_calls[0]["messages"]
+    assert len(llm_messages) == 2
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
+    llm_messages = model_client.create_calls[1]["messages"]
+    assert len(llm_messages) == 4
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
+    assert isinstance(llm_messages[2], AssistantMessage)
+    assert isinstance(llm_messages[3], FunctionExecutionResultMessage)
+
+    assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].models_usage is None
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
+    assert result.messages[1].models_usage is not None
+    assert result.messages[1].models_usage.completion_tokens == 5
+    assert result.messages[1].models_usage.prompt_tokens == 10
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
+    assert result.messages[2].models_usage is None
+    assert isinstance(result.messages[3], TextMessage)
+    assert result.messages[3].content == "Hello"
+    assert result.messages[3].models_usage is not None
+    assert result.messages[3].models_usage.completion_tokens == 5
+    assert result.messages[3].models_usage.prompt_tokens == 10
+
+    # Test streaming.
+    model_client.reset()
+    index = 0
+    async for message in agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1
+
+    # Test state saving and loading.
+    state = await agent.save_state()
+    agent2 = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[
+            _pass_function,
+            _fail_function,
+            FunctionTool(_echo_function, description="Echo"),
+        ],
+    )
+    await agent2.load_state(state)
+    state2 = await agent2.save_state()
+    assert state == state2
+
+
+@pytest.mark.asyncio
 async def test_output_format() -> None:
     class AgentResponse(BaseModel):
         response: str
@@ -554,6 +672,7 @@ async def test_handoffs() -> None:
                 ],
                 usage=RequestUsage(prompt_tokens=42, completion_tokens=43),
                 cached=False,
+                thought="Calling handoff function",
             )
         ],
         model_info={
@@ -576,19 +695,95 @@ async def test_handoffs() -> None:
     )
     assert HandoffMessage in tool_use_agent.produced_message_types
     result = await tool_use_agent.run(task="task")
-    assert len(result.messages) == 4
+    assert len(result.messages) == 5
     assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].models_usage is None
-    assert isinstance(result.messages[1], ToolCallRequestEvent)
-    assert result.messages[1].models_usage is not None
-    assert result.messages[1].models_usage.completion_tokens == 43
-    assert result.messages[1].models_usage.prompt_tokens == 42
-    assert isinstance(result.messages[2], ToolCallExecutionEvent)
-    assert result.messages[2].models_usage is None
-    assert isinstance(result.messages[3], HandoffMessage)
-    assert result.messages[3].content == handoff.message
-    assert result.messages[3].target == handoff.target
+    assert isinstance(result.messages[1], ThoughtEvent)
+    assert result.messages[1].content == "Calling handoff function"
+    assert isinstance(result.messages[2], ToolCallRequestEvent)
+    assert result.messages[2].models_usage is not None
+    assert result.messages[2].models_usage.completion_tokens == 43
+    assert result.messages[2].models_usage.prompt_tokens == 42
+    assert isinstance(result.messages[3], ToolCallExecutionEvent)
     assert result.messages[3].models_usage is None
+    assert isinstance(result.messages[4], HandoffMessage)
+    assert result.messages[4].content == handoff.message
+    assert result.messages[4].target == handoff.target
+    assert result.messages[4].models_usage is None
+    assert result.messages[4].context == [AssistantMessage(content="Calling handoff function", source="tool_use_agent")]
+
+    # Test streaming.
+    model_client.reset()
+    index = 0
+    async for message in tool_use_agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+        index += 1
+
+
+@pytest.mark.asyncio
+async def test_handoff_with_tool_call_context() -> None:
+    handoff = Handoff(target="agent2")
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[
+                    FunctionCall(id="1", arguments=json.dumps({}), name=handoff.name),
+                    FunctionCall(id="2", arguments=json.dumps({"input": "task"}), name="_pass_function"),
+                ],
+                usage=RequestUsage(prompt_tokens=42, completion_tokens=43),
+                cached=False,
+                thought="Calling handoff function",
+            )
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    tool_use_agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[
+            _pass_function,
+            _fail_function,
+            FunctionTool(_echo_function, description="Echo"),
+        ],
+        handoffs=[handoff],
+    )
+    assert HandoffMessage in tool_use_agent.produced_message_types
+    result = await tool_use_agent.run(task="task")
+    assert len(result.messages) == 5
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].models_usage is None
+    assert isinstance(result.messages[1], ThoughtEvent)
+    assert result.messages[1].content == "Calling handoff function"
+    assert isinstance(result.messages[2], ToolCallRequestEvent)
+    assert result.messages[2].models_usage is not None
+    assert result.messages[2].models_usage.completion_tokens == 43
+    assert result.messages[2].models_usage.prompt_tokens == 42
+    assert isinstance(result.messages[3], ToolCallExecutionEvent)
+    assert result.messages[3].models_usage is None
+    assert isinstance(result.messages[4], HandoffMessage)
+    assert result.messages[4].content == handoff.message
+    assert result.messages[4].target == handoff.target
+    assert result.messages[4].models_usage is None
+    assert result.messages[4].context == [
+        AssistantMessage(
+            content=[FunctionCall(id="2", arguments=r'{"input": "task"}', name="_pass_function")],
+            source="tool_use_agent",
+            thought="Calling handoff function",
+        ),
+        FunctionExecutionResultMessage(
+            content=[FunctionExecutionResult(call_id="2", content="pass", is_error=False, name="_pass_function")]
+        ),
+    ]
 
     # Test streaming.
     model_client.reset()
@@ -1104,3 +1299,103 @@ async def test_model_client_stream_with_tool_calls() -> None:
         elif isinstance(message, ModelClientStreamingChunkEvent):
             chunks.append(message.content)
     assert "".join(chunks) == "Example response 2 to task"
+
+
+@pytest.mark.asyncio
+async def test_invalid_structured_output_format() -> None:
+    class AgentResponse(BaseModel):
+        response: str
+        status: str
+
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="stop",
+                content='{"response": "Hello"}',
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+        ]
+    )
+
+    agent = AssistantAgent(
+        name="assistant",
+        model_client=model_client,
+        output_content_type=AgentResponse,
+    )
+
+    with pytest.raises(ValidationError):
+        await agent.run()
+
+
+@pytest.mark.asyncio
+async def test_structured_message_factory_serialization() -> None:
+    class AgentResponse(BaseModel):
+        result: str
+        status: str
+
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="stop",
+                content=AgentResponse(result="All good", status="ok").model_dump_json(),
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            )
+        ]
+    )
+
+    agent = AssistantAgent(
+        name="structured_agent",
+        model_client=model_client,
+        output_content_type=AgentResponse,
+        output_content_type_format="{result} - {status}",
+    )
+
+    dumped = agent.dump_component()
+    restored_agent = AssistantAgent.load_component(dumped)
+    result = await restored_agent.run()
+
+    assert isinstance(result.messages[0], StructuredMessage)
+    assert result.messages[0].content.result == "All good"  # type: ignore[reportUnknownMemberType]
+    assert result.messages[0].content.status == "ok"  # type: ignore[reportUnknownMemberType]
+
+
+@pytest.mark.asyncio
+async def test_structured_message_format_string() -> None:
+    class AgentResponse(BaseModel):
+        field1: str
+        field2: str
+
+    expected = AgentResponse(field1="foo", field2="bar")
+
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="stop",
+                content=expected.model_dump_json(),
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            )
+        ]
+    )
+
+    agent = AssistantAgent(
+        name="formatted_agent",
+        model_client=model_client,
+        output_content_type=AgentResponse,
+        output_content_type_format="{field1} - {field2}",
+    )
+
+    result = await agent.run()
+
+    assert len(result.messages) == 1
+    message = result.messages[0]
+
+    # Check that it's a StructuredMessage with the correct content model
+    assert isinstance(message, StructuredMessage)
+    assert isinstance(message.content, AgentResponse)  # type: ignore[reportUnknownMemberType]
+    assert message.content == expected
+
+    # Check that the format_string was applied correctly
+    assert message.to_model_text() == "foo - bar"

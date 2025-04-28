@@ -28,6 +28,7 @@ class MagenticOneGroupChatConfig(BaseModel):
     max_turns: int | None = None
     max_stalls: int
     final_answer_prompt: str
+    emit_team_events: bool = False
 
 
 class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig]):
@@ -46,6 +47,10 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to 20.
         max_stalls (int, optional): The maximum number of stalls allowed before re-planning. Defaults to 3.
         final_answer_prompt (str, optional): The LLM prompt used to generate the final answer or response from the team's transcript. A default (sensible for GPT-4o class models) is provided.
+        custom_message_types (List[type[BaseAgentEvent | BaseChatMessage]], optional): A list of custom message types that will be used in the group chat.
+            If you are using custom message types or your agents produces custom message types, you need to specify them here.
+            Make sure your custom message types are subclasses of :class:`~autogen_agentchat.messages.BaseAgentEvent` or :class:`~autogen_agentchat.messages.BaseChatMessage`.
+        emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
 
     Raises:
         ValueError: In orchestration logic if progress ledger does not have required keys or if next speaker is not valid.
@@ -103,6 +108,8 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         runtime: AgentRuntime | None = None,
         max_stalls: int = 3,
         final_answer_prompt: str = ORCHESTRATOR_FINAL_ANSWER_PROMPT,
+        custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
+        emit_team_events: bool = False,
     ):
         super().__init__(
             participants,
@@ -111,6 +118,8 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             termination_condition=termination_condition,
             max_turns=max_turns,
             runtime=runtime,
+            custom_message_types=custom_message_types,
+            emit_team_events=emit_team_events,
         )
 
         # Validate the participants.
@@ -147,6 +156,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             self._final_answer_prompt,
             output_message_queue,
             termination_condition,
+            self._emit_team_events,
         )
 
     def _to_config(self) -> MagenticOneGroupChatConfig:
@@ -159,6 +169,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             max_turns=self._max_turns,
             max_stalls=self._max_stalls,
             final_answer_prompt=self._final_answer_prompt,
+            emit_team_events=self._emit_team_events,
         )
 
     @classmethod
@@ -175,4 +186,5 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             max_turns=config.max_turns,
             max_stalls=config.max_stalls,
             final_answer_prompt=config.final_answer_prompt,
+            emit_team_events=config.emit_team_events,
         )

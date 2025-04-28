@@ -32,7 +32,7 @@ from autogen_core.models import (
     ModelFamily,
     SystemMessage,
 )
-from autogen_core.tools import BaseTool, FunctionTool
+from autogen_core.tools import BaseTool, FunctionTool, StaticWorkbench, Workbench
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -46,6 +46,7 @@ from ..messages import (
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
     StructuredMessage,
+    StructuredMessageFactory,
     TextMessage,
     ThoughtEvent,
     ToolCallExecutionEvent,
@@ -65,6 +66,7 @@ class AssistantAgentConfig(BaseModel):
     name: str
     model_client: ComponentModel
     tools: List[ComponentModel] | None
+    workbench: ComponentModel | None = None
     handoffs: List[HandoffBase | str] | None = None
     model_context: ComponentModel | None = None
     memory: List[ComponentModel] | None = None
@@ -74,6 +76,7 @@ class AssistantAgentConfig(BaseModel):
     reflect_on_tool_use: bool
     tool_call_summary_format: str
     metadata: Dict[str, str] | None = None
+    structured_message_factory: ComponentModel | None = None
 
 
 class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
@@ -87,10 +90,20 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     the inner messages as they are created, and the :class:`~autogen_agentchat.base.Response`
     object as the last item before closing the generator.
 
+    The :meth:`BaseChatAgent.run` method returns a :class:`~autogen_agentchat.base.TaskResult`
+    containing the messages produced by the agent. In the list of messages,
+    :attr:`~autogen_agentchat.base.TaskResult.messages`,
+    the last message is the final response message.
+
+    The :meth:`BaseChatAgent.run_stream` method creates an async generator that produces
+    the inner messages as they are created, and the :class:`~autogen_agentchat.base.TaskResult`
+    object as the last item before closing the generator.
+
     .. attention::
 
         The caller must only pass the new messages to the agent on each call
-        to the :meth:`on_messages` or :meth:`on_messages_stream` method.
+        to the :meth:`on_messages`, :meth:`on_messages_stream`, :meth:`BaseChatAgent.run`,
+        or :meth:`BaseChatAgent.run_stream` methods.
         The agent maintains its state between calls to these methods.
         Do not pass the entire conversation history to the agent on each call.
 
@@ -166,6 +179,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client to use for inference.
         tools (List[BaseTool[Any, Any]  | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
+        workbench (Workbench | None, optional): The workbench to use for the agent.
+            Tools cannot be used when workbench is set and vice versa.
         handoffs (List[HandoffBase | str] | None, optional): The handoff configurations for the agent,
             allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
             The transfer is only executed when the team is in :class:`~autogen_agentchat.teams.Swarm`.
@@ -183,6 +198,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             This will be used with the model client to generate structured output.
             If this is set, the agent will respond with a :class:`~autogen_agentchat.messages.StructuredMessage` instead of a :class:`~autogen_agentchat.messages.TextMessage`
             in the final response, unless `reflect_on_tool_use` is `False` and a tool call is made.
+        output_content_type_format (str | None, optional): (Experimental) The format string used for the content of a :class:`~autogen_agentchat.messages.StructuredMessage` response.
         tool_call_summary_format (str, optional): The format string used to create the content for a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` response.
             The format string is used to format the tool call summary for every tool call result.
             Defaults to "{result}".
@@ -209,10 +225,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         .. code-block:: python
 
             import asyncio
-            from autogen_core import CancellationToken
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
 
 
             async def main() -> None:
@@ -222,10 +236,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 )
                 agent = AssistantAgent(name="assistant", model_client=model_client)
 
-                response = await agent.on_messages(
-                    [TextMessage(content="What is the capital of France?", source="user")], CancellationToken()
-                )
-                print(response)
+                result = await agent.run(task="Name two cities in North America.")
+                print(result)
 
 
             asyncio.run(main())
@@ -240,8 +252,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             import asyncio
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
-            from autogen_core import CancellationToken
 
 
             async def main() -> None:
@@ -255,9 +265,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     model_client_stream=True,
                 )
 
-                stream = agent.on_messages_stream(
-                    [TextMessage(content="Name two cities in North America.", source="user")], CancellationToken()
-                )
+                stream = agent.run_stream(task="Name two cities in North America.")
                 async for message in stream:
                     print(message)
 
@@ -266,27 +274,23 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         .. code-block:: text
 
-            source='assistant' models_usage=None content='Two' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' cities' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' in' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' North' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' America' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' are' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' New' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' York' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' City' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' in' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' the' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' United' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' States' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' and' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' Toronto' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' in' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' Canada' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content='.' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content=' TERMIN' type='ModelClientStreamingChunkEvent'
-            source='assistant' models_usage=None content='ATE' type='ModelClientStreamingChunkEvent'
-            Response(chat_message=TextMessage(source='assistant', models_usage=RequestUsage(prompt_tokens=0, completion_tokens=0), content='Two cities in North America are New York City in the United States and Toronto in Canada. TERMINATE', type='TextMessage'), inner_messages=[])
+            source='user' models_usage=None metadata={} content='Name two cities in North America.' type='TextMessage'
+            source='assistant' models_usage=None metadata={} content='Two' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' cities' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' in' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' North' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' America' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' are' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' New' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' York' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' City' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' and' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' Toronto' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content='.' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content=' TERMIN' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=None metadata={} content='ATE' type='ModelClientStreamingChunkEvent'
+            source='assistant' models_usage=RequestUsage(prompt_tokens=0, completion_tokens=0) metadata={} content='Two cities in North America are New York City and Toronto. TERMINATE' type='TextMessage'
+            messages=[TextMessage(source='user', models_usage=None, metadata={}, content='Name two cities in North America.', type='TextMessage'), TextMessage(source='assistant', models_usage=RequestUsage(prompt_tokens=0, completion_tokens=0), metadata={}, content='Two cities in North America are New York City and Toronto. TERMINATE', type='TextMessage')] stop_reason=None
 
 
         **Example 3: agent with tools**
@@ -306,9 +310,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             import asyncio
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
             from autogen_agentchat.ui import Console
-            from autogen_core import CancellationToken
 
 
             async def get_current_time() -> str:
@@ -321,17 +323,50 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     # api_key = "your_openai_api_key"
                 )
                 agent = AssistantAgent(name="assistant", model_client=model_client, tools=[get_current_time])
-
-                await Console(
-                    agent.on_messages_stream(
-                        [TextMessage(content="What is the current time?", source="user")], CancellationToken()
-                    )
-                )
+                await Console(agent.run_stream(task="What is the current time?"))
 
 
             asyncio.run(main())
 
-        **Example 4: agent with structured output and tool**
+        **Example 4: agent with Model-Context Protocol (MCP) workbench**
+
+        The following example demonstrates how to create an assistant agent with
+        a model client and an :class:`~autogen_ext.tools.mcp.McpWorkbench` for
+        interacting with a Model-Context Protocol (MCP) server.
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench
+
+
+            async def main() -> None:
+                params = StdioServerParams(
+                    command="uvx",
+                    args=["mcp-server-fetch"],
+                    read_timeout_seconds=60,
+                )
+
+                # You can also use `start()` and `stop()` to manage the session.
+                async with McpWorkbench(server_params=params) as workbench:
+                    model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
+                    assistant = AssistantAgent(
+                        name="Assistant",
+                        model_client=model_client,
+                        workbench=workbench,
+                        reflect_on_tool_use=True,
+                    )
+                    await Console(
+                        assistant.run_stream(task="Go to https://github.com/microsoft/autogen and tell me what you see.")
+                    )
+
+
+            asyncio.run(main())
+
+        **Example 5: agent with structured output and tool**
 
         The following example demonstrates how to create an assistant agent with
         a model client configured to use structured output and a tool.
@@ -346,9 +381,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             from typing import Literal
 
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
             from autogen_agentchat.ui import Console
-            from autogen_core import CancellationToken
             from autogen_core.tools import FunctionTool
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from pydantic import BaseModel
@@ -386,7 +419,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
 
             async def main() -> None:
-                stream = agent.on_messages_stream([TextMessage(content="I am happy today!", source="user")], CancellationToken())
+                stream = agent.run_stream(task="I am happy today!")
                 await Console(stream)
 
 
@@ -401,7 +434,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             ---------- assistant ----------
             {"thoughts":"The user expresses a clear positive emotion by stating they are happy today, suggesting an upbeat mood.","response":"happy"}
 
-        **Example 5: agent with bounded model context**
+        **Example 6: agent with bounded model context**
 
         The following example shows how to use a
         :class:`~autogen_core.model_context.BufferedChatCompletionContext`
@@ -414,8 +447,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             import asyncio
 
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
-            from autogen_core import CancellationToken
             from autogen_core.model_context import BufferedChatCompletionContext
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
@@ -438,20 +469,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     system_message="You are a helpful assistant.",
                 )
 
-                response = await agent.on_messages(
-                    [TextMessage(content="Name two cities in North America.", source="user")], CancellationToken()
-                )
-                print(response.chat_message.content)  # type: ignore
+                result = await agent.run(task="Name two cities in North America.")
+                print(result.messages[-1].content)  # type: ignore
 
-                response = await agent.on_messages(
-                    [TextMessage(content="My favorite color is blue.", source="user")], CancellationToken()
-                )
-                print(response.chat_message.content)  # type: ignore
+                result = await agent.run(task="My favorite color is blue.")
+                print(result.messages[-1].content)  # type: ignore
 
-                response = await agent.on_messages(
-                    [TextMessage(content="Did I ask you any question?", source="user")], CancellationToken()
-                )
-                print(response.chat_message.content)  # type: ignore
+                result = await agent.run(task="Did I ask you any question?")
+                print(result.messages[-1].content)  # type: ignore
 
 
             asyncio.run(main())
@@ -462,7 +487,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             That's great! Blue is often associated with calmness and serenity. Do you have a specific shade of blue that you like, or any particular reason why it's your favorite?
             No, you didn't ask a question. I apologize for any misunderstanding. If you have something specific you'd like to discuss or ask, feel free to let me know!
 
-        **Example 6: agent with memory**
+        **Example 7: agent with memory**
 
         The following example shows how to use a list-based memory with the assistant agent.
         The memory is preloaded with some initial content.
@@ -474,8 +499,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             import asyncio
 
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
-            from autogen_core import CancellationToken
             from autogen_core.memory import ListMemory, MemoryContent
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
@@ -500,10 +523,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     system_message="You are a helpful assistant.",
                 )
 
-                response = await agent.on_messages(
-                    [TextMessage(content="One idea for a dinner.", source="user")], CancellationToken()
-                )
-                print(response.chat_message.content)  # type: ignore
+                result = await agent.run(task="What is a good dinner idea?")
+                print(result.messages[-1].content)  # type: ignore
 
 
             asyncio.run(main())
@@ -522,17 +543,15 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             Serve it with a side salad or some garlic bread to complete the meal! Enjoy your dinner!
 
-        **Example 7: agent with `o1-mini`**
+        **Example 8: agent with `o1-mini`**
 
         The following example shows how to use `o1-mini` model with the assistant agent.
 
         .. code-block:: python
 
             import asyncio
-            from autogen_core import CancellationToken
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.messages import TextMessage
 
 
             async def main() -> None:
@@ -543,10 +562,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 # The system message is not supported by the o1 series model.
                 agent = AssistantAgent(name="assistant", model_client=model_client, system_message=None)
 
-                response = await agent.on_messages(
-                    [TextMessage(content="What is the capital of France?", source="user")], CancellationToken()
-                )
-                print(response)
+                result = await agent.run(task="What is the capital of France?")
+                print(result.messages[-1].content)  # type: ignore
 
 
             asyncio.run(main())
@@ -558,7 +575,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             See `o1 beta limitations <https://platform.openai.com/docs/guides/reasoning#beta-limitations>`_ for more details.
 
 
-        **Example 8: agent using reasoning model with custom model context.**
+        **Example 9: agent using reasoning model with custom model context.**
 
         The following example shows how to use a reasoning model (DeepSeek R1) with the assistant agent.
         The model context is used to filter out the thought field from the assistant message.
@@ -625,6 +642,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client: ChatCompletionClient,
         *,
         tools: List[BaseTool[Any, Any] | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
+        workbench: Workbench | None = None,
         handoffs: List[HandoffBase | str] | None = None,
         model_context: ChatCompletionContext | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
@@ -635,6 +653,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use: bool | None = None,
         tool_call_summary_format: str = "{result}",
         output_content_type: type[BaseModel] | None = None,
+        output_content_type_format: str | None = None,
         memory: Sequence[Memory] | None = None,
         metadata: Dict[str, str] | None = None,
     ):
@@ -643,6 +662,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         self._model_client = model_client
         self._model_client_stream = model_client_stream
         self._output_content_type: type[BaseModel] | None = output_content_type
+        self._output_content_type_format = output_content_type_format
+        self._structured_message_factory: StructuredMessageFactory | None = None
+        if output_content_type is not None:
+            self._structured_message_factory = StructuredMessageFactory(
+                input_model=output_content_type, format_string=output_content_type_format
+            )
+
         self._memory = None
         if memory is not None:
             if isinstance(memory, list):
@@ -699,6 +725,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 f"Handoff names must be unique from tool names. "
                 f"Handoff names: {handoff_tool_names}; tool names: {tool_names}"
             )
+
+        if workbench is not None:
+            if self._tools:
+                raise ValueError("Tools cannot be used with a workbench.")
+            self._workbench = workbench
+        else:
+            self._workbench = StaticWorkbench(self._tools)
 
         if model_context is not None:
             self._model_context = model_context
@@ -763,7 +796,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_context = self._model_context
         memory = self._memory
         system_messages = self._system_messages
-        tools = self._tools
+        workbench = self._workbench
         handoff_tools = self._handoff_tools
         handoffs = self._handoffs
         model_client = self._model_client
@@ -771,6 +804,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use = self._reflect_on_tool_use
         tool_call_summary_format = self._tool_call_summary_format
         output_content_type = self._output_content_type
+        format_string = self._output_content_type_format
 
         # STEP 1: Add new user/handoff messages to the model context
         await self._add_messages_to_context(
@@ -795,7 +829,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=model_client_stream,
             system_messages=system_messages,
             model_context=model_context,
-            tools=tools,
+            workbench=workbench,
             handoff_tools=handoff_tools,
             agent_name=agent_name,
             cancellation_token=cancellation_token,
@@ -832,7 +866,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             agent_name=agent_name,
             system_messages=system_messages,
             model_context=model_context,
-            tools=tools,
+            workbench=workbench,
             handoff_tools=handoff_tools,
             handoffs=handoffs,
             model_client=model_client,
@@ -840,6 +874,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             reflect_on_tool_use=reflect_on_tool_use,
             tool_call_summary_format=tool_call_summary_format,
             output_content_type=output_content_type,
+            format_string=format_string,
         ):
             yield output_event
 
@@ -885,7 +920,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool,
         system_messages: List[SystemMessage],
         model_context: ChatCompletionContext,
-        tools: List[BaseTool[Any, Any]],
+        workbench: Workbench,
         handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         cancellation_token: CancellationToken,
@@ -897,13 +932,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         all_messages = await model_context.get_messages()
         llm_messages = cls._get_compatible_context(model_client=model_client, messages=system_messages + all_messages)
 
-        all_tools = tools + handoff_tools
+        tools = (await workbench.list_tools()) + handoff_tools
 
         if model_client_stream:
             model_result: Optional[CreateResult] = None
             async for chunk in model_client.create_stream(
                 llm_messages,
-                tools=all_tools,
+                tools=tools,
                 json_output=output_content_type,
                 cancellation_token=cancellation_token,
             ):
@@ -919,7 +954,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         else:
             model_result = await model_client.create(
                 llm_messages,
-                tools=all_tools,
+                tools=tools,
                 cancellation_token=cancellation_token,
                 json_output=output_content_type,
             )
@@ -934,7 +969,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         system_messages: List[SystemMessage],
         model_context: ChatCompletionContext,
-        tools: List[BaseTool[Any, Any]],
+        workbench: Workbench,
         handoff_tools: List[BaseTool[Any, Any]],
         handoffs: Dict[str, HandoffBase],
         model_client: ChatCompletionClient,
@@ -942,6 +977,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use: bool,
         tool_call_summary_format: str,
         output_content_type: type[BaseModel] | None,
+        format_string: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
         Handle final or partial responses from model_result, including tool calls, handoffs,
@@ -957,6 +993,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                         content=content,
                         source=agent_name,
                         models_usage=model_result.usage,
+                        format_string=format_string,
                     ),
                     inner_messages=inner_messages,
                 )
@@ -991,7 +1028,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             *[
                 cls._execute_tool_call(
                     tool_call=call,
-                    tools=tools,
+                    workbench=workbench,
                     handoff_tools=handoff_tools,
                     agent_name=agent_name,
                     cancellation_token=cancellation_token,
@@ -1096,6 +1133,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     )
                 )
                 handoff_context.append(FunctionExecutionResultMessage(content=tool_call_results))
+            elif model_result.thought:
+                # If no tool calls, but a thought exists, include it in the context
+                handoff_context.append(
+                    AssistantMessage(
+                        content=model_result.thought,
+                        source=agent_name,
+                    )
+                )
 
             # Return response for the first handoff
             return Response(
@@ -1215,32 +1260,16 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     @staticmethod
     async def _execute_tool_call(
         tool_call: FunctionCall,
-        tools: List[BaseTool[Any, Any]],
+        workbench: Workbench,
         handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         cancellation_token: CancellationToken,
     ) -> Tuple[FunctionCall, FunctionExecutionResult]:
         """Execute a single tool call and return the result."""
+        # Load the arguments from the tool call.
         try:
-            all_tools = tools + handoff_tools
-            if not all_tools:
-                raise ValueError("No tools are available.")
-            tool = next((t for t in all_tools if t.name == tool_call.name), None)
-            if tool is None:
-                raise ValueError(f"The tool '{tool_call.name}' is not available.")
-            arguments: Dict[str, Any] = json.loads(tool_call.arguments) if tool_call.arguments else {}
-            result = await tool.run_json(arguments, cancellation_token)
-            result_as_str = tool.return_value_as_string(result)
-            return (
-                tool_call,
-                FunctionExecutionResult(
-                    content=result_as_str,
-                    call_id=tool_call.id,
-                    is_error=False,
-                    name=tool_call.name,
-                ),
-            )
-        except Exception as e:
+            arguments = json.loads(tool_call.arguments)
+        except json.JSONDecodeError as e:
             return (
                 tool_call,
                 FunctionExecutionResult(
@@ -1250,6 +1279,39 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     name=tool_call.name,
                 ),
             )
+
+        # Check if the tool call is a handoff.
+        # TODO: consider creating a combined workbench to handle both handoff and normal tools.
+        for handoff_tool in handoff_tools:
+            if tool_call.name == handoff_tool.name:
+                # Run handoff tool call.
+                result = await handoff_tool.run_json(arguments, cancellation_token)
+                result_as_str = handoff_tool.return_value_as_string(result)
+                return (
+                    tool_call,
+                    FunctionExecutionResult(
+                        content=result_as_str,
+                        call_id=tool_call.id,
+                        is_error=False,
+                        name=tool_call.name,
+                    ),
+                )
+
+        # Handle normal tool call using workbench.
+        result = await workbench.call_tool(
+            name=tool_call.name,
+            arguments=arguments,
+            cancellation_token=cancellation_token,
+        )
+        return (
+            tool_call,
+            FunctionExecutionResult(
+                content=result.to_text(),
+                call_id=tool_call.id,
+                is_error=result.is_error,
+                name=tool_call.name,
+            ),
+        )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""
@@ -1277,13 +1339,11 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
 
-        if self._output_content_type:
-            raise ValueError("AssistantAgent with output_content_type does not support declarative config.")
-
         return AssistantAgentConfig(
             name=self.name,
             model_client=self._model_client.dump_component(),
             tools=[tool.dump_component() for tool in self._tools],
+            workbench=self._workbench.dump_component() if self._workbench else None,
             handoffs=list(self._handoffs.values()) if self._handoffs else None,
             model_context=self._model_context.dump_component(),
             memory=[memory.dump_component() for memory in self._memory] if self._memory else None,
@@ -1294,24 +1354,38 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=self._model_client_stream,
             reflect_on_tool_use=self._reflect_on_tool_use,
             tool_call_summary_format=self._tool_call_summary_format,
+            structured_message_factory=self._structured_message_factory.dump_component()
+            if self._structured_message_factory
+            else None,
             metadata=self._metadata,
         )
 
     @classmethod
     def _from_config(cls, config: AssistantAgentConfig) -> Self:
         """Create an assistant agent from a declarative config."""
+        if config.structured_message_factory:
+            structured_message_factory = StructuredMessageFactory.load_component(config.structured_message_factory)
+            format_string = structured_message_factory.format_string
+            output_content_type = structured_message_factory.ContentModel
+
+        else:
+            format_string = None
+            output_content_type = None
 
         return cls(
             name=config.name,
             model_client=ChatCompletionClient.load_component(config.model_client),
             tools=[BaseTool.load_component(tool) for tool in config.tools] if config.tools else None,
+            workbench=Workbench.load_component(config.workbench) if config.workbench else None,
             handoffs=config.handoffs,
-            model_context=None,
+            model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
             memory=[Memory.load_component(memory) for memory in config.memory] if config.memory else None,
             description=config.description,
             system_message=config.system_message,
             model_client_stream=config.model_client_stream,
             reflect_on_tool_use=config.reflect_on_tool_use,
             tool_call_summary_format=config.tool_call_summary_format,
+            output_content_type=output_content_type,
+            output_content_type_format=format_string,
             metadata=config.metadata,
         )
