@@ -236,6 +236,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             .. code-block:: python
 
                 import asyncio
+                from typing import Dict, Any
                 from autogen_ext.agents.openai import OpenAIAgent
                 from openai import AsyncOpenAI
 
@@ -284,6 +285,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             .. code-block:: python
 
                 import asyncio
+                from typing import Dict, Any
                 from autogen_ext.agents.openai import OpenAIAgent
                 from openai import AsyncOpenAI
 
@@ -354,6 +356,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             .. code-block:: python
 
                 import asyncio
+                from typing import Dict, Any
                 from autogen_ext.agents.openai import OpenAIAgent
                 from openai import AsyncOpenAI
 
@@ -404,6 +407,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             .. code-block:: python
 
                 import asyncio
+                from typing import Dict, Any
                 from autogen_ext.agents.openai import OpenAIAgent
                 from openai import AsyncOpenAI
 
