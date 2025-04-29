@@ -5,11 +5,11 @@ Each team inherits from the BaseGroupChat class.
 
 from ._group_chat._base_group_chat import BaseGroupChat
 from ._group_chat._graph import (
-    Graph,
-    GraphBuilder,
-    MessageFilterAgent,
-    MessageFilterConfig,
-    PerSourceFilter,
+    DiGraph,
+    DiGraphBuilder,
+    DiGraphEdge,
+    DiGraphNode,
+    GraphFlow,
 )
 from ._group_chat._magentic_one import MagenticOneGroupChat
 from ._group_chat._round_robin_group_chat import RoundRobinGroupChat
@@ -22,9 +22,9 @@ __all__ = [
     "SelectorGroupChat",
     "Swarm",
     "MagenticOneGroupChat",
-    "GraphBuilder",
-    "MessageFilterAgent",
-    "MessageFilterConfig",
-    "PerSourceFilter",
-    "Graph",
+    "DiGraphBuilder",
+    "DiGraph",
+    "DiGraphNode",
+    "DiGraphEdge",
+    "GraphFlow",
 ]

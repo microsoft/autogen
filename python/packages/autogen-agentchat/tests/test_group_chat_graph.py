@@ -7,17 +7,17 @@ import pytest_asyncio
 from autogen_agentchat.agents import (
     AssistantAgent,
     BaseChatAgent,
+    MessageFilterAgent,
+    MessageFilterConfig,
+    PerSourceFilter,
 )
 from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.conditions import MaxMessageTermination
 from autogen_agentchat.messages import BaseChatMessage, ChatMessage, MessageFactory, TextMessage
 from autogen_agentchat.messages import BaseTextChatMessage as TextChatMessage
 from autogen_agentchat.teams import (
-    Graph,
-    GraphBuilder,
-    MessageFilterAgent,
-    MessageFilterConfig,
-    PerSourceFilter,
+    DiGraphBuilder,
+    GraphFlow,
 )
 from autogen_agentchat.teams._group_chat._events import (  # type: ignore[attr-defined]
     BaseAgentEvent,
@@ -28,7 +28,7 @@ from autogen_agentchat.teams._group_chat._graph._digraph_group_chat import (
     DiGraph,
     DiGraphEdge,
     DiGraphNode,
-    GraphManager,
+    GraphFlowManager,
 )
 from autogen_core import AgentRuntime, CancellationToken, Component, SingleThreadedAgentRuntime
 from autogen_ext.models.replay import ReplayChatCompletionClient
@@ -274,7 +274,7 @@ def test_get_valid_target() -> None:
         name="A",
         edges=[DiGraphEdge(target="B", condition="approve"), DiGraphEdge(target="C", condition="reject")],
     )
-    manager = GraphManager.__new__(GraphManager)
+    manager = GraphFlowManager.__new__(GraphFlowManager)
 
     assert manager._get_valid_target(node, "please approve this") == "B"  # pyright: ignore[reportPrivateUsage]
     assert manager._get_valid_target(node, "i reject this") == "C"  # pyright: ignore[reportPrivateUsage]
@@ -291,7 +291,7 @@ def test_is_node_ready_all_and_any() -> None:
         }
     )
 
-    manager = GraphManager.__new__(GraphManager)
+    manager = GraphFlowManager.__new__(GraphFlowManager)
     manager._graph = graph  # pyright: ignore[reportPrivateUsage]
     manager._parents = graph.get_parents()  # pyright: ignore[reportPrivateUsage]
 
@@ -341,7 +341,7 @@ async def test_invalid_digraph_manager_cycle_without_termination() -> None:
         "autogen_agentchat.teams._group_chat._base_group_chat_manager.BaseGroupChatManager.__init__",
         return_value=None,
     ):
-        manager = GraphManager.__new__(GraphManager)
+        manager = GraphFlowManager.__new__(GraphFlowManager)
 
         with pytest.raises(ValueError, match="Graph must have at least one start node"):
             manager.__init__(  # type: ignore[misc]
@@ -360,7 +360,7 @@ async def test_invalid_digraph_manager_cycle_without_termination() -> None:
 
 
 @pytest.fixture
-def digraph_manager() -> Callable[..., GraphManager]:
+def digraph_manager() -> Callable[..., GraphFlowManager]:
     @patch(
         "autogen_agentchat.teams._group_chat._base_group_chat_manager.BaseGroupChatManager.__init__", return_value=None
     )
@@ -370,8 +370,8 @@ def digraph_manager() -> Callable[..., GraphManager]:
         active_nodes: Set[str] | None = None,
         thread: List[BaseAgentEvent | BaseChatMessage] | None = None,
         pending: Dict[str, List[str]] | None = None,
-    ) -> GraphManager:
-        manager = GraphManager.__new__(GraphManager)
+    ) -> GraphFlowManager:
+        manager = GraphFlowManager.__new__(GraphFlowManager)
         manager._graph = graph  # pyright: ignore[reportPrivateUsage]
         manager._parents = graph.get_parents()  # pyright: ignore[reportPrivateUsage]
         manager._start_nodes = graph.get_start_nodes()  # pyright: ignore[reportPrivateUsage]
@@ -390,7 +390,7 @@ def digraph_manager() -> Callable[..., GraphManager]:
 
 # -------------------- Test: Sequential Flow --------------------
 @pytest.mark.asyncio
-async def test_select_speakers_linear(digraph_manager: Callable[..., GraphManager]) -> None:
+async def test_select_speakers_linear(digraph_manager: Callable[..., GraphFlowManager]) -> None:
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
@@ -410,7 +410,7 @@ async def test_select_speakers_linear(digraph_manager: Callable[..., GraphManage
 
 
 @pytest.mark.asyncio
-async def test_select_speakers_parallel(digraph_manager: Callable[..., GraphManager]) -> None:
+async def test_select_speakers_parallel(digraph_manager: Callable[..., GraphFlowManager]) -> None:
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B"), DiGraphEdge(target="C")]),
@@ -429,7 +429,7 @@ async def test_select_speakers_parallel(digraph_manager: Callable[..., GraphMana
 
 # -------------------- Test: Conditional Path --------------------
 @pytest.mark.asyncio
-async def test_select_speakers_conditional(digraph_manager: Callable[..., GraphManager]) -> None:
+async def test_select_speakers_conditional(digraph_manager: Callable[..., GraphFlowManager]) -> None:
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(
@@ -448,7 +448,7 @@ async def test_select_speakers_conditional(digraph_manager: Callable[..., GraphM
 
 
 @pytest.mark.asyncio
-async def test_select_speakers_from_start_nodes(digraph_manager: Callable[..., GraphManager]) -> None:
+async def test_select_speakers_from_start_nodes(digraph_manager: Callable[..., GraphFlowManager]) -> None:
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[]),
@@ -462,7 +462,7 @@ async def test_select_speakers_from_start_nodes(digraph_manager: Callable[..., G
 
 
 @pytest.mark.asyncio
-async def test_select_speakers_termination(digraph_manager: Callable[..., GraphManager]) -> None:
+async def test_select_speakers_termination(digraph_manager: Callable[..., GraphFlowManager]) -> None:
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[]),
@@ -483,7 +483,7 @@ async def test_select_speakers_termination(digraph_manager: Callable[..., GraphM
 
 @pytest.mark.asyncio
 async def test_select_speakers_conditional_all_activation(
-    digraph_manager: Callable[..., GraphManager],
+    digraph_manager: Callable[..., GraphFlowManager],
 ) -> None:
     graph = DiGraph(
         nodes={
@@ -504,7 +504,7 @@ async def test_select_speakers_conditional_all_activation(
 
 @pytest.mark.asyncio
 async def test_select_speakers_conditional_any_activation(
-    digraph_manager: Callable[..., GraphManager],
+    digraph_manager: Callable[..., GraphFlowManager],
 ) -> None:
     graph = DiGraph(
         nodes={
@@ -583,7 +583,7 @@ async def test_digraph_group_chat_sequential_execution(runtime: AgentRuntime | N
     )
 
     # Create team using Graph
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c],
         graph=graph,
         runtime=runtime,
@@ -618,7 +618,7 @@ async def test_digraph_group_chat_parallel_fanout(runtime: AgentRuntime | None) 
         }
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c],
         graph=graph,
         runtime=runtime,
@@ -648,7 +648,7 @@ async def test_digraph_group_chat_parallel_join_all(runtime: AgentRuntime | None
         }
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c],
         graph=graph,
         runtime=runtime,
@@ -678,7 +678,7 @@ async def test_digraph_group_chat_parallel_join_any(runtime: AgentRuntime | None
         }
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c],
         graph=graph,
         runtime=runtime,
@@ -718,7 +718,7 @@ async def test_digraph_group_chat_multiple_start_nodes(runtime: AgentRuntime | N
         }
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b],
         graph=graph,
         runtime=runtime,
@@ -749,7 +749,7 @@ async def test_digraph_group_chat_disconnected_graph(runtime: AgentRuntime | Non
         }
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c, agent_d],
         graph=graph,
         runtime=runtime,
@@ -781,7 +781,7 @@ async def test_digraph_group_chat_conditional_branch(runtime: AgentRuntime | Non
         }
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c],
         graph=graph,
         runtime=runtime,
@@ -821,7 +821,7 @@ async def test_digraph_group_chat_loop_with_exit_condition(runtime: AgentRuntime
         default_start_node="A",
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c],
         graph=graph,
         runtime=runtime,
@@ -869,7 +869,7 @@ async def test_digraph_group_chat_parallel_join_any_1(runtime: AgentRuntime | No
         }
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c, agent_d],
         graph=graph,
         runtime=runtime,
@@ -911,7 +911,7 @@ async def test_digraph_group_chat_chained_parallel_join_any(runtime: AgentRuntim
         }
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c, agent_d, agent_e],
         graph=graph,
         runtime=runtime,
@@ -961,7 +961,7 @@ async def test_digraph_group_chat_multiple_conditional(runtime: AgentRuntime | N
         }
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c, agent_d],
         graph=graph,
         runtime=runtime,
@@ -1090,7 +1090,7 @@ async def test_message_filter_agent_in_digraph_group_chat(runtime: AgentRuntime 
         }
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[filtered],
         graph=graph,
         runtime=runtime,
@@ -1161,7 +1161,7 @@ async def test_message_filter_agent_loop_graph_visibility(runtime: AgentRuntime 
         default_start_node="A",
     )
 
-    team = Graph(
+    team = GraphFlow(
         participants=[agent_a, agent_b, agent_c],
         graph=graph,
         runtime=runtime,
@@ -1191,7 +1191,7 @@ async def test_message_filter_agent_loop_graph_visibility(runtime: AgentRuntime 
 def test_add_node() -> None:
     client = ReplayChatCompletionClient(["response"])
     agent = AssistantAgent("A", model_client=client)
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(agent)
 
     assert "A" in builder.nodes
@@ -1204,7 +1204,7 @@ def test_add_edge() -> None:
     a = AssistantAgent("A", model_client=client)
     b = AssistantAgent("B", model_client=client)
 
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b)
     builder.add_edge(a, b)
 
@@ -1218,7 +1218,7 @@ def test_add_conditional_edges() -> None:
     b = AssistantAgent("B", model_client=client)
     c = AssistantAgent("C", model_client=client)
 
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_conditional_edges(a, {"yes": b, "no": c})
 
@@ -1233,7 +1233,7 @@ def test_add_conditional_edges() -> None:
 def test_set_entry_point() -> None:
     client = ReplayChatCompletionClient(["ok"])
     a = AssistantAgent("A", model_client=client)
-    builder = GraphBuilder().add_node(a).set_entry_point(a)
+    builder = DiGraphBuilder().add_node(a).set_entry_point(a)
     graph = builder.build()
 
     assert graph.default_start_node == "A"
@@ -1245,7 +1245,7 @@ def test_build_graph_validation() -> None:
     b = AssistantAgent("B", model_client=client)
     c = AssistantAgent("C", model_client=client)
 
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_edge("A", "B").add_edge("B", "C")
     builder.set_entry_point("A")
@@ -1263,7 +1263,7 @@ def test_build_fan_out() -> None:
     b = AssistantAgent("B", model_client=client)
     c = AssistantAgent("C", model_client=client)
 
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_edge(a, b).add_edge(a, c)
     builder.set_entry_point(a)
@@ -1279,7 +1279,7 @@ def test_build_parallel_join() -> None:
     b = AssistantAgent("B", model_client=client)
     c = AssistantAgent("C", model_client=client)
 
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c, activation="all")
     builder.add_edge(a, c).add_edge(b, c)
     builder.set_entry_point(a)
@@ -1297,7 +1297,7 @@ def test_build_conditional_loop() -> None:
     b = AssistantAgent("B", model_client=client)
     c = AssistantAgent("C", model_client=client)
 
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_edge(a, b)
     builder.add_conditional_edges(b, {"loop": a, "exit": c})
@@ -1315,11 +1315,11 @@ async def test_graph_builder_sequential_execution(runtime: AgentRuntime | None) 
     b = _EchoAgent("B", description="Echo B")
     c = _EchoAgent("C", description="Echo C")
 
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_edge(a, b).add_edge(b, c)
 
-    team = Graph(
+    team = GraphFlow(
         participants=builder.get_participants(),
         graph=builder.build(),
         runtime=runtime,
@@ -1337,11 +1337,11 @@ async def test_graph_builder_fan_out(runtime: AgentRuntime | None) -> None:
     b = _EchoAgent("B", description="Echo B")
     c = _EchoAgent("C", description="Echo C")
 
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_edge(a, b).add_edge(a, c)
 
-    team = Graph(
+    team = GraphFlow(
         participants=builder.get_participants(),
         graph=builder.build(),
         runtime=runtime,
@@ -1360,11 +1360,11 @@ async def test_graph_builder_conditional_execution(runtime: AgentRuntime | None)
     b = _EchoAgent("B", description="Echo B")
     c = _EchoAgent("C", description="Echo C")
 
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(a).add_node(b).add_node(c)
     builder.add_conditional_edges(a, {"yes": b, "no": c})
 
-    team = Graph(
+    team = GraphFlow(
         participants=builder.get_participants(),
         graph=builder.build(),
         runtime=runtime,
@@ -1386,10 +1386,10 @@ async def test_graph_builder_with_filter_agent(runtime: AgentRuntime | None) -> 
         filter=MessageFilterConfig(per_source=[PerSourceFilter(source="user", position="last", count=1)]),
     )
 
-    builder = GraphBuilder()
+    builder = DiGraphBuilder()
     builder.add_node(filter_agent)
 
-    team = Graph(
+    team = GraphFlow(
         participants=builder.get_participants(),
         graph=builder.build(),
         runtime=runtime,

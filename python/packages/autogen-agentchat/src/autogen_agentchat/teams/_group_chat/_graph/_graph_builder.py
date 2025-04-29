@@ -5,9 +5,13 @@ from autogen_agentchat.base import ChatAgent
 from ._digraph_group_chat import DiGraph, DiGraphEdge, DiGraphNode
 
 
-class GraphBuilder:
+class DiGraphBuilder:
     """
-    A fluent builder for constructing `DiGraph` execution graphs used in `Graph`.
+    A fluent builder for constructing :class:`DiGraph` execution graphs used in :class:`GraphFlow`.
+
+    .. warning::
+
+        This is an experimental feature, and the API will change in the future releases.
 
     This utility provides a convenient way to programmatically build a graph of agent interactions,
     including complex execution flows such as:
@@ -65,7 +69,7 @@ class GraphBuilder:
     def _get_name(self, obj: Union[str, ChatAgent]) -> str:
         return obj if isinstance(obj, str) else obj.name
 
-    def add_node(self, agent: ChatAgent, activation: Literal["all", "any"] = "all") -> "GraphBuilder":
+    def add_node(self, agent: ChatAgent, activation: Literal["all", "any"] = "all") -> "DiGraphBuilder":
         """Add a node to the graph and register its agent."""
         name = agent.name
         if name not in self.nodes:
@@ -75,7 +79,7 @@ class GraphBuilder:
 
     def add_edge(
         self, source: Union[str, ChatAgent], target: Union[str, ChatAgent], condition: Optional[str] = None
-    ) -> "GraphBuilder":
+    ) -> "DiGraphBuilder":
         """Add a directed edge from source to target, optionally with a condition."""
         source_name = self._get_name(source)
         target_name = self._get_name(target)
@@ -90,13 +94,13 @@ class GraphBuilder:
 
     def add_conditional_edges(
         self, source: Union[str, ChatAgent], condition_to_target: Dict[str, Union[str, ChatAgent]]
-    ) -> "GraphBuilder":
+    ) -> "DiGraphBuilder":
         """Add multiple conditional edges from a source node based on condition strings."""
         for condition, target in condition_to_target.items():
             self.add_edge(source, target, condition)
         return self
 
-    def set_entry_point(self, name: Union[str, ChatAgent]) -> "GraphBuilder":
+    def set_entry_point(self, name: Union[str, ChatAgent]) -> "DiGraphBuilder":
         """Set the default start node of the graph."""
         node_name = self._get_name(name)
         if node_name not in self.nodes:
