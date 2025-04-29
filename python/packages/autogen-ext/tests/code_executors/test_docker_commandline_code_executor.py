@@ -2,6 +2,7 @@
 import asyncio
 import os
 import sys
+import shutil
 import tempfile
 from pathlib import Path
 from typing import AsyncGenerator, TypeAlias
@@ -47,9 +48,20 @@ async def executor_and_temp_dir(
 ExecutorFixture: TypeAlias = tuple[DockerCommandLineCodeExecutor, str]
 
 
+@pytest_asyncio.fixture(scope="function")  # type: ignore
+async def cleanup_temp_dir(executor_and_temp_dir: ExecutorFixture) -> AsyncGenerator[None, None]:
+    _executor, temp_dir = executor_and_temp_dir
+    for file in Path(temp_dir).iterdir():
+        if file.is_file():
+            file.unlink()
+        elif file.is_dir():
+            shutil.rmtree(file)
+    yield None
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_execute_code(executor_and_temp_dir: ExecutorFixture) -> None:
+async def test_execute_code(executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None) -> None:
     executor, _temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
 
@@ -97,7 +109,7 @@ async def test_execute_code(executor_and_temp_dir: ExecutorFixture) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_commandline_code_executor_timeout(executor_and_temp_dir: ExecutorFixture) -> None:
+async def test_commandline_code_executor_timeout(executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None) -> None:
     _executor, temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
@@ -110,7 +122,7 @@ async def test_commandline_code_executor_timeout(executor_and_temp_dir: Executor
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_commandline_code_executor_cancellation(executor_and_temp_dir: ExecutorFixture) -> None:
+async def test_commandline_code_executor_cancellation(executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None) -> None:
     _executor, temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
     # Write code that sleep for 10 seconds and then write "hello world!"
@@ -137,7 +149,7 @@ with open("hello.txt", "w") as f:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_invalid_relative_path(executor_and_temp_dir: ExecutorFixture) -> None:
+async def test_invalid_relative_path(executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None) -> None:
     executor, _temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
     code = """# filename: /tmp/test.py
@@ -152,7 +164,7 @@ print("hello world")
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_valid_relative_path(executor_and_temp_dir: ExecutorFixture) -> None:
+async def test_valid_relative_path(executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None) -> None:
     executor, temp_dir_str = executor_and_temp_dir
 
     cancellation_token = CancellationToken()
@@ -269,23 +281,23 @@ async def test_directory_not_initialized() -> None:
 
 
 @pytest.mark.asyncio
-async def test_error_wrong_path() -> None:
+@pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
+async def test_error_wrong_path(executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None) -> None:
     if not docker_tests_enabled():
         pytest.skip("Docker tests are disabled")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:
-            cancellation_token = CancellationToken()
-            code_blocks = [
-                CodeBlock(
-                    code="""with open("/nonexistent_dir/test.txt", "w") as f:
-                    f.write("hello world!")""",
-                    language="python",
-                )
-            ]
-            result = await executor.execute_code_blocks(code_blocks, cancellation_token)
-            assert result.exit_code != 0
-            assert "No such file or directory" in result.output
+    executor, _ = executor_and_temp_dir
+    cancellation_token = CancellationToken()
+    code_blocks = [
+        CodeBlock(
+            code="""with open("/nonexistent_dir/test.txt", "w") as f:
+            f.write("hello world!")""",
+            language="python",
+        )
+    ]
+    result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+    assert result.exit_code != 0
+    assert "No such file or directory" in result.output
 
 
 @pytest.mark.asyncio
@@ -364,7 +376,8 @@ async def test_delete_tmp_files() -> None:
 
 
 @pytest.mark.asyncio
-async def test_docker_commandline_code_executor_with_multiple_tasks() -> None:
+@pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
+async def test_docker_commandline_code_executor_with_multiple_tasks(executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None) -> None:
     if not docker_tests_enabled():
         pytest.skip("Docker tests are disabled")
 
@@ -382,6 +395,5 @@ async def test_docker_commandline_code_executor_with_multiple_tasks() -> None:
     def run_scenario_in_new_loop(executor_instance: DockerCommandLineCodeExecutor) -> None:
         asyncio.run(run_cancellation_scenario(executor_instance))
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:
-            await asyncio.get_running_loop().run_in_executor(None, run_scenario_in_new_loop, executor)
+    executor, _ = executor_and_temp_dir
+    await asyncio.get_running_loop().run_in_executor(None, run_scenario_in_new_loop, executor)
