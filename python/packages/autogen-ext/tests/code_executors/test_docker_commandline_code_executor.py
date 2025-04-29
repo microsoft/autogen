@@ -109,7 +109,9 @@ async def test_execute_code(executor_and_temp_dir: ExecutorFixture, cleanup_temp
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_commandline_code_executor_timeout(executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None) -> None:
+async def test_commandline_code_executor_timeout(
+    executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None
+) -> None:
     _executor, temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
@@ -122,7 +124,9 @@ async def test_commandline_code_executor_timeout(executor_and_temp_dir: Executor
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_commandline_code_executor_cancellation(executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None) -> None:
+async def test_commandline_code_executor_cancellation(
+    executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None
+) -> None:
     _executor, temp_dir = executor_and_temp_dir
     cancellation_token = CancellationToken()
     # Write code that sleep for 10 seconds and then write "hello world!"
@@ -372,7 +376,9 @@ async def test_delete_tmp_files() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("executor_and_temp_dir", ["docker"], indirect=True)
-async def test_docker_commandline_code_executor_with_multiple_tasks(executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None) -> None:
+async def test_docker_commandline_code_executor_with_multiple_tasks(
+    executor_and_temp_dir: ExecutorFixture, cleanup_temp_dir: None
+) -> None:
     if not docker_tests_enabled():
         pytest.skip("Docker tests are disabled")
 
