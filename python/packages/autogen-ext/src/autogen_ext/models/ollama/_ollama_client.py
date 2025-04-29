@@ -691,6 +691,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             logprobs=None,
+            raw_response=result,
             thought=thought,
         )
 
@@ -827,6 +828,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             logprobs=None,
+            raw_response=None,
             thought=thought,
         )
 

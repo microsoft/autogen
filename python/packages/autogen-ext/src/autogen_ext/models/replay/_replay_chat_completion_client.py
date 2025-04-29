@@ -176,7 +176,11 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
             _, output_token_count = self._tokenize(response)
             self._cur_usage = RequestUsage(prompt_tokens=prompt_token_count, completion_tokens=output_token_count)
             response = CreateResult(
-                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value
+                finish_reason="stop",
+                content=response,
+                usage=self._cur_usage,
+                cached=self._cached_bool_value,
+                raw_response=response,
             )
         else:
             self._cur_usage = RequestUsage(
@@ -221,7 +225,11 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
                 else:
                     yield token
             yield CreateResult(
-                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value
+                finish_reason="stop",
+                content=response,
+                usage=self._cur_usage,
+                cached=self._cached_bool_value,
+                raw_response=response,
             )
             self._update_total_usage()
         else:

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
@@ -125,3 +125,6 @@ class CreateResult(BaseModel):
     thought: Optional[str] = None
     """The reasoning text for the completion if available. Used for reasoning models
     and additional text content besides function calls."""
+
+    raw_response: Optional[Dict[str, Any]] = None
+    """Raw response from the model API, useful for custom field access."""

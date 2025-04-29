@@ -652,6 +652,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+            raw_response=result,
         )
 
         # Update usage statistics
@@ -869,6 +870,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             # Just text content
             content = "".join(text_content)
 
+        future: asyncio.Task[Message] = asyncio.ensure_future(
+            self._client.messages.create(**request_args)  # type: ignore
+        )
+
+        message_result: Message = cast(Message, await future)
+
         # Create the final result
         result = CreateResult(
             finish_reason=normalize_stop_reason(stop_reason),
@@ -876,6 +883,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+            raw_response=message_result,
         )
 
         # Emit the end event.

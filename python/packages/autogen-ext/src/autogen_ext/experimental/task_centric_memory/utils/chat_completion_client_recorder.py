@@ -141,6 +141,7 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
                 finish_reason=data.get("finish_reason", "stop"),
                 usage=data.get("usage", RequestUsage(prompt_tokens=0, completion_tokens=0)),
                 cached=True,
+                raw_response=data.get("raw_response", {"id": "mock-id", "provider": "replay"}),
             )
             return result
 

@@ -1,0 +1,24 @@
+[
+  {
+    "mode": "create",
+    "messages": [
+      {
+        "content": "Message 1",
+        "source": "User",
+        "type": "UserMessage"
+      }
+    ],
+    "response": {
+      "finish_reason": "stop",
+      "content": "Response to message 1",
+      "usage": {
+        "prompt_tokens": 2,
+        "completion_tokens": 4
+      },
+      "cached": true,
+      "logprobs": null,
+      "thought": null
+    },
+    "stream": []
+  }
+]

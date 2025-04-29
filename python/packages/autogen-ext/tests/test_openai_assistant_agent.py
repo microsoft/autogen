@@ -10,11 +10,19 @@ import aiofiles
 import pytest
 from autogen_agentchat.messages import BaseChatMessage, TextMessage, ToolCallRequestEvent
 from autogen_core import CancellationToken
+from autogen_core.models import UserMessage
 from autogen_core.tools._base import BaseTool, Tool
 from autogen_ext.agents.openai import OpenAIAssistantAgent
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from pydantic import BaseModel
+
+
+def fake_to_model_message(self):
+    return UserMessage(content=self.content, source=self.source)
+
+
+TextMessage.to_model_message = fake_to_model_message
 
 
 class QuestionType(str, Enum):
