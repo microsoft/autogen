@@ -255,17 +255,12 @@ async def test_docker_commandline_code_executor_extra_args() -> None:
 async def test_docker_commandline_code_executor_serialization() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = DockerCommandLineCodeExecutor(work_dir=temp_dir)
-        await executor.start()
 
         executor_config = executor.dump_component()
         loaded_executor = DockerCommandLineCodeExecutor.load_component(executor_config)
-        await loaded_executor.start()
 
         assert executor.bind_dir == loaded_executor.bind_dir
         assert executor.timeout == loaded_executor.timeout
-
-        await executor.stop()
-        await loaded_executor.stop()
 
 
 def test_invalid_timeout() -> None:
