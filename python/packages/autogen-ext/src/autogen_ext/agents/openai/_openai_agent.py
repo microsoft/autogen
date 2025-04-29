@@ -138,6 +138,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
     * Multi-turn conversations
 
     Example:
+
         .. code-block:: python
 
             from openai import AsyncOpenAI
@@ -159,10 +160,12 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     TextMessage(source="user", content="Hello!")
                 ], cancellation_token)
                 print(response)
+            
         asyncio.run(example())
 
-
+    
     TODO: Add support for advanced features (vector store, multimodal, etc.) in future PRs.
+
     """
 
     component_config_schema = OpenAIAgentConfig
