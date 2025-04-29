@@ -1,4 +1,4 @@
-from typing import List, cast
+from typing import List, Optional
 
 import asyncio
 import json
@@ -6,20 +6,13 @@ from dataclasses import dataclass
 from typing import List
 
 from autogen_core import (
-    AgentId,
     FunctionCall,
     MessageContext,
     RoutedAgent,
-    SingleThreadedAgentRuntime,
-    DefaultSubscription,
-    DefaultTopicId,
     default_subscription,
     message_handler,
     CancellationToken,
-    ClosureAgent,
-    ClosureContext,
-    TopicId,
-    TypeSubscription
+    TopicId
 )
 from autogen_core.models import (
     AssistantMessage,
@@ -32,9 +25,7 @@ from autogen_core.models import (
     FunctionExecutionResultMessage
 )
 
-from autogen_core.tools import FunctionTool, Tool
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_core.model_context import BufferedChatCompletionContext
+from autogen_core.tools import Tool
 
 @dataclass
 class Message:

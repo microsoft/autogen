@@ -1,22 +1,18 @@
-from typing import List, cast
+from typing import List, Optional, cast
 import chainlit as cl
 import yaml
 import uuid
 import string
 import asyncio
-from dataclasses import dataclass
 
 from autogen_core import (
     DefaultTopicId,
-    FunctionCall,
-    Image,
     MessageContext,
     RoutedAgent,
     SingleThreadedAgentRuntime,
     TopicId,
     TypeSubscription,
     message_handler,
-    CancellationToken,
     ClosureAgent,
     ClosureContext,
 )
@@ -28,10 +24,8 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_core.model_context import BufferedChatCompletionContext
 from pydantic import BaseModel
-from SimpleAssistantAgent import SimpleAssistantAgent, FinalResult
+from SimpleAssistantAgent import FinalResult
 
 class GroupChatMessage(BaseModel):
     body: UserMessage
@@ -190,7 +184,7 @@ async def start_chat() -> None:
     with open("model_config.yaml", "r") as f:
         model_config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(model_config)
-    context = BufferedChatCompletionContext(buffer_size=10)
+    # context = BufferedChatCompletionContext(buffer_size=10)
 
     runtime = SingleThreadedAgentRuntime()
     queue = asyncio.Queue[FinalResult]()

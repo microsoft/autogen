@@ -3,11 +3,9 @@ import chainlit as cl
 import yaml
 
 import asyncio
-from dataclasses import dataclass
 
 from autogen_core import (
     AgentId,
-    FunctionCall,
     MessageContext,
     SingleThreadedAgentRuntime,
     ClosureAgent,
@@ -21,7 +19,6 @@ from autogen_core.models import (
 )
 
 from autogen_core.tools import FunctionTool, Tool
-from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_core.model_context import BufferedChatCompletionContext
 from SimpleAssistantAgent import SimpleAssistantAgent, FinalResult 
 
