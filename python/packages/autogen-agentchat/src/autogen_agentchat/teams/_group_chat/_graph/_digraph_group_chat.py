@@ -27,7 +27,13 @@ _DIGRAPH_STOP_AGENT_MESSAGE = "Digraph execution is complete"
 
 
 class DiGraphEdge(BaseModel):
-    """Represents a directed edge in a DiGraph, with an optional execution condition."""
+    """Represents a directed edge in a :class:`DiGraph`, with an optional execution condition.
+
+    .. warning::
+
+        This is an experimental feature, and the API will change in the future releases.
+
+    """
 
     target: str  # Target node name
     condition: str | None = None  # Optional execution condition (trigger-based)
@@ -39,7 +45,13 @@ class DiGraphEdge(BaseModel):
 
 
 class DiGraphNode(BaseModel):
-    """Represents a node (agent) in the directed graph."""
+    """Represents a node (agent) in a :class:`DiGraph`, with its outgoing edges and activation type.
+
+    .. warning::
+
+        This is an experimental feature, and the API will change in the future releases.
+
+    """
 
     name: str  # Agent's name
     edges: List[DiGraphEdge] = []  # Outgoing edges
@@ -47,7 +59,14 @@ class DiGraphNode(BaseModel):
 
 
 class DiGraph(BaseModel):
-    """Defines a directed graph structure with nodes and edges."""
+    """Defines a directed graph structure with nodes and edges.
+    :class:`GraphFlow` uses this to determine execution order and conditions.
+
+    .. warning::
+
+        This is an experimental feature, and the API will change in the future releases.
+
+    """
 
     nodes: Dict[str, DiGraphNode]  # Node name → DiGraphNode mapping
     default_start_node: str | None = None  # Default start node name
@@ -152,14 +171,14 @@ class DiGraph(BaseModel):
         self._has_cycles = self.has_cycles_with_exit()
 
 
-class GraphManagerState(BaseGroupChatManagerState):
+class GraphFlowManagerState(BaseGroupChatManagerState):
     """Tracks active execution state for DAG-based execution."""
 
     active_nodes: List[str] = []  # Currently executing nodes
     type: str = "GraphManagerState"
 
 
-class GraphManager(BaseGroupChatManager):
+class GraphFlowManager(BaseGroupChatManager):
     """Manages execution of agents using a Directed Graph execution model."""
 
     def __init__(
@@ -377,7 +396,7 @@ class GraphManager(BaseGroupChatManager):
 
 class _StopAgent(BaseChatAgent):
     def __init__(self) -> None:
-        super().__init__(_DIGRAPH_STOP_AGENT_NAME, "Agent that terminates the Graph.")
+        super().__init__(_DIGRAPH_STOP_AGENT_NAME, "Agent that terminates the GraphFlow.")
 
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
@@ -390,8 +409,8 @@ class _StopAgent(BaseChatAgent):
         pass
 
 
-class GraphConfig(BaseModel):
-    """The declarative configuration for Graph."""
+class GraphFlowConfig(BaseModel):
+    """The declarative configuration for GraphFlow."""
 
     participants: List[ComponentModel]
     termination_condition: ComponentModel | None = None
@@ -399,16 +418,21 @@ class GraphConfig(BaseModel):
     graph: DiGraph  # The execution graph for agents
 
 
-class Graph(BaseGroupChat, Component[GraphConfig]):
+class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
     """A team that runs a group chat following a Directed Graph execution pattern.
 
-    This group chat executes agents based on a directed graph (DiGraph) structure,
+    .. warning::
+
+        This is an experimental feature, and the API will change in the future releases.
+
+    This group chat executes agents based on a directed graph (:class:`DiGraph`) structure,
     allowing complex workflows such as sequential execution, parallel fan-out,
     conditional branching, join patterns, and loops with explicit exit conditions.
 
     The execution order is determined by the edges defined in the `DiGraph`. Each node
     in the graph corresponds to an agent, and edges define the flow of messages between agents.
     Nodes can be configured to activate when:
+
         - **All** parent nodes have completed (activation="all") → default
         - **Any** parent node completes (activation="any")
 
@@ -417,13 +441,11 @@ class Graph(BaseGroupChat, Component[GraphConfig]):
     that eventually exits the loop.
 
     .. note::
-        Use the `GraphBuilder` class to create a `DiGraph` easily. It provides a fluent API
-        for adding nodes and edges, setting entry points, and validating the graph structure.
-        See the `GraphBuilder` documentation for more details.
-        The `Graph` class is designed to be used with the `GraphBuilder` for creating complex workflows.
 
-    .. warning::
-        This is an experimental feature, and the API will change in the future releases.
+        Use the :class:`DiGraphBuilder` class to create a :class:`DiGraph` easily. It provides a fluent API
+        for adding nodes and edges, setting entry points, and validating the graph structure.
+        See the :class:`DiGraphBuilder` documentation for more details.
+        The :class:`GraphFlow` class is designed to be used with the :class:`DiGraphBuilder` for creating complex workflows.
 
 
     Args:
@@ -437,114 +459,183 @@ class Graph(BaseGroupChat, Component[GraphConfig]):
 
     Examples:
 
-    **Sequential Flow: A → B → C**
+        **Sequential Flow: A → B → C**
 
         .. code-block:: python
 
+            import asyncio
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.conditions import MaxMessageTermination
+            from autogen_agentchat.teams import DiGraphBuilder, GraphFlow
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
             async def main():
-                agent_a = AssistantAgent("A", model_client=client)
-                agent_b = AssistantAgent("B", model_client=client)
-                agent_c = AssistantAgent("C", model_client=client)
+                # Initialize agents with OpenAI model clients.
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
+                agent_a = AssistantAgent("A", model_client=model_client, system_message="You are a helpful assistant.")
+                agent_b = AssistantAgent("B", model_client=model_client, system_message="Translate input to Chinese.")
+                agent_c = AssistantAgent("C", model_client=model_client, system_message="Translate input to English.")
 
-                graph = DiGraph(
-                    nodes={
-                        "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
-                        "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="C")]),
-                        "C": DiGraphNode(name="C", edges=[]),
-                    }
-                )
+                # Create a directed graph with sequential flow A -> B -> C.
+                builder = DiGraphBuilder()
+                builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
+                builder.add_edge(agent_a, agent_b).add_edge(agent_b, agent_c)
+                graph = builder.build()
 
-                team = Graph(
+                # Create a GraphFlow team with the directed graph.
+                team = GraphFlow(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(5),
                 )
-                await team.run(task="Run sequential flow")
 
-    **Parallel Fan-out: A → (B, C)**
+                # Run the team and print the events.
+                async for event in team.run_stream(task="Write a short story about a cat."):
+                    print(event)
+
+
+            asyncio.run(main())
+
+        **Parallel Fan-out: A → (B, C)**
 
         .. code-block:: python
 
+            import asyncio
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.conditions import MaxMessageTermination
+            from autogen_agentchat.teams import DiGraphBuilder, GraphFlow
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
             async def main():
-                agent_a = AssistantAgent("A", model_client=client)
-                agent_b = AssistantAgent("B", model_client=client)
-                agent_c = AssistantAgent("C", model_client=client)
+                # Initialize agents with OpenAI model clients.
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
+                agent_a = AssistantAgent("A", model_client=model_client, system_message="You are a helpful assistant.")
+                agent_b = AssistantAgent("B", model_client=model_client, system_message="Translate input to Chinese.")
+                agent_c = AssistantAgent("C", model_client=model_client, system_message="Translate input to Japanese.")
 
-                graph = DiGraph(
-                    nodes={
-                        "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B"), DiGraphEdge(target="C")]),
-                        "B": DiGraphNode(name="B", edges=[]),
-                        "C": DiGraphNode(name="C", edges=[]),
-                    }
-                )
+                # Create a directed graph with fan-out flow A -> (B, C).
+                builder = DiGraphBuilder()
+                builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
+                builder.add_edge(agent_a, agent_b).add_edge(agent_a, agent_c)
+                graph = builder.build()
 
-                team = Graph(
+                # Create a GraphFlow team with the directed graph.
+                team = GraphFlow(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(5),
                 )
-                await team.run(task="Run parallel fan-out")
 
-    **Conditional Branching: A → B (if 'yes') or C (if 'no')**
+                # Run the team and print the events.
+                async for event in team.run_stream(task="Write a short story about a cat."):
+                    print(event)
+
+
+            asyncio.run(main())
+
+        **Conditional Branching: A → B (if 'yes') or C (if 'no')**
 
         .. code-block:: python
 
+            import asyncio
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.conditions import MaxMessageTermination
+            from autogen_agentchat.teams import DiGraphBuilder, GraphFlow
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
             async def main():
-                agent_a = AssistantAgent("A", model_client=client)
-                agent_b = AssistantAgent("B", model_client=client)
-                agent_c = AssistantAgent("C", model_client=client)
-
-                graph = DiGraph(
-                    nodes={
-                        "A": DiGraphNode(
-                            name="A", edges=[DiGraphEdge(target="B", condition="yes"), DiGraphEdge(target="C", condition="no")]
-                        ),
-                        "B": DiGraphNode(name="B", edges=[]),
-                        "C": DiGraphNode(name="C", edges=[]),
-                    }
+                # Initialize agents with OpenAI model clients.
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
+                agent_a = AssistantAgent(
+                    "A",
+                    model_client=model_client,
+                    system_message="Detect if the input is in Chinese. If it is, say 'yes', else say 'no', and nothing else.",
                 )
+                agent_b = AssistantAgent("B", model_client=model_client, system_message="Translate input to English.")
+                agent_c = AssistantAgent("C", model_client=model_client, system_message="Translate input to Chinese.")
 
-                team = Graph(
+                # Create a directed graph with conditional branching flow A -> B ("yes"), A -> C ("no").
+                builder = DiGraphBuilder()
+                builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
+                builder.add_edge(agent_a, agent_b, condition="yes")
+                builder.add_edge(agent_a, agent_c, condition="no")
+                graph = builder.build()
+
+                # Create a GraphFlow team with the directed graph.
+                team = GraphFlow(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
                     termination_condition=MaxMessageTermination(5),
                 )
-                await team.run(task="Should I proceed?")
 
-    **Loop with exit condition: A → B → A (if 'loop'), B → C (if 'exit')**
+                # Run the team and print the events.
+                async for event in team.run_stream(task="AutoGen is a framework for building AI agents."):
+                    print(event)
+
+
+            asyncio.run(main())
+
+        **Loop with exit condition: A → B → C (if 'APPROVE') or A (if 'REJECT')**
 
         .. code-block:: python
 
-            async def main():
-                agent_a = AssistantAgent("A", model_client=client)
-                agent_b = AssistantAgent("B", model_client=client)
-                agent_c = AssistantAgent("C", model_client=client)
+            import asyncio
 
-                graph = DiGraph(
-                    nodes={
-                        "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
-                        "B": DiGraphNode(
-                            name="B",
-                            edges=[
-                                DiGraphEdge(target="A", condition="loop"),
-                                DiGraphEdge(target="C", condition="exit"),
-                            ],
-                        ),
-                        "C": DiGraphNode(name="C", edges=[]),
-                    }
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.conditions import MaxMessageTermination
+            from autogen_agentchat.teams import DiGraphBuilder, GraphFlow
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+            async def main():
+                # Initialize agents with OpenAI model clients.
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1")
+                agent_a = AssistantAgent(
+                    "A",
+                    model_client=model_client,
+                    system_message="You are a helpful assistant.",
+                )
+                agent_b = AssistantAgent(
+                    "B",
+                    model_client=model_client,
+                    system_message="Provide feedback on the input, if your feedback has been addressed, "
+                    "say 'APPROVE', else say 'REJECT' and provide a reason.",
+                )
+                agent_c = AssistantAgent(
+                    "C", model_client=model_client, system_message="Translate the final product to Korean."
                 )
 
-                team = Graph(
+                # Create a loop graph with conditional exit: A -> B -> C ("APPROVE"), B -> A ("REJECT").
+                builder = DiGraphBuilder()
+                builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
+                builder.add_edge(agent_a, agent_b)
+                builder.add_conditional_edges(agent_b, {"APPROVE": agent_c, "REJECT": agent_a})
+                builder.set_entry_point(agent_a)
+                graph = builder.build()
+
+                # Create a GraphFlow team with the directed graph.
+                team = GraphFlow(
                     participants=[agent_a, agent_b, agent_c],
                     graph=graph,
-                    termination_condition=MaxMessageTermination(10),
+                    termination_condition=MaxMessageTermination(20),  # Max 20 messages to avoid infinite loop.
                 )
-                await team.run(task="Start loop")
 
+                # Run the team and print the events.
+                async for event in team.run_stream(task="Write a short poem about AI Agents."):
+                    print(event)
+
+
+            asyncio.run(main())
     """
 
-    component_config_schema = GraphConfig
-    component_provider_override = "autogen_agentchat.teams.Graph"
+    component_config_schema = GraphFlowConfig
+    component_provider_override = "autogen_agentchat.teams.GraphFlow"
 
     def __init__(
         self,
@@ -567,7 +658,7 @@ class Graph(BaseGroupChat, Component[GraphConfig]):
         super().__init__(
             participants,
             group_chat_manager_name="GraphManager",
-            group_chat_manager_class=GraphManager,
+            group_chat_manager_class=GraphFlowManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
             runtime=runtime,
@@ -587,11 +678,11 @@ class Graph(BaseGroupChat, Component[GraphConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
-    ) -> Callable[[], GraphManager]:
+    ) -> Callable[[], GraphFlowManager]:
         """Creates the factory method for initializing the DiGraph-based chat manager."""
 
-        def _factory() -> GraphManager:
-            return GraphManager(
+        def _factory() -> GraphFlowManager:
+            return GraphFlowManager(
                 name=name,
                 group_topic_type=group_topic_type,
                 output_topic_type=output_topic_type,
@@ -607,11 +698,11 @@ class Graph(BaseGroupChat, Component[GraphConfig]):
 
         return _factory
 
-    def _to_config(self) -> GraphConfig:
+    def _to_config(self) -> GraphFlowConfig:
         """Converts the instance into a configuration object."""
         participants = [participant.dump_component() for participant in self._participants]
         termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
-        return GraphConfig(
+        return GraphFlowConfig(
             participants=participants,
             termination_condition=termination_condition,
             max_turns=self._max_turns,
@@ -619,7 +710,7 @@ class Graph(BaseGroupChat, Component[GraphConfig]):
         )
 
     @classmethod
-    def _from_config(cls, config: GraphConfig) -> Self:
+    def _from_config(cls, config: GraphFlowConfig) -> Self:
         """Reconstructs an instance from a configuration object."""
         participants = [ChatAgent.load_component(participant) for participant in config.participants]
         termination_condition = (
