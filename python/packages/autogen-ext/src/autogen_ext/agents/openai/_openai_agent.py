@@ -146,6 +146,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             from autogen_ext.agents.openai import OpenAIAgent
             from autogen_agentchat.messages import TextMessage
 
+
             async def example():
                 cancellation_token = CancellationToken()
                 client = AsyncOpenAI()
@@ -154,16 +155,14 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     description="A simple OpenAI agent using the Responses API",
                     client=client,
                     model="gpt-4.1",
-                    instructions="You are a helpful assistant."
+                    instructions="You are a helpful assistant.",
                 )
-                response = await agent.on_messages([
-                    TextMessage(source="user", content="Hello!")
-                ], cancellation_token)
+                response = await agent.on_messages([TextMessage(source="user", content="Hello!")], cancellation_token)
                 print(response)
-            
+
         asyncio.run(example())
 
-    
+
     TODO: Add support for advanced features (vector store, multimodal, etc.) in future PRs.
 
     """
