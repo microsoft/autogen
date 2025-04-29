@@ -135,7 +135,7 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
     """
 
     component_config_schema = MessageFilterAgentConfig
-    component_provider_override = "autogen_agentchat.teams.MessageFilterAgent"
+    component_provider_override = "autogen_agentchat.agents.MessageFilterAgent"
 
     def __init__(
         self,
