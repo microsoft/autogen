@@ -235,8 +235,18 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         Example:
             .. code-block:: python
 
-                assistants = await agent.list_assistants(limit=5)
-                print(assistants)
+                import asyncio
+
+
+                async def example():
+                    # Assume agent: OpenAIAgent is defined
+                    assistants = await agent.list_assistants(limit=5)
+                    print(assistants)
+
+
+                asyncio.run(example())
+                # type: ignore
+
         """
         params = {"limit": limit, "order": order}
         if after:
@@ -265,8 +275,18 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         Example:
             .. code-block:: python
 
-                assistant = await agent.retrieve_assistant("asst_abc123")
-                print(assistant)
+                import asyncio
+
+
+                async def example():
+                    # Assume agent: OpenAIAgent is defined
+                    assistant = await agent.retrieve_assistant("asst_abc123")
+                    print(assistant)
+
+
+                asyncio.run(example())
+                # type: ignore
+
         """
         if hasattr(self._client, "assistants"):
             client_any = cast(Any, self._client)
@@ -317,13 +337,23 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         Example:
             .. code-block:: python
 
-                updated = await agent.modify_assistant(
-                    assistant_id="asst_123",
-                    instructions="You are an HR bot, and you have access to files to answer employee questions about company policies. Always response with info from either of the files.",
-                    tools=[{"type": "file_search"}],
-                    tool_resources={"file_search": {"vector_store_ids": []}},
-                )
-                print(updated)
+                import asyncio
+
+
+                async def example():
+                    # Assume agent: OpenAIAgent is defined
+                    updated = await agent.modify_assistant(
+                        assistant_id="asst_123",
+                        instructions="You are an HR bot, and you have access to files to answer employee questions about company policies. Always response with info from either of the files.",
+                        tools=[{"type": "file_search"}],
+                        tool_resources={"file_search": {"vector_store_ids": []}},
+                    )
+                    print(updated)
+
+
+                asyncio.run(example())
+                # type: ignore
+
         """
         params = {k: v for k, v in locals().items() if k not in {"self", "assistant_id", "kwargs"} and v is not None}
         params.update(kwargs)
@@ -349,8 +379,18 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         Example:
             .. code-block:: python
 
-                result = await agent.delete_assistant("asst_abc123")
-                print(result)
+                import asyncio
+
+
+                async def example():
+                    # Assume agent: OpenAIAgent is defined
+                    result = await agent.delete_assistant("asst_abc123")
+                    print(result)
+
+
+                asyncio.run(example())
+                # type: ignore
+
         """
         if hasattr(self._client, "assistants"):
             client_any = cast(Any, self._client)
