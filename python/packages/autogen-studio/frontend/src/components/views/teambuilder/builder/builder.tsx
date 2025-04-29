@@ -364,7 +364,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
           {isJsonMode ? "View JSON" : <>Visual Builder</>}{" "}
         </div>
 
-        <div>
+        <div className="flex items-center">
           {validationResults && !validationResults.is_valid && (
             <div className="inline-block mr-2">
               {" "}

@@ -1,13 +1,4 @@
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Iterable,
-    List,
-    Literal,
-    Optional,
-    Union,
-)
+from typing import Any, Awaitable, Callable, Iterable, List, Literal, Optional, TypeGuard, Union
 
 from autogen_core.tools import Tool
 from pydantic import BaseModel, Field
@@ -59,3 +50,7 @@ class AzureAIAgentState(BaseModel):
     initial_message_ids: List[str] = Field(default_factory=list)
     vector_store_id: Optional[str] = None
     uploaded_file_ids: List[str] = Field(default_factory=list)
+
+
+def has_annotations(obj: Any) -> TypeGuard[list[models.MessageTextUrlCitationAnnotation]]:
+    return obj is not None and isinstance(obj, list)
