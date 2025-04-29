@@ -236,16 +236,24 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             .. code-block:: python
 
                 import asyncio
+                from autogen_ext.agents.openai import OpenAIAgent
+                from openai import AsyncOpenAI
 
 
-                async def example():
-                    # Assume agent: OpenAIAgent is defined
-                    assistants = await agent.list_assistants(limit=5)
+                async def example() -> None:
+                    client = AsyncOpenAI()
+                    agent = OpenAIAgent(
+                        name="test_agent",
+                        description="Test agent",
+                        client=client,
+                        model="gpt-4",
+                        instructions="You are a helpful assistant.",
+                    )
+                    assistants: Dict[str, Any] = await agent.list_assistants(limit=5)
                     print(assistants)
 
 
                 asyncio.run(example())
-                # type: ignore
 
         """
         params = {"limit": limit, "order": order}
@@ -276,16 +284,24 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             .. code-block:: python
 
                 import asyncio
+                from autogen_ext.agents.openai import OpenAIAgent
+                from openai import AsyncOpenAI
 
 
-                async def example():
-                    # Assume agent: OpenAIAgent is defined
-                    assistant = await agent.retrieve_assistant("asst_abc123")
+                async def example() -> None:
+                    client = AsyncOpenAI()
+                    agent = OpenAIAgent(
+                        name="test_agent",
+                        description="Test agent",
+                        client=client,
+                        model="gpt-4",
+                        instructions="You are a helpful assistant.",
+                    )
+                    assistant: Dict[str, Any] = await agent.retrieve_assistant("asst_abc123")
                     print(assistant)
 
 
                 asyncio.run(example())
-                # type: ignore
 
         """
         if hasattr(self._client, "assistants"):
@@ -338,11 +354,20 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             .. code-block:: python
 
                 import asyncio
+                from autogen_ext.agents.openai import OpenAIAgent
+                from openai import AsyncOpenAI
 
 
-                async def example():
-                    # Assume agent: OpenAIAgent is defined
-                    updated = await agent.modify_assistant(
+                async def example() -> None:
+                    client = AsyncOpenAI()
+                    agent = OpenAIAgent(
+                        name="test_agent",
+                        description="Test agent",
+                        client=client,
+                        model="gpt-4",
+                        instructions="You are a helpful assistant.",
+                    )
+                    updated: Dict[str, Any] = await agent.modify_assistant(
                         assistant_id="asst_123",
                         instructions="You are an HR bot, and you have access to files to answer employee questions about company policies. Always response with info from either of the files.",
                         tools=[{"type": "file_search"}],
@@ -352,7 +377,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
 
                 asyncio.run(example())
-                # type: ignore
 
         """
         params = {k: v for k, v in locals().items() if k not in {"self", "assistant_id", "kwargs"} and v is not None}
@@ -380,16 +404,24 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             .. code-block:: python
 
                 import asyncio
+                from autogen_ext.agents.openai import OpenAIAgent
+                from openai import AsyncOpenAI
 
 
-                async def example():
-                    # Assume agent: OpenAIAgent is defined
-                    result = await agent.delete_assistant("asst_abc123")
+                async def example() -> None:
+                    client = AsyncOpenAI()
+                    agent = OpenAIAgent(
+                        name="test_agent",
+                        description="Test agent",
+                        client=client,
+                        model="gpt-4",
+                        instructions="You are a helpful assistant.",
+                    )
+                    result: Dict[str, Any] = await agent.delete_assistant("asst_abc123")
                     print(result)
 
 
                 asyncio.run(example())
-                # type: ignore
 
         """
         if hasattr(self._client, "assistants"):
