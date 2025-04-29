@@ -37,10 +37,10 @@ _MODEL_POINTERS = {
     "claude-3-5-sonnet": "claude-3-5-sonnet-20241022",
     "claude-3-7-sonnet": "claude-3-7-sonnet-20250219",
     # Llama models
-    "llama-3.3-8b": "llama-3.3-8b-instruct",
-    "llama-3.3-70b": "llama-3.3-70b-instruct",
-    "llama-4-scout": "llama-4-scout-17b-16e-instruct-fp8",
-    "llama-4-maverick": "llama-4-maverick-17b-128e-instruct-fp8",
+    "llama-3.3-8b": "Llama-3.3-8B-Instruct",
+    "llama-3.3-70b": "Llama-3.3-70B-Instruct",
+    "llama-4-scout": "Llama-4-Scout-17B-16E-Instruct-FP8",
+    "llama-4-maverick": "Llama-4-Maverick-17B-128E-Instruct-FP8",
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
@@ -340,7 +340,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": False,
         "multiple_system_messages": True,
     },
-    "llama-3.3-8b-instruct": {
+    "Llama-3.3-8B-Instruct": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
@@ -348,7 +348,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": False,
         "multiple_system_messages": True,
     },
-    "llama-3.3-70b-instruct": {
+    "Llama-3.3-70B-Instruct": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
@@ -356,7 +356,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": False,
         "multiple_system_messages": True,
     },
-    "llama-4-scout-17b-16e-instruct-fp8": {
+    "Llama-4-Scout-17B-16E-Instruct-FP8": {
         "vision": True,
         "function_calling": True,
         "json_output": True,
@@ -364,7 +364,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": True,
         "multiple_system_messages": True,
     },
-    "llama-4-maverick-17b-128e-instruct-fp8": {
+    "Llama-4-Maverick-17B-128E-Instruct-FP8": {
         "vision": True,
         "function_calling": True,
         "json_output": True,
@@ -412,10 +412,10 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "claude-3-5-haiku-20241022": 50000,
     "claude-3-5-sonnet-20241022": 40000,
     "claude-3-7-sonnet-20250219": 20000,
-    "llama-3.3-8b-instruct": 128000,
-    "llama-3.3-70b-instruct": 128000,
-    "llama-4-scout-17b-16e-instruct-fp8" : 128000,
-    "llama-4-maverick-17b-128e-instruct-fp8" : 128000,
+    "Llama-3.3-8B-Instruct": 128000,
+    "Llama-3.3-70B-Instruct": 128000,
+    "Llama-4-Scout-17B-16E-Instruct-FP8" : 128000,
+    "Llama-4-Maverick-17B-128E-Instruct-FP8" : 128000,
 }
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
