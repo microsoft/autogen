@@ -68,6 +68,13 @@ Multi-agent coordination through a shared context and localized, tool-based sele
 Get started with Magentic-One
 :::
 
+:::{grid-item-card} {fas}`sitemap;pst-color-primary` GraphFlow (Workflow)
+:link: ./graph-flow.html
+:link-alt: GraphFlow: Multi-agent workflows through a directed graph of agents.
+
+Multi-agent workflows through a directed graph of agents.
+:::
+
 :::{grid-item-card} {fas}`brain;pst-color-primary` Memory
 :link: ./memory.html
 :link-alt: Memory: Add memory capabilities to your agents
@@ -123,7 +130,6 @@ tutorial/models
 tutorial/messages
 tutorial/agents
 tutorial/teams
-tutorial/graph
 tutorial/human-in-the-loop
 tutorial/termination
 tutorial/state
@@ -139,6 +145,7 @@ custom-agents
 selector-group-chat
 swarm
 magentic-one
+graph-flow
 memory
 logging
 serialize-components
