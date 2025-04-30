@@ -646,6 +646,9 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
     ) -> None:
+        self._input_participants = participants
+        self._input_termination_condition = termination_condition
+
         stop_agent = _StopAgent()
         stop_agent_termination = StopMessageTermination()
         termination_condition = (
@@ -700,8 +703,10 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
 
     def _to_config(self) -> GraphFlowConfig:
         """Converts the instance into a configuration object."""
-        participants = [participant.dump_component() for participant in self._participants]
-        termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
+        participants = [participant.dump_component() for participant in self._input_participants]
+        termination_condition = (
+            self._input_termination_condition.dump_component() if self._input_termination_condition else None
+        )
         return GraphFlowConfig(
             participants=participants,
             termination_condition=termination_condition,
