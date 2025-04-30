@@ -139,6 +139,8 @@ from typing import Any, Callable, Dict, List, cast, get_args
 from autogen_core import (
     FunctionCall,
     Image,
+    File,
+    Media,  # Import Media base class
 )
 from autogen_core.models import (
     AssistantMessage,
@@ -227,12 +229,13 @@ def _set_multimodal_content(
             # If prepend, Append the name to the first text part
             text = f"{message.source} said:\n" + part if prepend and idx == 0 else part
             parts.append(ChatCompletionContentPartTextParam(type="text", text=text))
-        elif isinstance(part, Image):
-            # TODO: support url based images
-            # TODO: support specifying details
-            parts.append(cast(ChatCompletionContentPartImageParam, part.to_openai_format()))
+        elif isinstance(part, Media):
+            # Use Media.to_openai_format() for any Media subclass
+            # The cast is needed because the specific format depends on the Media subclass
+            # but all Media subclasses implement to_openai_format()
+            parts.append(cast(ChatCompletionContentPartParam, part.to_openai_format()))
         else:
-            raise ValueError(f"Unknown content part: {part}")
+            raise ValueError(f"Unknown content part type: {type(part)}")
 
     return {"content": parts}
 
@@ -470,12 +473,12 @@ __CLAUDE_TRANSFORMER_MAP: TransformerMap = {
 # set openai models to use the transformer map
 total_models = get_args(ModelFamily.ANY)
 __openai_models = [model for model in total_models if ModelFamily.is_openai(model)]
-
 __claude_models = [model for model in total_models if ModelFamily.is_claude(model)]
-
 __gemini_models = [model for model in total_models if ModelFamily.is_gemini(model)]
 
-__unknown_models = list(set(total_models) - set(__openai_models) - set(__claude_models) - set(__gemini_models))
+# Define __unknown_models based on the others
+__known_models = set(__openai_models + __claude_models + __gemini_models)
+__unknown_models = [model for model in total_models if model not in __known_models]
 
 for model in __openai_models:
     register_transformer("openai", model, __BASE_TRANSFORMER_MAP)
