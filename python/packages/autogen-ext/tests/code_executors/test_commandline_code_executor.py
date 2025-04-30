@@ -5,8 +5,10 @@ import asyncio
 import os
 import platform
 import shutil
+import subprocess
 import sys
 import tempfile
+import types
 import venv
 from pathlib import Path
 from typing import AsyncGenerator, TypeAlias
@@ -21,6 +23,85 @@ from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 HAS_POWERSHELL: bool = platform.system() == "Windows" and (
     shutil.which("powershell") is not None or shutil.which("pwsh") is not None
 )
+IS_MACOS: bool = platform.system() == "Darwin"
+IS_UV_VENV: bool = (
+    lambda: (
+        (
+            lambda venv_path: (
+                False
+                if not venv_path
+                else (
+                    False
+                    if not os.path.isfile(os.path.join(venv_path, "pyvenv.cfg"))
+                    else (
+                        subprocess.run(
+                            ["grep", "-q", "^uv = ", os.path.join(venv_path, "pyvenv.cfg")],
+                            check=False,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        ).returncode
+                        == 0
+                    )
+                )
+            )
+        )(os.environ.get("VIRTUAL_ENV"))
+    )
+)()
+HAS_UV: bool = shutil.which("uv") is not None
+
+
+def create_venv_with_uv(env_dir: str) -> types.SimpleNamespace:
+    try:
+        subprocess.run(
+            ["uv", "venv", env_dir],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except subprocess.CalledProcessError as e:
+        error_message = f"uv virtual env creation failed with error code {e.returncode}:\n"
+        error_message += f"  cmd:\n{e.stdout.decode()}\n"
+        error_message += f"  stderr:\n{e.stderr}\n"
+        error_message += f"  stdout:\n{e.stdout}"
+        raise RuntimeError(error_message) from e
+    except Exception as e:
+        raise RuntimeError(f"Failed to create uv virtual env: {e}") from e
+
+    # create a venv.EnvBuilder context
+    if platform.system() == "Windows":
+        bin_name = "Scripts"
+        exe_suffix = ".exe"
+    else:
+        bin_name = "bin"
+        exe_suffix = ""
+
+    bin_path = os.path.join(env_dir, bin_name)
+    python_executable = os.path.join(bin_path, f"python{exe_suffix}")
+    py_version_short = f"{sys.version_info.major}.{sys.version_info.minor}"
+    lib_path = os.path.join(env_dir, "lib", f"python{py_version_short}", "site-packages")
+    if not os.path.exists(lib_path):
+        lib_path_fallback = os.path.join(env_dir, "lib")
+        if os.path.exists(lib_path_fallback):
+            lib_path = lib_path_fallback
+        else:
+            raise RuntimeError(f"Failed to find site-packages in {lib_path} or {lib_path_fallback}")
+
+    context = types.SimpleNamespace(
+        env_dir=env_dir,
+        env_name=os.path.basename(env_dir),
+        prompt=f"({os.path.basename(env_dir)}) ",
+        executable=python_executable,
+        python_dir=os.path.dirname(python_executable),
+        python_exe=os.path.basename(python_executable),
+        inc_path=os.path.join(env_dir, "include"),
+        lib_path=lib_path,  # site-packages
+        bin_path=bin_path,  # bin or Scripts
+        bin_name=bin_name,  # bin or Scripts
+        env_exe=python_executable,
+        env_exec_cmd=python_executable,
+    )
+
+    return context
 
 
 @pytest_asyncio.fixture(scope="function")  # type: ignore
@@ -169,6 +250,10 @@ print("hello world")
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(
+    IS_MACOS and IS_UV_VENV,
+    reason="uv-venv is not supported on macOS.",
+)
 async def test_local_executor_with_custom_venv() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         env_builder = venv.EnvBuilder(with_pip=True)
@@ -190,6 +275,10 @@ async def test_local_executor_with_custom_venv() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(
+    IS_MACOS and IS_UV_VENV,
+    reason="uv-venv is not supported on macOS.",
+)
 async def test_local_executor_with_custom_venv_in_local_relative_path() -> None:
     relative_folder_path = "tmp_dir"
     try:
@@ -200,6 +289,62 @@ async def test_local_executor_with_custom_venv_in_local_relative_path() -> None:
         env_builder = venv.EnvBuilder(with_pip=True)
         env_builder.create(env_path)
         env_builder_context = env_builder.ensure_directories(env_path)
+
+        executor = LocalCommandLineCodeExecutor(work_dir=relative_folder_path, virtual_env_context=env_builder_context)
+        await executor.start()
+
+        code_blocks = [
+            CodeBlock(code="import sys; print(sys.executable)", language="python"),
+        ]
+        cancellation_token = CancellationToken()
+        result = await executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
+
+        assert result.exit_code == 0
+
+        # Check if the expected venv has been used
+        bin_path = os.path.abspath(env_builder_context.bin_path)
+        assert Path(result.output.strip()).parent.samefile(bin_path)
+    finally:
+        if os.path.isdir(relative_folder_path):
+            shutil.rmtree(relative_folder_path)
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    not HAS_UV,
+    reason="uv is not installed.",
+)
+async def test_local_executor_with_custom_uv_venv() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        env_builder_context = create_venv_with_uv(temp_dir)
+
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, virtual_env_context=env_builder_context)
+        await executor.start()
+
+        code_blocks = [
+            # https://stackoverflow.com/questions/1871549/how-to-determine-if-python-is-running-inside-a-virtualenv
+            CodeBlock(code="import sys; print(sys.prefix != sys.base_prefix)", language="python"),
+        ]
+        cancellation_token = CancellationToken()
+        result = await executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
+
+        assert result.exit_code == 0
+        assert result.output.strip() == "True"
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    not HAS_UV,
+    reason="uv is not installed.",
+)
+async def test_local_executor_with_custom_uv_venv_in_local_relative_path() -> None:
+    relative_folder_path = "tmp_dir"
+    try:
+        if not os.path.isdir(relative_folder_path):
+            os.mkdir(relative_folder_path)
+
+        env_path = os.path.join(relative_folder_path, ".venv")
+        env_builder_context = create_venv_with_uv(env_path)
 
         executor = LocalCommandLineCodeExecutor(work_dir=relative_folder_path, virtual_env_context=env_builder_context)
         await executor.start()

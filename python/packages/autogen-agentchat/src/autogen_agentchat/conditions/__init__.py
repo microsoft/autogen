@@ -5,6 +5,7 @@ multi-agent teams.
 
 from ._terminations import (
     ExternalTermination,
+    FunctionalTermination,
     FunctionCallTermination,
     HandoffTermination,
     MaxMessageTermination,
@@ -27,4 +28,5 @@ __all__ = [
     "SourceMatchTermination",
     "TextMessageTermination",
     "FunctionCallTermination",
+    "FunctionalTermination",
 ]

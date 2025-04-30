@@ -433,22 +433,33 @@ class ToolCallRequestEvent(BaseAgentEvent):
 
 
 class CodeGenerationEvent(BaseAgentEvent):
-    """An event signaling code generation for execution."""
+    """An event signaling code generation event."""
+
+    retry_attempt: int
+    "Retry number, 0 means first generation"
 
     content: str
     "The complete content as string."
 
-    type: Literal["CodeGenerationEvent"] = "CodeGenerationEvent"
-
     code_blocks: List[CodeBlock]
+    "List of code blocks present in content"
+
+    type: Literal["CodeGenerationEvent"] = "CodeGenerationEvent"
 
     def to_text(self) -> str:
         return self.content
 
 
 class CodeExecutionEvent(BaseAgentEvent):
-    type: Literal["CodeExecutionEvent"] = "CodeExecutionEvent"
+    """An event signaling code execution event."""
+
+    retry_attempt: int
+    "Retry number, 0 means first execution"
+
     result: CodeResult
+    "Code Execution Result"
+
+    type: Literal["CodeExecutionEvent"] = "CodeExecutionEvent"
 
     def to_text(self) -> str:
         return self.result.output
@@ -526,6 +537,18 @@ class SelectSpeakerEvent(BaseAgentEvent):
     """The names of the selected speakers."""
 
     type: Literal["SelectSpeakerEvent"] = "SelectSpeakerEvent"
+
+    def to_text(self) -> str:
+        return str(self.content)
+
+
+class SelectorEvent(BaseAgentEvent):
+    """An event emitted from the `SelectorGroupChat`."""
+
+    content: str
+    """The content of the event."""
+
+    type: Literal["SelectorEvent"] = "SelectorEvent"
 
     def to_text(self) -> str:
         return str(self.content)
