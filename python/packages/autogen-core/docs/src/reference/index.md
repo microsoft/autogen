@@ -41,6 +41,7 @@ python/autogen_core.logging
 :caption: AutoGen Extensions
 :maxdepth: 2
 
+python/autogen_ext.agents.azure
 python/autogen_ext.agents.magentic_one
 python/autogen_ext.agents.openai
 python/autogen_ext.agents.web_surfer
@@ -62,10 +63,12 @@ python/autogen_ext.tools.graphrag
 python/autogen_ext.tools.http
 python/autogen_ext.tools.langchain
 python/autogen_ext.tools.mcp
+python/autogen_ext.memory.canvas
 python/autogen_ext.tools.semantic_kernel
 python/autogen_ext.code_executors.local
 python/autogen_ext.code_executors.docker
 python/autogen_ext.code_executors.jupyter
+python/autogen_ext.code_executors.docker_jupyter
 python/autogen_ext.code_executors.azure
 python/autogen_ext.cache_store.diskcache
 python/autogen_ext.cache_store.redis

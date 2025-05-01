@@ -5,7 +5,7 @@ from autogen_core.model_context import (
     ChatCompletionContext,
     UnboundedChatCompletionContext,
 )
-from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage
+from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -214,12 +214,26 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
                 # Response's inner_messages should be empty. Cause that mean is response to outer world.
             )
         else:
+            llm_messages: List[LLMMessage] = []
+
+            if self._model_client.model_info.get("multiple_system_messages", False):
+                # The model client supports multiple system messages, so we
+                llm_messages.append(SystemMessage(content=self._instruction))
+            else:
+                # The model client does not support multiple system messages, so we
+                llm_messages.append(UserMessage(content=self._instruction, source="user"))
+
             # Generate a response using the model client.
-            llm_messages: List[LLMMessage] = [SystemMessage(content=self._instruction)]
             for message in inner_messages:
                 if isinstance(message, BaseChatMessage):
                     llm_messages.append(message.to_model_message())
-            llm_messages.append(SystemMessage(content=self._response_prompt))
+
+            if self._model_client.model_info.get("multiple_system_messages", False):
+                # The model client supports multiple system messages, so we
+                llm_messages.append(SystemMessage(content=self._response_prompt))
+            else:
+                # The model client does not support multiple system messages, so we
+                llm_messages.append(UserMessage(content=self._response_prompt, source="user"))
             completion = await self._model_client.create(messages=llm_messages, cancellation_token=cancellation_token)
             assert isinstance(completion.content, str)
             yield Response(
@@ -272,6 +286,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
             description=self.description,
             instruction=self._instruction,
             response_prompt=self._response_prompt,
+            model_context=self._model_context.dump_component(),
         )
 
     @classmethod
@@ -285,4 +300,5 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
             description=config.description or cls.DEFAULT_DESCRIPTION,
             instruction=config.instruction or cls.DEFAULT_INSTRUCTION,
             response_prompt=config.response_prompt or cls.DEFAULT_RESPONSE_PROMPT,
+            model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
         )
