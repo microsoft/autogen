@@ -11,7 +11,7 @@ from ..messages import BaseAgentEvent, BaseChatMessage, MessageFactory, TextMess
 from ._message_store import MessageStore
 
 
-class MemoryMessage(BaseModel):
+class ListMessage(BaseModel):
     """A message stored in memory.
 
     Args:
@@ -23,30 +23,30 @@ class MemoryMessage(BaseModel):
     ts: int = Field(default_factory=lambda: int(time.time()))
 
 
-class MemoryMessageStoreConfig(BaseModel):
+class ListMessageStoreConfig(BaseModel):
     ttl_sec: Optional[int] = None
 
 
-class MemoryMessageStore(MessageStore, Component[MemoryMessageStoreConfig]):
+class ListMessageStore(MessageStore, Component[ListMessageStoreConfig]):
     """A message store that stores messages in memory with optional time-to-live.
 
     Args:
         ttl_sec (Optional[int]): Time-to-live in seconds for messages. If None, messages don't expire.
     """
 
-    component_config_schema = MemoryMessageStoreConfig
+    component_config_schema = ListMessageStoreConfig
     component_provider_override = "autogen_agentchat.message_store.MemoryMessageStore"
 
     def __init__(self, message_factory: MessageFactory, ttl_sec: Optional[int] = None):
         super().__init__(message_factory)
-        self._messages: deque[MemoryMessage] = deque()
+        self._messages: deque[ListMessage] = deque()
         self._lock = asyncio.Lock()
         self._ttl_sec = ttl_sec
 
     async def add_message(self, message: BaseAgentEvent | BaseChatMessage | TextMessage) -> None:
         async with self._lock:
             current_ts = int(time.time())
-            self._messages.append(MemoryMessage(message=message, ts=current_ts))
+            self._messages.append(ListMessage(message=message, ts=current_ts))
             await self._remove_expired_messages(current_ts)
 
     async def add_messages(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> None:
@@ -54,7 +54,7 @@ class MemoryMessageStore(MessageStore, Component[MemoryMessageStoreConfig]):
             return
         async with self._lock:
             current_ts = int(time.time())
-            self._messages.extend(MemoryMessage(message=m, ts=current_ts) for m in messages)
+            self._messages.extend(ListMessage(message=m, ts=current_ts) for m in messages)
             await self._remove_expired_messages(current_ts)
 
     async def get_messages(self) -> Sequence[BaseAgentEvent | BaseChatMessage]:
@@ -68,7 +68,7 @@ class MemoryMessageStore(MessageStore, Component[MemoryMessageStoreConfig]):
             self._messages.clear()
             if messages:
                 current_ts = int(time.time())
-                self._messages.extend(MemoryMessage(message=m, ts=current_ts) for m in messages)
+                self._messages.extend(ListMessage(message=m, ts=current_ts) for m in messages)
 
     async def _remove_expired_messages(self, current_ts: int) -> None:
         if not self._ttl_sec:
@@ -77,9 +77,9 @@ class MemoryMessageStore(MessageStore, Component[MemoryMessageStoreConfig]):
         time_threshold = current_ts - self._ttl_sec
         self._messages = deque(m for m in self._messages if m.ts > time_threshold)
 
-    def _to_config(self) -> MemoryMessageStoreConfig:
-        return MemoryMessageStoreConfig(ttl_sec=self._ttl_sec)
+    def _to_config(self) -> ListMessageStoreConfig:
+        return ListMessageStoreConfig(ttl_sec=self._ttl_sec)
 
     @classmethod
-    def _from_config(cls, config: MemoryMessageStoreConfig) -> Self:
+    def _from_config(cls, config: ListMessageStoreConfig) -> Self:
         return cls(**config.model_dump())

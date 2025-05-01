@@ -15,7 +15,7 @@ from autogen_core import (
 from pydantic import BaseModel, ValidationError
 
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...message_store._memory_message_store import MemoryMessageStore
+from ...message_store._list_message_store import ListMessageStore
 from ...message_store._message_store import MessageStore
 from ...messages import (
     BaseAgentEvent,
@@ -131,7 +131,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         # Flag to track if the team events should be emitted.
         self._emit_team_events = emit_team_events
 
-        self._message_store = message_store if message_store else MemoryMessageStore(self._message_factory)
+        self._message_store = message_store if message_store else ListMessageStore(self._message_factory)
 
     @abstractmethod
     def _create_group_chat_manager_factory(

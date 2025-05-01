@@ -14,7 +14,7 @@ from autogen_core.models import (
 
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
-from ....message_store._memory_message_store import MemoryMessageStore
+from ....message_store._list_message_store import ListMessageStore
 from ....message_store._message_store import MessageStore
 from ....messages import (
     BaseAgentEvent,
@@ -86,7 +86,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events=emit_team_events,
-            message_store=message_store if message_store else MemoryMessageStore(message_factory),
+            message_store=message_store if message_store else ListMessageStore(message_factory),
         )
         self._model_client = model_client
         self._max_stalls = max_stalls

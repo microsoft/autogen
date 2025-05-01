@@ -19,7 +19,7 @@ from typing_extensions import Self
 from ... import TRACE_LOGGER_NAME
 from ...agents import BaseChatAgent
 from ...base import ChatAgent, TerminationCondition
-from ...message_store._memory_message_store import MemoryMessageStore
+from ...message_store._list_message_store import ListMessageStore
 from ...message_store._message_store import MessageStore
 from ...messages import (
     BaseAgentEvent,
@@ -82,7 +82,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
-            message_store if message_store else MemoryMessageStore(message_factory),
+            message_store if message_store else ListMessageStore(message_factory),
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt

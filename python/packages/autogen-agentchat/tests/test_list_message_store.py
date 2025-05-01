@@ -2,7 +2,7 @@ import asyncio
 from typing import List, cast
 
 import pytest
-from autogen_agentchat.message_store._memory_message_store import MemoryMessageStore
+from autogen_agentchat.message_store._list_message_store import ListMessageStore
 from autogen_agentchat.messages import MessageFactory, TextMessage, ToolCallRequestEvent
 from autogen_core import FunctionCall
 
@@ -10,7 +10,7 @@ from autogen_core import FunctionCall
 @pytest.mark.asyncio
 async def test_add_get_single_message() -> None:
     """Test adding and retrieving a single message."""
-    store = MemoryMessageStore(MessageFactory())
+    store = ListMessageStore(MessageFactory())
     message = TextMessage(source="test_agent", content="Hello, world!")
     await store.add_message(message)
 
@@ -25,7 +25,7 @@ async def test_add_get_single_message() -> None:
 @pytest.mark.asyncio
 async def test_add_get_multiple_messages() -> None:
     """Test adding and retrieving multiple messages."""
-    store = MemoryMessageStore(MessageFactory())
+    store = ListMessageStore(MessageFactory())
     messages = [
         TextMessage(source="agent1", content="Message 1"),
         TextMessage(source="agent2", content="Message 2"),
@@ -47,7 +47,7 @@ async def test_add_get_multiple_messages() -> None:
 @pytest.mark.asyncio
 async def test_add_messages_empty_list() -> None:
     """Test adding an empty list of messages."""
-    store = MemoryMessageStore(MessageFactory())
+    store = ListMessageStore(MessageFactory())
     await store.add_messages([])
 
     # Verify that no messages were added
@@ -58,7 +58,7 @@ async def test_add_messages_empty_list() -> None:
 @pytest.mark.asyncio
 async def test_reset_messages_empty() -> None:
     """Test resetting messages to an empty state."""
-    store = MemoryMessageStore(MessageFactory())
+    store = ListMessageStore(MessageFactory())
     messages = [
         TextMessage(source="agent1", content="Message 1"),
         TextMessage(source="agent2", content="Message 2"),
@@ -80,7 +80,7 @@ async def test_reset_messages_empty() -> None:
 @pytest.mark.asyncio
 async def test_reset_messages_with_new_messages() -> None:
     """Test resetting messages with new messages."""
-    store = MemoryMessageStore(MessageFactory())
+    store = ListMessageStore(MessageFactory())
     initial_messages = [
         TextMessage(source="agent1", content="Initial 1"),
         TextMessage(source="agent2", content="Initial 2"),
@@ -110,7 +110,7 @@ async def test_reset_messages_with_new_messages() -> None:
 async def test_ttl_expired_messages() -> None:
     """Test that messages expire after TTL period."""
     # Create store with 2 second TTL
-    store = MemoryMessageStore(MessageFactory(), ttl_sec=2)
+    store = ListMessageStore(MessageFactory(), ttl_sec=2)
 
     # Add a message
     message = TextMessage(source="agent1", content="This will expire")
@@ -132,7 +132,7 @@ async def test_ttl_expired_messages() -> None:
 async def test_ttl_mixed_expiration() -> None:
     """Test that only expired messages are removed."""
     # Create store with 2 second TTL
-    store = MemoryMessageStore(MessageFactory(), ttl_sec=2)
+    store = ListMessageStore(MessageFactory(), ttl_sec=2)
 
     # Add a message that will expire
     message1 = TextMessage(source="agent1", content="This will expire")
@@ -159,7 +159,7 @@ async def test_ttl_mixed_expiration() -> None:
 async def test_no_ttl() -> None:
     """Test that messages don't expire when TTL is None."""
     # Create store with no TTL
-    store = MemoryMessageStore(MessageFactory(), ttl_sec=None)
+    store = ListMessageStore(MessageFactory(), ttl_sec=None)
 
     # Add a message
     message = TextMessage(source="agent1", content="This will not expire")
@@ -178,7 +178,7 @@ async def test_no_ttl() -> None:
 @pytest.mark.asyncio
 async def test_different_message_types() -> None:
     """Test storing different message types."""
-    store = MemoryMessageStore(MessageFactory())
+    store = ListMessageStore(MessageFactory())
 
     # Create messages of different types
     text_message = TextMessage(source="agent1", content="Text message")
@@ -209,7 +209,7 @@ async def test_different_message_types() -> None:
 @pytest.mark.asyncio
 async def test_concurrent_operations() -> None:
     """Test concurrent operations on the message store."""
-    store = MemoryMessageStore(MessageFactory())
+    store = ListMessageStore(MessageFactory())
 
     # Create multiple concurrent tasks
     async def add_messages(prefix: str, count: int) -> None:

@@ -5,7 +5,7 @@ from typing import Any, List, Sequence
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
 from ...base import TerminationCondition
-from ...message_store._memory_message_store import MemoryMessageStore
+from ...message_store._list_message_store import ListMessageStore
 from ...message_store._message_store import MessageStore
 from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectSpeakerEvent, StopMessage
 from ._events import (
@@ -81,7 +81,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._current_turn = 0
         self._message_factory = message_factory
         self._emit_team_events = emit_team_events
-        self._message_store = message_store if message_store else MemoryMessageStore(message_factory)
+        self._message_store = message_store if message_store else ListMessageStore(message_factory)
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:

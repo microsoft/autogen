@@ -5,7 +5,7 @@ from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
 
 from ...base import ChatAgent, TerminationCondition
-from ...message_store._memory_message_store import MemoryMessageStore
+from ...message_store._list_message_store import ListMessageStore
 from ...message_store._message_store import MessageStore
 from ...messages import BaseAgentEvent, BaseChatMessage, HandoffMessage, MessageFactory
 from ...state import SwarmManagerState
@@ -44,7 +44,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
-            message_store if message_store else MemoryMessageStore(message_factory),
+            message_store if message_store else ListMessageStore(message_factory),
         )
         self._current_speaker = self._participant_names[0]
 
