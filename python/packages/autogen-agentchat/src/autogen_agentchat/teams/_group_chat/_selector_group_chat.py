@@ -356,6 +356,8 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
             This function is only used if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
         emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
+        model_context (ChatCompletionContext | None, optional): The model context for storing and retrieving
+            :class:`~autogen_core.models.LLMMessage`. It can be preloaded with initial messages. Messages stored in model context will be used for speaker selection. The initial messages will be cleared when the team is reset.
 
     Raises:
         ValueError: If the number of participants is less than two or if the selector prompt is invalid.
@@ -468,6 +470,64 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
                 )
 
                 await Console(team.run_stream(task="What is 1 + 1?"))
+
+
+            asyncio.run(main())
+
+    A team with custom model context:
+
+        .. code-block:: python
+
+            import asyncio
+
+            from autogen_core.model_context import BufferedChatCompletionContext
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.conditions import TextMentionTermination
+            from autogen_agentchat.teams import SelectorGroupChat
+            from autogen_agentchat.ui import Console
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                model_context = BufferedChatCompletionContext(buffer_size=5)
+
+                async def lookup_hotel(location: str) -> str:
+                    return f"Here are some hotels in {location}: hotel1, hotel2, hotel3."
+
+                async def lookup_flight(origin: str, destination: str) -> str:
+                    return f"Here are some flights from {origin} to {destination}: flight1, flight2, flight3."
+
+                async def book_trip() -> str:
+                    return "Your trip is booked!"
+
+                travel_advisor = AssistantAgent(
+                    "Travel_Advisor",
+                    model_client,
+                    tools=[book_trip],
+                    description="Helps with travel planning.",
+                )
+                hotel_agent = AssistantAgent(
+                    "Hotel_Agent",
+                    model_client,
+                    tools=[lookup_hotel],
+                    description="Helps with hotel booking.",
+                )
+                flight_agent = AssistantAgent(
+                    "Flight_Agent",
+                    model_client,
+                    tools=[lookup_flight],
+                    description="Helps with flight booking.",
+                )
+                termination = TextMentionTermination("TERMINATE")
+                team = SelectorGroupChat(
+                    [travel_advisor, hotel_agent, flight_agent],
+                    model_client=model_client,
+                    termination_condition=termination,
+                    model_context=model_context,
+                )
+                await Console(team.run_stream(task="Book a 3-day trip to new york."))
 
 
             asyncio.run(main())
