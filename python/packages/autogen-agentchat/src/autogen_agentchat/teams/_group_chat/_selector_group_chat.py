@@ -71,8 +71,8 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         max_selector_attempts: int,
         candidate_func: Optional[CandidateFuncType],
         emit_team_events: bool,
-        model_client_streaming: bool = False,
         model_context: ChatCompletionContext | None,
+        model_client_streaming: bool = False,
     ) -> None:
         super().__init__(
             name,
@@ -351,6 +351,7 @@ class SelectorGroupChatConfig(BaseModel):
     max_selector_attempts: int = 3
     emit_team_events: bool = False
     model_client_streaming: bool = False
+    model_context: ComponentModel | None = None
 
 
 class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
@@ -646,8 +647,8 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._max_selector_attempts,
             self._candidate_func,
             self._emit_team_events,
-            self._model_client_streaming,
             self._model_context,
+            self._model_client_streaming,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:
@@ -662,6 +663,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             # selector_func=self._selector_func.dump_component() if self._selector_func else None,
             emit_team_events=self._emit_team_events,
             model_client_streaming=self._model_client_streaming,
+            model_context=self._model_context.dump_component() if self._model_context else None,
         )
 
     @classmethod
@@ -681,4 +683,5 @@ Read the above conversation. Then select the next role from {participants} to pl
             # else None,
             emit_team_events=config.emit_team_events,
             model_client_streaming=config.model_client_streaming,
+            model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
         )
