@@ -7,7 +7,7 @@ from autogen_core._component_config import Component
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
-from ..messages import BaseAgentEvent, BaseChatMessage, MessageFactory, TextMessage
+from ..messages import BaseAgentEvent, BaseChatMessage, MessageFactory
 from ._message_store import MessageStore
 
 
@@ -19,7 +19,7 @@ class ListMessage(BaseModel):
         timestamp (int): The timestamp of the message in seconds since epoch.
     """
 
-    message: BaseAgentEvent | BaseChatMessage | TextMessage
+    message: BaseAgentEvent | BaseChatMessage
     ts: int = Field(default_factory=lambda: int(time.time()))
 
 
@@ -43,7 +43,7 @@ class ListMessageStore(MessageStore, Component[ListMessageStoreConfig]):
         self._lock = asyncio.Lock()
         self._ttl_sec = ttl_sec
 
-    async def add_message(self, message: BaseAgentEvent | BaseChatMessage | TextMessage) -> None:
+    async def add_message(self, message: BaseAgentEvent | BaseChatMessage) -> None:
         async with self._lock:
             current_ts = int(time.time())
             self._messages.append(ListMessage(message=message, ts=current_ts))

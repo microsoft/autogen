@@ -5,7 +5,7 @@ from autogen_agentchat.state._states import MessageStoreState
 from autogen_core import ComponentBase
 from pydantic import BaseModel
 
-from ..messages import BaseAgentEvent, BaseChatMessage, MessageFactory, TextMessage
+from ..messages import BaseAgentEvent, BaseChatMessage, MessageFactory
 
 
 class MessageStore(ABC, ComponentBase[BaseModel]):
@@ -25,7 +25,7 @@ class MessageStore(ABC, ComponentBase[BaseModel]):
         self._message_factory = message_factory
 
     @abstractmethod
-    async def add_message(self, message: BaseAgentEvent | BaseChatMessage | TextMessage) -> None: ...
+    async def add_message(self, message: BaseAgentEvent | BaseChatMessage) -> None: ...
 
     """
     Add a message to the message store.
