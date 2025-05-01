@@ -15,7 +15,7 @@ class ListMessage(BaseModel):
 
     Args:
         message (BaseAgentEvent | BaseChatMessage): The message to store.
-        timestamp (int): The timestamp of the message in seconds since epoch.
+        ts (int): The timestamp of the message in seconds since epoch.
     """
 
     message: BaseAgentEvent | BaseChatMessage
@@ -30,16 +30,27 @@ class ListMessageStore(MessageStore, Component[ListMessageStoreConfig]):
     """A message store that stores messages in memory with optional time-to-live.
 
     Args:
+        message_factory (MessageFactory): Factory to create messages.
+        pin_first_message (bool): If True, the first message will never be removed when trimming expired messages.
+        pin_last_message (bool): If True, the last message will never be removed when trimming expired messages.
         ttl_sec (Optional[int]): Time-to-live in seconds for messages. If None, messages don't expire.
     """
 
     component_config_schema = ListMessageStoreConfig
     component_provider_override = "autogen_agentchat.message_store.MemoryMessageStore"
 
-    def __init__(self, message_factory: MessageFactory, ttl_sec: Optional[int] = None):
+    def __init__(
+        self,
+        message_factory: MessageFactory,
+        pin_first_message: bool = False,
+        pin_last_message: bool = True,
+        ttl_sec: Optional[int] = None,
+    ):
         super().__init__(message_factory)
         self._messages: List[ListMessage] = []
         self._lock = asyncio.Lock()
+        self.pin_first_message = pin_first_message
+        self.pin_last_message = pin_last_message
         self._ttl_sec = ttl_sec
 
     async def add_message(self, message: BaseAgentEvent | BaseChatMessage) -> None:
@@ -70,23 +81,31 @@ class ListMessageStore(MessageStore, Component[ListMessageStoreConfig]):
                 self._messages.extend(ListMessage(message=m, ts=current_ts) for m in messages)
 
     async def _remove_expired_messages(self, current_ts: int) -> None:
-        if not self._ttl_sec:
+        if not self._ttl_sec or not self._messages:
             return
 
         time_threshold = current_ts - self._ttl_sec
 
-        # Find the index of the first message that's not expired
-        not_expired_idx = -1
-        for i, msg in enumerate(self._messages):
-            if msg.ts > time_threshold:
-                not_expired_idx = i
-                break
+        first_message = self._messages[0] if self.pin_first_message else None
+        last_message = (
+            self._messages[-1] if self.pin_last_message and len(self._messages) > (1 if first_message else 0) else None
+        )
 
-        # Remove all messages before not_expired_idx
-        if not_expired_idx == -1:
-            self._messages.clear()
-        else:
-            self._messages = self._messages[not_expired_idx:]
+        start_idx = 1 if self.pin_first_message else 0
+        end_idx = len(self._messages) - (1 if self.pin_last_message else 0)
+
+        retained_messages: List[ListMessage] = []
+
+        if first_message:
+            retained_messages.append(first_message)
+        for i in range(start_idx, end_idx):
+            if self._messages[i].ts > time_threshold:
+                retained_messages.extend(self._messages[i:end_idx])
+                break
+        if last_message:
+            retained_messages.append(last_message)
+
+        self._messages = retained_messages
 
     def _to_config(self) -> ListMessageStoreConfig:
         return ListMessageStoreConfig(ttl_sec=self._ttl_sec)
