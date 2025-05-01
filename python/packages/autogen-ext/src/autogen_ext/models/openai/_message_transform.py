@@ -379,7 +379,7 @@ def assistant_condition(message: LLMMessage, context: Dict[str, Any]) -> str:
 
 user_transformer_funcs_gemini: Dict[str, List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]]] = {
     "text": single_user_transformer_funcs + [_set_empty_to_whitespace],
-    "multimodal": multimodal_user_transformer_funcs + [_set_empty_to_whitespace],
+    "multimodal": multimodal_user_transformer_funcs,
 }
 
 
