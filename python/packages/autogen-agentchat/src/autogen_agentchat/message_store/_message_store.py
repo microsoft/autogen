@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Any, Mapping, Optional, Sequence
 
-from autogen_agentchat.state._states import MessageStoreState
 from autogen_core import ComponentBase
 from pydantic import BaseModel
+
+from autogen_agentchat.state._states import MessageStoreState
 
 from ..messages import BaseAgentEvent, BaseChatMessage, MessageFactory
 

@@ -1,7 +1,6 @@
 import asyncio
 import time
-from collections import deque
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 
 from autogen_core._component_config import Component
 from pydantic import BaseModel, Field
@@ -39,7 +38,7 @@ class ListMessageStore(MessageStore, Component[ListMessageStoreConfig]):
 
     def __init__(self, message_factory: MessageFactory, ttl_sec: Optional[int] = None):
         super().__init__(message_factory)
-        self._messages: deque[ListMessage] = deque()
+        self._messages: List[ListMessage] = []
         self._lock = asyncio.Lock()
         self._ttl_sec = ttl_sec
 
@@ -75,7 +74,19 @@ class ListMessageStore(MessageStore, Component[ListMessageStoreConfig]):
             return
 
         time_threshold = current_ts - self._ttl_sec
-        self._messages = deque(m for m in self._messages if m.ts > time_threshold)
+
+        # Find the index of the first message that's not expired
+        not_expired_idx = -1
+        for i, msg in enumerate(self._messages):
+            if msg.ts > time_threshold:
+                not_expired_idx = i
+                break
+
+        # Remove all messages before not_expired_idx
+        if not_expired_idx == -1:
+            self._messages.clear()
+        else:
+            self._messages = self._messages[not_expired_idx:]
 
     def _to_config(self) -> ListMessageStoreConfig:
         return ListMessageStoreConfig(ttl_sec=self._ttl_sec)
