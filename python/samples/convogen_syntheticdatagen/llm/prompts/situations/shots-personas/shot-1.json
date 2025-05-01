@@ -1,0 +1,18 @@
+{
+    "individuals": [
+        {
+            "name": "Mohamed",
+            "persona": "A computer science student interested in studying the algorithms behind digital media platforms"
+        },
+        {
+            "name": "Eve",
+            "persona": "A fellow parent who shares tips and recommendations for unique cake designs"
+        }
+    ],
+    "relations": [
+        {"1": "Mohamed", "2": "Eve", "relation_type": "neighbor"}
+    ],
+    "situation": "A neighborhood block party",
+    "topic": "Balancing hobbies and professional interests",
+    "conversationStarter": "Eve, it's nice to see you at the block party! I was just thinking about how to balance my interest in algorithms with my other hobbies. How do you manage to find time for your cake designs while being a parent?"
+}

@@ -1,0 +1,6 @@
+./llm/prompts/situations/shots/*.json
+!./llm/prompts/situations/shots/shot-1.json
+./llm/prompts/situations/shots-personas/*.json
+!./llm/prompts/situations/shots-personas/shot-1.json
+./llm/prompts/situations/situations/shots-personas-chat/*.json
+!./llm/prompts/situations/situations/shots-personas-chat/shot-1.json
