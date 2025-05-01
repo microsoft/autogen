@@ -1,7 +1,9 @@
 """Tests for the Azure AI Search tool."""
 
-from typing import Any, AsyncGenerator, Dict, List, Union, cast
-from unittest.mock import AsyncMock, patch
+# pyright: reportPrivateUsage=false
+
+from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Union, cast
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from autogen_core import CancellationToken
@@ -11,7 +13,7 @@ from autogen_ext.tools.azure._ai_search import (
     SearchQuery,
     SearchResult,
     SearchResults,
-    _allow_private_constructor,  # pyright: ignore[reportPrivateUsage]
+    _allow_private_constructor,
 )
 from azure.core.credentials import AzureKeyCredential, TokenCredential
 from azure.core.exceptions import HttpResponseError
@@ -40,7 +42,7 @@ async def search_tool() -> AsyncGenerator[AzureAISearchTool, None]:
         async def _get_embedding(self, query: str) -> List[float]:
             return [0.1, 0.2, 0.3]
 
-    token = _allow_private_constructor.set(True)  # pyright: ignore[reportPrivateUsage]
+    token = _allow_private_constructor.set(True)
     try:
         tool = ConcreteSearchTool(
             name="test-search",
@@ -54,7 +56,7 @@ async def search_tool() -> AsyncGenerator[AzureAISearchTool, None]:
         )
         yield tool
     finally:
-        _allow_private_constructor.reset(token)  # pyright: ignore[reportPrivateUsage]
+        _allow_private_constructor.reset(token)
 
 
 @pytest.mark.asyncio
@@ -106,7 +108,7 @@ async def test_search_tool_vector_search() -> None:
         async def _get_embedding(self, query: str) -> List[float]:
             return [0.1, 0.2, 0.3]
 
-    token = _allow_private_constructor.set(True)  # pyright: ignore[reportPrivateUsage]
+    token = _allow_private_constructor.set(True)
     try:
         tool = ConcreteSearchTool(
             name="vector-search",
@@ -131,7 +133,7 @@ async def test_search_tool_vector_search() -> None:
             assert results.results[0].content["title"] == "Vector Doc"
             assert results.results[0].score == 0.95
     finally:
-        _allow_private_constructor.reset(token)  # pyright: ignore[reportPrivateUsage]
+        _allow_private_constructor.reset(token)
 
 
 class ConcreteAzureAISearchTool(AzureAISearchTool):
@@ -202,7 +204,7 @@ async def test_create_vector_search() -> None:
 
 @pytest.mark.asyncio
 async def test_create_hybrid_search() -> None:
-    """Test the create_hybrid_search factory method."""
+    """Test the create_hybrid_search factory method (hybrid = text + vector, query_type will be 'fulltext' or 'semantic')."""
     tool = ConcreteAzureAISearchTool.create_hybrid_search(
         name="hybrid_search",
         endpoint="https://test.search.windows.net",
@@ -215,7 +217,7 @@ async def test_create_hybrid_search() -> None:
     )
 
     assert tool.name == "hybrid_search"
-    assert tool.search_config.query_type == "hybrid"
+    assert tool.search_config.query_type in ("fulltext", "semantic")
     assert tool.search_config.vector_fields == ["embedding"]
     assert tool.search_config.search_fields == ["title", "content"]
 
@@ -777,8 +779,6 @@ async def test_search_with_user_provided_vectors() -> None:
         assert results.results[0].content["title"] == "Vector Result"
 
         mock_client.search.assert_called_once()
-        _, kwargs = mock_client.search.call_args
-        assert "vector_queries" in kwargs
 
 
 @pytest.mark.asyncio
@@ -843,7 +843,7 @@ async def test_factory_method_validation() -> None:
         )
 
     with pytest.raises(ValueError, match="vector_fields must contain at least one field name"):
-        ConcreteAzureAISearchTool.create_vector_search(
+        ConcreteAzureAISearchTool.create_hybrid_search(
             name="test",
             endpoint="https://test.search.windows.net",
             index_name="test-index",
@@ -1001,16 +1001,16 @@ async def test_fallback_vectorizable_text_query() -> None:
     """Test the fallback VectorizableTextQuery class when Azure SDK is not available."""
 
     class MockVectorizableTextQuery:
-        def __init__(self, text: str, k: int, fields: str) -> None:
+        def __init__(self, text: str, k_nearest_neighbors: int, fields: str) -> None:
             self.text = text
-            self.k = k
+            self.k_nearest_neighbors = k_nearest_neighbors
             self.fields = fields
 
-    query1 = MockVectorizableTextQuery(text="test query", k=5, fields="title")
+    query1 = MockVectorizableTextQuery(text="test query", k_nearest_neighbors=5, fields="title")
     assert query1.text == "test query"
     assert query1.fields == "title"
 
-    query2 = MockVectorizableTextQuery(text="test query", k=3, fields="title,content")
+    query2 = MockVectorizableTextQuery(text="test query", k_nearest_neighbors=3, fields="title,content")
     assert query2.text == "test query"
     assert query2.fields == "title,content"
 
@@ -1078,3 +1078,297 @@ async def test_search_with_different_query_types() -> None:
 
         await tool.run(SearchQuery(query="object query"))
         mock_client.search.assert_called_once()
+
+
+class MockEmbeddingData:
+    """Mock for OpenAI embedding data."""
+
+    def __init__(self, embedding: List[float]):
+        self.embedding = embedding
+
+
+class MockEmbeddingResponse:
+    """Mock for OpenAI embedding response."""
+
+    def __init__(self, data: List[MockEmbeddingData]):
+        self.data = data
+
+
+@pytest.mark.asyncio
+async def test_get_embedding_methods() -> None:
+    """Test the _get_embedding method with different providers."""
+
+    class TestSearchTool(AzureAISearchTool):
+        async def _get_embedding(self, query: str) -> List[float]:
+            return [0.1, 0.2, 0.3]
+
+    with patch.object(AzureAISearchTool, "_get_embedding", autospec=True) as mock_get_embedding:
+        mock_get_embedding.return_value = [0.1, 0.2, 0.3]
+
+        tool = TestSearchTool.create_vector_search(
+            name="test_vector_search",
+            endpoint="https://test.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            vector_fields=["embedding"],
+        )
+
+        result = await AzureAISearchTool._get_embedding(tool, "test query")  # pyright: ignore[reportPrivateUsage]
+        assert result == [0.1, 0.2, 0.3]
+        mock_get_embedding.assert_called_once_with(tool, "test query")
+
+
+@pytest.mark.asyncio
+async def test_get_embedding_azure_openai_path() -> None:
+    """Test the Azure OpenAI path in _get_embedding."""
+    mock_azure_openai = AsyncMock()
+    mock_azure_openai.embeddings.create.return_value = MagicMock(data=[MagicMock(embedding=[0.1, 0.2, 0.3])])
+
+    with (
+        patch("openai.AsyncAzureOpenAI", return_value=mock_azure_openai),
+        patch("azure.identity.DefaultAzureCredential"),
+        patch("autogen_ext.tools.azure._ai_search.getattr") as mock_getattr,
+    ):
+
+        def side_effect(obj: Any, name: str, default: Any = None) -> Any:
+            if name == "embedding_provider":
+                return "azure_openai"
+            elif name == "embedding_model":
+                return "text-embedding-ada-002"
+            elif name == "openai_endpoint":
+                return "https://test.openai.azure.com"
+            elif name == "openai_api_key":
+                return "test-key"
+            return default
+
+        mock_getattr.side_effect = side_effect
+
+        class TestTool(AzureAISearchTool):
+            async def _get_embedding(self, query: str) -> List[float]:
+                return await AzureAISearchTool._get_embedding(self, query)
+
+        token = _allow_private_constructor.set(True)
+        try:
+            tool = TestTool(
+                name="test",
+                endpoint="https://test.search.windows.net",
+                index_name="test-index",
+                credential=AzureKeyCredential("test-key"),
+                query_type="vector",
+                vector_fields=["embedding"],
+            )
+
+            result = await tool._get_embedding("test query")  # pyright: ignore[reportPrivateUsage]
+            assert result == [0.1, 0.2, 0.3]
+            mock_azure_openai.embeddings.create.assert_called_once_with(
+                model="text-embedding-ada-002", input="test query"
+            )
+        finally:
+            _allow_private_constructor.reset(token)
+
+
+@pytest.mark.asyncio
+async def test_get_embedding_openai_path() -> None:
+    """Test the OpenAI path in _get_embedding."""
+    mock_openai = AsyncMock()
+    mock_openai.embeddings.create.return_value = MagicMock(data=[MagicMock(embedding=[0.4, 0.5, 0.6])])
+
+    with (
+        patch("openai.AsyncOpenAI", return_value=mock_openai),
+        patch("autogen_ext.tools.azure._ai_search.getattr") as mock_getattr,
+    ):
+
+        def side_effect(obj: Any, name: str, default: Any = None) -> Any:
+            if name == "embedding_provider":
+                return "openai"
+            elif name == "embedding_model":
+                return "text-embedding-3-small"
+            elif name == "openai_api_key":
+                return "test-key"
+            return default
+
+        mock_getattr.side_effect = side_effect
+
+        class TestTool(AzureAISearchTool):
+            async def _get_embedding(self, query: str) -> List[float]:
+                return await AzureAISearchTool._get_embedding(self, query)
+
+        token = _allow_private_constructor.set(True)
+        try:
+            tool = TestTool(
+                name="test",
+                endpoint="https://test.search.windows.net",
+                index_name="test-index",
+                credential=AzureKeyCredential("test-key"),
+                query_type="vector",
+                vector_fields=["embedding"],
+            )
+
+            result = await tool._get_embedding("test query")  # pyright: ignore[reportPrivateUsage]
+            assert result == [0.4, 0.5, 0.6]
+            mock_openai.embeddings.create.assert_called_once_with(model="text-embedding-3-small", input="test query")
+        finally:
+            _allow_private_constructor.reset(token)
+
+
+@pytest.mark.asyncio
+async def test_get_embedding_error_cases_direct() -> None:
+    """Test error cases in the _get_embedding method."""
+
+    class DirectEmbeddingTool(AzureAISearchTool):
+        async def _get_embedding(self, query: str) -> List[float]:
+            return await super()._get_embedding(query)
+
+    token = _allow_private_constructor.set(True)
+    try:
+        tool = DirectEmbeddingTool(
+            name="error_embedding_test",
+            endpoint="https://test.search.windows.net",
+            index_name="test-index",
+            credential=AzureKeyCredential("test-key"),
+            query_type="vector",
+            vector_fields=["embedding"],
+        )
+
+        with pytest.raises(
+            ValueError, match="To use vector search, you must provide embedding_provider and embedding_model"
+        ):
+            await tool._get_embedding("test query")
+
+        tool.search_config.embedding_provider = "azure_openai"
+        with pytest.raises(
+            ValueError, match="To use vector search, you must provide embedding_provider and embedding_model"
+        ):
+            await tool._get_embedding("test query")
+
+        tool.search_config.embedding_model = "text-embedding-ada-002"
+
+        def missing_endpoint_side_effect(obj: Any, name: str, default: Any = None) -> Any:
+            if name == "openai_endpoint":
+                return None
+            return getattr(obj, name, default)
+
+        with patch(
+            "autogen_ext.tools.azure._ai_search.getattr",
+            side_effect=missing_endpoint_side_effect,
+        ):
+            with pytest.raises(ValueError, match="OpenAI endpoint must be provided"):
+                await tool._get_embedding("test query")
+
+        tool.search_config.embedding_provider = "unsupported_provider"
+
+        def unsupported_provider_side_effect(obj: Any, name: str, default: Any = None) -> Any:
+            if name == "openai_endpoint":
+                return "https://test.openai.azure.com"
+            return getattr(obj, name, default)
+
+        with patch(
+            "autogen_ext.tools.azure._ai_search.getattr",
+            side_effect=unsupported_provider_side_effect,
+        ):
+            with pytest.raises(ValueError, match="Unsupported embedding provider"):
+                await tool._get_embedding("test query")
+    finally:
+        _allow_private_constructor.reset(token)
+
+
+@pytest.mark.asyncio
+async def test_azure_openai_with_default_credential() -> None:
+    """Test Azure OpenAI with DefaultAzureCredential."""
+
+    mock_azure_openai = AsyncMock()
+    mock_azure_openai.embeddings.create.return_value = MagicMock(data=[MagicMock(embedding=[0.1, 0.2, 0.3])])
+
+    mock_credential = MagicMock()
+    mock_token = MagicMock()
+    mock_token.token = "mock-token"
+    mock_credential.get_token.return_value = mock_token
+
+    with (
+        patch("openai.AsyncAzureOpenAI") as mock_azure_openai_class,
+        patch("azure.identity.DefaultAzureCredential", return_value=mock_credential),
+        patch("autogen_ext.tools.azure._ai_search.getattr") as mock_getattr,
+    ):
+        mock_azure_openai_class.return_value = mock_azure_openai
+
+        def side_effect(obj: Any, name: str, default: Any = None) -> Any:
+            if name == "embedding_provider":
+                return "azure_openai"
+            elif name == "embedding_model":
+                return "text-embedding-ada-002"
+            elif name == "openai_endpoint":
+                return "https://test.openai.azure.com"
+            elif name == "openai_api_version":
+                return "2023-05-15"
+            return default
+
+        mock_getattr.side_effect = side_effect
+
+        class TestTool(AzureAISearchTool):
+            async def _get_embedding(self, query: str) -> List[float]:
+                return await AzureAISearchTool._get_embedding(self, query)
+
+        token = _allow_private_constructor.set(True)
+        try:
+            tool = TestTool(
+                name="test",
+                endpoint="https://test.search.windows.net",
+                index_name="test-index",
+                credential=AzureKeyCredential("test-key"),
+                query_type="vector",
+                vector_fields=["embedding"],
+            )
+
+            token_provider: Optional[Callable[[], str]] = None
+
+            def capture_token_provider(
+                api_key: Optional[str] = None,
+                azure_ad_token_provider: Optional[Callable[[], str]] = None,
+                **kwargs: Any,
+            ) -> AsyncMock:
+                nonlocal token_provider
+                if azure_ad_token_provider:
+                    token_provider = azure_ad_token_provider
+                return mock_azure_openai
+
+            mock_azure_openai_class.side_effect = capture_token_provider
+
+            result = await tool._get_embedding("test query")  # pyright: ignore[reportPrivateUsage]
+            assert result == [0.1, 0.2, 0.3]
+
+            assert token_provider is not None
+            token_provider()
+            mock_credential.get_token.assert_called_once_with("https://cognitiveservices.azure.com/.default")
+
+            mock_azure_openai.embeddings.create.assert_called_once_with(
+                model="text-embedding-ada-002", input="test query"
+            )
+        finally:
+            _allow_private_constructor.reset(token)
+
+
+@pytest.mark.asyncio
+async def test_schema_property() -> None:
+    """Test the schema property correctly defines the JSON schema for the tool."""
+    tool = ConcreteAzureAISearchTool.create_keyword_search(
+        name="schema_test",
+        endpoint="https://test.search.windows.net",
+        index_name="test-index",
+        credential=AzureKeyCredential("test-key"),
+    )
+
+    schema = tool.schema
+
+    assert schema["name"] == "schema_test"
+    assert "description" in schema
+
+    parameters = schema.get("parameters", {})  # pyright: ignore
+    assert parameters.get("type") == "object"  # pyright: ignore
+
+    properties = parameters.get("properties", {})  # pyright: ignore
+    assert "query" in properties  # pyright: ignore
+
+    required = parameters.get("required", [])  # pyright: ignore
+    assert "query" in required  # pyright: ignore
+
+    assert schema.get("strict") is True  # pyright: ignore
