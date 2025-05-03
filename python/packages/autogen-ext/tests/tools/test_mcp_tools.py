@@ -571,3 +571,27 @@ async def test_mcp_workbench_server_filesystem() -> None:
         tool = tools[0]
         result = await new_workbench.call_tool(tool["name"], {"path": "README.md"}, CancellationToken())
         assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_lazy_init_and_finalize_cleanup() -> None:
+    params = StdioServerParams(
+        command="npx",
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            ".",
+        ],
+        read_timeout_seconds=60,
+    )
+    workbench = McpWorkbench(server_params=params)
+
+    # Before any call, actor should not be initialized
+    assert workbench._actor is None  # type: ignore[reportPrivateUsage]
+
+    # Trigger list_tools → lazy start
+    await workbench.list_tools()
+    assert workbench._actor is not None  # type: ignore[reportPrivateUsage]
+    assert workbench._actor._active is True  # type: ignore[reportPrivateUsage]
+
+    del workbench
