@@ -13,6 +13,8 @@ from ._base_agent import BaseAgent
 from ._cache_store import CacheStore, InMemoryStore
 from ._cancellation_token import CancellationToken
 from ._closure_agent import ClosureAgent, ClosureContext
+from ._functions import IndividualFunction
+from ._function_utils import get_imports_from_func
 from ._component_config import (
     Component,
     ComponentBase,
@@ -132,4 +134,6 @@ __all__ = [
     "DropMessage",
     "InterventionHandler",
     "DefaultInterventionHandler",
+    "IndividualFunction",
+    "get_imports_from_func",
 ]

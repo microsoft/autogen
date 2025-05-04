@@ -1,10 +1,9 @@
 import asyncio
 import logging
 import re
-from inspect import iscoroutinefunction
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Sequence, Union, cast
 
-from autogen_core import AgentRuntime, Component, ComponentModel
+from autogen_core import AgentRuntime, Component, ComponentModel, IndividualFunction
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -30,6 +29,7 @@ from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._events import GroupChatTermination
+from autogen_core.code_executor._func_with_reqs import ImportFromModule
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 
@@ -61,9 +61,9 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         model_client: ChatCompletionClient,
         selector_prompt: str,
         allow_repeated_speaker: bool,
-        selector_func: Optional[SelectorFuncType],
+        selector_func: Optional[IndividualFunction],
         max_selector_attempts: int,
-        candidate_func: Optional[CandidateFuncType],
+        candidate_func: Optional[IndividualFunction],
         emit_team_events: bool,
         model_client_streaming: bool = False,
     ) -> None:
@@ -84,11 +84,9 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._selector_prompt = selector_prompt
         self._previous_speaker: str | None = None
         self._allow_repeated_speaker = allow_repeated_speaker
-        self._selector_func = selector_func
-        self._is_selector_func_async = iscoroutinefunction(self._selector_func)
+        self._selector_func = selector_func if selector_func else None
         self._max_selector_attempts = max_selector_attempts
-        self._candidate_func = candidate_func
-        self._is_candidate_func_async = iscoroutinefunction(self._candidate_func)
+        self._candidate_func = candidate_func if candidate_func else None
         self._model_client_streaming = model_client_streaming
 
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
@@ -124,36 +122,55 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
         # Use the selector function if provided.
         if self._selector_func is not None:
-            if self._is_selector_func_async:
-                async_selector_func = cast(AsyncSelectorFunc, self._selector_func)
-                speaker = await async_selector_func(thread)
-            else:
-                sync_selector_func = cast(SyncSelectorFunc, self._selector_func)
-                speaker = sync_selector_func(thread)
-            if speaker is not None:
-                if speaker not in self._participant_names:
-                    raise ValueError(
-                        f"Selector function returned an invalid speaker name: {speaker}. "
-                        f"Expected one of: {self._participant_names}."
-                    )
-                # Skip the model based selection.
-                return speaker
+            args_type = self._selector_func.args_type()
+            args_fields = args_type.model_fields
+            if "messages" not in args_fields:
+                raise ValueError(
+                    f"Selector function '{self._selector_func.name}' must have a parameter named 'messages'. "
+                    f"Found parameters: {list(args_fields.keys())}"
+                )
+
+            try:
+                # Use run_json which handles both sync and async functions
+                speaker = await self._selector_func.run_json({"messages": thread})
+                if speaker is not None:
+                    if speaker not in self._participant_names:
+                        raise ValueError(
+                            f"Selector function returned an invalid speaker name: {speaker}. "
+                            f"Expected one of: {self._participant_names}."
+                        )
+                    # Skip the model based selection.
+                    return speaker
+                
+            except Exception as e:
+                trace_logger.warning(f"Error executing selector function: {e}")
 
         # Use the candidate function to filter participants if provided
         if self._candidate_func is not None:
-            if self._is_candidate_func_async:
-                async_candidate_func = cast(AsyncCandidateFunc, self._candidate_func)
-                participants = await async_candidate_func(thread)
-            else:
-                sync_candidate_func = cast(SyncCandidateFunc, self._candidate_func)
-                participants = sync_candidate_func(thread)
-            if not participants:
-                raise ValueError("Candidate function must return a non-empty list of participant names.")
-            if not all(p in self._participant_names for p in participants):
+            args_type = self._candidate_func.args_type()
+            args_fields = args_type.model_fields
+            if "messages" not in args_fields:
                 raise ValueError(
-                    f"Candidate function returned invalid participant names: {participants}. "
-                    f"Expected one of: {self._participant_names}."
+                    f"Candidate function '{self._candidate_func.name}' must have a parameter named 'messages'. "
+                    f"Found parameters: {list(args_fields.keys())}"
                 )
+            try:
+                # Use run_json which handles both sync and async functions
+                participants = await self._candidate_func.run_json({"messages": thread})
+                if not participants:
+                    raise ValueError("Candidate function must return a non-empty list of participant names.")
+                if not all(p in self._participant_names for p in participants):
+                    raise ValueError(
+                        f"Candidate function returned invalid participant names: {participants}. "
+                        f"Expected one of: {self._participant_names}."
+                    )
+            except Exception as e:
+                trace_logger.warning(f"Error executing candidate function: {e}")
+                # Fallback to default participant selection on error
+                if self._previous_speaker is not None and not self._allow_repeated_speaker:
+                    participants = [p for p in self._participant_names if p != self._previous_speaker]
+                else:
+                    participants = list(self._participant_names)
         else:
             # Construct the candidate agent list to be selected from, skip the previous speaker if not allowed.
             if self._previous_speaker is not None and not self._allow_repeated_speaker:
@@ -308,7 +325,8 @@ class SelectorGroupChatConfig(BaseModel):
     max_turns: int | None = None
     selector_prompt: str
     allow_repeated_speaker: bool
-    # selector_func: ComponentModel | None
+    selector_func: ComponentModel | None = None
+    candidate_func: ComponentModel | None = None
     max_selector_attempts: int = 3
     emit_team_events: bool = False
     model_client_streaming: bool = False
@@ -487,8 +505,8 @@ Read the above conversation. Then select the next role from {participants} to pl
 """,
         allow_repeated_speaker: bool = False,
         max_selector_attempts: int = 3,
-        selector_func: Optional[SelectorFuncType] = None,
-        candidate_func: Optional[CandidateFuncType] = None,
+        selector_func: Optional[SelectorFuncType | IndividualFunction] = None,
+        candidate_func: Optional[CandidateFuncType | IndividualFunction] = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
         model_client_streaming: bool = False,
@@ -509,9 +527,32 @@ Read the above conversation. Then select the next role from {participants} to pl
         self._selector_prompt = selector_prompt
         self._model_client = model_client
         self._allow_repeated_speaker = allow_repeated_speaker
-        self._selector_func = selector_func
+        
+        # Wrap the selector_func in IndividualFunction if it's a function and not already an IndividualFunction
+        if selector_func is not None and not isinstance(selector_func, IndividualFunction):
+            if not callable(selector_func):
+                raise ValueError("Selector function should be callable")
+            self._selector_func = IndividualFunction(
+                selector_func,
+                description="Function to select the next speaker in a group chat",
+                name="selector_func",
+            )
+        else:
+            self._selector_func = selector_func
+            
+        # Wrap the candidate_func in IndividualFunction if it's a function and not already an IndividualFunction
+        if candidate_func is not None and not isinstance(candidate_func, IndividualFunction):
+            if not callable(candidate_func):
+                raise ValueError("Candidate function should be callable")
+            self._candidate_func = IndividualFunction(
+                candidate_func,
+                description="Function to filter candidate speakers in a group chat",
+                name="candidate_func",
+            )
+        else:
+            self._candidate_func = candidate_func
+            
         self._max_selector_attempts = max_selector_attempts
-        self._candidate_func = candidate_func
         self._model_client_streaming = model_client_streaming
 
     def _create_group_chat_manager_factory(
@@ -557,7 +598,8 @@ Read the above conversation. Then select the next role from {participants} to pl
             selector_prompt=self._selector_prompt,
             allow_repeated_speaker=self._allow_repeated_speaker,
             max_selector_attempts=self._max_selector_attempts,
-            # selector_func=self._selector_func.dump_component() if self._selector_func else None,
+            selector_func=self._selector_func.dump_component() if self._selector_func else None,
+            candidate_func=self._candidate_func.dump_component() if self._candidate_func else None,
             emit_team_events=self._emit_team_events,
             model_client_streaming=self._model_client_streaming,
         )
@@ -574,9 +616,12 @@ Read the above conversation. Then select the next role from {participants} to pl
             selector_prompt=config.selector_prompt,
             allow_repeated_speaker=config.allow_repeated_speaker,
             max_selector_attempts=config.max_selector_attempts,
-            # selector_func=ComponentLoader.load_component(config.selector_func, Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], str | None])
-            # if config.selector_func
-            # else None,
+            selector_func=IndividualFunction.load_component(config.selector_func)
+            if config.selector_func is not None
+            else None,
+            candidate_func=IndividualFunction.load_component(config.candidate_func)
+            if config.candidate_func
+            else None,
             emit_team_events=config.emit_team_events,
             model_client_streaming=config.model_client_streaming,
         )
