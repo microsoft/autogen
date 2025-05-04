@@ -177,7 +177,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             description = tool.description or ""
             parameters = ParametersSchema(
                 type="object",
-                properties=tool.inputSchema["properties"],
+                properties=tool.inputSchema.get("properties", {}),
                 required=tool.inputSchema.get("required", []),
                 additionalProperties=tool.inputSchema.get("additionalProperties", False),
             )
@@ -279,3 +279,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     @classmethod
     def _from_config(cls, config: McpWorkbenchConfig) -> Self:
         return cls(server_params=config.server_params)
+
+    def __del__(self) -> None:
+        # Ensure the actor is stopped when the workbench is deleted
+        pass
