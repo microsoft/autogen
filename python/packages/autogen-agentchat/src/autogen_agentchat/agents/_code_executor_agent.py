@@ -6,6 +6,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Tuple,
     Union,
 )
 
@@ -548,7 +549,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_context: ChatCompletionContext,
         agent_name: str,
         cancellation_token: CancellationToken,
-    ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
+    ) -> AsyncGenerator[Union[CreateResult, Tuple[CreateResult, str], ModelClientStreamingChunkEvent], None]:
         """
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
         """
@@ -563,7 +564,6 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             ):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
-                    model_result.id = full_message_id
                 elif isinstance(chunk, str):
                     yield ModelClientStreamingChunkEvent(
                         content=chunk, source=agent_name, full_message_id=full_message_id
@@ -575,7 +575,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             yield model_result
         else:
             model_result = await model_client.create(llm_messages, tools=[], cancellation_token=cancellation_token)
-            yield model_result
+            yield (model_result, full_message_id)
 
     @staticmethod
     async def _update_model_context_with_memory(

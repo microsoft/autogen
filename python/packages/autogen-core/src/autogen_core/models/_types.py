@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import List, Literal, Optional, Union
-from uuid import uuid4
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
@@ -107,9 +106,6 @@ class ChatCompletionTokenLogprob(BaseModel):
 
 class CreateResult(BaseModel):
     """Create result contains the output of a model completion."""
-
-    id: str = Field(default_factory=lambda: str(uuid4()))
-    """The unique identifier for the completion."""
 
     finish_reason: FinishReasons
     """The reason the model finished generating the completion."""

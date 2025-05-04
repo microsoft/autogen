@@ -803,6 +803,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # STEP 3: Run the first inference
         model_result = None
+        full_message_id = None
         async for inference_output in self._call_llm(
             model_client=model_client,
             model_client_stream=model_client_stream,
@@ -816,6 +817,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         ):
             if isinstance(inference_output, CreateResult):
                 model_result = inference_output
+            elif isinstance(inference_output, tuple):
+                model_result, full_message_id = inference_output
             else:
                 # Streaming chunk event
                 yield inference_output
@@ -854,6 +857,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tool_call_summary_format=tool_call_summary_format,
             output_content_type=output_content_type,
             format_string=format_string,
+            full_message_id=full_message_id,
         ):
             yield output_event
 
@@ -904,7 +908,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         cancellation_token: CancellationToken,
         output_content_type: type[BaseModel] | None,
-    ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
+    ) -> AsyncGenerator[Union[CreateResult, Tuple[CreateResult, str], ModelClientStreamingChunkEvent], None]:
         """
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
         """
@@ -924,7 +928,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             ):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
-                    model_result.id = full_message_id
                 elif isinstance(chunk, str):
                     yield ModelClientStreamingChunkEvent(
                         content=chunk, source=agent_name, full_message_id=full_message_id
@@ -941,7 +944,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 cancellation_token=cancellation_token,
                 json_output=output_content_type,
             )
-            yield model_result
+            yield (model_result, full_message_id)
 
     @classmethod
     async def _process_model_result(
@@ -961,6 +964,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         tool_call_summary_format: str,
         output_content_type: type[BaseModel] | None,
         format_string: str | None = None,
+        full_message_id: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
         Handle final or partial responses from model_result, including tool calls, handoffs,
@@ -983,7 +987,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             else:
                 yield Response(
                     chat_message=TextMessage(
-                        id=model_result.id,
+                        id=full_message_id,
                         content=model_result.content,
                         source=agent_name,
                         models_usage=model_result.usage,
