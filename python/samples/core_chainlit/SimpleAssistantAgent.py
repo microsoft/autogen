@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, cast, Literal
 
 import asyncio
 import json
@@ -6,13 +6,20 @@ from dataclasses import dataclass
 from typing import List
 
 from autogen_core import (
+    AgentId,
     FunctionCall,
     MessageContext,
     RoutedAgent,
+    SingleThreadedAgentRuntime,
+    DefaultSubscription,
+    DefaultTopicId,
     default_subscription,
     message_handler,
     CancellationToken,
-    TopicId
+    ClosureAgent,
+    ClosureContext,
+    TopicId,
+    TypeSubscription
 )
 from autogen_core.models import (
     AssistantMessage,
@@ -25,29 +32,32 @@ from autogen_core.models import (
     FunctionExecutionResultMessage
 )
 
-from autogen_core.tools import Tool
+from autogen_core.tools import FunctionTool, Tool
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_core.model_context import BufferedChatCompletionContext
 
 @dataclass
 class Message:
     content: str
 
 @dataclass
-class FinalResult:
+class StreamResult:
     type: str
     value: str
 
 TASK_RESULTS_TOPIC_TYPE = "task-results"
 task_results_topic_id = TopicId(type=TASK_RESULTS_TOPIC_TYPE, source="default")
-CLOSURE_AGENT_TYPE = "collect_result_agent"
 
 @default_subscription
 class SimpleAssistantAgent(RoutedAgent):
-    def __init__(self, name: str, model_client: ChatCompletionClient, tool_schema: List[Tool], system_message: str, context: MessageContext) -> None:
+    def __init__(self, name: str, model_client: ChatCompletionClient, tool_schema: List[Tool], system_message: str, context: MessageContext, model_client_stream: bool = False, reflect_on_tool_use: bool | None = None) -> None:
         super().__init__(name)
         self._system_messages: List[LLMMessage] = [SystemMessage(content=system_message)]
         self._model_client = model_client
         self._tools = tool_schema
         self._model_context = context 
+        self._model_client_stream = model_client_stream
+        self._reflect_on_tool_use = reflect_on_tool_use
 
     @message_handler
     async def handle_message(self, message: UserMessage, ctx: MessageContext) -> Message:
@@ -56,8 +66,8 @@ class SimpleAssistantAgent(RoutedAgent):
 
         # Add message to model context.
         await self._model_context.add_message(UserMessage(content=message.content, source="user"))
-        #ctx = self._model_context
         model_result: Optional[CreateResult] = None
+
         # Run the chat completion with the tools.
         async for chunk in self._model_client.create_stream(
             messages=session,
@@ -67,21 +77,17 @@ class SimpleAssistantAgent(RoutedAgent):
             if isinstance(chunk, CreateResult):
                 model_result = chunk
             elif isinstance(chunk, str):
-                #yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
-		# foward the stream tokent to the Queue
-                await self.runtime.publish_message(FinalResult("chunk", chunk), topic_id=task_results_topic_id)
+		# forward the stream token to the closure agent
+                await self.runtime.publish_message(StreamResult("chunk", chunk), topic_id=task_results_topic_id)
             else:
                 raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
 
         if model_result is None:
             raise RuntimeError("No final model result in streaming mode.")
-        # yield model_result
-        # await self.runtime.publish_message(FinalResult(model_result.content), topic_id=task_results_topic_id)
 
         # If there are no tool calls, return the result.
         if isinstance(model_result.content, str):
-            await self.runtime.publish_message(FinalResult("respnes", model_result.content), topic_id=task_results_topic_id)
-            #await self.runtime.publish_message(FinalResult("Message 2 for collection"), topic_id=task_results_topic_id)
+            await self.runtime.publish_message(StreamResult("response", model_result.content), topic_id=task_results_topic_id)
             return Message(content=model_result.content)
 
         assert isinstance(model_result.content, list) and all(
@@ -98,9 +104,12 @@ class SimpleAssistantAgent(RoutedAgent):
 
         # Add the function execution results to the session.
         session.append(FunctionExecutionResultMessage(content=results))
+
+        if (not self._reflect_on_tool_use):
+            await self.runtime.publish_message(StreamResult("response", results), topic_id=task_results_topic_id)
+            return Message(content = results)
         
         # Run the chat completion again to reflect on the history and function execution results.
-        #create_result = await self._model_client.create(
         model_result = None
         async for chunk in self._model_client.create_stream(
             messages=session,
@@ -110,14 +119,14 @@ class SimpleAssistantAgent(RoutedAgent):
                 model_result = chunk
             elif isinstance(chunk, str):
 		# foward the stream tokent to the Queue
-                await self.runtime.publish_message(FinalResult("chunk", chunk), topic_id=task_results_topic_id)
+                await self.runtime.publish_message(StreamResult("chunk", chunk), topic_id=task_results_topic_id)
             else:
                 raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
 
         if model_result is None:
             raise RuntimeError("No final model result in streaming mode.")
 
-        await self.runtime.publish_message(FinalResult("respose", model_result.content), topic_id=task_results_topic_id)
+        await self.runtime.publish_message(StreamResult("response", model_result.content), topic_id=task_results_topic_id)
         # Return the result as a message.
         return Message(model_result.content)
 
