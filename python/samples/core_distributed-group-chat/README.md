@@ -10,7 +10,7 @@ This example runs a gRPC server using [GrpcWorkerAgentRuntimeHost](../../src/aut
 2. Install dependencies.
 
 ```bash
-pip install "autogen-ext[openai,azure,chainlit,rich,pyyaml]"
+pip install "autogen-ext[openai,azure,chainlit,rich]" "pyyaml"
 ```
 
 ### General Configuration

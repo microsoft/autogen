@@ -183,7 +183,7 @@ async def Console(
                     f"{'-' * 10} {message.__class__.__name__} ({message.source}) {'-' * 10}", end="\n", flush=True
                 )
             if isinstance(message, ModelClientStreamingChunkEvent):
-                await aprint(message.to_text(), end="")
+                await aprint(message.to_text(), end="", flush=True)
                 streaming_chunks.append(message.content)
                 if message.full_message_id:
                     full_message_ids.add(message.full_message_id)

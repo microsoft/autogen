@@ -455,7 +455,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.5.4"
+version = "0.5.6"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "autogen-core" },
@@ -466,7 +466,7 @@ requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autogen-core"
-version = "0.5.4"
+version = "0.5.6"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
@@ -585,7 +585,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.5.4"
+version = "0.5.6"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
@@ -597,9 +597,13 @@ anthropic = [
 ]
 azure = [
     { name = "azure-ai-inference" },
+    { name = "azure-ai-projects" },
     { name = "azure-core" },
     { name = "azure-identity" },
     { name = "azure-search-documents" },
+]
+canvas = [
+    { name = "unidiff" },
 ]
 chromadb = [
     { name = "chromadb" },
@@ -743,6 +747,7 @@ requires-dist = [
     { name = "autogen-agentchat", marker = "extra == 'web-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "azure-ai-inference", marker = "extra == 'azure'", specifier = ">=1.0.0b7" },
+    { name = "azure-ai-projects", marker = "extra == 'azure'", specifier = ">=1.0.0b8" },
     { name = "azure-core", marker = "extra == 'azure'" },
     { name = "azure-identity", marker = "extra == 'azure'" },
     { name = "azure-search-documents", marker = "extra == 'azure'", specifier = ">=11.4.0" },
@@ -792,6 +797,7 @@ requires-dist = [
     { name = "semantic-kernel", extras = ["pandas"], marker = "extra == 'semantic-kernel-pandas'", specifier = ">=1.17.1" },
     { name = "tiktoken", marker = "extra == 'ollama'", specifier = ">=0.8.0" },
     { name = "tiktoken", marker = "extra == 'openai'", specifier = ">=0.8.0" },
+    { name = "unidiff", marker = "extra == 'canvas'", specifier = ">=0.7.5" },
     { name = "websockets", marker = "extra == 'docker-jupyter-executor'", specifier = ">=15.0.1" },
 ]
 
@@ -929,6 +935,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/af/37/233eee0bebbf631d2f911a9f1ebbc3784b100d9bfb84efc275e71c1ea636/azure_ai_inference-1.0.0b7.tar.gz", hash = "sha256:bd912f71f7f855036ca46c9a21439f290eed5e61da418fd26bbb32e3c68bcce3", size = 175883 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cd/b6/5ba830eddc59f820c654694d476c14a3dd9c1f828ff9b48eb8b21dfd5f01/azure_ai_inference-1.0.0b7-py3-none-any.whl", hash = "sha256:59bb6a9ee62bd7654a69ca2bf12fe9335d7045df95b491cb8b5f9e3791c86175", size = 123030 },
+]
+
+[[package]]
+name = "azure-ai-projects"
+version = "1.0.0b8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "azure-core" },
+    { name = "isodate" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/83/85/66da3fe4affd182aa7788f212a1936a56a700bcbcafe157147a416f38e11/azure_ai_projects-1.0.0b8.tar.gz", hash = "sha256:9e48bf15710cdf40dd3fa1ac0448266bf599dc10c6477aa69ac5c250daef236e", size = 310017 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9c/c3/9071dcf8e383cf193253baccbbcdd5eeab181a388628ce51f98a7fb4c104/azure_ai_projects-1.0.0b8-py3-none-any.whl", hash = "sha256:9636aeaa573449d4cff6a38c44cfc16ad08a4f7a598e953654eece5a9f209ec2", size = 190835 },
 ]
 
 [[package]]
@@ -7964,6 +7984,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/6f/d4/9ed627905f7993349671283b3c5bf2d9f543ef79229fa1c7e01324eb900c/umap-learn-0.5.7.tar.gz", hash = "sha256:b2a97973e4c6ffcebf241100a8de589a4c84126a832ab40f296c6d9fcc5eb19e", size = 92680 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3c/8f/671c0e1f2572ba625cbcc1faeba9435e00330c3d6962858711445cf1e817/umap_learn-0.5.7-py3-none-any.whl", hash = "sha256:6a7e0be2facfa365a5ed6588447102bdbef32a0ef449535c25c97ea7e680073c", size = 88815 },
+]
+
+[[package]]
+name = "unidiff"
+version = "0.7.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/48/81be0ac96e423a877754153699731ef439fd7b80b4c8b5425c94ed079ebd/unidiff-0.7.5.tar.gz", hash = "sha256:2e5f0162052248946b9f0970a40e9e124236bf86c82b70821143a6fc1dea2574", size = 20931 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8a/54/57c411a6e8f7bd7848c8b66e4dcaffa586bf4c02e63f2280db0327a4e6eb/unidiff-0.7.5-py2.py3-none-any.whl", hash = "sha256:c93bf2265cc1ba2a520e415ab05da587370bc2a3ae9e0414329f54f0c2fc09e8", size = 14386 },
 ]
 
 [[package]]
