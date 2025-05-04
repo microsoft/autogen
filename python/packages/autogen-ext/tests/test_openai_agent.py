@@ -177,8 +177,10 @@ def agent(mock_openai_client: AsyncOpenAI, weather_tool: WeatherTool) -> OpenAIA
         instructions="You are a helpful AI assistant.",
         tools=[weather_tool],
         temperature=0.7,
-        max_tokens=1000,
+        max_output_tokens=1000,
         seed=42,
+        store=True,
+        truncation="auto",
     )
 
 
@@ -213,7 +215,6 @@ async def test_basic_response(agent: OpenAIAgent, cancellation_token: Cancellati
 
     assert response.chat_message is not None
     assert isinstance(response.chat_message, TextMessage)
-    # Accept both 'Hello world!' and the tool response for compatibility
     assert response.chat_message.content in ("Hello world!", '{"temperature": 72.5, "conditions": "sunny"}')
     assert response.chat_message.source == "assistant"
 
@@ -232,11 +233,9 @@ async def test_tool_calling(agent: OpenAIAgent, cancellation_token: Cancellation
         async for msg in agent.on_messages_stream([message], cancellation_token):
             all_messages.append(msg)
 
-        # The agent does not yield tool call events; only the final response is returned.
         final_response = next((msg for msg in all_messages if hasattr(msg, "chat_message")), None)
         assert final_response is not None
         assert hasattr(final_response, "chat_message")
-        # Cast to ensure type safety
         response_msg = cast(Response, final_response)
         assert isinstance(response_msg.chat_message, TextMessage)
         assert response_msg.chat_message.content in (
@@ -262,7 +261,6 @@ async def test_error_handling(error_agent: OpenAIAgent, cancellation_token: Canc
 
 @pytest.mark.asyncio
 async def test_state_management(agent: OpenAIAgent, cancellation_token: CancellationToken) -> None:
-    # Access protected members for testing purposes
     agent._last_response_id = "resp-123"  # type: ignore
     agent._message_history = [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "Hi there"}]  # type: ignore
 
@@ -328,7 +326,6 @@ async def test_tool_schema_conversion(agent: OpenAIAgent) -> None:
 
 @pytest.mark.asyncio
 async def test_list_assistants(agent: OpenAIAgent) -> Dict[str, Any]:
-    # Patch the client's assistants.list method
     client = cast(Any, agent._client)  # type: ignore
     client.assistants = MagicMock()
     client.assistants.list = AsyncMock(
@@ -338,7 +335,6 @@ async def test_list_assistants(agent: OpenAIAgent) -> Dict[str, Any]:
     assert result["object"] == "list"
     assert "assistant1" in result["data"]
 
-    # Test NotImplementedError branch
     delattr(client, "assistants")
     with pytest.raises(NotImplementedError):
         await agent.list_assistants()
@@ -376,19 +372,14 @@ async def test_modify_assistant(agent: OpenAIAgent) -> Dict[str, Any]:
     with pytest.raises(NotImplementedError):
         await agent.modify_assistant("asst_123", name="newname")
 
-    # Test tool call execution - separate this from the modify_assistant test
-    # for cleaner test organization
     call = FunctionCall(name="not_a_tool", arguments="{}", id="call1")
     exec_result = await agent._execute_tool_call(call, CancellationToken())  # type: ignore
     assert exec_result.is_error
 
-    # Test bad arguments
     agent._tool_map["bad_args"] = agent._tool_map["get_weather"]  # type: ignore
     call = FunctionCall(name="bad_args", arguments="{invalid_json}", id="call2")
     exec_result = await agent._execute_tool_call(call, CancellationToken())  # type: ignore
     assert exec_result.is_error and "Invalid JSON" in exec_result.content
-
-    # Test failing tool
     mock_tool = MagicMock(spec=Tool)
     mock_tool.name = "fail_tool"
     mock_tool.run_json = AsyncMock(side_effect=Exception("fail"))
@@ -404,10 +395,9 @@ async def test_modify_assistant(agent: OpenAIAgent) -> Dict[str, Any]:
 
 @pytest.mark.asyncio
 async def test_on_messages_inner_messages(agent: OpenAIAgent, cancellation_token: CancellationToken) -> None:
-    # Patch on_messages_stream to yield a Response and a dummy inner message
     class DummyMsg(BaseChatMessage):
-        type: str = "DummyMsg"  # Add a type field with a default value
-        content: str = "dummy content"  # Direct attribute as required by BaseChatMessage
+        type: str = "DummyMsg"
+        content: str = "dummy content"
 
         def __init__(self) -> None:
             super().__init__(source="dummy")
@@ -439,19 +429,27 @@ async def test_on_messages_inner_messages(agent: OpenAIAgent, cancellation_token
 
 @pytest.mark.asyncio
 async def test_build_api_params(agent: OpenAIAgent) -> None:
-    # No previous_response_id
     agent._last_response_id = None  # type: ignore
     params = agent._build_api_parameters([{"role": "user", "content": "hi"}])  # type: ignore
     assert "previous_response_id" not in params
-    # Test with previous_response_id
     agent._last_response_id = "resp-456"  # type: ignore
     params = agent._build_api_parameters([{"role": "user", "content": "hi"}])  # type: ignore
     assert params.get("previous_response_id") == "resp-456"
 
+    assert "max_tokens" not in params
+    assert params.get("max_output_tokens") == 1000
+
+    assert params.get("store") is True
+    assert params.get("truncation") == "auto"
+
+    agent._json_mode = True  # type: ignore
+    params = agent._build_api_parameters([{"role": "user", "content": "hi"}])  # type: ignore
+    assert "text.format" not in params
+    assert params.get("json_schema") == {"type": "object"}
+
 
 @pytest.mark.asyncio
 async def test_delete_assistant(agent: OpenAIAgent) -> Dict[str, Any]:
-    # Cast to Any to allow attribute assignment
     client = cast(Any, agent._client)  # type: ignore
     client.assistants = MagicMock()
     client.assistants.delete = AsyncMock(return_value=MagicMock(model_dump=lambda: {"id": "asst_123"}))
@@ -466,12 +464,10 @@ async def test_delete_assistant(agent: OpenAIAgent) -> Dict[str, Any]:
 
 @pytest.mark.asyncio
 async def test_on_messages_previous_response_id(agent: OpenAIAgent, cancellation_token: CancellationToken) -> None:
-    # No previous_response_id
     message = TextMessage(source="user", content="hi")
     response = await agent.on_messages([message], cancellation_token)
     assert response.chat_message is not None
     assert isinstance(response.chat_message, TextMessage)
-    # With previous_response_id
     message = TextMessage(source="user", content="hi")
     response = await agent.on_messages([message], cancellation_token)
     assert response.chat_message is not None
@@ -480,13 +476,11 @@ async def test_on_messages_previous_response_id(agent: OpenAIAgent, cancellation
 
 @pytest.mark.asyncio
 async def test_on_messages_stream(agent: OpenAIAgent, cancellation_token: CancellationToken) -> None:
-    # Patch on_messages_stream to yield a Response
     dummy_response = Response(chat_message=TextMessage(source="agent", content="hi"), inner_messages=None)
 
     async def fake_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[Response, None]:
         yield dummy_response
 
-    # Use patch instead of direct assignment
     with patch.object(agent, "on_messages_stream", fake_stream):
         resp = await agent.on_messages([TextMessage(source="user", content="hi")], cancellation_token)
         assert isinstance(resp.chat_message, TextMessage)
@@ -496,8 +490,6 @@ async def test_on_messages_stream(agent: OpenAIAgent, cancellation_token: Cancel
 @pytest.mark.asyncio
 async def test_component_serialization(agent: OpenAIAgent) -> None:
     config = agent.dump_component()
-
-    # Ensure config is a dict
     config_dict: Any = None
     if isinstance(config, dict):
         config_dict = config
@@ -510,7 +502,6 @@ async def test_component_serialization(agent: OpenAIAgent) -> None:
     else:
         config_dict = {"name": agent.name, "description": agent.description}
 
-    # If config_dict is a ComponentModel dict, extract the actual config
     if isinstance(config_dict, dict) and "config" in config_dict:
         config_dict = config_dict["config"]
 
@@ -519,15 +510,16 @@ async def test_component_serialization(agent: OpenAIAgent) -> None:
     assert config_dict["model"] == "gpt-4o"
     assert config_dict["instructions"] == "You are a helpful AI assistant."
     assert config_dict["temperature"] == 0.7
-    assert config_dict["max_tokens"] == 1000
+    assert config_dict["max_output_tokens"] == 1000
     assert config_dict["seed"] == 42
+    assert config_dict["store"] is True
+    assert config_dict["truncation"] == "auto"
 
 
 @pytest.mark.asyncio
 async def test_from_config(agent: OpenAIAgent) -> None:
     config = agent.dump_component()
 
-    # Ensure config is a dict and tools are serializable
     config_dict: Dict[str, Any] = {}
     if hasattr(config, "model_dump_json"):
         config_dict = json.loads(config.model_dump_json())
@@ -536,7 +528,6 @@ async def test_from_config(agent: OpenAIAgent) -> None:
     elif isinstance(config, dict):
         config_dict = config
 
-    # Explicitly handle tools serialization
     if "tools" in config_dict and config_dict["tools"] is not None:
         serialized_tools: List[Dict[str, Any]] = []
         tools_any: Any = config_dict["tools"]
@@ -574,5 +565,7 @@ async def test_from_config(agent: OpenAIAgent) -> None:
         assert loaded_agent._model == "gpt-4o"  # type: ignore
         assert loaded_agent._instructions == "You are a helpful AI assistant."  # type: ignore
         assert loaded_agent._temperature == 0.7  # type: ignore
-        assert loaded_agent._max_tokens == 1000  # type: ignore
+        assert loaded_agent._max_output_tokens == 1000  # type: ignore
         assert loaded_agent._seed == 42  # type: ignore
+        assert loaded_agent._store is True  # type: ignore
+        assert loaded_agent._truncation == "auto"  # type: ignore

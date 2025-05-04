@@ -107,9 +107,11 @@ class OpenAIAgentConfig(BaseModel):
     instructions: str
     tools: List[ComponentModel] | None = None
     temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
+    max_output_tokens: Optional[int] = None
     seed: Optional[int] = None
     json_mode: bool = False
+    store: Optional[bool] = None
+    truncation: Optional[str] = None
 
 
 class FunctionExecutionResult(BaseModel):
@@ -179,18 +181,22 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         instructions: str,
         tools: Optional[List[Tool]] = None,
         temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        max_output_tokens: Optional[int] = None,
         seed: Optional[int] = None,
         json_mode: bool = False,
+        store: Optional[bool] = None,
+        truncation: Optional[str] = None,
     ) -> None:
         super().__init__(name, description)
         self._client: Union[AsyncOpenAI, AsyncAzureOpenAI] = client
         self._model: str = model
         self._instructions: str = instructions
         self._temperature: Optional[float] = temperature
-        self._max_tokens: Optional[int] = max_tokens
+        self._max_output_tokens: Optional[int] = max_output_tokens
         self._seed: Optional[int] = seed
         self._json_mode: bool = json_mode
+        self._store: Optional[bool] = store
+        self._truncation: Optional[str] = truncation
         self._last_response_id: Optional[str] = None
         self._message_history: List[Dict[str, Any]] = []
         self._tools: List[Dict[str, Any]] = []
@@ -495,14 +501,18 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         }
         if self._temperature is not None:
             api_params["temperature"] = self._temperature
-        if self._max_tokens is not None:
-            api_params["max_tokens"] = self._max_tokens
+        if self._max_output_tokens is not None:
+            api_params["max_output_tokens"] = self._max_output_tokens
         if self._seed is not None:
             api_params["seed"] = self._seed
         if self._tools:
             api_params["tools"] = self._tools
         if self._json_mode:
-            api_params["text.format"] = "json"  # Responses API uses text.format for structured outputs
+            api_params["json_schema"] = {"type": "object"}
+        if self._store is not None:
+            api_params["store"] = self._store
+        if self._truncation is not None:
+            api_params["truncation"] = self._truncation
         if self._last_response_id:
             api_params["previous_response_id"] = self._last_response_id
         return api_params
@@ -530,7 +540,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
         for msg in inner_messages:
             if msg not in response.inner_messages:
-                response.inner_messages = list(response.inner_messages) + [msg]  # Convert to mutable list
+                response.inner_messages = list(response.inner_messages) + [msg]
 
         return response
 
@@ -554,7 +564,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 openai_message = _convert_message_to_openai_message(message)
                 input_messages.append(self._convert_message_to_dict(openai_message))
             else:
-                # Cast to ensure content is accessible
                 msg_content = str(cast(Any, message).content) if hasattr(message, "content") else str(message)
                 input_messages.append({"role": "user", "content": msg_content})
 
@@ -565,7 +574,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 openai_message = _convert_message_to_openai_message(message)
                 self._message_history.append(self._convert_message_to_dict(openai_message))
             else:
-                # Cast to ensure content is accessible
                 msg_content = str(cast(Any, message).content) if hasattr(message, "content") else str(message)
                 self._message_history.append({"role": "user", "content": msg_content})
 
@@ -574,7 +582,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         api_params = self._build_api_parameters(input_messages)
 
         try:
-            # Cast to Any to allow accessing .responses attribute on union type
             client = cast(Any, self._client)
             response_obj = await cancellation_token.link_future(
                 asyncio.ensure_future(client.responses.create(**api_params))
@@ -618,7 +625,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     component_dict = tool_any.dump_component()
                     tool_configs.append(component_dict)
                 else:
-                    # Fallback: minimal valid ComponentModel dict
                     tool_configs.append(
                         {
                             "provider": "autogen_core.tools.FunctionTool",
@@ -630,7 +636,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     )
             except Exception as e:
                 warnings.warn(f"Error serializing tool: {e}", stacklevel=2)
-                # Add minimal fallback
                 tool_configs.append(
                     {
                         "provider": "autogen_core.tools.FunctionTool",
@@ -647,9 +652,11 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             instructions=self._instructions,
             tools=cast(List[ComponentModel], tool_configs),
             temperature=self._temperature,
-            max_tokens=self._max_tokens,
+            max_output_tokens=self._max_output_tokens,
             seed=self._seed,
             json_mode=self._json_mode,
+            store=self._store,
+            truncation=self._truncation,
         )
 
     @classmethod
@@ -664,7 +671,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             tools_list: List[Tool] = []
             for tool_config in config.tools:
                 try:
-                    # Use a more direct approach to create tools from config
                     provider = tool_config.provider
                     module_name, class_name = provider.rsplit(".", 1)
                     module = __import__(module_name, fromlist=[class_name])
@@ -694,9 +700,11 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             instructions=config.instructions,
             tools=tools,
             temperature=config.temperature,
-            max_tokens=config.max_tokens,
+            max_output_tokens=config.max_output_tokens,
             seed=config.seed,
             json_mode=config.json_mode,
+            store=config.store,
+            truncation=config.truncation,
         )
 
 
