@@ -396,6 +396,8 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         ):
             if isinstance(inference_output, CreateResult):
                 model_result = inference_output
+            elif isinstance(inference_output, tuple):
+                model_result, _ = inference_output
             else:
                 # Streaming chunk event
                 yield inference_output
@@ -572,10 +574,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
                 raise RuntimeError("No final model result in streaming mode.")
-            yield model_result
+            yield (model_result, full_message_id)
         else:
             model_result = await model_client.create(llm_messages, tools=[], cancellation_token=cancellation_token)
-            yield (model_result, full_message_id)
+            yield model_result
 
     @staticmethod
     async def _update_model_context_with_memory(

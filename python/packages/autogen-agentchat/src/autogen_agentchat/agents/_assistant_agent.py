@@ -936,7 +936,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
                 raise RuntimeError("No final model result in streaming mode.")
-            yield model_result
+            yield (model_result, full_message_id)
         else:
             model_result = await model_client.create(
                 llm_messages,
@@ -944,7 +944,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 cancellation_token=cancellation_token,
                 json_output=output_content_type,
             )
-            yield (model_result, full_message_id)
+            yield model_result
 
     @classmethod
     async def _process_model_result(
@@ -985,9 +985,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     inner_messages=inner_messages,
                 )
             else:
+                id = full_message_id if full_message_id else str(uuid.uuid4())
                 yield Response(
                     chat_message=TextMessage(
-                        id=full_message_id,
+                        id=id,
                         content=model_result.content,
                         source=agent_name,
                         models_usage=model_result.usage,

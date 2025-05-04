@@ -1281,3 +1281,42 @@ async def test_structured_message_format_string() -> None:
 
     # Check that the format_string was applied correctly
     assert message.to_model_text() == "foo - bar"
+
+
+@pytest.mark.asyncio
+async def test_full_message_id_consistency() -> None:
+    mock_client = ReplayChatCompletionClient(
+        [
+            "Mock Response to verify message_id consistency",
+        ]
+    )
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=mock_client,
+        model_client_stream=True,
+    )
+
+    chunks: List[ModelClientStreamingChunkEvent] = []
+    final_message: TextMessage | None = None
+
+    async for message in agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
+            final_message = message.messages[-1]
+        elif isinstance(message, ModelClientStreamingChunkEvent):
+            chunks.append(message)
+
+    assert len(chunks) > 0, "Expected at least one streaming chunk"
+
+    # Verify the final message exists
+    assert final_message is not None, "Expected a final TextMessage"
+
+    # Verify all chunks have the same full_message_id
+    full_message_id = chunks[0].full_message_id
+    assert full_message_id is not None, "Expected chunk to have a full_message_id"
+
+    for chunk in chunks:
+        assert chunk.full_message_id == full_message_id, "All chunks should have the same full_message_id"
+
+    # Verify the final message has the same ID as the chunks
+    assert final_message.id == full_message_id, "The final message id should match the chunks' full_message_id"
