@@ -110,7 +110,7 @@ async def test_run_with_tool_call_summary_format_function(model_info_all_capabil
 
     first_tool_call_summary = next((x for x in result.messages if isinstance(x, ToolCallSummaryMessage)), None)
     if first_tool_call_summary is None:
-        raise AssertionError("Expected a ToolCallSummaryMessage but found none.")
+        raise AssertionError("Expected a ToolCallSummaryMessage but found none")
 
     assert (
         first_tool_call_summary.content
