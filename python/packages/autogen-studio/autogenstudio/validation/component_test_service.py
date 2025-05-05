@@ -63,7 +63,7 @@ class ComponentTestService:
 
                 if status:
                     logs.append(
-                        f"Agent responded with: {response.chat_message.content} to the question : {test_question}"
+                        f"Agent responded with: {response.chat_message.to_text()} to the question : {test_question}"
                     )
                 else:
                     logs.append("Agent did not return a valid response")

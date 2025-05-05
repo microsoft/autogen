@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { useTeamBuilderStore } from "./store";
 import { ComponentLibrary } from "./library";
-import { ComponentTypes, Team } from "../../../types/datamodel";
+import { ComponentTypes, Gallery, Team } from "../../../types/datamodel";
 import { CustomNode, CustomEdge, DragItem } from "./types";
 import { edgeTypes, nodeTypes } from "./nodes";
 
@@ -46,7 +46,7 @@ import TestDrawer from "./testdrawer";
 import { validationAPI, ValidationResponse } from "../api";
 import { ValidationErrors } from "./validationerrors";
 import ComponentEditor from "./component-editor/component-editor";
-import { useGalleryStore } from "../../gallery/store";
+// import { useGalleryStore } from "../../gallery/store";
 
 const { Sider, Content } = Layout;
 interface DragItemData {
@@ -60,12 +60,14 @@ interface TeamBuilderProps {
   team: Team;
   onChange?: (team: Partial<Team>) => void;
   onDirtyStateChange?: (isDirty: boolean) => void;
+  selectedGallery?: Gallery | null;
 }
 
 export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   team,
   onChange,
   onDirtyStateChange,
+  selectedGallery,
 }) => {
   // Replace store state with React Flow hooks
   const [nodes, setNodes, onNodesChange] = useNodesState<CustomNode>([]);
@@ -86,7 +88,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   const [validationLoading, setValidationLoading] = useState(false);
 
   const [testDrawerVisible, setTestDrawerVisible] = useState(false);
-  const defaultGallery = useGalleryStore((state) => state.getSelectedGallery());
+
   const {
     undo,
     redo,
@@ -362,7 +364,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
           {isJsonMode ? "View JSON" : <>Visual Builder</>}{" "}
         </div>
 
-        <div>
+        <div className="flex items-center">
           {validationResults && !validationResults.is_valid && (
             <div className="inline-block mr-2">
               {" "}
@@ -465,8 +467,8 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
         onDragStart={handleDragStart}
       >
         <Layout className=" relative bg-primary  h-[calc(100vh-239px)] rounded">
-          {!isJsonMode && defaultGallery && (
-            <ComponentLibrary defaultGallery={defaultGallery} />
+          {!isJsonMode && selectedGallery && (
+            <ComponentLibrary defaultGallery={selectedGallery} />
           )}
 
           <Layout className="bg-primary rounded">

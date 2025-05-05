@@ -7,9 +7,8 @@ from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQue
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
 from chromadb import HttpClient, PersistentClient
-from chromadb.api import ClientAPI
 from chromadb.api.models.Collection import Collection
-from chromadb.api.types import Document, IncludeEnum, Metadata
+from chromadb.api.types import Document, Metadata
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
@@ -331,7 +330,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
             results = self._collection.query(
                 query_texts=[query_text],
                 n_results=self._config.k,
-                include=[IncludeEnum.documents, IncludeEnum.metadatas, IncludeEnum.distances],
+                include=["documents", "metadatas", "distances"],
                 **kwargs,
             )
 

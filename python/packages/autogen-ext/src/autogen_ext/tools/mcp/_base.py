@@ -1,13 +1,16 @@
 import asyncio
 import builtins
+import json
 from abc import ABC
-from typing import Any, Generic, Type, TypeVar
+from typing import Any, Dict, Generic, Type, TypeVar
 
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
-from json_schema_to_pydantic import create_model
-from mcp import Tool
+from autogen_core.utils import schema_to_pydantic_model
+from mcp import ClientSession, Tool
+from mcp.types import EmbeddedResource, ImageContent, TextContent
 from pydantic import BaseModel
+from pydantic.networks import AnyUrl
 
 from ._config import McpServerParams
 from ._session import create_mcp_server_session
@@ -26,16 +29,17 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
     component_type = "tool"
 
-    def __init__(self, server_params: TServerParams, tool: Tool) -> None:
+    def __init__(self, server_params: TServerParams, tool: Tool, session: ClientSession | None = None) -> None:
         self._tool = tool
         self._server_params = server_params
+        self._session = session
 
         # Extract name and description
         name = tool.name
         description = tool.description or ""
 
         # Create the input model from the tool's schema
-        input_model = create_model(tool.inputSchema)
+        input_model = schema_to_pydantic_model(tool.inputSchema)
 
         # Use Any as return type since MCP tool returns can vary
         return_type: Type[Any] = object
@@ -61,20 +65,27 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         # for many servers.
         kwargs = args.model_dump(exclude_unset=True)
 
+        if self._session is not None:
+            # If a session is provided, use it directly.
+            session = self._session
+            return await self._run(args=kwargs, cancellation_token=cancellation_token, session=session)
+
+        async with create_mcp_server_session(self._server_params) as session:
+            await session.initialize()
+            return await self._run(args=kwargs, cancellation_token=cancellation_token, session=session)
+
+    async def _run(self, args: Dict[str, Any], cancellation_token: CancellationToken, session: ClientSession) -> Any:
         try:
-            async with create_mcp_server_session(self._server_params) as session:
-                await session.initialize()
+            if cancellation_token.is_cancelled():
+                raise Exception("Operation cancelled")
 
-                if cancellation_token.is_cancelled():
-                    raise Exception("Operation cancelled")
+            result_future = asyncio.ensure_future(session.call_tool(name=self._tool.name, arguments=args))
+            cancellation_token.link_future(result_future)
+            result = await result_future
 
-                result_future = asyncio.ensure_future(session.call_tool(name=self._tool.name, arguments=kwargs))
-                cancellation_token.link_future(result_future)
-                result = await result_future
-
-                if result.isError:
-                    raise Exception(f"MCP tool execution failed: {result.content}")
-                return result.content
+            if result.isError:
+                raise Exception(f"MCP tool execution failed: {result.content}")
+            return result.content
         except Exception as e:
             error_message = self._format_errors(e)
             raise Exception(error_message) from e
@@ -106,6 +117,27 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 )
 
         return cls(server_params=server_params, tool=matching_tool)
+
+    def return_value_as_string(self, value: list[Any]) -> str:
+        """Return a string representation of the result."""
+
+        def serialize_item(item: Any) -> dict[str, Any]:
+            if isinstance(item, (TextContent, ImageContent)):
+                return item.model_dump()
+            elif isinstance(item, EmbeddedResource):
+                type = item.type
+                resource = {}
+                for key, val in item.resource.model_dump().items():
+                    if isinstance(val, AnyUrl):
+                        resource[key] = str(val)
+                    else:
+                        resource[key] = val
+                annotations = item.annotations.model_dump() if item.annotations else None
+                return {"type": type, "resource": resource, "annotations": annotations}
+            else:
+                return {}
+
+        return json.dumps([serialize_item(item) for item in value])
 
     def _format_errors(self, error: Exception) -> str:
         """Recursively format errors into a string."""

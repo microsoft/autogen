@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-agentchat"
-version = "0.4.9"
+version = "0.5.6"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen agents and teams library"
 readme = "README.md"
@@ -15,7 +15,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.4.9",
+    "autogen-core==0.5.6",
 ]
 
 [tool.ruff]

@@ -27,6 +27,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        emit_team_events: bool,
     ) -> None:
         super().__init__(
             name,
@@ -39,6 +40,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             termination_condition,
             max_turns,
             message_factory,
+            emit_team_events,
         )
         self._current_speaker = self._participant_names[0]
 
@@ -111,6 +113,7 @@ class SwarmConfig(BaseModel):
     participants: List[ComponentModel]
     termination_condition: ComponentModel | None = None
     max_turns: int | None = None
+    emit_team_events: bool = False
 
 
 class Swarm(BaseGroupChat, Component[SwarmConfig]):
@@ -126,6 +129,10 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
             Without a termination condition, the group chat will run indefinitely.
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
+        custom_message_types (List[type[BaseAgentEvent | BaseChatMessage]], optional): A list of custom message types that will be used in the group chat.
+            If you are using custom message types or your agents produces custom message types, you need to specify them here.
+            Make sure your custom message types are subclasses of :class:`~autogen_agentchat.messages.BaseAgentEvent` or :class:`~autogen_agentchat.messages.BaseChatMessage`.
+        emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
 
     Basic example:
 
@@ -213,6 +220,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
+        emit_team_events: bool = False,
     ) -> None:
         super().__init__(
             participants,
@@ -222,6 +230,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
             max_turns=max_turns,
             runtime=runtime,
             custom_message_types=custom_message_types,
+            emit_team_events=emit_team_events,
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
@@ -253,6 +262,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
                 termination_condition,
                 max_turns,
                 message_factory,
+                self._emit_team_events,
             )
 
         return _factory
@@ -264,6 +274,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
             participants=participants,
             termination_condition=termination_condition,
             max_turns=self._max_turns,
+            emit_team_events=self._emit_team_events,
         )
 
     @classmethod
@@ -272,4 +283,9 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         termination_condition = (
             TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None
         )
-        return cls(participants, termination_condition=termination_condition, max_turns=config.max_turns)
+        return cls(
+            participants,
+            termination_condition=termination_condition,
+            max_turns=config.max_turns,
+            emit_team_events=config.emit_team_events,
+        )

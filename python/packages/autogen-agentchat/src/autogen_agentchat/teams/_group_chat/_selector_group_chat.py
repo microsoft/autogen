@@ -5,7 +5,14 @@ from inspect import iscoroutinefunction
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Sequence, Union, cast
 
 from autogen_core import AgentRuntime, Component, ComponentModel
-from autogen_core.models import AssistantMessage, ChatCompletionClient, ModelFamily, SystemMessage, UserMessage
+from autogen_core.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    CreateResult,
+    ModelFamily,
+    SystemMessage,
+    UserMessage,
+)
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -16,6 +23,8 @@ from ...messages import (
     BaseAgentEvent,
     BaseChatMessage,
     MessageFactory,
+    ModelClientStreamingChunkEvent,
+    SelectorEvent,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -55,6 +64,8 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         selector_func: Optional[SelectorFuncType],
         max_selector_attempts: int,
         candidate_func: Optional[CandidateFuncType],
+        emit_team_events: bool,
+        model_client_streaming: bool = False,
     ) -> None:
         super().__init__(
             name,
@@ -67,6 +78,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             termination_condition,
             max_turns,
             message_factory,
+            emit_team_events,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -77,6 +89,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._max_selector_attempts = max_selector_attempts
         self._candidate_func = candidate_func
         self._is_candidate_func_async = iscoroutinefunction(self._candidate_func)
+        self._model_client_streaming = model_client_streaming
 
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         pass
@@ -192,7 +205,26 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         num_attempts = 0
         while num_attempts < max_attempts:
             num_attempts += 1
-            response = await self._model_client.create(messages=select_speaker_messages)
+            if self._model_client_streaming:
+                chunk: CreateResult | str = ""
+                async for _chunk in self._model_client.create_stream(messages=select_speaker_messages):
+                    chunk = _chunk
+                    if self._emit_team_events:
+                        if isinstance(chunk, str):
+                            await self._output_message_queue.put(
+                                ModelClientStreamingChunkEvent(content=cast(str, _chunk), source=self._name)
+                            )
+                        else:
+                            assert isinstance(chunk, CreateResult)
+                            assert isinstance(chunk.content, str)
+                            await self._output_message_queue.put(
+                                SelectorEvent(content=chunk.content, source=self._name)
+                            )
+                # The last chunk must be CreateResult.
+                assert isinstance(chunk, CreateResult)
+                response = chunk
+            else:
+                response = await self._model_client.create(messages=select_speaker_messages)
             assert isinstance(response.content, str)
             select_speaker_messages.append(AssistantMessage(content=response.content, source="selector"))
             # NOTE: we use all participant names to check for mentions, even if the previous speaker is not allowed.
@@ -278,6 +310,8 @@ class SelectorGroupChatConfig(BaseModel):
     allow_repeated_speaker: bool
     # selector_func: ComponentModel | None
     max_selector_attempts: int = 3
+    emit_team_events: bool = False
+    model_client_streaming: bool = False
 
 
 class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
@@ -294,6 +328,9 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
         selector_prompt (str, optional): The prompt template to use for selecting the next speaker.
             Available fields: '{roles}', '{participants}', and '{history}'.
+            `{participants}` is the names of candidates for selection. The format is `["<name1>", "<name2>", ...]`.
+            `{roles}` is a newline-separated list of names and descriptions of the candidate agents. The format for each line is: `"<name> : <description>"`.
+            `{history}` is the conversation history formatted as a double newline separated of names and message content. The format for each message is: `"<name> : <message content>"`.
         allow_repeated_speaker (bool, optional): Whether to include the previous speaker in the list of candidates to be selected for the next turn.
             Defaults to False. The model may still select the previous speaker -- a warning will be logged if this happens.
         max_selector_attempts (int, optional): The maximum number of attempts to select a speaker using the model. Defaults to 3.
@@ -307,7 +344,11 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             A custom function that takes the conversation history and returns a filtered list of candidates for the next speaker
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
             This function is only used if `selector_func` is not set. The `allow_repeated_speaker` will be ignored if set.
-
+        custom_message_types (List[type[BaseAgentEvent | BaseChatMessage]], optional): A list of custom message types that will be used in the group chat.
+            If you are using custom message types or your agents produces custom message types, you need to specify them here.
+            Make sure your custom message types are subclasses of :class:`~autogen_agentchat.messages.BaseAgentEvent` or :class:`~autogen_agentchat.messages.BaseChatMessage`.
+        emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
+        model_client_streaming (bool, optional): Whether to use streaming for the model client. (This is useful for reasoning models like QwQ). Defaults to False.
 
     Raises:
         ValueError: If the number of participants is less than two or if the selector prompt is invalid.
@@ -449,6 +490,8 @@ Read the above conversation. Then select the next role from {participants} to pl
         selector_func: Optional[SelectorFuncType] = None,
         candidate_func: Optional[CandidateFuncType] = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
+        emit_team_events: bool = False,
+        model_client_streaming: bool = False,
     ):
         super().__init__(
             participants,
@@ -458,6 +501,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             max_turns=max_turns,
             runtime=runtime,
             custom_message_types=custom_message_types,
+            emit_team_events=emit_team_events,
         )
         # Validate the participants.
         if len(participants) < 2:
@@ -468,6 +512,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         self._selector_func = selector_func
         self._max_selector_attempts = max_selector_attempts
         self._candidate_func = candidate_func
+        self._model_client_streaming = model_client_streaming
 
     def _create_group_chat_manager_factory(
         self,
@@ -499,6 +544,8 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._selector_func,
             self._max_selector_attempts,
             self._candidate_func,
+            self._emit_team_events,
+            self._model_client_streaming,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:
@@ -511,6 +558,8 @@ Read the above conversation. Then select the next role from {participants} to pl
             allow_repeated_speaker=self._allow_repeated_speaker,
             max_selector_attempts=self._max_selector_attempts,
             # selector_func=self._selector_func.dump_component() if self._selector_func else None,
+            emit_team_events=self._emit_team_events,
+            model_client_streaming=self._model_client_streaming,
         )
 
     @classmethod
@@ -528,4 +577,6 @@ Read the above conversation. Then select the next role from {participants} to pl
             # selector_func=ComponentLoader.load_component(config.selector_func, Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], str | None])
             # if config.selector_func
             # else None,
+            emit_team_events=config.emit_team_events,
+            model_client_streaming=config.model_client_streaming,
         )
