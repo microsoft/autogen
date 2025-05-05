@@ -32,7 +32,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_core.models._model_client import ModelFamily
+from autogen_core.models._model_client import ModelFamily, ModelInfo
 from autogen_core.tools import BaseTool, FunctionTool, StaticWorkbench
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
@@ -56,8 +56,66 @@ async def _fail_function(input: str) -> str:
     return "fail"
 
 
+async def _throw_function(input: str) -> str:
+    raise ValueError("Helpful debugging information what went wrong.")
+
+
 async def _echo_function(input: str) -> str:
     return input
+
+
+@pytest.fixture
+def model_info_all_capabilities() -> ModelInfo:
+    return {
+        "function_calling": True,
+        "vision": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_4O,
+        "structured_output": True,
+    }
+
+
+@pytest.mark.asyncio
+async def test_run_with_tool_call_summary_format_function(model_info_all_capabilities: ModelInfo) -> None:
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[
+                    FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function"),
+                    FunctionCall(id="2", arguments=json.dumps({"input": "task"}), name="_throw_function"),
+                ],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                thought="Calling pass and fail function",
+                cached=False,
+            ),
+        ],
+        model_info=model_info_all_capabilities,
+    )
+
+    def conditional_string_templates(function_call: FunctionCall, function_call_result: FunctionExecutionResult) -> str:
+        if not function_call_result.is_error:
+            return "SUCCESS: {tool_name} with {arguments}"
+
+        else:
+            return "FAILURE: {result}"
+
+    agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[_pass_function, _throw_function],
+        tool_call_summary_format_fct=conditional_string_templates,
+    )
+    result = await agent.run(task="task")
+
+    first_tool_call_summary = next((x for x in result.messages if isinstance(x, ToolCallSummaryMessage)), None)
+    if first_tool_call_summary is None:
+        raise AssertionError("Expected a ToolCallSummaryMessage but found none.")
+
+    assert (
+        first_tool_call_summary.content
+        == 'SUCCESS: _pass_function with {"input": "task"}\nFAILURE: Helpful debugging information what went wrong.'
+    )
 
 
 @pytest.mark.asyncio

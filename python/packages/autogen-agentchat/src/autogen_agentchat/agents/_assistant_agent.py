@@ -75,6 +75,7 @@ class AssistantAgentConfig(BaseModel):
     model_client_stream: bool = False
     reflect_on_tool_use: bool
     tool_call_summary_format: str
+    tool_call_summary_format_fct: Callable[[FunctionCall, FunctionExecutionResult], str] | None = None
     metadata: Dict[str, str] | None = None
     structured_message_factory: ComponentModel | None = None
 
@@ -652,6 +653,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool = False,
         reflect_on_tool_use: bool | None = None,
         tool_call_summary_format: str = "{result}",
+        tool_call_summary_format_fct: Callable[[FunctionCall, FunctionExecutionResult], str] | None = None,
         output_content_type: type[BaseModel] | None = None,
         output_content_type_format: str | None = None,
         memory: Sequence[Memory] | None = None,
@@ -756,6 +758,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 stacklevel=2,
             )
         self._tool_call_summary_format = tool_call_summary_format
+        self._tool_call_summary_format_fct = tool_call_summary_format_fct
         self._is_running = False
 
     @property
@@ -803,6 +806,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream = self._model_client_stream
         reflect_on_tool_use = self._reflect_on_tool_use
         tool_call_summary_format = self._tool_call_summary_format
+        tool_call_summary_format_fct = self._tool_call_summary_format_fct
         output_content_type = self._output_content_type
         format_string = self._output_content_type_format
 
@@ -873,6 +877,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=model_client_stream,
             reflect_on_tool_use=reflect_on_tool_use,
             tool_call_summary_format=tool_call_summary_format,
+            tool_call_summary_format_fct=tool_call_summary_format_fct,
             output_content_type=output_content_type,
             format_string=format_string,
         ):
@@ -976,6 +981,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool,
         reflect_on_tool_use: bool,
         tool_call_summary_format: str,
+        tool_call_summary_format_fct: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
         output_content_type: type[BaseModel] | None,
         format_string: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
@@ -1078,6 +1084,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 inner_messages=inner_messages,
                 handoffs=handoffs,
                 tool_call_summary_format=tool_call_summary_format,
+                tool_call_summary_format_fct=tool_call_summary_format_fct,
                 agent_name=agent_name,
             )
 
@@ -1232,6 +1239,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         inner_messages: List[BaseAgentEvent | BaseChatMessage],
         handoffs: Dict[str, HandoffBase],
         tool_call_summary_format: str,
+        tool_call_summary_format_fct: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
         agent_name: str,
     ) -> Response:
         """
@@ -1239,15 +1247,22 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         """
         # Filter out calls which were actually handoffs
         normal_tool_calls = [(call, result) for call, result in executed_calls_and_results if call.name not in handoffs]
-        tool_call_summaries: List[str] = []
-        for tool_call, tool_call_result in normal_tool_calls:
-            tool_call_summaries.append(
-                tool_call_summary_format.format(
-                    tool_name=tool_call.name,
-                    arguments=tool_call.arguments,
-                    result=tool_call_result.content,
-                )
+
+        def default_summary_template(call: FunctionCall, result: FunctionExecutionResult) -> str:
+            return tool_call_summary_format
+
+        summary_template_fct = tool_call_summary_format_fct or default_summary_template
+
+        tool_call_summaries = [
+            summary_template_fct(call, result).format(
+                tool_name=call.name,
+                arguments=call.arguments,
+                result=result.content,
+                is_error=result.is_error,
             )
+            for call, result in normal_tool_calls
+        ]
+
         tool_call_summary = "\n".join(tool_call_summaries)
         return Response(
             chat_message=ToolCallSummaryMessage(
@@ -1354,6 +1369,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=self._model_client_stream,
             reflect_on_tool_use=self._reflect_on_tool_use,
             tool_call_summary_format=self._tool_call_summary_format,
+            tool_call_summary_format_fct=self._tool_call_summary_format_fct,
             structured_message_factory=self._structured_message_factory.dump_component()
             if self._structured_message_factory
             else None,
@@ -1385,6 +1401,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=config.model_client_stream,
             reflect_on_tool_use=config.reflect_on_tool_use,
             tool_call_summary_format=config.tool_call_summary_format,
+            tool_call_summary_format_fct=config.tool_call_summary_format_fct,
             output_content_type=output_content_type,
             output_content_type_format=format_string,
             metadata=config.metadata,
