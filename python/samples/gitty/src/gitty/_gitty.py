@@ -126,7 +126,7 @@ async def run_gitty(owner: str, repo: str, command: str, number: int) -> None:
 
     updated_prompt = (
         f"Considering the additional context:\n"
-        "You are workin on issue #{number} for the {owner}/{repo} repository. "
+        f"You are working on issue #{number} for the {owner}/{repo} repository. "
         "The issue content is:\n"
         f"{text}\n\n"
         "You also previously fetched related issues that may or may not be relevant"
