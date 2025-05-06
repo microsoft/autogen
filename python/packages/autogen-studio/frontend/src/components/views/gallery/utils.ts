@@ -4,7 +4,7 @@ import { GalleryConfig } from "../../types/datamodel";
 const loadGalleryFromJson = (): GalleryConfig => {
   try {
     // You can adjust the path to your JSON file as needed
-    const galleryJson = require("./default_gallery.json");
+    const galleryJson = require("./default_collection.json");
     return galleryJson as GalleryConfig;
   } catch (error) {
     console.error("Error loading gallery JSON:", error);

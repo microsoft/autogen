@@ -61,12 +61,12 @@ const PresetItem: React.FC<PresetItemProps> = ({
       style={style}
       {...attributes}
       {...listeners}
-      className={`p-2 text-primary mb-2 border  rounded cursor-move  bg-secondary transition-colors`}
+      className={`p-2 text-primary mb-2 border rounded cursor-move bg-secondary transition-colors`}
     >
       <div className="flex items-center gap-2">
         <GripVertical className="w-4 h-4 inline-block" />
         {icon}
-        <span className=" text-sm">{label}</span>
+        <span className="text-sm">{label}</span>
       </div>
     </div>
   );
@@ -84,39 +84,39 @@ export const ComponentLibrary: React.FC<LibraryProps> = ({
       {
         title: "Agents",
         type: "agent" as ComponentTypes,
-        items: defaultGallery.config.components.agents.map((agent) => ({
+        items: defaultGallery.config.components?.agents?.map((agent) => ({
           label: agent.label,
           config: agent,
-        })),
+        })) || [],
         icon: <Bot className="w-4 h-4" />,
       },
       {
         title: "Models",
         type: "model" as ComponentTypes,
-        items: defaultGallery.config.components.models.map((model) => ({
+        items: defaultGallery.config.components?.models?.map((model) => ({
           label: `${model.label || model.config.model}`,
           config: model,
-        })),
+        })) || [],
         icon: <Brain className="w-4 h-4" />,
       },
       {
         title: "Tools",
         type: "tool" as ComponentTypes,
-        items: defaultGallery.config.components.tools.map((tool) => ({
+        items: defaultGallery.config.components?.tools?.map((tool) => ({
           label: tool.config?.name || tool.label,
           config: tool,
-        })),
+        })) || [],
         icon: <Wrench className="w-4 h-4" />,
       },
       {
         title: "Terminations",
         type: "termination" as ComponentTypes,
-        items: defaultGallery.config.components.terminations.map(
+        items: defaultGallery.config.components?.terminations?.map(
           (termination) => ({
             label: `${termination.label}`,
             config: termination,
           })
-        ),
+        ) || [],
         icon: <Timer className="w-4 h-4" />,
       },
     ],
