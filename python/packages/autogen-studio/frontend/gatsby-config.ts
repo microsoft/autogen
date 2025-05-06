@@ -13,11 +13,14 @@ require("dotenv").config({
   path: envFile,
 });
 
+const TITLE = process.env.GATSBY_SITE_TITLE   || "AI Planet Studio";
+const DESC  = process.env.GATSBY_SITE_DESC    || "Build Multi-Agent Workflows & Apps";
+
 const config: GatsbyConfig = {
   pathPrefix: process.env.PREFIX_PATH_VALUE || "",
   siteMetadata: {
-    title: `AI Planet Studio`,
-    description: `Build Multi-Agent Worflows & Apps`,
+    title: TITLE,
+    description: DESC,
     siteUrl: `http://tbd.place`,
   },
   // More easily incorporate content into your pages through automatic TypeScript type generation and better GraphQL IntelliSense.
