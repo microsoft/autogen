@@ -3,11 +3,10 @@ import chainlit as cl
 import yaml
 
 import asyncio
-from dataclasses import dataclass
+#from dataclasses import dataclass
 
 from autogen_core import (
     AgentId,
-    FunctionCall,
     MessageContext,
     SingleThreadedAgentRuntime,
     ClosureAgent,
@@ -17,12 +16,13 @@ from autogen_core import (
 )
 from autogen_core.models import (
     ChatCompletionClient,
+    CreateResult,
     UserMessage,
 )
 
 from autogen_core.tools import FunctionTool, Tool
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_core.model_context import BufferedChatCompletionContext
+#from autogen_ext.models.openai import OpenAIChatCompletionClient
+#from autogen_core.model_context import BufferedChatCompletionContext
 from SimpleAssistantAgent import SimpleAssistantAgent, StreamResult 
 
 TASK_RESULTS_TOPIC_TYPE = "task-results"
@@ -42,23 +42,9 @@ async def set_starts() -> List[cl.Starter]:
         ),
     ]
 
-"""
 # Function called when closure agent receives message. It put the messages to the output queue
 async def output_result(_agent: ClosureContext, message: StreamResult, ctx: MessageContext) -> None:
     queue = cast(asyncio.Queue[StreamResult], cl.user_session.get("queue_stream"))  # type: ignore
-    ui_resp = cast(cl.Message, cl.user_session.get("output_msg"))
-    if (message.type == "chunk"):
-        print( "sending chunk " + message.value + " to cl")
-        await ui_resp.stream_token(message.value)
-    else:
-        print( "sending the complete message " )
-        await ui_resp.send()
-"""
-
-# Function called when closure agent receives message. It put the messages to the output queue
-async def output_result(_agent: ClosureContext, message: StreamResult, ctx: MessageContext) -> None:
-    queue = cast(asyncio.Queue[StreamResult], cl.user_session.get("queue_stream"))  # type: ignore
-    print( "AAAA Adding " + message.value + "to queue")
     await queue.put(message)
 
 @cl.step(type="tool")  # type: ignore
@@ -72,7 +58,7 @@ async def start_chat() -> None:
     with open("model_config.yaml", "r") as f:
         model_config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(model_config)
-    context = BufferedChatCompletionContext(buffer_size=10)
+    #context = BufferedChatCompletionContext(buffer_size=10)
 
     # Create a runtime and save to chainlit session
     runtime = SingleThreadedAgentRuntime()
@@ -91,7 +77,7 @@ async def start_chat() -> None:
         tool_schema=tools,
         model_client=model_client,
         system_message="You are a helpful assistant",
-        context=context,
+        #context=context,
         model_client_stream=True,  # Enable model client streaming.
         reflect_on_tool_use=True,  # Reflect on tool use.
     ))
@@ -107,30 +93,20 @@ async def start_chat() -> None:
 @cl.on_message  # type: ignore
 async def chat(message: cl.Message) -> None:
     # Construct the response message for the user message received.
-    ui_resp = cl.Message(content="")
+    ui_resp = cl.Message("") 
 
     # Get the runtime and queue from the session 
-    runtime = cast(SingleThreadedAgentRuntime, cl.user_session.get("run_time"))
-    queue = cast(asyncio.Queue[StreamResult], cl.user_session.get("queue_stream"))
+    runtime = cast(SingleThreadedAgentRuntime, cl.user_session.get("run_time"))  # type: ignore
+    queue = cast(asyncio.Queue[StreamResult], cl.user_session.get("queue_stream")) # type: ignore
 
-    output_msg = cl.Message(content="")
-    cl.user_session.set("output_msg", output_msg) # type: ignore
-
-    # Send message to the Weather Assistant Agent
     task1 = asyncio.create_task( runtime.send_message(UserMessage(content=message.content, source="User"), AgentId("weather_agent", "default")))
 
-    print("AAAA After creating the task")
     # Consume items from the response queue until the stream ends or an error occurs
     while True:
-        print("AAAA read from queue")
-        chunk = await queue.get()
-        if (chunk.type == "chunk"):
-            print( "sending chunk " + chunk.value + " to cl")
-            await ui_resp.stream_token(chunk.value)
-        else:
-            print( "sending the complete message " )
+        stream_msg = await queue.get()
+        if (isinstance(stream_msg.content, str)):
+            await ui_resp.stream_token(stream_msg.content)
+        elif (isinstance(stream_msg.content, CreateResult)):
             await ui_resp.send()
-            break;
-    print("AAAA After loop")
+            break
     await task1
-    print("AAAA await task1")

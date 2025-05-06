@@ -1,25 +1,16 @@
-from typing import List, cast, Literal
-
+from typing import AsyncGenerator, List, Optional
 import asyncio
 import json
 from dataclasses import dataclass
-from typing import List
 
 from autogen_core import (
-    AgentId,
+    CancellationToken,
+    DefaultTopicId,
     FunctionCall,
+    message_handler,
     MessageContext,
     RoutedAgent,
-    SingleThreadedAgentRuntime,
-    DefaultSubscription,
-    DefaultTopicId,
-    default_subscription,
-    message_handler,
-    CancellationToken,
-    ClosureAgent,
-    ClosureContext,
-    TopicId,
-    TypeSubscription
+    TopicId
 )
 from autogen_core.models import (
     AssistantMessage,
@@ -32,103 +23,70 @@ from autogen_core.models import (
     FunctionExecutionResultMessage
 )
 
-from autogen_core.tools import FunctionTool, Tool
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_core.model_context import BufferedChatCompletionContext
+from autogen_core.tools import Tool
+from pydantic import BaseModel
 
 @dataclass
 class Message:
     content: str
 
-@dataclass
-class StreamResult:
-    type: str
-    value: str
+class StreamResult(BaseModel):
+    content: str | CreateResult | AssistantMessage
+    source: str
+
+class GroupChatMessage(BaseModel):
+    body: UserMessage
+
+class RequestToSpeak(BaseModel):
+    pass
 
 TASK_RESULTS_TOPIC_TYPE = "task-results"
 task_results_topic_id = TopicId(type=TASK_RESULTS_TOPIC_TYPE, source="default")
 
-@default_subscription
 class SimpleAssistantAgent(RoutedAgent):
-    def __init__(self, name: str, model_client: ChatCompletionClient, tool_schema: List[Tool], system_message: str, context: MessageContext, model_client_stream: bool = False, reflect_on_tool_use: bool | None = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        system_message: str,
+        #context: MessageContext,
+        model_client: ChatCompletionClient,
+        tool_schema: List[Tool] = [],
+        model_client_stream: bool = False,
+        reflect_on_tool_use: bool | None = None,
+        group_chat_topic_type: str = "Default",
+    ) -> None:
         super().__init__(name)
-        self._system_messages: List[LLMMessage] = [SystemMessage(content=system_message)]
+        self._system_message = SystemMessage(content=system_message)
         self._model_client = model_client
         self._tools = tool_schema
-        self._model_context = context 
+        #self._model_context = context 
         self._model_client_stream = model_client_stream
         self._reflect_on_tool_use = reflect_on_tool_use
+        self._group_chat_topic_type = group_chat_topic_type
+        self._chat_history: List[LLMMessage] = []
 
-    @message_handler
-    async def handle_message(self, message: UserMessage, ctx: MessageContext) -> Message:
-        # Create a session of messages.
-        session: List[LLMMessage] = self._system_messages + [UserMessage(content=message.content, source="user")]
-
-        # Add message to model context.
-        await self._model_context.add_message(UserMessage(content=message.content, source="user"))
-        model_result: Optional[CreateResult] = None
-
-        # Run the chat completion with the tools.
-        async for chunk in self._model_client.create_stream(
-            messages=session,
-            tools=self._tools,
-            cancellation_token=ctx.cancellation_token,
-        ):
-            if isinstance(chunk, CreateResult):
-                model_result = chunk
-            elif isinstance(chunk, str):
-		# forward the stream token to the closure agent
-                await self.runtime.publish_message(StreamResult("chunk", chunk), topic_id=task_results_topic_id)
-            else:
-                raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
-
-        if model_result is None:
-            raise RuntimeError("No final model result in streaming mode.")
-
-        # If there are no tool calls, return the result.
-        if isinstance(model_result.content, str):
-            await self.runtime.publish_message(StreamResult("response", model_result.content), topic_id=task_results_topic_id)
-            return Message(content=model_result.content)
-
-        assert isinstance(model_result.content, list) and all(
-            isinstance(call, FunctionCall) for call in model_result.content
-        )
-
-        # Add the first model create result to the session.
-        session.append(AssistantMessage(content=model_result.content, source="assistant"))
-
-        # Execute the tool calls.
-        results = await asyncio.gather(
-            *[self._execute_tool_call(call, ctx.cancellation_token) for call in model_result.content]
-        )
-
-        # Add the function execution results to the session.
-        session.append(FunctionExecutionResultMessage(content=results))
-
-        if (not self._reflect_on_tool_use):
-            await self.runtime.publish_message(StreamResult("response", results), topic_id=task_results_topic_id)
-            return Message(content = results)
-        
-        # Run the chat completion again to reflect on the history and function execution results.
+    async def _call_model_client(
+        self, cancellation_token: CancellationToken
+    ) -> AsyncGenerator[str | CreateResult, None]:
+        # Call the LLM model to process the message 
         model_result = None
         async for chunk in self._model_client.create_stream(
-            messages=session,
-            cancellation_token=ctx.cancellation_token,
+            messages=[self._system_message] + self._chat_history,
+            tools=self._tools,
+            cancellation_token=cancellation_token,
         ):
             if isinstance(chunk, CreateResult):
                 model_result = chunk
             elif isinstance(chunk, str):
-		# foward the stream tokent to the Queue
-                await self.runtime.publish_message(StreamResult("chunk", chunk), topic_id=task_results_topic_id)
+                yield chunk
             else:
                 raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
-
-        if model_result is None:
+        
+        if model_result is None:    # No final result in model client respons
             raise RuntimeError("No final model result in streaming mode.")
 
-        await self.runtime.publish_message(StreamResult("response", model_result.content), topic_id=task_results_topic_id)
-        # Return the result as a message.
-        return Message(model_result.content)
+        yield model_result
+        return
 
     async def _execute_tool_call(
         self, call: FunctionCall, cancellation_token: CancellationToken
@@ -146,3 +104,119 @@ class SimpleAssistantAgent(RoutedAgent):
             )
         except Exception as e:
             return FunctionExecutionResult(call_id=call.id, content=str(e), is_error=True, name=tool.name)
+
+    @message_handler
+    async def handle_user_message(self, message: UserMessage, ctx: MessageContext) -> Message:
+
+        # Append the message to chat history.
+        self._chat_history.append(
+           message 
+        )
+
+        # Add message to model context.
+        # await self._model_context.add_message(UserMessage(content=message.content, source="User"))
+        model_result: Optional[CreateResult] = None
+
+        async for chunk in self._call_model_client(
+            cancellation_token=ctx.cancellation_token,
+        ):
+            if isinstance(chunk, CreateResult):
+                model_result = chunk
+            elif isinstance(chunk, str):
+                # foward the stream tokent to the Queue
+                await self.runtime.publish_message(StreamResult(content=chunk, source=self.id.type), topic_id=task_results_topic_id)
+            else:
+                raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
+
+        if model_result is None:    # No final result in model client respons
+            raise RuntimeError("No final model result in streaming mode.")
+
+        # Add the first model create result to the session.
+        self._chat_history.append(AssistantMessage(content=model_result.content, source=self.id.type))
+
+        if isinstance(model_result.content, str):    # No tools, return the result
+            await self.runtime.publish_message(StreamResult(content=model_result, source=self.id.type), topic_id=task_results_topic_id)
+            return (Message(content= model_result.content))
+
+        # Execute the tool calls.
+        assert isinstance(model_result.content, list) and all(
+            isinstance(call, FunctionCall) for call in model_result.content
+        )
+        results = await asyncio.gather(
+            *[self._execute_tool_call(call, ctx.cancellation_token) for call in model_result.content]
+        )
+
+        # Add the function execution results to the session.
+        self._chat_history.append(FunctionExecutionResultMessage(content=results))
+
+        #if (not self._reflect_on_tool_use):
+        #    return Message(content=model_result.content)
+        
+        # Run the chat completion client again to reflect on the history and function execution results.
+        #model_result = None
+        model_result2: Optional[CreateResult] = None
+        async for chunk in self._call_model_client(
+            cancellation_token=ctx.cancellation_token,
+        ):
+            if isinstance(chunk, CreateResult):
+                model_result2 = chunk
+            elif isinstance(chunk, str):
+                # foward the stream tokent to the Queue
+                await self.runtime.publish_message(StreamResult(content=chunk, source=self.id.type), topic_id=task_results_topic_id)
+            else:
+                raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
+
+        if model_result2 is None:
+            raise RuntimeError("No final model result in streaming mode.")
+        assert model_result2.content is not None 
+        assert isinstance(model_result2.content, str)
+
+        await self.runtime.publish_message(StreamResult(content=model_result2, source=self.id.type), topic_id=task_results_topic_id)
+
+        return Message(content=model_result2.content)
+
+    # Message handler for Group chat message. It just add the message to the agent message history.
+    # The message will be processed when the agent receives the RequestToSpeak. 
+    @message_handler
+    async def handle_message(self, message: GroupChatMessage, ctx: MessageContext) -> None:
+        self._chat_history.extend(
+            [
+                UserMessage(content=f"Transferred to {message.body.source}", source="system"),
+                message.body,
+            ]
+        )
+
+    # Message handler for request to speaker message.
+    @message_handler
+    async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
+        #print(f"### {self.id.type}: ")
+        self._chat_history.append(
+            UserMessage(content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
+        )
+
+        # Run the chat completion client again to reflect on the history and function execution results.
+        model_result: Optional[CreateResult] = None
+        async for chunk in self._call_model_client(
+            cancellation_token=ctx.cancellation_token,
+        ):
+            if isinstance(chunk, CreateResult):
+                model_result = chunk
+                await self.runtime.publish_message(StreamResult(content=model_result, source=self.id.type), topic_id=task_results_topic_id)
+            elif isinstance(chunk, str):
+                # foward the stream tokent to the Queue
+                await self.runtime.publish_message(StreamResult(content=chunk, source=self.id.type), topic_id=task_results_topic_id)
+            else:
+                raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
+
+        if model_result is None:
+            raise RuntimeError("No final model result in streaming mode.")
+
+        assert isinstance(model_result.content, str)
+        assert model_result.content is not None
+
+        self._chat_history.append(AssistantMessage(content=model_result.content, source=self.id.type))
+        #print(model_result.content, flush=True)
+        await self.publish_message(
+            GroupChatMessage(body=UserMessage(content=model_result.content, source=self.id.type)),
+            topic_id=DefaultTopicId(type=self._group_chat_topic_type),
+        )

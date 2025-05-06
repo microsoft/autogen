@@ -1,3 +1,0 @@
->Class
-core_tool_agent.py
-simple_assistant_agent.py
