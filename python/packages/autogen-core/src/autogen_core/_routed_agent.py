@@ -18,6 +18,7 @@ from typing import (
     runtime_checkable,
 )
 
+from opentelemetry.trace import get_tracer
 from ._base_agent import BaseAgent
 from ._message_context import MessageContext
 from ._serialization import MessageSerializer, try_get_known_serializers_for_type
@@ -38,6 +39,7 @@ ProducesT = TypeVar("ProducesT", covariant=True)
 # Revisit this later to see if we can remove the ignore.
 @runtime_checkable
 class MessageHandler(Protocol[AgentT, ReceivesT, ProducesT]):  # type: ignore
+    name: str
     target_types: Sequence[type]
     produces_types: Sequence[type]
     is_message_handler: Literal[True]
@@ -157,6 +159,7 @@ def message_handler(
             return return_value
 
         wrapper_handler = cast(MessageHandler[AgentT, ReceivesT, ProducesT], wrapper)
+        wrapper_handler.name = func.__name__
         wrapper_handler.target_types = list(target_types)
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
@@ -276,6 +279,7 @@ def event(
             return None
 
         wrapper_handler = cast(MessageHandler[AgentT, ReceivesT, None], wrapper)
+        wrapper_handler.name = func.__name__
         wrapper_handler.target_types = list(target_types)
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
@@ -397,6 +401,7 @@ def rpc(
             return return_value
 
         wrapper_handler = cast(MessageHandler[AgentT, ReceivesT, ProducesT], wrapper)
+        wrapper_handler.name = func.__name__
         wrapper_handler.target_types = list(target_types)
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
@@ -482,7 +487,14 @@ class RoutedAgent(BaseAgent):
             # Call the first handler whose router returns True and then return the result.
             for h in handlers:
                 if h.router(message, ctx):
-                    return await h(self, message, ctx)
+                    with get_tracer("routed_agent").start_as_current_span(
+                        f"message_handler_{h.name}",
+                        attributes={
+                            "handler_name": h.name,
+                        },
+                    ):
+                        # Call the handler
+                        return await h(self, message, ctx)
         return await self.on_unhandled_message(message, ctx)  # type: ignore
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:

@@ -440,8 +440,19 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     cancellation_token=message_envelope.cancellation_token,
                     message_id=message_envelope.message_id,
                 )
-                with self._tracer_helper.trace_block("process", recipient_agent.id, parent=message_envelope.metadata):
-                    with MessageHandlerContext.populate_context(recipient_agent.id):
+                with MessageHandlerContext.populate_context(recipient_agent.id):
+                    with self._tracer_helper.trace_block(
+                        "process",
+                        recipient_agent.id,
+                        parent=message_envelope.metadata,
+                        attributes={
+                            "messaging.type": type(message_envelope.message).__name__,
+                            "messaging.content": self._try_serialize(message_envelope.message),
+                            "messaging.recipient_id": str(recipient_agent.id),
+                            "messaging.recipient_class": recipient_agent.__class__.__name__,
+                            "messaging.sender_id": str(message_envelope.sender),
+                        },
+                    ):
                         response = await recipient_agent.on_message(
                             message_envelope.message,
                             ctx=message_context,
@@ -527,8 +538,20 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     agent = await self._get_agent(agent_id)
 
                     async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
-                        with self._tracer_helper.trace_block("process", agent.id, parent=message_envelope.metadata):
-                            with MessageHandlerContext.populate_context(agent.id):
+                        with MessageHandlerContext.populate_context(agent.id):
+                            with self._tracer_helper.trace_block(
+                                "process",
+                                agent.id,
+                                parent=message_envelope.metadata,
+                                attributes={
+                                    "messaging.type": type(message_envelope.message).__name__,
+                                    "messaging.content": self._try_serialize(message_envelope.message),
+                                    "messaging.recipient_id": str(agent.id),
+                                    "messaging.recipient_class": agent.__class__.__name__,
+                                    "messaging.topic_id": str(message_envelope.topic_id),
+                                    "messaging.sender_id": str(message_envelope.sender),
+                                },
+                            ):
                                 try:
                                     return await agent.on_message(
                                         message_envelope.message,
