@@ -115,7 +115,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             )
 
             # Append all messages to thread
-            self._message_thread.extend(message.messages)
+            await self.update_message_thread(message.messages)
 
             # Check termination condition after processing all messages
             if await self._apply_termination_condition(message.messages):
@@ -139,6 +139,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             cancellation_token=ctx.cancellation_token,
         )
 
+    async def update_message_thread(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> None:
+        self._message_thread.extend(messages)
+
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
         try:
@@ -146,10 +149,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             delta: List[BaseAgentEvent | BaseChatMessage] = []
             if message.agent_response.inner_messages is not None:
                 for inner_message in message.agent_response.inner_messages:
-                    self._message_thread.append(inner_message)
                     delta.append(inner_message)
-            self._message_thread.append(message.agent_response.chat_message)
             delta.append(message.agent_response.chat_message)
+            await self.update_message_thread(delta)
 
             # Check if the conversation should be terminated.
             if await self._apply_termination_condition(delta, increment_turn_count=True):

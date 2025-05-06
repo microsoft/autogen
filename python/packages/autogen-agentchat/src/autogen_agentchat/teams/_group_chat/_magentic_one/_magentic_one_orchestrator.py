@@ -191,7 +191,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         if message.agent_response.inner_messages is not None:
             for inner_message in message.agent_response.inner_messages:
                 delta.append(inner_message)
-        self._message_thread.append(message.agent_response.chat_message)
+        await self.update_message_thread([message.agent_response.chat_message])
         delta.append(message.agent_response.chat_message)
 
         if self._termination_condition is not None:
@@ -263,7 +263,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         )
 
         # Save my copy
-        self._message_thread.append(ledger_message)
+        await self.update_message_thread([ledger_message])
 
         # Log it to the output topic.
         await self.publish_message(
@@ -376,7 +376,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast the next step
         message = TextMessage(content=progress_ledger["instruction_or_question"]["answer"], source=self._name)
-        self._message_thread.append(message)  # My copy
+        await self.update_message_thread([message])  # My copy
 
         await self._log_message(f"Next Speaker: {progress_ledger['next_speaker']['answer']}")
         # Log it to the output topic.
@@ -458,7 +458,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         assert isinstance(response.content, str)
         message = TextMessage(content=response.content, source=self._name)
 
-        self._message_thread.append(message)  # My copy
+        await self.update_message_thread([message])  # My copy
 
         # Log it to the output topic.
         await self.publish_message(
