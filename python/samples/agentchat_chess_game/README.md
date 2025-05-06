@@ -18,6 +18,12 @@ pip install "autogen-ext[openai]"
 # pip install "autogen-ext[openai,azure]" for Azure OpenAI models
 ```
 
+To run this sample, you will need to install the following packages:
+
+```shell
+pip install -U autogen-agentchat pyyaml
+```
+
 Create a new file named `model_config.yaml` in the the same directory as the script
 to configure the model you want to use.
 
