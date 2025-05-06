@@ -38,7 +38,7 @@ export const GalleryCreateModal: React.FC<GalleryCreateModalProps> = ({
       });
       onCancel();
     } catch (err) {
-      setError("Failed to fetch or parse gallery from URL");
+      setError("Failed to fetch or parse collection from URL");
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +107,7 @@ export const GalleryCreateModal: React.FC<GalleryCreateModalProps> = ({
         <div className="space-y-4">
           <Input
             ref={inputRef}
-            placeholder="Enter gallery URL..."
+            placeholder="Enter collection URL..."
             value={url}
             onChange={(e) => setUrl(e.target.value)}
           />
@@ -127,7 +127,7 @@ export const GalleryCreateModal: React.FC<GalleryCreateModalProps> = ({
               className="text-accent"
             >
               {" "}
-              gallery.json{" "}
+              collection.json{" "}
             </a>
           </div>
           <Button
@@ -189,7 +189,7 @@ export const GalleryCreateModal: React.FC<GalleryCreateModalProps> = ({
 
   return (
     <Modal
-      title="Create New Gallery"
+      title="Create New Collection"
       open={open}
       onCancel={onCancel}
       footer={null}

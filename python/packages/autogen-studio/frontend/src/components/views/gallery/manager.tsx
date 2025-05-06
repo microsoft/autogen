@@ -191,10 +191,10 @@ export const GalleryManager: React.FC = () => {
         },
       });
 
-      messageApi.success("Gallery synced successfully");
+      messageApi.success("Collection synced successfully");
     } catch (error) {
       console.error("Error syncing gallery:", error);
-      messageApi.error("Failed to sync gallery");
+      messageApi.error("Failed to sync collection");
     } finally {
       setIsLoading(false);
     }
@@ -203,7 +203,7 @@ export const GalleryManager: React.FC = () => {
   if (!user?.id) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-120px)] text-secondary">
-        Please log in to view galleries
+        Please log in to view collections
       </div>
     );
   }
@@ -247,7 +247,7 @@ export const GalleryManager: React.FC = () => {
         <div className="p-4 pt-2">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 mb-4 text-sm">
-            <span className="text-primary font-medium">Galleries</span>
+            <span className="text-primary font-medium">Collections</span>
             {currentGallery && (
               <>
                 <ChevronRight className="w-4 h-4 text-secondary" />
@@ -261,7 +261,7 @@ export const GalleryManager: React.FC = () => {
           {/* Content Area */}
           {isLoading && !currentGallery ? (
             <div className="flex items-center justify-center h-[calc(100vh-120px)] text-secondary">
-              Loading galleries...
+              Loading collections...
             </div>
           ) : currentGallery ? (
             <GalleryDetail
@@ -271,7 +271,7 @@ export const GalleryManager: React.FC = () => {
             />
           ) : (
             <div className="flex items-center justify-center h-[calc(100vh-120px)] text-secondary">
-              Select a gallery from the sidebar or create a new one
+              Select a collection from the sidebar or create a new one
             </div>
           )}
         </div>

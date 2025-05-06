@@ -43,7 +43,7 @@ export const TeamManager: React.FC = () => {
         setCurrentTeam(data[0]);
       }
     } catch (error) {
-      console.error("Error fetching teams:", error);
+      console.error("Error fetching collections:", error);
     } finally {
       setIsLoading(false);
     }
@@ -89,8 +89,8 @@ export const TeamManager: React.FC = () => {
       setCurrentTeam(data);
       window.history.pushState({}, "", `?teamId=${teamId}`);
     } catch (error) {
-      console.error("Error loading team:", error);
-      messageApi.error("Failed to load team");
+      console.error("Error loading collection:", error);
+      messageApi.error("Failed to load collection");
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +179,7 @@ export const TeamManager: React.FC = () => {
         <div className="p-4 pt-2">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 mb-4 text-sm">
-            <span className="text-primary font-medium">Teams</span>
+            <span className="text-primary font-medium">Workflow</span>
             {currentTeam && (
               <>
                 <ChevronRight className="w-4 h-4 text-secondary" />
@@ -205,7 +205,7 @@ export const TeamManager: React.FC = () => {
             />
           ) : (
             <div className="flex items-center justify-center h-[calc(100vh-190px)] text-secondary">
-              Select a team from the sidebar or create a new one
+              Select a workflow from the sidebar or create a new one
             </div>
           )}
         </div>

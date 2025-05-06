@@ -309,52 +309,66 @@ export const GalleryDetail: React.FC<{
     URL.revokeObjectURL(url);
   };
 
-  const tabItems = Object.entries(iconMap).map(([key, Icon]) => ({
-    key,
-    label: (
-      <span className="flex items-center gap-2">
-        <Icon className="w-5 h-5" />
-        {key.charAt(0).toUpperCase() + key.slice(1)}s
-        <span className="text-xs font-light text-secondary">
-          ({gallery.config.components[`${key}s` as CategoryKey].length})
+  const tabItems = Object.entries(iconMap).map(([key, Icon]) => {
+    // Determine display names
+    const singular =
+      key === "team"
+        ? "Workflow"
+        : key.charAt(0).toUpperCase() + key.slice(1);
+    const plural =
+      key === "team"
+        ? "Workflows"
+        : singular + "s";
+  
+    // Count items in this category
+    const count = gallery.config.components[
+      `${key}s` as CategoryKey
+    ].length;
+  
+    return {
+      key,
+      label: (
+        <span className="flex items-center gap-2">
+          <Icon className="w-5 h-5" />
+          {plural}
+          <span className="text-xs font-light text-secondary">
+            ({count})
+          </span>
         </span>
-      </span>
-    ),
-    children: (
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-base font-medium">
-            {gallery.config.components[`${key}s` as CategoryKey].length}{" "}
-            {gallery.config.components[`${key}s` as CategoryKey].length === 1
-              ? key.charAt(0).toUpperCase() + key.slice(1)
-              : key.charAt(0).toUpperCase() + key.slice(1) + "s"}
-          </h3>
-          <Button
-            type="primary"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={() => {
-              setActiveTab(key as ComponentTypes);
-              handleAdd();
-            }}
-          >
-            {`Add ${key.charAt(0).toUpperCase() + key.slice(1)}`}
-          </Button>
+      ),
+      children: (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-base font-medium">
+              {count} {count === 1 ? singular : plural}
+            </h3>
+            <Button
+              type="primary"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => {
+                setActiveTab(key as ComponentTypes);
+                handleAdd();
+              }}
+            >
+              {`Add ${singular}`}
+            </Button>
+          </div>
+          <ComponentGrid
+            items={gallery.config.components[`${key}s` as CategoryKey]}
+            title={key}
+            {...handlers}
+          />
         </div>
-        <ComponentGrid
-          items={gallery.config.components[`${key}s` as CategoryKey]}
-          title={key}
-          {...handlers}
-        />
-      </div>
-    ),
-  }));
+      ),
+    };
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4">
       <div className="relative h-64 rounded bg-secondary overflow-hidden mb-8">
         <img
           src="/images/bg/layeredbg.svg"
-          alt="Gallery Banner"
+          alt="Collection Banner"
           className="absolute w-full h-full object-cover"
         />
         <div className="relative z-10 p-6 h-full flex flex-col justify-between">

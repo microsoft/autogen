@@ -16,8 +16,8 @@ require("dotenv").config({
 const config: GatsbyConfig = {
   pathPrefix: process.env.PREFIX_PATH_VALUE || "",
   siteMetadata: {
-    title: `AutoGen Studio`,
-    description: `Build Multi-Agent Apps`,
+    title: `AI Planet Studio`,
+    description: `Build Multi-Agent Worflows & Apps`,
     siteUrl: `http://tbd.place`,
   },
   // More easily incorporate content into your pages through automatic TypeScript type generation and better GraphQL IntelliSense.

@@ -220,7 +220,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
           position,
           type: clonedComponent.component_type,
           data: {
-            label: clonedComponent.label || "Team",
+            label: clonedComponent.label || "Workflow",
             component: clonedComponent,
             type: clonedComponent.component_type as NodeData["type"],
           },

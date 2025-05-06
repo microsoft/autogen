@@ -192,7 +192,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = ({
         </div>
 
         <div className="mb-4 text-secondary">
-          Drag a component to add it to the team
+          Drag a component to add it to the workflow
         </div>
 
         <div className="flex items-center gap-2 mb-4">

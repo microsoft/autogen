@@ -142,7 +142,7 @@ def create_default_gallery() -> GalleryConfig:
             os.environ[key] = "test"
 
     # url = "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/autogenstudio/gallery/default.json"
-    builder = GalleryBuilder(id="gallery_default", name="Default Component Gallery")
+    builder = GalleryBuilder(id="collection_default", name="Default Component Collection")
 
     # Set metadata
     builder.set_metadata(

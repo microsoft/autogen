@@ -217,7 +217,7 @@ export const SessionManager: React.FC = () => {
         const defaultGallery = galleryStore.getSelectedGallery();
 
         const sampleTeam = defaultGallery?.config.components.teams[0];
-        console.log("Default Gallery .. manager fetching ", sampleTeam);
+        console.log("Default Collection .. manager fetching ", sampleTeam);
         // // If no teams, create a default team
         if (sampleTeam) {
           const teamData: Team = {
@@ -230,8 +230,8 @@ export const SessionManager: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error("Error fetching teams:", error);
-      messageApi.error("Error loading teams");
+      console.error("Error fetching workflows:", error);
+      messageApi.error("Error loading workflows");
     } finally {
       setIsLoading(false);
     }

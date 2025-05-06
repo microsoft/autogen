@@ -93,7 +93,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
     return (
       <div className="h-full border-r border-secondary">
         <div className="p-2 -ml-2">
-          <Tooltip title={`Teams (${teams.length})`}>
+          <Tooltip title={`Workflows (${teams.length})`}>
             <button
               onClick={onToggle}
               className="p-2 rounded-md hover:bg-secondary hover:text-accent text-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50"
@@ -104,7 +104,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
         </div>
 
         <div className="mt-4 px-2 -ml-1">
-          <Tooltip title="Create new team">
+          <Tooltip title="Create new workflow">
             <Button
               type="text"
               className="w-full p-2 flex justify-center"
@@ -139,7 +139,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       {contextHolder}
       <div className="flex items-center justify-between pt-0 p-4 pl-2 pr-2 border-b border-secondary">
         <div className="flex items-center gap-2">
-          <span className="text-primary font-medium">Teams</span>
+          <span className="text-primary font-medium">Workflows</span>
           <span className="px-2 py-0.5 text-xs bg-accent/10 text-accent rounded">
             {teams.length}
           </span>
@@ -157,7 +157,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       {/* Create Team Button */}
       <div className="my-4 flex text-sm">
         <div className="mr-2 w-full">
-          <Tooltip title="Create a new team">
+          <Tooltip title="Create a new workflow">
             <Button
               type="primary"
               className="w-full"
@@ -165,7 +165,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
               onClick={createTeam}
               disabled={!selectedGallery?.config.components?.teams?.length}
             >
-              New Team
+              New Workflow
             </Button>
           </Tooltip>
         </div>
@@ -219,7 +219,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
             {!isLoading && teams.length === 0 && (
               <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded">
                 <InfoIcon className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-                No recent teams found
+                No recent workflows found
               </div>
             )}
 
@@ -268,7 +268,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                       {/* Team Metadata Row */}
                       <div className="mt-1 flex items-center gap-2 text-xs text-secondary">
                         <span className="bg-secondary/20 truncate rounded">
-                          {team.component.component_type}
+                          {/* {team.component.component_type} */} workflow
                         </span>
                         <div className="flex items-center gap-1">
                           <Bot className="w-3 h-3" />
@@ -309,7 +309,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
             </div>
             <Select
               className="w-full mb-4"
-              placeholder="Select gallery"
+              placeholder="Select collection"
               value={selectedGallery?.id}
               onChange={(value) => {
                 const gallery = galleries.find((g) => g.id === value);
@@ -376,7 +376,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                   {/* Team Metadata Row */}
                   <div className="mt-1 flex items-center gap-2 text-xs text-secondary">
                     <span className="bg-secondary/20 truncate rounded">
-                      {galleryTeam.component_type}
+                      {/* {galleryTeam.component_type} */} workflow
                     </span>
                     <div className="flex items-center gap-1">
                       <Bot className="w-3 h-3" />
@@ -395,7 +395,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
             {!selectedGallery && (
               <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded">
                 <InfoIcon className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-                Select a gallery to view templates
+                Select a collection to view templates
               </div>
             )}
           </div>

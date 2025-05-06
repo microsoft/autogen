@@ -37,7 +37,7 @@ export const useGalleryStore = create<GalleryState>((set, get) => ({
     } catch (error) {
       set({
         error:
-          error instanceof Error ? error.message : "Failed to fetch galleries",
+          error instanceof Error ? error.message : "Failed to fetch collections",
         isLoading: false,
       });
     }

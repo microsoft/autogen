@@ -7,7 +7,7 @@ const ComponentLab: React.FC = () => {
   return (
     <div className="">
       <h1 className="tdext-2xl font-bold mb-6">
-        Using AutoGen Studio Teams in Python Code and REST API
+        Using AI Planet Studio Workflow in Python Code and REST API
       </h1>
 
       <Alert
@@ -15,7 +15,7 @@ const ComponentLab: React.FC = () => {
         message="Prerequisites"
         description={
           <ul className="list-disc pl-4 mt-2 space-y-1">
-            <li>AutoGen Studio installed</li>
+            <li>AI Planet Studio installed</li>
           </ul>
         }
         type="info"

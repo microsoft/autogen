@@ -68,9 +68,9 @@ export const TeamFields: React.FC<TeamFieldsProps> = ({
           <label className="block">
             <span className="text-sm font-medium text-primary">Name</span>
             <Input
-              value={component.label || ""}
+              value={component.label === "team" ? "Workflow" : component.label  || ""}
               onChange={(e) => handleComponentUpdate({ label: e.target.value })}
-              placeholder="Team name"
+              placeholder="Collection name"
               className="mt-1"
             />
           </label>

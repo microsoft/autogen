@@ -115,13 +115,13 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         </div>
 
         <div className="text-sm text-accent ">
-          <Link to="/build">view all teams</Link>
+          <Link to="/build">view all workflow</Link>
         </div>
 
         {hasNoTeams && (
           <div className="flex border p-1 rounded -mt-2 mb-4 items-center gap-1.5 text-sm text-yellow-600">
             <TriangleAlertIcon className="h-4 w-4" />
-            <span>No teams found. Please create a team first.</span>
+            <span>No workflow found. Please create a workflow first.</span>
           </div>
         )}
 

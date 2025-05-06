@@ -88,7 +88,7 @@ const NewSessionControls = ({
       type: "group",
       label: (
         <div>
-          <div className="text-xs text-secondary mb-1">Select a team</div>
+          <div className="text-xs text-secondary mb-1">Select a workflow</div>
           <Input
             prefix={<TextSearch className="w-4 h-4" />}
             placeholder="Search teams"
@@ -148,7 +148,7 @@ const NewSessionControls = ({
       {hasNoTeams && (
         <div className="flex items-center gap-1.5 text-xs text-yellow-600 mt-1">
           <InfoIcon className="h-3 w-3" />
-          <span>Create a team to get started</span>
+          <span>Create a workflow to get started</span>
         </div>
       )}
     </div>

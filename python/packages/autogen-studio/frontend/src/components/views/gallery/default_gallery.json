@@ -1,13 +1,13 @@
 {
-  "id": "gallery_default",
-  "name": "Default Component Gallery",
+  "id": "collection_default",
+  "name": "Default Component Collection",
   "url": null,
   "metadata": {
-    "author": "AutoGen Team",
+    "author": "AI Planet Team",
     "created_at": "2025-02-21T20:43:06.400850",
     "updated_at": "2025-02-21T20:43:07.501068",
     "version": "1.0.0",
-    "description": "A default gallery containing basic components for human-in-loop conversations",
+    "description": "A default collection containing basic components for human-in-loop conversations",
     "tags": ["human-in-loop", "assistant", "web agents"],
     "license": "MIT",
     "homepage": null,

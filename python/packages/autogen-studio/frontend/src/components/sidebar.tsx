@@ -31,35 +31,35 @@ interface INavItem {
 
 const navigation: INavItem[] = [
   {
-    name: "Team Builder",
+    name: "Workflow Builder",
     href: "/build",
     icon: Bot,
-    breadcrumbs: [{ name: "Team Builder", href: "/build", current: true }],
+    breadcrumbs: [{ name: "Workflow Builder", href: "/build", current: true }],
   },
   {
-    name: "Playground",
+    name: "Test Workflow",
     href: "/",
     icon: MessagesSquare,
-    breadcrumbs: [{ name: "Playground", href: "/", current: true }],
+    breadcrumbs: [{ name: "Test Workflow", href: "/", current: true }],
   },
   {
-    name: "Gallery",
+    name: "Collections",
     href: "/gallery",
     icon: GalleryHorizontalEnd,
-    breadcrumbs: [{ name: "Gallery", href: "/gallery", current: true }],
+    breadcrumbs: [{ name: "Collections", href: "/gallery", current: true }],
   },
-  {
-    name: "Labs",
-    href: "/labs",
-    icon: FlaskConical,
-    breadcrumbs: [{ name: "Labs", href: "/labs", current: true }],
-  },
-  {
-    name: "Deploy",
-    href: "/deploy",
-    icon: Rocket,
-    breadcrumbs: [{ name: "Deploy", href: "/deploy", current: true }],
-  },
+  // {
+  //   name: "Labs",
+  //   href: "/labs",
+  //   icon: FlaskConical,
+  //   breadcrumbs: [{ name: "Labs", href: "/labs", current: true }],
+  // },
+  // {
+  //   name: "Deploy",
+  //   href: "/deploy",
+  //   icon: Rocket,
+  //   breadcrumbs: [{ name: "Deploy", href: "/deploy", current: true }],
+  // },
 ];
 
 const classNames = (...classes: (string | undefined | boolean)[]) => {

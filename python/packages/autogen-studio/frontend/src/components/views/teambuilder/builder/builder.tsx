@@ -371,7 +371,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
               <ValidationErrors validation={validationResults} />
             </div>
           )}
-          <Tooltip title="Download Team">
+          <Tooltip title="Download Workflow">
             <Button
               type="text"
               icon={<Download size={18} />}
@@ -408,7 +408,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
 
           <Tooltip
             title=<div>
-              Validate Team
+              Validate Workflow
               {validationResults && (
                 <div className="text-xs text-center my-1">
                   {teamValidated ? (
@@ -446,7 +446,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
             />
           </Tooltip>
 
-          <Tooltip title="Run Team">
+          <Tooltip title="Run Workflow">
             <Button
               type="primary"
               icon={<PlayCircle size={18} />}

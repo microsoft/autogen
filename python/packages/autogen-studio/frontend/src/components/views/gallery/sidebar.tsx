@@ -41,7 +41,7 @@ export const GallerySidebar: React.FC<GallerySidebarProps> = ({
     return (
       <div className="h-full border-r border-secondary">
         <div className="p-2 -ml-2">
-          <Tooltip title={`Galleries (${galleries.length})`}>
+          <Tooltip title={`Collections (${galleries.length})`}>
             <button
               onClick={onToggle}
               className="p-2 rounded-md hover:bg-secondary hover:text-accent text-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50"
@@ -52,7 +52,7 @@ export const GallerySidebar: React.FC<GallerySidebarProps> = ({
         </div>
 
         <div className="mt-4 px-2 -ml-1">
-          <Tooltip title="Create new gallery">
+          <Tooltip title="Create new collection">
             <Button
               type="text"
               className="w-full p-2 flex justify-center"
@@ -71,7 +71,7 @@ export const GallerySidebar: React.FC<GallerySidebarProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between pt-0 p-4 pl-2 pr-2 border-b border-secondary">
         <div className="flex items-center gap-2">
-          <span className="text-primary font-medium">Galleries</span>
+          <span className="text-primary font-medium">Collections</span>
           <span className="px-2 py-0.5 text-xs bg-accent/10 text-accent rounded">
             {galleries.length}
           </span>
@@ -89,14 +89,14 @@ export const GallerySidebar: React.FC<GallerySidebarProps> = ({
       {/* Create Gallery Button */}
       <div className="my-4 flex text-sm">
         <div className="mr-2 w-full">
-          <Tooltip title="Create new gallery">
+          <Tooltip title="Create new collection">
             <Button
               type="primary"
               className="w-full"
               icon={<Plus className="w-4 h-4" />}
               onClick={onCreateGallery}
             >
-              New Gallery
+              New Collection
             </Button>
           </Tooltip>
         </div>
@@ -104,7 +104,7 @@ export const GallerySidebar: React.FC<GallerySidebarProps> = ({
 
       {/* Section Label */}
       <div className="py-2 flex text-sm text-secondary">
-        <div className="flex">All Galleries</div>
+        <div className="flex">All Collections</div>
         {isLoading && <RefreshCw className="w-4 h-4 ml-2 animate-spin" />}
       </div>
 
@@ -112,7 +112,7 @@ export const GallerySidebar: React.FC<GallerySidebarProps> = ({
       {!isLoading && galleries.length === 0 && (
         <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded">
           <Info className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-          No galleries found
+          No collections found
         </div>
       )}
 
@@ -140,14 +140,14 @@ export const GallerySidebar: React.FC<GallerySidebarProps> = ({
                       <span className="font-medium">{gallery.config.name}</span>
                     </div>
                     {gallery.config.url && (
-                      <Tooltip title="Remote Gallery">
+                      <Tooltip title="Remote Collection">
                         <Globe className="w-3 h-3 text-secondary flex-shrink-0" />
                       </Tooltip>
                     )}
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0">
                     {gallery.config.url && (
-                      <Tooltip title="Sync gallery">
+                      <Tooltip title="Sync collection">
                         <Button
                           type="text"
                           size="small"
@@ -163,8 +163,8 @@ export const GallerySidebar: React.FC<GallerySidebarProps> = ({
                     <Tooltip
                       title={
                         galleries.length === 1
-                          ? "Cannot delete the last gallery"
-                          : "Delete gallery"
+                          ? "Cannot delete the last collection"
+                          : "Delete collection"
                       }
                     >
                       <Button
