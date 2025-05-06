@@ -213,7 +213,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         trace_logger.debug(f"Selected speaker: {agent_name}")
         return agent_name
 
-    def construct_message_history(self, message_history: Sequence[LLMMessage]) -> str:
+    def construct_message_history(self, message_history: List[LLMMessage]) -> str:
         # Construct the history of the conversation.
         history_messages: List[str] = []
         for msg in message_history:
