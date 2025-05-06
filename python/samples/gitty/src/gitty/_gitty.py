@@ -125,7 +125,7 @@ async def run_gitty(owner: str, repo: str, command: str, number: int) -> None:
         console.print("  [observe]> No related issues found.[/observe]")
 
     updated_prompt = (
-        f"Considering the additional context:\n"
+        "Considering the additional context:\n"
         f"You are working on issue #{number} for the {owner}/{repo} repository. "
         "The issue content is:\n"
         f"{text}\n\n"
