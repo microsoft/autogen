@@ -228,7 +228,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
     async def _select_speaker(self, roles: str, participants: List[str], max_attempts: int) -> str:
         model_context_messages = await self._model_context.get_messages()
-        model_context_history = self.construct_message_history(model_context_messages)  # type: ignore
+        model_context_history = self.construct_message_history(model_context_messages)
 
         select_speaker_prompt = self._selector_prompt.format(
             roles=roles, participants=str(participants), history=model_context_history
