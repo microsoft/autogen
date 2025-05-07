@@ -13,6 +13,9 @@ import {
   Paperclip,
   UploadIcon,
   XIcon,
+  FileIcon,
+  FileSpreadsheetIcon,
+  FileJsonIcon,
 } from "lucide-react";
 import { truncateText } from "../../../utils/utils";
 
@@ -25,6 +28,15 @@ const ALLOWED_FILE_TYPES = [
   "image/png",
   "image/gif",
   "image/svg+xml",
+  "application/pdf",
+  "application/csv",
+  "text/csv",
+  "application/octet-stream",
+  "text/comma-separated-values",
+  "text/x-csv",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/json",
 ];
 
 // Threshold for large text files (in characters)
@@ -248,13 +260,14 @@ export default function ChatInput({
       }
 
       // Check file type
+      console.log("-----" + file.type)
       if (!ALLOWED_FILE_TYPES.includes(file.type)) {
         notificationApi.warning({
           message: <span className="text-sm">Unsupported File Type</span>,
           description: (
             <span className="text-sm text-secondary">
-              Please upload only text (.txt) or images (.jpg, .png, .gif, .svg)
-              files.
+              Please upload only text (.txt), images (.jpg, .png, .gif, .svg), 
+              documents (.pdf), data files (.csv, .xlsx, .xls), or JSON (.json) files.
             </span>
           ),
           showProgress: true,
@@ -290,6 +303,12 @@ export default function ChatInput({
     const fileType = file.type || "";
     if (fileType.startsWith("image/")) {
       return <ImageIcon className="w-4 h-4" />;
+    } else if (fileType === "application/pdf") {
+      return <FileIcon className="w-4 h-4" />;
+    } else if (fileType === "text/csv" || fileType.includes("excel") || fileType.includes("spreadsheet")) {
+      return <FileSpreadsheetIcon className="w-4 h-4" />;
+    } else if (fileType === "application/json") {
+      return <FileJsonIcon className="w-4 h-4" />;
     }
     return <FileTextIcon className="w-4 h-4" />;
   };
@@ -331,8 +350,8 @@ export default function ChatInput({
           message: <span className="text-sm">Unsupported File Type</span>,
           description: (
             <span className="text-sm text-secondary">
-              Please upload only text (.txt) or images (.jpg, .png, .gif, .svg)
-              files.
+              Please upload only text (.txt), images (.jpg, .png, .gif, .svg), 
+              documents (.pdf), data files (.csv, .xlsx, .xls), or JSON (.json) files.
             </span>
           ),
           showProgress: true,
