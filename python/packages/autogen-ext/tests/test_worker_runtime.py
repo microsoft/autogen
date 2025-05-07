@@ -658,7 +658,7 @@ async def test_instance_factory_messaging() -> None:
     host.start()
 
     worker = GrpcWorkerAgentRuntime(host_address=host_address)
-    agent1 = CascadingAgent(max_rounds=5)
+    agent1 = CascadingAgent(max_rounds=4)
     await worker.start()
     await worker.register_agent_instance(agent1, agent_id=agent1_id)
     await worker.add_subscription(TypeSubscription("instance_agent", "instance_agent"))
@@ -671,9 +671,9 @@ async def test_instance_factory_messaging() -> None:
         )
     await asyncio.sleep(2)
 
-    agent = await worker.try_get_underlying_agent_instance(AgentId("instance_agent", "instance_agent"), CascadingAgent)
+    agent = await worker.try_get_underlying_agent_instance(AgentId("factory_agent", "default"), CascadingAgent)
     assert agent.num_calls == 5
-    assert agent1.num_calls == 5
+    assert agent1.num_calls == 4
 
     await worker.stop()
     await host.stop()
