@@ -21,6 +21,7 @@ from ._subscription import Subscription, UnboundSubscription
 from ._subscription_context import SubscriptionInstantiationContext
 from ._topic import TopicId
 from ._type_prefix_subscription import TypePrefixSubscription
+from ._type_subscription import TypeSubscription
 
 T = TypeVar("T", bound=Agent)
 
@@ -159,27 +160,18 @@ class BaseAgent(ABC, Agent):
         runtime: AgentRuntime,
         agent_id: AgentId,
         *,
-        skip_class_subscriptions: bool = False,
+        skip_broadcast_subscription: bool = False,
         skip_direct_message_subscription: bool = False,
     ) -> AgentId:
+        """
+        This function is similar to `register` but is used for registering an instance of an agent. One major difference between the two functions is that using this function will restrict the topics that the agent can subscribe to based on the agent_id.
+        """
         agent_id = await runtime.register_agent_instance(agent_instance=self, agent_id=agent_id)
-        if not skip_class_subscriptions:
-            with SubscriptionInstantiationContext.populate_context(AgentType(agent_id.type)):
-                subscriptions: List[Subscription] = []
-                for unbound_subscription in self._unbound_subscriptions():
-                    subscriptions_list_result = unbound_subscription()
-                    if inspect.isawaitable(subscriptions_list_result):
-                        subscriptions_list = await subscriptions_list_result
-                    else:
-                        subscriptions_list = subscriptions_list_result
 
-                    subscriptions.extend(subscriptions_list)
-            try:
-                for subscription in subscriptions:
-                    await runtime.add_subscription(subscription)
-            except ValueError:
-                # We don't care if the subscription already exists
-                pass
+        if not skip_broadcast_subscription:
+            # Only add a subscription based on the agent_id. Default should NOT be added in this case.
+            subscription = TypeSubscription(topic_type=agent_id.key, agent_type=agent_id.type)
+            await runtime.add_subscription(subscription)
 
         if not skip_direct_message_subscription:
             # Additionally adds a special prefix subscription for this agent to receive direct messages
