@@ -4,17 +4,18 @@ import base64
 import re
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, cast
+from typing import Any, Dict, Optional, cast
 
 from PIL import Image as PILImage
 from pydantic import GetCoreSchemaHandler, ValidationInfo
 from pydantic_core import core_schema
 from typing_extensions import Literal
 
+from ._media import Media
 
-class Image:
-    """Represents an image.
 
+class Image(Media):
+    """Represents an image that can be sent to an LLM.
 
     Example:
 
@@ -32,34 +33,39 @@ class Image:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url) as response:
                         content = await response.read()
-                        return Image.from_pil(PILImage.open(content))
+                        return Image.from_pil(PILImage.open(BytesIO(content)))
 
 
             image = asyncio.run(from_url("https://example.com/image"))
 
     """
 
+    media_type = "image"
+
     def __init__(self, image: PILImage.Image):
         self.image: PILImage.Image = image.convert("RGB")
 
     @classmethod
     def from_pil(cls, pil_image: PILImage.Image) -> Image:
+        """Create an Image object from a PIL Image."""
         return cls(pil_image)
 
     @classmethod
     def from_uri(cls, uri: str) -> Image:
+        """Create an Image object from a data URI."""
         if not re.match(r"data:image/(?:png|jpeg);base64,", uri):
             raise ValueError("Invalid URI format. It should be a base64 encoded image URI.")
 
-        # A URI. Remove the prefix and decode the base64 string.
-        base64_data = re.sub(r"data:image/(?:png|jpeg);base64,", "", uri)
+        base64_data = cls._extract_base64_from_data_uri(uri)
         return cls.from_base64(base64_data)
 
     @classmethod
     def from_base64(cls, base64_str: str) -> Image:
+        """Create an Image object from a base64 encoded string."""
         return cls(PILImage.open(BytesIO(base64.b64decode(base64_str))))
 
     def to_base64(self) -> str:
+        """Convert the image to a base64 encoded string."""
         buffered = BytesIO()
         self.image.save(buffered, format="PNG")
         content = buffered.getvalue()
@@ -67,61 +73,57 @@ class Image:
 
     @classmethod
     def from_file(cls, file_path: Path) -> Image:
+        """Create an Image object from a file path."""
         return cls(PILImage.open(file_path))
 
-    def _repr_html_(self) -> str:
-        # Show the image in Jupyter notebook
-        return f'<img src="{self.data_uri}"/>'
+    def to_data_uri(self) -> str:
+        """Convert the image to a data URI."""
+        base64_str = self.to_base64()
+        return f"data:image/png;base64,{base64_str}"
 
-    @property
-    def data_uri(self) -> str:
-        return _convert_base64_to_data_uri(self.to_base64())
-
-    # Returns openai.types.chat.ChatCompletionContentPartImageParam, which is a TypedDict
-    # We don't use the explicit type annotation so that we can avoid a dependency on the OpenAI Python SDK in this package.
+    # Returns formatted object for OpenAI API
     def to_openai_format(self, detail: Literal["auto", "low", "high"] = "auto") -> Dict[str, Any]:
-        return {"type": "image_url", "image_url": {"url": self.data_uri, "detail": detail}}
+        """Convert the image to the format expected by OpenAI API."""
+        return {"type": "image_url", "image_url": {"url": self.to_data_uri(), "detail": detail}}
+
+    def _repr_html_(self) -> str:
+        """Show the image in Jupyter notebook."""
+        return f'<img src="{self.to_data_uri()}"/>'
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
-        # Custom validation
-        def validate(value: Any, validation_info: ValidationInfo) -> Image:
+        """Pydantic validation schema with passthrough for other Media types."""
+        
+        # Custom validation specific to Image
+        def validate(value: Any, validation_info: ValidationInfo) -> Any:
+            # Check if value is another Media subclass first (allow passthrough)
+            for subclass_name, subclass in Media._subclasses.items():
+                if subclass_name != "Image" and isinstance(value, subclass):
+                    return value
+            
+            # Now handle Image-specific cases
             if isinstance(value, dict):
-                base_64 = cast(str | None, value.get("data"))  # type: ignore
-                if base_64 is None:
+                base64_data = cast(str | None, value.get("data"))
+                if base64_data is None:
                     raise ValueError("Expected 'data' key in the dictionary")
-                return cls.from_base64(base_64)
+                try:
+                    return cls.from_base64(base64_data)
+                except Exception as e:
+                    raise ValueError(f"Invalid base64 image data: {e}")
             elif isinstance(value, cls):
                 return value
             else:
-                raise TypeError(f"Expected dict or {cls.__name__} instance, got {type(value)}")
+                raise TypeError(f"Expected dict, {cls.__name__} instance, or another Media type, got {type(value)}")
 
         # Custom serialization
-        def serialize(value: Image) -> dict[str, Any]:
-            return {"data": value.to_base64()}
+        def serialize(value: Any) -> Any:
+            if isinstance(value, Image):
+                return {"data": value.to_base64()}
+            # For other Media types, let their own serializers handle it
+            return value
 
         return core_schema.with_info_after_validator_function(
             validate,
-            core_schema.any_schema(),  # Accept any type; adjust if needed
-            serialization=core_schema.plain_serializer_function_ser_schema(serialize),
+            core_schema.any_schema(),
+            serialization=core_schema.plain_serializer_function_ser_schema(serialize, when_used='unless-none'),
         )
-
-
-def _convert_base64_to_data_uri(base64_image: str) -> str:
-    def _get_mime_type_from_data_uri(base64_image: str) -> str:
-        # Decode the base64 string
-        image_data = base64.b64decode(base64_image)
-        # Check the first few bytes for known signatures
-        if image_data.startswith(b"\xff\xd8\xff"):
-            return "image/jpeg"
-        elif image_data.startswith(b"\x89PNG\r\n\x1a\n"):
-            return "image/png"
-        elif image_data.startswith(b"GIF87a") or image_data.startswith(b"GIF89a"):
-            return "image/gif"
-        elif image_data.startswith(b"RIFF") and image_data[8:12] == b"WEBP":
-            return "image/webp"
-        return "image/jpeg"  # use jpeg for unknown formats, best guess.
-
-    mime_type = _get_mime_type_from_data_uri(base64_image)
-    data_uri = f"data:{mime_type};base64,{base64_image}"
-    return data_uri

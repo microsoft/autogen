@@ -1,10 +1,12 @@
 from dataclasses import dataclass
-from typing import List, Literal, Optional, Union
+from typing import List, Literal, Optional, Union, Any  # Added Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator  # Added field_validator
 from typing_extensions import Annotated
 
-from .. import FunctionCall, Image
+from .. import FunctionCall, Image, File, Media
+# Need to import base64 for the validator
+import base64
 
 
 class SystemMessage(BaseModel):
@@ -29,13 +31,53 @@ class SystemMessage(BaseModel):
 class UserMessage(BaseModel):
     """User message contains input from end users, or a catch-all for data provided to the model."""
 
-    content: Union[str, List[Union[str, Image]]]
+    content: Union[str, List[Union[str, Media]]]
     """The content of the message."""
 
     source: str
     """The name of the agent that sent this message."""
 
     type: Literal["UserMessage"] = "UserMessage"
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, value: Any) -> Union[str, List[Union[str, Media]]]:
+        if isinstance(value, str):
+            return value
+        elif isinstance(value, list):
+            validated_list = []
+            for item in value:
+                if isinstance(item, (str, Media)):
+                    # Media is the base class for Image and File, so this will accept both
+                    validated_list.append(item)
+                elif isinstance(item, dict):
+                    # Attempt to validate dicts as Media subclasses by trying instantiation
+                    validated = False
+                    
+                    # Try Image first (expects 'data' key with base64)
+                    if 'data' in item and len(item) == 1:  # Simple check for Image dict format
+                        try:
+                            validated_list.append(Image.from_base64(item['data']))
+                            validated = True
+                        except (ValueError, TypeError, KeyError, base64.binascii.Error):
+                            pass  # Not a valid Image dict
+
+                    # Try File if Image failed (expects 'filename', 'data', optional 'mime_type')
+                    if not validated and 'filename' in item and 'data' in item:
+                        try:
+                            mime_type = item.get('mime_type')
+                            validated_list.append(File.from_base64(item['data'], item['filename'], mime_type))
+                            validated = True
+                        except (ValueError, TypeError, KeyError, base64.binascii.Error):
+                            pass  # Not a valid File dict
+
+                    if not validated:
+                        raise TypeError(f"Invalid dictionary format in content list: {item}. Expected dict representing a Media subclass.")
+                else:
+                    raise TypeError(f"Invalid type in content list: {type(item)}. Expected str, Media subclass, or dict.")
+            return validated_list
+        else:
+            raise TypeError(f"Invalid type for content: {type(value)}. Expected str or list.")
 
 
 class AssistantMessage(BaseModel):
