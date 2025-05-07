@@ -89,15 +89,11 @@ class BaseAgent(ABC, Agent):
             raise ValueError("Agent description must be a string")
         self._description = description
 
-    async def init(self, **kwargs: Any) -> None:
-        if "runtime" not in kwargs or "agent_id" not in kwargs:
-            raise ValueError("Agent must be initialized with runtime and agent_id")
-        if not isinstance(kwargs["runtime"], AgentRuntime):
-            raise ValueError("Agent must be initialized with runtime of type AgentRuntime")
-        if not isinstance(kwargs["agent_id"], AgentId):
-            raise ValueError("Agent must be initialized with agent_id of type AgentId")
-        self._runtime = kwargs["runtime"]
-        self._id = kwargs["agent_id"]
+    async def bind_id_and_runtime(self, id: AgentId, runtime: AgentRuntime) -> None:
+        if hasattr(self, "_id"):
+            raise RuntimeError("Agent is already bound to an ID and runtime")
+        self._id = id
+        self._runtime = runtime
 
     @property
     def type(self) -> str:

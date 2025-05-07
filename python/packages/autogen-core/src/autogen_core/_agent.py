@@ -1,8 +1,12 @@
-from typing import Any, Mapping, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Mapping, Protocol, runtime_checkable
 
 from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
 from ._message_context import MessageContext
+
+# Forward declaration for type checking only
+if TYPE_CHECKING:
+    from ._agent_runtime import AgentRuntime
 
 
 @runtime_checkable
@@ -17,8 +21,13 @@ class Agent(Protocol):
         """ID of the agent."""
         ...
 
-    async def init(self, **kwargs: Any) -> None:
-        """Function used for two-phase initialization."""
+    async def bind_id_and_runtime(self, id: AgentId, runtime: "AgentRuntime") -> None:
+        """Function used to bind an Agent instance to an `AgentRuntime`.
+
+        Args:
+            agent_id (AgentId): ID of the agent.
+            runtime (AgentRuntime): AgentRuntime instance to bind the agent to.
+        """
         ...
 
     async def on_message(self, message: Any, ctx: MessageContext) -> Any:

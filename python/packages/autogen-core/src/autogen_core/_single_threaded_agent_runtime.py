@@ -854,7 +854,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             if self._agent_instance_types[agent_id.type] != type_func_alias(agent_instance):
                 raise ValueError("Agent instances must be the same object type.")
 
-        await agent_instance.init(runtime=self, agent_id=agent_id)
+        await agent_instance.bind_id_and_runtime(id=agent_id, runtime=self)
         self._instantiated_agents[agent_id] = agent_instance
         return agent_id
 
@@ -880,7 +880,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
                 if inspect.isawaitable(agent):
                     agent = cast(T, await agent)
-                await agent.init(runtime=self, agent_id=agent_id)
                 return agent
 
             except BaseException as e:
