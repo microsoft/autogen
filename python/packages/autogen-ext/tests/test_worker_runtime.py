@@ -660,8 +660,8 @@ async def test_instance_factory_messaging() -> None:
     worker = GrpcWorkerAgentRuntime(host_address=host_address)
     agent1 = CascadingAgent(max_rounds=4)
     await worker.start()
-    await worker.register_agent_instance(agent1, agent_id=agent1_id)
-    await worker.add_subscription(TypeSubscription("instance_agent", "instance_agent"))
+
+    await agent1.register_instance(worker, agent_id=agent1_id)
     await CascadingAgent.register(worker, "factory_agent", lambda: CascadingAgent(max_rounds=5))
 
     # instance_agent will publish a message that factory_agent will pick up

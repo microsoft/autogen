@@ -92,7 +92,13 @@ class BaseAgent(ABC, Agent):
 
     async def bind_id_and_runtime(self, id: AgentId, runtime: AgentRuntime) -> None:
         if hasattr(self, "_id"):
-            raise RuntimeError("Agent is already bound to an ID and runtime")
+            if self._id != id:
+                raise RuntimeError("Agent is already bound to a different ID")
+
+        if hasattr(self, "_runtime"):
+            if self._runtime != runtime:
+                raise RuntimeError("Agent is already bound to a different runtime")
+
         self._id = id
         self._runtime = runtime
 
@@ -160,18 +166,30 @@ class BaseAgent(ABC, Agent):
         runtime: AgentRuntime,
         agent_id: AgentId,
         *,
-        skip_broadcast_subscription: bool = False,
+        skip_class_subscriptions: bool = True,
         skip_direct_message_subscription: bool = False,
     ) -> AgentId:
         """
-        This function is similar to `register` but is used for registering an instance of an agent. One major difference between the two functions is that using this function will restrict the topics that the agent can subscribe to based on the agent_id.
+        This function is similar to `register` but is used for registering an instance of an agent. A subscription based on the agent ID is created and added to the runtime.
         """
         agent_id = await runtime.register_agent_instance(agent_instance=self, agent_id=agent_id)
 
-        if not skip_broadcast_subscription:
-            # Only add a subscription based on the agent_id. Default should NOT be added in this case.
-            subscription = TypeSubscription(topic_type=agent_id.key, agent_type=agent_id.type)
-            await runtime.add_subscription(subscription)
+        id_subscription = TypeSubscription(topic_type=agent_id.key, agent_type=agent_id.type)
+        await runtime.add_subscription(id_subscription)
+
+        if not skip_class_subscriptions:
+            with SubscriptionInstantiationContext.populate_context(AgentType(agent_id.type)):
+                subscriptions: List[Subscription] = []
+                for unbound_subscription in self._unbound_subscriptions():
+                    subscriptions_list_result = unbound_subscription()
+                    if inspect.isawaitable(subscriptions_list_result):
+                        subscriptions_list = await subscriptions_list_result
+                    else:
+                        subscriptions_list = subscriptions_list_result
+
+                    subscriptions.extend(subscriptions_list)
+            for subscription in subscriptions:
+                await runtime.add_subscription(subscription)
 
         if not skip_direct_message_subscription:
             # Additionally adds a special prefix subscription for this agent to receive direct messages
