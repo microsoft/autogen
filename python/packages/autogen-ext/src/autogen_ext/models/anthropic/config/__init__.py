@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
-from pydantic import BaseModel, SecretStr 
+from pydantic import BaseModel, SecretStr
 from typing_extensions import Required, TypedDict
 
 
