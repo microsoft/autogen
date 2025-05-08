@@ -1201,9 +1201,9 @@ class AnthropicBedrockChatCompletionClient(
 
         # Handle bedrock_info as secretestr
         aws_region = bedrock_info["aws_region"]
-        aws_access_key = bedrock_info["aws_access_key"].get_secret_value()
-        aws_secret_key = bedrock_info["aws_secret_key"].get_secret_value()
-        aws_session_token = bedrock_info["aws_session_token"].get_secret_value()
+        aws_access_key = bedrock_info["aws_access_key"]
+        aws_secret_key = bedrock_info["aws_secret_key"]
+        aws_session_token = bedrock_info["aws_session_token"]
 
         client = AnthropicBedrock(
             aws_access_key=aws_access_key,
@@ -1243,9 +1243,9 @@ class AnthropicBedrockChatCompletionClient(
         # Handle bedrock_info as SecretStr
         if "bedrock_info" in copied_config and isinstance(config.bedrock_info, dict):
             copied_config["bedrock_info"] = {
-                "aws_access_key": config.bedrock_info["aws_access_key"].get_secret_value(),
-                "aws_secret_key": config.bedrock_info["aws_secret_key"].get_secret_value(),
-                "aws_session_token": config.bedrock_info["aws_session_token"].get_secret_value(),
+                "aws_access_key": config.bedrock_info["aws_access_key"],
+                "aws_secret_key": config.bedrock_info["aws_secret_key"],
+                "aws_session_token": config.bedrock_info["aws_session_token"],
                 "aws_region": config.bedrock_info["aws_region"],
             }
 
