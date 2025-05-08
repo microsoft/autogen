@@ -1119,7 +1119,7 @@ class AnthropicBedrockChatCompletionClient(
     BaseAnthropicChatCompletionClient, Component[AnthropicBedrockClientConfigurationConfigModel]
 ):
     """
-    Chat completion client for Anthropic's Claude models.
+    Chat completion client for Anthropic's Claude models on AWS Bedrock.
 
     Args:
         model (str): The Claude model to use (e.g., "claude-3-sonnet-20240229", "claude-3-opus-20240229")
@@ -1172,11 +1172,11 @@ class AnthropicBedrockChatCompletionClient(
 
     component_type = "model"
     component_config_schema = AnthropicBedrockClientConfigurationConfigModel
-    component_provider_override = "autogen_ext.models.anthropic.AnthropicChatCompletionClient"
+    component_provider_override = "autogen_ext.models.anthropic.AnthropicBedrockChatCompletionClient"
 
     def __init__(self, **kwargs: Unpack[AnthropicBedrockClientConfiguration]):
         if "model" not in kwargs:
-            raise ValueError("model is required for AnthropicChatCompletionClient")
+            raise ValueError("model is required for  AnthropicBedrockChatCompletionClient")
 
         self._raw_config: Dict[str, Any] = dict(kwargs).copy()
         copied_args = dict(kwargs).copy()
@@ -1237,9 +1237,9 @@ class AnthropicBedrockChatCompletionClient(
         # Handle bedrock_info as SecretStr
         if "bedrock_info" in copied_config and isinstance(config.bedrock_info, dict):
             copied_config["bedrock_info"] = {
-                "aws_access_key": config.bedrock_info["aws_access_key"],
-                "aws_secret_key": config.bedrock_info["aws_secret_key"],
-                "aws_session_token": config.bedrock_info["aws_session_token"],
+                "aws_access_key": config.bedrock_info["aws_access_key"].get_secret_value(),
+                "aws_secret_key": config.bedrock_info["aws_secret_key"].get_secret_value(),
+                "aws_session_token": config.bedrock_info["aws_session_token"].get_secret_value(),
                 "aws_region": config.bedrock_info["aws_region"],
             }
 
