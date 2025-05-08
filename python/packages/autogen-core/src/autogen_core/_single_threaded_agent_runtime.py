@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
 from opentelemetry.trace import TracerProvider
+from opentelemetry.util import types
 
 from .logging import (
     AgentConstructionExceptionEvent,
@@ -144,7 +145,6 @@ def _warn_if_none(value: Any, handler_name: str) -> None:
             stacklevel=2,
         )
 
-
 class SingleThreadedAgentRuntime(AgentRuntime):
     """A single-threaded agent runtime that processes all messages using a single asyncio queue.
     Messages are delivered in the order they are received, and the runtime processes
@@ -275,6 +275,31 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     @property
     def _known_agent_names(self) -> Set[str]:
         return set(self._agent_factories.keys())
+
+    # Do we need to differentiate sender and recipient agents?
+    def _create_otel_attributes(self, agent: Agent, message: Any = None) -> types.Attributes:
+        """Create OpenTelemetry attributes for the given agent and message.
+
+        Args:
+            agent (Agent): The agent instance.
+            message (Any): The message instance.
+
+        Returns:
+            Attributes: A dictionary of OpenTelemetry attributes.
+        """
+        if message:
+            try:
+                serialized_message = self._try_serialize(message)
+            except Exception as e:
+                serialized_message = str(e)
+        else:
+            serialized_message = "No Message"
+
+        return {
+            "agent_type": agent.id.type,
+            "agent_class": agent.__class__.__name__,
+            "message": serialized_message,
+        }
 
     # Returns the response of the message
     async def send_message(
@@ -440,7 +465,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     cancellation_token=message_envelope.cancellation_token,
                     message_id=message_envelope.message_id,
                 )
-                with self._tracer_helper.trace_block("process", recipient_agent.id, parent=message_envelope.metadata):
+                with self._tracer_helper.trace_block(
+                    "process",
+                    recipient_agent.id,
+                    parent=message_envelope.metadata,
+                    attributes=self._create_otel_attributes(agent=recipient_agent, message=message_envelope.message),
+                ):
                     with MessageHandlerContext.populate_context(recipient_agent.id):
                         response = await recipient_agent.on_message(
                             message_envelope.message,
@@ -527,7 +557,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     agent = await self._get_agent(agent_id)
 
                     async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
-                        with self._tracer_helper.trace_block("process", agent.id, parent=message_envelope.metadata):
+                        with self._tracer_helper.trace_block(
+                            "process",
+                            agent.id,
+                            parent=message_envelope.metadata,
+                            attributes=self._create_otel_attributes(agent=agent, message=message_envelope.message)
+                        ):
                             with MessageHandlerContext.populate_context(agent.id):
                                 try:
                                     return await agent.on_message(
