@@ -234,7 +234,8 @@ jobs:
       - name: pydoc-markdown install
         run: |
           python -m pip install --upgrade pip
-          # Install nr.util with hyphen for compatibility
+          pip install nr.util==0.8.12
+          # Create nr.util package alias for the hyphen variant
           mkdir -p /tmp/nr-util/nr_util
           echo 'from setuptools import setup; setup(name="nr-util", version="0.8.12", install_requires=["nr.util>=0.8.12"])' > /tmp/nr-util/setup.py
           touch /tmp/nr-util/nr_util/__init__.py
