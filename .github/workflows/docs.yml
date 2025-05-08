@@ -230,17 +230,11 @@ jobs:
       - name: setup python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.9"
       - name: pydoc-markdown install
         run: |
           python -m pip install --upgrade pip
-          pip uninstall -y nr.util
-          pip install --no-cache-dir nr.util==0.8.12
-          # Create nr.util package alias for the hyphen variant
-          mkdir -p /tmp/nr-util/nr_util
-          echo 'from setuptools import setup; setup(name="nr-util", version="0.8.12", install_requires=["nr.util>=0.8.12"])' > /tmp/nr-util/setup.py
-          touch /tmp/nr-util/nr_util/__init__.py
-          pip install -e /tmp/nr-util
+          pip install docspec==2.2.1 docspec-python==2.2.1
           pip install pydoc-markdown pyyaml termcolor
           # Pin databind packages as version 4.5.0 is not compatible with pydoc-markdown.
           pip install databind.core==4.4.2 databind.json==4.4.2
