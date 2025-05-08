@@ -131,7 +131,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`.
     * When the model returns tool calls, they will be executed right away:
-        - When `reflect_on_tool_use` is False, the tool-call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. You can customise the summary with either a static format string (`tool_call_summary_format`) **or** a callable (`tool_call_summary_formatter`); the callable is evaluated once per tool-call.
+        - When `reflect_on_tool_use` is False, the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. You can customise the summary with either a static format string (`tool_call_summary_format`) **or** a callable (`tool_call_summary_formatter`); the callable is evaluated once per tool call.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and final response is returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`.
         - `reflect_on_tool_use` is set to `True` by default when `output_content_type` is set.
         - `reflect_on_tool_use` is set to `False` by default when `output_content_type` is not set.
@@ -139,7 +139,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     .. tip::
 
-        By default, the tool-call results are returned as the response when tool
+        By default, the tool call results are returned as the response when tool
         calls are made, so pay close attention to how the tools’ return values
         are formatted—especially if another agent expects a specific schema.
 
@@ -208,7 +208,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             If this is set, the agent will respond with a :class:`~autogen_agentchat.messages.StructuredMessage` instead of a :class:`~autogen_agentchat.messages.TextMessage`
             in the final response, unless `reflect_on_tool_use` is `False` and a tool call is made.
         output_content_type_format (str | None, optional): (Experimental) The format string used for the content of a :class:`~autogen_agentchat.messages.StructuredMessage` response.
-        tool_call_summary_format (str, optional): Static format string applied to each tool-call result when composing the :class:`~autogen_agentchat.messages.ToolCallSummaryMessage`.
+        tool_call_summary_format (str, optional): Static format string applied to each tool call result when composing the :class:`~autogen_agentchat.messages.ToolCallSummaryMessage`.
             Defaults to ``"{result}"``. Ignored if `tool_call_summary_formatter` is provided. When `reflect_on_tool_use` is ``False``, the summaries for all tool
             calls are concatenated with a newline ('\\n') and returned as the response.  Placeholders available in the template:
             `{tool_name}`, `{arguments}`, `{result}`, `{is_error}`.
