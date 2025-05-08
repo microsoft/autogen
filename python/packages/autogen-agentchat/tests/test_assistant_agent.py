@@ -104,7 +104,7 @@ async def test_run_with_tool_call_summary_format_function(model_info_all_capabil
         "tool_use_agent",
         model_client=model_client,
         tools=[_pass_function, _throw_function],
-        tool_call_summary_format_fct=conditional_string_templates,
+        tool_call_summary_formatter=conditional_string_templates,
     )
     result = await agent.run(task="task")
 
