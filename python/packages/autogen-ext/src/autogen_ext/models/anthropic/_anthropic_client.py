@@ -1145,29 +1145,23 @@ class AnthropicBedrockChatCompletionClient(
     .. code-block:: python
 
         import asyncio
-        from autogen_ext.models.anthropic import AnthropicBedrockChatCompletionClient
-        from autogen_core.models import UserMessage
+        from autogen_ext.models.anthropic import AnthropicBedrockChatCompletionClient, BedrockInfo
+        from autogen_core.models import UserMessage, ModelInfo
 
 
         async def main():
-            config = {
-                "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-                "temperature": 0.1,
-                "model_info": {
-                    "vision": True,
-                    "function_calling": True,
-                    "json_output": True,
-                    "family": ModelFamily.CLAUDE_3_5_SONNET,
-                },
-                "bedrock_info": {
-                    "aws_access_key": "<aws_access_key>",
-                    "aws_secret_key": "<aws_secret_key>",
-                    "aws_session_token": "<aws_session_token>",
-                    "aws_region": "<aws_region>",
-                },
-            }
-            anthropic_client = AnthropicBedrockChatCompletionClient(**config)
-
+            anthropic_client = AnthropicBedrockChatCompletionClient(
+                model="anthropic.claude-3-5-sonnet-20240620-v1:0",
+                temperature=0.1,
+                model_info=ModelInfo(vision=False, function_calling=True,
+                                    json_output=False, family="unknown", structured_output=True),
+                bedrock_info=BedrockInfo(
+                    aws_access_key="<aws_access_key>",
+                    aws_secret_key="<aws_secret_key>",
+                    aws_session_token="<aws_session_token>",
+                    aws_region="<aws_region>",
+                ),
+            ) 
             result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
             print(result)
 
