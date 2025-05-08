@@ -25,7 +25,7 @@ from typing import (
 )
 
 import tiktoken
-from anthropic import AnthropicBedrock, AsyncAnthropic, AsyncStream
+from anthropic import AsyncAnthropic, AsyncAnthropicBedrock, AsyncStream
 from anthropic.types import (
     Base64ImageSourceParam,
     ContentBlock,
@@ -1201,7 +1201,7 @@ class AnthropicBedrockChatCompletionClient(
         aws_secret_key = bedrock_info["aws_secret_key"]
         aws_session_token = bedrock_info["aws_session_token"]
 
-        client = AnthropicBedrock(
+        client = AsyncAnthropicBedrock(
             aws_access_key=aws_access_key,
             aws_secret_key=aws_secret_key,
             aws_session_token=aws_session_token,
