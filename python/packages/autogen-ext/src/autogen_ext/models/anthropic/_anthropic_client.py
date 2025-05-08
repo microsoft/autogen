@@ -1153,15 +1153,17 @@ class AnthropicBedrockChatCompletionClient(
             anthropic_client = AnthropicBedrockChatCompletionClient(
                 model="anthropic.claude-3-5-sonnet-20240620-v1:0",
                 temperature=0.1,
-                model_info=ModelInfo(vision=False, function_calling=True,
-                                    json_output=False, family="unknown", structured_output=True),
+                model_info=ModelInfo(
+                    vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True
+                ),
                 bedrock_info=BedrockInfo(
                     aws_access_key="<aws_access_key>",
                     aws_secret_key="<aws_secret_key>",
                     aws_session_token="<aws_session_token>",
                     aws_region="<aws_region>",
                 ),
-            ) 
+            )
+
             result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
             print(result)
 
