@@ -1,3 +1,4 @@
+import asyncio
 import builtins
 import warnings
 from typing import Any, List, Literal, Mapping
@@ -282,4 +283,14 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
 
     def __del__(self) -> None:
         # Ensure the actor is stopped when the workbench is deleted
-        pass
+        if self._actor:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            if loop.is_running():
+                loop.create_task(self.stop())
+            else:
+                loop.run_until_complete(self.stop())
