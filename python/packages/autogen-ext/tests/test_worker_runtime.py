@@ -664,9 +664,7 @@ async def test_instance_factory_messaging() -> None:
     await worker.start()
 
     await loopback_agent.register_instance(worker, agent_id=loopback_agent_id)
-    resp = await worker.send_message(
-        message=ContentMessage(content="Hello!"), recipient=loopback_agent_id
-    )
+    resp = await worker.send_message(message=ContentMessage(content="Hello!"), recipient=loopback_agent_id)
     assert resp == ContentMessage(content="Hello!")
 
     await cascading_agent.register_instance(worker, agent_id=cascading_agent_id)
@@ -675,7 +673,7 @@ async def test_instance_factory_messaging() -> None:
     # instance_agent will publish a message that factory_agent will pick up
     for i in range(5):
         await worker.publish_message(
-            CascadingMessageType(round=i+1), TopicId(type="instance_agent", source="instance_agent")
+            CascadingMessageType(round=i + 1), TopicId(type="instance_agent", source="instance_agent")
         )
     await asyncio.sleep(2)
 
