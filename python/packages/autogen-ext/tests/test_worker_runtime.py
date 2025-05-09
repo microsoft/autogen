@@ -653,27 +653,35 @@ async def test_register_instance_factory() -> None:
 @pytest.mark.asyncio
 async def test_instance_factory_messaging() -> None:
     host_address = "localhost:50051"
-    agent1_id = AgentId(type="instance_agent", key="instance_agent")
+    loopback_agent_id = AgentId(type="dm_agent", key="dm_agent")
+    cascading_agent_id = AgentId(type="instance_agent", key="instance_agent")
     host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
 
     worker = GrpcWorkerAgentRuntime(host_address=host_address)
-    agent1 = CascadingAgent(max_rounds=4)
+    cascading_agent = CascadingAgent(max_rounds=5)
+    loopback_agent = LoopbackAgent()
     await worker.start()
 
-    await agent1.register_instance(worker, agent_id=agent1_id)
+    await loopback_agent.register_instance(worker, agent_id=loopback_agent_id)
+    resp = await worker.send_message(
+        message=ContentMessage(content="Hello!"), recipient=loopback_agent_id
+    )
+    assert resp == ContentMessage(content="Hello!")
+
+    await cascading_agent.register_instance(worker, agent_id=cascading_agent_id)
     await CascadingAgent.register(worker, "factory_agent", lambda: CascadingAgent(max_rounds=5))
 
     # instance_agent will publish a message that factory_agent will pick up
     for i in range(5):
         await worker.publish_message(
-            CascadingMessageType(round=i), TopicId(type="instance_agent", source="instance_agent")
+            CascadingMessageType(round=i+1), TopicId(type="instance_agent", source="instance_agent")
         )
     await asyncio.sleep(2)
 
     agent = await worker.try_get_underlying_agent_instance(AgentId("factory_agent", "default"), CascadingAgent)
-    assert agent.num_calls == 5
-    assert agent1.num_calls == 4
+    assert agent.num_calls == 4
+    assert cascading_agent.num_calls == 5
 
     await worker.stop()
     await host.stop()
