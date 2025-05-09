@@ -74,7 +74,9 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
             await session.initialize()
             return await self._run(args=kwargs, cancellation_token=cancellation_token, session=session)
 
-    def _normalize_payload_to_content_list(self, payload: list[TextContent | ImageContent | EmbeddedResource]) -> list[TextContent | ImageContent | EmbeddedResource]:
+    def _normalize_payload_to_content_list(
+        self, payload: list[TextContent | ImageContent | EmbeddedResource]
+    ) -> list[TextContent | ImageContent | EmbeddedResource]:
         """
         Normalizes a raw tool output payload into a list of content items.
         - If payload is already a list of (TextContent, ImageContent, EmbeddedResource), it's returned as is.
