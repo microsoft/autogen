@@ -833,11 +833,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     async def register_agent_instance(
         self,
-        agent_instance: T | Awaitable[T],
+        agent_instance: Agent,
         agent_id: AgentId,
     ) -> AgentId:
-        def agent_factory() -> T:
-            raise RuntimeError("Agent factory should not be called when registering an agent instance.")
+        def agent_factory() -> Agent:
+            raise RuntimeError(
+                "Agent factory was invoked for an agent instance that was not registered. This is likely due to the agent type being incorrectly subscribed to a topic. If this exception occurs when publishing a message to the DefaultTopicId, then it is likely that `skip_class_subscriptions` needs to be turned off when registering the agent."
+            )
 
         if inspect.isawaitable(agent_instance):
             agent_instance = await agent_instance

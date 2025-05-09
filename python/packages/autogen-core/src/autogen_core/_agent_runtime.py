@@ -132,7 +132,7 @@ class AgentRuntime(Protocol):
 
     async def register_agent_instance(
         self,
-        agent_instance: T | Awaitable[T],
+        agent_instance: Agent,
         agent_id: AgentId,
     ) -> AgentId:
         """Register an agent instance with the runtime. The type may be reused, but each agent_id must be unique. All agent instances within a type must be of the same object type. This API does not add any subscriptions.

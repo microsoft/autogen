@@ -120,7 +120,7 @@ class AgentInstantiationContext:
             ) from e
 
     @classmethod
-    def is_in_runtime(cls) -> bool:
+    def is_in_factory_call(cls) -> bool:
         if cls._AGENT_INSTANTIATION_CONTEXT_VAR.get(None) is None:
             return False
         return True

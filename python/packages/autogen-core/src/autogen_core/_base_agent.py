@@ -83,7 +83,7 @@ class BaseAgent(ABC, Agent):
         return AgentMetadata(key=self._id.key, type=self._id.type, description=self._description)
 
     def __init__(self, description: str) -> None:
-        if AgentInstantiationContext.is_in_runtime():
+        if AgentInstantiationContext.is_in_factory_call():
             self._runtime: AgentRuntime = AgentInstantiationContext.current_runtime()
             self._id = AgentInstantiationContext.current_agent_id()
         if not isinstance(description, str):
