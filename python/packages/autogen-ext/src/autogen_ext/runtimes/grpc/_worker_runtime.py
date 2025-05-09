@@ -745,14 +745,11 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
     async def register_agent_instance(
         self,
-        agent_instance: T | Awaitable[T],
+        agent_instance: Agent,
         agent_id: AgentId,
     ) -> AgentId:
         def agent_factory() -> T:
             raise RuntimeError("Agent factory should not be called when registering an agent instance.")
-
-        if inspect.isawaitable(agent_instance):
-            agent_instance = await agent_instance
 
         if agent_id in self._instantiated_agents:
             raise ValueError(f"Agent with id {agent_id} already exists.")
