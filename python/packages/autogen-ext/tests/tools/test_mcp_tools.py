@@ -1,6 +1,6 @@
+import asyncio
 import logging
 import os
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -597,5 +597,5 @@ async def test_lazy_init_and_finalize_cleanup() -> None:
 
     actor = workbench._actor  # type: ignore[reportPrivateUsage]
     del workbench
-    await asyncio.sleep(0.1) 
+    await asyncio.sleep(0.1)
     assert actor._active is False
