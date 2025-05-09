@@ -6,24 +6,6 @@ from typing import Any, AsyncGenerator, Dict, List, Mapping, Sequence
 
 import pytest
 import pytest_asyncio
-from autogen_core import AgentId, AgentRuntime, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
-from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_core.models import (
-    AssistantMessage,
-    CreateResult,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
-    LLMMessage,
-    RequestUsage,
-    UserMessage,
-)
-from autogen_core.tools import FunctionTool
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_ext.models.replay import ReplayChatCompletionClient
-from pydantic import BaseModel
-from utils import FileLogHandler
-
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import (
     AssistantAgent,
@@ -57,6 +39,23 @@ from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRob
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
+from autogen_core import AgentId, AgentRuntime, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
+from autogen_core.model_context import BufferedChatCompletionContext
+from autogen_core.models import (
+    AssistantMessage,
+    CreateResult,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    LLMMessage,
+    RequestUsage,
+    UserMessage,
+)
+from autogen_core.tools import FunctionTool
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.replay import ReplayChatCompletionClient
+from pydantic import BaseModel
+from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
