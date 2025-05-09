@@ -9,7 +9,7 @@ import uuid
 import warnings
 from asyncio import CancelledError, Future, Queue, Task
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
 from opentelemetry.trace import TracerProvider
@@ -277,7 +277,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     def _known_agent_names(self) -> Set[str]:
         return set(self._agent_factories.keys())
 
-    # Do we need to differentiate sender and recipient agents?
     async def _create_otel_attributes(
         self,
         sender_agent_id: AgentId | None = None,
@@ -308,7 +307,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             attributes["recipient_agent_class"] = recipient_agent.__class__.__name__
 
         if message_context:
-            attributes["message_context"] = json.dumps(asdict(message_context))
+            serialized_message_context = {
+                "sender": str(message_context.sender),
+                "topic_id": str(message_context.topic_id),
+                "is_rpc": message_context.is_rpc,
+                "message_id": message_context.message_id,
+            }
+            attributes["message_context"] = json.dumps(serialized_message_context)
+
         if message:
             try:
                 serialized_message = self._try_serialize(message)
