@@ -74,7 +74,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
             await session.initialize()
             return await self._run(args=kwargs, cancellation_token=cancellation_token, session=session)
 
-    def _normalize_payload_to_content_list(self, payload: Any) -> list[Any]:
+    def _normalize_payload_to_content_list(self, payload: list[TextContent | ImageContent | EmbeddedResource]) -> list[TextContent | ImageContent | EmbeddedResource]:
         """
         Normalizes a raw tool output payload into a list of content items.
         - If payload is already a list of (TextContent, ImageContent, EmbeddedResource), it's returned as is.
@@ -94,9 +94,11 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
             return [TextContent(text=str(payload), type="text")]
 
     async def _run(self, args: Dict[str, Any], cancellation_token: CancellationToken, session: ClientSession) -> Any:
-        _exception_group_or_fallback = (
-            builtins.ExceptionGroup if hasattr(builtins, "ExceptionGroup") else asyncio.CancelledError
-        )
+        exceptions_to_catch: tuple[Type[BaseException], ...]
+        if hasattr(builtins, "ExceptionGroup"):
+            exceptions_to_catch = (asyncio.CancelledError, builtins.ExceptionGroup)
+        else:
+            exceptions_to_catch = (asyncio.CancelledError,)
 
         try:
             if cancellation_token.is_cancelled():
@@ -113,7 +115,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 raise Exception(serialized_error_message)
             return normalized_content_list
 
-        except (asyncio.CancelledError, _exception_group_or_fallback):
+        except exceptions_to_catch:
             # Re-raise these specific exception types directly.
             raise
 
