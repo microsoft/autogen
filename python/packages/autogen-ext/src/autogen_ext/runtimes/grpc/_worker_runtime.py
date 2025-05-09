@@ -748,7 +748,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         agent_instance: Agent,
         agent_id: AgentId,
     ) -> AgentId:
-        def agent_factory() -> T:
+        def agent_factory() -> Agent:
             raise RuntimeError("Agent factory should not be called when registering an agent instance.")
 
         if agent_id in self._instantiated_agents:
