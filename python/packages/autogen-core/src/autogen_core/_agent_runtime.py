@@ -167,7 +167,7 @@ class AgentRuntime(Protocol):
 
             async def main() -> None:
                 runtime: AgentRuntime = ...  # type: ignore
-                agent: Agent = MyAgent()
+                agent = MyAgent()
                 await runtime.register_agent_instance(
                     agent_instance=agent, agent_id=AgentId(type="my_agent", key="default")
                 )
@@ -179,7 +179,7 @@ class AgentRuntime(Protocol):
 
 
         Args:
-            agent_instance (T | Awaitable[T]): A concrete instance of the agent.
+            agent_instance (Agent): A concrete instance of the agent.
             agent_id (AgentId): The agent's identifier. The agent's type is `agent_id.type`.
         """
         ...
