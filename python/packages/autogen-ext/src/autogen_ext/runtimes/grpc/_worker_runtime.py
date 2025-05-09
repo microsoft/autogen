@@ -749,7 +749,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         agent_id: AgentId,
     ) -> AgentId:
         def agent_factory() -> Agent:
-            raise RuntimeError("Agent factory should not be called when registering an agent instance.")
+            raise RuntimeError("Agent factory was invoked for an agent instance that was not registered. This is likely due to the agent type being incorrectly subscribed to a topic. If this exception occurs when publishing a message to the DefaultTopicId, then it is likely that `skip_class_subscriptions` needs to be turned off when registering the agent.")
 
         if agent_id in self._instantiated_agents:
             raise ValueError(f"Agent with id {agent_id} already exists.")
