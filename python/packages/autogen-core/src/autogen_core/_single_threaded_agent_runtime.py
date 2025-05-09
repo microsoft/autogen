@@ -9,11 +9,10 @@ import uuid
 import warnings
 from asyncio import CancelledError, Future, Queue, Task
 from collections.abc import Sequence
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
 from opentelemetry.trace import TracerProvider
-from opentelemetry.util import types
 
 from .logging import (
     AgentConstructionExceptionEvent,
@@ -145,6 +144,7 @@ def _warn_if_none(value: Any, handler_name: str) -> None:
             RuntimeWarning,
             stacklevel=2,
         )
+
 
 class SingleThreadedAgentRuntime(AgentRuntime):
     """A single-threaded agent runtime that processes all messages using a single asyncio queue.
@@ -283,7 +283,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         sender_agent_id: AgentId | None = None,
         recipient_agent_id: AgentId | None = None,
         message_context: MessageContext | None = None,
-        message: Any = None) -> types.Attributes:
+        message: Any = None,
+    ) -> Mapping[str, str]:
         """Create OpenTelemetry attributes for the given agent and message.
 
         Args:
@@ -296,7 +297,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         """
         if not sender_agent_id and not recipient_agent_id and not message:
             return {}
-        attributes: types.Attributes = {}
+        attributes: Dict[str, str] = {}
         if sender_agent_id:
             sender_agent = await self._get_agent(sender_agent_id)
             attributes["sender_agent_type"] = sender_agent.id.type
@@ -305,7 +306,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             recipient_agent = await self._get_agent(recipient_agent_id)
             attributes["recipient_agent_type"] = recipient_agent.id.type
             attributes["recipient_agent_class"] = recipient_agent.__class__.__name__
-            
+
         if message_context:
             attributes["message_context"] = json.dumps(asdict(message_context))
         if message:
@@ -589,7 +590,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                 recipient_agent_id=agent.id,
                                 message_context=message_context,
                                 message=message_envelope.message,
-                            )
+                            ),
                         ):
                             with MessageHandlerContext.populate_context(agent.id):
                                 try:
@@ -627,7 +628,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             attributes=await self._create_otel_attributes(
                 sender_agent_id=message_envelope.sender,
                 recipient_agent_id=message_envelope.recipient,
-                message=message_envelope.message
+                message=message_envelope.message,
             ),
         ):
             content = (
