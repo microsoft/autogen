@@ -130,6 +130,60 @@ class AgentRuntime(Protocol):
         """
         ...
 
+    async def register_agent_instance(
+        self,
+        agent_instance: Agent,
+        agent_id: AgentId,
+    ) -> AgentId:
+        """Register an agent instance with the runtime. The type may be reused, but each agent_id must be unique. All agent instances within a type must be of the same object type. This API does not add any subscriptions.
+
+        .. note::
+
+            This is a low level API and usually the agent class's `register_instance` method should be used instead, as this also handles subscriptions automatically.
+
+        Example:
+
+        .. code-block:: python
+
+            from dataclasses import dataclass
+
+            from autogen_core import AgentId, AgentRuntime, MessageContext, RoutedAgent, event
+            from autogen_core.models import UserMessage
+
+
+            @dataclass
+            class MyMessage:
+                content: str
+
+
+            class MyAgent(RoutedAgent):
+                def __init__(self) -> None:
+                    super().__init__("My core agent")
+
+                @event
+                async def handler(self, message: UserMessage, context: MessageContext) -> None:
+                    print("Event received: ", message.content)
+
+
+            async def main() -> None:
+                runtime: AgentRuntime = ...  # type: ignore
+                agent = MyAgent()
+                await runtime.register_agent_instance(
+                    agent_instance=agent, agent_id=AgentId(type="my_agent", key="default")
+                )
+
+
+            import asyncio
+
+            asyncio.run(main())
+
+
+        Args:
+            agent_instance (Agent): A concrete instance of the agent.
+            agent_id (AgentId): The agent's identifier. The agent's type is `agent_id.type`.
+        """
+        ...
+
     # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
     async def try_get_underlying_agent_instance(self, id: AgentId, type: Type[T] = Agent) -> T:  # type: ignore[assignment]
         """Try to get the underlying agent instance by name and namespace. This is generally discouraged (hence the long name), but can be useful in some cases.
