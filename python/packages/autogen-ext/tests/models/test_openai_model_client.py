@@ -2485,4 +2485,17 @@ async def test_multimodal_message_test(
     _ = await ocr_agent.run(task=multi_modal_message)
 
 
+@pytest.mark.asyncio
+async def test_mistral_remove_name() -> None:
+    # Test that the name pramaeter is removed from the message
+    # when the model is Mistral
+    message = UserMessage(content="foo", source="user")
+    params = to_oai_type(message, prepend_name=False, model="mistral-7b", model_family=ModelFamily.MISTRAL)
+    assert ("name" in params[0]) is False
+
+    # when the model is gpt-4o, the name parameter is not removed
+    params = to_oai_type(message, prepend_name=False, model="gpt-4o", model_family=ModelFamily.GPT_4O)
+    assert ("name" in params[0]) is True
+
+
 # TODO: add integration tests for Azure OpenAI using AAD token.
