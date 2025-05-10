@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from unittest.mock import AsyncMock, MagicMock
@@ -92,6 +93,14 @@ def mock_tool_response() -> MagicMock:
 @pytest.fixture
 def cancellation_token() -> CancellationToken:
     return CancellationToken()
+
+
+@pytest.fixture
+def mock_error_tool_response() -> MagicMock:
+    response = MagicMock()
+    response.isError = True
+    response.content = [TextContent(text="error output", type="text")]
+    return response
 
 
 def test_adapter_config_serialization(sample_tool: Tool, sample_server_params: StdioServerParams) -> None:
@@ -650,3 +659,58 @@ def test_mcp_tool_adapter_normalize_payload(sample_tool: Tool, sample_server_par
     none_payload = None
     expected_from_none = [TextContent(text=str(none_payload), type="text")]
     assert adapter._normalize_payload_to_content_list(none_payload) == expected_from_none  # type: ignore[reportPrivateUsage, arg-type]
+
+@pytest.mark.asyncio
+async def test_mcp_tool_adapter_run_error(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    mock_error_tool_response: MagicMock,
+    cancellation_token: CancellationToken,
+) -> None:
+    """Test McpToolAdapter._run when tool returns an error."""
+    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool, session=mock_session)
+    mock_session.call_tool.return_value = mock_error_tool_response
+
+    args = {"test_param": "test_value"}
+    with pytest.raises(Exception) as excinfo:
+        await adapter._run(args=args, cancellation_token=cancellation_token, session=mock_session)  # type: ignore[reportPrivateUsage]
+
+    mock_session.call_tool.assert_called_once_with(name=sample_tool.name, arguments=args)
+    assert adapter.return_value_as_string([TextContent(text="error output", type="text")]) in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_adapter_run_cancelled_before_call(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    cancellation_token: CancellationToken,
+) -> None:
+    """Test McpToolAdapter._run when operation is cancelled before tool call."""
+    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool, session=mock_session)
+    cancellation_token.cancel()  # Cancel before the call
+
+    args = {"test_param": "test_value"}
+    with pytest.raises(asyncio.CancelledError):
+        await adapter._run(args=args, cancellation_token=cancellation_token, session=mock_session)  # type: ignore[reportPrivateUsage]
+
+    mock_session.call_tool.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_adapter_run_cancelled_during_call(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    cancellation_token: CancellationToken,
+) -> None:
+    """Test McpToolAdapter._run when operation is cancelled during tool call."""
+    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool, session=mock_session)
+    mock_session.call_tool.side_effect = asyncio.CancelledError("Tool call cancelled")
+
+    args = {"test_param": "test_value"}
+    with pytest.raises(asyncio.CancelledError):
+        await adapter._run(args=args, cancellation_token=cancellation_token, session=mock_session)  # type: ignore[reportPrivateUsage]
+
+    mock_session.call_tool.assert_called_once_with(name=sample_tool.name, arguments=args)
