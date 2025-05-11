@@ -71,11 +71,8 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig]):
 
     Examples:
         ```python
-        # Create a cloud Mem0Memory with API key
-        memory = Mem0Memory(
-            api_key="your-mem0-api-key",
-            is_cloud=True
-        )
+        # Create a cloud Mem0Memory
+        memory = Mem0Memory(is_cloud=True)
 
         # Add something to memory
         await memory.add(MemoryContent(content="Important information to remember"))
