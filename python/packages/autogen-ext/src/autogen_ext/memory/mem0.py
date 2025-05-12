@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import Self
 from contextlib import redirect_stderr, redirect_stdout
 
-from autogen_core import ComponentBase, CancellationToken
+from autogen_core import Component, ComponentBase, CancellationToken
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
 from autogen_core.memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
@@ -57,7 +57,7 @@ class Mem0MemoryConfig(BaseModel):
     )
 
 
-class Mem0Memory(Memory, ComponentBase[Mem0MemoryConfig]):
+class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryConfig]):
     """Mem0 memory implementation for AutoGen.
 
     This component integrates with Mem0.ai's memory system, providing an implementation
