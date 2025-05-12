@@ -7,15 +7,6 @@ import pytest
 from autogen_core import CancellationToken
 from autogen_core.tools import Workbench
 from autogen_core.utils import schema_to_pydantic_model
-from autogen_ext.tools.mcp import (
-    McpWorkbench,
-    SseMcpToolAdapter,
-    SseServerParams,
-    StdioMcpToolAdapter,
-    StdioServerParams,
-    create_mcp_server_session,
-    mcp_server_tools,
-)
 from mcp import ClientSession, Tool
 from mcp.types import (
     Annotations,
@@ -25,6 +16,16 @@ from mcp.types import (
     TextResourceContents,
 )
 from pydantic.networks import AnyUrl
+
+from autogen_ext.tools.mcp import (
+    McpWorkbench,
+    SseMcpToolAdapter,
+    SseServerParams,
+    StdioMcpToolAdapter,
+    StdioServerParams,
+    create_mcp_server_session,
+    mcp_server_tools,
+)
 
 
 @pytest.fixture
@@ -659,6 +660,7 @@ def test_mcp_tool_adapter_normalize_payload(sample_tool: Tool, sample_server_par
     none_payload = None
     expected_from_none = [TextContent(text=str(none_payload), type="text")]
     assert adapter._normalize_payload_to_content_list(none_payload) == expected_from_none  # type: ignore[reportPrivateUsage, arg-type]
+
 
 @pytest.mark.asyncio
 async def test_mcp_tool_adapter_run_error(
