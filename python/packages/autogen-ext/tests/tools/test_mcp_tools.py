@@ -1,12 +1,17 @@
+import asyncio
 import logging
 import os
+import threading
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from _pytest.logging import LogCaptureFixture  # type: ignore[import]
 from autogen_core import CancellationToken
 from autogen_core.tools import Workbench
 from autogen_core.utils import schema_to_pydantic_model
 from autogen_ext.tools.mcp import (
+    McpSessionActor,
     McpWorkbench,
     SseMcpToolAdapter,
     SseServerParams,
@@ -594,4 +599,54 @@ async def test_lazy_init_and_finalize_cleanup() -> None:
     assert workbench._actor is not None  # type: ignore[reportPrivateUsage]
     assert workbench._actor._active is True  # type: ignore[reportPrivateUsage]
 
+    actor = workbench._actor  # type: ignore[reportPrivateUsage]
     del workbench
+    await asyncio.sleep(0.1)
+    assert actor._active is False
+
+
+@pytest.mark.asyncio
+async def test_del_to_new_event_loop_when_get_event_loop_fails() -> None:
+    params = StdioServerParams(
+        command="npx",
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            ".",
+        ],
+        read_timeout_seconds=60,
+    )
+    workbench = McpWorkbench(server_params=params)
+
+    await workbench.list_tools()
+    assert workbench._actor is not None  # type: ignore[reportPrivateUsage]
+    assert workbench._actor._active is True  # type: ignore[reportPrivateUsage]
+
+    actor = workbench._actor  # type: ignore[reportPrivateUsage]
+
+    def cleanup() -> None:
+        nonlocal workbench
+        del workbench
+
+    t = threading.Thread(target=cleanup)
+    t.start()
+    t.join()
+
+    await asyncio.sleep(0.1)
+    assert actor._active is False  # type: ignore[reportPrivateUsage]
+
+
+def test_del_raises_when_loop_closed() -> None:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    params = StdioServerParams(command="echo", args=["ok"])
+    workbench = McpWorkbench(server_params=params)
+
+    workbench._actor_loop = loop  # type: ignore[reportPrivateUsage]
+    workbench._actor = cast(McpSessionActor, object())  # type: ignore[reportPrivateUsage]
+
+    loop.close()
+
+    with pytest.warns(RuntimeWarning, match="loop is closed or not running"):
+        del workbench

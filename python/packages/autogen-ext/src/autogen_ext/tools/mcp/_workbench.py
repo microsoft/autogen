@@ -1,3 +1,4 @@
+import asyncio
 import builtins
 import warnings
 from typing import Any, List, Literal, Mapping
@@ -152,6 +153,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         self._server_params = server_params
         # self._session: ClientSession | None = None
         self._actor: McpSessionActor | None = None
+        self._actor_loop: asyncio.AbstractEventLoop | None = None
         self._read = None
         self._write = None
 
@@ -253,6 +255,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         if isinstance(self._server_params, (StdioServerParams, SseServerParams)):
             self._actor = McpSessionActor(self._server_params)
             await self._actor.initialize()
+            self._actor_loop = asyncio.get_event_loop()
         else:
             raise ValueError(f"Unsupported server params type: {type(self._server_params)}")
 
@@ -282,4 +285,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
 
     def __del__(self) -> None:
         # Ensure the actor is stopped when the workbench is deleted
-        pass
+        if self._actor and self._actor_loop:
+            loop = self._actor_loop
+            if loop.is_running() and not loop.is_closed():
+                loop.call_soon_threadsafe(lambda: asyncio.create_task(self.stop()))
+            else:
+                msg = "Cannot safely stop actor at [McpWorkbench.__del__]: loop is closed or not running"
+                warnings.warn(msg, RuntimeWarning, stacklevel=2)
