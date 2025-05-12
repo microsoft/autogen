@@ -30,6 +30,16 @@ from mcp.types import (
 )
 from pydantic.networks import AnyUrl
 
+from autogen_ext.tools.mcp import (
+    McpWorkbench,
+    SseMcpToolAdapter,
+    SseServerParams,
+    StdioMcpToolAdapter,
+    StdioServerParams,
+    create_mcp_server_session,
+    mcp_server_tools,
+)
+
 
 @pytest.fixture
 def sample_tool() -> Tool:
