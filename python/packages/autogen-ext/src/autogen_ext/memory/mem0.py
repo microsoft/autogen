@@ -217,12 +217,13 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             return MemoryQueryResult(results=[])
 
         try:
+            limit = kwargs.pop("limit", self._limit)
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 # Query mem0 client
                 results = self._client.search(
                     query_text,
                     user_id=self._user_id,
-                    limit=self._limit,
+                    limit=limit,
                     **kwargs,
                 )
                 # Handle different result formats
