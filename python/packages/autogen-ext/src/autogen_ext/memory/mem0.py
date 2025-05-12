@@ -8,8 +8,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import Self
 from contextlib import redirect_stderr, redirect_stdout
 
-from autogen_core._cancellation_token import CancellationToken
-from autogen_core._component_config import Component
+from autogen_core import ComponentBase, CancellationToken
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
 from autogen_core.memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
@@ -58,7 +57,7 @@ class Mem0MemoryConfig(BaseModel):
     )
 
 
-class Mem0Memory(Memory, Component[Mem0MemoryConfig]):
+class Mem0Memory(Memory, ComponentBase[Mem0MemoryConfig]):
     """Mem0 memory implementation for AutoGen.
 
     This component integrates with Mem0.ai's memory system, providing an implementation
@@ -100,15 +99,13 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig]):
             user_id: Optional user ID for memory operations. If not provided, a UUID will be generated.
             limit: Maximum number of results to return in memory queries.
             is_cloud: Whether to use cloud Mem0 client (True) or local client (False).
-            api_key: API key for cloud Mem0 client. Required if is_cloud=True.
+            api_key: API key for cloud Mem0 client. It will read from the environment MEM0_API_KEY if not provided.
             config: Configuration dictionary for local Mem0 client. Required if is_cloud=False.
 
         Raises:
             ValueError: If is_cloud=True and api_key is None, or if is_cloud=False and config is None.
         """
         # Validate parameters
-        if is_cloud and api_key is None:
-            raise ValueError("api_key is required when using cloud Mem0 client (is_cloud=True)")
         if not is_cloud and config is None:
             raise ValueError("config is required when using local Mem0 client (is_cloud=False)")
 
