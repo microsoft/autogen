@@ -1,5 +1,4 @@
 import asyncio
-import asyncio
 import logging
 import os
 import threading
@@ -714,6 +713,7 @@ def test_mcp_tool_adapter_normalize_payload(sample_tool: Tool, sample_server_par
     none_payload = None
     expected_from_none = [TextContent(text=str(none_payload), type="text")]
     assert adapter._normalize_payload_to_content_list(none_payload) == expected_from_none  # type: ignore[reportPrivateUsage, arg-type]
+
 
 @pytest.mark.asyncio
 async def test_mcp_tool_adapter_run_error(
