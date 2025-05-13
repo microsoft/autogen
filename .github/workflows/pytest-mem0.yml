@@ -11,6 +11,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    environment: Unitest
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
