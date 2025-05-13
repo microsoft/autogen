@@ -293,27 +293,27 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         self._tools_plugin: KernelPlugin = KernelPlugin(name="autogen_tools")
 
     def _convert_to_chat_history(self, messages: Sequence[LLMMessage]) -> ChatHistory:
-        """Convert Autogen LLMMessages to SK ChatHistory"""
+        """Convert Autogen LLMMessages to SK ChatHistory, ensuring Bedrock compliance (no conversation and tool result in same turn)"""
         chat_history = ChatHistory()
+        last_was_tool = False
 
         for msg in messages:
             if msg.type == "SystemMessage":
                 chat_history.add_system_message(msg.content)
+                last_was_tool = False
 
             elif msg.type == "UserMessage":
                 if isinstance(msg.content, str):
                     chat_history.add_user_message(msg.content)
                 else:
-                    # Handle list of str/Image - convert to string for now
                     chat_history.add_user_message(str(msg.content))
+                last_was_tool = False
 
             elif msg.type == "AssistantMessage":
                 # Check if it's a function-call style message
                 if isinstance(msg.content, list) and all(isinstance(fc, FunctionCall) for fc in msg.content):
-                    # If there's a 'thought' field, you can add that as plain assistant text
                     if msg.thought:
                         chat_history.add_assistant_message(msg.thought)
-
                     function_call_contents: list[FunctionCallContent] = []
                     for fc in msg.content:
                         function_call_contents.append(
@@ -325,15 +325,14 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                                 arguments=fc.arguments,
                             )
                         )
-
-                    # Mark the assistant's message as tool-calling
                     chat_history.add_assistant_message(
                         function_call_contents,
                         finish_reason=FinishReason.TOOL_CALLS,
                     )
+                    last_was_tool = False
                 else:
-                    # Plain assistant text
                     chat_history.add_assistant_message(msg.content)
+                    last_was_tool = False
 
             elif msg.type == "FunctionExecutionResultMessage":
                 # Add each function result as a separate tool message
@@ -347,8 +346,14 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                             result=result.content,
                         )
                     )
-                # A single "tool" message with one or more results
+                # Bedrock: ensure tool result is not combined with conversation in same turn
+                if last_was_tool:
+                    # Insert a dummy user message to break the turn if previous was also a tool
+                    chat_history.add_user_message(".")
                 chat_history.add_tool_message(tool_results)
+                last_was_tool = True
+            else:
+                last_was_tool = False
 
         return chat_history
 
