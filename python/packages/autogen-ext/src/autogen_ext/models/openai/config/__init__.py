@@ -63,6 +63,10 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     model_info: ModelInfo
     add_name_prefixes: bool
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
+    set_thought_as_assistant_content: bool
+    """Whether to set the thought as assistant content. If true, the thought will be set as the assistant content.
+    If false, the thought will be ignored. Useful for reasoning models that produce reasoning tokens as output, but wants to
+    avoid having them in the input."""
     default_headers: Dict[str, str] | None
 
 
@@ -105,6 +109,7 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     model_capabilities: ModelCapabilities | None = None  # type: ignore
     model_info: ModelInfo | None = None
     add_name_prefixes: bool | None = None
+    set_thought_as_assistant_content: bool | None = None
     default_headers: Dict[str, str] | None = None
 
 
