@@ -23,8 +23,19 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          cd python/packages/autogen-ext
+
+          # Install core packages first (in the right order)
+          cd python/packages/autogen-core
+          pip install -e .
+
+          cd ../autogen-agentchat
+          pip install -e .
+
+          # Now install autogen-ext with its dependencies
+          cd ../autogen-ext
           pip install -e ".[dev]"
+
+          # Install test dependencies
           pip install pytest pytest-asyncio pytest-cov
           pip install mem0ai
 
