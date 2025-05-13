@@ -1,0 +1,43 @@
+name: Mem0 Memory Tests
+
+on:
+  # Run on pushes to any branch
+  push:
+  # Also run on pull requests to main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          cd python/packages/autogen-ext
+          pip install -e ".[dev]"
+          pip install pytest pytest-asyncio pytest-cov
+          pip install mem0ai
+
+      - name: Run tests with coverage
+        env:
+          MEM0_API_KEY: ${{ secrets.MEM0_API_KEY }}
+        run: |
+          cd python/packages/autogen-ext
+          pytest --cov=autogen_ext.memory.mem0 tests/memory/test_mem0.py -v --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./python/packages/autogen-ext/coverage.xml
+          name: codecov-mem0
+          fail_ci_if_error: false
