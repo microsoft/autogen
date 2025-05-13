@@ -7,6 +7,8 @@ from unittest.mock import MagicMock
 
 import httpx
 import pytest
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.messages import MultiModalMessage
 from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import (
     AssistantMessage,
@@ -2457,6 +2459,43 @@ def test_find_model_family() -> None:
     assert _find_model_family("openai", "gemini-2.0-flash") == ModelFamily.GEMINI_2_0_FLASH
     assert _find_model_family("openai", "claude-3-5-haiku-20241022") == ModelFamily.CLAUDE_3_5_HAIKU
     assert _find_model_family("openai", "error") == ModelFamily.UNKNOWN
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gpt-4.1-nano",
+        "gemini-1.5-flash",
+        "claude-3-5-haiku-20241022",
+    ],
+)
+async def test_multimodal_message_test(
+    model: str, openai_client: OpenAIChatCompletionClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Test that the multimodal message is converted to the correct format
+    img = Image.from_base64(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
+    )
+    multi_modal_message = MultiModalMessage(content=["Can you describe the content of this image?", img], source="user")
+
+    ocr_agent = AssistantAgent(
+        name="ocr_agent", model_client=openai_client, system_message="""You are a helpful agent."""
+    )
+    _ = await ocr_agent.run(task=multi_modal_message)
+
+
+@pytest.mark.asyncio
+async def test_mistral_remove_name() -> None:
+    # Test that the name pramaeter is removed from the message
+    # when the model is Mistral
+    message = UserMessage(content="foo", source="user")
+    params = to_oai_type(message, prepend_name=False, model="mistral-7b", model_family=ModelFamily.MISTRAL)
+    assert ("name" in params[0]) is False
+
+    # when the model is gpt-4o, the name parameter is not removed
+    params = to_oai_type(message, prepend_name=False, model="gpt-4o", model_family=ModelFamily.GPT_4O)
+    assert ("name" in params[0]) is True
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.

@@ -37,9 +37,15 @@ class ModelFamily:
     CLAUDE_3_5_HAIKU = "claude-3-5-haiku"
     CLAUDE_3_5_SONNET = "claude-3-5-sonnet"
     CLAUDE_3_7_SONNET = "claude-3-7-sonnet"
+    CODESRAL = "codestral"
+    OPEN_CODESRAL_MAMBA = "open-codestral-mamba"
+    MISTRAL = "mistral"
+    MINISTRAL = "ministral"
+    PIXTRAL = "pixtral"
     UNKNOWN = "unknown"
 
     ANY: TypeAlias = Literal[
+        # openai_models
         "gpt-41",
         "gpt-45",
         "gpt-4o",
@@ -49,16 +55,25 @@ class ModelFamily:
         "gpt-4",
         "gpt-35",
         "r1",
+        # google_models
         "gemini-1.5-flash",
         "gemini-1.5-pro",
         "gemini-2.0-flash",
         "gemini-2.5-pro",
+        # anthropic_models
         "claude-3-haiku",
         "claude-3-sonnet",
         "claude-3-opus",
         "claude-3-5-haiku",
         "claude-3-5-sonnet",
         "claude-3-7-sonnet",
+        # mistral_models
+        "codestral",
+        "open-codestral-mamba",
+        "mistral",
+        "ministral",
+        "pixtral",
+        # unknown
         "unknown",
     ]
 
@@ -96,6 +111,16 @@ class ModelFamily:
             ModelFamily.O4,
             ModelFamily.GPT_4,
             ModelFamily.GPT_35,
+        )
+
+    @staticmethod
+    def is_mistral(family: str) -> bool:
+        return family in (
+            ModelFamily.CODESRAL,
+            ModelFamily.OPEN_CODESRAL_MAMBA,
+            ModelFamily.MISTRAL,
+            ModelFamily.MINISTRAL,
+            ModelFamily.PIXTRAL,
         )
 
 
