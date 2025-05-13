@@ -35,7 +35,7 @@ def force_model_dump(obj: Any) -> Any:
     """
     if isinstance(obj, BaseModel):
         output = {}
-        for name, _field in obj.__fields__.items():
+        for name, _field in obj.model_fields.items():
             value = getattr(obj, name)
             output[name] = force_model_dump(value)
         return output
