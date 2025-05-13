@@ -87,6 +87,7 @@ def ui(
 @app.command()
 def serve(
     team: str = "",
+    teamfolder: str = "",
     host: str = "127.0.0.1",
     port: int = 8084,
     workers: int = 1,
@@ -98,6 +99,7 @@ def serve(
 
     Args:
         team (str): Path to the team json file.
+        teamfolder (str): Path to folder containing team json files (team or teamfolder is required).
         host (str, optional): Host to run the UI on. Defaults to 127.0.0.1 (localhost).
         port (int, optional): Port to run the UI on. Defaults to 8084
         workers (int, optional): Number of workers to run the UI with. Defaults to 1.
@@ -108,10 +110,11 @@ def serve(
 
     os.environ["AUTOGENSTUDIO_API_DOCS"] = str(docs)
     os.environ["AUTOGENSTUDIO_TEAM_FILE"] = team
-
-    # validate the team file
-    if not os.path.exists(team):
-        raise ValueError(f"Team file not found: {team}")
+    os.environ["AUTOGENSTUDIO_TEAM_FOLDER"] = teamfolder
+    
+    # validate the team file and folder
+    if not os.path.exists(team) and not os.path.exists(teamfolder):
+        raise ValueError(f"Team file or folder not found: {team}")
 
     uvicorn.run(
         "autogenstudio.web.serve:app",
