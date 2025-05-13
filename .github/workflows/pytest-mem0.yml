@@ -46,7 +46,7 @@ jobs:
           MEM0_API_KEY: ${{ secrets.MEM0_API_KEY }}
         run: |
           cd python/packages/autogen-ext
-          pytest --cov=autogen_ext.memory.mem0 tests/memory/test_mem0.py -v --cov-report=xml
+          pytest --cov=autogen_ext.memory.mem0 tests/memory/test_mem0.py -v
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
