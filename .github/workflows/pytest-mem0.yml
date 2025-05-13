@@ -38,6 +38,7 @@ jobs:
           # Install test dependencies
           pip install pytest pytest-asyncio pytest-cov
           pip install mem0ai
+          pip install python-dotenv
 
       - name: Run tests with coverage
         env:
