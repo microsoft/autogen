@@ -1,13 +1,13 @@
 # from dataclasses import Field
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Sequence
+from typing import Any, Dict, List, Literal, Optional, Sequence, Union
 
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import ChatMessage, TextMessage
 from autogen_core import ComponentModel
 from autogen_core.models import UserMessage
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from pydantic import BaseModel, ConfigDict, SecretStr
+from pydantic import BaseModel, ConfigDict, SecretStr, Field
 
 
 class MessageConfig(BaseModel):
@@ -109,10 +109,73 @@ class SettingsConfig(BaseModel):
 # web request/response data models
 
 
+class RequestUsage(BaseModel):
+    prompt_tokens: int
+    completion_tokens: int
+
+
+class FunctionCall(BaseModel):
+    id: str
+    arguments: str  # Could also be Dict[str, Any] if parsed
+    name: str
+
+
+class FunctionExecutionResult(BaseModel):
+    content: str
+    name: str
+    call_id: str
+    is_error: bool
+
+
+class BaseMessage(BaseModel):
+    source: str
+    models_usage: Optional[RequestUsage] = None
+    metadata: Dict[str, Optional[str]] = Field(default_factory=dict)
+    type: str  # Overridden by subclasses
+
+
+class TextMessage(BaseMessage):
+    content: str
+    type: Literal["TextMessage"] = "TextMessage"
+
+
+class ToolCallRequestEvent(BaseMessage):
+    content: List[FunctionCall]
+    type: Literal["ToolCallRequestEvent"] = "ToolCallRequestEvent"
+
+
+class ToolCallExecutionEvent(BaseMessage):
+    content: List[FunctionExecutionResult]
+    type: Literal["ToolCallExecutionEvent"] = "ToolCallExecutionEvent"
+
+
+class ToolCallSummaryMessage(BaseMessage):
+    content: str
+    type: Literal["ToolCallSummaryMessage"] = "ToolCallSummaryMessage"
+
+
+MessageUnion = Union[
+    TextMessage,
+    ToolCallRequestEvent,
+    ToolCallExecutionEvent,
+    ToolCallSummaryMessage,
+]
+
+class TaskResult(BaseModel):
+    messages: List[MessageUnion]
+    stop_reason: Optional[str] = None
+
+
+class TaskResponse(BaseModel):
+    task_result: TaskResult
+    usage: Optional[str] = ""
+    duration: float
+
+
 class Response(BaseModel):
     message: str
     status: bool
-    data: Optional[Any] = None
+    data: Optional[TaskResponse] = None
 
 
 class SocketMessage(BaseModel):
