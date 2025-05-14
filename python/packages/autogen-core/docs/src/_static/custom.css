@@ -32,6 +32,18 @@ html[data-theme="dark"] {
   color: white;
   text-shadow: 0.5px 0 0 currentColor;
 }
+
+/* Adding header icon hover and focus effects */
+.bd-header a:hover,
+.bd-header a:focus-visible {
+  color: var(--pst-color-secondary) !important;
+  text-decoration: underline !important;
+  text-shadow: 0.5px 0 0 currentColor;
+  transform: scale(1.05);
+  transition: all 0.2s ease-in-out;
+  outline: none;
+}
+
 nav.bd-links .current>a  {
   box-shadow: inset 1px 0 0 var(--pst-color-primary);
 }
