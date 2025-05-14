@@ -455,7 +455,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.5.4"
+version = "0.5.7"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "autogen-core" },
@@ -466,7 +466,7 @@ requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autogen-core"
-version = "0.5.4"
+version = "0.5.7"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
@@ -585,7 +585,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.5.4"
+version = "0.5.7"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },

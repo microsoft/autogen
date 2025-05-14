@@ -1,12 +1,17 @@
+import asyncio
 import logging
 import os
+import threading
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from _pytest.logging import LogCaptureFixture  # type: ignore[import]
 from autogen_core import CancellationToken
 from autogen_core.tools import Workbench
 from autogen_core.utils import schema_to_pydantic_model
 from autogen_ext.tools.mcp import (
+    McpSessionActor,
     McpWorkbench,
     SseMcpToolAdapter,
     SseServerParams,
@@ -16,6 +21,14 @@ from autogen_ext.tools.mcp import (
     mcp_server_tools,
 )
 from mcp import ClientSession, Tool
+from mcp.types import (
+    Annotations,
+    EmbeddedResource,
+    ImageContent,
+    TextContent,
+    TextResourceContents,
+)
+from pydantic.networks import AnyUrl
 
 
 @pytest.fixture
@@ -71,13 +84,27 @@ def mock_session() -> AsyncMock:
 def mock_tool_response() -> MagicMock:
     response = MagicMock()
     response.isError = False
-    response.content = {"result": "test_output"}
+    response.content = [
+        TextContent(
+            text="test_output",
+            type="text",
+            annotations=Annotations(audience=["user", "assistant"], priority=0.7),
+        ),
+    ]
     return response
 
 
 @pytest.fixture
 def cancellation_token() -> CancellationToken:
     return CancellationToken()
+
+
+@pytest.fixture
+def mock_error_tool_response() -> MagicMock:
+    response = MagicMock()
+    response.isError = True
+    response.content = [TextContent(text="error output", type="text")]
+    return response
 
 
 def test_adapter_config_serialization(sample_tool: Tool, sample_server_params: StdioServerParams) -> None:
@@ -183,6 +210,52 @@ async def test_adapter_from_server_params(
 
 
 @pytest.mark.asyncio
+async def test_adapter_from_server_params_with_return_value_as_string(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that adapter can be created from server parameters."""
+    mock_context = AsyncMock()
+    mock_context.__aenter__.return_value = mock_session
+    monkeypatch.setattr(
+        "autogen_ext.tools.mcp._base.create_mcp_server_session",
+        lambda *args, **kwargs: mock_context,  # type: ignore
+    )
+    mock_session.list_tools.return_value.tools = [sample_tool]
+
+    adapter = await StdioMcpToolAdapter.from_server_params(sample_server_params, "test_tool")
+
+    assert (
+        adapter.return_value_as_string(
+            [
+                TextContent(
+                    text="this is a sample text",
+                    type="text",
+                    annotations=Annotations(audience=["user", "assistant"], priority=0.7),
+                ),
+                ImageContent(
+                    data="this is a sample base64 encoded image",
+                    mimeType="image/png",
+                    type="image",
+                    annotations=None,
+                ),
+                EmbeddedResource(
+                    type="resource",
+                    resource=TextResourceContents(
+                        text="this is a sample text",
+                        uri=AnyUrl(url="http://example.com/test"),
+                    ),
+                    annotations=Annotations(audience=["user"], priority=0.3),
+                ),
+            ]
+        )
+        == '[{"type": "text", "text": "this is a sample text", "annotations": {"audience": ["user", "assistant"], "priority": 0.7}}, {"type": "image", "data": "this is a sample base64 encoded image", "mimeType": "image/png", "annotations": null}, {"type": "resource", "resource": {"uri": "http://example.com/test", "mimeType": null, "text": "this is a sample text"}, "annotations": {"audience": ["user"], "priority": 0.3}}]'
+    )
+
+
+@pytest.mark.asyncio
 async def test_adapter_from_factory(
     sample_tool: Tool,
     sample_server_params: StdioServerParams,
@@ -266,7 +339,16 @@ async def test_sse_tool_execution(
     mock_context = AsyncMock()
     mock_context.__aenter__.return_value = mock_sse_session
 
-    mock_sse_session.call_tool.return_value = MagicMock(isError=False, content={"result": "test_output"})
+    mock_sse_session.call_tool.return_value = MagicMock(
+        isError=False,
+        content=[
+            TextContent(
+                text="test_output",
+                type="text",
+                annotations=Annotations(audience=["user", "assistant"], priority=0.7),
+            ),
+        ],
+    )
 
     monkeypatch.setattr(
         "autogen_ext.tools.mcp._base.create_mcp_server_session",
@@ -421,7 +503,8 @@ async def test_mcp_server_github() -> None:
     assert len(tools) == 1
     tool = tools[0]
     result = await tool.run_json(
-        {"owner": "microsoft", "repo": "autogen", "path": "python", "branch": "main"}, CancellationToken()
+        {"owner": "microsoft", "repo": "autogen", "path": "python", "branch": "main"},
+        CancellationToken(),
     )
     assert result is not None
 
@@ -501,3 +584,188 @@ async def test_mcp_workbench_server_filesystem() -> None:
         tool = tools[0]
         result = await new_workbench.call_tool(tool["name"], {"path": "README.md"}, CancellationToken())
         assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_lazy_init_and_finalize_cleanup() -> None:
+    params = StdioServerParams(
+        command="npx",
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            ".",
+        ],
+        read_timeout_seconds=60,
+    )
+    workbench = McpWorkbench(server_params=params)
+
+    # Before any call, actor should not be initialized
+    assert workbench._actor is None  # type: ignore[reportPrivateUsage]
+
+    # Trigger list_tools → lazy start
+    await workbench.list_tools()
+    assert workbench._actor is not None  # type: ignore[reportPrivateUsage]
+    assert workbench._actor._active is True  # type: ignore[reportPrivateUsage]
+
+    actor = workbench._actor  # type: ignore[reportPrivateUsage]
+    del workbench
+    await asyncio.sleep(0.1)
+    assert actor._active is False
+
+
+@pytest.mark.asyncio
+async def test_del_to_new_event_loop_when_get_event_loop_fails() -> None:
+    params = StdioServerParams(
+        command="npx",
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            ".",
+        ],
+        read_timeout_seconds=60,
+    )
+    workbench = McpWorkbench(server_params=params)
+
+    await workbench.list_tools()
+    assert workbench._actor is not None  # type: ignore[reportPrivateUsage]
+    assert workbench._actor._active is True  # type: ignore[reportPrivateUsage]
+
+    actor = workbench._actor  # type: ignore[reportPrivateUsage]
+
+    def cleanup() -> None:
+        nonlocal workbench
+        del workbench
+
+    t = threading.Thread(target=cleanup)
+    t.start()
+    t.join()
+
+    await asyncio.sleep(0.1)
+    assert actor._active is False  # type: ignore[reportPrivateUsage]
+
+
+def test_del_raises_when_loop_closed() -> None:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    params = StdioServerParams(command="echo", args=["ok"])
+    workbench = McpWorkbench(server_params=params)
+
+    workbench._actor_loop = loop  # type: ignore[reportPrivateUsage]
+    workbench._actor = cast(McpSessionActor, object())  # type: ignore[reportPrivateUsage]
+
+    loop.close()
+
+    with pytest.warns(RuntimeWarning, match="loop is closed or not running"):
+        del workbench
+
+
+def test_mcp_tool_adapter_normalize_payload(sample_tool: Tool, sample_server_params: StdioServerParams) -> None:
+    """Test the _normalize_payload_to_content_list method of McpToolAdapter."""
+    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool)
+
+    # Case 1: Payload is already a list of valid content items
+    valid_content_list: list[TextContent | ImageContent | EmbeddedResource] = [
+        TextContent(text="hello", type="text"),
+        ImageContent(data="base64data", mimeType="image/png", type="image"),
+        EmbeddedResource(
+            type="resource",
+            resource=TextResourceContents(text="embedded text", uri=AnyUrl(url="http://example.com/resource")),
+        ),
+    ]
+    assert adapter._normalize_payload_to_content_list(valid_content_list) == valid_content_list  # type: ignore[reportPrivateUsage]
+
+    # Case 2: Payload is a single TextContent
+    single_text_content = TextContent(text="single text", type="text")
+    assert adapter._normalize_payload_to_content_list(single_text_content) == [single_text_content]  # type: ignore[reportPrivateUsage, arg-type]
+
+    # Case 3: Payload is a single ImageContent
+    single_image_content = ImageContent(data="imagedata", mimeType="image/jpeg", type="image")
+    assert adapter._normalize_payload_to_content_list(single_image_content) == [single_image_content]  # type: ignore[reportPrivateUsage, arg-type]
+
+    # Case 4: Payload is a single EmbeddedResource
+    single_embedded_resource = EmbeddedResource(
+        type="resource",
+        resource=TextResourceContents(text="other embedded", uri=AnyUrl(url="http://example.com/other")),
+    )
+    assert adapter._normalize_payload_to_content_list(single_embedded_resource) == [single_embedded_resource]  # type: ignore[reportPrivateUsage, arg-type]
+
+    # Case 5: Payload is a string
+    string_payload = "This is a string payload."
+    expected_from_string = [TextContent(text=string_payload, type="text")]
+    assert adapter._normalize_payload_to_content_list(string_payload) == expected_from_string  # type: ignore[reportPrivateUsage, arg-type]
+
+    # Case 6: Payload is an integer
+    int_payload = 12345
+    expected_from_int = [TextContent(text=str(int_payload), type="text")]
+    assert adapter._normalize_payload_to_content_list(int_payload) == expected_from_int  # type: ignore[reportPrivateUsage, arg-type]
+
+    # Case 7: Payload is a dictionary
+    dict_payload = {"key": "value", "number": 42}
+    expected_from_dict = [TextContent(text=str(dict_payload), type="text")]
+    assert adapter._normalize_payload_to_content_list(dict_payload) == expected_from_dict  # type: ignore[reportPrivateUsage, arg-type]
+
+    # Case 8: Payload is an empty list (should still be a list of valid items, so returns as is)
+    empty_list_payload: list[TextContent | ImageContent | EmbeddedResource] = []
+    assert adapter._normalize_payload_to_content_list(empty_list_payload) == empty_list_payload  # type: ignore[reportPrivateUsage]
+
+    # Case 9: Payload is None (should be stringified)
+    none_payload = None
+    expected_from_none = [TextContent(text=str(none_payload), type="text")]
+    assert adapter._normalize_payload_to_content_list(none_payload) == expected_from_none  # type: ignore[reportPrivateUsage, arg-type]
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_adapter_run_error(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    mock_error_tool_response: MagicMock,
+    cancellation_token: CancellationToken,
+) -> None:
+    """Test McpToolAdapter._run when tool returns an error."""
+    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool, session=mock_session)
+    mock_session.call_tool.return_value = mock_error_tool_response
+
+    args = {"test_param": "test_value"}
+    with pytest.raises(Exception) as excinfo:
+        await adapter._run(args=args, cancellation_token=cancellation_token, session=mock_session)  # type: ignore[reportPrivateUsage]
+
+    mock_session.call_tool.assert_called_once_with(name=sample_tool.name, arguments=args)
+    assert adapter.return_value_as_string([TextContent(text="error output", type="text")]) in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_adapter_run_cancelled_before_call(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    cancellation_token: CancellationToken,
+) -> None:
+    """Test McpToolAdapter._run when operation is cancelled before tool call."""
+    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool, session=mock_session)
+    cancellation_token.cancel()  # Cancel before the call
+
+    args = {"test_param": "test_value"}
+    with pytest.raises(asyncio.CancelledError):
+        await adapter._run(args=args, cancellation_token=cancellation_token, session=mock_session)  # type: ignore[reportPrivateUsage]
+
+    mock_session.call_tool.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_adapter_run_cancelled_during_call(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    cancellation_token: CancellationToken,
+) -> None:
+    """Test McpToolAdapter._run when operation is cancelled during tool call."""
+    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool, session=mock_session)
+    mock_session.call_tool.side_effect = asyncio.CancelledError("Tool call cancelled")
+
+    args = {"test_param": "test_value"}
+    with pytest.raises(asyncio.CancelledError):
+        await adapter._run(args=args, cancellation_token=cancellation_token, session=mock_session)  # type: ignore[reportPrivateUsage]
+
+    mock_session.call_tool.assert_called_once_with(name=sample_tool.name, arguments=args)

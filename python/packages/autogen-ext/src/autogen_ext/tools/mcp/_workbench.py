@@ -1,3 +1,4 @@
+import asyncio
 import builtins
 import warnings
 from typing import Any, List, Literal, Mapping
@@ -36,7 +37,9 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         server_params (McpServerParams): The parameters to connect to the MCP server.
             This can be either a :class:`StdioServerParams` or :class:`SseServerParams`.
 
-    Example:
+    Examples:
+
+        Here is a simple example of how to use the workbench with a `mcp-server-fetch` server:
 
         .. code-block:: python
 
@@ -62,6 +65,85 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
 
             asyncio.run(main())
 
+        Example of using the workbench with the `GitHub MCP Server <https://github.com/github/github-mcp-server>`_:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
+                server_params = StdioServerParams(
+                    command="docker",
+                    args=[
+                        "run",
+                        "-i",
+                        "--rm",
+                        "-e",
+                        "GITHUB_PERSONAL_ACCESS_TOKEN",
+                        "ghcr.io/github/github-mcp-server",
+                    ],
+                    env={
+                        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+                    },
+                )
+                async with McpWorkbench(server_params) as mcp:
+                    agent = AssistantAgent(
+                        "github_assistant",
+                        model_client=model_client,
+                        workbench=mcp,
+                        reflect_on_tool_use=True,
+                        model_client_stream=True,
+                    )
+                    await Console(agent.run_stream(task="Is there a repository named Autogen"))
+
+
+            asyncio.run(main())
+
+        Example of using the workbench with the `Playwright MCP Server <https://github.com/microsoft/playwright-mcp>`_:
+
+        .. code-block:: python
+
+            # First run `npm install -g @playwright/mcp@latest` to install the MCP server.
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_agentchat.conditions import TextMessageTermination
+            from autogen_agentchat.ui import Console
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
+                server_params = StdioServerParams(
+                    command="npx",
+                    args=[
+                        "@playwright/mcp@latest",
+                        "--headless",
+                    ],
+                )
+                async with McpWorkbench(server_params) as mcp:
+                    agent = AssistantAgent(
+                        "web_browsing_assistant",
+                        model_client=model_client,
+                        workbench=mcp,
+                        model_client_stream=True,
+                    )
+                    team = RoundRobinGroupChat(
+                        [agent],
+                        termination_condition=TextMessageTermination(source="web_browsing_assistant"),
+                    )
+                    await Console(team.run_stream(task="Find out how many contributors for the microsoft/autogen repository"))
+
+
+            asyncio.run(main())
+
     """
 
     component_provider_override = "autogen_ext.tools.mcp.McpWorkbench"
@@ -71,6 +153,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         self._server_params = server_params
         # self._session: ClientSession | None = None
         self._actor: McpSessionActor | None = None
+        self._actor_loop: asyncio.AbstractEventLoop | None = None
         self._read = None
         self._write = None
 
@@ -96,7 +179,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             description = tool.description or ""
             parameters = ParametersSchema(
                 type="object",
-                properties=tool.inputSchema["properties"],
+                properties=tool.inputSchema.get("properties", {}),
                 required=tool.inputSchema.get("required", []),
                 additionalProperties=tool.inputSchema.get("additionalProperties", False),
             )
@@ -172,6 +255,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         if isinstance(self._server_params, (StdioServerParams, SseServerParams)):
             self._actor = McpSessionActor(self._server_params)
             await self._actor.initialize()
+            self._actor_loop = asyncio.get_event_loop()
         else:
             raise ValueError(f"Unsupported server params type: {type(self._server_params)}")
 
@@ -198,3 +282,13 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     @classmethod
     def _from_config(cls, config: McpWorkbenchConfig) -> Self:
         return cls(server_params=config.server_params)
+
+    def __del__(self) -> None:
+        # Ensure the actor is stopped when the workbench is deleted
+        if self._actor and self._actor_loop:
+            loop = self._actor_loop
+            if loop.is_running() and not loop.is_closed():
+                loop.call_soon_threadsafe(lambda: asyncio.create_task(self.stop()))
+            else:
+                msg = "Cannot safely stop actor at [McpWorkbench.__del__]: loop is closed or not running"
+                warnings.warn(msg, RuntimeWarning, stacklevel=2)

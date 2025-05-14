@@ -1,6 +1,7 @@
+import json
 from asyncio import CancelledError
 from types import SimpleNamespace
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from unittest.mock import AsyncMock, MagicMock, call
 
 import azure.ai.projects.models as models
@@ -37,15 +38,126 @@ class FakeMessage:
     def text_messages(self) -> List[FakeTextContent]:
         """Returns all text message contents in the messages.
 
-        :rtype: List[MessageTextContent]
+        :rtype: List[FakeTextContent]
         """
         if not self.content:
             return []
         return [content for content in self.content if isinstance(content, FakeTextContent)]
 
 
+class FakeMessageUrlCitationDetails:
+    def __init__(self, url: str, title: str) -> None:
+        self.url = url
+        self.title = title
+
+
+class FakeTextUrlCitationAnnotation:
+    def __init__(self, citation_details: FakeMessageUrlCitationDetails, text: str) -> None:
+        self.type = "url_citation"
+        self.url_citation = citation_details
+        self.text = text
+
+
+class FakeTextFileCitationDetails:
+    def __init__(self, file_id: str, quote: str) -> None:
+        self.file_id = file_id
+        self.quote = quote
+
+
+class FakeTextFileCitationAnnotation:
+    def __init__(self, citation_details: FakeTextFileCitationDetails) -> None:
+        self.type = "file_citation"
+        self.file_citation = citation_details
+
+
+class FakeMessageWithUrlCitationAnnotation:
+    def __init__(self, id: str, text: str, annotations: list[FakeTextUrlCitationAnnotation]) -> None:
+        self.id = id
+        # The agent expects content to be a list of objects with a "type" attribute.
+        self.content = [FakeTextContent(text)]
+        self.role = "user"
+        self._annotations = annotations
+
+    @property
+    def text_messages(self) -> List[FakeTextContent]:
+        """Returns all text message contents in the messages.
+
+        :rtype: List[FakeTextContent]
+        """
+        if not self.content:
+            return []
+        return [content for content in self.content if isinstance(content, FakeTextContent)]
+
+    @property
+    def url_citation_annotations(self) -> List[FakeTextUrlCitationAnnotation]:
+        """Returns all URL citation annotations from text message annotations in the messages.
+
+        :rtype: List[FakeTextUrlCitationAnnotation]
+        """
+        return self._annotations
+
+
+class FakeMessageWithFileCitationAnnotation:
+    def __init__(self, id: str, text: str, annotations: list[FakeTextFileCitationAnnotation]) -> None:
+        self.id = id
+        # The agent expects content to be a list of objects with a "type" attribute.
+        self.content = [FakeTextContent(text)]
+        self.role = "user"
+        self._annotations = annotations
+
+    @property
+    def text_messages(self) -> List[FakeTextContent]:
+        """Returns all text message contents in the messages.
+
+        :rtype: List[FakeTextContent]
+        """
+        if not self.content:
+            return []
+        return [content for content in self.content if isinstance(content, FakeTextContent)]
+
+    @property
+    def file_citation_annotations(self) -> List[FakeTextFileCitationAnnotation]:
+        """Returns all URL citation annotations from text message annotations in the messages.
+
+        :rtype: List[FakeTextFileCitationAnnotation]
+        """
+        return self._annotations
+
+
+class FakeMessageWithAnnotation:
+    def __init__(self, id: str, text: str, annotations: list[FakeTextUrlCitationAnnotation]) -> None:
+        self.id = id
+        # The agent expects content to be a list of objects with a "type" attribute.
+        self.content = [FakeTextContent(text)]
+        self.role = "user"
+        self.annotations = annotations
+
+    @property
+    def text_messages(self) -> List[FakeTextContent]:
+        """Returns all text message contents in the messages.
+
+        :rtype: List[FakeTextContent]
+        """
+        if not self.content:
+            return []
+        return [content for content in self.content if isinstance(content, FakeTextContent)]
+
+
+FakeMessageType = Union[
+    ThreadMessage
+    | FakeMessage
+    | FakeMessageWithAnnotation
+    | FakeMessageWithUrlCitationAnnotation
+    | FakeMessageWithFileCitationAnnotation
+]
+
+
 class FakeOpenAIPageableListOfThreadMessage:
-    def __init__(self, data: List[ThreadMessage | FakeMessage], has_more: bool = False) -> None:
+    def __init__(
+        self,
+        data: List[FakeMessageType],
+        has_more: bool = False,
+    ) -> None:
         self.data = data
         self._has_more = has_more
 
@@ -62,9 +174,31 @@ class FakeOpenAIPageableListOfThreadMessage:
         texts = [content for msg in self.data for content in msg.text_messages]  # type: ignore
         return texts  # type: ignore
 
+    def get_last_message_by_role(
+        self, role: models.MessageRole
+    ) -> Optional[ThreadMessage | FakeMessage | FakeMessageWithAnnotation | FakeMessageWithUrlCitationAnnotation]:
+        """Returns the last message from a sender in the specified role.
 
-def mock_list() -> FakeOpenAIPageableListOfThreadMessage:
-    return FakeOpenAIPageableListOfThreadMessage([FakeMessage("msg-mock", "response")])
+        :param role: The role of the sender.
+        :type role: MessageRole
+
+        :return: The last message from a sender in the specified role.
+        :rtype: ~azure.ai.projects.models.ThreadMessage
+        """
+        for msg in self.data:
+            if msg.role == role:
+                return msg  # type: ignore
+        return None
+
+
+def mock_list(
+    data: Optional[List[FakeMessageType]] = None,
+    has_more: bool = False,
+) -> FakeOpenAIPageableListOfThreadMessage:
+    if data is None or len(data) == 0:
+        data = [FakeMessage("msg-mock", "response")]
+
+    return FakeOpenAIPageableListOfThreadMessage(data, has_more=has_more)
 
 
 def create_agent(
@@ -205,47 +339,6 @@ async def test_on_upload_for_file_search(mock_project_client: MagicMock) -> None
     mock_project_client.agents.create_vector_store_and_poll.assert_called_once()
     mock_project_client.agents.update_agent.assert_called_once()
     mock_project_client.agents.create_vector_store_file_batch_and_poll.assert_called_once()
-
-
-# @pytest.mark.asyncio
-# async def test_add_tools(mock_project_client: MagicMock) -> None:
-#     agent = create_agent(mock_project_client)
-
-#     tools: Optional[ListToolType] = ["file_search", "code_interpreter"]
-#     converted_tools: List[ToolDefinition] = []
-#     agent._add_tools(tools, converted_tools)
-
-#     assert len(converted_tools) == 2
-#     assert isinstance(converted_tools[0], models.FileSearchToolDefinition)
-#     assert isinstance(converted_tools[1], models.CodeInterpreterToolDefinition)
-
-
-# @pytest.mark.asyncio
-# async def test_ensure_initialized(mock_project_client: MagicMock) -> None:
-#     agent = create_agent(mock_project_client)
-
-#     await agent._ensure_initialized(create_new_agent=True, create_new_thread=True)
-
-#     assert agent._agent is not None
-#     assert agent._thread is not None
-
-
-# @pytest.mark.asyncio
-# async def test_execute_tool_call(mock_project_client: MagicMock) -> None:
-#     mock_tool = MagicMock()
-#     mock_tool.name = "test_tool"
-#     mock_tool.run_json = AsyncMock(return_value={"result": "success"})
-#     mock_tool.return_value_as_string = MagicMock(return_value="success")
-
-#     agent = create_agent(mock_project_client)
-
-#     agent._original_tools = [mock_tool]
-
-#     tool_call = FunctionCall(id="test_tool", name="test_tool", arguments="{}")
-#     result = await agent._execute_tool_call(tool_call, CancellationToken())
-
-#     assert result == "success"
-#     mock_tool.run_json.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -590,3 +683,96 @@ async def test_uploading_multiple_files(
     mock_project_client.agents.upload_file_and_poll.assert_has_calls(
         [call(file_path=file_path, purpose=models.FilePurpose.AGENTS, sleep_interval=0.1) for file_path in file_paths]
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "fake_message, url, title",
+    [
+        (
+            FakeMessageWithAnnotation(
+                "msg-mock-1",
+                "response-1",
+                [FakeTextUrlCitationAnnotation(FakeMessageUrlCitationDetails("url1", "title1"), "text")],
+            ),
+            "url1",
+            "title1",
+        ),
+        (
+            FakeMessageWithUrlCitationAnnotation(
+                "msg-mock-2",
+                "response-2",
+                [FakeTextUrlCitationAnnotation(FakeMessageUrlCitationDetails("url2", "title2"), "text")],
+            ),
+            "url2",
+            "title2",
+        ),
+    ],
+)
+async def test_on_message_stream_mapping_url_citation(
+    mock_project_client: MagicMock,
+    fake_message: FakeMessageWithAnnotation | FakeMessageWithUrlCitationAnnotation,
+    url: str,
+    title: str,
+) -> None:
+    mock_project_client.agents.create_run = AsyncMock(
+        return_value=MagicMock(id="run-id", status=models.RunStatus.COMPLETED)
+    )
+
+    list = mock_list([fake_message], has_more=False)
+
+    mock_project_client.agents.list_messages = AsyncMock(return_value=list)
+
+    agent = create_agent(mock_project_client)
+
+    messages = [TextMessage(content="Hello", source="user")]
+
+    async for response in agent.on_messages_stream(messages):
+        assert isinstance(response, Response)
+        assert response.chat_message is not None
+        assert response.chat_message.metadata is not None
+
+        citations = json.loads(response.chat_message.metadata["citations"])
+        assert citations is not None
+
+        assert len(citations) == 1
+
+        assert citations[0]["url"] == url
+        assert citations[0]["title"] == title
+
+
+@pytest.mark.asyncio
+async def test_on_message_stream_mapping_file_citation(mock_project_client: MagicMock) -> None:
+    mock_project_client.agents.create_run = AsyncMock(
+        return_value=MagicMock(id="run-id", status=models.RunStatus.COMPLETED)
+    )
+
+    expected_file_id = "file_id_1"
+    expected_quote = "this part of a file"
+
+    fake_message = FakeMessageWithFileCitationAnnotation(
+        "msg-mock-1",
+        "response-1",
+        [FakeTextFileCitationAnnotation(FakeTextFileCitationDetails(expected_file_id, expected_quote))],
+    )
+
+    list = mock_list([fake_message], has_more=False)
+
+    mock_project_client.agents.list_messages = AsyncMock(return_value=list)
+
+    agent = create_agent(mock_project_client)
+
+    messages = [TextMessage(content="Hello", source="user")]
+
+    async for response in agent.on_messages_stream(messages):
+        assert isinstance(response, Response)
+        assert response.chat_message is not None
+        assert response.chat_message.metadata is not None
+
+        citations = json.loads(response.chat_message.metadata["citations"])
+        assert citations is not None
+
+        assert len(citations) == 1
+
+        assert citations[0]["file_id"] == expected_file_id
+        assert citations[0]["text"] == expected_quote
