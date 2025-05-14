@@ -5,64 +5,64 @@ myst:
       FAQ for AutoGen Studio - A low code tool for building and debugging multi-agent systems
 ---
 
-# Experimental Features
+## Experimental Features
 
-## Authentication
+### Authentication (GitHub OAuth)
 
-AutoGen Studio offers an experimental authentication feature to enable personalized experiences (multiple users). Currently, only GitHub authentication is supported. You can extend the base authentication class to add support for other authentication methods.
+AutoGen Studio ships with an **experimental** authentication system that lets you run multi-user instances. At the moment, GitHub OAuth is the only provider, but you can extend the base `AuthProvider` class to add others.
 
-By default authenticatio is disabled and only enabled when you pass in the `--auth-config` argument when running the application.
+Authentication is **off by default**. Enable it by passing an `--auth-config` file (see below) or the corresponding environment variable.
 
-### Enable GitHub Authentication
+---
 
-To enable GitHub authentication, create a `auth.yaml` file in your app directory:
+#### 1  Create `auth.yaml`
 
 ```yaml
 type: github
-jwt_secret: "your-secret-key" # keep secure!
-token_expiry_minutes: 60
+
+# Generate a strong 32-byte key:
+# openssl rand -hex 32
+jwt_secret: "YOUR-JWT-SECRET"
+
+token_expiry_minutes: 60       # default = 60
+
 github:
-  client_id: "your-github-client-id"
-  client_secret: "your-github-client-secret"
+  client_id: "YOUR-CLIENT-ID"
+  client_secret: "YOUR-CLIENT-SECRET"
   callback_url: "http://localhost:8081/api/auth/callback"
   scopes: ["user:email"]
 ```
 
-```{note}
+> [!NOTE]
+> * **JWT secret** - keep it out of version control; store and rotate it via your secrets manager.
+> * **Callback URL** - must match the value in your GitHub OAuth app settings and be publicly reachable if you're running on a remote host.
 
-**JWT Secret**
+For details on generating a client ID/secret, see GitHub's [OAuth guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authenticating-to-the-rest-api-with-an-oauth-app).
 
+---
 
-- Generate a strong, unique JWT secret (at least 32 random bytes). You can run `openssl rand -hex 32` to generate a secure random key.
-- Never commit your JWT secret to version control
-- In production, store secrets in environment variables or secure secret management services
-- Regularly rotate your JWT secret to limit the impact of potential breaches
-
-**Callback URL**
-
-- The callback URL is the URL that GitHub will redirect to after the user has authenticated. It should match the URL you set in your GitHub OAuth application settings.
-- Ensure that the callback URL is accessible from the internet if you are running AutoGen Studio on a remote server.
-
-```
-
-Please see the documentation on [GitHub OAuth](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authenticating-to-the-rest-api-with-an-oauth-app) for more details on obtaining the `client_id` and `client_secret`.
-
-To pass in this configuration you can use the `--auth-config` argument when running the application:
+#### 2  Start AutoGen Studio with Auth Enabled
 
 ```bash
 autogenstudio ui --auth-config /path/to/auth.yaml
 ```
 
-Or set the environment variable:
+--or--
 
 ```bash
-export AUTOGENSTUDIO_AUTH_CONFIG="/path/to/auth.yaml"
+export AUTOGENSTUDIO_AUTH_CONFIG=/path/to/auth.yaml
+autogenstudio ui
 ```
 
-```{note}
-- Authentication is currently experimental and may change in future releases
-- User data is stored in your configured database
-- When enabled, all API endpoints require authentication except for the authentication endpoints
-- WebSocket connections require the token to be passed as a query parameter (`?token=your-jwt-token`)
+---
 
-```
+#### 3  What Changes When Auth Is On?
+
+| Area                      | Behavior                                                             |
+| ------------------------- | -------------------------------------------------------------------- |
+| **REST endpoints**        | All require a valid JWT, **except** the auth endpoints themselves.   |
+| **WebSocket connections** | Append `?token=<JWT>` to the connection URL.                         |
+| **User data**             | Stored in your configured database.                                  |
+| **Stability**             | Feature is experimental; expect breaking changes in future releases. |
+
+---
