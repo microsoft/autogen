@@ -13,7 +13,7 @@ from fastapi import WebSocket
 logger = logging.getLogger("autogen_core")
 
 
-class HttpWorkerAgentRuntimeHostServicer:
+class HttpAgentService:
     """
     A "servicer" that keeps track of:
       - client_id -> websockets (for streaming messages)

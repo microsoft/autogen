@@ -1,9 +1,9 @@
 from ._worker_runtime import HttpWorkerAgentRuntime
-from ._worker_runtime_host import HttpWorkerAgentRuntimeHost
-from ._worker_runtime_host_servicer import HttpWorkerAgentRuntimeHostServicer
+from ._worker_runtime_server import HttpAgentServer
+from ._worker_runtime_service import HttpAgentService
 
 __all__ = [
     "HttpWorkerAgentRuntime",
-    "HttpWorkerAgentRuntimeHost",
-    "HttpWorkerAgentRuntimeHostServicer",
+    "HttpAgentServer",
+    "HttpAgentService",
 ]

@@ -5,16 +5,17 @@ from typing import Optional, Sequence
 
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from ._json_rpc import JsonRpcRequest, JsonRpcResponse
-from ._worker_runtime_host_servicer import HttpWorkerAgentRuntimeHostServicer
+from ._worker_runtime_service import HttpAgentService
 from ._worker_runtime import subscription_from_json, subscription_to_json
 
 logger = logging.getLogger("autogen_core")
 
 
-class HttpWorkerAgentRuntimeHost:
+class HttpAgentServer:
     """
-    Wraps a FastAPI app that uses `HttpWorkerAgentRuntimeHostServicer` behind the scenes.
+    Wraps a FastAPI app that uses `HttpAgentService` behind the scenes.
     Provides endpoints (REST + WebSocket) for agent workers to connect and register, add subscriptions, etc.
     """
 
@@ -22,7 +23,7 @@ class HttpWorkerAgentRuntimeHost:
         self._address = address
         self._port = port
         self._app = FastAPI()
-        self._servicer = HttpWorkerAgentRuntimeHostServicer()
+        self._servicer = HttpAgentService()
         self._runner_task: Optional[asyncio.Task] = None
         self._server: Optional[uvicorn.Server] = None
 
@@ -41,6 +42,18 @@ class HttpWorkerAgentRuntimeHost:
 
         @self._app.post("/rpc")
         async def rpc_handler(request: Request):
+            # Enforce Content-Type: application/json
+            content_type_header = request.headers.get("content-type")
+            if not content_type_header or not content_type_header.lower().startswith("application/json"):
+                logger.warning(
+                    f"Unsupported Content-Type from {request.client.host if request.client else 'unknown client'}: "
+                    f"'{content_type_header}'. Expected 'application/json'."
+                )
+                return JSONResponse(
+                    status_code=415,  # Unsupported Media Type
+                    content={"detail": "Unsupported Media Type. Content-Type must be 'application/json'."},
+                )
+
             client_id = request.headers.get("x-client-id")
             logger.info(f"Received RPC request from client_id={client_id}")
             if not client_id:
