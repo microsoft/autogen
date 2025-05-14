@@ -50,7 +50,7 @@ jobs:
             { ref: "python-v0.5.4", dest-dir: "0.5.4", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "python-v0.5.5", dest-dir: "0.5.5", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "python-v0.5.6", dest-dir: "0.5.6", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.5.7", dest-dir: "0.5.6", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "python-v0.5.7", dest-dir: "0.5.7", uv-version: "0.5.13", sphinx-release-override: "" },
           ]
     steps:
       - name: Checkout
