@@ -642,7 +642,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client: ChatCompletionClient,
         *,
         tools: List[BaseTool[Any, Any] | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
-        workbench: Workbench | None = None,
+        workbench: Workbench | List[Workbench] | None = None,
         handoffs: List[HandoffBase | str] | None = None,
         model_context: ChatCompletionContext | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
@@ -729,9 +729,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         if workbench is not None:
             if self._tools:
                 raise ValueError("Tools cannot be used with a workbench.")
-            self._workbench = workbench
+            if isinstance(workbench, list):
+                self._workbenches = workbench
+            else:
+                self._workbenches = [workbench]
         else:
-            self._workbench = StaticWorkbench(self._tools)
+            self._workbenches = [StaticWorkbench(self._tools)]
 
         if model_context is not None:
             self._model_context = model_context
@@ -796,7 +799,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_context = self._model_context
         memory = self._memory
         system_messages = self._system_messages
-        workbench = self._workbench
+        workbenches = self._workbenches
         handoff_tools = self._handoff_tools
         handoffs = self._handoffs
         model_client = self._model_client
@@ -829,7 +832,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=model_client_stream,
             system_messages=system_messages,
             model_context=model_context,
-            workbench=workbench,
+            workbench=workbenches[0],
             handoff_tools=handoff_tools,
             agent_name=agent_name,
             cancellation_token=cancellation_token,
@@ -866,7 +869,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             agent_name=agent_name,
             system_messages=system_messages,
             model_context=model_context,
-            workbench=workbench,
+            workbench=workbenches[0],
             handoff_tools=handoff_tools,
             handoffs=handoffs,
             model_client=model_client,
@@ -1343,7 +1346,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             name=self.name,
             model_client=self._model_client.dump_component(),
             tools=None,  # versionchanged:: v0.5.5  Now tools are not serialized, Cause they are part of the workbench.
-            workbench=self._workbench.dump_component() if self._workbench else None,
+            workbench=self._workbench.dump_component() if self._workbenches[0] else None,
             handoffs=list(self._handoffs.values()) if self._handoffs else None,
             model_context=self._model_context.dump_component(),
             memory=[memory.dump_component() for memory in self._memory] if self._memory else None,
