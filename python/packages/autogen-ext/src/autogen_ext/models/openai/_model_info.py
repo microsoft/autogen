@@ -44,6 +44,22 @@ _MODEL_POINTERS = {
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
+    "gpt-4o-mini-search-preview-2025-03-11": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_4O,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "gpt-4o-search-preview-2025-03-11": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_4O,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
     "o4-mini-2025-04-16": {
         "vision": True,
         "function_calling": True,

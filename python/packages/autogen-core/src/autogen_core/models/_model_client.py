@@ -41,9 +41,15 @@ class ModelFamily:
     LLAMA_3_3_70B = "llama-3.3-70b"
     LLAMA_4_SCOUT = "llama-4-scout"
     LLAMA_4_MAVERICK = "llama-4-maverick"
+    CODESRAL = "codestral"
+    OPEN_CODESRAL_MAMBA = "open-codestral-mamba"
+    MISTRAL = "mistral"
+    MINISTRAL = "ministral"
+    PIXTRAL = "pixtral"
     UNKNOWN = "unknown"
 
     ANY: TypeAlias = Literal[
+        # openai_models
         "gpt-41",
         "gpt-45",
         "gpt-4o",
@@ -53,20 +59,30 @@ class ModelFamily:
         "gpt-4",
         "gpt-35",
         "r1",
+        # google_models
         "gemini-1.5-flash",
         "gemini-1.5-pro",
         "gemini-2.0-flash",
         "gemini-2.5-pro",
+        # anthropic_models
         "claude-3-haiku",
         "claude-3-sonnet",
         "claude-3-opus",
         "claude-3-5-haiku",
         "claude-3-5-sonnet",
         "claude-3-7-sonnet",
+        # llama_models
         "llama-3.3-8b",
         "llama-3.3-70b",
         "llama-4-scout",
         "llama-4-maverick",
+        # mistral_models
+        "codestral",
+        "open-codestral-mamba",
+        "mistral",
+        "ministral",
+        "pixtral",
+        # unknown
         "unknown",
     ]
 
@@ -113,6 +129,15 @@ class ModelFamily:
             ModelFamily.LLAMA_3_3_70B,
             ModelFamily.LLAMA_4_SCOUT,
             ModelFamily.LLAMA_4_MAVERICK,
+        )
+
+    def is_mistral(family: str) -> bool:
+        return family in (
+            ModelFamily.CODESRAL,
+            ModelFamily.OPEN_CODESRAL_MAMBA,
+            ModelFamily.MISTRAL,
+            ModelFamily.MINISTRAL,
+            ModelFamily.PIXTRAL,
         )
 
 @deprecated("Use the ModelInfo class instead ModelCapabilities.")
