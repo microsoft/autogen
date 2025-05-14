@@ -28,7 +28,7 @@ async def predict(task: str):
 
 
 @app.get("/predict_team/{team}/{task}")
-async def predict_model(team: str, task: str):
+async def predict_team(team: str, task: str):
     response = Response(message="Task successfully completed", status=True, data=None)
     try:
         team_folder_path = os.environ.get("AUTOGENSTUDIO_TEAM_FOLDER")
@@ -49,7 +49,7 @@ async def predict_model(team: str, task: str):
             raise ValueError("No files found in team folder path.")
 
         if team not in team_files:
-            raise ValueError(f"Model {team} not found in team folder path.")
+            raise ValueError(f"Team {team} not found in team folder path.")
 
         team_file_path = team_files[team]
         result_message = await team_manager.run(task=task, team_config=team_file_path)

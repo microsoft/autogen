@@ -111,10 +111,13 @@ def serve(
     os.environ["AUTOGENSTUDIO_API_DOCS"] = str(docs)
     os.environ["AUTOGENSTUDIO_TEAM_FILE"] = team
     os.environ["AUTOGENSTUDIO_TEAM_FOLDER"] = teamfolder
-    
-    # validate the team file and folder
-    if not os.path.exists(team) and not os.path.exists(teamfolder):
-        raise ValueError(f"Team file or folder not found: {team}")
+
+    if not team and not teamfolder:
+        raise ValueError("Team file or folder is required.")
+    if team and not os.path.exists(team):
+        raise ValueError(f"Team file {team} not found.")
+    if teamfolder and not os.path.exists(teamfolder):
+        raise ValueError(f"Team folder {teamfolder} not found.")
 
     uvicorn.run(
         "autogenstudio.web.serve:app",
