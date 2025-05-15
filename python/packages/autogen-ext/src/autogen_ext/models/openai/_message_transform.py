@@ -523,7 +523,7 @@ __unknown_models = list(
     - set(__claude_models)
     - set(__gemini_models)
     - set(__llama_models)
-
+)
 __mistral_models = [model for model in total_models if ModelFamily.is_mistral(model)]
 
 __unknown_models = list(
