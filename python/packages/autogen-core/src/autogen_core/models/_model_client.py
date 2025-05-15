@@ -130,7 +130,8 @@ class ModelFamily:
             ModelFamily.LLAMA_4_SCOUT,
             ModelFamily.LLAMA_4_MAVERICK,
         )
-
+    
+    @staticmethod
     def is_mistral(family: str) -> bool:
         return family in (
             ModelFamily.CODESRAL,
