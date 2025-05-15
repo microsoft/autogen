@@ -1370,6 +1370,11 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                 copied_args["base_url"] = _model_info.ANTHROPIC_OPENAI_BASE_URL
             if "api_key" not in copied_args and "ANTHROPIC_API_KEY" in os.environ:
                 copied_args["api_key"] = os.environ["ANTHROPIC_API_KEY"]
+        if copied_args["model"].startswith("Llama-"):
+            if "base_url" not in copied_args:
+                copied_args["base_url"] = _model_info.LLAMA_API_BASE_URL
+            if "api_key" not in copied_args and "LLAMA_API_KEY" in os.environ:
+                copied_args["api_key"] = os.environ["LLAMA_API_KEY"]
 
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
