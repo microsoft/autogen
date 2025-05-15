@@ -430,8 +430,8 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "claude-3-7-sonnet-20250219": 20000,
     "Llama-3.3-8B-Instruct": 128000,
     "Llama-3.3-70B-Instruct": 128000,
-    "Llama-4-Scout-17B-16E-Instruct-FP8" : 128000,
-    "Llama-4-Maverick-17B-128E-Instruct-FP8" : 128000,
+    "Llama-4-Scout-17B-16E-Instruct-FP8": 128000,
+    "Llama-4-Maverick-17B-128E-Instruct-FP8": 128000,
 }
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"

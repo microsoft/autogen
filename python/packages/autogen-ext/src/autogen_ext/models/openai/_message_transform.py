@@ -518,11 +518,7 @@ __gemini_models = [model for model in total_models if ModelFamily.is_gemini(mode
 __llama_models = [model for model in total_models if ModelFamily.is_llama(model)]
 
 __unknown_models = list(
-    set(total_models)
-    - set(__openai_models)
-    - set(__claude_models)
-    - set(__gemini_models)
-    - set(__llama_models)
+    set(total_models) - set(__openai_models) - set(__claude_models) - set(__gemini_models) - set(__llama_models)
 )
 __mistral_models = [model for model in total_models if ModelFamily.is_mistral(model)]
 
