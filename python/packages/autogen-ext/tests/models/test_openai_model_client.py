@@ -1264,6 +1264,7 @@ async def test_r1_think_field_not_present(monkeypatch: pytest.MonkeyPatch) -> No
         assert chunks[-1].thought is None
         assert not chunks[-1].cached
 
+
 @pytest.mark.asyncio
 async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4.1-nano-2025-04-14"
