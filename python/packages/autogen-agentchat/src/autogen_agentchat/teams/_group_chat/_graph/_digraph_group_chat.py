@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Callable, Dict, List, Literal, Mapping, Sequence, Set
+from typing import Any, Callable, Dict, List, Literal, Mapping, Sequence, Set, Union
 
 from autogen_core import AgentRuntime, CancellationToken, Component, ComponentModel
 from pydantic import BaseModel
@@ -33,13 +33,17 @@ class DiGraphEdge(BaseModel):
 
         This is an experimental feature, and the API will change in the future releases.
 
+    Note:
+        If you use a callable (lambda/class) as a condition, the graph cannot be serialized/deserialized.
+        Only use callables for in-memory, programmatic graph construction.
     """
 
     target: str  # Target node name
-    condition: str | None = None  # Optional execution condition (trigger-based)
+    condition: Union[str, Callable[[str, Any], bool], None] = None  # Optional execution condition (trigger-based or callable)
     """(Experimental) Condition to execute this edge.
     If None, the edge is unconditional. If a string, the edge is conditional on the presence of that string in the last agent chat message.
-    NOTE: This is an experimental feature WILL change in the future releases to allow for better spcification of branching conditions
+    If a callable, it should accept the message content (and optionally the message object) and return a bool.
+    NOTE: This is an experimental feature WILL change in the future releases to allow for better specification of branching conditions
     similar to the `TerminationCondition` class.
     """
 
@@ -230,12 +234,26 @@ class GraphFlowManager(BaseGroupChatManager):
         # Start nodes (no parents) are added to this dict at initialization as they are always ready to run.
         self._pending_execution: Dict[str, List[str]] = {node: [] for node in graph.get_start_nodes()}
 
-    def _get_valid_target(self, node: DiGraphNode, content: str) -> str:
-        """Check if a condition is met in the chat history."""
+    def _get_valid_target(self, node: DiGraphNode, content: str, message_obj: Any = None) -> str:
+        """Check if a condition is met in the chat history. Supports string or callable conditions."""
         for edge in node.edges:
-            if edge.condition and edge.condition in content:
-                return edge.target
-
+            cond = edge.condition
+            if cond is None:
+                continue
+            if isinstance(cond, str):
+                if cond in content:
+                    return edge.target
+            elif callable(cond):
+                try:
+                    # Try to call with both content and message_obj, fallback to content only
+                    if message_obj is not None:
+                        if cond(content, message_obj):
+                            return edge.target
+                    else:
+                        if cond(content):
+                            return edge.target
+                except Exception as e:
+                    raise RuntimeError(f"Error evaluating edge condition: {e}")
         raise RuntimeError(f"Condition not met for node {node.name}. Content: {content}")
 
     def _is_node_ready(self, node_name: str) -> bool:
@@ -257,7 +275,7 @@ class GraphFlowManager(BaseGroupChatManager):
         if thread and isinstance(thread[-1], BaseChatMessage):
             source = thread[-1].source  # name of the agent that just finished
             content = thread[-1].to_model_text()
-
+            message_obj = thread[-1]
             # Safety check: only an active node can send a response
             if source != "user":
                 if source not in self._active_nodes:
@@ -275,7 +293,8 @@ class GraphFlowManager(BaseGroupChatManager):
                     # Case: conditional edges — only execute if condition is met
                     target_nodes_names: List[str] = []
                     if source_node.edges[0].condition is not None:
-                        target_nodes_names = [self._get_valid_target(source_node, content)]
+                        # Support callables as conditions
+                        target_nodes_names = [self._get_valid_target(source_node, content, message_obj)]
                         other_nodes = [
                             edge.target for edge in source_node.edges if edge.target != target_nodes_names[0]
                         ]

@@ -1,4 +1,4 @@
-from typing import Dict, Literal, Optional, Union
+from typing import Dict, Literal, Optional, Union, Callable, Any
 
 from autogen_agentchat.base import ChatAgent
 
@@ -59,6 +59,10 @@ class DiGraphBuilder:
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
         >>> builder.add_edge(agent_a, agent_b)
         >>> builder.add_conditional_edges(agent_b, {"loop": agent_a, "exit": agent_c})
+    
+    Note:
+        If you use a callable (lambda/class) as a condition, the graph cannot be serialized/deserialized.
+        Only use callables for in-memory, programmatic graph construction.
     """
 
     def __init__(self) -> None:
@@ -78,9 +82,9 @@ class DiGraphBuilder:
         return self
 
     def add_edge(
-        self, source: Union[str, ChatAgent], target: Union[str, ChatAgent], condition: Optional[str] = None
+        self, source: Union[str, ChatAgent], target: Union[str, ChatAgent], condition: Optional[Union[str, Callable[[str, Any], bool]]] = None
     ) -> "DiGraphBuilder":
-        """Add a directed edge from source to target, optionally with a condition."""
+        """Add a directed edge from source to target, optionally with a condition (string or callable)."""
         source_name = self._get_name(source)
         target_name = self._get_name(target)
 
@@ -93,9 +97,9 @@ class DiGraphBuilder:
         return self
 
     def add_conditional_edges(
-        self, source: Union[str, ChatAgent], condition_to_target: Dict[str, Union[str, ChatAgent]]
+        self, source: Union[str, ChatAgent], condition_to_target: Dict[Union[str, Callable[[str, Any], bool]], Union[str, ChatAgent]]
     ) -> "DiGraphBuilder":
-        """Add multiple conditional edges from a source node based on condition strings."""
+        """Add multiple conditional edges from a source node based on condition strings or callables."""
         for condition, target in condition_to_target.items():
             self.add_edge(source, target, condition)
         return self
