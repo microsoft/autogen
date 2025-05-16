@@ -44,6 +44,7 @@ python/autogen_core.logging
 python/autogen_ext.agents.azure
 python/autogen_ext.agents.magentic_one
 python/autogen_ext.agents.openai
+python/autogen_ext.agents.semantic_kernel
 python/autogen_ext.agents.web_surfer
 python/autogen_ext.agents.file_surfer
 python/autogen_ext.agents.video_surfer
