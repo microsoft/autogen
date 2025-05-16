@@ -89,7 +89,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
             # Publish the response to the group chat.
             self._message_buffer.clear()
             await self.publish_message(
-                GroupChatAgentResponse(agent_response=response),
+                GroupChatAgentResponse(agent_response=response, agent_name=self._agent.name),
                 topic_id=DefaultTopicId(type=self._parent_topic_type),
                 cancellation_token=ctx.cancellation_token,
             )
