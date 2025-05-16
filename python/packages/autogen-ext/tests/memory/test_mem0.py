@@ -330,5 +330,91 @@ async def test_result_format_handling(mock_mem0_class: MagicMock, local_config: 
     await memory.close()
 
 
+@pytest.mark.asyncio
+@patch("autogen_ext.memory.mem0.Memory0")
+async def test_init_with_complex_config(mock_mem0_class: MagicMock) -> None:
+    """Test initializing memory with complex configuration."""
+    # Setup mock
+    mock_mem0 = MagicMock()
+    mock_mem0_class.from_config.return_value = mock_mem0
+
+    # Complex configuration with multiple components
+    complex_config = {
+        'history_db_path': 'db/histories.db',
+        'graph_store': {
+            'provider': 'neo4j',
+            'config': {
+                'url': 'bolt://localhost:7687',
+                'username': 'neo4j',
+                'password': os.getenv('NEO4J_PASSWORD')
+            }
+        },
+        'embedder': {
+            'provider': 'openai',
+            'config': {
+                'model': 'Pro/BAAI/bge-m3',
+                'openai_base_url': 'https://api.siliconflow.cn/v1',
+                'embedding_dims': 1024,
+                'api_key': os.getenv('SF_API_KEY')
+            }
+        },
+        'vector_store': {
+            'provider': 'chroma',
+            'config': {
+                'path': 'db/memories.chroma',
+                'collection_name': 'memories'
+            }
+        },
+        'llm': {
+            'provider': 'deepseek',
+            'config': {
+                'model': 'deepseek-chat',
+                'deepseek_base_url': 'https://api.deepseek.com',
+                'api_key': os.getenv('DEEPSEEK_API_KEY')
+            }
+        }
+    }
+
+    # Initialize memory with complex config
+    # If the setting in config is invalid, it will raise errors
+    memory = Mem0Memory(
+        user_id="test-complex-config-user",
+        limit=10,
+        is_cloud=False,
+        config=complex_config
+    )
+
+    # Verify configuration was passed correctly
+    mock_mem0_class.from_config.assert_called_once()
+
+    # Get the config that was passed to Memory0.from_config
+    passed_config = mock_mem0_class.from_config.call_args[0][0]
+
+    # Verify key configuration components
+    assert passed_config.get('history_db_path') == 'db/histories.db'
+    assert passed_config.get('graph_store', {}).get('provider') == 'neo4j'
+    assert passed_config.get('vector_store', {}).get('provider') == 'chroma'
+    assert passed_config.get('vector_store', {}).get('config', {}).get('collection_name') == 'memories'
+    assert passed_config.get('embedder', {}).get('provider') == 'openai'
+    assert passed_config.get('llm', {}).get('provider') == 'deepseek'
+
+    # Verify memory instance properties
+    assert memory._user_id == "test-complex-config-user"
+    assert memory._limit == 10
+    assert memory._is_cloud is False
+    assert memory._config == complex_config
+
+    # Test serialization with complex config
+    memory_config = memory.dump_component()
+
+    # Verify serialized config
+    assert memory_config.config["user_id"] == "test-complex-config-user"
+    assert memory_config.config["is_cloud"] is False
+    assert memory_config.config["config"].get('history_db_path') == 'db/histories.db'
+
+    # Cleanup
+    await memory.close()
+
+
 if __name__ == "__main__":
     pytest.main(["-xvs", __file__])

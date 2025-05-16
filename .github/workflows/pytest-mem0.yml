@@ -11,7 +11,31 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    environment: Unitest
+
+    services:
+      neo4j:
+        image: neo4j:5.19
+        ports:
+          - 7474:7474   # HTTP
+          - 7687:7687   # BOLT
+        env:
+          NEO4J_AUTH: neo4j/test
+        options: >-
+          --health-cmd "curl http://localhost:7474 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      chromadb:
+        image: chromadb/chroma:latest
+        ports:
+          - 8000:8000
+        options: >-
+          --health-cmd "curl http://localhost:8000/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
@@ -41,12 +65,20 @@ jobs:
           pip install mem0ai
           pip install python-dotenv
 
+          # Install dependencies for complex configuration tests
+          pip install neo4j
+          pip install chromadb
+          pip install "openai>=1.0.0"
+
       - name: Run tests with coverage
         env:
           MEM0_API_KEY: ${{ secrets.MEM0_API_KEY }}
+          NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
+          SF_API_KEY: ${{ secrets.SF_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           cd python/packages/autogen-ext
-          pytest --cov=autogen_ext.memory.mem0 tests/memory/test_mem0.py -v
+          pytest --cov=autogen_ext.memory.mem0 tests/memory/test_mem0.py -v --cov-report=xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
