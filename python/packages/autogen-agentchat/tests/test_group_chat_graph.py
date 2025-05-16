@@ -12,7 +12,7 @@ from autogen_agentchat.agents import (
     PerSourceFilter,
 )
 from autogen_agentchat.base import Response, TaskResult
-from autogen_agentchat.conditions import MaxMessageTermination
+from autogen_agentchat.conditions import MaxMessageTermination, SourceMatchTermination
 from autogen_agentchat.messages import BaseChatMessage, ChatMessage, MessageFactory, StopMessage, TextMessage
 from autogen_agentchat.teams import (
     DiGraphBuilder,
@@ -1223,3 +1223,47 @@ async def test_graph_flow_serialize_deserialize() -> None:
     assert isinstance(results.messages[-1], StopMessage)
     assert results.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
     assert results.messages[-1].content == "Digraph execution is complete"
+
+
+@pytest.mark.asyncio
+async def test_graph_flow_stateful_pause_and_resume_with_termination() -> None:
+    client_a = ReplayChatCompletionClient(["A1", "A2"])
+    client_b = ReplayChatCompletionClient(["B1"])
+
+    a = AssistantAgent("A", model_client=client_a)
+    b = AssistantAgent("B", model_client=client_b)
+
+    builder = DiGraphBuilder()
+    builder.add_node(a).add_node(b)
+    builder.add_edge(a, b)
+    builder.set_entry_point(a)
+
+    team = GraphFlow(
+        participants=builder.get_participants(),
+        graph=builder.build(),
+        runtime=None,
+        termination_condition=SourceMatchTermination(sources=["A"]),
+    )
+
+    result = await team.run(task="Start")
+    assert len(result.messages) == 2
+    assert result.messages[0].source == "user"
+    assert result.messages[1].source == "A"
+    assert result.stop_reason is not None and result.stop_reason == "'A' answered"
+
+    # Export state.
+    state = await team.save_state()
+
+    # Load state into a new team.
+    new_team = GraphFlow(
+        participants=builder.get_participants(),
+        graph=builder.build(),
+        runtime=None,
+    )
+    await new_team.load_state(state)
+
+    # Resume.
+    result = await new_team.run()
+    assert len(result.messages) == 2
+    assert result.messages[0].source == "B"
+    assert result.messages[1].source == _DIGRAPH_STOP_AGENT_NAME
