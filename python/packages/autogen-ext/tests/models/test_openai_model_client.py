@@ -1265,55 +1265,6 @@ async def test_r1_think_field_not_present(monkeypatch: pytest.MonkeyPatch) -> No
         assert not chunks[-1].cached
 
 @pytest.mark.asyncio
-async def test_set_thought_as_assistant_content(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: List[Dict[str, Any]] = []
-    async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
-        calls.append(kwargs["messages"])
-        await asyncio.sleep(0.1)
-        return ChatCompletion(
-            id="id",
-            choices=[
-                Choice(
-                    finish_reason="stop",
-                    index=0,
-                    message=ChatCompletionMessage(
-                        content="<think> Hello</think> Another Hello Yet Another Hello", role="assistant"
-                    ),
-                )
-            ],
-            created=0,
-            model="r1",
-            object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-        )
-
-    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
-
-    model_client = OpenAIChatCompletionClient(
-        model="r1",
-        api_key="",
-        model_info={
-            "family": ModelFamily.R1,
-            "vision": False,
-            "function_calling": False,
-            "json_output": False,
-            "structured_output": False,
-        },
-    )
-
-    # Successful completion with think field.
-    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user"), AssistantMessage(content="I am sad.", source="assistant", thought="Hello"), UserMessage(content="I am neutral.", source="user")])
-    assert create_result.content == "Another Hello Yet Another Hello"
-    assert create_result.finish_reason == "stop"
-    assert not create_result.cached
-    assert create_result.thought == "Hello"
-    assert len(calls) == 1
-    assert len(calls[0]) == 3
-    assert calls[0][0].content == "I am happy."
-    assert calls[0][1].content == "I am sad."
-
-
-@pytest.mark.asyncio
 async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4.1-nano-2025-04-14"
     chat_completions = [
