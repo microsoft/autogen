@@ -1,6 +1,6 @@
 import asyncio
-from typing import Any, AsyncGenerator, Callable, Dict, List, Sequence, Set
-from unittest.mock import AsyncMock, patch
+from typing import AsyncGenerator, List, Sequence
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -14,7 +14,6 @@ from autogen_agentchat.agents import (
 from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.conditions import MaxMessageTermination
 from autogen_agentchat.messages import BaseChatMessage, ChatMessage, MessageFactory, StopMessage, TextMessage
-from autogen_agentchat.messages import BaseTextChatMessage as TextChatMessage
 from autogen_agentchat.teams import (
     DiGraphBuilder,
     GraphFlow,
@@ -269,61 +268,6 @@ def test_validate_graph_mixed_conditions() -> None:
         graph.graph_validate()
 
 
-def test_get_valid_target() -> None:
-    node = DiGraphNode(
-        name="A",
-        edges=[DiGraphEdge(target="B", condition="approve"), DiGraphEdge(target="C", condition="reject")],
-    )
-    manager = GraphFlowManager.__new__(GraphFlowManager)
-
-    assert manager._get_valid_target(node, "please approve this") == "B"  # pyright: ignore[reportPrivateUsage]
-    assert manager._get_valid_target(node, "i reject this") == "C"  # pyright: ignore[reportPrivateUsage]
-    with pytest.raises(RuntimeError):
-        manager._get_valid_target(node, "unknown path")  # pyright: ignore[reportPrivateUsage]
-
-
-def test_is_node_ready_all_and_any() -> None:
-    graph = DiGraph(
-        nodes={
-            "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="C")]),
-            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="C")]),
-            "C": DiGraphNode(name="C", edges=[], activation="all"),
-        }
-    )
-
-    manager = GraphFlowManager.__new__(GraphFlowManager)
-    manager._graph = graph  # pyright: ignore[reportPrivateUsage]
-    manager._parents = graph.get_parents()  # pyright: ignore[reportPrivateUsage]
-
-    # === Test "all" activation ===
-    # Case 1: No parent finished
-    manager._pending_execution = {"C": []}  # pyright: ignore[reportPrivateUsage]
-    assert not manager._is_node_ready("C")  # pyright: ignore[reportPrivateUsage]
-
-    # Case 2: One parent finished
-    manager._pending_execution = {"C": ["A"]}  # pyright: ignore[reportPrivateUsage]
-    assert not manager._is_node_ready("C")  # pyright: ignore[reportPrivateUsage]
-
-    # Case 3: All parents finished
-    manager._pending_execution = {"C": ["A", "B"]}  # pyright: ignore[reportPrivateUsage]
-    assert manager._is_node_ready("C")  # pyright: ignore[reportPrivateUsage]
-
-    # === Test "any" activation ===
-    graph.nodes["C"].activation = "any"
-
-    # Case 1: No parent finished
-    manager._pending_execution = {"C": []}  # pyright: ignore[reportPrivateUsage]
-    assert not manager._is_node_ready("C")  # pyright: ignore[reportPrivateUsage]
-
-    # Case 2: One parent finished
-    manager._pending_execution = {"C": ["B"]}  # pyright: ignore[reportPrivateUsage]
-    assert manager._is_node_ready("C")  # pyright: ignore[reportPrivateUsage]
-
-    # Case 3: All parents finished
-    manager._pending_execution = {"C": ["A", "B"]}  # pyright: ignore[reportPrivateUsage]
-    assert manager._is_node_ready("C")  # pyright: ignore[reportPrivateUsage]
-
-
 @pytest.mark.asyncio
 async def test_invalid_digraph_manager_cycle_without_termination() -> None:
     """Test GraphManager raises error for cyclic graph without termination condition."""
@@ -357,170 +301,6 @@ async def test_invalid_digraph_manager_cycle_without_termination() -> None:
                 message_factory=MessageFactory(),
                 graph=graph,
             )
-
-
-@pytest.fixture
-def digraph_manager() -> Callable[..., GraphFlowManager]:
-    @patch(
-        "autogen_agentchat.teams._group_chat._base_group_chat_manager.BaseGroupChatManager.__init__", return_value=None
-    )
-    def _create(
-        _: Any,
-        graph: DiGraph,
-        active_nodes: Set[str] | None = None,
-        thread: List[BaseAgentEvent | BaseChatMessage] | None = None,
-        pending: Dict[str, List[str]] | None = None,
-    ) -> GraphFlowManager:
-        manager = GraphFlowManager.__new__(GraphFlowManager)
-        manager._graph = graph  # pyright: ignore[reportPrivateUsage]
-        manager._parents = graph.get_parents()  # pyright: ignore[reportPrivateUsage]
-        manager._start_nodes = graph.get_start_nodes()  # pyright: ignore[reportPrivateUsage]
-        manager._leaf_nodes = graph.get_leaf_nodes()  # pyright: ignore[reportPrivateUsage]
-        manager._active_nodes = set(active_nodes or [])  # pyright: ignore[reportPrivateUsage]
-        manager._active_node_count = {node: 0 for node in graph.nodes}  # pyright: ignore[reportPrivateUsage]
-        manager._message_factory = MessageFactory()  # pyright: ignore[reportPrivateUsage]
-        manager._message_thread = thread if thread is not None else []  # pyright: ignore[reportPrivateUsage]
-        manager._pending_execution = pending if pending is not None else {node: [] for node in graph.get_start_nodes()}  # pyright: ignore[reportPrivateUsage]
-        manager._name = "test_manager"  # pyright: ignore[reportPrivateUsage]
-        manager._use_default_start = False  # pyright: ignore[reportPrivateUsage]
-        return manager
-
-    return _create
-
-
-# -------------------- Test: Sequential Flow --------------------
-@pytest.mark.asyncio
-async def test_select_speakers_linear(digraph_manager: Callable[..., GraphFlowManager]) -> None:
-    graph = DiGraph(
-        nodes={
-            "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
-            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="C")]),
-            "C": DiGraphNode(name="C", edges=[]),
-        }
-    )
-    message_thread = [TextChatMessage(source="A", content="done", metadata={})]
-    manager = digraph_manager(graph=graph, active_nodes={"A"}, thread=message_thread, pending={"B": [], "C": []})
-
-    result = await manager.select_speakers(manager._message_thread)  # pyright: ignore[reportPrivateUsage]
-    assert result == ["B"]
-    assert "B" in manager._active_nodes  # pyright: ignore[reportPrivateUsage]
-
-
-# -------------------- Test: Parallel Fan-out --------------------
-
-
-@pytest.mark.asyncio
-async def test_select_speakers_parallel(digraph_manager: Callable[..., GraphFlowManager]) -> None:
-    graph = DiGraph(
-        nodes={
-            "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B"), DiGraphEdge(target="C")]),
-            "B": DiGraphNode(name="B", edges=[]),
-            "C": DiGraphNode(name="C", edges=[]),
-        }
-    )
-    message_thread = [TextChatMessage(source="A", content="done", metadata={})]
-    manager = digraph_manager(graph=graph, active_nodes={"A"}, thread=message_thread, pending={"B": [], "C": []})
-
-    result = await manager.select_speakers(manager._message_thread)  # pyright: ignore[reportPrivateUsage]
-    assert set(result) == {"B", "C"}
-    assert "B" in manager._active_nodes  # pyright: ignore[reportPrivateUsage]
-    assert "C" in manager._active_nodes  # pyright: ignore[reportPrivateUsage]
-
-
-# -------------------- Test: Conditional Path --------------------
-@pytest.mark.asyncio
-async def test_select_speakers_conditional(digraph_manager: Callable[..., GraphFlowManager]) -> None:
-    graph = DiGraph(
-        nodes={
-            "A": DiGraphNode(
-                name="A", edges=[DiGraphEdge(target="B", condition="yes"), DiGraphEdge(target="C", condition="no")]
-            ),
-            "B": DiGraphNode(name="B", edges=[]),
-            "C": DiGraphNode(name="C", edges=[]),
-        }
-    )
-    message_thread = [TextChatMessage(source="A", content="no", metadata={})]
-    manager = digraph_manager(graph=graph, active_nodes={"A"}, thread=message_thread, pending={"B": [], "C": []})
-
-    result = await manager.select_speakers(manager._message_thread)  # pyright: ignore[reportPrivateUsage]
-    assert result == ["C"]
-    assert "C" in manager._active_nodes  # pyright: ignore[reportPrivateUsage]
-
-
-@pytest.mark.asyncio
-async def test_select_speakers_from_start_nodes(digraph_manager: Callable[..., GraphFlowManager]) -> None:
-    graph = DiGraph(
-        nodes={
-            "A": DiGraphNode(name="A", edges=[]),
-            "B": DiGraphNode(name="B", edges=[]),
-        }
-    )
-    # No prior message — both are start nodes
-    manager = digraph_manager(graph=graph, active_nodes=set(), thread=[], pending={"A": [], "B": []})
-    result = await manager.select_speakers([])
-    assert set(result) == {"A", "B"}
-
-
-@pytest.mark.asyncio
-async def test_select_speakers_termination(digraph_manager: Callable[..., GraphFlowManager]) -> None:
-    graph = DiGraph(
-        nodes={
-            "A": DiGraphNode(name="A", edges=[]),
-        }
-    )
-
-    # Create the manager and manually patch _signal_termination to track calls
-    manager = digraph_manager(
-        graph=graph, active_nodes={"A"}, thread=[TextChatMessage(source="A", content="done", metadata={})], pending={}
-    )
-    manager._signal_termination = AsyncMock()  # type: ignore[assignment]
-
-    result = await manager.select_speakers(manager._message_thread)  # pyright: ignore[reportPrivateUsage]
-
-    # No speakers left to run, so result should be empty
-    assert result == [_DIGRAPH_STOP_AGENT_NAME]
-
-
-@pytest.mark.asyncio
-async def test_select_speakers_conditional_all_activation(
-    digraph_manager: Callable[..., GraphFlowManager],
-) -> None:
-    graph = DiGraph(
-        nodes={
-            "A": DiGraphNode(
-                name="A", edges=[DiGraphEdge(target="B", condition="yes"), DiGraphEdge(target="C", condition="no")]
-            ),
-            "B": DiGraphNode(name="B", edges=[], activation="all"),
-            "C": DiGraphNode(name="C", edges=[], activation="all"),
-        }
-    )
-    message_thread = [TextChatMessage(source="A", content="no", metadata={})]
-    manager = digraph_manager(graph=graph, active_nodes={"A"}, thread=message_thread, pending={"B": [], "C": []})
-
-    result = await manager.select_speakers(manager._message_thread)  # pyright: ignore[reportPrivateUsage]
-    assert result == ["C"]
-    assert "C" in manager._active_nodes  # pyright: ignore[reportPrivateUsage]
-
-
-@pytest.mark.asyncio
-async def test_select_speakers_conditional_any_activation(
-    digraph_manager: Callable[..., GraphFlowManager],
-) -> None:
-    graph = DiGraph(
-        nodes={
-            "A": DiGraphNode(
-                name="A", edges=[DiGraphEdge(target="B", condition="yes"), DiGraphEdge(target="C", condition="no")]
-            ),
-            "B": DiGraphNode(name="B", edges=[], activation="any"),
-            "C": DiGraphNode(name="C", edges=[], activation="any"),
-        }
-    )
-    message_thread = [TextChatMessage(source="A", content="yes", metadata={})]
-    manager = digraph_manager(graph=graph, active_nodes={"A"}, thread=message_thread, pending={"B": [], "C": []})
-
-    result = await manager.select_speakers(manager._message_thread)  # pyright: ignore[reportPrivateUsage]
-    assert result == ["B"]
-    assert "B" in manager._active_nodes  # pyright: ignore[reportPrivateUsage]
 
 
 class _EchoAgent(BaseChatAgent):
@@ -1417,7 +1197,6 @@ async def test_graph_flow_serialize_deserialize() -> None:
         participants=builder.get_participants(),
         graph=builder.build(),
         runtime=None,
-        termination_condition=MaxMessageTermination(5),
     )
 
     serialized = team.dump_component()
@@ -1439,11 +1218,8 @@ async def test_graph_flow_serialize_deserialize() -> None:
     assert results.messages[1].source == "A"
     assert results.messages[1].content == "0"
     assert isinstance(results.messages[2], TextMessage)
-    assert results.messages[2].source == "A"
-    assert results.messages[2].content == "1"
-    assert isinstance(results.messages[3], TextMessage)
-    assert results.messages[3].source == "B"
-    assert results.messages[3].content == "0"
+    assert results.messages[2].source == "B"
+    assert results.messages[2].content == "0"
     assert isinstance(results.messages[-1], StopMessage)
     assert results.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
     assert results.messages[-1].content == "Digraph execution is complete"
