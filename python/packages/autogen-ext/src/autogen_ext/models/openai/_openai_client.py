@@ -637,6 +637,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
+                tools=create_params.tools,
             )
         )
 
