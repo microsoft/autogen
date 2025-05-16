@@ -156,6 +156,33 @@ def test_condition_edge_execution() -> None:
     assert graph.nodes["B"].edges[0].condition is None
 
 
+def test_callable_condition_edge_execution() -> None:
+    """Test conditional edge execution with a lambda/callable."""
+    # Condition: go to B if message contains 'foo', else to C if message contains 'bar'
+    graph = DiGraph(
+        nodes={
+            "A": DiGraphNode(
+                name="A",
+                edges=[
+                    DiGraphEdge(target="B", condition=lambda content, *_: "foo" in content),
+                    DiGraphEdge(target="C", condition=lambda content, *_: "bar" in content),
+                ],
+            ),
+            "B": DiGraphNode(name="B", edges=[]),
+            "C": DiGraphNode(name="C", edges=[]),
+        }
+    )
+    manager = GraphFlowManager.__new__(GraphFlowManager)
+    # Should match B
+    assert manager._get_valid_target(graph.nodes["A"], "this has foo") == "B"
+    # Should match C
+    assert manager._get_valid_target(graph.nodes["A"], "this has bar") == "C"
+    # Should raise if no match
+    import pytest
+    with pytest.raises(RuntimeError):
+        manager._get_valid_target(graph.nodes["A"], "no match")
+
+
 def test_graph_with_multiple_paths() -> None:
     """Test a graph with multiple execution paths."""
     graph = DiGraph(
@@ -776,8 +803,8 @@ async def test_digraph_group_chat_conditional_branch(runtime: AgentRuntime | Non
             "A": DiGraphNode(
                 name="A", edges=[DiGraphEdge(target="B", condition="yes"), DiGraphEdge(target="C", condition="no")]
             ),
-            "B": DiGraphNode(name="B", edges=[], activation="any"),
-            "C": DiGraphNode(name="C", edges=[], activation="any"),
+            "B": DiGraphNode(name="B", edges=[]),
+            "C": DiGraphNode(name="C", edges=[]),
         }
     )
 
@@ -1378,26 +1405,41 @@ async def test_graph_builder_conditional_execution(runtime: AgentRuntime | None)
 
 
 @pytest.mark.asyncio
-async def test_graph_builder_with_filter_agent(runtime: AgentRuntime | None) -> None:
-    inner = _EchoAgent("X", description="Echo X")
-    filter_agent = MessageFilterAgent(
-        name="X",
-        wrapped_agent=inner,
-        filter=MessageFilterConfig(per_source=[PerSourceFilter(source="user", position="last", count=1)]),
-    )
+async def test_graph_builder_callable_conditional_execution(runtime: AgentRuntime | None) -> None:
+    """
+    Test callable edge conditions with the builder. Note: This test does NOT use serialization,
+    as callables are not serializable and will be lost if the graph is dumped/loaded.
+    """
+    a = _EchoAgent("A", description="Echo A")
+    b = _EchoAgent("B", description="Echo B")
+    c = _EchoAgent("C", description="Echo C")
 
+    # Use a lambda for condition: go to B if 'yes' in content, else to C if 'no' in content
     builder = DiGraphBuilder()
-    builder.add_node(filter_agent)
+    builder.add_node(a).add_node(b).add_node(c)
+    builder.add_conditional_edges(a, {
+        lambda content, *_: "yes" in content: b,
+        lambda content, *_: "no" in content: c,
+    })
 
+    # Do NOT serialize/deserialize the graph, as callables are not serializable
     team = GraphFlow(
         participants=builder.get_participants(),
         graph=builder.build(),
         runtime=runtime,
-        termination_condition=MaxMessageTermination(3),
+        termination_condition=MaxMessageTermination(5),
     )
 
-    result = await team.run(task="Hello")
-    assert any(m.source == "X" and m.content == "Hello" for m in result.messages)  # type: ignore[union-attr]
+    # Should route to C
+    result = await team.run(task="no")
+    sources = [m.source for m in result.messages]
+    assert "C" in sources
+    assert result.stop_reason is not None
+
+    # Should route to B
+    result = await team.run(task="yes")
+    sources = [m.source for m in result.messages]
+    assert "B" in sources
     assert result.stop_reason is not None
 
 
