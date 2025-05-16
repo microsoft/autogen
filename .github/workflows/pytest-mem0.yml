@@ -19,23 +19,13 @@ jobs:
           - 7474:7474   # HTTP
           - 7687:7687   # BOLT
         env:
-          NEO4J_AUTH: neo4j/test
+          NEO4J_AUTH: neo4j/00000000
         options: >-
           --health-cmd "curl http://localhost:7474 || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
-      chromadb:
-        image: chromadb/chroma:latest
-        ports:
-          - 8000:8000
-        options: >-
-          --health-cmd "curl http://localhost:8000/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
@@ -43,7 +33,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
