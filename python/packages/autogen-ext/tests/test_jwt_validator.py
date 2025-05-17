@@ -1,21 +1,18 @@
-from typing import Any, Generator
-import pytest
-import jwt
 import time
-from unittest.mock import AsyncMock, patch, MagicMock
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
+from typing import Any, Generator
+from unittest.mock import MagicMock, patch
 
+import jwt
+import pytest
 from autogen_ext.oauthtokenvalidation import JwtValidator, TokenValidatorConfig
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 
 @pytest.fixture
 def private_key() -> rsa.RSAPrivateKey:
     """Generate a private key for signing JWT tokens in tests."""
-    key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048
-    )
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     return key
 
 
@@ -28,7 +25,7 @@ def public_key(private_key: rsa.RSAPrivateKey) -> rsa.RSAPublicKey:
 @pytest.fixture
 def mock_jwk_client() -> Generator[MagicMock, None, None]:
     """Mock PyJWKClient to avoid real HTTP calls."""
-    with patch('jwt.PyJWKClient') as mock:
+    with patch("jwt.PyJWKClient") as mock:
         yield mock
 
 
@@ -40,7 +37,7 @@ def valid_token_payload() -> dict[str, Any]:
         "sub": "test-subject",
         "aud": "test-audience",
         "exp": int(time.time()) + 3600,
-        "iat": int(time.time())
+        "iat": int(time.time()),
     }
 
 
@@ -52,7 +49,7 @@ def expired_token_payload() -> dict[str, Any]:
         "sub": "test-subject",
         "aud": "test-audience",
         "exp": int(time.time()) - 3600,  # Expired 1 hour ago
-        "iat": int(time.time()) - 7200
+        "iat": int(time.time()) - 7200,
     }
 
 
@@ -79,40 +76,44 @@ def token_validator(mock_jwk_client: MagicMock) -> JwtValidator:
         jwks_uri="https://test-jwks-uri.com",
         issuer="https://test-issuer.com",
         audience="test-audience",
-        algorithms=["RS256"]
+        algorithms=["RS256"],
     )
     return validator
 
 
-def create_token(payload: dict[str, Any], private_key: rsa.RSAPrivateKey) -> str:  
+def create_token(payload: dict[str, Any], private_key: rsa.RSAPrivateKey) -> str:
     """Helper to create a JWT token for testing."""
     return jwt.encode(
         payload,
         private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         ),
-        algorithm="RS256"
+        algorithm="RS256",
     )
 
 
 @pytest.mark.asyncio
-async def test_validate_valid_token(token_validator: JwtValidator, valid_token_payload: dict[str, Any], private_key: rsa.RSAPrivateKey, public_key: rsa.RSAPublicKey) -> None:
+async def test_validate_valid_token(
+    token_validator: JwtValidator,
+    valid_token_payload: dict[str, Any],
+    private_key: rsa.RSAPrivateKey,
+    public_key: rsa.RSAPublicKey,
+) -> None:
     """Test that a valid token is correctly validated."""
     # Create a valid token
     token = create_token(valid_token_payload, private_key)
-    
+
     # Mock the signing key retrieval
     mock_signing_key = public_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
+        encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
-    
-    with patch.object(token_validator, 'async_get_signing_key', return_value=mock_signing_key):
+
+    with patch.object(token_validator, "async_get_signing_key", return_value=mock_signing_key):
         # Validate the token
         claims = await token_validator(token)
-        
+
         # Assert the claims are as expected
         assert claims["iss"] == valid_token_payload["iss"]
         assert claims["sub"] == valid_token_payload["sub"]
@@ -120,54 +121,66 @@ async def test_validate_valid_token(token_validator: JwtValidator, valid_token_p
 
 
 @pytest.mark.asyncio
-async def test_validate_expired_token(token_validator: JwtValidator, expired_token_payload: dict[str, Any], private_key: rsa.RSAPrivateKey, public_key: rsa.RSAPublicKey) -> None:
+async def test_validate_expired_token(
+    token_validator: JwtValidator,
+    expired_token_payload: dict[str, Any],
+    private_key: rsa.RSAPrivateKey,
+    public_key: rsa.RSAPublicKey,
+) -> None:
     """Test that an expired token raises ExpiredSignatureError."""
     # Create an expired token
     token = create_token(expired_token_payload, private_key)
-    
+
     # Mock the signing key retrieval with a proper public key
     mock_signing_key = public_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
+        encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
-    
-    with patch.object(token_validator, 'async_get_signing_key', return_value=mock_signing_key):
+
+    with patch.object(token_validator, "async_get_signing_key", return_value=mock_signing_key):
         # Expect ExpiredSignatureError
         with pytest.raises(jwt.ExpiredSignatureError):
             await token_validator(token)
 
 
 @pytest.mark.asyncio
-async def test_validate_wrong_audience(token_validator: JwtValidator, wrong_audience_token_payload: dict[str, Any], private_key: rsa.RSAPrivateKey, public_key: rsa.RSAPublicKey) -> None:
+async def test_validate_wrong_audience(
+    token_validator: JwtValidator,
+    wrong_audience_token_payload: dict[str, Any],
+    private_key: rsa.RSAPrivateKey,
+    public_key: rsa.RSAPublicKey,
+) -> None:
     """Test that a token with wrong audience raises InvalidAudienceError."""
     # Create a token with wrong audience
     token = create_token(wrong_audience_token_payload, private_key)
-    
+
     # Mock the signing key retrieval
     mock_signing_key = public_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
+        encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
-    
-    with patch.object(token_validator, 'async_get_signing_key', return_value=mock_signing_key):
+
+    with patch.object(token_validator, "async_get_signing_key", return_value=mock_signing_key):
         # Expect InvalidAudienceError
         with pytest.raises(jwt.InvalidAudienceError):
             await token_validator(token)
 
 
 @pytest.mark.asyncio
-async def test_validate_wrong_issuer(token_validator: JwtValidator, wrong_issuer_token_payload: dict[str, Any], private_key: rsa.RSAPrivateKey, public_key: rsa.RSAPublicKey) -> None:
+async def test_validate_wrong_issuer(
+    token_validator: JwtValidator,
+    wrong_issuer_token_payload: dict[str, Any],
+    private_key: rsa.RSAPrivateKey,
+    public_key: rsa.RSAPublicKey,
+) -> None:
     """Test that a token with wrong issuer raises InvalidIssuerError."""
     # Create a token with wrong issuer
     token = create_token(wrong_issuer_token_payload, private_key)
-    
+
     # Mock the signing key retrieval
     mock_signing_key = public_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
+        encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
-    
-    with patch.object(token_validator, 'async_get_signing_key', return_value=mock_signing_key):
+
+    with patch.object(token_validator, "async_get_signing_key", return_value=mock_signing_key):
         # Expect InvalidIssuerError
         with pytest.raises(jwt.InvalidIssuerError):
             await token_validator(token)
@@ -180,20 +193,20 @@ async def test_async_get_signing_key(token_validator: JwtValidator) -> None:
     mock_key = MagicMock()
     mock_signing_key = MagicMock()
     mock_signing_key.key = mock_key
-    token_validator.jwk_client.get_signing_key_from_jwt = MagicMock(return_value=mock_signing_key) # type: ignore
-    
+    token_validator.jwk_client.get_signing_key_from_jwt = MagicMock(return_value=mock_signing_key)  # type: ignore
+
     # Call the method
     result = await token_validator.async_get_signing_key("test-token")
-    
+
     # Assert
     assert result == mock_key
     token_validator.jwk_client.get_signing_key_from_jwt.assert_called_once_with("test-token")
 
 
 def test_to_config(token_validator: JwtValidator) -> None:
-    """Test the _to_config method."""
-    config = token_validator._to_config()
-    
+    """Test the to_config method."""
+    config = token_validator.to_config()
+
     assert config.validator_kind == "JwtValidator"
     assert config.jwks_uri == "https://test-jwks-uri.com"
     assert config.issuer == "https://test-issuer.com"
@@ -202,17 +215,17 @@ def test_to_config(token_validator: JwtValidator) -> None:
 
 
 def test_from_config() -> None:
-    """Test the _from_config method."""
+    """Test the from_config method."""
     config = TokenValidatorConfig(
         validator_kind="JwtValidator",
         jwks_uri="https://test-jwks-uri.com",
         issuer="https://test-issuer.com",
         audience="test-audience",
-        algorithms=["RS256"]
+        algorithms=["RS256"],
     )
-    
-    validator = JwtValidator._from_config(config)
-    
+
+    validator = JwtValidator.from_config(config)
+
     assert validator.jwks_uri == "https://test-jwks-uri.com"
     assert validator.issuer == "https://test-issuer.com"
     assert validator.audience == "test-audience"
@@ -220,14 +233,14 @@ def test_from_config() -> None:
 
 
 def test_from_config_invalid_kind() -> None:
-    """Test the _from_config method with invalid validator_kind."""
+    """Test the from_config method with invalid validator_kind."""
     config = TokenValidatorConfig(
         validator_kind="InvalidValidator",
         jwks_uri="https://test-jwks-uri.com",
         issuer="https://test-issuer.com",
         audience="test-audience",
-        algorithms=["RS256"]
+        algorithms=["RS256"],
     )
-    
+
     with pytest.raises(ValueError, match="Unsupported validator_kind"):
-        JwtValidator._from_config(config)
+        JwtValidator.from_config(config)
