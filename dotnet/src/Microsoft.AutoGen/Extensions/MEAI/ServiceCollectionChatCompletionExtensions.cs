@@ -89,7 +89,7 @@ public static class ServiceCollectionChatClientExtensions
             .AddChatClient(service =>
             {
                 var openAiClient = service.GetRequiredService<OpenAIClient>();
-                return openAiClient.AsChatClient(modelOrDeploymentName);
+                return openAiClient.GetChatClient(modelOrDeploymentName).AsIChatClient();
             });
 
         return services;
@@ -112,7 +112,7 @@ public static class ServiceCollectionChatClientExtensions
         var endpoint = $"{serviceName}:Endpoint" ?? throw new InvalidOperationException($"No endpoint was specified for the Azure Inference Chat Client");
         var endpointUri = string.IsNullOrEmpty(endpoint) ? null : new Uri(endpoint);
         var token = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new InvalidOperationException("No model access token was found in the environment variable AZURE_OPENAI_API_KEY");
-        var chatClient = new ChatCompletionsClient(endpointUri, new AzureKeyCredential(token)).AsChatClient(modelOrDeploymentName);
+        var chatClient = new ChatCompletionsClient(endpointUri, new AzureKeyCredential(token)).AsIChatClient(modelOrDeploymentName);
         hostBuilder.Services.AddChatClient(chatClient);
 
         return hostBuilder.Services;
