@@ -109,7 +109,7 @@ async def executor_and_temp_dir(
     request: pytest.FixtureRequest,
 ) -> AsyncGenerator[tuple[LocalCommandLineCodeExecutor, str], None]:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, cleanup_temp_files=False)
         await executor.start()
         yield executor, temp_dir
 
