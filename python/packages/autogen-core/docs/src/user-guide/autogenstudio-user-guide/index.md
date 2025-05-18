@@ -12,9 +12,10 @@ myst:
 
 AutoGen Studio is a low-code interface built to help you rapidly prototype AI agents, enhance them with tools, compose them into teams and interact with them to accomplish tasks. It is built on [AutoGen AgentChat](https://microsoft.github.io/autogen) - a high-level API for building multi-agent applications.
 
-> See a video tutorial on AutoGen Studio v0.4 (02/25) - [https://youtu.be/oum6EI7wohM](https://youtu.be/oum6EI7wohM)
+> See a video tutorial on **AutoGen Studio v0.5 (05/25)** - [https://youtu.be/Z0J4Hdo_d78](https://youtu.be/Z0J4Hdo_d78)
 
-[![A Friendly Introduction to AutoGen Studio v0.4](https://img.youtube.com/vi/oum6EI7wohM/maxresdefault.jpg)](https://www.youtube.com/watch?v=oum6EI7wohM)
+[![Introduction to AutoGen Studio v0.5 | Build AI Agents 🤖 from Scratch](https://img.youtube.com/vi/Z0J4Hdo_d78/maxresdefault.jpg)](https://youtu.be/Z0J4Hdo_d78)
+
 
 Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-studio)
 
