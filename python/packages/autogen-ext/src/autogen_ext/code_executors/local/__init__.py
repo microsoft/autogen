@@ -158,6 +158,7 @@ $functions"""
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
+        self._timeout = timeout
 
         self._work_dir: Optional[Path] = None
         if work_dir is not None:
@@ -174,13 +175,6 @@ $functions"""
                 self._work_dir = work_dir
             self._work_dir.mkdir(exist_ok=True)
 
-        if not functions_module.isidentifier():
-            raise ValueError("Module name must be a valid Python identifier")
-
-        self._functions_module = functions_module
-
-        self._timeout = timeout
-
         self._functions = functions
         # Setup could take some time so we intentionally wait for the first code block to do it.
         if len(functions) > 0:
@@ -188,8 +182,11 @@ $functions"""
         else:
             self._setup_functions_complete = True
 
-        self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
+        if not functions_module.isidentifier():
+            raise ValueError("Module name must be a valid Python identifier")
+        self._functions_module = functions_module
 
+        self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
         self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
         self._started = False
 
@@ -229,15 +226,6 @@ $functions"""
         )
 
     @property
-    def functions_module(self) -> str:
-        """(Experimental) The module name for the functions."""
-        return self._functions_module
-
-    @property
-    def functions(self) -> List[str]:
-        raise NotImplementedError
-
-    @property
     def timeout(self) -> int:
         """(Experimental) The timeout for code execution."""
         return self._timeout
@@ -253,6 +241,15 @@ $functions"""
                 self._temp_dir = tempfile.TemporaryDirectory()
                 self._started = True
             return Path(self._temp_dir.name)
+        
+    @property
+    def functions(self) -> List[str]:
+        raise NotImplementedError
+    
+    @property
+    def functions_module(self) -> str:
+        """(Experimental) The module name for the functions."""
+        return self._functions_module
 
     async def _setup_functions(self, cancellation_token: CancellationToken) -> None:
         func_file_content = build_python_functions_file(self._functions)
