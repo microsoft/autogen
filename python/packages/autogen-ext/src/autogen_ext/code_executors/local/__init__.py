@@ -79,6 +79,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
             a default working directory will be used. The default working directory is a temporary directory.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
+        cleanup_temp_files (bool, optional): Whether to automatically clean up temporary files after execution. Defaults to True.
         virtual_env_context (Optional[SimpleNamespace], optional): The virtual environment context. Defaults to None.
 
     .. note::
