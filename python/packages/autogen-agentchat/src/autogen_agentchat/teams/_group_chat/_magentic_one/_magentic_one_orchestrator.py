@@ -237,7 +237,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._n_rounds = orchestrator_state.n_rounds
         self._n_stalls = orchestrator_state.n_stalls
 
-    async def select_speakers(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
+    async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:
         """Not used in this orchestrator, we select next speaker in _orchestrate_step."""
         return [""]
 

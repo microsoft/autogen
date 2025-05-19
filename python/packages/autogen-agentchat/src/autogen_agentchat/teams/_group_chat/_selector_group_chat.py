@@ -150,7 +150,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         base_chat_messages = [m for m in messages if isinstance(m, BaseChatMessage)]
         await self._add_messages_to_context(self._model_context, base_chat_messages)
 
-    async def select_speakers(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
+    async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:
         """Selects the next speaker in a group chat using a ChatCompletion client,
         with the selector function as override if it returns a speaker name.
 

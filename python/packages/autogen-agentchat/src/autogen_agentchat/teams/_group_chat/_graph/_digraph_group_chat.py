@@ -256,7 +256,7 @@ class GraphFlowManager(BaseGroupChatManager):
                     self._ready.append(edge.target)
                     self._enqueued_any[edge.target] = True
 
-    async def select_speakers(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
+    async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
         # Drain the ready queue for the next set of speakers.
         speakers: List[str] = []
         while self._ready:

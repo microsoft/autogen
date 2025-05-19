@@ -160,10 +160,13 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             raise
 
     async def _transition_to_next_speakers(self, cancellation_token: CancellationToken) -> None:
-        speaker_names_future = asyncio.ensure_future(self.select_speakers(self._message_thread))
+        speaker_names_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
         # Link the select speaker future to the cancellation token.
         cancellation_token.link_future(speaker_names_future)
         speaker_names = await speaker_names_future
+        if isinstance(speaker_names, str):
+            # If only one speaker is selected, convert it to a list.
+            speaker_names = [speaker_names]
         for speaker_name in speaker_names:
             if speaker_name not in self._participant_name_to_topic_type:
                 raise RuntimeError(f"Speaker {speaker_name} not found in participant names.")
@@ -290,10 +293,18 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._message_thread.extend(messages)
 
     @abstractmethod
-    async def select_speakers(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
+    async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:
         """Select speakers from the participants and return the topic types of the selected speaker.
         This is called when the group chat manager have received all responses from the participants
-        for a turn and is ready to select the next speakers for the next turn."""
+        for a turn and is ready to select the next speakers for the next turn.
+
+        Args:
+            thread: The message thread of the group chat.
+
+        Returns:
+            A list of topic types of the selected speakers.
+            If only one speaker is selected, a single string is returned instead of a list.
+        """
         ...
 
     @abstractmethod
