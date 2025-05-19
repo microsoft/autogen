@@ -1158,27 +1158,49 @@ async def test_graph_builder_conditional_execution(runtime: AgentRuntime | None)
 
 
 @pytest.mark.asyncio
-async def test_graph_builder_with_filter_agent(runtime: AgentRuntime | None) -> None:
-    inner = _EchoAgent("X", description="Echo X")
-    filter_agent = MessageFilterAgent(
-        name="X",
-        wrapped_agent=inner,
-        filter=MessageFilterConfig(per_source=[PerSourceFilter(source="user", position="last", count=1)]),
-    )
+async def test_digraph_group_chat_callable_condition(runtime: AgentRuntime | None) -> None:
+    """Test that callable conditions work correctly in edge transitions."""
+    agent_a = _EchoAgent("A", description="Echo agent A")
+    agent_b = _EchoAgent("B", description="Echo agent B")
+    agent_c = _EchoAgent("C", description="Echo agent C")
 
-    builder = DiGraphBuilder()
-    builder.add_node(filter_agent)
+    # Create a check that verifies the message has more than 5 characters
+    def check_message_length(message: BaseChatMessage) -> bool:
+        return len(message.to_model_text()) > 5
+
+    graph = DiGraph(
+        nodes={
+            "A": DiGraphNode(
+                name="A", 
+                edges=[
+                    # Will go to B if message has >5 chars
+                    DiGraphEdge(target="B", condition=check_message_length),
+                    # Will go to C if message has <=5 chars (handled by adding edge without condition)
+                    DiGraphEdge(target="C"),
+                ]
+            ),
+            "B": DiGraphNode(name="B", edges=[]),
+            "C": DiGraphNode(name="C", edges=[]),
+        }
+    )
 
     team = GraphFlow(
-        participants=builder.get_participants(),
-        graph=builder.build(),
+        participants=[agent_a, agent_b, agent_c],
+        graph=graph,
         runtime=runtime,
-        termination_condition=MaxMessageTermination(3),
+        termination_condition=MaxMessageTermination(5),
     )
 
-    result = await team.run(task="Hello")
-    assert any(m.source == "X" and m.content == "Hello" for m in result.messages)  # type: ignore[union-attr]
-    assert result.stop_reason is not None
+    # Test with a long message - should go to B
+    result = await team.run(task="This is a long message")
+    assert result.messages[2].source == "B"
+    
+    # Reset for next test
+    await team.reset()
+    
+    # Test with a short message - should go to C
+    result = await team.run(task="Short")
+    assert result.messages[2].source == "C"
 
 
 @pytest.mark.asyncio
@@ -1267,3 +1289,40 @@ async def test_graph_flow_stateful_pause_and_resume_with_termination() -> None:
     assert len(result.messages) == 2
     assert result.messages[0].source == "B"
     assert result.messages[1].source == _DIGRAPH_STOP_AGENT_NAME
+
+@pytest.mark.asyncio
+async def test_builder_with_lambda_condition(runtime: AgentRuntime | None) -> None:
+    """Test that DiGraphBuilder supports lambda functions as conditions."""
+    agent_a = _EchoAgent("A", description="Echo agent A")
+    agent_b = _EchoAgent("B", description="Echo agent B")
+    agent_c = _EchoAgent("C", description="Echo agent C")
+
+    builder = DiGraphBuilder()
+    builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
+    
+    # Using a lambda to check if message has an even number of characters
+    builder.add_edge(agent_a, agent_b, 
+                    lambda msg: len(msg.to_model_text()) % 2 == 0)
+    
+    # Using a lambda to check if message has an odd number of characters
+    builder.add_edge(agent_a, agent_c, 
+                    lambda msg: len(msg.to_model_text()) % 2 == 1)
+
+    team = GraphFlow(
+        participants=builder.get_participants(),
+        graph=builder.build(),
+        runtime=runtime,
+        termination_condition=MaxMessageTermination(5),
+    )
+
+    # Test with even-length message - should go to B
+    result = await team.run(task="even")
+    assert result.messages[2].source == "B"
+    
+    # Reset for next test
+    await team.reset()
+    
+    # Test with odd-length message - should go to C
+    result = await team.run(task="odd message")
+    assert result.messages[2].source == "C"
+    

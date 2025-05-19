@@ -1,9 +1,9 @@
 import asyncio
 from collections import Counter, deque
-from typing import Any, Callable, Deque, Dict, List, Literal, Mapping, Sequence, Set
+from typing import Any, Callable, Deque, Dict, List, Literal, Mapping, Sequence, Set, Union
 
 from autogen_core import AgentRuntime, CancellationToken, Component, ComponentModel
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from typing_extensions import Self
 
 from autogen_agentchat.agents import BaseChatAgent
@@ -37,12 +37,42 @@ class DiGraphEdge(BaseModel):
     """
 
     target: str  # Target node name
-    condition: str | None = None  # Optional execution condition (trigger-based)
+    condition: Union[str, Callable[[BaseChatMessage], bool], None] = None
     """(Experimental) Condition to execute this edge.
-    If None, the edge is unconditional. If a string, the edge is conditional on the presence of that string in the last agent chat message.
-    NOTE: This is an experimental feature WILL change in the future releases to allow for better spcification of branching conditions
-    similar to the `TerminationCondition` class.
+    If None, the edge is unconditional.
+    If a string, the edge is conditional on the presence of that string in the last agent chat message.
+    If a callable, the edge is conditional on the callable returning True when given the last message.
     """
+    
+    # Using Field to exclude the condition in serialization if it's a callable
+    _condition_function: Callable[[BaseChatMessage], bool] | None = Field(default=None, exclude=True)
+
+    @model_validator(mode='after')
+    def _validate_condition(self) -> 'DiGraphEdge':
+        # Store callable in a separate field and set condition to a string marker
+        if callable(self.condition):
+            self._condition_function = self.condition
+            # For serialization purposes, we'll set the condition to None
+            # when storing as a pydantic model/dict
+            object.__setattr__(self, 'condition', None)
+        return self
+    
+    def check_condition(self, message: BaseChatMessage) -> bool:
+        """Check if the edge condition is satisfied for the given message.
+        
+        Args:
+            message: The message to check the condition against.
+            
+        Returns:
+            True if condition is satisfied (None condition always returns True),
+            False otherwise.
+        """
+        if self._condition_function is not None:
+            return self._condition_function(message)
+        elif isinstance(self.condition, str):
+            # If it's a string, check if the string is in the message content
+            return self.condition in message.to_model_text()
+        return True  # None condition is always satisfied
 
 
 class DiGraphNode(BaseModel):
@@ -243,7 +273,8 @@ class GraphFlowManager(BaseGroupChatManager):
 
         # Propagate the update to the children of the node.
         for edge in self._edges[source]:
-            if edge.condition and edge.condition not in content:
+            # Use the new check_condition method that handles both string and callable conditions
+            if not edge.check_condition(message):
                 continue
             if self._activation[edge.target] == "all":
                 self._remaining[edge.target] -= 1

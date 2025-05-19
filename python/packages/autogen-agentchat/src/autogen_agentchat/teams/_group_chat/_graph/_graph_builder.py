@@ -1,6 +1,7 @@
-from typing import Dict, Literal, Optional, Union
+from typing import Callable, Dict, Literal, Optional, Union
 
 from autogen_agentchat.base import ChatAgent
+from autogen_agentchat.messages import BaseChatMessage
 
 from ._digraph_group_chat import DiGraph, DiGraphEdge, DiGraphNode
 
@@ -22,7 +23,7 @@ class DiGraphBuilder:
     - Cyclic loops with safe exits
 
     Each node in the graph represents an agent. Edges define execution paths between agents,
-    and can optionally be conditioned on message content.
+    and can optionally be conditioned on message content or custom callable conditions.
 
     The builder is compatible with the `Graph` runner and supports both standard and filtered agents.
 
@@ -53,6 +54,16 @@ class DiGraphBuilder:
         >>> builder = GraphBuilder()
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
         >>> builder.add_conditional_edges(agent_a, {"yes": agent_b, "no": agent_c})
+        
+    Example — Using Custom Callable Conditions:
+        >>> builder = GraphBuilder()
+        >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
+        >>> # Lambda function to check if message has more than 100 characters
+        >>> builder.add_edge(agent_a, agent_b, 
+        ...                  lambda msg: len(msg.to_model_text()) > 100)
+        >>> # Lambda function to check if message contains a specific phrase
+        >>> builder.add_edge(agent_a, agent_c, 
+        ...                  lambda msg: "error" in msg.to_model_text().lower())
 
     Example — Loop: A → B → A ("loop"), B → C ("exit"):
         >>> builder = GraphBuilder()
@@ -78,9 +89,23 @@ class DiGraphBuilder:
         return self
 
     def add_edge(
-        self, source: Union[str, ChatAgent], target: Union[str, ChatAgent], condition: Optional[str] = None
+        self, source: Union[str, ChatAgent], target: Union[str, ChatAgent], condition: Optional[Union[str, Callable[[BaseChatMessage], bool]]] = None
     ) -> "DiGraphBuilder":
-        """Add a directed edge from source to target, optionally with a condition."""
+        """Add a directed edge from source to target, optionally with a condition.
+        
+        Args:
+            source: Source node (agent name or agent object)
+            target: Target node (agent name or agent object)
+            condition: Optional condition for edge activation.
+                If string, activates when substring is found in message.
+                If callable, activates when function returns True for the message.
+        
+        Returns:
+            Self for method chaining
+        
+        Raises:
+            ValueError: If source or target node doesn't exist in the builder
+        """
         source_name = self._get_name(source)
         target_name = self._get_name(target)
 
@@ -95,7 +120,17 @@ class DiGraphBuilder:
     def add_conditional_edges(
         self, source: Union[str, ChatAgent], condition_to_target: Dict[str, Union[str, ChatAgent]]
     ) -> "DiGraphBuilder":
-        """Add multiple conditional edges from a source node based on condition strings."""
+        """Add multiple conditional edges from a source node based on condition strings.
+        
+        Args:
+            source: Source node (agent name or agent object)
+            condition_to_target: Mapping from condition strings to target nodes
+                Each key is a condition string that must be present in the message
+                Each value is the target node to activate when condition is met
+        
+        Returns:
+            Self for method chaining
+        """
         for condition, target in condition_to_target.items():
             self.add_edge(source, target, condition)
         return self
