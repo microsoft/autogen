@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, ClassVar, Dict, List, Optional
 
 import jwt
@@ -62,7 +63,9 @@ class JwtValidator(ComponentBase[TokenValidatorConfig], Component[TokenValidator
     component_config_schema = TokenValidatorConfig
     component_provider_override = "jwt_validator"
 
-    def __init__(self, jwks_uri: str, issuer: str, audience: str, algorithms: Optional[list[str]] = None):
+    def __init__(self, jwks_uri: str, issuer: str, audience: str, algorithms: Optional[list[str]] = None, 
+                 enabl_keys_cache: bool = False,
+                 lifespan: int = 300) -> None:
         """
         Initialize the JWT validator.
 
@@ -72,6 +75,9 @@ class JwtValidator(ComponentBase[TokenValidatorConfig], Component[TokenValidator
             audience (str): Expected audience of the JWT token.
             algorithms (List[str], optional): List of allowed signing algorithms.
                 Defaults to ["RS256"].
+            enabl_keys_cache (bool, optional): Whether to cache the result from the jwks_url. Caching key will be the issuer. 
+                Defaults to False.
+            lifespan (int, optional): Lifespan of the JWK set cache in seconds. Defaults to 300 seconds (5 minutes).
         """
 
         if algorithms is None:
@@ -81,7 +87,8 @@ class JwtValidator(ComponentBase[TokenValidatorConfig], Component[TokenValidator
         self.issuer = issuer
         self.audience = audience
         self.algorithms = algorithms
-        self.jwk_client = PyJWKClient(jwks_uri)
+        self.lifespan = lifespan
+        self.jwk_client = PyJWKClient(jwks_uri, lifespan=lifespan, cache_jwk_set=enabl_keys_cache)
 
     async def async_get_signing_key(self, token: str) -> Any:
         """
@@ -98,18 +105,23 @@ class JwtValidator(ComponentBase[TokenValidatorConfig], Component[TokenValidator
         """
         # Since PyJWKClient doesn't have native async support,
         # we're still using the synchronous method but in an async context
-        return self.jwk_client.get_signing_key_from_jwt(token).key
+        
+        loop = asyncio.get_running_loop()
+        pyjwk = await loop.run_in_executor(None, self.jwk_client.get_signing_key_from_jwt, token)
+        return pyjwk.key
 
-    async def __call__(self, token: str) -> Dict[str, Any]:
+    async def __call__(self, token: str, required_claims: Optional[list[str]] = None) -> Dict[str, Any]:
         """
         Asynchronously validate and decode the JWT token.
 
         This makes the JwtValidator instance callable. When called with a token,
         it validates and decodes the token, checking the signature, expiration,
-        issuer, and audience claims according to the configured values.
+        issuer, and audience claims, validating required custom claims according to the configured values.
+    
 
         Args:
             token (str): The JWT token string to validate and decode.
+            required_claims (Optional[list[str]]): List of required claims.
 
         Returns:
             Dict[str, Any]: The decoded token claims if validation succeeds.
@@ -120,9 +132,34 @@ class JwtValidator(ComponentBase[TokenValidatorConfig], Component[TokenValidator
         """
         signing_key = await self.async_get_signing_key(token)
 
-        claims = jwt.decode(token, signing_key, algorithms=self.algorithms, audience=self.audience, issuer=self.issuer)
+        claims = jwt.decode(token, signing_key, algorithms=self.algorithms, audience=self.audience, issuer=self.issuer, 
+                            options=self._convert_to_required_options(required_claims))
+        
         return claims  # type: ignore
 
+    
+    def _convert_to_required_options(self, required_claims: Optional[list[str]]) -> Dict[str, list[str]]:
+        """
+        Convert the required claims to JWT decode options.
+
+        Args:
+            required_claims (Optional[list[str]]): List of required claims.
+
+        Returns:
+            Dict[str, Any]: Options for JWT decode.
+        """
+        
+        options: Dict[str, list[str]] = {}
+        
+        if not required_claims:
+            options["require"] = []
+            return options
+        
+        if required_claims:
+            options["require"] = required_claims
+            
+        return options
+    
     def to_config(self) -> TokenValidatorConfig:
         """
         Convert the validator instance to a configuration object.

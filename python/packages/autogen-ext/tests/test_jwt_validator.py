@@ -1,6 +1,6 @@
 import time
 from typing import Any, Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 
 import jwt
 import pytest
@@ -23,7 +23,7 @@ def public_key(private_key: rsa.RSAPrivateKey) -> rsa.RSAPublicKey:
 
 
 @pytest.fixture
-def mock_jwk_client() -> Generator[MagicMock, None, None]:
+def mock_jwk_client() -> Generator[AsyncMock, None, None]:
     """Mock PyJWKClient to avoid real HTTP calls."""
     with patch("jwt.PyJWKClient") as mock:
         yield mock
@@ -70,7 +70,7 @@ def wrong_issuer_token_payload(valid_token_payload: dict[str, Any]) -> dict[str,
 
 
 @pytest.fixture
-def token_validator(mock_jwk_client: MagicMock) -> JwtValidator:
+def token_validator() -> JwtValidator:
     """Create a token validator instance with mock JWKS client."""
     validator = JwtValidator(
         jwks_uri="https://test-jwks-uri.com",
@@ -119,6 +119,29 @@ async def test_validate_valid_token(
         assert claims["sub"] == valid_token_payload["sub"]
         assert claims["aud"] == valid_token_payload["aud"]
 
+
+@pytest.mark.asyncio
+async def test_validate_token_with_missing_claims(
+    token_validator: JwtValidator,
+    valid_token_payload: dict[str, Any],
+    private_key: rsa.RSAPrivateKey,
+    public_key: rsa.RSAPublicKey,
+) -> None:
+    """Test that a valid a token with required claims will fail."""
+    # Create a valid token
+    token = create_token(valid_token_payload, private_key)
+
+    # Mock the signing key retrieval
+    mock_signing_key = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+
+    with patch.object(token_validator, "async_get_signing_key", return_value=mock_signing_key):
+        # Validate the token
+        with pytest.raises(jwt.MissingRequiredClaimError):
+            await token_validator(token, required_claims=["claim1"])
+
+        # Assert the claims are as expected
 
 @pytest.mark.asyncio
 async def test_validate_expired_token(
