@@ -143,6 +143,7 @@ async def test_validate_token_with_missing_claims(
 
         # Assert the claims are as expected
 
+
 @pytest.mark.asyncio
 async def test_validate_expired_token(
     token_validator: JwtValidator,
