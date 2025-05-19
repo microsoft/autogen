@@ -33,6 +33,7 @@ from autogen_agentchat.teams._group_chat._graph._digraph_group_chat import (
 from autogen_core import AgentRuntime, CancellationToken, Component, SingleThreadedAgentRuntime
 from autogen_ext.models.replay import ReplayChatCompletionClient
 from pydantic import BaseModel
+from utils import compare_message_lists, compare_task_results
 
 
 def test_create_digraph() -> None:
@@ -1428,10 +1429,10 @@ async def test_graph_flow_serialize_deserialize() -> None:
     de_results = await deserialized_team.run(task="Start")
 
     assert serialized == serialized_deserialized
-    assert results == de_results
+    assert compare_task_results(results, de_results)
     assert results.stop_reason is not None
     assert results.stop_reason == de_results.stop_reason
-    assert results.messages == de_results.messages
+    assert compare_message_lists(results.messages, de_results.messages)
     assert isinstance(results.messages[0], TextMessage)
     assert results.messages[0].source == "user"
     assert results.messages[0].content == "Start"
