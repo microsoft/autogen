@@ -1,3 +1,4 @@
 autogen-agentchat
 autogen-ext
 pyyaml
+graphrag>=2.2.1
