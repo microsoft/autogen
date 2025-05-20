@@ -1175,8 +1175,8 @@ async def test_digraph_group_chat_callable_condition(runtime: AgentRuntime | Non
                 edges=[
                     # Will go to B if message has >5 chars
                     DiGraphEdge(target="B", condition=check_message_length),
-                    # Will go to C if message has <=5 chars (handled by adding edge without condition)
-                    DiGraphEdge(target="C"),
+                    # Will go to C if message has <=5 chars
+                    DiGraphEdge(target="C", condition=lambda msg: len(msg.to_model_text()) <= 5),
                 ]
             ),
             "B": DiGraphNode(name="B", edges=[]),
