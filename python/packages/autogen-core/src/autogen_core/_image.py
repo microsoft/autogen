@@ -8,7 +8,7 @@ from typing import Any, Dict, cast
 
 from PIL import Image as PILImage
 from pydantic import GetCoreSchemaHandler, ValidationInfo
-from pydantic_core import core_schema
+from pydantic_core import core_schema, ValidationError
 from typing_extensions import Literal
 
 
@@ -94,7 +94,19 @@ class Image:
             elif isinstance(value, cls):
                 return value
             else:
-                raise TypeError(f"Expected dict or {cls.__name__} instance, got {type(value)}")
+                # Instead of raising TypeError, raise pydantic_core.ValidationError
+                # This allows Pydantic's Union logic to try other types.
+                raise ValidationError.from_exception_data(
+                    title=cls.__name__,
+                    line_errors=[
+                        {
+                            "type": "model_type",
+                            "loc": ("Image",),
+                            "input": value,
+                            "ctx": {"class_name": cls.__name__},
+                        }
+                    ],
+                )
 
         # Custom serialization
         def serialize(value: Image) -> dict[str, Any]:
@@ -102,7 +114,7 @@ class Image:
 
         return core_schema.with_info_after_validator_function(
             validate,
-            core_schema.any_schema(),  # Accept any type; adjust if needed
+            core_schema.any_schema(),  # Accept any input, validator does the work
             serialization=core_schema.plain_serializer_function_ser_schema(serialize),
         )
 

@@ -32,6 +32,7 @@ from autogen_core import (
     Component,
     FunctionCall,
     Image,
+    File,
 )
 from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
@@ -1051,6 +1052,79 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
     def total_usage(self) -> RequestUsage:
         return self._total_usage
+        
+    async def upload_file(self, file_path: str, purpose: str = "user_data") -> str:
+        """上传文件到OpenAI API。
+        
+        Args:
+            file_path: 要上传的文件路径
+            purpose: 文件用途，通常为"user_data"
+            
+        Returns:
+            str: 上传成功的文件ID
+        """
+        with open(file_path, "rb") as file:
+            response = await self._client.files.create(
+                file=file,
+                purpose=purpose
+            )
+        
+        return response.id
+    
+    async def list_files(self, purpose: Optional[str] = None) -> List[Dict]:
+        """获取已上传文件列表。
+        
+        Args:
+            purpose: 可选，按用途筛选文件
+            
+        Returns:
+            List[Dict]: 文件信息字典列表
+        """
+        response = await self._client.files.list(purpose=purpose)
+        return [file.model_dump() for file in response.data]
+    
+    async def get_file(self, file_id: str) -> Dict:
+        """获取指定文件的信息。
+        
+        Args:
+            file_id: 文件ID
+            
+        Returns:
+            Dict: 文件信息字典
+        """
+        response = await self._client.files.retrieve(file_id)
+        return response.model_dump()
+    
+    async def delete_file(self, file_id: str) -> bool:
+        """删除指定文件。
+        
+        Args:
+            file_id: 文件ID
+            
+        Returns:
+            bool: 删除成功返回True
+        """
+        response = await self._client.files.delete(file_id)
+        return response.deleted
+    
+    async def download_file(self, file_id: str, output_path: Optional[str] = None) -> bytes:
+        """下载文件内容。
+        
+        Args:
+            file_id: 文件ID
+            output_path: 可选，输出路径。如果提供，会将文件保存到该路径
+            
+        Returns:
+            bytes: 文件内容
+        """
+        response = await self._client.files.content(file_id)
+        content = await response.read()
+        
+        if output_path:
+            with open(output_path, "wb") as f:
+                f.write(content)
+        
+        return content
 
     def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         return count_tokens_openai(

@@ -37,6 +37,7 @@ from ._constants import (
 from ._default_subscription import DefaultSubscription, default_subscription, type_subscription
 from ._default_topic import DefaultTopicId
 from ._image import Image
+from ._file import File
 from ._intervention import (
     DefaultInterventionHandler,
     DropMessage,
@@ -100,6 +101,7 @@ __all__ = [
     "try_get_known_serializers_for_type",
     "UnknownPayload",
     "Image",
+    "File",
     "RoutedAgent",
     "ClosureAgent",
     "ClosureContext",

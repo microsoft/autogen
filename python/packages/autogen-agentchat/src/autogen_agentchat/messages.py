@@ -5,9 +5,9 @@ class and includes specific fields relevant to the type of message being sent.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Literal, Mapping, Optional, Type, TypeVar
+from typing import Any, Dict, Generic, List, Literal, Mapping, Optional, Type, TypeVar, Union
 
-from autogen_core import Component, ComponentBase, FunctionCall, Image
+from autogen_core import Component, ComponentBase, FunctionCall, Image, File
 from autogen_core.code_executor import CodeBlock, CodeResult
 from autogen_core.memory import MemoryContent
 from autogen_core.models import (
@@ -355,17 +355,17 @@ class TextMessage(BaseTextChatMessage):
 
 
 class MultiModalMessage(BaseChatMessage):
-    """A multimodal message."""
+    """A multimodal message that can contain text, images, or files."""
 
-    content: List[str | Image]
-    """The content of the message."""
+    content: List[Union[str, Image, File]]  # Changed order and added File
+    """The content of the message, can be a list of strings, File objects, or Image objects."""
 
     type: Literal["MultiModalMessage"] = "MultiModalMessage"
 
-    def to_model_text(self, image_placeholder: str | None = "[image]") -> str:
+    def to_model_text(self, image_placeholder: str | None = "[image]", file_placeholder: str | None = "[file]") -> str:
         """Convert the content of the message to a string-only representation.
-        If an image is present, it will be replaced with the image placeholder
-        by default, otherwise it will be a base64 string when set to None.
+        Images and Files are replaced with placeholders by default.
+        Assumes File objects have 'name', 'filename', or 'path' attributes for identification if no placeholder is used.
         """
         text = ""
         for c in self.content:
@@ -375,24 +375,52 @@ class MultiModalMessage(BaseChatMessage):
                 if image_placeholder is not None:
                     text += f" {image_placeholder}"
                 else:
-                    text += f" {c.to_base64()}"
-        return text
+                    # Attempt to get a meaningful name, fallback to a generic placeholder
+                    # Adjust attribute names if autogen_core.Image uses different fields for its name/identifier.
+                    image_identifier = getattr(c, 'name', getattr(c, 'alt_text', None)) # Example: prefer 'name' or 'alt_text'
+                    text += f" <Image:{image_identifier if image_identifier else 'object'}>"
+            elif isinstance(c, File):  # Added File handling
+                if file_placeholder is not None:
+                    text += f" {file_placeholder}"
+                else:
+                    # Attempt to get a meaningful identifier for the file.
+                    # Adjust attribute names if autogen_core.File uses different fields.
+                    file_identifier = getattr(c, 'name', getattr(
+                        c, 'filename', getattr(c, 'path', None)))
+                    text += f" <File:{file_identifier if file_identifier else 'object'}>"
+        return text.strip()
 
     def to_text(self, iterm: bool = False) -> str:
+        """
+        Convert the content of the message to a human-readable string.
+        Assumes File objects have 'name', 'filename', or 'path' attributes for identification.
+        """
         result: List[str] = []
         for c in self.content:
             if isinstance(c, str):
                 result.append(c)
-            else:
+            elif isinstance(c, Image):
                 if iterm:
                     # iTerm2 image rendering protocol: https://iterm2.com/documentation-images.html
-                    image_data = c.to_base64()
-                    result.append(f"\033]1337;File=inline=1:{image_data}\a\n")
+                    # Assuming Image has a to_base64() method
+                    try:
+                        image_data = c.to_base64()
+                        result.append(f"\033]1337;File=inline=1:{image_data}\a\n")
+                    except AttributeError:
+                        result.append("<image_data_unavailable>") # Fallback if to_base64 is missing
                 else:
                     result.append("<image>")
+            elif isinstance(c, File):  # Added File handling
+                # Represent file, e.g., by its name, filename, or path.
+                # Adjust attribute names if autogen_core.File uses different fields.
+                file_identifier = getattr(c, 'name', getattr(
+                    c, 'filename', getattr(c, 'path', None)))
+                result.append(
+                    f"<file: {file_identifier if file_identifier else 'object'}>")
         return "\n".join(result)
 
     def to_model_message(self) -> UserMessage:
+        # UserMessage content type is Any, Pydantic models (Image, File) will be serialized.
         return UserMessage(content=self.content, source=self.source)
 
 

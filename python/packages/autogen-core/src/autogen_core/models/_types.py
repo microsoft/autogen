@@ -4,7 +4,7 @@ from typing import List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from .. import FunctionCall, Image
+from .. import FunctionCall, Image, File
 
 
 class SystemMessage(BaseModel):
@@ -29,7 +29,7 @@ class SystemMessage(BaseModel):
 class UserMessage(BaseModel):
     """User message contains input from end users, or a catch-all for data provided to the model."""
 
-    content: Union[str, List[Union[str, Image]]]
+    content: Union[str, List[Union[str, Image, File]]]
     """The content of the message."""
 
     source: str

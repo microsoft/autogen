@@ -139,6 +139,7 @@ from typing import Any, Callable, Dict, List, cast, get_args
 from autogen_core import (
     FunctionCall,
     Image,
+    File,
 )
 from autogen_core.models import (
     AssistantMessage,
@@ -158,6 +159,7 @@ from openai.types.chat import (
     ChatCompletionToolMessageParam,
     ChatCompletionUserMessageParam,
 )
+from openai.types.chat.chat_completion_content_part_param import File as OpenAIFile
 
 from ._transformation import (
     LLMMessageContent,
@@ -231,6 +233,15 @@ def _set_multimodal_content(
             # TODO: support url based images
             # TODO: support specifying details
             parts.append(cast(ChatCompletionContentPartImageParam, part.to_openai_format()))
+        elif isinstance(part, File):
+            # Determine whether to use file_id based on the part's state
+            # Prioritize file_id if it exists on the autogen_core.File object
+            should_use_file_id_internally = bool(part.file_id) # True if part.file_id has a value, False otherwise
+            
+            # The import `from openai.types.chat.chat_completion_content_part_param import File as OpenAIFile`
+            # makes OpenAIFile refer to the schema for the *entire content part* of type "file".
+            # autogen_core.File.to_openai_format() is designed to return this structure.
+            parts.append(cast(OpenAIFile, part.to_openai_format(use_file_id=should_use_file_id_internally)))
         else:
             raise ValueError(f"Unknown content part: {part}")
 
