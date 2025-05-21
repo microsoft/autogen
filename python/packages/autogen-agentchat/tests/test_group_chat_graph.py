@@ -967,8 +967,8 @@ async def test_message_filter_agent_loop_graph_visibility(runtime: AgentRuntime 
             "B": DiGraphNode(
                 name="B",
                 edges=[
-                    DiGraphEdge(target="C", condition=lambda msg: "exit" in msg.to_model_text().lower()),
-                    DiGraphEdge(target="A", condition=lambda msg: "loop" in msg.to_model_text().lower()),
+                    DiGraphEdge(target="C", condition="exit"),
+                    DiGraphEdge(target="A", condition="loop"),
                 ],
             ),
             "C": DiGraphNode(name="C", edges=[]),
