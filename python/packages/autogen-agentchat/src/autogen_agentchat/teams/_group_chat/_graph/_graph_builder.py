@@ -56,15 +56,12 @@ class DiGraphBuilder:
         >>> # Add conditional edges using keyword check lambdas
         >>> builder.add_conditional_edges(agent_a, {"yes": agent_b, "no": agent_c})
         
-    Example — Using Custom Callable Conditions:
+    Example — Using Custom String Conditions:
         >>> builder = GraphBuilder()
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
-        >>> # Lambda function to check if message has more than 100 characters
-        >>> builder.add_edge(agent_a, agent_b, 
-        ...                  lambda msg: len(msg.to_model_text()) > 100)
-        >>> # Lambda function to check if message contains a specific phrase
-        >>> builder.add_edge(agent_a, agent_c, 
-        ...                  lambda msg: "error" in msg.to_model_text().lower())
+        >>> # Add condition strings to check in messages
+        >>> builder.add_edge(agent_a, agent_b, condition="big")
+        >>> builder.add_edge(agent_a, agent_c, condition="small")
 
     Example — Loop: A → B → A or B → C:
         >>> builder = GraphBuilder()
@@ -90,7 +87,7 @@ class DiGraphBuilder:
         return self
 
     def add_edge(
-        self, source: Union[str, ChatAgent], target: Union[str, ChatAgent], condition: Optional[Callable[[BaseChatMessage], bool]] = None
+        self, source: Union[str, ChatAgent], target: Union[str, ChatAgent], condition: Optional[Union[str, Callable[[BaseChatMessage], bool]]] = None
     ) -> "DiGraphBuilder":
         """Add a directed edge from source to target, optionally with a condition.
         
@@ -98,6 +95,7 @@ class DiGraphBuilder:
             source: Source node (agent name or agent object)
             target: Target node (agent name or agent object)
             condition: Optional condition for edge activation.
+                If string, activates when substring is found in message.
                 If callable, activates when function returns True for the message.
         
         Returns:

@@ -608,16 +608,12 @@ async def test_digraph_group_chat_loop_with_exit_condition(runtime: AgentRuntime
     # Agent B: Assistant Agent using Replay Client
     agent_b = AssistantAgent("B", description="Decision agent B", model_client=model_client)
 
-    # Create lambda conditions instead of strings
-    loop_condition = lambda msg: "loop" in msg.to_model_text().lower()
-    exit_condition = lambda msg: "exit" in msg.to_model_text().lower()
-    
     # DiGraph: A → B → C (conditional back to A or terminate)
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
             "B": DiGraphNode(
-                name="B", edges=[DiGraphEdge(target="C", condition=exit_condition), DiGraphEdge(target="A", condition=loop_condition)]
+                name="B", edges=[DiGraphEdge(target="C", condition="exit"), DiGraphEdge(target="A", condition="loop")]
             ),
             "C": DiGraphNode(name="C", edges=[]),
         },
@@ -748,19 +744,15 @@ async def test_digraph_group_chat_multiple_conditional(runtime: AgentRuntime | N
     agent_c = _EchoAgent("C", description="Echo agent C")
     agent_d = _EchoAgent("D", description="Echo agent D")
 
-    # Use lambda functions for conditions
-    apple_condition = lambda msg: "apple" in msg.to_model_text().lower()
-    banana_condition = lambda msg: "banana" in msg.to_model_text().lower()
-    cherry_condition = lambda msg: "cherry" in msg.to_model_text().lower()
-    
+    # Use string conditions
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(
                 name="A",
                 edges=[
-                    DiGraphEdge(target="B", condition=apple_condition),
-                    DiGraphEdge(target="C", condition=banana_condition),
-                    DiGraphEdge(target="D", condition=cherry_condition),
+                    DiGraphEdge(target="B", condition="apple"),
+                    DiGraphEdge(target="C", condition="banana"),
+                    DiGraphEdge(target="D", condition="cherry"),
                 ],
             ),
             "B": DiGraphNode(name="B", edges=[]),
@@ -1120,16 +1112,13 @@ def test_build_conditional_loop() -> None:
     builder.set_entry_point(a)
     graph = builder.build()
 
-    # Test the conditions with sample messages
-    loop_message = TextMessage(content="This contains loop", source="test")
-    exit_message = TextMessage(content="This contains exit", source="test")
-    
+    # Check that edges have the right conditions and targets
     edges = graph.nodes["B"].edges
     assert len(edges) == 2
     
-    # Find the edges by their conditions
-    loop_edge = next(e for e in edges if e.check_condition(loop_message) and not e.check_condition(exit_message))
-    exit_edge = next(e for e in edges if e.check_condition(exit_message) and not e.check_condition(loop_message))
+    # Find edges by their conditions
+    loop_edge = next(e for e in edges if e.condition == "loop")
+    exit_edge = next(e for e in edges if e.condition == "exit")
     
     assert loop_edge.target == "A"
     assert exit_edge.target == "C"
@@ -1207,24 +1196,20 @@ async def test_graph_builder_conditional_execution(runtime: AgentRuntime | None)
 
 @pytest.mark.asyncio
 async def test_digraph_group_chat_callable_condition(runtime: AgentRuntime | None) -> None:
-    """Test that callable conditions work correctly in edge transitions."""
+    """Test that string conditions work correctly in edge transitions."""
     agent_a = _EchoAgent("A", description="Echo agent A")
     agent_b = _EchoAgent("B", description="Echo agent B")
     agent_c = _EchoAgent("C", description="Echo agent C")
-
-    # Create a check that verifies the message has more than 5 characters
-    def check_message_length(message: BaseChatMessage) -> bool:
-        return len(message.to_model_text()) > 5
 
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(
                 name="A", 
                 edges=[
-                    # Will go to B if message has >5 chars
-                    DiGraphEdge(target="B", condition=check_message_length),
-                    # Will go to C if message has <=5 chars
-                    DiGraphEdge(target="C", condition=lambda msg: len(msg.to_model_text()) <= 5),
+                    # Will go to B if "long" is in message
+                    DiGraphEdge(target="B", condition="long"),
+                    # Will go to C if "short" is in message
+                    DiGraphEdge(target="C", condition="short"),
                 ]
             ),
             "B": DiGraphNode(name="B", edges=[]),
@@ -1239,15 +1224,15 @@ async def test_digraph_group_chat_callable_condition(runtime: AgentRuntime | Non
         termination_condition=MaxMessageTermination(5),
     )
 
-    # Test with a long message - should go to B
+    # Test with a message containing "long" - should go to B
     result = await team.run(task="This is a long message")
     assert result.messages[2].source == "B"
     
     # Reset for next test
     await team.reset()
     
-    # Test with a short message - should go to C
-    result = await team.run(task="Short")
+    # Test with a message containing "short" - should go to C
+    result = await team.run(task="Short message")
     assert result.messages[2].source == "C"
 
 
@@ -1340,7 +1325,7 @@ async def test_graph_flow_stateful_pause_and_resume_with_termination() -> None:
 
 @pytest.mark.asyncio
 async def test_builder_with_lambda_condition(runtime: AgentRuntime | None) -> None:
-    """Test that DiGraphBuilder supports lambda functions as conditions."""
+    """Test that DiGraphBuilder supports string conditions."""
     agent_a = _EchoAgent("A", description="Echo agent A")
     agent_b = _EchoAgent("B", description="Echo agent B")
     agent_c = _EchoAgent("C", description="Echo agent C")
@@ -1348,13 +1333,9 @@ async def test_builder_with_lambda_condition(runtime: AgentRuntime | None) -> No
     builder = DiGraphBuilder()
     builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
     
-    # Using a lambda to check if message has an even number of characters
-    builder.add_edge(agent_a, agent_b, 
-                    lambda msg: len(msg.to_model_text()) % 2 == 0)
-    
-    # Using a lambda to check if message has an odd number of characters
-    builder.add_edge(agent_a, agent_c, 
-                    lambda msg: len(msg.to_model_text()) % 2 == 1)
+    # Using string conditions
+    builder.add_edge(agent_a, agent_b, "even")
+    builder.add_edge(agent_a, agent_c, "odd")
 
     team = GraphFlow(
         participants=builder.get_participants(),
@@ -1363,14 +1344,14 @@ async def test_builder_with_lambda_condition(runtime: AgentRuntime | None) -> No
         termination_condition=MaxMessageTermination(5),
     )
 
-    # Test with even-length message - should go to B
-    result = await team.run(task="even")
+    # Test with "even" in message - should go to B
+    result = await team.run(task="even length")
     assert result.messages[2].source == "B"
     
     # Reset for next test
     await team.reset()
     
-    # Test with odd-length message - should go to C
+    # Test with "odd" in message - should go to C
     result = await team.run(task="odd message")
     assert result.messages[2].source == "C"
     

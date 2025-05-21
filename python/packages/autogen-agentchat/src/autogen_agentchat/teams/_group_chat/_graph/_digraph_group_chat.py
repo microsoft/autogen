@@ -507,11 +507,9 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
                 # Create a directed graph with conditional branching flow A -> B ("yes"), A -> C ("no").
                 builder = DiGraphBuilder()
                 builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
-                # Create lambda functions to check for specific words in messages
-                yes_condition = lambda msg: "yes" in msg.to_model_text().lower()
-                no_condition = lambda msg: "no" in msg.to_model_text().lower()
-                builder.add_edge(agent_a, agent_b, condition=yes_condition)
-                builder.add_edge(agent_a, agent_c, condition=no_condition)
+                # Create conditions as strings
+                builder.add_edge(agent_a, agent_b, condition="yes")
+                builder.add_edge(agent_a, agent_c, condition="no")
                 graph = builder.build()
 
                 # Create a GraphFlow team with the directed graph.
@@ -563,11 +561,9 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
                 builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
                 builder.add_edge(agent_a, agent_b)
                 
-                # Create conditional edges using keyword-based lambdas
-                approve_condition = lambda msg: "APPROVE" in msg.to_model_text()
-                reject_condition = lambda msg: "REJECT" in msg.to_model_text()
-                builder.add_edge(agent_b, agent_c, condition=approve_condition)
-                builder.add_edge(agent_b, agent_a, condition=reject_condition)
+                # Create conditional edges using strings
+                builder.add_edge(agent_b, agent_c, condition="APPROVE")
+                builder.add_edge(agent_b, agent_a, condition="REJECT")
                 
                 builder.set_entry_point(agent_a)
                 graph = builder.build()
