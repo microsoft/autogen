@@ -191,7 +191,7 @@ $functions"""
 
         self._cleanup_temp_files = cleanup_temp_files
         self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
-        
+
         self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
         self._started = False
 
@@ -246,16 +246,16 @@ $functions"""
                 self._temp_dir = tempfile.TemporaryDirectory()
                 self._started = True
             return Path(self._temp_dir.name)
-        
+
     @property
     def functions(self) -> List[str]:
         raise NotImplementedError
-    
+
     @property
     def functions_module(self) -> str:
         """(Experimental) The module name for the functions."""
         return self._functions_module
-    
+
     @property
     def cleanup_temp_files(self) -> bool:
         """(Experimental) Whether to automatically clean up temporary files after execution."""
@@ -504,7 +504,7 @@ $functions"""
             timeout=self._timeout,
             work_dir=str(self.work_dir),
             functions_module=self._functions_module,
-            cleanup_temp_files=self._cleanup_temp_files
+            cleanup_temp_files=self._cleanup_temp_files,
         )
 
     @classmethod
@@ -513,5 +513,5 @@ $functions"""
             timeout=config.timeout,
             work_dir=Path(config.work_dir) if config.work_dir is not None else None,
             functions_module=config.functions_module,
-            cleanup_temp_files=config.cleanup_temp_files
+            cleanup_temp_files=config.cleanup_temp_files,
         )
