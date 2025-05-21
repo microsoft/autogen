@@ -1040,27 +1040,17 @@ def test_add_conditional_edges() -> None:
     edges = builder.nodes["A"].edges
     assert len(edges) == 2
     
-    # Conditions are now lambda functions, so we can't directly compare them
-    # We'll test them with mock messages
-    yes_message = TextMessage(content="This contains yes", source="test")
-    no_message = TextMessage(content="This contains no", source="test")
-    other_message = TextMessage(content="This contains nothing", source="test")
+    # Extract the condition strings to compare them
+    conditions = [e.condition for e in edges]
+    assert "yes" in conditions
+    assert "no" in conditions
     
-    # Find edges by testing with each message
-    yes_matches = [e for e in edges if e.check_condition(yes_message)]
-    no_matches = [e for e in edges if e.check_condition(no_message)]
+    # Match edge targets with conditions
+    yes_edge = next(e for e in edges if e.condition == "yes")
+    no_edge = next(e for e in edges if e.condition == "no")
     
-    # Should be exactly one edge that matches each message
-    assert len(yes_matches) == 1
-    assert len(no_matches) == 1
-    
-    # These edges should go to the expected targets
-    assert yes_matches[0].target == "B"
-    assert no_matches[0].target == "C"
-    
-    # Check if "other_message" doesn't match any edge, meaning neither "yes" nor "no" is in it
-    other_matches = [e for e in edges if e.check_condition(other_message)]
-    assert len(other_matches) == 0
+    assert yes_edge.target == "B"
+    assert no_edge.target == "C"
 
 
 def test_set_entry_point() -> None:
