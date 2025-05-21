@@ -44,13 +44,13 @@ class DiGraphEdge(BaseModel):
     """
     
     # Using Field to exclude the condition in serialization if it's a callable
-    _condition_function: Callable[[BaseChatMessage], bool] | None = Field(default=None, exclude=True)
+    condition_function: Callable[[BaseChatMessage], bool] | None = Field(default=None, exclude=True)
 
     @model_validator(mode='after')
     def _validate_condition(self) -> 'DiGraphEdge':
         # Store callable in a separate field and set condition to None for serialization
         if callable(self.condition):
-            self._condition_function = self.condition
+            self.condition_function = self.condition
             # For serialization purposes, we'll set the condition to None
             # when storing as a pydantic model/dict
             object.__setattr__(self, 'condition', None)
@@ -66,8 +66,8 @@ class DiGraphEdge(BaseModel):
             True if condition is satisfied (None condition always returns True),
             False otherwise.
         """
-        if self._condition_function is not None:
-            return self._condition_function(message)
+        if self.condition_function is not None:
+            return self.condition_function(message)
         return True  # None condition is always satisfied
 
 
@@ -151,7 +151,7 @@ class DiGraph(BaseModel):
                     cycle_edges: List[DiGraphEdge] = []
                     for n in cycle_nodes:
                         cycle_edges.extend(self.nodes[n].edges)
-                    if not any(edge._condition_function is not None for edge in cycle_edges):
+                    if not any(edge.condition_function is not None for edge in cycle_edges):
                         raise ValueError(
                             f"Cycle detected without exit condition: {' -> '.join(cycle_nodes + cycle_nodes[:1])}"
                         )
@@ -190,8 +190,8 @@ class DiGraph(BaseModel):
         # Outgoing edge condition validation (per node)
         for node in self.nodes.values():
             # Check that if a node has an outgoing conditional edge, then all outgoing edges are conditional
-            has_condition = any(edge._condition_function is not None for edge in node.edges)
-            has_unconditioned = any(edge._condition_function is None and edge.condition is None for edge in node.edges)
+            has_condition = any(edge.condition_function is not None for edge in node.edges)
+            has_unconditioned = any(edge.condition_function is None and edge.condition is None for edge in node.edges)
             if has_condition and has_unconditioned:
                 raise ValueError(f"Node '{node.name}' has a mix of conditional and unconditional edges.")
 
