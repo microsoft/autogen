@@ -1232,7 +1232,7 @@ async def test_digraph_group_chat_callable_condition(runtime: AgentRuntime | Non
     await team.reset()
     
     # Test with a message containing "short" - should go to C
-    result = await team.run(task="Short message")
+    result = await team.run(task="This is a short message")
     assert result.messages[2].source == "C"
 
 
