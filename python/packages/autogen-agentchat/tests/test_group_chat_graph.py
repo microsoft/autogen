@@ -1004,10 +1004,22 @@ def test_add_conditional_edges() -> None:
 
     edges = builder.nodes["A"].edges
     assert len(edges) == 2
-    conditions = {e.condition for e in edges}
-    targets = {e.target for e in edges}
-    assert conditions == {"yes", "no"}
-    assert targets == {"B", "C"}
+    # Conditions are now lambda functions, so we can't directly compare them
+    # We'll test them with mock messages
+    yes_message = TextMessage(content="This contains yes", source="test")
+    no_message = TextMessage(content="This contains no", source="test")
+    other_message = TextMessage(content="This contains nothing", source="test")
+    
+    # Find the edge that has a condition that matches "yes"
+    yes_edge = next(e for e in edges if e.check_condition(yes_message) and not e.check_condition(no_message))
+    no_edge = next(e for e in edges if e.check_condition(no_message) and not e.check_condition(yes_message))
+    
+    assert yes_edge.target == "B"
+    assert no_edge.target == "C"
+    
+    # Neither condition should match the other message
+    assert not yes_edge.check_condition(other_message)
+    assert not no_edge.check_condition(other_message)
 
 
 def test_set_entry_point() -> None:
@@ -1084,8 +1096,19 @@ def test_build_conditional_loop() -> None:
     builder.set_entry_point(a)
     graph = builder.build()
 
-    assert graph.nodes["B"].edges[0].condition == "loop"
-    assert graph.nodes["B"].edges[1].condition == "exit"
+    # Test the conditions with sample messages
+    loop_message = TextMessage(content="This contains loop", source="test")
+    exit_message = TextMessage(content="This contains exit", source="test")
+    
+    edges = graph.nodes["B"].edges
+    assert len(edges) == 2
+    
+    # Find the edges by their conditions
+    loop_edge = next(e for e in edges if e.check_condition(loop_message) and not e.check_condition(exit_message))
+    exit_edge = next(e for e in edges if e.check_condition(exit_message) and not e.check_condition(loop_message))
+    
+    assert loop_edge.target == "A"
+    assert exit_edge.target == "C"
     assert graph.has_cycles_with_exit()
 
 
@@ -1151,6 +1174,7 @@ async def test_graph_builder_conditional_execution(runtime: AgentRuntime | None)
         termination_condition=MaxMessageTermination(5),
     )
 
+    # Input "no" should trigger the edge to C
     result = await team.run(task="no")
     sources = [m.source for m in result.messages]
     assert "C" in sources
