@@ -12,6 +12,7 @@ import types
 import venv
 from pathlib import Path
 from typing import AsyncGenerator, TypeAlias
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -427,3 +428,20 @@ async def test_cleanup_temp_files_behavior() -> None:
         # The code file should still exist
         assert result.code_file is not None
         assert Path(result.code_file).exists()
+
+
+@pytest.mark.asyncio
+async def test_cleanup_temp_files_oserror(caplog: pytest.LogCaptureFixture) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, cleanup_temp_files=True)
+        await executor.start()
+        cancellation_token = CancellationToken()
+        code_blocks = [CodeBlock(code="print('cleanup test')", language="python")]
+
+        # Patch Path.unlink to raise OSError for this test
+        with patch("pathlib.Path.unlink", side_effect=OSError("Mocked OSError")):
+            with caplog.at_level("ERROR"):
+                await executor.execute_code_blocks(code_blocks, cancellation_token)
+                # The code file should have been attempted to be deleted and failed
+                assert any("Failed to delete temporary file" in record.message for record in caplog.records)
+                assert any("Mocked OSError" in record.message for record in caplog.records)
