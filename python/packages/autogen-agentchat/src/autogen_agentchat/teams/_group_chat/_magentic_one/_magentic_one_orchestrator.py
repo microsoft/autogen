@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any, Dict, List, Mapping
+from typing import Any, Dict, List, Mapping, Sequence
 
 from autogen_core import AgentId, CancellationToken, DefaultTopicId, MessageContext, event, rpc
 from autogen_core.models import (
@@ -37,6 +37,7 @@ from .._events import (
     GroupChatReset,
     GroupChatStart,
     GroupChatTermination,
+    SerializableException,
 )
 from ._prompts import (
     ORCHESTRATOR_FINAL_ANSWER_PROMPT,
@@ -187,22 +188,29 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:  # type: ignore
-        delta: List[BaseAgentEvent | BaseChatMessage] = []
-        if message.agent_response.inner_messages is not None:
-            for inner_message in message.agent_response.inner_messages:
-                delta.append(inner_message)
-        self._message_thread.append(message.agent_response.chat_message)
-        delta.append(message.agent_response.chat_message)
+        try:
+            delta: List[BaseAgentEvent | BaseChatMessage] = []
+            if message.agent_response.inner_messages is not None:
+                for inner_message in message.agent_response.inner_messages:
+                    delta.append(inner_message)
+            await self.update_message_thread([message.agent_response.chat_message])
+            delta.append(message.agent_response.chat_message)
 
-        if self._termination_condition is not None:
-            stop_message = await self._termination_condition(delta)
-            if stop_message is not None:
-                # Reset the termination conditions.
-                await self._termination_condition.reset()
-                # Signal termination.
-                await self._signal_termination(stop_message)
-                return
-        await self._orchestrate_step(ctx.cancellation_token)
+            if self._termination_condition is not None:
+                stop_message = await self._termination_condition(delta)
+                if stop_message is not None:
+                    # Reset the termination conditions.
+                    await self._termination_condition.reset()
+                    # Signal termination.
+                    await self._signal_termination(stop_message)
+                    return
+
+            await self._orchestrate_step(ctx.cancellation_token)
+        except Exception as e:
+            error = SerializableException.from_exception(e)
+            await self._signal_termination_with_error(error)
+            # Raise the error to the runtime.
+            raise
 
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         pass
@@ -229,9 +237,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._n_rounds = orchestrator_state.n_rounds
         self._n_stalls = orchestrator_state.n_stalls
 
-    async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
+    async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:
         """Not used in this orchestrator, we select next speaker in _orchestrate_step."""
-        return ""
+        return [""]
 
     async def reset(self) -> None:
         """Reset the group chat manager."""
@@ -263,7 +271,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         )
 
         # Save my copy
-        self._message_thread.append(ledger_message)
+        await self.update_message_thread([ledger_message])
 
         # Log it to the output topic.
         await self.publish_message(
@@ -275,7 +283,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast
         await self.publish_message(
-            GroupChatAgentResponse(agent_response=Response(chat_message=ledger_message)),
+            GroupChatAgentResponse(agent_response=Response(chat_message=ledger_message), agent_name=self._name),
             topic_id=DefaultTopicId(type=self._group_topic_type),
         )
 
@@ -376,7 +384,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast the next step
         message = TextMessage(content=progress_ledger["instruction_or_question"]["answer"], source=self._name)
-        self._message_thread.append(message)  # My copy
+        await self.update_message_thread([message])  # My copy
 
         await self._log_message(f"Next Speaker: {progress_ledger['next_speaker']['answer']}")
         # Log it to the output topic.
@@ -389,7 +397,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast it
         await self.publish_message(  # Broadcast
-            GroupChatAgentResponse(agent_response=Response(chat_message=message)),
+            GroupChatAgentResponse(agent_response=Response(chat_message=message), agent_name=self._name),
             topic_id=DefaultTopicId(type=self._group_topic_type),
             cancellation_token=cancellation_token,
         )
@@ -458,7 +466,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         assert isinstance(response.content, str)
         message = TextMessage(content=response.content, source=self._name)
 
-        self._message_thread.append(message)  # My copy
+        await self.update_message_thread([message])  # My copy
 
         # Log it to the output topic.
         await self.publish_message(
@@ -470,7 +478,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast
         await self.publish_message(
-            GroupChatAgentResponse(agent_response=Response(chat_message=message)),
+            GroupChatAgentResponse(agent_response=Response(chat_message=message), agent_name=self._name),
             topic_id=DefaultTopicId(type=self._group_topic_type),
             cancellation_token=cancellation_token,
         )
