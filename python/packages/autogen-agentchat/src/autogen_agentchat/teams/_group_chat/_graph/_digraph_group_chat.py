@@ -37,9 +37,10 @@ class DiGraphEdge(BaseModel):
     """
 
     target: str  # Target node name
-    condition: Callable[[BaseChatMessage], bool] | None = None
+    condition: Union[str, Callable[[BaseChatMessage], bool], None] = None
     """(Experimental) Condition to execute this edge.
     If None, the edge is unconditional.
+    If a string, the edge is conditional on the presence of that string in the last agent chat message.
     If a callable, the edge is conditional on the callable returning True when given the last message.
     """
     
@@ -68,6 +69,9 @@ class DiGraphEdge(BaseModel):
         """
         if self.condition_function is not None:
             return self.condition_function(message)
+        elif isinstance(self.condition, str):
+            # If it's a string, check if the string is in the message content
+            return self.condition in message.to_model_text()
         return True  # None condition is always satisfied
 
 
