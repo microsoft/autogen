@@ -37,7 +37,7 @@ class DiGraphEdge(BaseModel):
     """
 
     target: str  # Target node name
-    condition: Union[str, Callable[[BaseChatMessage], bool], None] = None
+    condition: Union[str, Callable[[BaseChatMessage], bool], None] = Field(default=None)
     """(Experimental) Condition to execute this edge.
     If None, the edge is unconditional.
     If a string, the edge is conditional on the presence of that string in the last agent chat message.
