@@ -967,8 +967,8 @@ async def test_message_filter_agent_loop_graph_visibility(runtime: AgentRuntime 
             "B": DiGraphNode(
                 name="B",
                 edges=[
-                    DiGraphEdge(target="C", condition="exit"),
-                    DiGraphEdge(target="A", condition="loop"),
+                    DiGraphEdge(target="C", condition=lambda msg: "exit" in msg.to_model_text().lower()),
+                    DiGraphEdge(target="A", condition=lambda msg: "loop" in msg.to_model_text().lower()),
                 ],
             ),
             "C": DiGraphNode(name="C", edges=[]),
@@ -1039,22 +1039,28 @@ def test_add_conditional_edges() -> None:
 
     edges = builder.nodes["A"].edges
     assert len(edges) == 2
+    
     # Conditions are now lambda functions, so we can't directly compare them
     # We'll test them with mock messages
     yes_message = TextMessage(content="This contains yes", source="test")
     no_message = TextMessage(content="This contains no", source="test")
     other_message = TextMessage(content="This contains nothing", source="test")
     
-    # Find the edge that has a condition that matches "yes"
-    yes_edge = next(e for e in edges if e.check_condition(yes_message) and not e.check_condition(no_message))
-    no_edge = next(e for e in edges if e.check_condition(no_message) and not e.check_condition(yes_message))
+    # Find edges by testing with each message
+    yes_matches = [e for e in edges if e.check_condition(yes_message)]
+    no_matches = [e for e in edges if e.check_condition(no_message)]
     
-    assert yes_edge.target == "B"
-    assert no_edge.target == "C"
+    # Should be exactly one edge that matches each message
+    assert len(yes_matches) == 1
+    assert len(no_matches) == 1
     
-    # Neither condition should match the other message
-    assert not yes_edge.check_condition(other_message)
-    assert not no_edge.check_condition(other_message)
+    # These edges should go to the expected targets
+    assert yes_matches[0].target == "B"
+    assert no_matches[0].target == "C"
+    
+    # Check if "other_message" doesn't match any edge, meaning neither "yes" nor "no" is in it
+    other_matches = [e for e in edges if e.check_condition(other_message)]
+    assert len(other_matches) == 0
 
 
 def test_set_entry_point() -> None:
