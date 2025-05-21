@@ -413,6 +413,7 @@ async def test_cleanup_temp_files_behavior() -> None:
         assert result.exit_code == 0
         assert "cleanup test" in result.output
         # The code file should have been deleted
+        assert result.code_file is not None
         assert not Path(result.code_file).exists()
 
         # Test with cleanup_temp_files=False
@@ -424,4 +425,5 @@ async def test_cleanup_temp_files_behavior() -> None:
         assert result.exit_code == 0
         assert "no cleanup" in result.output
         # The code file should still exist
+        assert result.code_file is not None
         assert Path(result.code_file).exists()
