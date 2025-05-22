@@ -31,6 +31,7 @@ class ModelFamily:
     GEMINI_1_5_PRO = "gemini-1.5-pro"
     GEMINI_2_0_FLASH = "gemini-2.0-flash"
     GEMINI_2_5_PRO = "gemini-2.5-pro"
+    GEMINI_2_5_FLASH = "gemini-2.5-flash"
     CLAUDE_3_HAIKU = "claude-3-haiku"
     CLAUDE_3_SONNET = "claude-3-sonnet"
     CLAUDE_3_OPUS = "claude-3-opus"
@@ -64,6 +65,7 @@ class ModelFamily:
         "gemini-1.5-pro",
         "gemini-2.0-flash",
         "gemini-2.5-pro",
+        "gemini-2.5-flash"
         # anthropic_models
         "claude-3-haiku",
         "claude-3-sonnet",
@@ -107,6 +109,7 @@ class ModelFamily:
             ModelFamily.GEMINI_1_5_PRO,
             ModelFamily.GEMINI_2_0_FLASH,
             ModelFamily.GEMINI_2_5_PRO,
+            ModelFamily.GEMINI_2_5_FLASH,
         )
 
     @staticmethod

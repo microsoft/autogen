@@ -39,6 +39,7 @@ class LocalCommandLineCodeExecutorConfig(BaseModel):
     timeout: int = 60
     work_dir: Optional[str] = None
     functions_module: str = "functions"
+    cleanup_temp_files: bool = True
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeExecutorConfig]):
@@ -78,6 +79,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
             a default working directory will be used. The default working directory is a temporary directory.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
+        cleanup_temp_files (bool, optional): Whether to automatically clean up temporary files after execution. Defaults to True.
         virtual_env_context (Optional[SimpleNamespace], optional): The virtual environment context. Defaults to None.
 
     .. note::
@@ -154,10 +156,12 @@ $functions"""
             ]
         ] = [],
         functions_module: str = "functions",
+        cleanup_temp_files: bool = True,
         virtual_env_context: Optional[SimpleNamespace] = None,
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
+        self._timeout = timeout
 
         self._work_dir: Optional[Path] = None
         if work_dir is not None:
@@ -174,13 +178,6 @@ $functions"""
                 self._work_dir = work_dir
             self._work_dir.mkdir(exist_ok=True)
 
-        if not functions_module.isidentifier():
-            raise ValueError("Module name must be a valid Python identifier")
-
-        self._functions_module = functions_module
-
-        self._timeout = timeout
-
         self._functions = functions
         # Setup could take some time so we intentionally wait for the first code block to do it.
         if len(functions) > 0:
@@ -188,6 +185,11 @@ $functions"""
         else:
             self._setup_functions_complete = True
 
+        if not functions_module.isidentifier():
+            raise ValueError("Module name must be a valid Python identifier")
+        self._functions_module = functions_module
+
+        self._cleanup_temp_files = cleanup_temp_files
         self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
 
         self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
@@ -229,15 +231,6 @@ $functions"""
         )
 
     @property
-    def functions_module(self) -> str:
-        """(Experimental) The module name for the functions."""
-        return self._functions_module
-
-    @property
-    def functions(self) -> List[str]:
-        raise NotImplementedError
-
-    @property
     def timeout(self) -> int:
         """(Experimental) The timeout for code execution."""
         return self._timeout
@@ -253,6 +246,20 @@ $functions"""
                 self._temp_dir = tempfile.TemporaryDirectory()
                 self._started = True
             return Path(self._temp_dir.name)
+
+    @property
+    def functions(self) -> List[str]:
+        raise NotImplementedError
+
+    @property
+    def functions_module(self) -> str:
+        """(Experimental) The module name for the functions."""
+        return self._functions_module
+
+    @property
+    def cleanup_temp_files(self) -> bool:
+        """(Experimental) Whether to automatically clean up temporary files after execution."""
+        return self._cleanup_temp_files
 
     async def _setup_functions(self, cancellation_token: CancellationToken) -> None:
         func_file_content = build_python_functions_file(self._functions)
@@ -446,7 +453,16 @@ $functions"""
                 break
 
         code_file = str(file_names[0]) if file_names else None
-        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)
+        code_result = CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)
+
+        if self._cleanup_temp_files:
+            for file in file_names:
+                try:
+                    file.unlink(missing_ok=True)
+                except OSError as error:
+                    logging.error(f"Failed to delete temporary file {file}: {error}")
+
+        return code_result
 
     async def restart(self) -> None:
         """(Experimental) Restart the code executor."""
@@ -488,6 +504,7 @@ $functions"""
             timeout=self._timeout,
             work_dir=str(self.work_dir),
             functions_module=self._functions_module,
+            cleanup_temp_files=self._cleanup_temp_files,
         )
 
     @classmethod
@@ -496,4 +513,5 @@ $functions"""
             timeout=config.timeout,
             work_dir=Path(config.work_dir) if config.work_dir is not None else None,
             functions_module=config.functions_module,
+            cleanup_temp_files=config.cleanup_temp_files,
         )

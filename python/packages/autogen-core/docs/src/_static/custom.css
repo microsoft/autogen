@@ -34,7 +34,6 @@ html[data-theme="dark"] {
 }
 
 /* Adding header icon hover and focus effects */
-.bd-header a:hover,
 .bd-header a:focus-visible {
   color: var(--pst-color-secondary) !important;
   text-decoration: underline !important;
