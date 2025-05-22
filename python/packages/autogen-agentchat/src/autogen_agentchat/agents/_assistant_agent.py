@@ -957,10 +957,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         all_messages = await model_context.get_messages()
         llm_messages = cls._get_compatible_context(model_client=model_client, messages=system_messages + all_messages)
 
-        tools = []
-        for wb in workbench:
-            tools.extend(await wb.list_tools())
-        tools += handoff_tools
+        tools = [tool for wb in workbench for tool in await wb.list_tools()] + handoff_tools  # type: ignore[arg-type]
 
         if model_client_stream:
             model_result: Optional[CreateResult] = None
