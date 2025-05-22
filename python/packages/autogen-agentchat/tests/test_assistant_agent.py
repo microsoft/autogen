@@ -1483,7 +1483,8 @@ async def test_tools_serialize_and_deserialize() -> None:
     deserialize = AssistantAgent.load_component(serialize)
 
     assert deserialize.name == agent.name
-    assert await deserialize._workbench.list_tools() == await agent._workbench.list_tools()  # type: ignore
+    for original, restored in zip(agent._workbench, deserialize._workbench, strict=True):  # type: ignore
+        assert await original.list_tools() == await restored.list_tools()  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -1505,7 +1506,10 @@ async def test_workbenchs_serialize_and_deserialize() -> None:
     deserialize = AssistantAgent.load_component(serialize)
 
     assert deserialize.name == agent.name
-    assert deserialize._workbench._to_config() == agent._workbench._to_config()  # type: ignore
+    for original, restored in zip(agent._workbench, deserialize._workbench, strict=True):  # type: ignore
+        assert isinstance(original, McpWorkbench)
+        assert isinstance(restored, McpWorkbench)
+        assert original._to_config() == restored._to_config()  # type: ignore
 
 
 @pytest.mark.asyncio
