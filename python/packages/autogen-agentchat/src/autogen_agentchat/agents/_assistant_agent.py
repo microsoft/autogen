@@ -853,7 +853,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=model_client_stream,
             system_messages=system_messages,
             model_context=model_context,
-            workbench=workbenches,
+            workbenches=workbenches,
             handoff_tools=handoff_tools,
             agent_name=agent_name,
             cancellation_token=cancellation_token,
