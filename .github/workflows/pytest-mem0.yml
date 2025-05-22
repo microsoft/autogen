@@ -20,18 +20,13 @@ jobs:
           - 7687:7687   # BOLT
         env:
           NEO4J_AUTH: neo4j/00000000
-          NEO4J_PLUGINS: '["apoc"]'
-          NEO4J_apoc_export_file_enabled: "true"
-          NEO4J_apoc_import_file_enabled: "true"
-          NEO4J_apoc_import_file_use__neo4j__config: "true"
+          # Simplified plugin configuration
+          NEO4J_dbms_security_procedures_unrestricted: apoc.*
         options: >-
-          --health-cmd "curl http://localhost:7474 || exit 1"
+          --health-cmd "curl -f http://localhost:7474 || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        volumes:
-          - ./plugins:/plugins
-          - ./import:/var/lib/neo4j/import
 
     steps:
       - name: Check out repository
@@ -66,11 +61,16 @@ jobs:
           pip install neo4j
           pip install chromadb
           pip install "openai>=1.0.0"
+          pip install deepseek-ai
+
+      # Update test config to match the simplified Neo4j setup
+      - name: Update Neo4j password in tests
+        run: |
+          echo "NEO4J_PASSWORD=password" >> $GITHUB_ENV
 
       - name: Run tests with coverage
         env:
           MEM0_API_KEY: ${{ secrets.MEM0_API_KEY }}
-          NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
           SF_API_KEY: ${{ secrets.SF_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
