@@ -66,7 +66,7 @@ class AssistantAgentConfig(BaseModel):
     name: str
     model_client: ComponentModel
     tools: List[ComponentModel] | None = None
-    workbenches: List[ComponentModel] | None = None
+    workbench: List[ComponentModel] | None = None
     handoffs: List[HandoffBase | str] | None = None
     model_context: ComponentModel | None = None
     memory: List[ComponentModel] | None = None
@@ -188,7 +188,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client to use for inference.
         tools (List[BaseTool[Any, Any]  | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
-        workbench (Workbench | List[Workbench] | None, optional): The workbenches to use for the agent.
+        workbench (Workbench | List[Workbench] | None, optional): The workbench or list of workbenches to use for the agent.
             Tools cannot be used when workbench is set and vice versa.
         handoffs (List[HandoffBase | str] | None, optional): The handoff configurations for the agent,
             allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
@@ -749,11 +749,11 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             if self._tools:
                 raise ValueError("Tools cannot be used with a workbench.")
             if isinstance(workbench, list):
-                self._workbenches = workbench
+                self._workbench = workbench
             else:
-                self._workbenches = [workbench]
+                self._workbench = [workbench]
         else:
-            self._workbenches = [StaticWorkbench(self._tools)]
+            self._workbench = [StaticWorkbench(self._tools)]
 
         if model_context is not None:
             self._model_context = model_context
@@ -819,7 +819,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_context = self._model_context
         memory = self._memory
         system_messages = self._system_messages
-        workbenches = self._workbenches
+        workbench = self._workbench
         handoff_tools = self._handoff_tools
         handoffs = self._handoffs
         model_client = self._model_client
@@ -853,7 +853,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=model_client_stream,
             system_messages=system_messages,
             model_context=model_context,
-            workbenches=workbenches,
+            workbench=workbench,
             handoff_tools=handoff_tools,
             agent_name=agent_name,
             cancellation_token=cancellation_token,
@@ -890,7 +890,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             agent_name=agent_name,
             system_messages=system_messages,
             model_context=model_context,
-            workbenches=workbenches,
+            workbench=workbench,
             handoff_tools=handoff_tools,
             handoffs=handoffs,
             model_client=model_client,
@@ -945,7 +945,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool,
         system_messages: List[SystemMessage],
         model_context: ChatCompletionContext,
-        workbenches: List[Workbench],
+        workbench: List[Workbench],
         handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         cancellation_token: CancellationToken,
@@ -958,7 +958,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         llm_messages = cls._get_compatible_context(model_client=model_client, messages=system_messages + all_messages)
 
         tools = []
-        for wb in workbenches:
+        for wb in workbench:
             tools.extend(await wb.list_tools())
         tools += handoff_tools
 
@@ -997,7 +997,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         system_messages: List[SystemMessage],
         model_context: ChatCompletionContext,
-        workbenches: List[Workbench],
+        workbench: List[Workbench],
         handoff_tools: List[BaseTool[Any, Any]],
         handoffs: Dict[str, HandoffBase],
         model_client: ChatCompletionClient,
@@ -1057,7 +1057,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             *[
                 cls._execute_tool_call(
                     tool_call=call,
-                    workbenches=workbenches,
+                    workbench=workbench,
                     handoff_tools=handoff_tools,
                     agent_name=agent_name,
                     cancellation_token=cancellation_token,
@@ -1298,7 +1298,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     @staticmethod
     async def _execute_tool_call(
         tool_call: FunctionCall,
-        workbenches: List[Workbench],
+        workbench: List[Workbench],
         handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         cancellation_token: CancellationToken,
@@ -1336,7 +1336,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 )
 
         # Handle normal tool call using workbench.
-        for wb in workbenches:
+        for wb in workbench:
             tools = await wb.list_tools()
             if any(t["name"] == tool_call.name for t in tools):
                 result = await wb.call_tool(
@@ -1394,7 +1394,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             name=self.name,
             model_client=self._model_client.dump_component(),
             tools=None,  # versionchanged:: v0.5.5  Now tools are not serialized, Cause they are part of the workbench.
-            workbenches=[wb.dump_component() for wb in self._workbenches] if self._workbenches else None,
+            workbench=[wb.dump_component() for wb in self._workbench] if self._workbench else None,
             handoffs=list(self._handoffs.values()) if self._handoffs else None,
             model_context=self._model_context.dump_component(),
             memory=[memory.dump_component() for memory in self._memory] if self._memory else None,
@@ -1426,7 +1426,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         return cls(
             name=config.name,
             model_client=ChatCompletionClient.load_component(config.model_client),
-            workbench=[Workbench.load_component(wb) for wb in config.workbenches] if config.workbenches else None,
+            workbench=[Workbench.load_component(wb) for wb in config.workbench] if config.workbench else None,
             handoffs=config.handoffs,
             model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
             tools=[BaseTool.load_component(tool) for tool in config.tools] if config.tools else None,
