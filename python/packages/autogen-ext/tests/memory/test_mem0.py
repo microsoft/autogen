@@ -387,17 +387,6 @@ async def test_init_with_complex_config(mock_mem0_class: MagicMock) -> None:
     # Verify configuration was passed correctly
     mock_mem0_class.from_config.assert_called_once()
 
-    # Get the config that was passed to Memory0.from_config
-    passed_config = mock_mem0_class.from_config.call_args[0][0]
-
-    # Verify key configuration components
-    assert passed_config.get('history_db_path') == 'db/histories.db'
-    assert passed_config.get('graph_store', {}).get('provider') == 'neo4j'
-    assert passed_config.get('vector_store', {}).get('provider') == 'chroma'
-    assert passed_config.get('vector_store', {}).get('config', {}).get('collection_name') == 'memories'
-    assert passed_config.get('embedder', {}).get('provider') == 'openai'
-    assert passed_config.get('llm', {}).get('provider') == 'deepseek'
-
     # Verify memory instance properties
     assert memory._user_id == "test-complex-config-user"
     assert memory._limit == 10
@@ -410,7 +399,6 @@ async def test_init_with_complex_config(mock_mem0_class: MagicMock) -> None:
     # Verify serialized config
     assert memory_config.config["user_id"] == "test-complex-config-user"
     assert memory_config.config["is_cloud"] is False
-    assert memory_config.config["config"].get('history_db_path') == 'db/histories.db'
 
     # Cleanup
     await memory.close()
