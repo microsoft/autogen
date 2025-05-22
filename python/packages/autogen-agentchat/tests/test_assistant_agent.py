@@ -1530,13 +1530,13 @@ async def test_multiple_workbenchs_serialize_and_deserialize() -> None:
     deserialized_agent: AssistantAgent = AssistantAgent.load_component(serialize)
 
     assert deserialized_agent.name == agent.name
-    assert isinstance(deserialized_agent._workbench, list)
-    assert len(deserialized_agent._workbench) == len(workbenches)
+    assert isinstance(deserialized_agent._workbench, list)  # type: ignore
+    assert len(deserialized_agent._workbench) == len(workbenches)  # type: ignore
 
-    for original, restored in zip(agent._workbench, deserialized_agent._workbench, strict=True):
+    for original, restored in zip(agent._workbench, deserialized_agent._workbench, strict=True):  # type: ignore
         assert isinstance(original, McpWorkbench)
         assert isinstance(restored, McpWorkbench)
-        assert original._to_config() == restored._to_config()
+        assert original._to_config() == restored._to_config()  # type: ignore
 
 
 @pytest.mark.asyncio
