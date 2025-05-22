@@ -26,6 +26,49 @@ requires_mem0_api = pytest.mark.skipif(
 # Skip tests if mem0ai is not installed
 mem0 = pytest.importorskip("mem0")
 
+# Define local configuration at the top of the module
+FULL_LOCAL_CONFIG = {
+    'history_db_path': 'db/histories.db',
+    'graph_store': {
+        'provider': 'neo4j',
+        'config': {
+            'url': 'bolt://localhost:7687',
+            'username': 'neo4j',
+            'password': os.getenv('NEO4J_PASSWORD')
+        }
+    },
+    'embedder': {
+        'provider': 'openai',
+        'config': {
+            'model': 'Pro/BAAI/bge-m3',
+            'openai_base_url': 'https://api.siliconflow.cn/v1',
+            'embedding_dims': 1024,
+            'api_key': os.getenv('SF_API_KEY')
+        }
+    },
+    'vector_store': {
+        'provider': 'chroma',
+        'config': {
+            'path': 'db/memories.chroma',
+            'collection_name': 'memories'
+        }
+    },
+    'llm': {
+        'provider': 'deepseek',
+        'config': {
+            'model': 'deepseek-chat',
+            'deepseek_base_url': 'https://api.deepseek.com',
+            'api_key': os.getenv('DEEPSEEK_API_KEY')
+        }
+    }
+}
+
+
+@pytest.fixture
+def full_local_config() -> dict:
+    """Return the local configuration for testing."""
+    return FULL_LOCAL_CONFIG
+
 
 @pytest.fixture
 def cloud_config() -> Mem0MemoryConfig:
@@ -332,73 +375,120 @@ async def test_result_format_handling(mock_mem0_class: MagicMock, local_config: 
 
 @pytest.mark.asyncio
 @patch("autogen_ext.memory.mem0.Memory0")
-async def test_init_with_complex_config(mock_mem0_class: MagicMock) -> None:
-    """Test initializing memory with complex configuration."""
+async def test_init_with_local_config(mock_mem0_class: MagicMock, full_local_config: dict) -> None:
+    """Test initializing memory with local configuration."""
     # Setup mock
     mock_mem0 = MagicMock()
     mock_mem0_class.from_config.return_value = mock_mem0
 
-    # Complex configuration with multiple components
-    complex_config = {
-        'history_db_path': 'db/histories.db',
-        'graph_store': {
-            'provider': 'neo4j',
-            'config': {
-                'url': 'bolt://localhost:7687',
-                'username': 'neo4j',
-                'password': os.getenv('NEO4J_PASSWORD')
-            }
-        },
-        'embedder': {
-            'provider': 'openai',
-            'config': {
-                'model': 'Pro/BAAI/bge-m3',
-                'openai_base_url': 'https://api.siliconflow.cn/v1',
-                'embedding_dims': 1024,
-                'api_key': os.getenv('SF_API_KEY')
-            }
-        },
-        'vector_store': {
-            'provider': 'chroma',
-            'config': {
-                'path': 'db/memories.chroma',
-                'collection_name': 'memories'
-            }
-        },
-        'llm': {
-            'provider': 'deepseek',
-            'config': {
-                'model': 'deepseek-chat',
-                'deepseek_base_url': 'https://api.deepseek.com',
-                'api_key': os.getenv('DEEPSEEK_API_KEY')
-            }
-        }
-    }
-
-    # Initialize memory with complex config
-    # If the setting in config is invalid, it will raise errors
+    # Initialize memory with local config
     memory = Mem0Memory(
-        user_id="test-complex-config-user",
+        user_id="test-local-config-user",
         limit=10,
         is_cloud=False,
-        config=complex_config
+        config=full_local_config
     )
 
     # Verify configuration was passed correctly
     mock_mem0_class.from_config.assert_called_once()
 
     # Verify memory instance properties
-    assert memory._user_id == "test-complex-config-user"
+    assert memory._user_id == "test-local-config-user"
     assert memory._limit == 10
     assert memory._is_cloud is False
-    assert memory._config == complex_config
+    assert memory._config == full_local_config
 
-    # Test serialization with complex config
+    # Test serialization with local config
     memory_config = memory.dump_component()
 
     # Verify serialized config
-    assert memory_config.config["user_id"] == "test-complex-config-user"
+    assert memory_config.config["user_id"] == "test-local-config-user"
     assert memory_config.config["is_cloud"] is False
+
+    # Cleanup
+    await memory.close()
+
+
+@pytest.mark.asyncio
+@patch("autogen_ext.memory.mem0.Memory0")
+async def test_local_config_with_memory_operations(mock_mem0_class: MagicMock, full_local_config: dict) -> None:
+    """Test memory operations with local configuration."""
+    # Setup mock
+    mock_mem0 = MagicMock()
+    mock_mem0_class.from_config.return_value = mock_mem0
+
+    # Mock search results
+    mock_mem0.search.return_value = [
+        {
+            "memory": "Test local config memory content",
+            "score": 0.92,
+            "metadata": {"config_type": "local", "test_case": "advanced"}
+        }
+    ]
+
+    # Initialize memory with local config
+    memory = Mem0Memory(
+        user_id="test-local-config-user",
+        limit=10,
+        is_cloud=False,
+        config=full_local_config
+    )
+
+    # Verify configuration was passed correctly
+    mock_mem0_class.from_config.assert_called_once()
+
+    # Verify memory instance properties
+    assert memory._user_id == "test-local-config-user"
+    assert memory._limit == 10
+    assert memory._is_cloud is False
+    assert memory._config == full_local_config
+
+    # Add memory content
+    test_content = "Testing local configuration memory operations"
+    await memory.add(
+        MemoryContent(
+            content=test_content,
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"config_type": "local", "test_case": "advanced"}
+        )
+    )
+
+    # Verify add was called with correct arguments
+    mock_mem0.add.assert_called_once()
+    call_args = mock_mem0.add.call_args[0]
+    assert call_args[0] == test_content
+    call_kwargs = mock_mem0.add.call_args[1]
+    assert call_kwargs["metadata"]["config_type"] == "local"
+    assert call_kwargs["metadata"]["test_case"] == "advanced"
+
+    # Query memory
+    results = await memory.query("local configuration test")
+
+    # Verify search was called correctly
+    mock_mem0.search.assert_called_once()
+    search_args = mock_mem0.search.call_args
+    assert "local configuration test" in search_args[0][0]
+    assert search_args[1]["user_id"] == "test-local-config-user"
+    assert search_args[1]["limit"] == 10
+
+    # Verify results
+    assert len(results.results) == 1
+    assert "Test local config memory content" in str(results.results[0].content)
+    assert results.results[0].metadata.get("score") == 0.92
+    assert results.results[0].metadata.get("config_type") == "local"
+
+    # Test serialization with local config
+    memory_config = memory.dump_component()
+
+    # Verify serialized config
+    assert memory_config.config["user_id"] == "test-local-config-user"
+    assert memory_config.config["is_cloud"] is False
+    assert "config" in memory_config.config
+    assert memory_config.config["config"]["history_db_path"] == "db/histories.db"
+
+    # Test clear
+    await memory.clear()
+    mock_mem0.delete_all.assert_called_once_with(user_id="test-local-config-user")
 
     # Cleanup
     await memory.close()
