@@ -14,17 +14,24 @@ jobs:
 
     services:
       neo4j:
-        image: neo4j:5.19
+        image: neo4j:5.26.6
         ports:
           - 7474:7474   # HTTP
           - 7687:7687   # BOLT
         env:
           NEO4J_AUTH: neo4j/00000000
+          NEO4J_PLUGINS: '["apoc"]'
+          NEO4J_apoc_export_file_enabled: "true"
+          NEO4J_apoc_import_file_enabled: "true"
+          NEO4J_apoc_import_file_use__neo4j__config: "true"
         options: >-
           --health-cmd "curl http://localhost:7474 || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        volumes:
+          - ./plugins:/plugins
+          - ./import:/var/lib/neo4j/import
 
     steps:
       - name: Check out repository
