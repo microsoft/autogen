@@ -19,14 +19,19 @@ jobs:
           - 7474:7474   # HTTP
           - 7687:7687   # BOLT
         env:
-          NEO4J_AUTH: neo4j/00000000
-          # Simplified plugin configuration
+          NEO4J_AUTH: neo4j/password
           NEO4J_dbms_security_procedures_unrestricted: apoc.*
+          # Add this to ensure Neo4j is ready for connections quickly
+          NEO4J_dbms_memory_pagecache_size: 100M
+          NEO4J_dbms_memory_heap_initial__size: 100M
+          NEO4J_dbms_memory_heap_max__size: 500M
+        # Try a different health check approach
         options: >-
-          --health-cmd "curl -f http://localhost:7474 || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "wget -O /dev/null -q http://localhost:7474 || exit 1"
+          --health-interval 5s
+          --health-timeout 15s
+          --health-retries 10
+          --health-start-period 30s
 
     steps:
       - name: Check out repository
@@ -36,6 +41,13 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+
+      - name: Wait for Neo4j
+        run: |
+          # Give Neo4j some extra time to start up
+          sleep 10
+          # Try to connect to Neo4j
+          timeout 30s bash -c 'until curl -s http://localhost:7474 > /dev/null; do sleep 1; done'
 
       - name: Install dependencies
         run: |
