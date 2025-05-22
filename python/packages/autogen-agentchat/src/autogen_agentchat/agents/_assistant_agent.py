@@ -131,17 +131,26 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`.
     * When the model returns tool calls, they will be executed right away:
-        - When `reflect_on_tool_use` is False, the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
+        - When `reflect_on_tool_use` is False, the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. You can customise the summary with either a static format string (`tool_call_summary_format`) **or** a callable (`tool_call_summary_formatter`); the callable is evaluated once per tool call.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and final response is returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`.
         - `reflect_on_tool_use` is set to `True` by default when `output_content_type` is set.
         - `reflect_on_tool_use` is set to `False` by default when `output_content_type` is not set.
     * If the model returns multiple tool calls, they will be executed concurrently. To disable parallel tool calls you need to configure the model client. For example, set `parallel_tool_calls=False` for :class:`~autogen_ext.models.openai.OpenAIChatCompletionClient` and :class:`~autogen_ext.models.openai.AzureOpenAIChatCompletionClient`.
 
     .. tip::
-        By default, the tool call results are returned as response when tool calls are made.
-        So it is recommended to pay attention to the formatting of the tools return values,
-        especially if another agent is expecting them in a specific format.
-        Use `tool_call_summary_format` to customize the tool call summary, if needed.
+
+        By default, the tool call results are returned as the response when tool
+        calls are made, so pay close attention to how the tools’ return values
+        are formatted—especially if another agent expects a specific schema.
+
+        * Use **`tool_call_summary_format`** for a simple static template.
+        * Use **`tool_call_summary_formatter`** for full programmatic control
+          (e.g., “hide large success payloads, show full details on error”).
+
+        *Note*: `tool_call_summary_formatter` is **not serializable** and will
+        be ignored when an agent is loaded from, or exported to, YAML/JSON
+        configuration files.
+
 
     **Hand off behavior:**
 
@@ -199,13 +208,22 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             If this is set, the agent will respond with a :class:`~autogen_agentchat.messages.StructuredMessage` instead of a :class:`~autogen_agentchat.messages.TextMessage`
             in the final response, unless `reflect_on_tool_use` is `False` and a tool call is made.
         output_content_type_format (str | None, optional): (Experimental) The format string used for the content of a :class:`~autogen_agentchat.messages.StructuredMessage` response.
-        tool_call_summary_format (str, optional): The format string used to create the content for a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` response.
-            The format string is used to format the tool call summary for every tool call result.
-            Defaults to "{result}".
-            When `reflect_on_tool_use` is `False`, a concatenation of all the tool call summaries, separated by a new line character ('\\n')
-            will be returned as the response.
-            Available variables: `{tool_name}`, `{arguments}`, `{result}`.
-            For example, `"{tool_name}: {result}"` will create a summary like `"tool_name: result"`.
+        tool_call_summary_format (str, optional): Static format string applied to each tool call result when composing the :class:`~autogen_agentchat.messages.ToolCallSummaryMessage`.
+            Defaults to ``"{result}"``. Ignored if `tool_call_summary_formatter` is provided. When `reflect_on_tool_use` is ``False``, the summaries for all tool
+            calls are concatenated with a newline ('\\n') and returned as the response.  Placeholders available in the template:
+            `{tool_name}`, `{arguments}`, `{result}`, `{is_error}`.
+        tool_call_summary_formatter (Callable[[FunctionCall, FunctionExecutionResult], str] | None, optional):
+            Callable that receives the ``FunctionCall`` and its ``FunctionExecutionResult`` and returns the summary string.
+            Overrides `tool_call_summary_format` when supplied and allows conditional logic — for example, emitting static string like
+            ``"Tool FooBar executed successfully."`` on success and a full payload (including all passed arguments etc.) only on failure.
+
+            **Limitation**: The callable is *not serializable*; values provided via YAML/JSON configs are ignored.
+
+    .. note::
+
+        `tool_call_summary_formatter` is intended for in-code use only. It cannot currently be saved or restored via
+        configuration files.
+
         memory (Sequence[Memory] | None, optional): The memory store to use for the agent. Defaults to `None`.
         metadata (Dict[str, str] | None, optional): Optional metadata for tracking.
 
@@ -652,6 +670,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool = False,
         reflect_on_tool_use: bool | None = None,
         tool_call_summary_format: str = "{result}",
+        tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None = None,
         output_content_type: type[BaseModel] | None = None,
         output_content_type_format: str | None = None,
         memory: Sequence[Memory] | None = None,
@@ -759,6 +778,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 stacklevel=2,
             )
         self._tool_call_summary_format = tool_call_summary_format
+        self._tool_call_summary_formatter = tool_call_summary_formatter
         self._is_running = False
 
     @property
@@ -806,6 +826,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream = self._model_client_stream
         reflect_on_tool_use = self._reflect_on_tool_use
         tool_call_summary_format = self._tool_call_summary_format
+        tool_call_summary_formatter = self._tool_call_summary_formatter
         output_content_type = self._output_content_type
         format_string = self._output_content_type_format
 
@@ -876,6 +897,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=model_client_stream,
             reflect_on_tool_use=reflect_on_tool_use,
             tool_call_summary_format=tool_call_summary_format,
+            tool_call_summary_formatter=tool_call_summary_formatter,
             output_content_type=output_content_type,
             format_string=format_string,
         ):
@@ -982,6 +1004,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool,
         reflect_on_tool_use: bool,
         tool_call_summary_format: str,
+        tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
         output_content_type: type[BaseModel] | None,
         format_string: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
@@ -1084,6 +1107,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 inner_messages=inner_messages,
                 handoffs=handoffs,
                 tool_call_summary_format=tool_call_summary_format,
+                tool_call_summary_formatter=tool_call_summary_formatter,
                 agent_name=agent_name,
             )
 
@@ -1238,6 +1262,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         inner_messages: List[BaseAgentEvent | BaseChatMessage],
         handoffs: Dict[str, HandoffBase],
         tool_call_summary_format: str,
+        tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
         agent_name: str,
     ) -> Response:
         """
@@ -1245,15 +1270,22 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         """
         # Filter out calls which were actually handoffs
         normal_tool_calls = [(call, result) for call, result in executed_calls_and_results if call.name not in handoffs]
-        tool_call_summaries: List[str] = []
-        for tool_call, tool_call_result in normal_tool_calls:
-            tool_call_summaries.append(
-                tool_call_summary_format.format(
-                    tool_name=tool_call.name,
-                    arguments=tool_call.arguments,
-                    result=tool_call_result.content,
-                )
+
+        def default_tool_call_summary_formatter(call: FunctionCall, result: FunctionExecutionResult) -> str:
+            return tool_call_summary_format
+
+        summary_formatter = tool_call_summary_formatter or default_tool_call_summary_formatter
+
+        tool_call_summaries = [
+            summary_formatter(call, result).format(
+                tool_name=call.name,
+                arguments=call.arguments,
+                result=result.content,
+                is_error=result.is_error,
             )
+            for call, result in normal_tool_calls
+        ]
+
         tool_call_summary = "\n".join(tool_call_summaries)
         return Response(
             chat_message=ToolCallSummaryMessage(
