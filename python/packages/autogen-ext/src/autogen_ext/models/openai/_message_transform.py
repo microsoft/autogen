@@ -515,6 +515,11 @@ __claude_models = [model for model in total_models if ModelFamily.is_claude(mode
 
 __gemini_models = [model for model in total_models if ModelFamily.is_gemini(model)]
 
+__llama_models = [model for model in total_models if ModelFamily.is_llama(model)]
+
+__unknown_models = list(
+    set(total_models) - set(__openai_models) - set(__claude_models) - set(__gemini_models) - set(__llama_models)
+)
 __mistral_models = [model for model in total_models if ModelFamily.is_mistral(model)]
 
 __unknown_models = list(
@@ -529,6 +534,9 @@ for model in __claude_models:
 
 for model in __gemini_models:
     register_transformer("openai", model, __GEMINI_TRANSFORMER_MAP)
+
+for model in __llama_models:
+    register_transformer("openai", model, __BASE_TRANSFORMER_MAP)
 
 for model in __mistral_models:
     register_transformer("openai", model, __MISTRAL_TRANSFORMER_MAP)
