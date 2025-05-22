@@ -769,6 +769,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             extra_create_args,
         )
 
+        # Force usage statistics if the user hasn't specified any stream options.
+        if "stream_options" not in create_params.create_args:
+            create_params.create_args["stream_options"] = {
+                "include_usage": True,
+            }
+
         if max_consecutive_empty_chunk_tolerance != 0:
             warnings.warn(
                 "The 'max_consecutive_empty_chunk_tolerance' parameter is deprecated and will be removed in the future releases. All of empty chunks will be skipped with a warning.",
