@@ -41,7 +41,7 @@ from autogen_ext.tools.mcp import (
     SseServerParams,
 )
 from pydantic import BaseModel, ValidationError
-from utils import FileLogHandler
+from utils import FileLogHandler, compare_messages, compare_task_results
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
@@ -180,9 +180,9 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
             index += 1
 
     # Test state saving and loading.
@@ -273,9 +273,9 @@ async def test_run_with_tools_and_reflection() -> None:
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
     # Test state saving and loading.
@@ -363,9 +363,9 @@ async def test_run_with_parallel_tools() -> None:
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
             index += 1
 
     # Test state saving and loading.
@@ -446,9 +446,9 @@ async def test_run_with_parallel_tools_with_empty_call_ids() -> None:
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
             index += 1
 
     # Test state saving and loading.
@@ -560,9 +560,9 @@ async def test_run_with_workbench() -> None:
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
     # Test state saving and loading.
@@ -779,9 +779,9 @@ async def test_handoffs() -> None:
     index = 0
     async for message in tool_use_agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -852,9 +852,9 @@ async def test_handoff_with_tool_call_context() -> None:
     index = 0
     async for message in tool_use_agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -927,9 +927,9 @@ async def test_custom_handoffs() -> None:
     index = 0
     async for message in tool_use_agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -1004,9 +1004,9 @@ async def test_custom_object_handoffs() -> None:
     index = 0
     async for message in tool_use_agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -1161,9 +1161,9 @@ async def test_list_chat_messages(monkeypatch: pytest.MonkeyPatch) -> None:
     index = 0
     async for message in agent.run_stream(task=messages):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
