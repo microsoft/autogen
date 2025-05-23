@@ -5,6 +5,7 @@ class and includes specific fields relevant to the type of message being sent.
 """
 
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 from typing import Any, Dict, Generic, List, Literal, Mapping, Optional, Type, TypeVar
 
 from autogen_core import Component, ComponentBase, FunctionCall, Image
@@ -85,6 +86,9 @@ class BaseChatMessage(BaseMessage, ABC):
     metadata: Dict[str, str] = {}
     """Additional metadata about the message."""
 
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    """The time when the message was created."""
+
     @abstractmethod
     def to_model_text(self) -> str:
         """Convert the content of the message to text-only representation.
@@ -153,6 +157,9 @@ class BaseAgentEvent(BaseMessage, ABC):
 
     metadata: Dict[str, str] = {}
     """Additional metadata about the message."""
+
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    """The time when the message was created."""
 
 
 StructuredContentType = TypeVar("StructuredContentType", bound=BaseModel, covariant=True)
