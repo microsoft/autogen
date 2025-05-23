@@ -163,21 +163,21 @@ FakeMessageType = Union[
 ]
 
 
-async def mock_messages_list(*args, **kwargs):
+async def mock_messages_list(**kwargs: Any):
     """Mock async generator for messages.list()"""
     messages = [FakeMessage("msg-mock", "response")]
     for message in messages:
         yield message
 
 
-async def mock_messages_list_empty(*args, **kwargs):
+async def mock_messages_list_empty(**kwargs: Any):
     """Mock async generator that yields no messages"""
     # This generator yields nothing, simulating an empty message list
     return
     yield  # This line is never reached but makes this a generator
 
 
-async def mock_messages_list_multiple(*args, **kwargs):
+async def mock_messages_list_multiple(**kwargs: Any):
     """Mock async generator for multiple messages (pagination test)"""
     messages = [
         FakeMessage("msg-mock-1", "response-1"),
@@ -731,7 +731,7 @@ async def test_on_message_stream_mapping_url_citation(
         return_value=MagicMock(id="run-id", status=RunStatus.COMPLETED)
     )
 
-    async def mock_messages_list_with_citation(*args, **kwargs):
+    async def mock_messages_list_with_citation(**kwargs: Any):
         """Mock async generator for messages with citation"""
         yield fake_message
 
@@ -768,7 +768,7 @@ async def test_on_message_stream_mapping_file_citation(mock_project_client: Magi
         [FakeTextFileCitationAnnotation(FakeTextFileCitationDetails(expected_file_id, expected_quote))],
     )
 
-    async def mock_messages_list_with_file_citation(*args, **kwargs):
+    async def mock_messages_list_with_file_citation(**kwargs: Any):
         """Mock async generator for messages with file citation"""
         yield fake_message
 
