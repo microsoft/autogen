@@ -38,6 +38,8 @@ class ModelFamily:
     CLAUDE_3_5_HAIKU = "claude-3-5-haiku"
     CLAUDE_3_5_SONNET = "claude-3-5-sonnet"
     CLAUDE_3_7_SONNET = "claude-3-7-sonnet"
+    CLAUDE_4_OPUS = "claude-4-opus"
+    CLAUDE_4_SONNET = "claude-4-sonnet"
     LLAMA_3_3_8B = "llama-3.3-8b"
     LLAMA_3_3_70B = "llama-3.3-70b"
     LLAMA_4_SCOUT = "llama-4-scout"
@@ -73,6 +75,8 @@ class ModelFamily:
         "claude-3-5-haiku",
         "claude-3-5-sonnet",
         "claude-3-7-sonnet",
+        "claude-4-opus",
+        "claude-4-sonnet",
         # llama_models
         "llama-3.3-8b",
         "llama-3.3-70b",
@@ -100,6 +104,8 @@ class ModelFamily:
             ModelFamily.CLAUDE_3_5_HAIKU,
             ModelFamily.CLAUDE_3_5_SONNET,
             ModelFamily.CLAUDE_3_7_SONNET,
+            ModelFamily.CLAUDE_4_OPUS,
+            ModelFamily.CLAUDE_4_SONNET,
         )
 
     @staticmethod
