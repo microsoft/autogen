@@ -1084,7 +1084,7 @@ class AzureAIAgent(BaseChatAgent):
 
 if __name__ == "__main__":
     # Example usage of AzureAIAgent
-    # Replace with your actual connection string and credentials
+    # Replace with your actual endpoint and credentials
     """
         TODO:
         [X] Support for file upload
