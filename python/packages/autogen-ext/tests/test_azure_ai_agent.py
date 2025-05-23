@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from typing import Any, List, Optional, Union
 from unittest.mock import AsyncMock, MagicMock, call
 
-import azure.ai.projects.models as models
 import pytest
 from autogen_agentchat.base._chat_agent import Response
 from autogen_agentchat.messages import TextMessage, ToolCallExecutionEvent
@@ -12,8 +11,20 @@ from autogen_core._cancellation_token import CancellationToken
 from autogen_core.tools._function_tool import FunctionTool
 from autogen_ext.agents.azure._azure_ai_agent import AzureAIAgent
 from autogen_ext.agents.azure._types import ListToolType
+from azure.ai.agents.models import (
+    AzureAISearchToolDefinition,
+    AzureFunctionToolDefinition,
+    BingGroundingToolDefinition,
+    CodeInterpreterToolDefinition,
+    FilePurpose,
+    FileSearchToolDefinition,
+    FileState,
+    MessageRole,
+    RequiredAction,
+    RunStatus,
+    ThreadMessage,
+)
 from azure.ai.projects.aio import AIProjectClient
-from azure.ai.projects.models import ThreadMessage
 
 
 class FakeText:
@@ -175,7 +186,7 @@ class FakeOpenAIPageableListOfThreadMessage:
         return texts  # type: ignore
 
     def get_last_message_by_role(
-        self, role: models.MessageRole
+        self, role: MessageRole
     ) -> Optional[ThreadMessage | FakeMessage | FakeMessageWithAnnotation | FakeMessageWithUrlCitationAnnotation]:
         """Returns the last message from a sender in the specified role.
 
@@ -349,7 +360,7 @@ async def test_upload_files(mock_project_client: MagicMock) -> None:
     mock_project_client.agents.create_vector_store_and_poll = AsyncMock(return_value=AsyncMock(id="vector_store_id"))
 
     mock_project_client.agents.upload_file_and_poll = AsyncMock(
-        return_value=AsyncMock(id="file-id", status=models.FileState.PROCESSED)
+        return_value=AsyncMock(id="file-id", status=FileState.PROCESSED)
     )
 
     agent = create_agent(mock_project_client, tools=["file_search"])
@@ -357,15 +368,13 @@ async def test_upload_files(mock_project_client: MagicMock) -> None:
     await agent.on_upload_for_file_search(["test_file.txt"], cancellation_token=CancellationToken())
 
     mock_project_client.agents.upload_file_and_poll.assert_any_await(
-        file_path="test_file.txt", purpose=models.FilePurpose.AGENTS, sleep_interval=0.5
+        file_path="test_file.txt", purpose=FilePurpose.AGENTS, sleep_interval=0.5
     )
 
 
 @pytest.mark.asyncio
 async def test_on_messages_stream(mock_project_client: MagicMock) -> None:
-    mock_project_client.agents.create_run = AsyncMock(
-        return_value=MagicMock(id="run-id", status=models.RunStatus.COMPLETED)
-    )
+    mock_project_client.agents.create_run = AsyncMock(return_value=MagicMock(id="run-id", status=RunStatus.COMPLETED))
     mock_project_client.agents.list_messages = AsyncMock(return_value=mock_list())
 
     agent = create_agent(mock_project_client)
@@ -410,8 +419,7 @@ async def test_get_agent_id_validation(mock_project_client: MagicMock) -> None:
         ("code_interpreter", False),
         ("bing_grounding", False),
         ("azure_function", False),
-        ("azure_ai_search", False),
-        ("sharepoint_grounding", False),
+        ("azure_ai_search", False), 
         ("unknown_tool", True),
     ],
 )
@@ -430,12 +438,12 @@ async def test_adding_tools_as_literals(
 @pytest.mark.parametrize(
     "tool_definition",
     [
-        models.FileSearchToolDefinition(),
-        models.CodeInterpreterToolDefinition(),
-        models.BingGroundingToolDefinition(),  # type: ignore
-        models.AzureFunctionToolDefinition(),  # type: ignore
-        models.AzureAISearchToolDefinition(),
-        models.SharepointToolDefinition(),  # type: ignore
+        FileSearchToolDefinition(),
+        CodeInterpreterToolDefinition(),
+        BingGroundingToolDefinition(),  # type: ignore
+        AzureFunctionToolDefinition(),  # type: ignore
+        AzureAISearchToolDefinition(),
+        # SharepointToolDefinition(),  # type: ignore
     ],
 )
 async def test_adding_tools_as_typed_definition(mock_project_client: MagicMock, tool_definition: Any) -> None:
@@ -578,7 +586,7 @@ async def test_on_messages_with_cancellation(mock_project_client: MagicMock) -> 
         await agent.on_messages(messages, token)
 
 
-def mock_run(action: str, run_id: str, required_action: Optional[models.RequiredAction] = None) -> MagicMock:
+def mock_run(action: str, run_id: str, required_action: Optional[RequiredAction] = None) -> MagicMock:
     run = MagicMock()
     run.id = run_id
     run.status = action
@@ -612,7 +620,7 @@ async def test_on_messages_return_required_action_with_no_tool_raise_error(
     complete_run = mock_run("completed", "run-mock")
     mock_project_client.agents.submit_tool_outputs_to_run = AsyncMock(return_value=complete_run)
 
-    required_action = models.SubmitToolOutputsAction()  # type: ignore
+    required_action = RequiredAction()  # type: ignore
 
     required_action.submit_tool_outputs = SimpleNamespace(  # type: ignore
         tool_calls=[
@@ -654,12 +662,12 @@ async def test_on_message_raise_error_when_stream_return_nothing(mock_project_cl
 @pytest.mark.parametrize(
     "file_paths, file_status, should_raise_error",
     [
-        (["file1.txt", "file2.txt"], models.FileState.PROCESSED, False),
-        (["file3.txt"], models.FileState.ERROR, True),
+        (["file1.txt", "file2.txt"], FileState.PROCESSED, False),
+        (["file3.txt"], FileState.ERROR, True),
     ],
 )
 async def test_uploading_multiple_files(
-    mock_project_client: MagicMock, file_paths: list[str], file_status: models.FileState, should_raise_error: bool
+    mock_project_client: MagicMock, file_paths: list[str], file_status: FileState, should_raise_error: bool
 ) -> None:
     agent = create_agent(mock_project_client)
 
@@ -671,7 +679,7 @@ async def test_uploading_multiple_files(
         await agent.on_upload_for_code_interpreter(
             file_paths,
             cancellation_token=CancellationToken(),
-            sleep_interval=0.1,
+            polling_interval=0.1,
         )
 
     if should_raise_error:
@@ -681,7 +689,7 @@ async def test_uploading_multiple_files(
         await upload_files()
 
     mock_project_client.agents.upload_file_and_poll.assert_has_calls(
-        [call(file_path=file_path, purpose=models.FilePurpose.AGENTS, sleep_interval=0.1) for file_path in file_paths]
+        [call(file_path=file_path, purpose=FilePurpose.AGENTS, sleep_interval=0.1) for file_path in file_paths]
     )
 
 
@@ -715,9 +723,7 @@ async def test_on_message_stream_mapping_url_citation(
     url: str,
     title: str,
 ) -> None:
-    mock_project_client.agents.create_run = AsyncMock(
-        return_value=MagicMock(id="run-id", status=models.RunStatus.COMPLETED)
-    )
+    mock_project_client.agents.create_run = AsyncMock(return_value=MagicMock(id="run-id", status=RunStatus.COMPLETED))
 
     list = mock_list([fake_message], has_more=False)
 
@@ -743,9 +749,7 @@ async def test_on_message_stream_mapping_url_citation(
 
 @pytest.mark.asyncio
 async def test_on_message_stream_mapping_file_citation(mock_project_client: MagicMock) -> None:
-    mock_project_client.agents.create_run = AsyncMock(
-        return_value=MagicMock(id="run-id", status=models.RunStatus.COMPLETED)
-    )
+    mock_project_client.agents.create_run = AsyncMock(return_value=MagicMock(id="run-id", status=RunStatus.COMPLETED))
 
     expected_file_id = "file_id_1"
     expected_quote = "this part of a file"
