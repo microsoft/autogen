@@ -318,6 +318,17 @@ async def test_openai_chat_completion_client_create_stream_with_usage(
         assert chunks[-1].content in caplog.text
         assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
 
+    chunks = []
+    # Check that setting both flags to different values raises an exception
+
+    with pytest.raises(ValueError):
+        async for chunk in client.create_stream(
+            messages=[UserMessage(content="Hello", source="user")],
+            extra_create_args={"stream_options": {"include_usage": False}},
+            include_usage=True,
+        ):
+            chunks.append(chunk)
+
 
 @pytest.mark.asyncio
 async def test_openai_chat_completion_client_create_stream_no_usage_default(monkeypatch: pytest.MonkeyPatch) -> None:
