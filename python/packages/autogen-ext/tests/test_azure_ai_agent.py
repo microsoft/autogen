@@ -1,7 +1,7 @@
 import json
 from asyncio import CancelledError
 from types import SimpleNamespace
-from typing import Any, List, Optional, Union
+from typing import Any, AsyncGenerator, Generator, List, Optional, Union
 from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
@@ -163,21 +163,21 @@ FakeMessageType = Union[
 ]
 
 
-async def mock_messages_list(**kwargs: Any):
+async def mock_messages_list(**kwargs: Any) -> AsyncGenerator[FakeMessage, None]:
     """Mock async generator for messages.list()"""
     messages = [FakeMessage("msg-mock", "response")]
     for message in messages:
         yield message
 
 
-async def mock_messages_list_empty(**kwargs: Any):
+async def mock_messages_list_empty(**kwargs: Any) -> AsyncGenerator[FakeMessage, None]:
     """Mock async generator that yields no messages"""
     # This generator yields nothing, simulating an empty message list
     return
     yield  # This line is never reached but makes this a generator
 
 
-async def mock_messages_list_multiple(**kwargs: Any):
+async def mock_messages_list_multiple(**kwargs: Any) -> AsyncGenerator[FakeMessage, None]:
     """Mock async generator for multiple messages (pagination test)"""
     messages = [
         FakeMessage("msg-mock-1", "response-1"),
@@ -731,7 +731,9 @@ async def test_on_message_stream_mapping_url_citation(
         return_value=MagicMock(id="run-id", status=RunStatus.COMPLETED)
     )
 
-    async def mock_messages_list_with_citation(**kwargs: Any):
+    async def mock_messages_list_with_citation(
+        **kwargs: Any,
+    ) -> AsyncGenerator[FakeMessageWithAnnotation | FakeMessageWithUrlCitationAnnotation, None]:
         """Mock async generator for messages with citation"""
         yield fake_message
 
@@ -768,7 +770,9 @@ async def test_on_message_stream_mapping_file_citation(mock_project_client: Magi
         [FakeTextFileCitationAnnotation(FakeTextFileCitationDetails(expected_file_id, expected_quote))],
     )
 
-    async def mock_messages_list_with_file_citation(**kwargs: Any):
+    async def mock_messages_list_with_file_citation(
+        **kwargs: Any,
+    ) -> AsyncGenerator[FakeMessageWithFileCitationAnnotation, None]:
         """Mock async generator for messages with file citation"""
         yield fake_message
 
