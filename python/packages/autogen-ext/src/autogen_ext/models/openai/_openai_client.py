@@ -740,6 +740,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
+        include_usage: Optional[bool] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """Create a stream of string chunks from the model ending with a :class:`~autogen_core.models.CreateResult`.
 
@@ -748,7 +749,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         In streaming, the default behaviour is not return token usage counts.
         See: `OpenAI API reference for possible args <https://platform.openai.com/docs/api-reference/chat/create>`_.
 
-        You can set `extra_create_args={"stream_options": {"include_usage": True}}`
+        You can set set the `include_usage` flag to True or `extra_create_args={"stream_options": {"include_usage": True}}`. If both the flag and `stream_options` are set, but to different values, an exception will be raised.
         (if supported by the accessed API) to
         return a final chunk with usage set to a :class:`~autogen_core.models.RequestUsage` object
         with prompt and completion token counts,
@@ -769,6 +770,17 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output,
             extra_create_args,
         )
+
+        if include_usage is not None:
+            if "stream_options" in create_params.create_args:
+                stream_options = create_params.create_args["stream_options"]
+                if "include_usage" in stream_options and stream_options["include_usage"] != include_usage:
+                    raise ValueError(
+                        "include_usage and extra_create_args['stream_options']['include_usage'] are both set, but differ in value."
+                    )
+            else:
+                # If stream options are not present, add them.
+                create_params.create_args["stream_options"] = {"include_usage": True}
 
         if max_consecutive_empty_chunk_tolerance != 0:
             warnings.warn(
