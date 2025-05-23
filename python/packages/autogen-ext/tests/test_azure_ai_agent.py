@@ -1,7 +1,7 @@
 import json
 from asyncio import CancelledError
 from types import SimpleNamespace
-from typing import Any, AsyncGenerator, Generator, List, Optional, Union
+from typing import Any, AsyncGenerator, List, Optional, Union
 from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
