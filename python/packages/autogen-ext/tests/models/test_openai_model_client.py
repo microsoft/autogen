@@ -315,7 +315,7 @@ async def test_openai_chat_completion_client_create_stream_no_usage_default(monk
     assert chunks[2] == " Yet Another Hello"
     assert isinstance(chunks[-1], CreateResult)
     assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
-    assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
+    assert chunks[-1].usage == RequestUsage(prompt_tokens=0, completion_tokens=0)
 
 
 @pytest.mark.asyncio

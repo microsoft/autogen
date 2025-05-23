@@ -740,6 +740,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
+        include_usage: bool = False,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """Create a stream of string chunks from the model ending with a :class:`~autogen_core.models.CreateResult`.
 
@@ -748,7 +749,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         In streaming, the default behaviour is not return token usage counts.
         See: `OpenAI API reference for possible args <https://platform.openai.com/docs/api-reference/chat/create>`_.
 
-        You can set `extra_create_args={"stream_options": {"include_usage": True}}`
+        You can set set the `include_usage` flag to True or `extra_create_args={"stream_options": {"include_usage": True}}`
         (if supported by the accessed API) to
         return a final chunk with usage set to a :class:`~autogen_core.models.RequestUsage` object
         with prompt and completion token counts,
@@ -770,11 +771,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             extra_create_args,
         )
 
-        # Force usage statistics if the user hasn't specified any stream options.
-        if "stream_options" not in create_params.create_args:
-            create_params.create_args["stream_options"] = {
-                "include_usage": True,
-            }
+        if include_usage:
+            if "stream_options" in create_params.create_args:
+                create_params.create_args["stream_options"]["include_usage"] = True
+            else:
+                # If stream options are not present, add them.
+                create_params.create_args["stream_options"] = {"include_usage": True}
 
         if max_consecutive_empty_chunk_tolerance != 0:
             warnings.warn(
