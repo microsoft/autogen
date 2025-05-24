@@ -71,7 +71,7 @@ To make progress on the request, please answer the following questions, includin
     - Who should speak next? (select from: {names})
     - What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)
 
-Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
+Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, DO NOT OUTPUT MARKDOWN FORMAT JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
 
     {{
        "is_request_satisfied": {{
