@@ -62,16 +62,13 @@ jobs:
 
           # Now install autogen-ext with its dependencies
           cd ../autogen-ext
-          pip install -e ".[dev]"
+          pip install -e ".[dev,mem0,mem0-local]"
 
           # Install test dependencies
           pip install pytest pytest-asyncio pytest-cov
-          pip install mem0ai
           pip install python-dotenv
 
           # Install dependencies for complex configuration tests
-          pip install neo4j
-          pip install chromadb
           pip install "openai>=1.0.0"
           pip install deepseek-ai
 
