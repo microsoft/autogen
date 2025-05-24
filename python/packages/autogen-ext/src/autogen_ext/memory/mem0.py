@@ -5,7 +5,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
 from typing import Any, Dict, List, Optional, TypedDict, cast
 
-from autogen_core import CancellationToken, Component
+from autogen_core import CancellationToken, Component, ComponentBase
 from autogen_core.memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
@@ -55,7 +55,8 @@ class MemoryResult(TypedDict, total=False):
     categories: List[str]
 
 
-class Mem0Memory(Memory, Component[Mem0MemoryConfig]):
+# pyright: reportGeneralTypeIssues=false
+class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryConfig]):
     """Mem0 memory implementation for AutoGen.
 
     This component integrates with Mem0.ai's memory system, providing an implementation
