@@ -1,24 +1,22 @@
 import io
-import uuid
 import logging
-from typing import Any, Dict, Optional
-
-from datetime import datetime
-from pydantic import BaseModel, Field
-from typing_extensions import Self
+import uuid
 from contextlib import redirect_stderr, redirect_stdout
+from datetime import datetime
+from typing import Any, Dict, List, Optional, TypedDict, cast
 
-from autogen_core import Component, ComponentBase, CancellationToken
+from autogen_core import CancellationToken, Component
+from autogen_core.memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
-from autogen_core.memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
+from pydantic import BaseModel, Field
+from typing_extensions import Self
 
 try:
-    from mem0 import Memory as Memory0, MemoryClient
-except ImportError:
-    raise ImportError(
-        "`mem0ai` not installed. Please install it with `pip install mem0ai`"
-    )
+    from mem0 import Memory as Memory0
+    from mem0 import MemoryClient
+except ImportError as e:
+    raise ImportError("`mem0ai` not installed. Please install it with `pip install mem0ai`") from e
 
 logger = logging.getLogger(__name__)
 logging.getLogger("chromadb").setLevel(logging.ERROR)
@@ -36,28 +34,28 @@ class Mem0MemoryConfig(BaseModel):
     """
 
     user_id: Optional[str] = Field(
-        default=None,
-        description="User ID for memory operations. If not provided, a UUID will be generated."
+        default=None, description="User ID for memory operations. If not provided, a UUID will be generated."
     )
-    limit: int = Field(
-        default=10,
-        description="Maximum number of results to return in memory queries."
-    )
-    is_cloud: bool = Field(
-        default=True,
-        description="Whether to use cloud Mem0 client (True) or local client (False)."
-    )
+    limit: int = Field(default=10, description="Maximum number of results to return in memory queries.")
+    is_cloud: bool = Field(default=True, description="Whether to use cloud Mem0 client (True) or local client (False).")
     api_key: Optional[str] = Field(
-        default=None,
-        description="API key for cloud Mem0 client. Required if is_cloud=True."
+        default=None, description="API key for cloud Mem0 client. Required if is_cloud=True."
     )
     config: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Configuration dictionary for local Mem0 client. Required if is_cloud=False."
+        default=None, description="Configuration dictionary for local Mem0 client. Required if is_cloud=False."
     )
 
 
-class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryConfig]):
+class MemoryResult(TypedDict, total=False):
+    memory: str
+    score: float
+    metadata: Dict[str, Any]
+    created_at: str
+    updated_at: str
+    categories: List[str]
+
+
+class Mem0Memory(Memory, Component[Mem0MemoryConfig]):
     """Mem0 memory implementation for AutoGen.
 
     This component integrates with Mem0.ai's memory system, providing an implementation
@@ -120,7 +118,9 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
         if self._is_cloud:
             self._client = MemoryClient(api_key=self._api_key)
         else:
-            self._client = Memory0.from_config(config_dict=self._config)
+            assert self._config is not None
+            config_dict = self._config
+            self._client = Memory0.from_config(config_dict=config_dict)  # type: ignore
 
     @property
     def user_id(self) -> str:
@@ -136,6 +136,16 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
     def limit(self) -> int:
         """Get the maximum number of results to return in memory queries."""
         return self._limit
+
+    @property
+    def is_cloud(self) -> bool:
+        """Check if the Mem0 client is cloud-based."""
+        return self._is_cloud
+
+    @property
+    def config(self) -> Optional[Dict[str, Any]]:
+        """Get the configuration for the Mem0 client."""
+        return self._config
 
     async def add(
         self,
@@ -168,7 +178,7 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             metadata = {}
 
         # Check if operation is cancelled
-        if cancellation_token and cancellation_token.cancelled:
+        if cancellation_token is not None and cancellation_token.cancelled:  # type: ignore
             return
 
         # Add to mem0 client
@@ -177,7 +187,7 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             # Suppress warning messages from mem0 MemoryClient
             kwargs = {"output_format": "v1.1"} if isinstance(self._client, MemoryClient) else {}
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                self._client.add(
+                self._client.add(  # type: ignore
                     message,
                     user_id=user_id,
                     metadata=metadata,
@@ -213,50 +223,59 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             query_text = str(query)
 
         # Check if operation is cancelled
-        if cancellation_token and cancellation_token.cancelled:
+        if (
+            cancellation_token
+            and hasattr(cancellation_token, "cancelled")
+            and getattr(cancellation_token, "cancelled", False)
+        ):
             return MemoryQueryResult(results=[])
 
         try:
             limit = kwargs.pop("limit", self._limit)
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 # Query mem0 client
-                results = self._client.search(
+                results = self._client.search(  # type: ignore
                     query_text,
                     user_id=self._user_id,
                     limit=limit,
                     **kwargs,
                 )
-                # Handle different result formats
+
+                # Type-safe handling of results
                 if isinstance(results, dict) and "results" in results:
-                    results = results["results"]
+                    result_list = cast(List[MemoryResult], results["results"])
+                else:
+                    result_list = cast(List[MemoryResult], results)
 
             # Convert results to MemoryContent objects
-            memory_contents = []
-            for result in results:
-                # Extract content and metadata
+            memory_contents: List[MemoryContent] = []
+            for result in result_list:
                 content_text = result.get("memory", "")
+                metadata: Dict[str, Any] = {}
+
                 if "metadata" in result and result["metadata"]:
                     metadata = result["metadata"]
-                else:
-                    metadata = {}
 
                 # Add relevant fields to metadata
                 if "score" in result:
                     metadata["score"] = result["score"]
 
-                if result.get("created_at"):
+                # For created_at
+                if "created_at" in result and result.get("created_at"):
                     try:
                         metadata["created_at"] = datetime.fromisoformat(result["created_at"])
                     except (ValueError, TypeError):
                         pass
 
-                if result.get("updated_at"):
+                # For updated_at
+                if "updated_at" in result and result.get("updated_at"):
                     try:
                         metadata["updated_at"] = datetime.fromisoformat(result["updated_at"])
                     except (ValueError, TypeError):
                         pass
 
-                if result.get("categories"):
+                # For categories
+                if "categories" in result and result.get("categories"):
                     metadata["categories"] = result["categories"]
 
                 # Create MemoryContent object
@@ -320,7 +339,7 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             Exception: If there's an error clearing mem0 memory.
         """
         try:
-            self._client.delete_all(user_id=self._user_id)
+            self._client.delete_all(user_id=self._user_id)  # type: ignore
         except Exception as e:
             logger.error(f"Error clearing mem0 memory: {str(e)}")
             raise
