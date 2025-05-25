@@ -188,12 +188,7 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             # Suppress warning messages from mem0 MemoryClient
             kwargs = {"output_format": "v1.1"} if isinstance(self._client, MemoryClient) else {}
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                self._client.add(  # type: ignore
-                    message,
-                    user_id=user_id,
-                    metadata=metadata,
-                    **kwargs,
-                )
+                self._client.add(message, user_id=user_id, metadata=metadata, **kwargs)  # type: ignore
         except Exception as e:
             # Log the error but don't crash
             logger.error(f"Error adding to mem0 memory: {str(e)}")
