@@ -38,7 +38,12 @@ FULL_LOCAL_CONFIG: Dict[str, Any] = {
             "api_key": os.getenv("SF_API_KEY"),
         },
     },
-    "vector_store": {"provider": "chroma", "config": {"path": "db/memories.chroma", "collection_name": "memories"}},
+    "vector_store": {
+        "provider": "chroma",
+        "config": {
+            "path": "db/memories.chroma", "collection_name": "memories"
+        }
+    },
     "llm": {
         "provider": "deepseek",
         "config": {
@@ -137,9 +142,9 @@ async def test_basic_workflow(mock_mem0_class: MagicMock, local_config: Mem0Memo
 
 @requires_mem0_api
 @pytest.mark.asyncio
-async def test_basic_workflow_with_cloud(cloud_config: Mem0MemoryConfig) -> None:
+async def test_basic_workflow_with_cloud(full_cloud_config: Mem0MemoryConfig) -> None:
     """Test basic memory operations with real API."""
-    memory = Mem0Memory.load_component(cloud_config)
+    memory = Mem0Memory.load_component(full_cloud_config)
 
     # Clean up before testing
     await memory.clear()
