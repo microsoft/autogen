@@ -129,11 +129,6 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
         return self._user_id
 
     @property
-    def client(self) -> Memory0 | MemoryClient:
-        """Get the mem0 client instance."""
-        return self._client
-
-    @property
     def limit(self) -> int:
         """Get the maximum number of results to return in memory queries."""
         return self._limit
@@ -167,7 +162,14 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             if content.mime_type in ["text/plain", "text/markdown"]:
                 message = str(content.content)
             elif content.mime_type == "application/json":
-                message = content.content
+                # Convert JSON content to string representation
+                if isinstance(content.content, str):
+                    message = content.content
+                else:
+                    # Convert dict or other JSON serializable objects to string
+                    import json
+
+                    message = json.dumps(content.content)
             else:
                 message = str(content.content)
 
