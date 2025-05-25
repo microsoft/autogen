@@ -54,6 +54,7 @@ class CodeExecutorAgentConfig(BaseModel):
     system_message: str | None = None
     model_client_stream: bool = False
     model_context: ComponentModel | None = None
+    supported_languages: List[str] | None = None
 
 
 class RetryDecision(BaseModel):
@@ -110,6 +111,8 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             This is only used if `model_client` is not provided.
         max_retries_on_error (int, optional): The maximum number of retries on error. If the code execution fails, the agent will retry up to this number of times.
             If the code execution fails after this number of retries, the agent will yield a reflection result.
+        supported_languages (list[str], optional): List of programming languages that will be parsed and executed from agent response;
+            others will be ignored. Defaults to ["python", "bash"].
 
 
     .. note::
@@ -345,6 +348,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         description: str | None = None,
         system_message: str | None = DEFAULT_SYSTEM_MESSAGE,
         sources: Sequence[str] | None = None,
+        supported_languages: List[str] | None = None,
     ) -> None:
         if description is None:
             if model_client is None:
@@ -357,6 +361,13 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         self._sources = sources
         self._model_client_stream = model_client_stream
         self._max_retries_on_error = max_retries_on_error
+
+        if supported_languages:
+            self._supported_languages = supported_languages
+        else:
+            self._supported_languages = ["python", "bash"]
+
+        self._supported_languages_regex = "|".join(re.escape(lang) for lang in self._supported_languages)
 
         self._model_client = None
         if model_client is not None:
@@ -589,7 +600,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         pass
 
     def _extract_markdown_code_blocks(self, markdown_text: str) -> List[CodeBlock]:
-        pattern = re.compile(r"```(?:\s*([\w\+\-]+))?\n([\s\S]*?)```")
+        pattern = re.compile(rf"```(?:\s*({self._supported_languages_regex}))\n([\s\S]*?)```")
         matches = pattern.findall(markdown_text)
         code_blocks: List[CodeBlock] = []
         for match in matches:
@@ -612,6 +623,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             ),
             model_client_stream=self._model_client_stream,
             model_context=self._model_context.dump_component(),
+            supported_languages=self._supported_languages,
         )
 
     @classmethod
@@ -627,6 +639,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             system_message=config.system_message,
             model_client_stream=config.model_client_stream,
             model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
+            supported_languages=config.supported_languages,
         )
 
     @staticmethod
