@@ -21,6 +21,7 @@ from ._subscription import Subscription, UnboundSubscription
 from ._subscription_context import SubscriptionInstantiationContext
 from ._topic import TopicId
 from ._type_prefix_subscription import TypePrefixSubscription
+from ._type_subscription import TypeSubscription
 
 T = TypeVar("T", bound=Agent)
 
@@ -82,19 +83,24 @@ class BaseAgent(ABC, Agent):
         return AgentMetadata(key=self._id.key, type=self._id.type, description=self._description)
 
     def __init__(self, description: str) -> None:
-        try:
-            runtime = AgentInstantiationContext.current_runtime()
-            id = AgentInstantiationContext.current_agent_id()
-        except LookupError as e:
-            raise RuntimeError(
-                "BaseAgent must be instantiated within the context of an AgentRuntime. It cannot be directly instantiated."
-            ) from e
-
-        self._runtime: AgentRuntime = runtime
-        self._id: AgentId = id
+        if AgentInstantiationContext.is_in_factory_call():
+            self._runtime: AgentRuntime = AgentInstantiationContext.current_runtime()
+            self._id = AgentInstantiationContext.current_agent_id()
         if not isinstance(description, str):
             raise ValueError("Agent description must be a string")
         self._description = description
+
+    async def bind_id_and_runtime(self, id: AgentId, runtime: AgentRuntime) -> None:
+        if hasattr(self, "_id"):
+            if self._id != id:
+                raise RuntimeError("Agent is already bound to a different ID")
+
+        if hasattr(self, "_runtime"):
+            if self._runtime != runtime:
+                raise RuntimeError("Agent is already bound to a different runtime")
+
+        self._id = id
+        self._runtime = runtime
 
     @property
     def type(self) -> str:
@@ -154,6 +160,56 @@ class BaseAgent(ABC, Agent):
 
     async def close(self) -> None:
         pass
+
+    async def register_instance(
+        self,
+        runtime: AgentRuntime,
+        agent_id: AgentId,
+        *,
+        skip_class_subscriptions: bool = True,
+        skip_direct_message_subscription: bool = False,
+    ) -> AgentId:
+        """
+        This function is similar to `register` but is used for registering an instance of an agent. A subscription based on the agent ID is created and added to the runtime.
+        """
+        agent_id = await runtime.register_agent_instance(agent_instance=self, agent_id=agent_id)
+
+        id_subscription = TypeSubscription(topic_type=agent_id.key, agent_type=agent_id.type)
+        await runtime.add_subscription(id_subscription)
+
+        if not skip_class_subscriptions:
+            with SubscriptionInstantiationContext.populate_context(AgentType(agent_id.type)):
+                subscriptions: List[Subscription] = []
+                for unbound_subscription in self._unbound_subscriptions():
+                    subscriptions_list_result = unbound_subscription()
+                    if inspect.isawaitable(subscriptions_list_result):
+                        subscriptions_list = await subscriptions_list_result
+                    else:
+                        subscriptions_list = subscriptions_list_result
+
+                    subscriptions.extend(subscriptions_list)
+            for subscription in subscriptions:
+                await runtime.add_subscription(subscription)
+
+        if not skip_direct_message_subscription:
+            # Additionally adds a special prefix subscription for this agent to receive direct messages
+            try:
+                await runtime.add_subscription(
+                    TypePrefixSubscription(
+                        # The prefix MUST include ":" to avoid collisions with other agents
+                        topic_type_prefix=agent_id.type + ":",
+                        agent_type=agent_id.type,
+                    )
+                )
+            except ValueError:
+                # We don't care if the subscription already exists
+                pass
+
+        # TODO: deduplication
+        for _message_type, serializer in self._handles_types():
+            runtime.add_message_serializer(serializer)
+
+        return agent_id
 
     @classmethod
     async def register(

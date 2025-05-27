@@ -74,21 +74,52 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
             await session.initialize()
             return await self._run(args=kwargs, cancellation_token=cancellation_token, session=session)
 
+    def _normalize_payload_to_content_list(
+        self, payload: list[TextContent | ImageContent | EmbeddedResource]
+    ) -> list[TextContent | ImageContent | EmbeddedResource]:
+        """
+        Normalizes a raw tool output payload into a list of content items.
+        - If payload is already a list of (TextContent, ImageContent, EmbeddedResource), it's returned as is.
+        - If payload is a single TextContent, ImageContent, or EmbeddedResource, it's wrapped in a list.
+        - If payload is a string, it's wrapped in [TextContent(text=payload)].
+        - Otherwise, the payload is stringified and wrapped in [TextContent(text=str(payload))].
+        """
+        if isinstance(payload, list) and all(
+            isinstance(item, (TextContent, ImageContent, EmbeddedResource)) for item in payload
+        ):
+            return payload
+        elif isinstance(payload, (TextContent, ImageContent, EmbeddedResource)):
+            return [payload]
+        elif isinstance(payload, str):
+            return [TextContent(text=payload, type="text")]
+        else:
+            return [TextContent(text=str(payload), type="text")]
+
     async def _run(self, args: Dict[str, Any], cancellation_token: CancellationToken, session: ClientSession) -> Any:
+        exceptions_to_catch: tuple[Type[BaseException], ...]
+        if hasattr(builtins, "ExceptionGroup"):
+            exceptions_to_catch = (asyncio.CancelledError, builtins.ExceptionGroup)
+        else:
+            exceptions_to_catch = (asyncio.CancelledError,)
+
         try:
             if cancellation_token.is_cancelled():
-                raise Exception("Operation cancelled")
+                raise asyncio.CancelledError("Operation cancelled")
 
             result_future = asyncio.ensure_future(session.call_tool(name=self._tool.name, arguments=args))
             cancellation_token.link_future(result_future)
             result = await result_future
 
+            normalized_content_list = self._normalize_payload_to_content_list(result.content)
+
             if result.isError:
-                raise Exception(f"MCP tool execution failed: {result.content}")
-            return result.content
-        except Exception as e:
-            error_message = self._format_errors(e)
-            raise Exception(error_message) from e
+                serialized_error_message = self.return_value_as_string(normalized_content_list)
+                raise Exception(serialized_error_message)
+            return normalized_content_list
+
+        except exceptions_to_catch:
+            # Re-raise these specific exception types directly.
+            raise
 
     @classmethod
     async def from_server_params(cls, server_params: TServerParams, tool_name: str) -> "McpToolAdapter[TServerParams]":
@@ -138,16 +169,3 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 return {}
 
         return json.dumps([serialize_item(item) for item in value])
-
-    def _format_errors(self, error: Exception) -> str:
-        """Recursively format errors into a string."""
-
-        error_message = ""
-        if hasattr(builtins, "ExceptionGroup") and isinstance(error, builtins.ExceptionGroup):
-            # ExceptionGroup is available in Python 3.11+.
-            # TODO: how to make this compatible with Python 3.10?
-            for sub_exception in error.exceptions:  # type: ignore
-                error_message += self._format_errors(sub_exception)  # type: ignore
-        else:
-            error_message += f"{str(error)}\n"
-        return error_message

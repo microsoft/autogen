@@ -26,11 +26,11 @@ class BedrockInfo(TypedDict):
 
     """
 
-    aws_access_key: Required[SecretStr]
+    aws_access_key: Required[str]
     """Access key for the aws account to gain bedrock model access"""
-    aws_secret_key: Required[SecretStr]
+    aws_secret_key: Required[str]
     """Access secret key for the aws account to gain bedrock model access"""
-    aws_session_token: Required[SecretStr]
+    aws_session_token: Required[str]
     """aws session token for the aws account to gain bedrock model access"""
     aws_region: Required[str]
     """aws region for the aws account to gain bedrock model access"""
@@ -83,5 +83,15 @@ class AnthropicClientConfigurationConfigModel(BaseAnthropicClientConfigurationCo
     tool_choice: Union[Literal["auto", "any", "none"], Dict[str, Any]] | None = None
 
 
+class BedrockInfoConfigModel(TypedDict):
+    aws_access_key: Required[SecretStr]
+    """Access key for the aws account to gain bedrock model access"""
+    aws_session_token: Required[SecretStr]
+    """aws session token for the aws account to gain bedrock model access"""
+    aws_region: Required[str]
+    """aws region for the aws account to gain bedrock model access"""
+    aws_secret_key: Required[SecretStr]
+
+
 class AnthropicBedrockClientConfigurationConfigModel(AnthropicClientConfigurationConfigModel):
-    bedrock_info: BedrockInfo | None = None
+    bedrock_info: BedrockInfoConfigModel | None = None

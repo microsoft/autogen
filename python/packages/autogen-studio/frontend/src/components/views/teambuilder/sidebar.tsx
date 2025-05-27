@@ -55,7 +55,6 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
   const { user } = useContext(appContext);
 
   // Fetch galleries
-
   const fetchGalleries = async () => {
     if (!user?.id) return;
     setIsLoadingGalleries(true);
@@ -88,6 +87,21 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
     fetchGalleries();
   }, [user?.id]);
 
+  const createTeam = () => {
+    if (!selectedGallery?.config.components?.teams?.length) {
+      return;
+    }
+    const newTeam = Object.assign(
+      {},
+      { component: selectedGallery.config.components.teams[0] }
+    );
+    newTeam.component.label =
+      "default_team" + new Date().getTime().toString().slice(0, 2);
+    onCreateTeam(newTeam);
+    setActiveTab("recent");
+    messageApi.success(`"${newTeam.component.label}" added to Recents`);
+  };
+
   // Render collapsed state
   if (!isOpen) {
     return (
@@ -116,21 +130,6 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       </div>
     );
   }
-
-  const createTeam = () => {
-    if (!selectedGallery?.config.components?.teams?.length) {
-      return;
-    }
-    const newTeam = Object.assign(
-      {},
-      { component: selectedGallery.config.components.teams[0] }
-    );
-    newTeam.component.label =
-      "default_team" + new Date().getTime().toString().slice(0, 2);
-    onCreateTeam(newTeam);
-    setActiveTab("recent");
-    messageApi.success(`"${newTeam.component.label}" added to Recents`);
-  };
 
   // Render expanded state
   return (

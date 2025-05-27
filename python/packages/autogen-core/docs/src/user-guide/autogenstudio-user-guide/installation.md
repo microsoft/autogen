@@ -19,9 +19,16 @@ We recommend using a virtual environment as this will ensure that the dependenci
 
 Create and activate:
 
+Linux/Mac:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+```
+
+Windows command-line:
+```batch
+python3 -m venv .venv
+.venv\Scripts\activate.bat
 ```
 
 To deactivate later, run:

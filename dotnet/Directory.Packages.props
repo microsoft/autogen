@@ -5,7 +5,8 @@
     <MicrosoftSemanticKernelStableVersion>1.45.0</MicrosoftSemanticKernelStableVersion>
     <MicrosoftSemanticKernelPreviewVersion>$(MicrosoftSemanticKernelStableVersion)-preview</MicrosoftSemanticKernelPreviewVersion>
     <MicrosoftSemanticKernelAlphaVersion>$(MicrosoftSemanticKernelStableVersion)-alpha</MicrosoftSemanticKernelAlphaVersion>
-    <MicrosoftExtensionsAIVersion>9.3.0-preview.1.25161.3</MicrosoftExtensionsAIVersion>
+    <MicrosoftExtensionsAIVersion>9.5.0</MicrosoftExtensionsAIVersion>
+    <MicrosoftExtensionsAIPreviewVersion>9.5.0-preview.1.25265.7</MicrosoftExtensionsAIPreviewVersion>
     <MicrosoftExtensionConfiguration>9.0.0</MicrosoftExtensionConfiguration>
     <MicrosoftExtensionDependencyInjection>9.0.3</MicrosoftExtensionDependencyInjection>
     <MicrosoftExtensionLogging>9.0.0</MicrosoftExtensionLogging>
@@ -64,9 +65,9 @@
     <PackageVersion Include="Microsoft.DotNet.Interactive.PackageManagement" Version="$(MicrosoftDotNetInteractive)" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAIVersion)" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="$(MicrosoftExtensionsAIVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.AI.AzureAIInference" Version="$(MicrosoftExtensionsAIVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.AI.Ollama" Version="$(MicrosoftExtensionsAIVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.AzureAIInference" Version="$(MicrosoftExtensionsAIPreviewVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Ollama" Version="$(MicrosoftExtensionsAIPreviewVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIPreviewVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.8.0" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="$(MicrosoftExtensionConfiguration)" />

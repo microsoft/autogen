@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Callable, List, Mapping
+from typing import Any, Callable, List, Mapping, Sequence
 
 from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
@@ -79,17 +79,22 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             await self._termination_condition.reset()
         self._current_speaker = self._participant_names[0]
 
-    async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
+    async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:
         """Select a speaker from the participants based on handoff message.
-        Looks for the last handoff message in the thread to determine the next speaker."""
+        Looks for the last handoff message in the thread to determine the next speaker.
+
+        .. note::
+
+            This method always returns a single speaker.
+        """
         if len(thread) == 0:
-            return self._current_speaker
+            return [self._current_speaker]
         for message in reversed(thread):
             if isinstance(message, HandoffMessage):
                 self._current_speaker = message.target
                 # The latest handoff message should always target a valid participant.
                 assert self._current_speaker in self._participant_names
-                return self._current_speaker
+                return [self._current_speaker]
         return self._current_speaker
 
     async def save_state(self) -> Mapping[str, Any]:

@@ -570,7 +570,7 @@ async def test_ollama_create_structured_output(model: str, ollama_client: Ollama
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b"])
+@pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b", "qwen3:0.6b"])
 async def test_ollama_create_tools(model: str, ollama_client: OllamaChatCompletionClient) -> None:
     def add(x: int, y: int) -> str:
         return str(x + y)
@@ -653,7 +653,7 @@ async def test_ollama_create_structured_output_with_tools(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b"])
+@pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b", "qwen3:0.6b"])
 async def test_ollama_create_stream_tools(model: str, ollama_client: OllamaChatCompletionClient) -> None:
     def add(x: int, y: int) -> str:
         return str(x + y)

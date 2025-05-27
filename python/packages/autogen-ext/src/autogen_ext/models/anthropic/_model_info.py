@@ -6,6 +6,42 @@ from autogen_core.models import ModelFamily, ModelInfo
 # For Anthropic's Claude models based on:
 # https://docs.anthropic.com/claude/docs/models-overview
 _MODEL_INFO: Dict[str, ModelInfo] = {
+    # Claude 4 Opus
+    "claude-opus-4-20250514": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.CLAUDE_4_OPUS,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
+    # Claude 4 Opus latest alias
+    "claude-opus-4-0": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.CLAUDE_4_OPUS,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
+    # Claude 4 Sonnet
+    "claude-sonnet-4-20250514": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.CLAUDE_4_SONNET,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
+    # Claude 4 Sonnet latest alias
+    "claude-sonnet-4-0": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.CLAUDE_4_SONNET,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
     # Claude 3.7 Sonnet
     "claude-3-7-sonnet-20250219": {
         "vision": True,

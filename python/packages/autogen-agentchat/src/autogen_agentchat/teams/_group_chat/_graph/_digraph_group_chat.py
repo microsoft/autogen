@@ -1,5 +1,6 @@
 import asyncio
-from typing import Any, Callable, Dict, List, Literal, Mapping, Sequence, Set
+from collections import Counter, deque
+from typing import Any, Callable, Deque, Dict, List, Literal, Mapping, Sequence, Set
 
 from autogen_core import AgentRuntime, CancellationToken, Component, ComponentModel
 from pydantic import BaseModel
@@ -208,154 +209,70 @@ class GraphFlowManager(BaseGroupChatManager):
             max_turns=max_turns,
             message_factory=message_factory,
         )
-        self._graph = graph
-        self._graph.graph_validate()
-        self._graph_has_cycles = self._graph.get_has_cycles()
-        if self._graph_has_cycles and self._termination_condition is None and self._max_turns is None:
+        graph.graph_validate()
+        if graph.get_has_cycles() and self._termination_condition is None and self._max_turns is None:
             raise ValueError("A termination condition is required for cyclic graphs without a maximum turn limit.")
+        self._graph = graph
+        # Lookup table for incoming edges for each node.
+        self._parents = graph.get_parents()
+        # Lookup table for outgoing edges for each node.
+        self._edges: Dict[str, List[DiGraphEdge]] = {n: node.edges for n, node in graph.nodes.items()}
+        # Activation lookup table for each node.
+        self._activation: Dict[str, Literal["any", "all"]] = {n: node.activation for n, node in graph.nodes.items()}
 
-        self._use_default_start = self._graph.default_start_node is not None
-        self._default_start_executed = False
-        self._start_nodes = graph.get_start_nodes()
-        self._leaf_nodes = graph.get_leaf_nodes()
-        self._parents = graph.get_parents()  # Parent node dependencies - helper dict to get all incoming edges
-        self._active_nodes: Set[str] = set()  # Currently executing nodes
-        self._active_node_count: Dict[str, int] = {
-            node: 0 for node in graph.nodes
-        }  # Number of times a node has been active
+        # === Mutable states for the graph execution ===
+        # Count the number of remaining parents to activate each node.
+        self._remaining: Counter[str] = Counter({n: len(p) for n, p in self._parents.items()})
+        # Lookup table for nodes that have been enqueued through an any activation.
+        # This is used to prevent re-adding the same node multiple times.
+        self._enqueued_any: Dict[str, bool] = {n: False for n in graph.nodes}
+        # Ready queue for nodes that are ready to execute, starting with the start nodes.
+        self._ready: Deque[str] = deque([n for n in graph.get_start_nodes()])
 
-        # These are nodes next in line for execution as one or more of their parent nodes have started execution.
-        # They execute when all their parent nodes have executed.
-        # Nodes are added to this dict when at least one of their parent nodes becomes active.
-        # Start nodes (no parents) are added to this dict at initialization as they are always ready to run.
-        self._pending_execution: Dict[str, List[str]] = {node: [] for node in graph.get_start_nodes()}
+    async def update_message_thread(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> None:
+        await super().update_message_thread(messages)
 
-    def _get_valid_target(self, node: DiGraphNode, content: str) -> str:
-        """Check if a condition is met in the chat history."""
-        for edge in node.edges:
-            if edge.condition and edge.condition in content:
-                return edge.target
+        # Find the node that ran in the current turn.
+        message = messages[-1]
+        if message.source not in self._graph.nodes:
+            # Ignore messages from sources outside of the graph.
+            return
+        assert isinstance(message, BaseChatMessage)
+        source = message.source
+        content = message.to_model_text()
 
-        raise RuntimeError(f"Condition not met for node {node.name}. Content: {content}")
-
-    def _is_node_ready(self, node_name: str) -> bool:
-        """Check if a node is ready to execute based on its parent nodes.
-        If activation is any then execute as soon as any parent has finished
-        If activation is all then execute only when all parents have finished
-        """
-        node = self._graph.nodes[node_name]
-        if node.activation == "any":
-            return bool(self._pending_execution[node_name])
-        return all(parent in self._pending_execution[node_name] for parent in self._parents[node_name])
-
-    async def _select_speakers(self, thread: List[BaseAgentEvent | BaseChatMessage], many: bool = True) -> List[str]:
-        """Select the next set of agents to execute based on DAG constraints."""
-        next_speakers: Set[str] = set()
-        source_node: DiGraphNode | None = None
-        source: str | None = None
-
-        if thread and isinstance(thread[-1], BaseChatMessage):
-            source = thread[-1].source  # name of the agent that just finished
-            content = thread[-1].to_model_text()
-
-            # Safety check: only an active node can send a response
-            if source != "user":
-                if source not in self._active_nodes:
-                    raise RuntimeError(f"Agent '{source}' is not currently active.")
-
-                # Mark the node as no longer active (it just finished)
-                self._active_node_count[source] -= 1
-
-                if self._active_node_count[source] <= 0:
-                    self._active_nodes.remove(source)
-
-                source_node = self._graph.nodes[source]
-
-                if source_node.edges:
-                    # Case: conditional edges — only execute if condition is met
-                    target_nodes_names: List[str] = []
-                    if source_node.edges[0].condition is not None:
-                        target_nodes_names = [self._get_valid_target(source_node, content)]
-                        other_nodes = [
-                            edge.target for edge in source_node.edges if edge.target != target_nodes_names[0]
-                        ]
-                        for other_node in other_nodes:
-                            other_active_parents = [
-                                parent
-                                for parent in self._parents[other_node]
-                                if (parent != source and parent in self._active_nodes)
-                            ]
-                            if not other_active_parents:
-                                self._pending_execution.pop(other_node)
-                            else:
-                                self._pending_execution[other_node] = other_active_parents
-
-                    else:
-                        # Case: unconditional edges — mark this source as completed for all its children
-                        target_nodes_names = [edge.target for edge in source_node.edges]
-
-                    for target in target_nodes_names:
-                        self._pending_execution[target].append(source)
+        # Propagate the update to the children of the node.
+        for edge in self._edges[source]:
+            if edge.condition and edge.condition not in content:
+                continue
+            if self._activation[edge.target] == "all":
+                self._remaining[edge.target] -= 1
+                if self._remaining[edge.target] == 0:
+                    # If all parents are done, add to the ready queue.
+                    self._ready.append(edge.target)
             else:
-                # TODO: Check if there are any usecase where the User can decide on the next speaker
-                pass
+                # If activation is any, add to the ready queue if not already enqueued.
+                if not self._enqueued_any[edge.target]:
+                    self._ready.append(edge.target)
+                    self._enqueued_any[edge.target] = True
 
-        # After updating _pending_execution, check which nodes are now unblocked
-        for node_name in list(self._pending_execution):
-            if self._use_default_start and not self._default_start_executed:
-                if node_name == self._graph.default_start_node:
-                    next_speakers.add(node_name)
-                    self._default_start_executed = True
-                    break
+    async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
+        # Drain the ready queue for the next set of speakers.
+        speakers: List[str] = []
+        while self._ready:
+            speaker = self._ready.popleft()
+            speakers.append(speaker)
+            # Reset the bookkeeping for the node that were selected.
+            if self._activation[speaker] == "any":
+                self._enqueued_any[speaker] = False
+            else:
+                self._remaining[speaker] = len(self._parents[speaker])
 
-            if self._is_node_ready(node_name):
-                next_speakers.add(node_name)
-                node = self._graph.nodes[node_name]
-                if node.activation == "all":
-                    self._pending_execution.pop(node_name)
-                else:
-                    # If activation is any, remove the parent that just finished
-                    if source is not None:
-                        self._pending_execution[node_name] = [
-                            parent for parent in self._pending_execution[node_name] if parent != source
-                        ]
-
-                    # If none of the other parents of this node are active, remove this node from pending execution
-                    node_parents = self._parents[node_name]
-                    if not any(parent in self._active_nodes for parent in node_parents):
-                        self._pending_execution.pop(node_name)
-
-                if not many:
-                    break
-
-        # Prepopulate children of next_speakers into _pending_execution
-        for node_name in next_speakers:
-            for edge in self._graph.nodes[node_name].edges:
-                if edge.target not in self._pending_execution:
-                    self._pending_execution[edge.target] = []
-
-        # Mark newly selected speakers as active
-        for speaker in next_speakers:
-            if speaker not in self._active_nodes:
-                self._active_nodes.add(speaker)
-
-            self._active_node_count[speaker] += 1
-
-        if not self._pending_execution and not next_speakers and not self._active_nodes:
-            next_speakers = set([_DIGRAPH_STOP_AGENT_NAME])  # Call the termination agent
-
-        return list(next_speakers)
-
-    async def select_speakers(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> List[str]:
-        return await self._select_speakers(thread)
-
-    async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
-        """Select a speaker from the participants and return the
-        topic type of the selected speaker."""
-        speakers = await self._select_speakers(thread, many=False)
+        # If there are no speakers, trigger the stop agent.
         if not speakers:
-            raise RuntimeError("No available speakers found.")
-        return speakers[0]
+            speakers = [_DIGRAPH_STOP_AGENT_NAME]
+
+        return speakers
 
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         pass
@@ -365,10 +282,9 @@ class GraphFlowManager(BaseGroupChatManager):
         state = {
             "message_thread": [message.dump() for message in self._message_thread],
             "current_turn": self._current_turn,
-            "active_nodes": list(self._active_nodes),
-            "pending_execution": self._pending_execution,
-            "active_node_count": self._active_node_count,
-            "default_start_executed": self._default_start_executed,
+            "remaining": dict(self._remaining),
+            "enqueued_any": dict(self._enqueued_any),
+            "ready": list(self._ready),
         }
         return state
 
@@ -376,10 +292,9 @@ class GraphFlowManager(BaseGroupChatManager):
         """Restore execution state from saved data."""
         self._message_thread = [self._message_factory.create(msg) for msg in state["message_thread"]]
         self._current_turn = state["current_turn"]
-        self._active_nodes = set(state["active_nodes"])
-        self._pending_execution = state["pending_execution"]
-        self._active_node_count = state["active_node_count"]
-        self._default_start_executed = state.get("default_start_executed", False)
+        self._remaining = Counter(state["remaining"])
+        self._enqueued_any = state["enqueued_any"]
+        self._ready = deque(state["ready"])
 
     async def reset(self) -> None:
         """Reset execution state to the start of the graph."""
@@ -387,11 +302,9 @@ class GraphFlowManager(BaseGroupChatManager):
         self._message_thread.clear()
         if self._termination_condition:
             await self._termination_condition.reset()
-
-        self._active_nodes = set()
-        self._active_node_count = {node: 0 for node in self._graph.nodes}
-        self._pending_execution = {node: [] for node in self._start_nodes}
-        self._default_start_executed = False
+        self._remaining = Counter({n: len(p) for n, p in self._parents.items()})
+        self._enqueued_any = {n: False for n in self._graph.nodes}
+        self._ready = deque([n for n in self._graph.get_start_nodes()])
 
 
 class _StopAgent(BaseChatAgent):
