@@ -24,6 +24,5 @@ jobs:
       - run: pip install ".[types]"
       # Any additional configuration should be defined in pyproject.toml
       - run: |
-          mkdir -p /tmp/mypy_cache
-          mypy --install-types --non-interactive --cache-dir=/tmp/mypy_cache
+          mkdir -p /tmp/mypy_cache 
           mypy --cache-dir=/tmp/mypy_cache

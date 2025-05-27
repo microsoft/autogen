@@ -74,7 +74,7 @@ exclude = [
 
 strict = true
 python_version = "3.8"
-no_site_packages = true 
+no_site_packages = true
 ignore_missing_imports = true
 install_types = true
 non_interactive = true
