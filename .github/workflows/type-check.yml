@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,5 +24,6 @@ jobs:
       - run: pip install ".[types]"
       # Any additional configuration should be defined in pyproject.toml
       - run: |
-          mkdir -p /tmp/mypy_cache 
+          mkdir -p /tmp/mypy_cache
+          mypy --install-types --non-interactive --cache-dir=/tmp/mypy_cache
           mypy --cache-dir=/tmp/mypy_cache
