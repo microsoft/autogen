@@ -71,8 +71,7 @@ When conducting research:
 5. Cite your sources when providing information
 6. If you're unsure about something, say so and explain why
 7. Provide clear, well-structured responses with key findings highlighted
-
-Remember: DuckDuckGo search doesn't require an API key and provides privacy-focused results."""
+"""
 
         # Create the DuckDuckGo search tool
         search_tool = DuckDuckGoSearchTool()
