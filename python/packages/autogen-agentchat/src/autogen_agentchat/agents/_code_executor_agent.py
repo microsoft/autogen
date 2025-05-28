@@ -111,7 +111,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             This is only used if `model_client` is not provided.
         max_retries_on_error (int, optional): The maximum number of retries on error. If the code execution fails, the agent will retry up to this number of times.
             If the code execution fails after this number of retries, the agent will yield a reflection result.
-        supported_languages (list[str], optional): List of programming languages that will be parsed and executed from agent response;
+        supported_languages (List[str], optional): List of programming languages that will be parsed and executed from agent response;
             others will be ignored. Defaults to ["python", "bash"].
 
 
