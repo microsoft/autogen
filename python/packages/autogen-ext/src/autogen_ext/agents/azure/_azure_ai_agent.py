@@ -33,8 +33,36 @@ from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models._types import FunctionExecutionResult
 from autogen_core.tools import FunctionTool, Tool
 
-import azure.ai.projects.models as models
-from azure.ai.projects import _types
+from azure.ai.agents.models import (
+    Agent,
+    AgentsResponseFormat,
+    AgentThread,
+    AzureAISearchToolDefinition,
+    AzureFunctionToolDefinition,
+    BingGroundingToolDefinition,
+    CodeInterpreterToolDefinition,
+    CodeInterpreterToolResource,
+    FileInfo,
+    FilePurpose,
+    FileSearchToolDefinition,
+    FileSearchToolResource,
+    FileState,
+    FunctionDefinition,
+    FunctionToolDefinition,
+    ListSortOrder,
+    MessageRole,
+    MessageTextUrlCitationAnnotation,
+    RunStatus,
+    ThreadRun,
+    ToolDefinition,
+    ToolOutput,
+    ToolResources,
+    VectorStore,
+    VectorStoreChunkingStrategyRequest,
+    VectorStoreDataSource,
+    VectorStoreExpirationPolicy,
+)
+from azure.ai.agents.models._patch import ThreadMessage
 from azure.ai.projects.aio import AIProjectClient
 
 from ._types import AzureAIAgentState, ListToolType
@@ -89,43 +117,42 @@ class AzureAIAgent(BaseChatAgent):
             from autogen_ext.agents.azure._azure_ai_agent import AzureAIAgent
             from azure.ai.projects.aio import AIProjectClient
             from azure.identity.aio import DefaultAzureCredential
-            import azure.ai.projects.models as models
+            from azure.ai.agents.models import BingGroundingTool
             import dotenv
 
 
             async def bing_example():
-                credential = DefaultAzureCredential()
+                async with DefaultAzureCredential() as credential:
+                    async with AIProjectClient(  # type: ignore
+                        credential=credential, endpoint=os.getenv("AZURE_PROJECT_ENDPOINT", "")
+                    ) as project_client:
+                        conn = await project_client.connections.get(name=os.getenv("BING_CONNECTION_NAME", ""))
 
-                async with AIProjectClient.from_connection_string(  # type: ignore
-                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
-                ) as project_client:
-                    conn = await project_client.connections.get(connection_name=os.getenv("BING_CONNECTION_NAME", ""))
+                        bing_tool = BingGroundingTool(conn.id)
+                        agent_with_bing_grounding = AzureAIAgent(
+                            name="bing_agent",
+                            description="An AI assistant with Bing grounding",
+                            project_client=project_client,
+                            deployment_name="gpt-4o",
+                            instructions="You are a helpful assistant.",
+                            tools=bing_tool.definitions,
+                            metadata={"source": "AzureAIAgent"},
+                        )
 
-                    bing_tool = models.BingGroundingTool(conn.id)
-                    agent_with_bing_grounding = AzureAIAgent(
-                        name="bing_agent",
-                        description="An AI assistant with Bing grounding",
-                        project_client=project_client,
-                        deployment_name="gpt-4o",
-                        instructions="You are a helpful assistant.",
-                        tools=bing_tool.definitions,
-                        metadata={"source": "AzureAIAgent"},
-                    )
+                        # For the bing grounding tool to return the citations, the message must contain an instruction for the model to do return them.
+                        # For example: "Please provide citations for the answers"
 
-                    # For the bing grounding tool to return the citations, the message must contain an instruction for the model to do return them.
-                    # For example: "Please provide citations for the answers"
-
-                    result = await agent_with_bing_grounding.on_messages(
-                        messages=[
-                            TextMessage(
-                                content="What is Microsoft's annual leave policy? Provide citations for your answers.",
-                                source="user",
-                            )
-                        ],
-                        cancellation_token=CancellationToken(),
-                        message_limit=5,
-                    )
-                    print(result)
+                        result = await agent_with_bing_grounding.on_messages(
+                            messages=[
+                                TextMessage(
+                                    content="What is Microsoft\\'s annual leave policy? Provide citations for your answers.",
+                                    source="user",
+                                )
+                            ],
+                            cancellation_token=CancellationToken(),
+                            message_limit=5,
+                        )
+                        print(result)
 
 
             if __name__ == "__main__":
@@ -160,36 +187,39 @@ class AzureAIAgent(BaseChatAgent):
                     urllib.request.urlretrieve(readme_url, temp_file.name)
                     print(f"Downloaded README.md to {temp_file.name}")
 
-                    credential = DefaultAzureCredential()
-                    async with AIProjectClient.from_connection_string(  # type: ignore
-                        credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
-                    ) as project_client:
-                        agent_with_file_search = AzureAIAgent(
-                            name="file_search_agent",
-                            description="An AI assistant with file search capabilities",
-                            project_client=project_client,
-                            deployment_name="gpt-4o",
-                            instructions="You are a helpful assistant.",
-                            tools=["file_search"],
-                            metadata={"source": "AzureAIAgent"},
-                        )
+                    async with DefaultAzureCredential() as credential:
+                        async with AIProjectClient(  # type: ignore
+                            credential=credential, endpoint=os.getenv("AZURE_PROJECT_ENDPOINT", "")
+                        ) as project_client:
+                            agent_with_file_search = AzureAIAgent(
+                                name="file_search_agent",
+                                description="An AI assistant with file search capabilities",
+                                project_client=project_client,
+                                deployment_name="gpt-4.1-mini",
+                                instructions="You are a helpful assistant.",
+                                tools=["file_search"],
+                                metadata={"source": "AzureAIAgent"},
+                            )
 
-                        ct: CancellationToken = CancellationToken()
-                        # Use the downloaded README file for file search
-                        await agent_with_file_search.on_upload_for_file_search(
-                            file_paths=[temp_file.name],
-                            vector_store_name="file_upload_index",
-                            vector_store_metadata={"source": "AzureAIAgent"},
-                            cancellation_token=ct,
-                        )
-                        result = await agent_with_file_search.on_messages(
-                            messages=[
-                                TextMessage(content="Hello, what is AutoGen and what capabilities does it have?", source="user")
-                            ],
-                            cancellation_token=ct,
-                            message_limit=5,
-                        )
-                        print(result)
+                            ct: CancellationToken = CancellationToken()
+                            # Use the downloaded README file for file search
+                            await agent_with_file_search.on_upload_for_file_search(
+                                file_paths=[temp_file.name],
+                                vector_store_name="file_upload_index",
+                                vector_store_metadata={"source": "AzureAIAgent"},
+                                cancellation_token=ct,
+                                vector_store_polling_interval=60,
+                            )
+                            result = await agent_with_file_search.on_messages(
+                                messages=[
+                                    TextMessage(
+                                        content="Hello, what is AutoGen and what capabilities does it have?", source="user"
+                                    )
+                                ],
+                                cancellation_token=ct,
+                                message_limit=5,
+                            )
+                            print(result)
                 finally:
                     # Clean up the temporary file
                     if temp_file and os.path.exists(temp_file.name):
@@ -217,36 +247,37 @@ class AzureAIAgent(BaseChatAgent):
 
 
             async def code_interpreter_example():
-                credential = DefaultAzureCredential()
-                async with AIProjectClient.from_connection_string(  # type: ignore
-                    credential=credential, conn_str=os.getenv("AI_PROJECT_CONNECTION_STRING", "")
-                ) as project_client:
-                    agent_with_code_interpreter = AzureAIAgent(
-                        name="code_interpreter_agent",
-                        description="An AI assistant with code interpreter capabilities",
-                        project_client=project_client,
-                        deployment_name="gpt-4o",
-                        instructions="You are a helpful assistant.",
-                        tools=["code_interpreter"],
-                        metadata={"source": "AzureAIAgent"},
-                    )
+                async with DefaultAzureCredential() as credential:
+                    async with AIProjectClient(  # type: ignore
+                        credential=credential, endpoint=os.getenv("AZURE_PROJECT_ENDPOINT", "")
+                    ) as project_client:
+                        agent_with_code_interpreter = AzureAIAgent(
+                            name="code_interpreter_agent",
+                            description="An AI assistant with code interpreter capabilities",
+                            project_client=project_client,
+                            deployment_name="gpt-4.1-mini",
+                            instructions="You are a helpful assistant.",
+                            tools=["code_interpreter"],
+                            metadata={"source": "AzureAIAgent"},
+                        )
 
-                    await agent_with_code_interpreter.on_upload_for_code_interpreter(
-                        file_paths="/workspaces/autogen/python/packages/autogen-core/docs/src/user-guide/core-user-guide/cookbook/data/nifty_500_quarterly_results.csv",
-                        cancellation_token=CancellationToken(),
-                    )
+                        await agent_with_code_interpreter.on_upload_for_code_interpreter(
+                            file_paths="/workspaces/autogen/python/packages/autogen-core/docs/src/user-guide/core-user-guide/cookbook/data/nifty_500_quarterly_results.csv",
+                            cancellation_token=CancellationToken(),
+                            polling_interval=5,
+                        )
 
-                    result = await agent_with_code_interpreter.on_messages(
-                        messages=[
-                            TextMessage(
-                                content="Aggregate the number of stocks per industry and give me a markdown table as a result?",
-                                source="user",
-                            )
-                        ],
-                        cancellation_token=CancellationToken(),
-                    )
+                        result = await agent_with_code_interpreter.on_messages(
+                            messages=[
+                                TextMessage(
+                                    content="Aggregate the number of stocks per industry and give me a markdown table as a result?",
+                                    source="user",
+                                )
+                            ],
+                            cancellation_token=CancellationToken(),
+                        )
 
-                    print(result)
+                        print(result)
 
 
             if __name__ == "__main__":
@@ -265,9 +296,9 @@ class AzureAIAgent(BaseChatAgent):
         agent_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         metadata: Optional[Dict[str, str]] = None,
-        response_format: Optional["_types.AgentsApiResponseFormatOption"] = None,
+        response_format: Optional[AgentsResponseFormat] = None,
         temperature: Optional[float] = None,
-        tool_resources: Optional["models.ToolResources"] = None,
+        tool_resources: Optional[ToolResources] = None,
         top_p: Optional[float] = None,
     ) -> None:
         """
@@ -300,12 +331,12 @@ class AzureAIAgent(BaseChatAgent):
 
         self._original_tools: list[Tool] = []
 
-        converted_tools: List["models.ToolDefinition"] = []
+        converted_tools: List[ToolDefinition] = []
         self._add_tools(tools, converted_tools)
 
         self._project_client = project_client
-        self._agent: Optional["models.Agent"] = None
-        self._thread: Optional["models.AgentThread"] = None
+        self._agent: Optional[Agent] = None
+        self._thread: Optional[AgentThread] = None
         self._init_thread_id = thread_id
         self._deployment_name = deployment_name
         self._instructions = instructions
@@ -365,16 +396,16 @@ class AzureAIAgent(BaseChatAgent):
         return self._instructions
 
     @property
-    def tools(self) -> List[models.ToolDefinition]:
+    def tools(self) -> List[ToolDefinition]:
         """
         Get the list of tools available to the agent.
 
         Returns:
-            List[models.ToolDefinition]: The list of tool definitions.
+            List[ToolDefinition]: The list of tool definitions.
         """
         return self._api_tools
 
-    def _add_tools(self, tools: Optional[ListToolType], converted_tools: List["models.ToolDefinition"]) -> None:
+    def _add_tools(self, tools: Optional[ListToolType], converted_tools: List[ToolDefinition]) -> None:
         """
         Convert various tool formats to Azure AI Agent tool definitions.
 
@@ -391,20 +422,20 @@ class AzureAIAgent(BaseChatAgent):
         for tool in tools:
             if isinstance(tool, str):
                 if tool == "file_search":
-                    converted_tools.append(models.FileSearchToolDefinition())
+                    converted_tools.append(FileSearchToolDefinition())
                 elif tool == "code_interpreter":
-                    converted_tools.append(models.CodeInterpreterToolDefinition())
+                    converted_tools.append(CodeInterpreterToolDefinition())
                 elif tool == "bing_grounding":
-                    converted_tools.append(models.BingGroundingToolDefinition())  # type: ignore
+                    converted_tools.append(BingGroundingToolDefinition())  # type: ignore
                 elif tool == "azure_ai_search":
-                    converted_tools.append(models.AzureAISearchToolDefinition())
+                    converted_tools.append(AzureAISearchToolDefinition())
                 elif tool == "azure_function":
-                    converted_tools.append(models.AzureFunctionToolDefinition())  # type: ignore
-                elif tool == "sharepoint_grounding":
-                    converted_tools.append(models.SharepointToolDefinition())  # type: ignore
+                    converted_tools.append(AzureFunctionToolDefinition())  # type: ignore
+                # elif tool == "sharepoint_grounding":
+                #     converted_tools.append(SharepointToolDefinition())  # type: ignore
                 else:
                     raise ValueError(f"Unsupported tool string: {tool}")
-            elif isinstance(tool, models.ToolDefinition):
+            elif isinstance(tool, ToolDefinition):
                 converted_tools.append(tool)
             elif isinstance(tool, Tool):
                 self._original_tools.append(tool)
@@ -420,7 +451,7 @@ class AzureAIAgent(BaseChatAgent):
             else:
                 raise ValueError(f"Unsupported tool type: {type(tool)}")
 
-    def _convert_tool_to_function_tool_definition(self, tool: Tool) -> models.FunctionToolDefinition:
+    def _convert_tool_to_function_tool_definition(self, tool: Tool) -> FunctionToolDefinition:
         """
         Convert an autogen Tool to an Azure AI Agent function tool definition.
 
@@ -442,9 +473,9 @@ class AzureAIAgent(BaseChatAgent):
             if "required" in schema["parameters"]:
                 parameters["required"] = schema["parameters"]["required"]
 
-        func_definition = models.FunctionDefinition(name=tool.name, description=tool.description, parameters=parameters)
+        func_definition = FunctionDefinition(name=tool.name, description=tool.description, parameters=parameters)
 
-        return models.FunctionToolDefinition(
+        return FunctionToolDefinition(
             function=func_definition,
         )
 
@@ -482,13 +513,13 @@ class AzureAIAgent(BaseChatAgent):
 
         if self._thread is None or create_new_thread:
             if self._init_thread_id and create_new_thread is False:
-                self._thread = await self._project_client.agents.get_thread(thread_id=self._init_thread_id)
+                self._thread = await self._project_client.agents.threads.get(thread_id=self._init_thread_id)
                 # Retrieve initial state only once
                 if not self._initial_state_retrieved:
                     await self._retrieve_initial_state()
                     self._initial_state_retrieved = True
             else:
-                self._thread = await self._project_client.agents.create_thread()
+                self._thread = await self._project_client.agents.threads.create()
 
     async def _retrieve_initial_state(self) -> None:
         """
@@ -500,17 +531,12 @@ class AzureAIAgent(BaseChatAgent):
         """
         # Retrieve all initial message IDs
         initial_message_ids: Set[str] = set()
-        after: str | None = None
-        while True:
-            msgs: models.OpenAIPageableListOfThreadMessage = await self._project_client.agents.list_messages(
-                thread_id=self.thread_id, after=after, order=models.ListSortOrder.ASCENDING, limit=100
-            )
-
-            for msg in msgs.data:
-                initial_message_ids.add(msg.id)
-            if not msgs.has_more:
-                break
-            after = msgs.data[-1].id
+        async for msg in self._project_client.agents.messages.list(
+            thread_id=self.thread_id,
+            order=ListSortOrder.ASCENDING,
+            limit=100,
+        ):
+            initial_message_ids.add(msg.id)
         self._initial_message_ids = initial_message_ids
 
     async def _execute_tool_call(self, tool_call: FunctionCall, cancellation_token: CancellationToken) -> str:
@@ -540,7 +566,7 @@ class AzureAIAgent(BaseChatAgent):
         self,
         file_paths: str | Iterable[str],
         purpose: str = "assistant",
-        sleep_interval: float = 0.5,
+        polling_interval: float = 0.5,
         cancellation_token: Optional[CancellationToken] = None,
     ) -> List[str]:
         """
@@ -552,7 +578,7 @@ class AzureAIAgent(BaseChatAgent):
         Args:
             file_paths (str | Iterable[str]): Path(s) to file(s) to upload
             purpose (str): The purpose of the file, defaults to "assistant"
-            sleep_interval (float): Time to sleep between polling for file status
+            polling_interval (float): Time to sleep between polling for file status
             cancellation_token (Optional[CancellationToken]): Token for cancellation handling
 
         Returns:
@@ -573,15 +599,15 @@ class AzureAIAgent(BaseChatAgent):
         for file_path in file_paths:
             file_name = os.path.basename(file_path)
 
-            file: models.OpenAIFile = await cancellation_token.link_future(
+            file: FileInfo = await cancellation_token.link_future(
                 asyncio.ensure_future(
-                    self._project_client.agents.upload_file_and_poll(
-                        file_path=file_path, purpose=purpose, sleep_interval=sleep_interval
+                    self._project_client.agents.files.upload_and_poll(
+                        file_path=file_path, purpose=purpose, polling_interval=polling_interval
                     )
                 )
             )
 
-            if file.status != models.FileState.PROCESSED:
+            if file.status != FileState.PROCESSED:
                 raise ValueError(f"File upload failed with status {file.status}")
 
             trace_logger.debug(f"File uploaded successfully: {file.id}, {file_name}")
@@ -605,7 +631,7 @@ class AzureAIAgent(BaseChatAgent):
         It delegates to on_messages_stream and returns the final response.
 
         Args:
-            messages (Sequence[ChatMessage]): The messages to process
+            messages (Sequence[BaseChatMessage]): The messages to process
             cancellation_token (CancellationToken): Token for cancellation handling
             message_limit (int, optional): Maximum number of messages to retrieve from the thread
 
@@ -627,7 +653,7 @@ class AzureAIAgent(BaseChatAgent):
         messages: Sequence[BaseChatMessage],
         cancellation_token: Optional[CancellationToken] = None,
         message_limit: int = 1,
-        sleep_interval: float = 0.5,
+        polling_interval: float = 0.5,
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """
         Process incoming messages and yield streaming responses from the Azure AI agent.
@@ -642,10 +668,10 @@ class AzureAIAgent(BaseChatAgent):
         the complete Response with the agent's message.
 
         Args:
-            messages (Sequence[ChatMessage]): The messages to process
+            messages (Sequence[BaseChatMessage]): The messages to process
             cancellation_token (CancellationToken): Token for cancellation handling
             message_limit (int, optional): Maximum number of messages to retrieve from the thread
-            sleep_interval (float, optional): Time to sleep between polling for run status
+            polling_interval (float, optional): Time to sleep between polling for run status
 
         Yields:
             AgentEvent | ChatMessage | Response: Events during processing and the final response
@@ -669,9 +695,9 @@ class AzureAIAgent(BaseChatAgent):
         inner_messages: List[AgentEvent | ChatMessage] = []
 
         # Create and start a run
-        run: models.ThreadRun = await cancellation_token.link_future(
+        run: ThreadRun = await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._project_client.agents.create_run(
+                self._project_client.agents.runs.create(
                     thread_id=self.thread_id,
                     agent_id=self._get_agent_id,
                 )
@@ -682,18 +708,18 @@ class AzureAIAgent(BaseChatAgent):
         while True:
             run = await cancellation_token.link_future(
                 asyncio.ensure_future(
-                    self._project_client.agents.get_run(
+                    self._project_client.agents.runs.get(
                         thread_id=self.thread_id,
                         run_id=run.id,
                     )
                 )
             )
 
-            if run.status == models.RunStatus.FAILED:
+            if run.status == RunStatus.FAILED:
                 raise ValueError(f"Run failed: {run.last_error}")
 
             # If the run requires action (function calls), execute tools and continue
-            if run.status == models.RunStatus.REQUIRES_ACTION and run.required_action is not None:
+            if run.status == RunStatus.REQUIRES_ACTION and run.required_action is not None:
                 tool_calls: List[FunctionCall] = []
                 submit_tool_outputs = getattr(run.required_action, "submit_tool_outputs", None)
                 if submit_tool_outputs and hasattr(submit_tool_outputs, "tool_calls"):
@@ -740,44 +766,47 @@ class AzureAIAgent(BaseChatAgent):
                 # Submit tool outputs back to the run
                 run = await cancellation_token.link_future(
                     asyncio.ensure_future(
-                        self._project_client.agents.submit_tool_outputs_to_run(
+                        self._project_client.agents.runs.submit_tool_outputs(
                             thread_id=self.thread_id,
                             run_id=run.id,
-                            tool_outputs=[
-                                models.ToolOutput(tool_call_id=t.call_id, output=t.content) for t in tool_outputs
-                            ],
+                            tool_outputs=[ToolOutput(tool_call_id=t.call_id, output=t.content) for t in tool_outputs],
                         )
                     )
                 )
                 continue
 
-            if run.status == models.RunStatus.COMPLETED:
+            if run.status == RunStatus.COMPLETED:
                 break
 
             # TODO support for parameter to control polling interval
-            await asyncio.sleep(sleep_interval)
+            await asyncio.sleep(polling_interval)
 
         # After run is completed, get the messages
         trace_logger.debug("Retrieving messages from thread")
-        agent_messages: models.OpenAIPageableListOfThreadMessage = await cancellation_token.link_future(
-            asyncio.ensure_future(
-                self._project_client.agents.list_messages(
-                    thread_id=self.thread_id, order=models.ListSortOrder.DESCENDING, limit=message_limit
-                )
-            )
-        )
-
-        if not agent_messages.data:
+        # Collect up to message_limit messages in DESCENDING order, support cancellation
+        agent_messages: List[ThreadMessage] = []
+        async for msg in self._project_client.agents.messages.list(
+            thread_id=self.thread_id,
+            order=ListSortOrder.DESCENDING,
+            limit=message_limit,
+        ):
+            if cancellation_token.is_cancelled():
+                trace_logger.debug("Message retrieval cancelled by token.")
+                break
+            agent_messages.append(msg)
+            if len(agent_messages) >= message_limit:
+                break
+        if not agent_messages:
             raise ValueError("No messages received from assistant")
 
-        # Get the last message from the agent
-        last_message: Optional[models.ThreadMessage] = agent_messages.get_last_message_by_role(models.MessageRole.AGENT)
-
+        # Get the last message from the agent (role=AGENT)
+        last_message: Optional[ThreadMessage] = next(
+            (m for m in agent_messages if getattr(m, "role", None) == "agent"), None
+        )
         if not last_message:
             trace_logger.debug("No message with AGENT role found, falling back to first message")
-            last_message = agent_messages.data[0]  # Fallback to first message
-
-        if not last_message.content:
+            last_message = agent_messages[0]  # Fallback to first message
+        if not getattr(last_message, "content", None):
             raise ValueError("No content in the last message")
 
         # Extract text content
@@ -793,7 +822,7 @@ class AzureAIAgent(BaseChatAgent):
         annotations = getattr(last_message, "annotations", [])
 
         if isinstance(annotations, list) and annotations:
-            annotations = cast(List[models.MessageTextUrlCitationAnnotation], annotations)
+            annotations = cast(List[MessageTextUrlCitationAnnotation], annotations)
 
             trace_logger.debug(f"Found {len(annotations)} annotations")
             for annotation in annotations:
@@ -850,10 +879,10 @@ class AzureAIAgent(BaseChatAgent):
 
         await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._project_client.agents.create_message(
+                self._project_client.agents.messages.create(
                     thread_id=self.thread_id,
+                    role=MessageRole.USER,
                     content=content,
-                    role=models.MessageRole.USER,
                 )
             )
         )
@@ -914,7 +943,7 @@ class AzureAIAgent(BaseChatAgent):
         self,
         file_paths: str | Iterable[str],
         cancellation_token: Optional[CancellationToken] = None,
-        sleep_interval: float = 0.5,
+        polling_interval: float = 0.5,
     ) -> None:
         """
         Upload files to be used with the code interpreter tool.
@@ -925,7 +954,7 @@ class AzureAIAgent(BaseChatAgent):
         Args:
             file_paths (str | Iterable[str]): Path(s) to file(s) to upload
             cancellation_token (Optional[CancellationToken]): Token for cancellation handling
-            sleep_interval (float): Time to sleep between polling for file status
+            polling_interval (float): Time to sleep between polling for file status
 
         Raises:
             ValueError: If file upload fails or the agent doesn't have code interpreter capability
@@ -938,26 +967,26 @@ class AzureAIAgent(BaseChatAgent):
         file_ids = await self._upload_files(
             file_paths=file_paths,
             cancellation_token=cancellation_token,
-            sleep_interval=sleep_interval,
-            purpose=models.FilePurpose.AGENTS,
+            polling_interval=polling_interval,
+            purpose=FilePurpose.AGENTS,
         )
 
         # Update thread with the new files
-        thread: models.AgentThread = await cancellation_token.link_future(
-            asyncio.ensure_future(self._project_client.agents.get_thread(thread_id=self.thread_id))
+        thread: AgentThread = await cancellation_token.link_future(
+            asyncio.ensure_future(self._project_client.agents.threads.get(thread_id=self.thread_id))
         )
 
-        tool_resources: models.ToolResources = thread.tool_resources or models.ToolResources()
-        code_interpreter_resource = tool_resources.code_interpreter or models.CodeInterpreterToolResource()
+        tool_resources: ToolResources = thread.tool_resources or ToolResources()
+        code_interpreter_resource = tool_resources.code_interpreter or CodeInterpreterToolResource()
         existing_file_ids: List[str] = code_interpreter_resource.file_ids or []
         existing_file_ids.extend(file_ids)
 
         await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._project_client.agents.update_thread(
+                self._project_client.agents.threads.update(
                     thread_id=self.thread_id,
-                    tool_resources=models.ToolResources(
-                        code_interpreter=models.CodeInterpreterToolResource(file_ids=existing_file_ids)
+                    tool_resources=ToolResources(
+                        code_interpreter=CodeInterpreterToolResource(file_ids=existing_file_ids)
                     ),
                 )
             )
@@ -968,11 +997,11 @@ class AzureAIAgent(BaseChatAgent):
         file_paths: str | Iterable[str],
         cancellation_token: CancellationToken,
         vector_store_name: Optional[str] = None,
-        data_sources: Optional[List[models.VectorStoreDataSource]] = None,
-        expires_after: Optional[models.VectorStoreExpirationPolicy] = None,
-        chunking_strategy: Optional[models.VectorStoreChunkingStrategyRequest] = None,
+        data_sources: Optional[List[VectorStoreDataSource]] = None,
+        expires_after: Optional[VectorStoreExpirationPolicy] = None,
+        chunking_strategy: Optional[VectorStoreChunkingStrategyRequest] = None,
         vector_store_metadata: Optional[Dict[str, str]] = None,
-        vector_store_polling_sleep_interval: float = 1,
+        vector_store_polling_interval: float = 1,
     ) -> None:
         """
         Upload files to be used with the file search tool.
@@ -984,11 +1013,11 @@ class AzureAIAgent(BaseChatAgent):
             file_paths (str | Iterable[str]): Path(s) to file(s) to upload
             cancellation_token (CancellationToken): Token for cancellation handling
             vector_store_name (Optional[str]): Name to assign to the vector store if creating a new one
-            data_sources (Optional[List[models.VectorStoreDataSource]]): Additional data sources for the vector store
-            expires_after (Optional[models.VectorStoreExpirationPolicy]): Expiration policy for vector store content
-            chunking_strategy (Optional[models.VectorStoreChunkingStrategyRequest]): Strategy for chunking file content
+            data_sources (Optional[List[VectorStoreDataSource]]): Additional data sources for the vector store
+            expires_after (Optional[VectorStoreExpirationPolicy]): Expiration policy for vector store content
+            chunking_strategy (Optional[VectorStoreChunkingStrategyRequest]): Strategy for chunking file content
             vector_store_metadata (Optional[Dict[str, str]]): Additional metadata for the vector store
-            vector_store_polling_sleep_interval (float): Time to sleep between polling for vector store status
+            vector_store_polling_interval (float): Time to sleep between polling for vector store status
 
         Raises:
             ValueError: If file search is not enabled for this agent or file upload fails
@@ -996,23 +1025,23 @@ class AzureAIAgent(BaseChatAgent):
         await self._ensure_initialized()
 
         # Check if file_search is enabled in tools
-        if not any(tool.get("type") == "file_search" for tool in self._api_tools):
+        if not any(isinstance(tool, FileSearchToolDefinition) for tool in self._api_tools):
             raise ValueError(
                 "File search is not enabled for this assistant. Add a file_search tool when creating the assistant."
             )
 
         # Create vector store if not already created
         if self._vector_store_id is None:
-            vector_store: models.VectorStore = await cancellation_token.link_future(
+            vector_store: VectorStore = await cancellation_token.link_future(
                 asyncio.ensure_future(
-                    self._project_client.agents.create_vector_store_and_poll(
+                    self._project_client.agents.vector_stores.create_and_poll(
                         file_ids=[],
                         name=vector_store_name,
                         data_sources=data_sources,
                         expires_after=expires_after,
                         chunking_strategy=chunking_strategy,
                         metadata=vector_store_metadata,
-                        sleep_interval=vector_store_polling_sleep_interval,
+                        polling_interval=vector_store_polling_interval,
                     )
                 )
             )
@@ -1024,30 +1053,38 @@ class AzureAIAgent(BaseChatAgent):
                     self._project_client.agents.update_agent(
                         agent_id=self._get_agent_id,
                         tools=self._api_tools,
-                        tool_resources=models.ToolResources(
-                            file_search=models.FileSearchToolResource(vector_store_ids=[self._vector_store_id])
+                        tool_resources=ToolResources(
+                            file_search=FileSearchToolResource(vector_store_ids=[self._vector_store_id])
                         ),
                     )
                 )
             )
 
         file_ids = await self._upload_files(
-            file_paths=file_paths, cancellation_token=cancellation_token, purpose=models.FilePurpose.AGENTS
+            file_paths=file_paths, cancellation_token=cancellation_token, purpose=FilePurpose.AGENTS
         )
 
         # Create file batch with the file IDs
         await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._project_client.agents.create_vector_store_file_batch_and_poll(
-                    vector_store_id=self._vector_store_id, file_ids=file_ids
+                self._project_client.agents.vector_store_file_batches.create_and_poll(
+                    vector_store_id=self._vector_store_id,
+                    file_ids=file_ids,
+                    polling_interval=vector_store_polling_interval,
                 )
             )
         )
 
+    async def close(self) -> None:
+        """
+        Close the Azure AI agent and release any resources.
+        """
+        await self._project_client.close()
+
 
 if __name__ == "__main__":
     # Example usage of AzureAIAgent
-    # Replace with your actual connection string and credentials
+    # Replace with your actual endpoint and credentials
     """
         TODO:
         [X] Support for file upload
