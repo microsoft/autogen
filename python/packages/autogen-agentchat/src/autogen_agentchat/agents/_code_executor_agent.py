@@ -600,7 +600,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         pass
 
     def _extract_markdown_code_blocks(self, markdown_text: str) -> List[CodeBlock]:
-        pattern = re.compile(rf"```(?:\s*({self._supported_languages_regex}))\n([\s\S]*?)```")
+        pattern = re.compile(rf"```(?:\s*({self._supported_languages_regex}))\n([\s\S]*?)```", re.IGNORECASE)
         matches = pattern.findall(markdown_text)
         code_blocks: List[CodeBlock] = []
         for match in matches:
