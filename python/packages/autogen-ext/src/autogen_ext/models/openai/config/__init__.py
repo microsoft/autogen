@@ -1,8 +1,8 @@
-from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
+from typing import Annotated, Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel, Field, SecretStr
 from typing_extensions import Required, TypedDict
 
 
@@ -66,10 +66,18 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     default_headers: Dict[str, str] | None
 
 
+# Limitations defined in OpenAI docs
+OpenAIMetadataKey = Annotated[str, Field(max_length=64)]
+OpenAIMetadataValue = Annotated[str, Field(max_length=512)]
+MetadataType = Annotated[Dict[OpenAIMetadataKey, OpenAIMetadataValue], Field(min_length=1, max_length=16)]
+
+
 # See OpenAI docs for explanation of these parameters
 class OpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
     organization: str
     base_url: str
+    store: bool | None
+    metadata: MetadataType | None
 
 
 class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
@@ -112,6 +120,8 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
 class OpenAIClientConfigurationConfigModel(BaseOpenAIClientConfigurationConfigModel):
     organization: str | None = None
     base_url: str | None = None
+    store: bool | None = None
+    metadata: MetadataType | None = None
 
 
 class AzureOpenAIClientConfigurationConfigModel(BaseOpenAIClientConfigurationConfigModel):
