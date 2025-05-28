@@ -22,6 +22,7 @@ create-your-own
 :caption: Guides
 
 azure-container-code-executor
+azure-foundry-agent
 ```
 
 AutoGen is designed to be extensible. The `autogen-ext` package contains the built-in component implementations maintained by the AutoGen project.
