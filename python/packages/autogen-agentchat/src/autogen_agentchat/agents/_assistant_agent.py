@@ -651,6 +651,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     """
 
+    component_version = 2
     component_config_schema = AssistantAgentConfig
     component_provider_override = "autogen_agentchat.agents.AssistantAgent"
 

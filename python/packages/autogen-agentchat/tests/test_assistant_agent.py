@@ -1485,6 +1485,7 @@ async def test_tools_serialize_and_deserialize() -> None:
     assert deserialize.name == agent.name
     for original, restored in zip(agent._workbench, deserialize._workbench, strict=True):  # type: ignore
         assert await original.list_tools() == await restored.list_tools()  # type: ignore
+    assert agent.component_version == deserialize.component_version
 
 
 @pytest.mark.asyncio
@@ -1550,7 +1551,7 @@ async def test_tools_deserialize_aware() -> None:
         "provider": "autogen_agentchat.agents.AssistantAgent",
         "component_type": "agent",
         "version": 1,
-        "component_version": 1,
+        "component_version": 2,
         "description": "An agent that provides assistance with tool use.",
         "label": "AssistantAgent",
         "config": {
