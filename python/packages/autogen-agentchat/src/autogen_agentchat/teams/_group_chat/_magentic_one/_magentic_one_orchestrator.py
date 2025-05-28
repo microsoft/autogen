@@ -11,6 +11,7 @@ from autogen_core.models import (
     LLMMessage,
     UserMessage,
 )
+from autogen_core.utils import extract_json_from_str
 
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
@@ -290,22 +291,6 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         # Restart the inner loop
         await self._orchestrate_step(cancellation_token=cancellation_token)
 
-    def _extract_progress_ledger(self, content: str) -> Dict[str, Any]:
-        """Extract a JSON string from the content."""
-        # This is a simple regex to extract a JSON object from the content.
-        # It assumes that the JSON object is well-formed and does not contain nested objects.
-        pattern = re.compile(r"```(?:\s*([\w\+\-]+))?\n([\s\S]*?)```")
-        matches = pattern.findall(content)
-        if len(matches) > 1:
-            raise ValueError("Multiple JSON objects found in the content. Progress ledger should contain only one.")
-        if len(matches) == 1:
-            match = matches[0]
-            language = match[0].strip() if match[0] else None
-            if language and language.lower() != "json":
-                raise ValueError(f"Expected JSON object, but found language: {language}")
-            content = match[1]
-        return json.loads(content)
-
     async def _orchestrate_step(self, cancellation_token: CancellationToken) -> None:
         """Implements the inner loop of the orchestrator and selects next speaker."""
         # Check if we reached the maximum number of rounds
@@ -329,7 +314,12 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             ledger_str = response.content
             try:
                 assert isinstance(ledger_str, str)
-                progress_ledger = self._extract_progress_ledger(ledger_str)
+                output_json = extract_json_from_str(ledger_str)
+                if len(output_json) != 1:
+                    raise ValueError(
+                        f"Progress ledger should contain a single JSON object, but found: {len(progress_ledger)}"
+                    )
+                progress_ledger = output_json[0]
 
                 # If the team consists of a single agent, deterministically set the next speaker
                 if len(self._participant_names) == 1:
