@@ -112,7 +112,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         max_retries_on_error (int, optional): The maximum number of retries on error. If the code execution fails, the agent will retry up to this number of times.
             If the code execution fails after this number of retries, the agent will yield a reflection result.
         supported_languages (List[str], optional): List of programming languages that will be parsed and executed from agent response;
-            others will be ignored. Defaults to ["python", "bash"].
+            others will be ignored. Defaults to DEFAULT_SUPPORTED_LANGUAGES.
 
 
     .. note::
@@ -332,6 +332,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     DEFAULT_AGENT_DESCRIPTION = "A Code Execution Agent that generates and executes Python and shell scripts based on user instructions. It ensures correctness, efficiency, and minimal errors while gracefully handling edge cases."
     DEFAULT_SYSTEM_MESSAGE = "You are a Code Execution Agent. Your role is to generate and execute Python code and shell scripts based on user instructions, ensuring correctness, efficiency, and minimal errors. Handle edge cases gracefully. Python code should be provided in ```python code blocks, and sh shell scripts should be provided in ```sh code blocks for execution."
     NO_CODE_BLOCKS_FOUND_MESSAGE = "No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks)."
+    DEFAULT_SUPPORTED_LANGUAGES = ["python", "bash"]
 
     component_config_schema = CodeExecutorAgentConfig
     component_provider_override = "autogen_agentchat.agents.CodeExecutorAgent"
@@ -365,7 +366,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         if supported_languages is not None:
             self._supported_languages = supported_languages
         else:
-            self._supported_languages = ["python", "bash"]
+            self._supported_languages = CodeExecutorAgent.DEFAULT_SUPPORTED_LANGUAGES
 
         self._supported_languages_regex = "|".join(re.escape(lang) for lang in self._supported_languages)
 
