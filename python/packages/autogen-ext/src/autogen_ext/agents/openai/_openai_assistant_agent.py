@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import warnings
 from typing import (
     Any,
     AsyncGenerator,
@@ -18,7 +19,7 @@ from typing import (
     Union,
     cast,
 )
-import warnings
+
 import aiofiles
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
@@ -27,14 +28,19 @@ from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
     BaseAgentEvent,
     BaseChatMessage,
-    TextMessage,
     HandoffMessage,
+    TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
 )
 from autogen_core import CancellationToken, FunctionCall, Image
-from autogen_core.models import ChatCompletionClient, FunctionExecutionResult, AssistantMessage, FunctionExecutionResultMessage
-from autogen_core.tools import FunctionTool, Tool, BaseTool
+from autogen_core.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+)
+from autogen_core.tools import BaseTool, FunctionTool, Tool
 from pydantic import BaseModel, Field
 
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI, NotGiven
@@ -345,11 +351,12 @@ class OpenAIAssistantAgent(BaseChatAgent):
             if self._assistant_id:
                 self._assistant = await self._client.beta.assistants.retrieve(assistant_id=self._assistant_id)
             else:
+                all_tools = self._api_tools + self._converted_handoff_tools
                 self._assistant = await self._client.beta.assistants.create(
                     model=self._model,
                     description=self.description,
                     instructions=self._instructions,
-                    tools=self._api_tools + self._converted_handoff_tools,
+                    tools=all_tools,
                     metadata=self._metadata,
                     response_format=self._response_format if self._response_format else NOT_GIVEN,  # type: ignore
                     temperature=self._temperature,
@@ -513,7 +520,18 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 event_logger.debug(tool_result_msg)
                 yield tool_result_msg
 
-                # generate handoff message
+                # Submit tool outputs back to the run
+                run = await cancellation_token.link_future(
+                    asyncio.ensure_future(
+                        self._client.beta.threads.runs.submit_tool_outputs(
+                            thread_id=self._thread_id,
+                            run_id=run.id,
+                            tool_outputs=[{"tool_call_id": t.call_id, "output": t.content} for t in tool_outputs],
+                        )
+                    )
+                )
+
+                # check and generate handoff message
                 handoff_calls = [call for call in tool_calls if call.name in self._handoffs]
                 if len(handoff_calls) > 0:
                     if len(handoff_calls) > 1:
@@ -526,36 +544,35 @@ class OpenAIAssistantAgent(BaseChatAgent):
                             stacklevel=2,
                         )
                     selected_handoff = self._handoffs[handoff_calls[0].name]
-                    
+
                     # Collect normal tool calls (not handoff) into the handoff context
-                    tool_calls: List[FunctionCall] = []
-                    tool_call_results: List[FunctionExecutionResult] = []
+                    normal_tool_calls: List[FunctionCall] = []
+                    normal_tool_results: List[FunctionExecutionResult] = []
                     # Collect the results returned by handoff_tool. By default, the message attribute will returned.
                     selected_handoff_message = selected_handoff.message
-                    for exec_call, exec_result in zip(tool_calls,tool_call_results):
-                        if exec_call.name not in self._handoffs:
-                            tool_calls.append(exec_call)
-                            tool_call_results.append(exec_result)
-                        elif exec_call.name == selected_handoff.name:
-                            selected_handoff_message = exec_result.content
+                    for tool_call, tool_result in zip(tool_calls, tool_outputs, strict=False):
+                        if tool_call.name not in self._handoffs:
+                            normal_tool_calls.append(tool_call)
+                            normal_tool_results.append(tool_result)
+                        elif tool_call.name == selected_handoff.name:
+                            selected_handoff_message = tool_result.content
 
-                    handoff_context: List[BaseChatMessage] = []
-                    if len(tool_calls) > 0:
-                        # todo: Include the thought in the AssistantMessage if model_result has it
+                    from autogen_core.models import LLMMessage
+
+                    handoff_context: List[LLMMessage] = []
+                    if len(normal_tool_calls) > 0:
                         handoff_context.append(
                             AssistantMessage(
-                                content=tool_calls,
-                                source=self.name
+                                content=normal_tool_calls,
+                                source=self.name,
+                                # TODO: Include the thought in the AssistantMessage if model_result has it
                             )
                         )
-                        handoff_context.append(FunctionExecutionResultMessage(content=tool_call_results))
+                        handoff_context.append(FunctionExecutionResultMessage(content=normal_tool_results))
 
                     await cancellation_token.link_future(
                         asyncio.ensure_future(
-                            self._client.beta.threads.runs.cancel(
-                                thread_id=self._thread_id,
-                                run_id=run.id
-                            )
+                            self._client.beta.threads.runs.cancel(thread_id=self._thread_id, run_id=run.id)
                         )
                     )
                     # Return response for the handoff
@@ -569,18 +586,8 @@ class OpenAIAssistantAgent(BaseChatAgent):
                         inner_messages=inner_messages,
                     )
                     return
-
-                # Submit tool outputs back to the run
-                run = await cancellation_token.link_future(
-                    asyncio.ensure_future(
-                        self._client.beta.threads.runs.submit_tool_outputs(
-                            thread_id=self._thread_id,
-                            run_id=run.id,
-                            tool_outputs=[{"tool_call_id": t.call_id, "output": t.content} for t in tool_outputs],
-                        )
-                    )
-                )
-                continue
+                else:
+                    continue
 
             if run.status == "completed":
                 break
