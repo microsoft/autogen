@@ -362,7 +362,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         self._model_client_stream = model_client_stream
         self._max_retries_on_error = max_retries_on_error
 
-        if supported_languages:
+        if supported_languages is not None:
             self._supported_languages = supported_languages
         else:
             self._supported_languages = ["python", "bash"]
