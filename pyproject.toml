@@ -55,7 +55,7 @@ max-complexity = 10
 files = [
     "autogen/logger",
     "autogen/exception_utils.py",
-    "autogen/coding", 
+    "autogen/coding",
     "autogen/_pydantic.py",
     "autogen/function_utils.py",
     "autogen/io",
