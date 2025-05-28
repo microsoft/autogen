@@ -1,10 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-import sys,os
-# Add the src directory to Python path for local imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
 from autogen_ext.agents.duckduckgo_search import DuckDuckGoSearchAgent
 from autogen_ext.tools.web_search import DuckDuckGoSearchTool
 from autogen_core.models import ChatCompletionClient
