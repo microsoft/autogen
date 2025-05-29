@@ -48,12 +48,12 @@ const navigation: INavItem[] = [
     icon: GalleryHorizontalEnd,
     breadcrumbs: [{ name: "Gallery", href: "/gallery", current: true }],
   },
-  {
-    name: "Labs",
-    href: "/labs",
-    icon: FlaskConical,
-    breadcrumbs: [{ name: "Labs", href: "/labs", current: true }],
-  },
+  // {
+  //   name: "Labs",
+  //   href: "/labs",
+  //   icon: FlaskConical,
+  //   breadcrumbs: [{ name: "Labs", href: "/labs", current: true }],
+  // },
   {
     name: "Deploy",
     href: "/deploy",
