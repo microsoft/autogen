@@ -384,6 +384,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             function that takes the conversation history and returns the name of the next speaker.
             If provided, this function will be used to override the model to select the next speaker.
             If the function returns None, the model will be used to select the next speaker.
+            NOTE: `selector_func` is not serializable and will be ignored during serialization and deserialization process.
         candidate_func (Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], List[str]], Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[List[str]]], optional):
             A custom function that takes the conversation history and returns a filtered list of candidates for the next speaker
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.
