@@ -39,6 +39,7 @@ from autogen_core.models import (
     ChatCompletionClient,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
+    LLMMessage,
 )
 from autogen_core.tools import BaseTool, FunctionTool, Tool
 from pydantic import BaseModel, Field
@@ -557,8 +558,6 @@ class OpenAIAssistantAgent(BaseChatAgent):
                         elif tool_call.name == selected_handoff.name:
                             selected_handoff_message = tool_result.content
 
-                    from autogen_core.models import LLMMessage
-
                     handoff_context: List[LLMMessage] = []
                     if len(normal_tool_calls) > 0:
                         handoff_context.append(
@@ -570,7 +569,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                         )
                         handoff_context.append(FunctionExecutionResultMessage(content=normal_tool_results))
 
-                    await cancellation_token.link_future(
+                    run = await cancellation_token.link_future(
                         asyncio.ensure_future(
                             self._client.beta.threads.runs.cancel(thread_id=self._thread_id, run_id=run.id)
                         )
