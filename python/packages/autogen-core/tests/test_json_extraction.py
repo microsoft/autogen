@@ -75,10 +75,11 @@ def test_extract_json_from_str_codeblock() -> None:
     invalid_lang_code_block_str = """
   ```notjson
   {
-    "name": "Alice",
-    "age": 28,
-    "city": "Seattle"
+    "name": "Jane",
+    "age": 25,
+    "city": "Los Angeles"
   }
+  ```
   """
     with pytest.raises(ValueError):
         extract_json_from_str(invalid_lang_code_block_str)
