@@ -72,6 +72,7 @@ internal sealed class LifecycleObjectFixture : LifecycleObject
     }
 }
 
+[Trait("Category", "UnitV2")]
 public class LifecycleObjectTests
 {
     /*

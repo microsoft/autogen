@@ -2,18 +2,24 @@ from typing import List, Union
 
 from autogen_core import FunctionCall, Image
 from autogen_core.models import FunctionExecutionResult, LLMMessage, UserMessage
+from pydantic import BaseModel
 
 # Type aliases for convenience
+_StructuredContent = BaseModel
 _UserContent = Union[str, List[Union[str, Image]]]
 _AssistantContent = Union[str, List[FunctionCall]]
 _FunctionExecutionContent = List[FunctionExecutionResult]
 _SystemContent = str
 
 
-def content_to_str(content: _UserContent | _AssistantContent | _FunctionExecutionContent | _SystemContent) -> str:
+def content_to_str(
+    content: _UserContent | _AssistantContent | _FunctionExecutionContent | _SystemContent | _StructuredContent,
+) -> str:
     """Convert the content of an LLMMessage to a string."""
     if isinstance(content, str):
         return content
+    elif isinstance(content, BaseModel):
+        return content.model_dump_json()
     else:
         result: List[str] = []
         for c in content:

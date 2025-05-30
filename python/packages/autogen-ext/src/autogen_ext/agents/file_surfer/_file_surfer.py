@@ -1,12 +1,12 @@
 import json
+import os
 import traceback
 from typing import List, Sequence, Tuple
 
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
-    ChatMessage,
-    MultiModalMessage,
+    BaseChatMessage,
     TextMessage,
 )
 from autogen_agentchat.utils import remove_images
@@ -54,6 +54,7 @@ class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
         name (str): The agent's name
         model_client (ChatCompletionClient): The model to use (must be tool-use enabled)
         description (str): The agent's description used by the team. Defaults to DEFAULT_DESCRIPTION
+        base_path (str): The base path to use for the file browser. Defaults to the current working directory.
 
     """
 
@@ -75,23 +76,20 @@ class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
         name: str,
         model_client: ChatCompletionClient,
         description: str = DEFAULT_DESCRIPTION,
+        base_path: str = os.getcwd(),
     ) -> None:
         super().__init__(name, description)
         self._model_client = model_client
         self._chat_history: List[LLMMessage] = []
-        self._browser = MarkdownFileBrowser(viewport_size=1024 * 5)
+        self._browser = MarkdownFileBrowser(viewport_size=1024 * 5, base_path=base_path)
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         for chat_message in messages:
-            if isinstance(chat_message, TextMessage | MultiModalMessage):
-                self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
-            else:
-                raise ValueError(f"Unexpected message in FileSurfer: {chat_message}")
-
+            self._chat_history.append(chat_message.to_model_message())
         try:
             _, content = await self._generate_reply(cancellation_token=cancellation_token)
             self._chat_history.append(AssistantMessage(content=content, source=self.name))

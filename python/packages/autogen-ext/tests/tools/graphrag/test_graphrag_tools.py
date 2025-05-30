@@ -91,6 +91,7 @@ async def test_global_search_tool(
     entity_df_fixture: pd.DataFrame,
     report_df_fixture: pd.DataFrame,
     entity_embedding_fixture: pd.DataFrame,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     # Create a temporary directory to simulate the data config
     with tempfile.TemporaryDirectory() as tempdir:
@@ -120,12 +121,16 @@ async def test_global_search_tool(
 
         global_search_tool = GlobalSearchTool(token_encoder=token_encoder, llm=llm, data_config=data_config)
 
-        # Example of running the tool and checking the result
-        query = "What is the overall sentiment of the community reports?"
-        cancellation_token = CancellationToken()
-        result = await global_search_tool.run_json(args={"query": query}, cancellation_token=cancellation_token)
-        assert isinstance(result, GlobalSearchToolReturn)
-        assert isinstance(result.answer, str)
+        with caplog.at_level("INFO"):
+            # Example of running the tool and checking the result
+            query = "What is the overall sentiment of the community reports?"
+            cancellation_token = CancellationToken()
+            result = await global_search_tool.run_json(args={"query": query}, cancellation_token=cancellation_token)
+            assert isinstance(result, GlobalSearchToolReturn)
+            assert isinstance(result.answer, str)
+
+            # Check if the log contains the expected message
+            assert result.answer in caplog.text
 
 
 @pytest.mark.asyncio
@@ -135,6 +140,7 @@ async def test_local_search_tool(
     text_unit_df_fixture: pd.DataFrame,
     entity_embedding_fixture: pd.DataFrame,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     # Create a temporary directory to simulate the data config
     with tempfile.TemporaryDirectory() as tempdir:
@@ -176,9 +182,13 @@ async def test_local_search_tool(
             token_encoder=token_encoder, llm=llm, embedder=embedder, data_config=data_config
         )
 
-        # Example of running the tool and checking the result
-        query = "What are the relationships between Dr. Becher and the station-master?"
-        cancellation_token = CancellationToken()
-        result = await local_search_tool.run_json(args={"query": query}, cancellation_token=cancellation_token)
-        assert isinstance(result, LocalSearchToolReturn)
-        assert isinstance(result.answer, str)
+        with caplog.at_level("INFO"):
+            # Example of running the tool and checking the result
+            query = "What are the relationships between Dr. Becher and the station-master?"
+            cancellation_token = CancellationToken()
+            result = await local_search_tool.run_json(args={"query": query}, cancellation_token=cancellation_token)
+            assert isinstance(result, LocalSearchToolReturn)
+            assert isinstance(result.answer, str)
+
+            # Check if the log contains the expected message
+            assert result.answer in caplog.text

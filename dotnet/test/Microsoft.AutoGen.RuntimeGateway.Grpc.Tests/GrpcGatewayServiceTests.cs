@@ -28,7 +28,7 @@ public class GrpcGatewayServiceTests
         var logger = Mock.Of<ILogger<GrpcGateway>>();
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
-        var client = new TestGrpcClient();
+        var client = new TestGrpcClient<Message>();
 
         gateway._workers.Count.Should().Be(0);
         var task = OpenChannel(service, client);
@@ -38,12 +38,43 @@ public class GrpcGatewayServiceTests
     }
 
     [Fact]
+    public async Task Test_ControlChannel_Pass_Message_Through_Gateway()
+    {
+        var logger = Mock.Of<ILogger<GrpcGateway>>();
+        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
+        var service = new GrpcGatewayService(gateway);
+
+        var controlClient = new TestGrpcClient<ControlMessage>();
+        var controlTask = OpenConrolChannel(service, controlClient);
+        gateway._controlWorkers.Count.Should().Be(1);
+
+        var testMessage = new ControlMessage
+        {
+            RpcId = "123",
+            Destination = "agentid=PBAgent", // Target the registered agent
+            RespondTo = "", // Empty string means it's a request
+            RpcMessage = Google.Protobuf.WellKnownTypes.Any.Pack(new SaveStateRequest { AgentId = new Protobuf.AgentId() })
+        };
+
+        controlClient.AddMessage(testMessage);
+
+        // Step 4: Verify that the agent receives the control message
+        var receivedMessage = await controlClient.ReadNext();
+        receivedMessage.Should().NotBeNull();
+        receivedMessage.RpcId.Should().Be("123");
+
+        // Cleanup
+        controlClient.Dispose();
+        await controlTask;
+    }
+
+    [Fact]
     public async Task Test_Message_Exchange_Through_Gateway()
     {
         var logger = Mock.Of<ILogger<GrpcGateway>>();
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
-        var client = new TestGrpcClient();
+        var client = new TestGrpcClient<Message>();
         var task = OpenChannel(service: service, client);
         await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent)), client.CallContext);
         await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(GMAgent)), client.CallContext);
@@ -90,7 +121,7 @@ public class GrpcGatewayServiceTests
         var logger = Mock.Of<ILogger<GrpcGateway>>();
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
-        var client = new TestGrpcClient();
+        var client = new TestGrpcClient<Message>();
         var task = OpenChannel(service: service, client);
         var response = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent)), client.CallContext);
         response.GetType().Should().Be(typeof(RegisterAgentTypeResponse));
@@ -110,7 +141,7 @@ public class GrpcGatewayServiceTests
         var topics = eventTypes.GetTopicsForAgent(type)?.ToList();
         var topicsPrefix = eventTypes.GetTopicsPrefixForAgent(type)?.ToList();
         if (events is not null && topics is not null) { events.AddRange(topics); }
-        var client = new TestGrpcClient();
+        var client = new TestGrpcClient<Message>();
 
         if (events != null)
         {
@@ -177,9 +208,13 @@ public class GrpcGatewayServiceTests
         return registration;
     }
 
-    private Task OpenChannel(GrpcGatewayService service, TestGrpcClient client)
+    private Task OpenChannel(GrpcGatewayService service, TestGrpcClient<Message> client)
     {
         return service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
+    }
+    private Task OpenConrolChannel(GrpcGatewayService service, TestGrpcClient<ControlMessage> client)
+    {
+        return service.OpenControlChannel(client.RequestStream, client.ResponseStream, client.CallContext);
     }
     private string GetFullName(Type type)
     {

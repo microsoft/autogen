@@ -32,10 +32,10 @@ dependencies = [
     "loguru",
     "pyyaml",
     "html2text",
-    "autogen-core>=0.4.5,<0.5",
-    "autogen-agentchat>=0.4.5,<0.5",
-    "autogen-ext[magentic-one, openai, azure]>=0.4.2,<0.5",
-    "azure-identity"
+    "autogen-core>=0.4.9.2,<0.6",
+    "autogen-agentchat>=0.4.9.2,<0.6",
+    "autogen-ext[magentic-one, openai, azure]>=0.4.2,<0.6",
+    "anthropic",
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 

@@ -21,72 +21,91 @@ behaviors and **Teams** with predefined [multi-agent design patterns](../core-us
 
 :::{grid-item-card} {fas}`download;pst-color-primary` Installation
 :link: ./installation.html
+:link-alt: Installation: How to install AgentChat
 
 How to install AgentChat
 :::
 
 :::{grid-item-card} {fas}`rocket;pst-color-primary` Quickstart
 :link: ./quickstart.html
+:link-alt: Quickstart: Build your first agent
 
 Build your first agent
 :::
 
 :::{grid-item-card} {fas}`school;pst-color-primary` Tutorial
 :link: ./tutorial/index.html
+:link-alt: Tutorial: Step-by-step guide to using AgentChat, learn about agents, teams, and more
 
 Step-by-step guide to using AgentChat, learn about agents, teams, and more
 :::
 
 :::{grid-item-card} {fas}`wrench;pst-color-primary` Custom Agents
 :link: ./custom-agents.html
+:link-alt: Custom Agents: Create your own agents with custom behaviors
 
 Create your own agents with custom behaviors
 :::
 
 :::{grid-item-card} {fas}`sitemap;pst-color-primary` Selector Group Chat
 :link: ./selector-group-chat.html
+:link-alt: Selector Group Chat: Multi-agent coordination through a shared context and centralized, customizable selector
 
 Multi-agent coordination through a shared context and centralized, customizable selector
 :::
 
 :::{grid-item-card} {fas}`dove;pst-color-primary` Swarm
 :link: ./swarm.html
+:link-alt: Swarm: Multi-agent coordination through a shared context and localized, tool-based selector
 
 Multi-agent coordination through a shared context and localized, tool-based selector
 :::
 
 :::{grid-item-card} {fas}`book;pst-color-primary` Magentic-One
 :link: ./magentic-one.html
+:link-alt: Magentic-One: Get started with Magentic-One
 
 Get started with Magentic-One
 :::
 
+:::{grid-item-card} {fas}`sitemap;pst-color-primary` GraphFlow (Workflow)
+:link: ./graph-flow.html
+:link-alt: GraphFlow: Multi-agent workflows through a directed graph of agents.
+
+Multi-agent workflows through a directed graph of agents.
+:::
+
 :::{grid-item-card} {fas}`brain;pst-color-primary` Memory
 :link: ./memory.html
+:link-alt: Memory: Add memory capabilities to your agents
 
 Add memory capabilities to your agents
 :::
 
 :::{grid-item-card} {fas}`file;pst-color-primary` Logging
 :link: ./logging.html
+:link-alt: Logging: Log traces and internal messages
 
 Log traces and internal messages
 :::
 
 :::{grid-item-card} {fas}`save;pst-color-primary` Serialize Components
 :link: ./serialize-components.html
+:link-alt: Serialize Components: Serialize and deserialize components
 
 Serialize and deserialize components
 :::
 
 :::{grid-item-card} {fas}`code;pst-color-primary` Examples
 :link: ./examples/index.html
+:link-alt: Examples: Sample code and use cases
 
 Sample code and use cases
 :::
 
 :::{grid-item-card} {fas}`truck-moving;pst-color-primary` Migration Guide
 :link: ./migration-guide.html
+:link-alt: Migration Guide: How to migrate from AutoGen 0.2.x to 0.4.x.
 
 How to migrate from AutoGen 0.2.x to 0.4.x.
 :::
@@ -126,9 +145,11 @@ custom-agents
 selector-group-chat
 swarm
 magentic-one
+graph-flow
 memory
 logging
 serialize-components
+tracing
 
 ```
 

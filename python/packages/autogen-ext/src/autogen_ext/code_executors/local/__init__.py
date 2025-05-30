@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import sys
+import tempfile
 import warnings
 from hashlib import sha256
 from pathlib import Path
@@ -36,8 +37,9 @@ class LocalCommandLineCodeExecutorConfig(BaseModel):
     """Configuration for LocalCommandLineCodeExecutor"""
 
     timeout: int = 60
-    work_dir: str = "."  # Stored as string, converted to Path in _from_config
+    work_dir: Optional[str] = None
     functions_module: str = "functions"
+    cleanup_temp_files: bool = True
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeExecutorConfig]):
@@ -56,7 +58,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
     commands from being executed which may potentially affect the users environment.
     Currently the only supported languages is Python and shell scripts.
     For Python code, use the language "python" for the code block.
-    For shell scripts, use the language "bash", "shell", or "sh" for the code
+    For shell scripts, use the language "bash", "shell", "sh", "pwsh", "powershell", or "ps1" for the code
     block.
 
     .. note::
@@ -74,11 +76,15 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
     Args:
         timeout (int): The timeout for the execution of any single code block. Default is 60.
         work_dir (str): The working directory for the code execution. If None,
-            a default working directory will be used. The default working
-            directory is the current directory ".".
+            a default working directory will be used. The default working directory is a temporary directory.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
+        cleanup_temp_files (bool, optional): Whether to automatically clean up temporary files after execution. Defaults to True.
         virtual_env_context (Optional[SimpleNamespace], optional): The virtual environment context. Defaults to None.
+
+    .. note::
+        Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
+
 
     Example:
 
@@ -141,7 +147,7 @@ $functions"""
     def __init__(
         self,
         timeout: int = 60,
-        work_dir: Union[Path, str] = Path("."),
+        work_dir: Optional[Union[Path, str]] = None,
         functions: Sequence[
             Union[
                 FunctionWithRequirements[Any, A],
@@ -150,23 +156,27 @@ $functions"""
             ]
         ] = [],
         functions_module: str = "functions",
+        cleanup_temp_files: bool = True,
         virtual_env_context: Optional[SimpleNamespace] = None,
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
-
-        if isinstance(work_dir, str):
-            work_dir = Path(work_dir)
-
-        if not functions_module.isidentifier():
-            raise ValueError("Module name must be a valid Python identifier")
-
-        self._functions_module = functions_module
-
-        work_dir.mkdir(exist_ok=True)
-
         self._timeout = timeout
-        self._work_dir: Path = work_dir
+
+        self._work_dir: Optional[Path] = None
+        if work_dir is not None:
+            # Check if user provided work_dir is the current directory and warn if so.
+            if Path(work_dir).resolve() == Path.cwd().resolve():
+                warnings.warn(
+                    "Using the current directory as work_dir is deprecated.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            if isinstance(work_dir, str):
+                self._work_dir = Path(work_dir)
+            else:
+                self._work_dir = work_dir
+            self._work_dir.mkdir(exist_ok=True)
 
         self._functions = functions
         # Setup could take some time so we intentionally wait for the first code block to do it.
@@ -175,7 +185,15 @@ $functions"""
         else:
             self._setup_functions_complete = True
 
+        if not functions_module.isidentifier():
+            raise ValueError("Module name must be a valid Python identifier")
+        self._functions_module = functions_module
+
+        self._cleanup_temp_files = cleanup_temp_files
         self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
+
+        self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
+        self._started = False
 
         # Check the current event loop policy if on windows.
         if sys.platform == "win32":
@@ -213,15 +231,6 @@ $functions"""
         )
 
     @property
-    def functions_module(self) -> str:
-        """(Experimental) The module name for the functions."""
-        return self._functions_module
-
-    @property
-    def functions(self) -> List[str]:
-        raise NotImplementedError
-
-    @property
     def timeout(self) -> int:
         """(Experimental) The timeout for code execution."""
         return self._timeout
@@ -229,11 +238,32 @@ $functions"""
     @property
     def work_dir(self) -> Path:
         """(Experimental) The working directory for the code execution."""
-        return self._work_dir
+        if self._work_dir is not None:
+            return self._work_dir
+        else:
+            # Automatically create temp directory if not exists
+            if self._temp_dir is None:
+                self._temp_dir = tempfile.TemporaryDirectory()
+                self._started = True
+            return Path(self._temp_dir.name)
+
+    @property
+    def functions(self) -> List[str]:
+        raise NotImplementedError
+
+    @property
+    def functions_module(self) -> str:
+        """(Experimental) The module name for the functions."""
+        return self._functions_module
+
+    @property
+    def cleanup_temp_files(self) -> bool:
+        """(Experimental) Whether to automatically clean up temporary files after execution."""
+        return self._cleanup_temp_files
 
     async def _setup_functions(self, cancellation_token: CancellationToken) -> None:
         func_file_content = build_python_functions_file(self._functions)
-        func_file = self._work_dir / f"{self._functions_module}.py"
+        func_file = self.work_dir / f"{self._functions_module}.py"
         func_file.write_text(func_file_content)
 
         # Collect requirements
@@ -255,7 +285,7 @@ $functions"""
                 asyncio.create_subprocess_exec(
                     py_executable,
                     *cmd_args,
-                    cwd=self._work_dir,
+                    cwd=self.work_dir,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -302,27 +332,34 @@ $functions"""
     async def _execute_code_dont_check_setup(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
     ) -> CommandLineCodeResult:
+        """
+        Execute the provided code blocks in the local command line without re-checking setup.
+        Returns a CommandLineCodeResult indicating success or failure.
+        """
         logs_all: str = ""
         file_names: List[Path] = []
         exitcode = 0
+
         for code_block in code_blocks:
             lang, code = code_block.language, code_block.code
             lang = lang.lower()
 
+            # Remove pip output where possible
             code = silence_pip(code, lang)
 
+            # Normalize python variants to "python"
             if lang in PYTHON_VARIANTS:
                 lang = "python"
 
+            # Abort if not supported
             if lang not in self.SUPPORTED_LANGUAGES:
-                # In case the language is not supported, we return an error message.
                 exitcode = 1
                 logs_all += "\n" + f"unknown language {lang}"
                 break
 
+            # Try extracting a filename (if present)
             try:
-                # Check if there is a filename comment
-                filename = get_file_name_from_content(code, self._work_dir)
+                filename = get_file_name_from_content(code, self.work_dir)
             except ValueError:
                 return CommandLineCodeResult(
                     exit_code=1,
@@ -330,56 +367,84 @@ $functions"""
                     code_file=None,
                 )
 
+            # If no filename is found, create one
             if filename is None:
-                # create a file with an automatically generated name
                 code_hash = sha256(code.encode()).hexdigest()
-                filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
+                if lang.startswith("python"):
+                    ext = "py"
+                elif lang in ["pwsh", "powershell", "ps1"]:
+                    ext = "ps1"
+                else:
+                    ext = lang
 
-            written_file = (self._work_dir / filename).resolve()
+                filename = f"tmp_code_{code_hash}.{ext}"
+
+            written_file = (self.work_dir / filename).resolve()
             with written_file.open("w", encoding="utf-8") as f:
                 f.write(code)
             file_names.append(written_file)
 
+            # Build environment
             env = os.environ.copy()
-
             if self._virtual_env_context:
-                virtual_env_exe_abs_path = os.path.abspath(self._virtual_env_context.env_exe)
                 virtual_env_bin_abs_path = os.path.abspath(self._virtual_env_context.bin_path)
                 env["PATH"] = f"{virtual_env_bin_abs_path}{os.pathsep}{env['PATH']}"
 
-                program = virtual_env_exe_abs_path if lang.startswith("python") else lang_to_cmd(lang)
+            # Decide how to invoke the script
+            if lang == "python":
+                program = (
+                    os.path.abspath(self._virtual_env_context.env_exe) if self._virtual_env_context else sys.executable
+                )
+                extra_args = [str(written_file.absolute())]
             else:
-                program = sys.executable if lang.startswith("python") else lang_to_cmd(lang)
+                # Get the appropriate command for the language
+                program = lang_to_cmd(lang)
 
-            # Wrap in a task to make it cancellable
+                # Special handling for PowerShell
+                if program == "pwsh":
+                    extra_args = [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        str(written_file.absolute()),
+                    ]
+                else:
+                    # Shell commands (bash, sh, etc.)
+                    extra_args = [str(written_file.absolute())]
+
+            # Create a subprocess and run
             task = asyncio.create_task(
                 asyncio.create_subprocess_exec(
                     program,
-                    str(written_file.absolute()),
-                    cwd=self._work_dir,
+                    *extra_args,
+                    cwd=self.work_dir,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                     env=env,
                 )
             )
             cancellation_token.link_future(task)
+
+            proc = None  # Track the process
             try:
                 proc = await task
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), self._timeout)
                 exitcode = proc.returncode or 0
-
             except asyncio.TimeoutError:
-                logs_all += "\n Timeout"
-                # Same exit code as the timeout command on linux.
+                logs_all += "\nTimeout"
                 exitcode = 124
+                if proc:
+                    proc.terminate()
+                    await proc.wait()  # Ensure process is fully dead
                 break
             except asyncio.CancelledError:
-                logs_all += "\n Cancelled"
-                # TODO: which exit code? 125 is Operation Canceled
+                logs_all += "\nCancelled"
                 exitcode = 125
+                if proc:
+                    proc.terminate()
+                    await proc.wait()
                 break
-
-            self._running_cmd_task = None
 
             logs_all += stderr.decode()
             logs_all += stdout.decode()
@@ -387,8 +452,17 @@ $functions"""
             if exitcode != 0:
                 break
 
-        code_file = str(file_names[0]) if len(file_names) > 0 else None
-        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)
+        code_file = str(file_names[0]) if file_names else None
+        code_result = CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)
+
+        if self._cleanup_temp_files:
+            for file in file_names:
+                try:
+                    file.unlink(missing_ok=True)
+                except OSError as error:
+                    logging.error(f"Failed to delete temporary file {file}: {error}")
+
+        return code_result
 
     async def restart(self) -> None:
         """(Experimental) Restart the code executor."""
@@ -396,6 +470,29 @@ $functions"""
             "Restarting local command line code executor is not supported. No action is taken.",
             stacklevel=2,
         )
+
+    async def start(self) -> None:
+        """(Experimental) Start the code executor.
+
+        Initializes the local code executor and should be called before executing any code blocks.
+        It marks the executor internal state as started.
+        If no working directory is provided, the method creates a temporary directory for the executor to use.
+        """
+        if self._work_dir is None and self._temp_dir is None:
+            self._temp_dir = tempfile.TemporaryDirectory()
+        self._started = True
+
+    async def stop(self) -> None:
+        """(Experimental) Stop the code executor.
+
+        Stops the local code executor and performs the cleanup of the temporary working directory (if it was created).
+        The executor's internal state is markes as no longer started.
+        """
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+            self._temp_dir = None
+        self._started = False
+        pass
 
     def _to_config(self) -> LocalCommandLineCodeExecutorConfig:
         if self._functions:
@@ -405,14 +502,16 @@ $functions"""
 
         return LocalCommandLineCodeExecutorConfig(
             timeout=self._timeout,
-            work_dir=str(self._work_dir),
+            work_dir=str(self.work_dir),
             functions_module=self._functions_module,
+            cleanup_temp_files=self._cleanup_temp_files,
         )
 
     @classmethod
     def _from_config(cls, config: LocalCommandLineCodeExecutorConfig) -> Self:
         return cls(
             timeout=config.timeout,
-            work_dir=Path(config.work_dir),
+            work_dir=Path(config.work_dir) if config.work_dir is not None else None,
             functions_module=config.functions_module,
+            cleanup_temp_files=config.cleanup_temp_files,
         )

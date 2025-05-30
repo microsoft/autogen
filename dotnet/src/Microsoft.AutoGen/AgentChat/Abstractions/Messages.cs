@@ -4,7 +4,10 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Text;
-
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using Microsoft.AutoGen.AgentChat.GroupChat;
 using Microsoft.Extensions.AI;
 
 namespace Microsoft.AutoGen.AgentChat.Abstractions;
@@ -21,6 +24,11 @@ public abstract class AgentMessage
     /// The name of the agent that sent this message.
     /// </summary>
     public required string Source { get; set; }
+
+    /// <summary>
+    /// The <see cref="IChatClient"/> usage incurred when producing this message.
+    /// </summary>
+    public RequestUsage? ModelUsage { get; set; }
 
     // IMPORTANT NOTE: Unlike the ITypeMarshal<AgentMessage, WireProtocol.AgentMessage> implementation in ProtobufTypeMarshal,
     // the .ToWire() call on this is intended to be used for directly converting a concrete message type to its leaf representation.
@@ -116,7 +124,7 @@ public struct MultiModalData
     /// <param name="item">The <see cref="AIContent"/> to wrap.</param>
     /// <returns>A <see cref="MultiModalData"/> instance wrapping the <paramref name="item"/>.</returns>
     /// <exception cref="ArgumentException">
-    /// Thrown if the <paramref name="item"/> is not a <see cref="TextContent"/> or <see cref="ImageContent"/>.
+    /// Thrown if the <paramref name="item"/> is not a <see cref="TextContent"/> or <see cref="DataContent"/>.
     /// </exception>
     public static MultiModalData CheckTypeAndCreate(AIContent item)
     {
@@ -124,7 +132,7 @@ public struct MultiModalData
         {
             return new MultiModalData(text);
         }
-        else if (item is ImageContent image)
+        else if (item is DataContent image)
         {
             return new MultiModalData(image);
         }
@@ -155,10 +163,10 @@ public struct MultiModalData
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="MultiModalData"/> with an <see cref="ImageContent"/>.
+    /// Initializes a new instance of the <see cref="MultiModalData"/> with an <see cref="DataContent"/>.
     /// </summary>
     /// <param name="image">The image to wrap.</param>
-    public MultiModalData(ImageContent image)
+    public MultiModalData(DataContent image)
     {
         ContentType = Type.Image;
         AIContent = image;
@@ -246,12 +254,12 @@ public class MultiModalMessage : ChatMessage, IList<AIContent>
     }
 
     /// <summary>
-    /// Adds a range of <see cref="ImageContent"/> to the message.
+    /// Adds a range of <see cref="DataContent"/> to the message.
     /// </summary>
     /// <param name="images">The items to add.</param>
-    public void AddRange(IEnumerable<ImageContent> images)
+    public void AddRange(IEnumerable<DataContent> images)
     {
-        foreach (ImageContent image in images)
+        foreach (DataContent image in images)
         {
             this.Add(image);
         }
@@ -279,7 +287,7 @@ public class MultiModalMessage : ChatMessage, IList<AIContent>
     /// Adds a <see cref="TextContent"/> to the message.
     /// </summary>
     /// <param name="image">The image to add.</param>
-    public void Add(ImageContent image)
+    public void Add(DataContent image)
     {
         this.Content.Add(new(image));
     }
@@ -366,7 +374,7 @@ public class MultiModalMessage : ChatMessage, IList<AIContent>
     }
 
     /// <inheritdoc cref="IList{ImageContent}.Insert(int, ImageContent)"/>
-    public void Insert(int index, ImageContent image)
+    public void Insert(int index, DataContent image)
     {
         this.Content.Insert(index, new(image));
     }
@@ -493,6 +501,11 @@ public class FunctionExecutionResult
     public required string Id { get; set; }
 
     /// <summary>
+    /// The name of the function that was called.
+    /// </summary>
+    public required string Name { get; set; }
+
+    /// <summary>
     /// The result of calling the function.
     /// </summary>
     public required string Content { get; set; }
@@ -597,7 +610,7 @@ public static class CompletionChatMessageExtensions
             {
                 contentBuilder.AppendLine(textContent.Text);
             }
-            else if (content is ImageContent)
+            else if (content is DataContent)
             {
                 contentBuilder.AppendLine("[Image]");
             }
@@ -612,5 +625,131 @@ public static class CompletionChatMessageExtensions
             AuthorName = msg.AuthorName,
             AdditionalProperties = msg.AdditionalProperties
         };
+    }
+}
+
+public static class MessageSerializationHelpers
+{
+    internal sealed class TypeNode(Type type)
+    {
+        public Type Type { get; } = type;
+        public TypeNode? Parent { get; set; }
+        public TypeNode Root => this.Parent?.Root ?? this;
+        public List<TypeNode> Children { get; } = new List<TypeNode>();
+
+        public IEnumerable<Type> ChildrenTransitiveClosure
+        {
+            get
+            {
+                return this.Children.Select(c => c.Type)
+                                    .Concat(Children.SelectMany(c => c.ChildrenTransitiveClosure));
+            }
+        }
+    }
+
+    internal sealed class TypeTree
+    {
+        private static IEnumerable<Type> GetDerivedTypes(Type type)
+        {
+            // Across all assemblies
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                // Get all types in the assembly
+                foreach (var derivedType in assembly.GetTypes().Where(t => type.IsAssignableFrom(t) && t != type))
+                {
+                    yield return derivedType;
+                }
+            }
+        }
+
+        private TypeNode EnsureTypeNode(Type type)
+        {
+            if (!this.TypeNodes.TryGetValue(type, out TypeNode? currentNode))
+            {
+                currentNode = this.TypeNodes[type] = new TypeNode(type);
+            }
+
+            return currentNode;
+        }
+
+        private void EnsureType(Type type)
+        {
+            TypeNode? currentNode = this.EnsureTypeNode(type);
+
+            while (currentNode != null &&
+                   currentNode.Parent == null &&
+                   !this.RootTypes.Contains(currentNode.Type))
+            {
+                Type parentType = currentNode.Type.BaseType
+                                  ?? throw new InvalidOperationException("We should never have a non-Root, underived base");
+
+                TypeNode parentNode = this.EnsureTypeNode(parentType);
+                currentNode.Parent = parentNode;
+                parentNode.Children.Add(currentNode);
+
+                currentNode = parentNode;
+            }
+        }
+
+        public HashSet<Type> RootTypes { get; }
+        public Dictionary<Type, TypeNode> TypeNodes { get; } = new Dictionary<Type, TypeNode>();
+
+        public TypeTree(params Type[] rootTypes)
+        {
+            this.RootTypes = new HashSet<Type>();
+            foreach (var rootType in rootTypes)
+            {
+                // Check that there are no other types that this type derives from in the root types
+                // or vice versa
+                if (this.RootTypes.Any(t => t.IsAssignableFrom(rootType) || rootType.IsAssignableFrom(t)))
+                {
+                    throw new ArgumentException($"Root types cannot be derived from each other: {rootType.Name}");
+                }
+
+                this.RootTypes.Add(rootType);
+
+                this.EnsureType(rootType);
+
+                foreach (var derivedType in GetDerivedTypes(rootType))
+                {
+                    this.EnsureType(derivedType);
+                }
+            }
+        }
+    }
+
+    internal static readonly TypeTree MessageTypeTree = new(typeof(AgentMessage), typeof(GroupChatEventBase));
+
+    internal sealed class MessagesTypeInfoResolver : DefaultJsonTypeInfoResolver
+    {
+        public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
+        {
+            JsonTypeInfo baseTypeInfo = base.GetTypeInfo(type, options);
+
+            if (MessageTypeTree.TypeNodes.TryGetValue(type, out TypeNode? typeNode) &&
+                typeNode.Children.Any()) // Only add polymorphism info if there are derived children
+            {
+                if (baseTypeInfo.PolymorphismOptions == null)
+                {
+                    baseTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions();
+                }
+
+                baseTypeInfo.PolymorphismOptions.IgnoreUnrecognizedTypeDiscriminators = true;
+                baseTypeInfo.PolymorphismOptions.UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization;
+
+                foreach (Type childType in typeNode.ChildrenTransitiveClosure)
+                {
+                    if (childType.IsAbstract || childType.IsInterface || childType.IsGenericTypeDefinition)
+                    {
+                        // Can only deserialize concrete, complete types.
+                        continue;
+                    }
+
+                    baseTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(childType, childType.FullName ?? childType.Name));
+                }
+            }
+
+            return baseTypeInfo;
+        }
     }
 }

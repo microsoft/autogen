@@ -33,7 +33,7 @@ jobs:
           [
             # For main use the workflow target
             { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.5.13", sphinx-release-override: "dev" },
-            { ref: "python-v0.4.8", dest-dir: stable, uv-version: "0.5.13", sphinx-release-override: "stable" },
+            { ref: "python-v0.5.7", dest-dir: stable, uv-version: "0.5.13", sphinx-release-override: "stable" },
             { ref: "v0.4.0.post1", dest-dir: "0.4.0", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "v0.4.1", dest-dir: "0.4.1", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "v0.4.2", dest-dir: "0.4.2", uv-version: "0.5.13", sphinx-release-override: "" },
@@ -43,6 +43,14 @@ jobs:
             { ref: "python-v0.4.6", dest-dir: "0.4.6", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "python-v0.4.7", dest-dir: "0.4.7", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "python-v0.4.8", dest-dir: "0.4.8", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "python-v0.4.9-website", dest-dir: "0.4.9", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "python-v0.5.1", dest-dir: "0.5.1", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "python-v0.5.2", dest-dir: "0.5.2", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "python-v0.5.3", dest-dir: "0.5.3", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "python-v0.5.4", dest-dir: "0.5.4", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "python-v0.5.5", dest-dir: "0.5.5", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "python-v0.5.6", dest-dir: "0.5.6", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "python-v0.5.7", dest-dir: "0.5.7", uv-version: "0.5.13", sphinx-release-override: "" },
           ]
     steps:
       - name: Checkout
@@ -134,10 +142,11 @@ jobs:
       - name: setup python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.9"
       - name: pydoc-markdown install
         run: |
           python -m pip install --upgrade pip
+          pip install docspec==2.2.1 docspec-python==2.2.1
           pip install pydoc-markdown pyyaml termcolor
           # Pin databind packages as version 4.5.0 is not compatible with pydoc-markdown.
           pip install databind.core==4.4.2 databind.json==4.4.2

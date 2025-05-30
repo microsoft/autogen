@@ -19,9 +19,16 @@ We recommend using a virtual environment as this will ensure that the dependenci
 
 Create and activate:
 
+Linux/Mac:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+```
+
+Windows command-line:
+```batch
+python3 -m venv .venv
+.venv\Scripts\activate.bat
 ```
 
 To deactivate later, run:
@@ -74,8 +81,9 @@ You have two options for installing from source: manually or using a dev contain
 ### A) Install from source manually
 
 1. Ensure you have Python 3.10+ and Node.js (version above 14.15.0) installed.
-2. Clone the AutoGen Studio repository and install its Python dependencies using `pip install -e .`
-3. Navigate to the `python/packages/autogen-studio/frontend` directory, install the dependencies, and build the UI:
+2. Clone the AutoGen Studio repository.
+3. Navigate to the `python/packages/autogen-studio` and install its Python dependencies using `pip install -e .`
+4. Navigate to the `python/packages/autogen-studio/frontend` directory, install the dependencies, and build the UI:
 
 ```bash
 npm install -g gatsby-cli

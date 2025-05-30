@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Button, Tooltip, Select } from "antd";
+import React, { useContext, useState } from "react";
+import { Button, Tooltip, Select, message } from "antd";
 import {
   Bot,
   Plus,
@@ -12,9 +12,12 @@ import {
   RefreshCcw,
   History,
 } from "lucide-react";
-import type { Team } from "../../types/datamodel";
+import type { Gallery, Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
-import { useGalleryStore } from "../gallery/store";
+import { GalleryAPI } from "../gallery/api";
+import { appContext } from "../../../hooks/provider";
+import { Link } from "gatsby";
+import { getLocalStorage, setLocalStorage } from "../../utils/utils";
 
 interface TeamSidebarProps {
   isOpen: boolean;
@@ -26,6 +29,8 @@ interface TeamSidebarProps {
   onEditTeam: (team: Team) => void;
   onDeleteTeam: (teamId: number) => void;
   isLoading?: boolean;
+  selectedGallery: Gallery | null;
+  setSelectedGallery: (gallery: Gallery) => void;
 }
 
 export const TeamSidebar: React.FC<TeamSidebarProps> = ({
@@ -38,17 +43,64 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
   onEditTeam,
   onDeleteTeam,
   isLoading = false,
+  selectedGallery,
+  setSelectedGallery,
 }) => {
   // Tab state - "recent" or "gallery"
   const [activeTab, setActiveTab] = useState<"recent" | "gallery">("recent");
+  const [messageApi, contextHolder] = message.useMessage();
 
-  // Gallery store
-  const {
-    galleries,
-    selectedGallery,
-    selectGallery,
-    isLoading: isLoadingGalleries,
-  } = useGalleryStore();
+  const [isLoadingGalleries, setIsLoadingGalleries] = useState(false);
+  const [galleries, setGalleries] = useState<Gallery[]>([]);
+  const { user } = useContext(appContext);
+
+  // Fetch galleries
+  const fetchGalleries = async () => {
+    if (!user?.id) return;
+    setIsLoadingGalleries(true);
+    try {
+      const galleryAPI = new GalleryAPI();
+      const data = await galleryAPI.listGalleries(user.id);
+      setGalleries(data);
+
+      // Check localStorage for a previously saved gallery ID
+      const savedGalleryId = getLocalStorage(`selectedGalleryId_${user.id}`);
+
+      if (savedGalleryId && data.length > 0) {
+        const savedGallery = data.find((g) => g.id === savedGalleryId);
+        if (savedGallery) {
+          setSelectedGallery(savedGallery);
+        } else if (!selectedGallery && data.length > 0) {
+          setSelectedGallery(data[0]);
+        }
+      } else if (!selectedGallery && data.length > 0) {
+        setSelectedGallery(data[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching galleries:", error);
+    } finally {
+      setIsLoadingGalleries(false);
+    }
+  };
+  // Fetch galleries on mount
+  React.useEffect(() => {
+    fetchGalleries();
+  }, [user?.id]);
+
+  const createTeam = () => {
+    if (!selectedGallery?.config.components?.teams?.length) {
+      return;
+    }
+    const newTeam = Object.assign(
+      {},
+      { component: selectedGallery.config.components.teams[0] }
+    );
+    newTeam.component.label =
+      "default_team" + new Date().getTime().toString().slice(0, 2);
+    onCreateTeam(newTeam);
+    setActiveTab("recent");
+    messageApi.success(`"${newTeam.component.label}" added to Recents`);
+  };
 
   // Render collapsed state
   if (!isOpen) {
@@ -79,23 +131,11 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
     );
   }
 
-  const createTeam = () => {
-    if (!selectedGallery?.config.components?.teams?.length) {
-      return;
-    }
-    const newTeam = Object.assign(
-      {},
-      { component: selectedGallery.config.components.teams[0] }
-    );
-    newTeam.component.label =
-      "default_team" + new Date().getTime().toString().slice(0, 2);
-    onCreateTeam(newTeam);
-  };
-
   // Render expanded state
   return (
     <div className="h-full border-r border-secondary">
       {/* Header */}
+      {contextHolder}
       <div className="flex items-center justify-between pt-0 p-4 pl-2 pr-2 border-b border-secondary">
         <div className="flex items-center gap-2">
           <span className="text-primary font-medium">Teams</span>
@@ -133,18 +173,26 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       {/* Tab Navigation */}
       <div className="flex border-b border-secondary">
         <button
-          className={`flex items-center px-2 py-1 text-sm font-medium ${
+          style={{ width: "110px" }}
+          className={`flex items-center  px-2 py-1 text-sm font-medium ${
             activeTab === "recent"
               ? "text-accent border-b-2 border-accent"
               : "text-secondary hover:text-primary"
           }`}
           onClick={() => setActiveTab("recent")}
         >
-          <History className="w-4 h-4 mr-1.5" />
-          Recents
-          <span className="ml-1 text-xs">({teams.length})</span>
+          {!isLoading && (
+            <>
+              {" "}
+              <History className="w-4 h-4 mr-1.5" /> Recents{" "}
+              <span className="ml-1 text-xs">({teams.length})</span>
+            </>
+          )}
+
           {isLoading && activeTab === "recent" && (
-            <RefreshCcw className="w-4 h-4 ml-2 animate-spin" />
+            <>
+              Loading <RefreshCcw className="w-4 h-4 ml-2 animate-spin" />
+            </>
           )}
         </button>
         <button
@@ -156,7 +204,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
           onClick={() => setActiveTab("gallery")}
         >
           <GalleryHorizontalEnd className="w-4 h-4 mr-1.5" />
-          Gallery
+          From Gallery
           {isLoadingGalleries && activeTab === "gallery" && (
             <RefreshCcw className="w-4 h-4 ml-2 animate-spin" />
           )}
@@ -250,13 +298,28 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
         {activeTab === "gallery" && (
           <div className="p-2">
             {/* Gallery Selector */}
+            <div className="my-2 mb-3 text-xs">
+              {" "}
+              Select a{" "}
+              <Link to="/gallery" className="text-accent">
+                <span className="font-medium">gallery</span>
+              </Link>{" "}
+              to view its components as templates
+            </div>
             <Select
               className="w-full mb-4"
               placeholder="Select gallery"
               value={selectedGallery?.id}
               onChange={(value) => {
                 const gallery = galleries.find((g) => g.id === value);
-                if (gallery) selectGallery(gallery);
+                if (gallery) {
+                  setSelectedGallery(gallery);
+
+                  // Save the selected gallery ID to localStorage
+                  if (user?.id) {
+                    setLocalStorage(`selectedGalleryId_${user.id}`, value);
+                  }
+                }
               }}
               options={galleries.map((gallery) => ({
                 value: gallery.id,
@@ -299,6 +362,10 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                               },
                             };
                             onCreateTeam(newTeam);
+                            setActiveTab("recent");
+                            message.success(
+                              `"${newTeam.component.label}" added to Recents`
+                            );
                           }}
                         />
                       </Tooltip>

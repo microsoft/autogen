@@ -100,5 +100,6 @@ To begin, follow the [installation instructions](installation.md) to install Aut
 
 installation
 usage
+experimental
 faq
 ```

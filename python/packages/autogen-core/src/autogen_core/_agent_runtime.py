@@ -62,7 +62,7 @@ class AgentRuntime(Protocol):
 
         Args:
             message (Any): The message to publish.
-            topic (TopicId): The topic to publish the message to.
+            topic_id (TopicId): The topic to publish the message to.
             sender (AgentId | None, optional): The agent which sent the message. Defaults to None.
             cancellation_token (CancellationToken | None, optional): Token used to cancel an in progress. Defaults to None.
             message_id (str | None, optional): The message id. If None, a new message id will be generated. Defaults to None. This message id must be unique. and is recommended to be a UUID.
@@ -127,6 +127,60 @@ class AgentRuntime(Protocol):
             type (str): The type of agent this factory creates. It is not the same as agent class name. The `type` parameter is used to differentiate between different factory functions rather than agent classes.
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.AgentInstantiationContext` to access variables like the current runtime and agent ID.
             expected_class (type[T] | None, optional): The expected class of the agent, used for runtime validation of the factory. Defaults to None. If None, no validation is performed.
+        """
+        ...
+
+    async def register_agent_instance(
+        self,
+        agent_instance: Agent,
+        agent_id: AgentId,
+    ) -> AgentId:
+        """Register an agent instance with the runtime. The type may be reused, but each agent_id must be unique. All agent instances within a type must be of the same object type. This API does not add any subscriptions.
+
+        .. note::
+
+            This is a low level API and usually the agent class's `register_instance` method should be used instead, as this also handles subscriptions automatically.
+
+        Example:
+
+        .. code-block:: python
+
+            from dataclasses import dataclass
+
+            from autogen_core import AgentId, AgentRuntime, MessageContext, RoutedAgent, event
+            from autogen_core.models import UserMessage
+
+
+            @dataclass
+            class MyMessage:
+                content: str
+
+
+            class MyAgent(RoutedAgent):
+                def __init__(self) -> None:
+                    super().__init__("My core agent")
+
+                @event
+                async def handler(self, message: UserMessage, context: MessageContext) -> None:
+                    print("Event received: ", message.content)
+
+
+            async def main() -> None:
+                runtime: AgentRuntime = ...  # type: ignore
+                agent = MyAgent()
+                await runtime.register_agent_instance(
+                    agent_instance=agent, agent_id=AgentId(type="my_agent", key="default")
+                )
+
+
+            import asyncio
+
+            asyncio.run(main())
+
+
+        Args:
+            agent_instance (Agent): A concrete instance of the agent.
+            agent_id (AgentId): The agent's identifier. The agent's type is `agent_id.type`.
         """
         ...
 

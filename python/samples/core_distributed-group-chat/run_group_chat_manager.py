@@ -26,11 +26,13 @@ async def main(config: AppConfig):
     await group_chat_manager_runtime.start()
     set_all_log_levels(logging.ERROR)
 
+    model_client = AzureOpenAIChatCompletionClient(**config.client_config)
+
     group_chat_manager_type = await GroupChatManager.register(
         group_chat_manager_runtime,
         "group_chat_manager",
         lambda: GroupChatManager(
-            model_client=AzureOpenAIChatCompletionClient(**config.client_config),
+            model_client=model_client,
             participant_topic_types=[config.writer_agent.topic_type, config.editor_agent.topic_type],
             participant_descriptions=[config.writer_agent.description, config.editor_agent.description],
             max_rounds=config.group_chat_manager.max_rounds,
@@ -64,6 +66,7 @@ async def main(config: AppConfig):
     )
 
     await group_chat_manager_runtime.stop_when_signal()
+    await model_client.close()
     Console().print("Manager left the chat!")
 
 

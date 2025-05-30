@@ -5,7 +5,7 @@ import { appContext } from "../../../hooks/provider";
 import { teamAPI } from "./api";
 import { useGalleryStore } from "../gallery/store";
 import { TeamSidebar } from "./sidebar";
-import type { Team } from "../../types/datamodel";
+import { Gallery, type Team } from "../../types/datamodel";
 import { TeamBuilder } from "./builder/builder";
 
 export const TeamManager: React.FC = () => {
@@ -19,17 +19,11 @@ export const TeamManager: React.FC = () => {
     }
   });
 
+  const [selectedGallery, setSelectedGallery] = useState<Gallery | null>(null);
+
   const { user } = useContext(appContext);
   const [messageApi, contextHolder] = message.useMessage();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  // Initialize galleries
-  const fetchGalleries = useGalleryStore((state) => state.fetchGalleries);
-  useEffect(() => {
-    if (user?.email) {
-      fetchGalleries(user.email);
-    }
-  }, [user?.email, fetchGalleries]);
 
   // Persist sidebar state
   useEffect(() => {
@@ -39,11 +33,11 @@ export const TeamManager: React.FC = () => {
   }, [isSidebarOpen]);
 
   const fetchTeams = useCallback(async () => {
-    if (!user?.email) return;
+    if (!user?.id) return;
 
     try {
       setIsLoading(true);
-      const data = await teamAPI.listTeams(user.email);
+      const data = await teamAPI.listTeams(user.id);
       setTeams(data);
       if (!currentTeam && data.length > 0) {
         setCurrentTeam(data[0]);
@@ -53,7 +47,7 @@ export const TeamManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.email, currentTeam]);
+  }, [user?.id, currentTeam]);
 
   useEffect(() => {
     fetchTeams();
@@ -70,7 +64,7 @@ export const TeamManager: React.FC = () => {
   }, []);
 
   const handleSelectTeam = async (selectedTeam: Team) => {
-    if (!user?.email || !selectedTeam.id) return;
+    if (!user?.id || !selectedTeam.id) return;
 
     if (hasUnsavedChanges) {
       Modal.confirm({
@@ -88,10 +82,10 @@ export const TeamManager: React.FC = () => {
   };
 
   const switchToTeam = async (teamId: number | undefined) => {
-    if (!teamId || !user?.email) return;
+    if (!teamId || !user?.id) return;
     setIsLoading(true);
     try {
-      const data = await teamAPI.getTeam(teamId, user.email!);
+      const data = await teamAPI.getTeam(teamId, user.id!);
       setCurrentTeam(data);
       window.history.pushState({}, "", `?teamId=${teamId}`);
     } catch (error) {
@@ -103,10 +97,10 @@ export const TeamManager: React.FC = () => {
   };
 
   const handleDeleteTeam = async (teamId: number) => {
-    if (!user?.email) return;
+    if (!user?.id) return;
 
     try {
-      await teamAPI.deleteTeam(teamId, user.email);
+      await teamAPI.deleteTeam(teamId, user.id);
       setTeams(teams.filter((t) => t.id !== teamId));
       if (currentTeam?.id === teamId) {
         setCurrentTeam(null);
@@ -124,7 +118,7 @@ export const TeamManager: React.FC = () => {
   };
 
   const handleSaveTeam = async (teamData: Partial<Team>) => {
-    if (!user?.email) return;
+    if (!user?.id) return;
 
     try {
       const sanitizedTeamData = {
@@ -133,7 +127,7 @@ export const TeamManager: React.FC = () => {
         updated_at: undefined,
       };
 
-      const savedTeam = await teamAPI.createTeam(sanitizedTeamData, user.email);
+      const savedTeam = await teamAPI.createTeam(sanitizedTeamData, user.id);
       messageApi.success(
         `Team ${teamData.id ? "updated" : "created"} successfully`
       );
@@ -171,6 +165,8 @@ export const TeamManager: React.FC = () => {
           onEditTeam={setCurrentTeam}
           onDeleteTeam={handleDeleteTeam}
           isLoading={isLoading}
+          setSelectedGallery={setSelectedGallery}
+          selectedGallery={selectedGallery}
         />
       </div>
 
@@ -205,6 +201,7 @@ export const TeamManager: React.FC = () => {
               team={currentTeam}
               onChange={handleSaveTeam}
               onDirtyStateChange={setHasUnsavedChanges}
+              selectedGallery={selectedGallery}
             />
           ) : (
             <div className="flex items-center justify-center h-[calc(100vh-190px)] text-secondary">

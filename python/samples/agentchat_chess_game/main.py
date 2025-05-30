@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+from autogen_agentchat.messages import TextMessage
 import yaml
 import random
 
@@ -10,11 +11,7 @@ from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import ChatCompletionClient
 
 
-def create_ai_player() -> AssistantAgent:
-    # Load the model client from config.
-    with open("model_config.yaml", "r") as f:
-        model_config = yaml.safe_load(f)
-    model_client = ChatCompletionClient.load_component(model_config)
+def create_ai_player(model_client: ChatCompletionClient) -> AssistantAgent:
     # Create an agent that can use the model client.
     player = AssistantAgent(
         name="ai_player",
@@ -69,11 +66,14 @@ def get_user_prompt(board: chess.Board) -> str:
 
 
 def extract_move(response: str) -> str:
-    start = response.find("<move>") + len("<move>")
+    start = response.find("<move>") 
     end = response.find("</move>")
+    
     if start == -1 or end == -1:
         raise ValueError("Invalid response format.")
-    return response[start:end]
+    if end < start:
+        raise ValueError("Invalid response format.")
+    return response[start+ len("<move>"):end].strip()
 
 
 async def get_ai_move(board: chess.Board, player: AssistantAgent, max_tries: int) -> str:
@@ -82,11 +82,10 @@ async def get_ai_move(board: chess.Board, player: AssistantAgent, max_tries: int
     while count < max_tries:
         result = await Console(player.run_stream(task=task))
         count += 1
-        response = result.messages[-1].content
-        assert isinstance(response, str)
+        assert isinstance(result.messages[-1], TextMessage)
         # Check if the response is a valid UC move.
         try:
-            move = chess.Move.from_uci(extract_move(response))
+            move = chess.Move.from_uci(extract_move(result.messages[-1].content))
         except (ValueError, IndexError):
             task = "Invalid format. Please read instruction.\n" + get_ai_prompt(board)
             continue
@@ -101,7 +100,11 @@ async def get_ai_move(board: chess.Board, player: AssistantAgent, max_tries: int
 
 async def main(human_player: bool, max_tries: int) -> None:
     board = chess.Board()
-    player = create_ai_player()
+    # Load the model client from config.
+    with open("model_config.yaml", "r") as f:
+        model_config = yaml.safe_load(f)
+    model_client = ChatCompletionClient.load_component(model_config)
+    player = create_ai_player(model_client)
     while not board.is_game_over():
         # Get the AI's move.
         ai_move = await get_ai_move(board, player, max_tries)
@@ -125,6 +128,8 @@ async def main(human_player: bool, max_tries: int) -> None:
     result = "AI wins!" if board.result() == "1-0" else "User wins!" if board.result() == "0-1" else "Draw!"
     print("----------------")
     print(f"Game over! Result: {result}")
+
+    await model_client.close()
 
 
 if __name__ == "__main__":

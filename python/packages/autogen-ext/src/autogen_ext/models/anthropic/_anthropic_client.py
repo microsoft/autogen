@@ -5,13 +5,12 @@ import json
 import logging
 import re
 import warnings
-
-# from asyncio import Task
 from typing import (
     Any,
     AsyncGenerator,
     Coroutine,
     Dict,
+    Iterable,
     List,
     Literal,
     Mapping,
@@ -20,11 +19,13 @@ from typing import (
     Set,
     Union,
     cast,
+    overload,
 )
 
 import tiktoken
-from anthropic import AsyncAnthropic, AsyncStream
+from anthropic import AsyncAnthropic, AsyncAnthropicBedrock, AsyncStream
 from anthropic.types import (
+    Base64ImageSourceParam,
     ContentBlock,
     ImageBlockParam,
     Message,
@@ -36,7 +37,6 @@ from anthropic.types import (
     ToolResultBlockParam,
     ToolUseBlock,
 )
-from anthropic.types.image_block_param import Source
 from autogen_core import (
     EVENT_LOGGER_NAME,
     TRACE_LOGGER_NAME,
@@ -44,9 +44,8 @@ from autogen_core import (
     Component,
     FunctionCall,
     Image,
-    MessageHandlerContext,
 )
-from autogen_core.logging import LLMCallEvent
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -62,10 +61,17 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
+from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
 from . import _model_info
-from .config import AnthropicClientConfiguration, AnthropicClientConfigurationConfigModel
+from .config import (
+    AnthropicBedrockClientConfiguration,
+    AnthropicBedrockClientConfigurationConfigModel,
+    AnthropicClientConfiguration,
+    AnthropicClientConfigurationConfigModel,
+    BedrockInfo,
+)
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -142,25 +148,46 @@ def get_mime_type_from_image(image: Image) -> Literal["image/jpeg", "image/png",
         return "image/jpeg"
 
 
+@overload
+def __empty_content_to_whitespace(content: str) -> str: ...
+
+
+@overload
+def __empty_content_to_whitespace(content: List[Any]) -> Iterable[Any]: ...
+
+
+def __empty_content_to_whitespace(
+    content: Union[str, List[Union[str, Image]]],
+) -> Union[str, Iterable[Any]]:
+    if isinstance(content, str) and not content.strip():
+        return " "
+    elif isinstance(content, list) and not any(isinstance(x, str) and not x.strip() for x in content):
+        for idx, message in enumerate(content):
+            if isinstance(message, str) and not message.strip():
+                content[idx] = " "
+
+    return content
+
+
 def user_message_to_anthropic(message: UserMessage) -> MessageParam:
     assert_valid_name(message.source)
 
     if isinstance(message.content, str):
         return {
             "role": "user",
-            "content": message.content,
+            "content": __empty_content_to_whitespace(message.content),
         }
     else:
         blocks: List[Union[TextBlockParam, ImageBlockParam]] = []
 
         for part in message.content:
             if isinstance(part, str):
-                blocks.append(TextBlockParam(type="text", text=part))
+                blocks.append(TextBlockParam(type="text", text=__empty_content_to_whitespace(part)))
             elif isinstance(part, Image):
                 blocks.append(
                     ImageBlockParam(
                         type="image",
-                        source=Source(
+                        source=Base64ImageSourceParam(
                             type="base64",
                             media_type=get_mime_type_from_image(part),
                             data=part.to_base64(),
@@ -177,7 +204,7 @@ def user_message_to_anthropic(message: UserMessage) -> MessageParam:
 
 
 def system_message_to_anthropic(message: SystemMessage) -> str:
-    return message.content
+    return __empty_content_to_whitespace(message.content)
 
 
 def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
@@ -190,6 +217,7 @@ def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
         for func_call in message.content:
             # Parse the arguments and convert to dict if it's a JSON string
             args = func_call.arguments
+            args = __empty_content_to_whitespace(args)
             if isinstance(args, str):
                 try:
                     args_dict = json.loads(args)
@@ -386,7 +414,7 @@ def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
 class BaseAnthropicChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
-        client: AsyncAnthropic,
+        client: Any,
         *,
         create_args: Dict[str, Any],
         model_info: Optional[ModelInfo] = None,
@@ -408,12 +436,71 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
+    def _serialize_message(self, message: MessageParam) -> Dict[str, Any]:
+        """Convert an Anthropic MessageParam to a JSON-serializable format."""
+        if isinstance(message, dict):
+            result: Dict[str, Any] = {}
+            for key, value in message.items():
+                if key == "content" and isinstance(value, list):
+                    serialized_blocks: List[Any] = []
+                    for block in value:  # type: ignore
+                        if isinstance(block, BaseModel):
+                            serialized_blocks.append(block.model_dump())
+                        else:
+                            serialized_blocks.append(block)
+                    result[key] = serialized_blocks
+                else:
+                    result[key] = value
+            return result
+        else:
+            return {"role": "unknown", "content": str(message)}
+
+    def _merge_system_messages(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
+        """
+        Merge continuous system messages into a single message.
+        """
+        _messages: List[LLMMessage] = []
+        system_message_content = ""
+        _first_system_message_idx = -1
+        _last_system_message_idx = -1
+        # Index of the first system message for adding the merged system message at the correct position
+        for idx, message in enumerate(messages):
+            if isinstance(message, SystemMessage):
+                if _first_system_message_idx == -1:
+                    _first_system_message_idx = idx
+                elif _last_system_message_idx + 1 != idx:
+                    # That case, system message is not continuous
+                    # Merge system messages only contiues system messages
+                    raise ValueError("Multiple and Not continuous system messages are not supported")
+                system_message_content += message.content + "\n"
+                _last_system_message_idx = idx
+            else:
+                _messages.append(message)
+        system_message_content = system_message_content.rstrip()
+        if system_message_content != "":
+            system_message = SystemMessage(content=system_message_content)
+            _messages.insert(_first_system_message_idx, system_message)
+        messages = _messages
+
+        return messages
+
+    def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
+        """
+        Remove the last assistant message if it is empty.
+        """
+        # When Claude models last message is AssistantMessage, It could not end with whitespace
+        if isinstance(messages[-1], AssistantMessage):
+            if isinstance(messages[-1].content, str):
+                messages[-1].content = messages[-1].content.rstrip()
+
+        return messages
+
     async def create(
         self,
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -435,14 +522,21 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
             if json_output is True:
                 create_args["response_format"] = {"type": "json_object"}
+            elif isinstance(json_output, type):
+                raise ValueError("Structured output is currently not supported for Anthropic models")
 
         # Process system message separately
         system_message = None
         anthropic_messages: List[MessageParam] = []
 
+        # Merge continuous system messages into a single message
+        messages = self._merge_system_messages(messages)
+        messages = self._rstrip_last_assistant_message(messages)
+
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
+                    # if that case, system message is must only one
                     raise ValueError("Multiple system messages are not supported")
                 system_message = to_anthropic_type(message)
             else:
@@ -502,20 +596,14 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             prompt_tokens=result.usage.input_tokens,
             completion_tokens=result.usage.output_tokens,
         )
-
-        # Log the event if in a handler context
-        try:
-            agent_id = MessageHandlerContext.agent_id()
-        except RuntimeError:
-            agent_id = None
+        serializable_messages: List[Dict[str, Any]] = [self._serialize_message(msg) for msg in anthropic_messages]
 
         logger.info(
             LLMCallEvent(
-                messages=cast(Dict[str, Any], anthropic_messages),
+                messages=serializable_messages,
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
-                agent_id=agent_id,
             )
         )
 
@@ -575,7 +663,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
@@ -602,13 +690,21 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             if json_output is True:
                 create_args["response_format"] = {"type": "json_object"}
 
+            if isinstance(json_output, type):
+                raise ValueError("Structured output is currently not supported for Anthropic models")
+
         # Process system message separately
         system_message = None
         anthropic_messages: List[MessageParam] = []
 
+        # Merge continuous system messages into a single message
+        messages = self._merge_system_messages(messages)
+        messages = self._rstrip_last_assistant_message(messages)
+
         for message in messages:
             if isinstance(message, SystemMessage):
                 if system_message is not None:
+                    # if that case, system message is must only one
                     raise ValueError("Multiple system messages are not supported")
                 system_message = to_anthropic_type(message)
             else:
@@ -673,8 +769,19 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         output_tokens: int = 0
         stop_reason: Optional[str] = None
 
+        first_chunk = True
+        serialized_messages: List[Dict[str, Any]] = [self._serialize_message(msg) for msg in anthropic_messages]
+
         # Process the stream
         async for chunk in stream:
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=serialized_messages,
+                    )
+                )
             # Handle different event types
             if chunk.type == "content_block_start":
                 if chunk.content_block.type == "tool_use":
@@ -769,11 +876,23 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             thought=thought,
         )
 
+        # Emit the end event.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
+        )
+
         # Update usage statistics
         self._total_usage = _add_usage(self._total_usage, usage)
         self._actual_usage = _add_usage(self._actual_usage, usage)
 
         yield result
+
+    async def close(self) -> None:
+        await self._client.close()
 
     def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         """
@@ -915,16 +1034,23 @@ class AnthropicChatCompletionClient(
 
     .. code-block:: python
 
+        import asyncio
         from autogen_ext.models.anthropic import AnthropicChatCompletionClient
         from autogen_core.models import UserMessage
 
-        anthropic_client = AnthropicChatCompletionClient(
-            model="claude-3-sonnet-20240229",
-            api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
-        )
 
-        result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])
-        print(result)
+        async def main():
+            anthropic_client = AnthropicChatCompletionClient(
+                model="claude-3-sonnet-20240229",
+                api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
+            )
+
+            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            print(result)
+
+
+        if __name__ == "__main__":
+            asyncio.run(main())
 
     To load the client from a configuration:
 
@@ -938,25 +1064,6 @@ class AnthropicChatCompletionClient(
         }
 
         client = ChatCompletionClient.load_component(config)
-
-    The client supports function calling with Claude models that have the capability:
-
-    .. code-block:: python
-
-        from autogen_core.tools import FunctionTool
-
-
-        def get_weather(location: str) -> str:
-            '''Get the weather for a location'''
-            return f"The weather in {location} is sunny."
-
-
-        tool = FunctionTool(get_weather)
-
-        result = await anthropic_client.create(
-            [UserMessage(content="What's the weather in Paris?", source="user")],
-            tools=[tool],
-        )
     """
 
     component_type = "model"
@@ -1000,4 +1107,144 @@ class AnthropicChatCompletionClient(
     @classmethod
     def _from_config(cls, config: AnthropicClientConfigurationConfigModel) -> Self:
         copied_config = config.model_copy().model_dump(exclude_none=True)
+
+        # Handle api_key as SecretStr
+        if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
+            copied_config["api_key"] = config.api_key.get_secret_value()
+
+        return cls(**copied_config)
+
+
+class AnthropicBedrockChatCompletionClient(
+    BaseAnthropicChatCompletionClient, Component[AnthropicBedrockClientConfigurationConfigModel]
+):
+    """
+    Chat completion client for Anthropic's Claude models on AWS Bedrock.
+
+    Args:
+        model (str): The Claude model to use (e.g., "claude-3-sonnet-20240229", "claude-3-opus-20240229")
+        api_key (str, optional): Anthropic API key. Required if not in environment variables.
+        base_url (str, optional): Override the default API endpoint.
+        max_tokens (int, optional): Maximum tokens in the response. Default is 4096.
+        temperature (float, optional): Controls randomness. Lower is more deterministic. Default is 1.0.
+        top_p (float, optional): Controls diversity via nucleus sampling. Default is 1.0.
+        top_k (int, optional): Controls diversity via top-k sampling. Default is -1 (disabled).
+        model_info (ModelInfo, optional): The capabilities of the model. Required if using a custom model.
+        bedrock_info (BedrockInfo, optional): The capabilities of the model in bedrock. Required if using a model from AWS bedrock.
+
+    To use this client, you must install the Anthropic extension:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[anthropic]"
+
+    Example:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_ext.models.anthropic import AnthropicBedrockChatCompletionClient, BedrockInfo
+        from autogen_core.models import UserMessage, ModelInfo
+
+
+        async def main():
+            anthropic_client = AnthropicBedrockChatCompletionClient(
+                model="anthropic.claude-3-5-sonnet-20240620-v1:0",
+                temperature=0.1,
+                model_info=ModelInfo(
+                    vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True
+                ),
+                bedrock_info=BedrockInfo(
+                    aws_access_key="<aws_access_key>",
+                    aws_secret_key="<aws_secret_key>",
+                    aws_session_token="<aws_session_token>",
+                    aws_region="<aws_region>",
+                ),
+            )
+
+            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            print(result)
+
+
+        if __name__ == "__main__":
+            asyncio.run(main())
+    """
+
+    component_type = "model"
+    component_config_schema = AnthropicBedrockClientConfigurationConfigModel
+    component_provider_override = "autogen_ext.models.anthropic.AnthropicBedrockChatCompletionClient"
+
+    def __init__(self, **kwargs: Unpack[AnthropicBedrockClientConfiguration]):
+        if "model" not in kwargs:
+            raise ValueError("model is required for  AnthropicBedrockChatCompletionClient")
+
+        self._raw_config: Dict[str, Any] = dict(kwargs).copy()
+        copied_args = dict(kwargs).copy()
+
+        model_info: Optional[ModelInfo] = None
+        if "model_info" in kwargs:
+            model_info = kwargs["model_info"]
+            del copied_args["model_info"]
+
+        bedrock_info: Optional[BedrockInfo] = None
+        if "bedrock_info" in kwargs:
+            bedrock_info = kwargs["bedrock_info"]
+
+        if bedrock_info is None:
+            raise ValueError("bedrock_info is required for AnthropicBedrockChatCompletionClient")
+
+        # Handle bedrock_info
+        aws_region = bedrock_info["aws_region"]
+        aws_access_key: Optional[str] = None
+        aws_secret_key: Optional[str] = None
+        aws_session_token: Optional[str] = None
+        if all(key in bedrock_info for key in ("aws_access_key", "aws_secret_key", "aws_session_token")):
+            aws_access_key = bedrock_info["aws_access_key"]
+            aws_secret_key = bedrock_info["aws_secret_key"]
+            aws_session_token = bedrock_info["aws_session_token"]
+
+        client = AsyncAnthropicBedrock(
+            aws_access_key=aws_access_key,
+            aws_secret_key=aws_secret_key,
+            aws_session_token=aws_session_token,
+            aws_region=aws_region,
+        )
+        create_args = _create_args_from_config(copied_args)
+
+        super().__init__(
+            client=client,
+            create_args=create_args,
+            model_info=model_info,
+        )
+
+    def __getstate__(self) -> Dict[str, Any]:
+        state = self.__dict__.copy()
+        state["_client"] = None
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        self.__dict__.update(state)
+        self._client = _anthropic_client_from_config(state["_raw_config"])
+
+    def _to_config(self) -> AnthropicBedrockClientConfigurationConfigModel:
+        copied_config = self._raw_config.copy()
+        return AnthropicBedrockClientConfigurationConfigModel(**copied_config)
+
+    @classmethod
+    def _from_config(cls, config: AnthropicBedrockClientConfigurationConfigModel) -> Self:
+        copied_config = config.model_copy().model_dump(exclude_none=True)
+
+        # Handle api_key as SecretStr
+        if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
+            copied_config["api_key"] = config.api_key.get_secret_value()
+
+        # Handle bedrock_info as SecretStr
+        if "bedrock_info" in copied_config and isinstance(config.bedrock_info, dict):
+            copied_config["bedrock_info"] = {
+                "aws_access_key": config.bedrock_info["aws_access_key"].get_secret_value(),
+                "aws_secret_key": config.bedrock_info["aws_secret_key"].get_secret_value(),
+                "aws_session_token": config.bedrock_info["aws_session_token"].get_secret_value(),
+                "aws_region": config.bedrock_info["aws_region"],
+            }
+
         return cls(**copied_config)

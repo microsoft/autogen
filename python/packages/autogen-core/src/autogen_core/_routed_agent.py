@@ -123,7 +123,7 @@ def message_handler(
             raise AssertionError("message parameter not found in function signature")
 
         if "return" not in type_hints:
-            raise AssertionError("return not found in function signature")
+            raise AssertionError("return parameter not found in function signature")
 
         # Get the type of the message parameter
         target_types = get_types(type_hints["message"])
@@ -243,7 +243,7 @@ def event(
             raise AssertionError("message parameter not found in function signature")
 
         if "return" not in type_hints:
-            raise AssertionError("return not found in function signature")
+            raise AssertionError("return parameter not found in function signature")
 
         # Get the type of the message parameter
         target_types = get_types(type_hints["message"])
@@ -363,7 +363,7 @@ def rpc(
             raise AssertionError("message parameter not found in function signature")
 
         if "return" not in type_hints:
-            raise AssertionError("return not found in function signature")
+            raise AssertionError("return parameter not found in function signature")
 
         # Get the type of the message parameter
         target_types = get_types(type_hints["message"])

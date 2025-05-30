@@ -1,17 +1,7 @@
 import { Session, SessionRuns } from "../../types/datamodel";
-import { getServerUrl } from "../../utils";
+import { BaseAPI } from "../../utils/baseapi";
 
-export class SessionAPI {
-  private getBaseUrl(): string {
-    return getServerUrl();
-  }
-
-  private getHeaders(): HeadersInit {
-    return {
-      "Content-Type": "application/json",
-    };
-  }
-
+export class SessionAPI extends BaseAPI {
   async listSessions(userId: string): Promise<Session[]> {
     const response = await fetch(
       `${this.getBaseUrl()}/sessions/?user_id=${userId}`,
@@ -126,6 +116,20 @@ export class SessionAPI {
     if (!data.status)
       throw new Error(data.message || "Failed to fetch messages");
     return data.data;
+  }
+
+  // New method to create a run
+  async createRun(sessionId: number, userId: string): Promise<number> {
+    const payload = { session_id: sessionId, user_id: userId };
+    const response = await fetch(`${this.getBaseUrl()}/runs/`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!data.status) throw new Error(data.message || "Failed to create run");
+    return data.data.run_id;
   }
 }
 

@@ -2,7 +2,6 @@ import argparse
 import asyncio
 import os
 import sys
-import warnings
 from typing import Any, Dict, Optional
 
 import yaml
@@ -12,9 +11,6 @@ from autogen_core.models import ChatCompletionClient
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_ext.teams.magentic_one import MagenticOne
 from autogen_ext.ui import RichConsole
-
-# Suppress warnings about the requests.Session() not being closed
-warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
 DEFAULT_CONFIG_FILE = "config.yaml"
 DEFAULT_CONFIG_CONTENTS = """# config.yaml
@@ -109,10 +105,9 @@ def main() -> None:
         with open(args.config if isinstance(args.config, str) else args.config[0], "r") as f:
             config = yaml.safe_load(f)
 
-    client = ChatCompletionClient.load_component(config["client"])
-
     # Run the task
     async def run_task(task: str, hil_mode: bool, use_rich_console: bool) -> None:
+        client = ChatCompletionClient.load_component(config["client"])
         input_manager = UserInputManager(callback=cancellable_input)
 
         async with DockerCommandLineCodeExecutor(work_dir=os.getcwd()) as code_executor:
@@ -127,6 +122,8 @@ def main() -> None:
                 await RichConsole(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
             else:
                 await Console(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
+
+        await client.close()
 
     task = args.task if isinstance(args.task, str) else args.task[0]
     asyncio.run(run_task(task, not args.no_hil, args.rich))
