@@ -41,7 +41,7 @@ from autogen_ext.tools.mcp import (
     SseServerParams,
 )
 from pydantic import BaseModel, ValidationError
-from utils import FileLogHandler
+from utils import FileLogHandler, compare_messages, compare_task_results
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
@@ -180,9 +180,9 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
             index += 1
 
     # Test state saving and loading.
@@ -273,9 +273,9 @@ async def test_run_with_tools_and_reflection() -> None:
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
     # Test state saving and loading.
@@ -363,9 +363,9 @@ async def test_run_with_parallel_tools() -> None:
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
             index += 1
 
     # Test state saving and loading.
@@ -446,9 +446,9 @@ async def test_run_with_parallel_tools_with_empty_call_ids() -> None:
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
             index += 1
 
     # Test state saving and loading.
@@ -560,9 +560,9 @@ async def test_run_with_workbench() -> None:
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
     # Test state saving and loading.
@@ -779,9 +779,9 @@ async def test_handoffs() -> None:
     index = 0
     async for message in tool_use_agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -852,9 +852,9 @@ async def test_handoff_with_tool_call_context() -> None:
     index = 0
     async for message in tool_use_agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -927,9 +927,9 @@ async def test_custom_handoffs() -> None:
     index = 0
     async for message in tool_use_agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -1004,9 +1004,9 @@ async def test_custom_object_handoffs() -> None:
     index = 0
     async for message in tool_use_agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -1161,9 +1161,9 @@ async def test_list_chat_messages(monkeypatch: pytest.MonkeyPatch) -> None:
     index = 0
     async for message in agent.run_stream(task=messages):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -1483,7 +1483,9 @@ async def test_tools_serialize_and_deserialize() -> None:
     deserialize = AssistantAgent.load_component(serialize)
 
     assert deserialize.name == agent.name
-    assert await deserialize._workbench.list_tools() == await agent._workbench.list_tools()  # type: ignore
+    for original, restored in zip(agent._workbench, deserialize._workbench, strict=True):  # type: ignore
+        assert await original.list_tools() == await restored.list_tools()  # type: ignore
+    assert agent.component_version == deserialize.component_version
 
 
 @pytest.mark.asyncio
@@ -1505,7 +1507,41 @@ async def test_workbenchs_serialize_and_deserialize() -> None:
     deserialize = AssistantAgent.load_component(serialize)
 
     assert deserialize.name == agent.name
-    assert deserialize._workbench._to_config() == agent._workbench._to_config()  # type: ignore
+    for original, restored in zip(agent._workbench, deserialize._workbench, strict=True):  # type: ignore
+        assert isinstance(original, McpWorkbench)
+        assert isinstance(restored, McpWorkbench)
+        assert original._to_config() == restored._to_config()  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_multiple_workbenchs_serialize_and_deserialize() -> None:
+    workbenches: List[McpWorkbench] = [
+        McpWorkbench(server_params=SseServerParams(url="http://test-url-1")),
+        McpWorkbench(server_params=SseServerParams(url="http://test-url-2")),
+    ]
+
+    client = OpenAIChatCompletionClient(
+        model="gpt-4o",
+        api_key="API_KEY",
+    )
+
+    agent = AssistantAgent(
+        name="test_multi",
+        model_client=client,
+        workbench=workbenches,
+    )
+
+    serialize = agent.dump_component()
+    deserialized_agent: AssistantAgent = AssistantAgent.load_component(serialize)
+
+    assert deserialized_agent.name == agent.name
+    assert isinstance(deserialized_agent._workbench, list)  # type: ignore
+    assert len(deserialized_agent._workbench) == len(workbenches)  # type: ignore
+
+    for original, restored in zip(agent._workbench, deserialized_agent._workbench, strict=True):  # type: ignore
+        assert isinstance(original, McpWorkbench)
+        assert isinstance(restored, McpWorkbench)
+        assert original._to_config() == restored._to_config()  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -1515,7 +1551,7 @@ async def test_tools_deserialize_aware() -> None:
         "provider": "autogen_agentchat.agents.AssistantAgent",
         "component_type": "agent",
         "version": 1,
-        "component_version": 1,
+        "component_version": 2,
         "description": "An agent that provides assistance with tool use.",
         "label": "AssistantAgent",
         "config": {

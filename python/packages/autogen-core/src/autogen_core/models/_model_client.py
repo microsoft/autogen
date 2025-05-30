@@ -31,12 +31,19 @@ class ModelFamily:
     GEMINI_1_5_PRO = "gemini-1.5-pro"
     GEMINI_2_0_FLASH = "gemini-2.0-flash"
     GEMINI_2_5_PRO = "gemini-2.5-pro"
+    GEMINI_2_5_FLASH = "gemini-2.5-flash"
     CLAUDE_3_HAIKU = "claude-3-haiku"
     CLAUDE_3_SONNET = "claude-3-sonnet"
     CLAUDE_3_OPUS = "claude-3-opus"
     CLAUDE_3_5_HAIKU = "claude-3-5-haiku"
     CLAUDE_3_5_SONNET = "claude-3-5-sonnet"
     CLAUDE_3_7_SONNET = "claude-3-7-sonnet"
+    CLAUDE_4_OPUS = "claude-4-opus"
+    CLAUDE_4_SONNET = "claude-4-sonnet"
+    LLAMA_3_3_8B = "llama-3.3-8b"
+    LLAMA_3_3_70B = "llama-3.3-70b"
+    LLAMA_4_SCOUT = "llama-4-scout"
+    LLAMA_4_MAVERICK = "llama-4-maverick"
     CODESRAL = "codestral"
     OPEN_CODESRAL_MAMBA = "open-codestral-mamba"
     MISTRAL = "mistral"
@@ -60,6 +67,7 @@ class ModelFamily:
         "gemini-1.5-pro",
         "gemini-2.0-flash",
         "gemini-2.5-pro",
+        "gemini-2.5-flash"
         # anthropic_models
         "claude-3-haiku",
         "claude-3-sonnet",
@@ -67,6 +75,13 @@ class ModelFamily:
         "claude-3-5-haiku",
         "claude-3-5-sonnet",
         "claude-3-7-sonnet",
+        "claude-4-opus",
+        "claude-4-sonnet",
+        # llama_models
+        "llama-3.3-8b",
+        "llama-3.3-70b",
+        "llama-4-scout",
+        "llama-4-maverick",
         # mistral_models
         "codestral",
         "open-codestral-mamba",
@@ -89,6 +104,8 @@ class ModelFamily:
             ModelFamily.CLAUDE_3_5_HAIKU,
             ModelFamily.CLAUDE_3_5_SONNET,
             ModelFamily.CLAUDE_3_7_SONNET,
+            ModelFamily.CLAUDE_4_OPUS,
+            ModelFamily.CLAUDE_4_SONNET,
         )
 
     @staticmethod
@@ -98,6 +115,7 @@ class ModelFamily:
             ModelFamily.GEMINI_1_5_PRO,
             ModelFamily.GEMINI_2_0_FLASH,
             ModelFamily.GEMINI_2_5_PRO,
+            ModelFamily.GEMINI_2_5_FLASH,
         )
 
     @staticmethod
@@ -111,6 +129,15 @@ class ModelFamily:
             ModelFamily.O4,
             ModelFamily.GPT_4,
             ModelFamily.GPT_35,
+        )
+
+    @staticmethod
+    def is_llama(family: str) -> bool:
+        return family in (
+            ModelFamily.LLAMA_3_3_8B,
+            ModelFamily.LLAMA_3_3_70B,
+            ModelFamily.LLAMA_4_SCOUT,
+            ModelFamily.LLAMA_4_MAVERICK,
         )
 
     @staticmethod

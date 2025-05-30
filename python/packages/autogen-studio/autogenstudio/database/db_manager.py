@@ -14,10 +14,18 @@ from .schema_manager import SchemaManager
 
 
 class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if hasattr(obj, "get_secret_value") and callable(obj.get_secret_value):
-            return obj.get_secret_value()
-        return super().default(obj)
+    def default(self, o):
+        if hasattr(o, "get_secret_value") and callable(o.get_secret_value):
+            return o.get_secret_value()
+        # Handle datetime objects
+        if isinstance(o, datetime):
+            return o.isoformat()
+        # Handle Enum objects
+        import enum
+
+        if isinstance(o, enum.Enum):
+            return o.value
+        return super().default(o)
 
 
 class DatabaseManager:

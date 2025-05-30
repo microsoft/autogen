@@ -76,6 +76,7 @@ async def run_websocket(
 
         logger.info(f"WebSocket connection established for run {run_id}")
 
+        raw_message = None  # Initialize to avoid possibly unbound variable
         while True:
             try:
                 raw_message = await websocket.receive_text()
