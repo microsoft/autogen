@@ -47,6 +47,7 @@ from ._prompts import (
     ORCHESTRATOR_TASK_LEDGER_FULL_PROMPT,
     ORCHESTRATOR_TASK_LEDGER_PLAN_PROMPT,
     ORCHESTRATOR_TASK_LEDGER_PLAN_UPDATE_PROMPT,
+    LedgerEntry,
 )
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -309,7 +310,18 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         assert self._max_json_retries > 0
         key_error: bool = False
         for _ in range(self._max_json_retries):
-            response = await self._model_client.create(self._get_compatible_context(context), json_output=True)
+            if self._model_client.model_info.get("structured_output", False):
+                response = await self._model_client.create(
+                    self._get_compatible_context(context), json_output=LedgerEntry
+                )
+            elif self._model_client.model_info.get("json_output", False):
+                response = await self._model_client.create(
+                    self._get_compatible_context(context), cancellation_token=cancellation_token, json_output=True
+                )
+            else:
+                response = await self._model_client.create(
+                    self._get_compatible_context(context), cancellation_token=cancellation_token
+                )
             ledger_str = response.content
             try:
                 assert isinstance(ledger_str, str)
