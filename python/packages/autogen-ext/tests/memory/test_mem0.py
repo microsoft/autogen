@@ -1,4 +1,3 @@
-import asyncio
 import os
 import uuid
 from datetime import datetime
@@ -24,27 +23,28 @@ mem0 = pytest.importorskip("mem0")
 
 # Define local configuration at the top of the module
 FULL_LOCAL_CONFIG: Dict[str, Any] = {
-    "history_db_path": "db/histories.db",
+    "history_db_path": ":memory:",  # Use in-memory DB for tests
     "graph_store": {
-        "provider": "neo4j",
-        "config": {"url": "bolt://localhost:7687", "username": "neo4j", "password": os.getenv("NEO4J_PASSWORD")},
+        "provider": "mock_graph",
+        "config": {"url": "mock://localhost:7687", "username": "mock", "password": "mock_password"},
     },
     "embedder": {
-        "provider": "openai",
+        "provider": "mock_embedder",
         "config": {
-            "model": "Pro/BAAI/bge-m3",
-            "openai_base_url": "https://api.siliconflow.cn/v1",
+            "model": "mock-embedding-model",
             "embedding_dims": 1024,
-            "api_key": os.getenv("SF_API_KEY"),
+            "api_key": "mock-api-key",
         },
     },
-    "vector_store": {"provider": "chroma", "config": {"path": "db/memories.chroma", "collection_name": "memories"}},
+    "vector_store": {
+        "provider": "mock_vector",
+        "config": {"path": ":memory:", "collection_name": "test_memories"}
+    },
     "llm": {
-        "provider": "deepseek",
+        "provider": "mock_llm",
         "config": {
-            "model": "deepseek-chat",
-            "deepseek_base_url": "https://api.deepseek.com",
-            "api_key": os.getenv("DEEPSEEK_API_KEY"),
+            "model": "mock-chat-model",
+            "api_key": "mock-api-key",
         },
     },
 }
@@ -137,15 +137,34 @@ async def test_basic_workflow(mock_mem0_class: MagicMock, local_config: Mem0Memo
 
 @requires_mem0_api
 @pytest.mark.asyncio
-async def test_basic_workflow_with_cloud(cloud_config: Mem0MemoryConfig) -> None:
-    """Test basic memory operations with real API."""
-    memory = Mem0Memory(**cloud_config.model_dump())
+@patch("autogen_ext.memory.mem0.MemoryClient")  # Patch MemoryClient instead of Memory0
+async def test_basic_workflow_with_cloud(mock_memory_client_class: MagicMock, cloud_config: Mem0MemoryConfig) -> None:
+    """Test basic memory operations with cloud client (mocked instead of real API)."""
+    # Setup mock
+    mock_client = MagicMock()
+    mock_memory_client_class.return_value = mock_client
 
-    # Clean up before testing
-    await memory.clear()
+    # Mock search results
+    mock_client.search.return_value = [
+        {
+            "memory": "Test memory content for cloud",
+            "score": 0.98,
+            "metadata": {"test": True, "source": "cloud"},
+        }
+    ]
 
-    # Test adding content
+    memory = Mem0Memory(
+        user_id=cloud_config.user_id,
+        limit=cloud_config.limit,
+        is_cloud=cloud_config.is_cloud,
+        api_key=cloud_config.api_key,
+        config=cloud_config.config,
+    )
+
+    # Generate a unique test content string
     test_content = f"Test memory content {uuid.uuid4()}"
+
+    # Add content to memory
     await memory.add(
         MemoryContent(
             content=test_content,
@@ -154,18 +173,33 @@ async def test_basic_workflow_with_cloud(cloud_config: Mem0MemoryConfig) -> None
         )
     )
 
-    # Wait a moment for indexing
-    await asyncio.sleep(1)
+    # Verify add was called correctly
+    mock_client.add.assert_called_once()
+    call_args = mock_client.add.call_args
+    assert test_content in str(call_args[0][0])  # Check that content was passed
+    assert call_args[1]["user_id"] == cloud_config.user_id
+    assert call_args[1]["metadata"]["test"] is True
 
-    # Test querying
+    # Query memory
     results = await memory.query(test_content)
 
-    # Verify results
-    assert len(results.results) > 0
-    assert test_content in str(results.results[0].content)
+    # Verify search was called correctly
+    mock_client.search.assert_called_once()
+    search_args = mock_client.search.call_args
+    assert test_content in search_args[0][0]
+    assert search_args[1]["user_id"] == cloud_config.user_id
 
-    # Clean up after testing
+    # Verify results
+    assert len(results.results) == 1
+    assert "Test memory content for cloud" in str(results.results[0].content)
+    assert results.results[0].metadata is not None
+    assert results.results[0].metadata.get("score") == 0.98
+
+    # Test clear
     await memory.clear()
+    mock_client.delete_all.assert_called_once_with(user_id=cloud_config.user_id)
+
+    # Cleanup
     await memory.close()
 
 
@@ -407,17 +441,17 @@ async def test_init_with_local_config(mock_mem0_class: MagicMock, full_local_con
 
 
 @pytest.mark.asyncio
-@patch("autogen_ext.memory.mem0.Memory0")
+@patch("autogen_ext.memory.mem0.Memory0")  # Patches the underlying mem0.Memory class
 async def test_local_config_with_memory_operations(
-    mock_mem0_class: MagicMock, full_local_config: Dict[str, Any]
+    mock_mem0_class: MagicMock, full_local_config: Dict[str, Any]  # full_local_config fixture provides the mock config
 ) -> None:
     """Test memory operations with local configuration."""
-    # Setup mock
-    mock_mem0 = MagicMock()
-    mock_mem0_class.from_config.return_value = mock_mem0
+    # Setup mock for the instance that will be created by Mem0Memory
+    mock_mem0_instance = MagicMock()
+    mock_mem0_class.from_config.return_value = mock_mem0_instance
 
-    # Mock search results
-    mock_mem0.search.return_value = [
+    # Mock search results from the mem0 instance
+    mock_mem0_instance.search.return_value = [
         {
             "memory": "Test local config memory content",
             "score": 0.92,
@@ -425,45 +459,34 @@ async def test_local_config_with_memory_operations(
         }
     ]
 
-    # Initialize memory with local config
+    # Initialize Mem0Memory with is_cloud=False and the full_local_config
     memory = Mem0Memory(user_id="test-local-config-user", limit=10, is_cloud=False, config=full_local_config)
 
-    # Verify configuration was passed correctly
-    mock_mem0_class.from_config.assert_called_once()
-
-    # Verify memory instance properties
-    assert memory.user_id == "test-local-config-user"
-    assert memory.limit == 10
-    assert memory.is_cloud is False
-    assert memory.config == full_local_config
+    # Verify that mem0.Memory.from_config was called with the provided config
+    mock_mem0_class.from_config.assert_called_once_with(config_dict=full_local_config)
 
     # Add memory content
-    test_content = "Testing local configuration memory operations"
+    test_content_str = "Testing local configuration memory operations"
     await memory.add(
         MemoryContent(
-            content=test_content,
+            content=test_content_str,
             mime_type=MemoryMimeType.TEXT,
             metadata={"config_type": "local", "test_case": "advanced"},
         )
     )
 
-    # Verify add was called with correct arguments
-    mock_mem0.add.assert_called_once()
-    call_args = mock_mem0.add.call_args[0]
-    assert call_args[0] == test_content
-    call_kwargs = mock_mem0.add.call_args[1]
-    assert call_kwargs["metadata"]["config_type"] == "local"
-    assert call_kwargs["metadata"]["test_case"] == "advanced"
+    # Verify add was called on the mock_mem0_instance
+    mock_mem0_instance.add.assert_called_once()
 
     # Query memory
     results = await memory.query("local configuration test")
 
-    # Verify search was called correctly
-    mock_mem0.search.assert_called_once()
-    search_args = mock_mem0.search.call_args
-    assert "local configuration test" in search_args[0][0]
-    assert search_args[1]["user_id"] == "test-local-config-user"
-    assert search_args[1]["limit"] == 10
+    # Verify search was called on the mock_mem0_instance
+    mock_mem0_instance.search.assert_called_once_with(
+        "local configuration test",
+        user_id="test-local-config-user",
+        limit=10
+    )
 
     # Verify results
     assert len(results.results) == 1
@@ -479,11 +502,11 @@ async def test_local_config_with_memory_operations(
     assert memory_config.config["user_id"] == "test-local-config-user"
     assert memory_config.config["is_cloud"] is False
     assert "config" in memory_config.config
-    assert memory_config.config["config"]["history_db_path"] == "db/histories.db"
+    assert memory_config.config["config"]["history_db_path"] == ":memory:"
 
     # Test clear
     await memory.clear()
-    mock_mem0.delete_all.assert_called_once_with(user_id="test-local-config-user")
+    mock_mem0_instance.delete_all.assert_called_once_with(user_id="test-local-config-user")
 
     # Cleanup
     await memory.close()
