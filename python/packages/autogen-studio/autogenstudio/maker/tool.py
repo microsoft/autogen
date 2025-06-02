@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Optional, AsyncGenerator, Union
+from pydantic import BaseModel
 from autogen_core.tools._function_tool import FunctionToolConfig
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_core._component_config import ComponentModel
@@ -6,6 +7,16 @@ from autogen_core.models import SystemMessage
 
 # Import tools to use as examples
 from autogenstudio.gallery.tools import calculator_tool, fetch_webpage_tool, generate_image_tool
+
+
+class ToolMakerEvent(BaseModel):
+    """An event signaling a tool maker operation update."""
+    
+    status: str
+    """The current status of tool generation (e.g., 'generating', 'testing', 'validating', 'complete', 'error')"""
+    
+    content: str
+    """Description of what's happening"""
 
 
 class ToolMaker:
@@ -21,7 +32,7 @@ class ToolMaker:
             response_format=FunctionToolConfig
         )
     
-    async def generate_tool(self, description: str) -> ComponentModel:
+    async def run(self, description: str) -> ComponentModel:
         """
         Generate a tool configuration based on a natural language description.
         
@@ -44,6 +55,36 @@ class ToolMaker:
             label=tool_config.name,
             config=tool_config.model_dump()
         )
+    
+    async def run_stream(self, description: str) -> AsyncGenerator[Union[ToolMakerEvent, ComponentModel], None]:
+        """
+        Generate a tool configuration based on a natural language description with streaming updates.
+        
+        Args:
+            description: Natural language description of the tool's functionality
+            
+        Yields:
+            ToolMakerEvent: Progress updates during tool generation
+            ComponentModel: The final generated tool configuration
+        """
+        yield ToolMakerEvent(
+            status="creating",
+            content=f"Creating tool: {description}"
+        )
+        
+        tool_config = await self._generate_tool_config(description)
+        
+        component_model = ComponentModel(
+            provider="autogen_core.tools.FunctionTool",
+            component_type="tool",
+            version=1,
+            component_version=1,
+            description=tool_config.description,
+            label=tool_config.name,
+            config=tool_config.model_dump()
+        )
+        
+        yield component_model
     
     async def _generate_tool_config(self, description: str) -> FunctionToolConfig:
         """
