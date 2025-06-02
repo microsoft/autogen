@@ -1,0 +1,55 @@
+# AutoGen
+
+> AutoGen is a framework for creating multi-agent AI applications that can act autonomously or work alongside humans. It provides a layered and extensible design with Core API for event-driven agents, AgentChat API for rapid prototyping, Extensions API for integrations, and AutoGen Studio for no-code development.
+
+AutoGen enables developers to build sophisticated multi-agent systems through:
+
+- **Event-driven architecture**: Core API implements message passing and distributed runtime for scalable agent communication
+- **High-level abstractions**: AgentChat API provides intuitive defaults for common multi-agent patterns like two-agent chat and group chats  
+- **Extensible ecosystem**: Extensions API supports LLM clients (OpenAI, Azure), code execution, and community extensions
+- **Cross-language support**: Available for both Python and .NET with plans for additional languages
+- **No-code development**: AutoGen Studio provides GUI for prototyping without writing code
+
+The framework supports both local and distributed deployments, making it suitable for everything from simple chatbots to complex enterprise workflows.
+
+## Core Documentation
+
+- [AgentChat Quickstart](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/quickstart.html): Build your first agent in minutes
+- [AgentChat Installation](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/installation.html): Install AgentChat and dependencies
+- [Core API Quickstart](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/quickstart.html): Event-driven programming fundamentals
+- [Migration Guide](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html): Upgrade from AutoGen v0.2 to v0.4
+
+## Tutorials and Examples
+
+- [AgentChat Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/index.html): Step-by-step guide to agents and teams
+- [Models Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html): Working with different LLM providers
+- [Agents Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/agents.html): Creating and configuring agents
+- [Teams Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html): Multi-agent coordination patterns
+- [Travel Planning Example](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/examples/travel-planning.html): Complete multi-agent workflow
+- [Company Research Example](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/examples/company-research.html): Research automation with agents
+
+## API Reference
+
+- [Python API Reference](https://microsoft.github.io/autogen/stable/reference/index.html): Complete Python API documentation
+- [AgentChat API](https://microsoft.github.io/autogen/stable/reference/python/autogen_agentchat.html): High-level agent programming interface
+- [Core API](https://microsoft.github.io/autogen/stable/reference/python/autogen_core.html): Event-driven programming primitives
+- [Extensions API](https://microsoft.github.io/autogen/stable/reference/python/autogen_ext.html): LLM clients and integrations
+- [.NET API Reference](https://microsoft.github.io/autogen/dotnet/dev/api/Microsoft.AutoGen.Contracts.html): .NET implementation documentation
+
+## AutoGen Studio
+
+- [Studio Installation](https://microsoft.github.io/autogen/stable/user-guide/autogenstudio-user-guide/installation.html): Install no-code GUI
+- [Studio Usage Guide](https://microsoft.github.io/autogen/stable/user-guide/autogenstudio-user-guide/usage.html): Build agents without coding
+
+## Optional
+
+- [Custom Agents](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/custom-agents.html): Create agents with custom behaviors
+- [Selector Group Chat](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/selector-group-chat.html): Advanced multi-agent coordination
+- [Swarm Patterns](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/swarm.html): Localized tool-based coordination
+- [Magentic-One](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/magentic-one.html): State-of-the-art multi-agent team
+- [Memory and RAG](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/memory.html): Add memory capabilities to agents
+- [Logging and Observability](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/logging.html): Monitor agent interactions
+- [Extensions Discovery](https://microsoft.github.io/autogen/stable/user-guide/extensions-user-guide/discover.html): Community extensions catalog
+- [.NET Core Tutorial](https://microsoft.github.io/autogen/dotnet/dev/core/tutorial.html): Cross-language development
+- [Contributing Guide](https://github.com/microsoft/autogen/blob/main/CONTRIBUTING.md): How to contribute to AutoGen
+- [FAQ](https://github.com/microsoft/autogen/blob/main/FAQ.md): Frequently asked questions
