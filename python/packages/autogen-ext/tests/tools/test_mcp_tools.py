@@ -20,6 +20,8 @@ from autogen_ext.tools.mcp import (
     create_mcp_server_session,
     mcp_server_tools,
 )
+from autogen_ext.tools.mcp._config import StreamableHttpServerParams
+from autogen_ext.tools.mcp._streamable_http import StreamableHttpMcpToolAdapter
 from mcp import ClientSession, Tool
 from mcp.types import (
     Annotations,
@@ -63,7 +65,29 @@ def sample_sse_tool() -> Tool:
 
 
 @pytest.fixture
+def sample_streamable_http_tool() -> Tool:
+    return Tool(
+        name="test_streamable_http_tool",
+        description="A test StreamableHttp tool",
+        inputSchema={
+            "type": "object",
+            "properties": {"test_param": {"type": "string"}},
+            "required": ["test_param"],
+        },
+    )
+
+
+@pytest.fixture
 def mock_sse_session() -> AsyncMock:
+    session = AsyncMock(spec=ClientSession)
+    session.initialize = AsyncMock()
+    session.call_tool = AsyncMock()
+    session.list_tools = AsyncMock()
+    return session
+
+
+@pytest.fixture
+def mock_streamable_http_session() -> AsyncMock:
     session = AsyncMock(spec=ClientSession)
     session.initialize = AsyncMock()
     session.call_tool = AsyncMock()
@@ -408,6 +432,122 @@ async def test_sse_adapter_from_server_params(
     assert (
         params_schema["properties"]["test_param"]["type"]
         == sample_sse_tool.inputSchema["properties"]["test_param"]["type"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_streamable_http_adapter_config_serialization(sample_streamable_http_tool: Tool) -> None:
+    """Test that StreamableHttp adapter can be saved to and loaded from config."""
+    params = StreamableHttpServerParams(url="http://test-url")
+    original_adapter = StreamableHttpMcpToolAdapter(server_params=params, tool=sample_streamable_http_tool)
+    config = original_adapter.dump_component()
+    loaded_adapter = StreamableHttpMcpToolAdapter.load_component(config)
+
+    # Test that the loaded adapter has the same properties
+    assert loaded_adapter.name == "test_streamable_http_tool"
+    assert loaded_adapter.description == "A test StreamableHttp tool"
+
+    # Verify schema structure
+    schema = loaded_adapter.schema
+    assert "parameters" in schema, "Schema must have parameters"
+    params_schema = schema["parameters"]
+    assert isinstance(params_schema, dict), "Parameters must be a dict"
+    assert "type" in params_schema, "Parameters must have type"
+    assert "required" in params_schema, "Parameters must have required fields"
+    assert "properties" in params_schema, "Parameters must have properties"
+
+    # Compare schema content
+    assert params_schema["type"] == sample_streamable_http_tool.inputSchema["type"]
+    assert params_schema["required"] == sample_streamable_http_tool.inputSchema["required"]
+    assert (
+        params_schema["properties"]["test_param"]["type"]
+        == sample_streamable_http_tool.inputSchema["properties"]["test_param"]["type"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_streamable_http_tool_execution(
+    sample_streamable_http_tool: Tool,
+    mock_streamable_http_session: AsyncMock,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that StreamableHttp adapter properly executes tools through ClientSession."""
+    params = StreamableHttpServerParams(url="http://test-url")
+    mock_context = AsyncMock()
+    mock_context.__aenter__.return_value = mock_streamable_http_session
+
+    mock_streamable_http_session.call_tool.return_value = MagicMock(
+        isError=False,
+        content=[
+            TextContent(
+                text="test_output",
+                type="text",
+                annotations=Annotations(audience=["user", "assistant"], priority=0.7),
+            ),
+        ],
+    )
+
+    monkeypatch.setattr(
+        "autogen_ext.tools.mcp._base.create_mcp_server_session",
+        lambda *args, **kwargs: mock_context,  # type: ignore
+    )
+
+    with caplog.at_level(logging.INFO):
+        adapter = StreamableHttpMcpToolAdapter(server_params=params, tool=sample_streamable_http_tool)
+        result = await adapter.run_json(
+            args=schema_to_pydantic_model(sample_streamable_http_tool.inputSchema)(
+                **{"test_param": "test"}
+            ).model_dump(),
+            cancellation_token=CancellationToken(),
+        )
+
+        assert result == mock_streamable_http_session.call_tool.return_value.content
+        mock_streamable_http_session.initialize.assert_called_once()
+        mock_streamable_http_session.call_tool.assert_called_once()
+
+        # Check log.
+        assert "test_output" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_streamable_http_adapter_from_server_params(
+    sample_streamable_http_tool: Tool,
+    mock_streamable_http_session: AsyncMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that StreamableHttp adapter can be created from server parameters."""
+    params = StreamableHttpServerParams(url="http://test-url")
+    mock_context = AsyncMock()
+    mock_context.__aenter__.return_value = mock_streamable_http_session
+    monkeypatch.setattr(
+        "autogen_ext.tools.mcp._base.create_mcp_server_session",
+        lambda *args, **kwargs: mock_context,  # type: ignore
+    )
+
+    mock_streamable_http_session.list_tools.return_value.tools = [sample_streamable_http_tool]
+
+    adapter = await StreamableHttpMcpToolAdapter.from_server_params(params, "test_streamable_http_tool")
+
+    assert isinstance(adapter, StreamableHttpMcpToolAdapter)
+    assert adapter.name == "test_streamable_http_tool"
+    assert adapter.description == "A test StreamableHttp tool"
+
+    # Verify schema structure
+    schema = adapter.schema
+    assert "parameters" in schema, "Schema must have parameters"
+    params_schema = schema["parameters"]
+    assert isinstance(params_schema, dict), "Parameters must be a dict"
+    assert "type" in params_schema, "Parameters must have type"
+    assert "required" in params_schema, "Parameters must have required fields"
+    assert "properties" in params_schema, "Parameters must have properties"
+
+    # Compare schema content
+    assert params_schema["type"] == sample_streamable_http_tool.inputSchema["type"]
+    assert params_schema["required"] == sample_streamable_http_tool.inputSchema["required"]
+    assert (
+        params_schema["properties"]["test_param"]["type"]
+        == sample_streamable_http_tool.inputSchema["properties"]["test_param"]["type"]
     )
 
 
