@@ -40,7 +40,7 @@ var assistantAgent = new AssistantAgent(
 // set human input mode to ALWAYS so that user always provide input
 var userProxyAgent = new UserProxyAgent(
     name: "user",
-    humanInputMode: ConversableAgent.HumanInputMode.ALWAYS)
+    humanInputMode: HumanInputMode.ALWAYS)
     .RegisterPrintMessage();
 
 // start the conversation

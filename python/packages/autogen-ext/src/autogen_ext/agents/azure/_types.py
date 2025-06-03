@@ -3,7 +3,14 @@ from typing import Any, Awaitable, Callable, Iterable, List, Literal, Optional, 
 from autogen_core.tools import Tool
 from pydantic import BaseModel, Field
 
-import azure.ai.projects.models as models
+from azure.ai.agents.models import (
+    AzureAISearchToolDefinition,
+    AzureFunctionToolDefinition,
+    BingGroundingToolDefinition,
+    CodeInterpreterToolDefinition,
+    FileSearchToolDefinition,
+    MessageTextUrlCitationAnnotation,
+)
 
 ListToolType = Iterable[
     Union[
@@ -13,14 +20,12 @@ ListToolType = Iterable[
             "bing_grounding",
             "azure_ai_search",
             "azure_function",
-            "sharepoint_grounding",
         ],
-        models.BingGroundingToolDefinition,
-        models.CodeInterpreterToolDefinition,
-        models.SharepointToolDefinition,
-        models.AzureAISearchToolDefinition,
-        models.FileSearchToolDefinition,
-        models.AzureFunctionToolDefinition,
+        BingGroundingToolDefinition,
+        CodeInterpreterToolDefinition,
+        AzureAISearchToolDefinition,
+        FileSearchToolDefinition,
+        AzureFunctionToolDefinition,
         Tool,
         Callable[..., Any],
         Callable[..., Awaitable[Any]],
@@ -52,5 +57,5 @@ class AzureAIAgentState(BaseModel):
     uploaded_file_ids: List[str] = Field(default_factory=list)
 
 
-def has_annotations(obj: Any) -> TypeGuard[list[models.MessageTextUrlCitationAnnotation]]:
+def has_annotations(obj: Any) -> TypeGuard[list[MessageTextUrlCitationAnnotation]]:
     return obj is not None and isinstance(obj, list)

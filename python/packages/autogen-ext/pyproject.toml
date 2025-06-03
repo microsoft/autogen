@@ -22,8 +22,8 @@ dependencies = [
 anthropic = ["anthropic>=0.48"]
 langchain = ["langchain_core~= 0.3.3"]
 azure = [
-    "azure-ai-inference>=1.0.0b7",
-    "azure-ai-projects>=1.0.0b8",
+    "azure-ai-inference>=1.0.0b9",
+    "azure-ai-projects>=1.0.0b11",
     "azure-core",
     "azure-identity",
     "azure-search-documents>=11.4.0",
@@ -144,7 +144,7 @@ semantic-kernel-all = [
 
 rich = ["rich>=13.9.4"]
 
-mcp = ["mcp>=1.6.0"]
+mcp = ["mcp>=1.8.1"]
 canvas = [
     "unidiff>=0.7.5",
 ]
