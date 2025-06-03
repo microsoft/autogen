@@ -114,7 +114,7 @@ def test_serialization() -> None:
     assert deserialized_graph.nodes["A"].edges[0].target == "B"
     assert deserialized_graph.nodes["A"].edges[0].condition == "trigger1"
     assert deserialized_graph.nodes["B"].edges[0].target == "C"
-    
+
     # Test the original condition works
     test_msg = TextMessage(content="this has trigger1 in it", source="test")
     # Manually check if the string is in the message text
@@ -162,11 +162,11 @@ def test_condition_edge_execution() -> None:
     # Check the condition manually
     test_message = TextMessage(content="This has TRIGGER in it", source="test")
     non_match_message = TextMessage(content="This doesn't match", source="test")
-    
+
     # Check if the string condition is in each message text
     assert "TRIGGER" in test_message.to_model_text()
     assert "TRIGGER" not in non_match_message.to_model_text()
-    
+
     # Check the condition itself
     assert graph.nodes["A"].edges[0].condition == "TRIGGER"
     assert graph.nodes["B"].edges[0].condition is None
@@ -1025,16 +1025,16 @@ def test_add_conditional_edges() -> None:
 
     edges = builder.nodes["A"].edges
     assert len(edges) == 2
-    
+
     # Extract the condition strings to compare them
     conditions = [e.condition for e in edges]
     assert "yes" in conditions
     assert "no" in conditions
-    
+
     # Match edge targets with conditions
     yes_edge = next(e for e in edges if e.condition == "yes")
     no_edge = next(e for e in edges if e.condition == "no")
-    
+
     assert yes_edge.target == "B"
     assert no_edge.target == "C"
 
@@ -1116,11 +1116,11 @@ def test_build_conditional_loop() -> None:
     # Check that edges have the right conditions and targets
     edges = graph.nodes["B"].edges
     assert len(edges) == 2
-    
+
     # Find edges by their conditions
     loop_edge = next(e for e in edges if e.condition == "loop")
     exit_edge = next(e for e in edges if e.condition == "exit")
-    
+
     assert loop_edge.target == "A"
     assert exit_edge.target == "C"
     assert graph.has_cycles_with_exit()
@@ -1205,13 +1205,13 @@ async def test_digraph_group_chat_callable_condition(runtime: AgentRuntime | Non
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(
-                name="A", 
+                name="A",
                 edges=[
                     # Will go to B if "long" is in message
                     DiGraphEdge(target="B", condition="long"),
                     # Will go to C if "short" is in message
                     DiGraphEdge(target="C", condition="short"),
-                ]
+                ],
             ),
             "B": DiGraphNode(name="B", edges=[]),
             "C": DiGraphNode(name="C", edges=[]),
@@ -1228,10 +1228,10 @@ async def test_digraph_group_chat_callable_condition(runtime: AgentRuntime | Non
     # Test with a message containing "long" - should go to B
     result = await team.run(task="This is a long message")
     assert result.messages[2].source == "B"
-    
+
     # Reset for next test
     await team.reset()
-    
+
     # Test with a message containing "short" - should go to C
     result = await team.run(task="This is a short message")
     assert result.messages[2].source == "C"
@@ -1324,6 +1324,7 @@ async def test_graph_flow_stateful_pause_and_resume_with_termination() -> None:
     assert result.messages[0].source == "B"
     assert result.messages[1].source == _DIGRAPH_STOP_AGENT_NAME
 
+
 @pytest.mark.asyncio
 async def test_builder_with_lambda_condition(runtime: AgentRuntime | None) -> None:
     """Test that DiGraphBuilder supports string conditions."""
@@ -1333,7 +1334,7 @@ async def test_builder_with_lambda_condition(runtime: AgentRuntime | None) -> No
 
     builder = DiGraphBuilder()
     builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
-    
+
     # Using string conditions
     builder.add_edge(agent_a, agent_b, "even")
     builder.add_edge(agent_a, agent_c, "odd")
@@ -1348,11 +1349,10 @@ async def test_builder_with_lambda_condition(runtime: AgentRuntime | None) -> No
     # Test with "even" in message - should go to B
     result = await team.run(task="even length")
     assert result.messages[2].source == "B"
-    
+
     # Reset for next test
     await team.reset()
-    
+
     # Test with "odd" in message - should go to C
     result = await team.run(task="odd message")
     assert result.messages[2].source == "C"
-    

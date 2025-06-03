@@ -1,3 +1,4 @@
+import warnings
 from typing import Callable, Dict, Literal, Optional, Union
 
 from autogen_agentchat.base import ChatAgent
@@ -55,7 +56,7 @@ class DiGraphBuilder:
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
         >>> # Add conditional edges using keyword check lambdas
         >>> builder.add_conditional_edges(agent_a, {"yes": agent_b, "no": agent_c})
-        
+
     Example — Using Custom String Conditions:
         >>> builder = GraphBuilder()
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
@@ -87,20 +88,23 @@ class DiGraphBuilder:
         return self
 
     def add_edge(
-        self, source: Union[str, ChatAgent], target: Union[str, ChatAgent], condition: Optional[Union[str, Callable[[BaseChatMessage], bool]]] = None
+        self,
+        source: Union[str, ChatAgent],
+        target: Union[str, ChatAgent],
+        condition: Optional[Union[str, Callable[[BaseChatMessage], bool]]] = None,
     ) -> "DiGraphBuilder":
         """Add a directed edge from source to target, optionally with a condition.
-        
+
         Args:
             source: Source node (agent name or agent object)
             target: Target node (agent name or agent object)
             condition: Optional condition for edge activation.
                 If string, activates when substring is found in message.
                 If callable, activates when function returns True for the message.
-        
+
         Returns:
             Self for method chaining
-        
+
         Raises:
             ValueError: If source or target node doesn't exist in the builder
         """
@@ -119,23 +123,34 @@ class DiGraphBuilder:
         self, source: Union[str, ChatAgent], condition_to_target: Dict[str, Union[str, ChatAgent]]
     ) -> "DiGraphBuilder":
         """Add multiple conditional edges from a source node based on keyword checks.
-        
+
+        .. warning::
+
+            This method interface will be changed in the future to support callable conditions.
+            Please use `add_edge` if you need to specify custom conditions.
+
         Args:
             source: Source node (agent name or agent object)
             condition_to_target: Mapping from condition strings to target nodes
                 Each key is a keyword that will be checked in the message content
                 Each value is the target node to activate when condition is met
-                
+
                 For each key (keyword), a lambda will be created that checks
                 if the keyword is in the message text.
-        
+
         Returns:
             Self for method chaining
         """
+
+        warnings.warn(
+            "add_conditional_edges will be changed in the future to support callable conditions. "
+            "For now, please use add_edge if you need to specify custom conditions.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         for condition_keyword, target in condition_to_target.items():
-            # Create a lambda that checks if keyword is in message
-            condition_func = lambda msg, kw=condition_keyword: kw in msg.to_model_text()
-            self.add_edge(source, target, condition_func)
+            self.add_edge(source, target, condition=condition_keyword)
         return self
 
     def set_entry_point(self, name: Union[str, ChatAgent]) -> "DiGraphBuilder":

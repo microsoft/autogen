@@ -43,26 +43,26 @@ class DiGraphEdge(BaseModel):
     If a string, the edge is conditional on the presence of that string in the last agent chat message.
     If a callable, the edge is conditional on the callable returning True when given the last message.
     """
-    
+
     # Using Field to exclude the condition in serialization if it's a callable
     condition_function: Callable[[BaseChatMessage], bool] | None = Field(default=None, exclude=True)
 
-    @model_validator(mode='after')
-    def _validate_condition(self) -> 'DiGraphEdge':
+    @model_validator(mode="after")
+    def _validate_condition(self) -> "DiGraphEdge":
         # Store callable in a separate field and set condition to None for serialization
         if callable(self.condition):
             self.condition_function = self.condition
             # For serialization purposes, we'll set the condition to None
             # when storing as a pydantic model/dict
-            object.__setattr__(self, 'condition', None)
+            object.__setattr__(self, "condition", None)
         return self
-    
+
     def check_condition(self, message: BaseChatMessage) -> bool:
         """Check if the edge condition is satisfied for the given message.
-        
+
         Args:
             message: The message to check the condition against.
-            
+
         Returns:
             True if condition is satisfied (None condition always returns True),
             False otherwise.
@@ -194,8 +194,8 @@ class DiGraph(BaseModel):
         # Outgoing edge condition validation (per node)
         for node in self.nodes.values():
             # Check that if a node has an outgoing conditional edge, then all outgoing edges are conditional
-            has_condition = any(edge.condition_function is not None for edge in node.edges)
-            has_unconditioned = any(edge.condition_function is None and edge.condition is None for edge in node.edges)
+            has_condition = any(edge.condition is not None for edge in node.edges)
+            has_unconditioned = any(edge.condition is None for edge in node.edges)
             if has_condition and has_unconditioned:
                 raise ValueError(f"Node '{node.name}' has a mix of conditional and unconditional edges.")
 
@@ -269,7 +269,6 @@ class GraphFlowManager(BaseGroupChatManager):
             return
         assert isinstance(message, BaseChatMessage)
         source = message.source
-        content = message.to_model_text()
 
         # Propagate the update to the children of the node.
         for edge in self._edges[source]:
@@ -504,12 +503,12 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
                 agent_b = AssistantAgent("B", model_client=model_client, system_message="Translate input to English.")
                 agent_c = AssistantAgent("C", model_client=model_client, system_message="Translate input to Chinese.")
 
-                # Create a directed graph with conditional branching flow A -> B ("yes"), A -> C ("no").
+                # Create a directed graph with conditional branching flow A -> B ("yes"), A -> C (otherwise).
                 builder = DiGraphBuilder()
                 builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
-                # Create conditions as strings
-                builder.add_edge(agent_a, agent_b, condition="yes")
-                builder.add_edge(agent_a, agent_c, condition="no")
+                # Create conditions as callables that check the message content.
+                builder.add_edge(agent_a, agent_b, condition=lambda msg: "yes" in msg.to_model_text())
+                builder.add_edge(agent_a, agent_c, condition=lambda msg: "yes" not in msg.to_model_text())
                 graph = builder.build()
 
                 # Create a GraphFlow team with the directed graph.
@@ -550,21 +549,21 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
                     "B",
                     model_client=model_client,
                     system_message="Provide feedback on the input, if your feedback has been addressed, "
-                    "say 'APPROVE', else say 'REJECT' and provide a reason.",
+                    "say 'APPROVE', otherwise provide a reason for rejection.",
                 )
                 agent_c = AssistantAgent(
                     "C", model_client=model_client, system_message="Translate the final product to Korean."
                 )
 
-                # Create a loop graph with conditional exit: A -> B -> C ("APPROVE"), B -> A ("REJECT").
+                # Create a loop graph with conditional exit: A -> B -> C ("APPROVE"), B -> A (otherwise).
                 builder = DiGraphBuilder()
                 builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
                 builder.add_edge(agent_a, agent_b)
-                
+
                 # Create conditional edges using strings
-                builder.add_edge(agent_b, agent_c, condition="APPROVE")
-                builder.add_edge(agent_b, agent_a, condition="REJECT")
-                
+                builder.add_edge(agent_b, agent_c, condition=lambda msg: "APPROVE" in msg.to_model_text())
+                builder.add_edge(agent_b, agent_a, condition=lambda msg: "APPROVE" not in msg.to_model_text())
+
                 builder.set_entry_point(agent_a)
                 graph = builder.build()
 
