@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import BaseChatMessage, TextMessage
-from autogen_core import CancellationToken, FunctionCall
+from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import UserMessage
 from autogen_core.tools import Tool, ToolSchema
 from autogen_ext.agents.openai import OpenAIAgent
@@ -566,3 +566,28 @@ async def test_from_config(agent: OpenAIAgent) -> None:
         assert loaded_agent._max_output_tokens == 1000  # type: ignore
         assert loaded_agent._store is True  # type: ignore
         assert loaded_agent._truncation == "auto"  # type: ignore
+
+@pytest.mark.asyncio
+async def test_multimodal_message_response(agent: OpenAIAgent, cancellation_token: CancellationToken) -> None:
+
+    # Test that the multimodal message is converted to the correct format
+    img = Image.from_base64(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
+    )
+    multimodal_message = MultiModalMessage(content=["Can you describe the content of this image?", img], source="user")
+
+    # Patch client.responses.create to simulate image-capable output
+    async def mock_responses_create(**kwargs: Any) -> Any:
+        class MockResponse:
+            def __init__(self) -> None:
+                self.output_text = "I see a cat in the image."
+                self.id = "resp-image-001"
+        return MockResponse()
+
+    agent._client.responses.create = AsyncMock(side_effect=mock_responses_create)  # type: ignore
+
+    response = await agent.on_messages([multimodal_message], cancellation_token)
+
+    assert response.chat_message is not None
+    assert isinstance(response.chat_message, TextMessage)
+    assert "cat" in response.chat_message.content.lower()
