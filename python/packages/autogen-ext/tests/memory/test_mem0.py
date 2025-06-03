@@ -317,8 +317,14 @@ async def test_update_context(mock_mem0_class: MagicMock, local_config: Mem0Memo
     await memory.close()
 
 
-def test_component_serialization() -> None:
+@pytest.mark.asyncio
+@patch("autogen_ext.memory.mem0.MemoryClient")  # Patch for cloud mode
+async def test_component_serialization(mock_memory_client_class: MagicMock) -> None:
     """Test serialization and deserialization of the component."""
+    # Setup mock
+    mock_client = MagicMock()
+    mock_memory_client_class.return_value = mock_client
+
     # Create configuration
     user_id = str(uuid.uuid4())
     config = Mem0MemoryConfig(
@@ -359,6 +365,10 @@ def test_component_serialization() -> None:
     assert loaded_memory.limit == 5
     assert loaded_memory.is_cloud is True
     assert loaded_memory.config is None
+
+    # Cleanup
+    await memory.close()
+    await loaded_memory.close()
 
 
 @pytest.mark.asyncio

@@ -78,10 +78,10 @@ jobs:
           echo "NEO4J_PASSWORD=password" >> $GITHUB_ENV
 
       - name: Run tests with coverage
-        env:
-          MEM0_API_KEY: ${{ secrets.MEM0_API_KEY }}
-          SF_API_KEY: ${{ secrets.SF_API_KEY }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        # env:
+        #   MEM0_API_KEY: ${{ secrets.MEM0_API_KEY }}
+        #   SF_API_KEY: ${{ secrets.SF_API_KEY }}
+        #   DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           cd python/packages/autogen-ext
           pytest --cov=autogen_ext.memory.mem0 tests/memory/test_mem0.py -v --cov-report=xml
