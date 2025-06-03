@@ -1335,9 +1335,9 @@ async def test_builder_with_lambda_condition(runtime: AgentRuntime | None) -> No
     builder = DiGraphBuilder()
     builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
 
-    # Using string conditions
-    builder.add_edge(agent_a, agent_b, "even")
-    builder.add_edge(agent_a, agent_c, "odd")
+    # Using callable conditions
+    builder.add_edge(agent_a, agent_b, lambda msg: "even" in msg.to_model_text())
+    builder.add_edge(agent_a, agent_c, lambda msg: "odd" in msg.to_model_text())
 
     team = GraphFlow(
         participants=builder.get_participants(),

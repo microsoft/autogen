@@ -480,7 +480,7 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
 
             asyncio.run(main())
 
-        **Conditional Branching: A → B (if 'yes') or C (if 'no')**
+        **Conditional Branching: A → B (if 'yes') or C (otherwise)**
 
         .. code-block:: python
 
@@ -525,7 +525,7 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
 
             asyncio.run(main())
 
-        **Loop with exit condition: A → B → C (if 'APPROVE') or A (if 'REJECT')**
+        **Loop with exit condition: A → B → C (if 'APPROVE') or A (otherwise)**
 
         .. code-block:: python
 
