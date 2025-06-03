@@ -1,11 +1,10 @@
 from mcp import ClientSession
 
-from autogen_ext.tools.mcp._streamable_http import StreamableHttpMcpToolAdapter
-
 from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
 from ._session import create_mcp_server_session
 from ._sse import SseMcpToolAdapter
 from ._stdio import StdioMcpToolAdapter
+from ._streamable_http import StreamableHttpMcpToolAdapter
 
 
 async def mcp_server_tools(

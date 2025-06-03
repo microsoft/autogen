@@ -17,11 +17,11 @@ from autogen_ext.tools.mcp import (
     SseServerParams,
     StdioMcpToolAdapter,
     StdioServerParams,
+    StreamableHttpMcpToolAdapter,
+    StreamableHttpServerParams,
     create_mcp_server_session,
     mcp_server_tools,
 )
-from autogen_ext.tools.mcp._config import StreamableHttpServerParams
-from autogen_ext.tools.mcp._streamable_http import StreamableHttpMcpToolAdapter
 from mcp import ClientSession, Tool
 from mcp.types import (
     Annotations,

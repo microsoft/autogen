@@ -1,4 +1,4 @@
-from autogen_core._component_config import Component
+from autogen_core import Component
 from mcp import ClientSession, Tool
 from pydantic import BaseModel
 from typing_extensions import Self
