@@ -781,6 +781,7 @@ requires-dist = [
     { name = "pillow", marker = "extra == 'web-surfer'", specifier = ">=11.0.0" },
     { name = "playwright", marker = "extra == 'magentic-one'", specifier = ">=1.48.0" },
     { name = "playwright", marker = "extra == 'web-surfer'", specifier = ">=1.48.0" },
+    { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">=5.2.1" },
     { name = "requests", marker = "extra == 'docker-jupyter-executor'", specifier = ">=2.32.3" },
     { name = "rich", marker = "extra == 'rich'", specifier = ">=13.9.4" },
