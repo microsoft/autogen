@@ -150,7 +150,7 @@ semantic-kernel-all = [
 
 rich = ["rich>=13.9.4"]
 
-mcp = ["mcp>=1.6.0"]
+mcp = ["mcp>=1.8.1"]
 canvas = [
     "unidiff>=0.7.5",
 ]

@@ -11,6 +11,7 @@ from autogen_core.models import (
     LLMMessage,
     UserMessage,
 )
+from autogen_core.utils import extract_json_from_str
 
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
@@ -325,7 +326,12 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             ledger_str = response.content
             try:
                 assert isinstance(ledger_str, str)
-                progress_ledger = json.loads(ledger_str)
+                output_json = extract_json_from_str(ledger_str)
+                if len(output_json) != 1:
+                    raise ValueError(
+                        f"Progress ledger should contain a single JSON object, but found: {len(progress_ledger)}"
+                    )
+                progress_ledger = output_json[0]
 
                 # If the team consists of a single agent, deterministically set the next speaker
                 if len(self._participant_names) == 1:
