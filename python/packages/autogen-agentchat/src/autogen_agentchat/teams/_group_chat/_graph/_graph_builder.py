@@ -54,8 +54,10 @@ class DiGraphBuilder:
     Example — Conditional Branching A → B or A → C:
         >>> builder = GraphBuilder()
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
-        >>> # Add conditional edges using keyword check lambdas
-        >>> builder.add_conditional_edges(agent_a, {"yes": agent_b, "no": agent_c})
+        >>> # Add conditional edges using keyword check
+        >>> builder.add_edge(agent_a, agent_b, condition="keyword1")
+        >>> builder.add_edge(agent_a, agent_c, condition="keyword2")
+
 
     Example — Using Custom String Conditions:
         >>> builder = GraphBuilder()
@@ -68,7 +70,10 @@ class DiGraphBuilder:
         >>> builder = GraphBuilder()
         >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
         >>> builder.add_edge(agent_a, agent_b)
-        >>> builder.add_conditional_edges(agent_b, {"loop": agent_a, "exit": agent_c})
+        >> # Add a loop back to agent A
+        >>> builder.add_edge(agent_b, agent_a, condition=lambda msg: "loop" in msg.to_model_text())
+        >>> # Add exit condition to break the loop
+        >>> builder.add_edge(agent_b, agent_c, condition=lambda msg: "loop" not in msg.to_model_text())
     """
 
     def __init__(self) -> None:
