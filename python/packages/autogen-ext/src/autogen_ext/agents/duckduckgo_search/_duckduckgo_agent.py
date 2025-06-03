@@ -1,3 +1,4 @@
+# DuckDuckGo Search Agent created by Varad Srivastava
 from typing import Optional, Sequence
 
 from autogen_agentchat.agents import AssistantAgent

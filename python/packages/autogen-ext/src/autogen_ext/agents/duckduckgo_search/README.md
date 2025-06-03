@@ -261,8 +261,8 @@ Run the unit tests to verify functionality:
 
 ```bash
 cd python/packages/autogen-ext
-python -m pytest tests/tools/web_search/test_duckduckgo_search.py -v
-python -m pytest tests/agents/duckduckgo_search/test_duckduckgo_agent.py -v
+python -m pytest agents/duckduckgo_search/test/test_duckduckgo_search.py -v
+python -m pytest agents/duckduckgo_search/test/test_duckduckgo_agent.py -v
 ```
 
 ### Integration Tests
@@ -270,7 +270,7 @@ python -m pytest tests/agents/duckduckgo_search/test_duckduckgo_agent.py -v
 Run integration tests (requires network access):
 
 ```bash
-python -m pytest tests/agents/duckduckgo_search/test_integration.py -v -m integration
+python -m pytest agents/duckduckgo_search/test/test_integration.py -v -m integration
 ```
 
 ### Manual Testing
@@ -278,7 +278,7 @@ python -m pytest tests/agents/duckduckgo_search/test_integration.py -v -m integr
 Use the example script for manual testing:
 
 ```bash
-python examples/duckduckgo_search_example.py
+python duckduckgo_search_example.py
 ```
 
 ## Comparison with Other Search Agents
@@ -327,14 +327,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 ## Contributing
 
-### Development Setup
-
-1. Clone the repository
-2. Install development dependencies
-3. Run tests to ensure everything works
-4. Make your changes
-5. Add tests for new functionality
-6. Submit a pull request
+Follow Autogen repo guidelines.
 
 ### Code Style
 

@@ -1,3 +1,4 @@
+# DuckDuckGo Search Tool created by Varad Srivastava
 import os
 from typing import Dict, List, Optional
 from urllib.parse import urljoin, quote_plus

@@ -233,38 +233,100 @@ async def example_error_handling():
         print(f"Search failed: {e}")
 
 
-async def example_team_based_research():
-    """Example from README: Team-based research (mock implementation)."""
-    print("\n=== Team-Based Research Example (from README) ===")
+async def example_round_robin_chat():
+    """Example demonstrating RoundRobinGroupChat with DuckDuckGo Search Agent."""
+    print("\n=== Round Robin Chat with DuckDuckGo Search Agent ===")
     
-    model_client = MockModelClient()
+    # Check if we have OpenAI API key for real implementation
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("OPENAI_API_KEY not found. Showing mock implementation.")
+        print("To run the real example, set your OpenAI API key:")
+        print("export OPENAI_API_KEY='your-api-key-here'")
+        
+        # Mock implementation showing the structure
+        model_client = MockModelClient()
+        
+        researcher = DuckDuckGoSearchAgent(
+            name="researcher",
+            model_client=model_client,
+            description="Researcher that gathers information using DuckDuckGo search",
+            system_message="You are a research assistant. Use the DuckDuckGo search tool to find relevant information about the given topic."
+        )
+        
+        print(f"Mock setup complete:")
+        print(f"- Created DuckDuckGo researcher: {researcher.name}")
+        print(f"- Would create AssistantAgent analyst")
+        print(f"- Would create RoundRobinGroupChat with both agents")
+        print(f"- Would run collaborative research task")
+        return
     
-    # Create a research team as shown in README
-    researcher = DuckDuckGoSearchAgent(
-        name="researcher",
-        model_client=model_client,
-        description="Finds and gathers information"
-    )
-    
-    # Mock analyst agent (in real usage, you'd use AssistantAgent from autogen_agentchat)
-    class MockAnalyst:
-        def __init__(self, name, model_client, description, system_message):
-            self.name = name
-            self.model_client = model_client
-            self.description = description
-            self.system_message = system_message
-    
-    analyst = MockAnalyst(
-        name="analyst",
-        model_client=model_client,
-        description="Analyzes and synthesizes research findings",
-        system_message="Analyze the research findings and provide insights."
-    )
-    
-    print(f"Created research team:")
-    print(f"- Researcher: {researcher.name} - {researcher.description}")
-    print(f"- Analyst: {analyst.name} - {analyst.description}")
-    print("Note: This is a mock implementation. In real usage, you'd use RoundRobinGroupChat from autogen_agentchat.teams")
+    try:
+        # Import required AutoGen components
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_agentchat.agents import AssistantAgent
+        from autogen_agentchat.teams import RoundRobinGroupChat
+        from autogen_agentchat.conditions import TextMentionTermination
+        
+        # Create model client
+        model_client = OpenAIChatCompletionClient(
+            model="gpt-4o-mini",
+            api_key=api_key
+        )
+        
+        # Create DuckDuckGo search agent
+        researcher = DuckDuckGoSearchAgent(
+            name="researcher",
+            model_client=model_client,
+            description="Researcher that gathers information using DuckDuckGo search",
+            system_message="""You are a research assistant. Use the DuckDuckGo search tool to find relevant, 
+            up-to-date information about the given topic. Focus on finding credible sources and factual information. 
+            After gathering information, summarize your findings clearly."""
+        )
+        
+        # Create analyst agent
+        analyst = AssistantAgent(
+            name="analyst",
+            model_client=model_client,
+            description="Analyst that synthesizes and analyzes research findings",
+            system_message="""You are a data analyst. Your role is to analyze the research findings provided 
+            by the researcher, identify key insights, trends, and implications. Provide a structured analysis 
+            with clear conclusions and recommendations. When you're done with your analysis, say TERMINATE."""
+        )
+        
+        # Create round robin group chat
+        team = RoundRobinGroupChat(
+            participants=[researcher, analyst],
+            termination_condition=TextMentionTermination("TERMINATE")
+        )
+        
+        print("Created research team with RoundRobinGroupChat:")
+        print(f"- Researcher: {researcher.name}")
+        print(f"- Analyst: {analyst.name}")
+        print("\nRunning collaborative research task...")
+        
+        # Run research task
+        result = await team.run(
+            task="Research the latest developments in artificial intelligence and machine learning in 2024. Focus on breakthrough technologies, major industry trends, and potential impacts on various sectors."
+        )
+        
+        print("\n" + "="*50)
+        print("RESEARCH COLLABORATION COMPLETED")
+        print("="*50)
+        
+        # Display the conversation
+        for i, message in enumerate(result.messages):
+            print(f"\n[Message {i+1}] {message.source}:")
+            print(f"{message.content[:500]}{'...' if len(message.content) > 500 else ''}")
+        
+        print(f"\nTotal messages exchanged: {len(result.messages)}")
+        
+    except ImportError as e:
+        print(f"Required AutoGen components not available: {e}")
+        print("Make sure you have the latest autogen-agentchat installed:")
+        print("pip install autogen-agentchat")
+    except Exception as e:
+        print(f"Round robin chat example failed: {e}")
 
 
 async def example_search_agent():
@@ -392,7 +454,7 @@ async def main():
     await example_multi_language_search()
     await example_content_only_search()
     await example_error_handling()
-    await example_team_based_research()
+    await example_round_robin_chat()
     
     # Real model example
     await example_with_real_model()
