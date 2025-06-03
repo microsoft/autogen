@@ -61,6 +61,7 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
+from autogen_core.utils import extract_json_from_str
 from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
@@ -220,7 +221,10 @@ def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
             args = __empty_content_to_whitespace(args)
             if isinstance(args, str):
                 try:
-                    args_dict = json.loads(args)
+                    json_objs = extract_json_from_str(args)
+                    if len(json_objs) != 1:
+                        raise ValueError(f"Expected a single JSON object, but found {len(json_objs)}")
+                    args_dict = json_objs[0]
                 except json.JSONDecodeError:
                     args_dict = {"text": args}
             else:
