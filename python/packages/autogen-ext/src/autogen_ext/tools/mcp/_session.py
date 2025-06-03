@@ -35,7 +35,7 @@ async def create_mcp_server_session(
         async with streamablehttp_client(**server_params.model_dump(exclude={"type"})) as (
             read,
             write,
-            session_id_callback,
+            session_id_callback, # type: ignore[assignment, unused-variable]
         ):
             # TODO: Handle session_id_callback if needed
             async with ClientSession(
