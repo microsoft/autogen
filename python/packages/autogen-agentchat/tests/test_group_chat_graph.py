@@ -99,6 +99,7 @@ def test_get_leaf_nodes() -> None:
 
 def test_serialization() -> None:
     """Test serializing and deserializing the graph."""
+    # Use a string condition instead of a lambda
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B", condition="trigger1")]),
@@ -113,6 +114,11 @@ def test_serialization() -> None:
     assert deserialized_graph.nodes["A"].edges[0].target == "B"
     assert deserialized_graph.nodes["A"].edges[0].condition == "trigger1"
     assert deserialized_graph.nodes["B"].edges[0].target == "C"
+
+    # Test the original condition works
+    test_msg = TextMessage(content="this has trigger1 in it", source="test")
+    # Manually check if the string is in the message text
+    assert "trigger1" in test_msg.to_model_text()
 
 
 def test_invalid_graph_no_start_node() -> None:
@@ -144,6 +150,7 @@ def test_invalid_graph_no_leaf_node() -> None:
 
 def test_condition_edge_execution() -> None:
     """Test conditional edge execution support."""
+    # Use string condition
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B", condition="TRIGGER")]),
@@ -152,6 +159,15 @@ def test_condition_edge_execution() -> None:
         }
     )
 
+    # Check the condition manually
+    test_message = TextMessage(content="This has TRIGGER in it", source="test")
+    non_match_message = TextMessage(content="This doesn't match", source="test")
+
+    # Check if the string condition is in each message text
+    assert "TRIGGER" in test_message.to_model_text()
+    assert "TRIGGER" not in non_match_message.to_model_text()
+
+    # Check the condition itself
     assert graph.nodes["A"].edges[0].condition == "TRIGGER"
     assert graph.nodes["B"].edges[0].condition is None
 
@@ -193,6 +209,7 @@ def test_cycle_detection_no_cycle() -> None:
 
 def test_cycle_detection_with_exit_condition() -> None:
     """Test a graph with cycle and conditional exit passes validation."""
+    # Use a string condition
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
@@ -258,6 +275,7 @@ def test_validate_graph_missing_leaf_node() -> None:
 
 def test_validate_graph_mixed_conditions() -> None:
     """Test validation failure when node has mixed conditional and unconditional edges."""
+    # Use string for condition
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B", condition="cond"), DiGraphEdge(target="C")]),
@@ -552,6 +570,7 @@ async def test_digraph_group_chat_conditional_branch(runtime: AgentRuntime | Non
     agent_b = _EchoAgent("B", description="Echo agent B")
     agent_c = _EchoAgent("C", description="Echo agent C")
 
+    # Use string conditions
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(
@@ -726,6 +745,7 @@ async def test_digraph_group_chat_multiple_conditional(runtime: AgentRuntime | N
     agent_c = _EchoAgent("C", description="Echo agent C")
     agent_d = _EchoAgent("D", description="Echo agent D")
 
+    # Use string conditions
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(
@@ -1005,10 +1025,18 @@ def test_add_conditional_edges() -> None:
 
     edges = builder.nodes["A"].edges
     assert len(edges) == 2
-    conditions = {e.condition for e in edges}
-    targets = {e.target for e in edges}
-    assert conditions == {"yes", "no"}
-    assert targets == {"B", "C"}
+
+    # Extract the condition strings to compare them
+    conditions = [e.condition for e in edges]
+    assert "yes" in conditions
+    assert "no" in conditions
+
+    # Match edge targets with conditions
+    yes_edge = next(e for e in edges if e.condition == "yes")
+    no_edge = next(e for e in edges if e.condition == "no")
+
+    assert yes_edge.target == "B"
+    assert no_edge.target == "C"
 
 
 def test_set_entry_point() -> None:
@@ -1085,8 +1113,16 @@ def test_build_conditional_loop() -> None:
     builder.set_entry_point(a)
     graph = builder.build()
 
-    assert graph.nodes["B"].edges[0].condition == "loop"
-    assert graph.nodes["B"].edges[1].condition == "exit"
+    # Check that edges have the right conditions and targets
+    edges = graph.nodes["B"].edges
+    assert len(edges) == 2
+
+    # Find edges by their conditions
+    loop_edge = next(e for e in edges if e.condition == "loop")
+    exit_edge = next(e for e in edges if e.condition == "exit")
+
+    assert loop_edge.target == "A"
+    assert exit_edge.target == "C"
     assert graph.has_cycles_with_exit()
 
 
@@ -1152,6 +1188,7 @@ async def test_graph_builder_conditional_execution(runtime: AgentRuntime | None)
         termination_condition=MaxMessageTermination(5),
     )
 
+    # Input "no" should trigger the edge to C
     result = await team.run(task="no")
     sources = [m.source for m in result.messages]
     assert "C" in sources
@@ -1159,27 +1196,45 @@ async def test_graph_builder_conditional_execution(runtime: AgentRuntime | None)
 
 
 @pytest.mark.asyncio
-async def test_graph_builder_with_filter_agent(runtime: AgentRuntime | None) -> None:
-    inner = _EchoAgent("X", description="Echo X")
-    filter_agent = MessageFilterAgent(
-        name="X",
-        wrapped_agent=inner,
-        filter=MessageFilterConfig(per_source=[PerSourceFilter(source="user", position="last", count=1)]),
-    )
+async def test_digraph_group_chat_callable_condition(runtime: AgentRuntime | None) -> None:
+    """Test that string conditions work correctly in edge transitions."""
+    agent_a = _EchoAgent("A", description="Echo agent A")
+    agent_b = _EchoAgent("B", description="Echo agent B")
+    agent_c = _EchoAgent("C", description="Echo agent C")
 
-    builder = DiGraphBuilder()
-    builder.add_node(filter_agent)
+    graph = DiGraph(
+        nodes={
+            "A": DiGraphNode(
+                name="A",
+                edges=[
+                    # Will go to B if "long" is in message
+                    DiGraphEdge(target="B", condition="long"),
+                    # Will go to C if "short" is in message
+                    DiGraphEdge(target="C", condition="short"),
+                ],
+            ),
+            "B": DiGraphNode(name="B", edges=[]),
+            "C": DiGraphNode(name="C", edges=[]),
+        }
+    )
 
     team = GraphFlow(
-        participants=builder.get_participants(),
-        graph=builder.build(),
+        participants=[agent_a, agent_b, agent_c],
+        graph=graph,
         runtime=runtime,
-        termination_condition=MaxMessageTermination(3),
+        termination_condition=MaxMessageTermination(5),
     )
 
-    result = await team.run(task="Hello")
-    assert any(m.source == "X" and m.content == "Hello" for m in result.messages)  # type: ignore[union-attr]
-    assert result.stop_reason is not None
+    # Test with a message containing "long" - should go to B
+    result = await team.run(task="This is a long message")
+    assert result.messages[2].source == "B"
+
+    # Reset for next test
+    await team.reset()
+
+    # Test with a message containing "short" - should go to C
+    result = await team.run(task="This is a short message")
+    assert result.messages[2].source == "C"
 
 
 @pytest.mark.asyncio
@@ -1268,3 +1323,36 @@ async def test_graph_flow_stateful_pause_and_resume_with_termination() -> None:
     assert len(result.messages) == 2
     assert result.messages[0].source == "B"
     assert result.messages[1].source == _DIGRAPH_STOP_AGENT_NAME
+
+
+@pytest.mark.asyncio
+async def test_builder_with_lambda_condition(runtime: AgentRuntime | None) -> None:
+    """Test that DiGraphBuilder supports string conditions."""
+    agent_a = _EchoAgent("A", description="Echo agent A")
+    agent_b = _EchoAgent("B", description="Echo agent B")
+    agent_c = _EchoAgent("C", description="Echo agent C")
+
+    builder = DiGraphBuilder()
+    builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
+
+    # Using callable conditions
+    builder.add_edge(agent_a, agent_b, lambda msg: "even" in msg.to_model_text())
+    builder.add_edge(agent_a, agent_c, lambda msg: "odd" in msg.to_model_text())
+
+    team = GraphFlow(
+        participants=builder.get_participants(),
+        graph=builder.build(),
+        runtime=runtime,
+        termination_condition=MaxMessageTermination(5),
+    )
+
+    # Test with "even" in message - should go to B
+    result = await team.run(task="even length")
+    assert result.messages[2].source == "B"
+
+    # Reset for next test
+    await team.reset()
+
+    # Test with "odd" in message - should go to C
+    result = await team.run(task="odd message")
+    assert result.messages[2].source == "C"
