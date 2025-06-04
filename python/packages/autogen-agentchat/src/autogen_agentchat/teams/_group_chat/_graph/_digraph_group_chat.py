@@ -34,6 +34,10 @@ class DiGraphEdge(BaseModel):
 
         This is an experimental feature, and the API will change in the future releases.
 
+    .. warning::
+
+        If the condition is a callable, it will not be serialized in the model.
+
     """
 
     target: str  # Target node name
@@ -389,6 +393,11 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
         for adding nodes and edges, setting entry points, and validating the graph structure.
         See the :class:`DiGraphBuilder` documentation for more details.
         The :class:`GraphFlow` class is designed to be used with the :class:`DiGraphBuilder` for creating complex workflows.
+
+    .. warning::
+
+        When using callable conditions in edges, they will not be serialized
+        when calling :meth:`dump_component`. This will be addressed in future releases.
 
 
     Args:
