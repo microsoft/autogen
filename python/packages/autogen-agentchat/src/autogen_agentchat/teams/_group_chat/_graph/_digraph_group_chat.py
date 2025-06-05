@@ -159,7 +159,7 @@ class DiGraph(BaseModel):
                     cycle_edges: List[DiGraphEdge] = []
                     for n in cycle_nodes:
                         cycle_edges.extend(self.nodes[n].edges)
-                    if not any(edge.condition is not None for edge in cycle_edges):
+                    if all(edge.condition is None and edge.condition_function is None for edge in cycle_edges):
                         raise ValueError(
                             f"Cycle detected without exit condition: {' -> '.join(cycle_nodes + cycle_nodes[:1])}"
                         )
