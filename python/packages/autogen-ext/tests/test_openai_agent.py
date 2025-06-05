@@ -444,7 +444,7 @@ async def test_build_api_params(agent: OpenAIAgent) -> None:
     agent._json_mode = True  # type: ignore
     params = agent._build_api_parameters([{"role": "user", "content": "hi"}])  # type: ignore
     assert "text.format" not in params
-    assert params.get("response_format") == {"type": "json_object"}
+    assert params.get("text") == {"type": "json_object"}
 
 
 @pytest.mark.asyncio
