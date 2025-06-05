@@ -219,6 +219,18 @@ def test_cycle_detection_with_exit_condition() -> None:
     )
     assert graph.has_cycles_with_exit()
 
+    # Use a lambda condition
+    graph_with_lambda = DiGraph(
+        nodes={
+            "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
+            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="C")]),
+            "C": DiGraphNode(
+                name="C", edges=[DiGraphEdge(target="A", condition=lambda msg: "test" in msg.to_model_text())]
+            ),  # Cycle with lambda
+        }
+    )
+    assert graph_with_lambda.has_cycles_with_exit()
+
 
 def test_cycle_detection_without_exit_condition() -> None:
     """Test that cycle without exit condition raises an error."""
