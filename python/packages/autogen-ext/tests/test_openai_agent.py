@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import BaseChatMessage, TextMessage
+from autogen_agentchat.messages import BaseChatMessage, MultiModalMessage, TextMessage
 from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import UserMessage
 from autogen_core.tools import Tool, ToolSchema
@@ -567,9 +567,9 @@ async def test_from_config(agent: OpenAIAgent) -> None:
         assert loaded_agent._store is True  # type: ignore
         assert loaded_agent._truncation == "auto"  # type: ignore
 
+
 @pytest.mark.asyncio
 async def test_multimodal_message_response(agent: OpenAIAgent, cancellation_token: CancellationToken) -> None:
-
     # Test that the multimodal message is converted to the correct format
     img = Image.from_base64(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
@@ -582,6 +582,7 @@ async def test_multimodal_message_response(agent: OpenAIAgent, cancellation_toke
             def __init__(self) -> None:
                 self.output_text = "I see a cat in the image."
                 self.id = "resp-image-001"
+
         return MockResponse()
 
     agent._client.responses.create = AsyncMock(side_effect=mock_responses_create)  # type: ignore
