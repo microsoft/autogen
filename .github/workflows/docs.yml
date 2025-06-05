@@ -33,7 +33,7 @@ jobs:
           [
             # For main use the workflow target
             { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.5.13", sphinx-release-override: "dev" },
-            { ref: "python-v0.6.0", dest-dir: stable, uv-version: "0.5.13", sphinx-release-override: "stable" },
+            { ref: "python-v0.6.1", dest-dir: stable, uv-version: "0.5.13", sphinx-release-override: "stable" },
             { ref: "v0.4.0.post1", dest-dir: "0.4.0", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "v0.4.1", dest-dir: "0.4.1", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "v0.4.2", dest-dir: "0.4.2", uv-version: "0.5.13", sphinx-release-override: "" },
@@ -51,7 +51,7 @@ jobs:
             { ref: "python-v0.5.5", dest-dir: "0.5.5", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "python-v0.5.6", dest-dir: "0.5.6", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "python-v0.5.7", dest-dir: "0.5.7", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.6.0", dest-dir: "0.6.0", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "python-v0.6.1", dest-dir: "0.6.1", uv-version: "0.5.13", sphinx-release-override: "" },
           ]
     steps:
       - name: Checkout
