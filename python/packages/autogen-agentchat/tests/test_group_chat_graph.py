@@ -219,6 +219,18 @@ def test_cycle_detection_with_exit_condition() -> None:
     )
     assert graph.has_cycles_with_exit()
 
+    # Use a lambda condition
+    graph_with_lambda = DiGraph(
+        nodes={
+            "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
+            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="C")]),
+            "C": DiGraphNode(
+                name="C", edges=[DiGraphEdge(target="A", condition=lambda msg: "test" in msg.to_model_text())]
+            ),  # Cycle with lambda
+        }
+    )
+    assert graph_with_lambda.has_cycles_with_exit()
+
 
 def test_cycle_detection_without_exit_condition() -> None:
     """Test that cycle without exit condition raises an error."""
@@ -246,6 +258,19 @@ def test_validate_graph_success() -> None:
     # No error should be raised
     graph.graph_validate()
     assert not graph.get_has_cycles()
+
+    # Use a lambda condition
+    graph_with_lambda = DiGraph(
+        nodes={
+            "A": DiGraphNode(
+                name="A", edges=[DiGraphEdge(target="B", condition=lambda msg: "test" in msg.to_model_text())]
+            ),
+            "B": DiGraphNode(name="B", edges=[]),
+        }
+    )
+    # No error should be raised
+    graph_with_lambda.graph_validate()
+    assert not graph_with_lambda.get_has_cycles()
 
 
 def test_validate_graph_missing_start_node() -> None:
@@ -285,6 +310,23 @@ def test_validate_graph_mixed_conditions() -> None:
     )
     with pytest.raises(ValueError, match="Node 'A' has a mix of conditional and unconditional edges"):
         graph.graph_validate()
+
+    # Use lambda for condition
+    graph_with_lambda = DiGraph(
+        nodes={
+            "A": DiGraphNode(
+                name="A",
+                edges=[
+                    DiGraphEdge(target="B", condition=lambda msg: "test" in msg.to_model_text()),
+                    DiGraphEdge(target="C"),
+                ],
+            ),
+            "B": DiGraphNode(name="B", edges=[]),
+            "C": DiGraphNode(name="C", edges=[]),
+        }
+    )
+    with pytest.raises(ValueError, match="Node 'A' has a mix of conditional and unconditional edges"):
+        graph_with_lambda.graph_validate()
 
 
 @pytest.mark.asyncio
@@ -591,6 +633,29 @@ async def test_digraph_group_chat_conditional_branch(runtime: AgentRuntime | Non
     result = await team.run(task="Trigger yes")
     assert result.messages[2].source == "B"
 
+    # Use lambda conditions
+    graph_with_lambda = DiGraph(
+        nodes={
+            "A": DiGraphNode(
+                name="A",
+                edges=[
+                    DiGraphEdge(target="B", condition=lambda msg: "yes" in msg.to_model_text()),
+                    DiGraphEdge(target="C", condition=lambda msg: "no" in msg.to_model_text()),
+                ],
+            ),
+            "B": DiGraphNode(name="B", edges=[], activation="any"),
+            "C": DiGraphNode(name="C", edges=[], activation="any"),
+        }
+    )
+    team_with_lambda = GraphFlow(
+        participants=[agent_a, agent_b, agent_c],
+        graph=graph_with_lambda,
+        runtime=runtime,
+        termination_condition=MaxMessageTermination(5),
+    )
+    result_with_lambda = await team_with_lambda.run(task="Trigger no")
+    assert result_with_lambda.messages[2].source == "C"
+
 
 @pytest.mark.asyncio
 async def test_digraph_group_chat_loop_with_exit_condition(runtime: AgentRuntime | None) -> None:
@@ -772,6 +837,31 @@ async def test_digraph_group_chat_multiple_conditional(runtime: AgentRuntime | N
     # Test banana branch
     result = await team.run(task="banana")
     assert result.messages[2].source == "C"
+
+    # Use lambda conditions
+    graph_with_lambda = DiGraph(
+        nodes={
+            "A": DiGraphNode(
+                name="A",
+                edges=[
+                    DiGraphEdge(target="B", condition=lambda msg: "apple" in msg.to_model_text()),
+                    DiGraphEdge(target="C", condition=lambda msg: "banana" in msg.to_model_text()),
+                    DiGraphEdge(target="D", condition=lambda msg: "cherry" in msg.to_model_text()),
+                ],
+            ),
+            "B": DiGraphNode(name="B", edges=[]),
+            "C": DiGraphNode(name="C", edges=[]),
+            "D": DiGraphNode(name="D", edges=[]),
+        }
+    )
+    team_with_lambda = GraphFlow(
+        participants=[agent_a, agent_b, agent_c, agent_d],
+        graph=graph_with_lambda,
+        runtime=runtime,
+        termination_condition=MaxMessageTermination(5),
+    )
+    result_with_lambda = await team_with_lambda.run(task="cherry")
+    assert result_with_lambda.messages[2].source == "D"
 
 
 class _TestMessageFilterAgentConfig(BaseModel):
