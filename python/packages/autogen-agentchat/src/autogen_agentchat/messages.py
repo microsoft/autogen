@@ -426,6 +426,12 @@ class ToolCallSummaryMessage(BaseTextChatMessage):
 
     type: Literal["ToolCallSummaryMessage"] = "ToolCallSummaryMessage"
 
+    tool_calls: List[FunctionCall]
+    """The tool calls that were made."""
+
+    results: List[FunctionExecutionResult]
+    """The results of the tool calls."""
+
 
 class ToolCallRequestEvent(BaseAgentEvent):
     """An event signaling a request to use tools."""
