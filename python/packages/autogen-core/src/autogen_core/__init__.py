@@ -44,6 +44,7 @@ from ._intervention import (
 )
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
+from ._runtime_impl_helpers import SubscriptionManager
 from ._routed_agent import RoutedAgent, event, message_handler, rpc
 from ._serialization import (
     JSON_DATA_CONTENT_TYPE as JSON_DATA_CONTENT_TYPE_ALIAS,
@@ -132,4 +133,5 @@ __all__ = [
     "DropMessage",
     "InterventionHandler",
     "DefaultInterventionHandler",
+    "SubscriptionManager",
 ]
