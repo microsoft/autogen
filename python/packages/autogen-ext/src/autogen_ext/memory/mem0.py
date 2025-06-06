@@ -188,7 +188,7 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
         try:
             user_id = metadata.pop("user_id", self._user_id)
             # Suppress warning messages from mem0 MemoryClient
-            kwargs = {} if self._client.__class__.__name__ == 'Memory' else {"output_format": "v1.1"}
+            kwargs = {} if self._client.__class__.__name__ == "Memory" else {"output_format": "v1.1"}
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 self._client.add(message, user_id=user_id, metadata=metadata, **kwargs)  # type: ignore
         except Exception as e:

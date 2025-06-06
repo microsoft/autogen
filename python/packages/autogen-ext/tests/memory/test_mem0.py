@@ -36,10 +36,7 @@ FULL_LOCAL_CONFIG: Dict[str, Any] = {
             "api_key": "mock-api-key",
         },
     },
-    "vector_store": {
-        "provider": "mock_vector",
-        "config": {"path": ":memory:", "collection_name": "test_memories"}
-    },
+    "vector_store": {"provider": "mock_vector", "config": {"path": ":memory:", "collection_name": "test_memories"}},
     "llm": {
         "provider": "mock_llm",
         "config": {
@@ -453,7 +450,8 @@ async def test_init_with_local_config(mock_mem0_class: MagicMock, full_local_con
 @pytest.mark.asyncio
 @patch("autogen_ext.memory.mem0.Memory0")  # Patches the underlying mem0.Memory class
 async def test_local_config_with_memory_operations(
-    mock_mem0_class: MagicMock, full_local_config: Dict[str, Any]  # full_local_config fixture provides the mock config
+    mock_mem0_class: MagicMock,
+    full_local_config: Dict[str, Any],  # full_local_config fixture provides the mock config
 ) -> None:
     """Test memory operations with local configuration."""
     # Setup mock for the instance that will be created by Mem0Memory
@@ -493,9 +491,7 @@ async def test_local_config_with_memory_operations(
 
     # Verify search was called on the mock_mem0_instance
     mock_mem0_instance.search.assert_called_once_with(
-        "local configuration test",
-        user_id="test-local-config-user",
-        limit=10
+        "local configuration test", user_id="test-local-config-user", limit=10
     )
 
     # Verify results
