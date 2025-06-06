@@ -36,9 +36,32 @@ _MODEL_POINTERS = {
     "claude-3-5-haiku": "claude-3-5-haiku-20241022",
     "claude-3-5-sonnet": "claude-3-5-sonnet-20241022",
     "claude-3-7-sonnet": "claude-3-7-sonnet-20250219",
+    "claude-4-sonnet": "claude-sonnet-4-20250514",
+    "claude-4-opus": "claude-opus-4-20250514",
+    # Llama models
+    "llama-3.3-8b": "Llama-3.3-8B-Instruct",
+    "llama-3.3-70b": "Llama-3.3-70B-Instruct",
+    "llama-4-scout": "Llama-4-Scout-17B-16E-Instruct-FP8",
+    "llama-4-maverick": "Llama-4-Maverick-17B-128E-Instruct-FP8",
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
+    "gpt-4o-mini-search-preview-2025-03-11": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_4O,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "gpt-4o-search-preview-2025-03-11": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_4O,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
     "o4-mini-2025-04-16": {
         "vision": True,
         "function_calling": True,
@@ -287,6 +310,14 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": True,
         "multiple_system_messages": False,
     },
+    "gemini-2.5-flash-preview-05-20": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GEMINI_2_5_FLASH,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
     "claude-3-haiku-20240307": {
         "vision": True,
         "function_calling": True,
@@ -335,6 +366,54 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": False,
         "multiple_system_messages": True,
     },
+    "claude-sonnet-4-20250514": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": False,  # Update this when Anthropic supports structured output
+        "family": ModelFamily.CLAUDE_4_SONNET,
+        "structured_output": False,
+        "multiple_system_messages": True,
+    },
+    "claude-opus-4-20250514": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": False,  # Update this when Anthropic supports structured output
+        "family": ModelFamily.CLAUDE_4_OPUS,
+        "structured_output": False,
+        "multiple_system_messages": True,
+    },
+    "Llama-3.3-8B-Instruct": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.LLAMA_3_3_8B,
+        "structured_output": False,
+        "multiple_system_messages": True,
+    },
+    "Llama-3.3-70B-Instruct": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.LLAMA_3_3_70B,
+        "structured_output": False,
+        "multiple_system_messages": True,
+    },
+    "Llama-4-Scout-17B-16E-Instruct-FP8": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.LLAMA_4_SCOUT,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "Llama-4-Maverick-17B-128E-Instruct-FP8": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.LLAMA_4_MAVERICK,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
@@ -369,16 +448,24 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gemini-2.0-flash": 1048576,
     "gemini-2.0-flash-lite-preview-02-05": 1048576,
     "gemini-2.5-pro-preview-03-25": 2097152,
+    "gemini-2.5-flash-preview-05-20": 1048576,
     "claude-3-haiku-20240307": 50000,
-    "claude-3-sonnet-20240229": 40000,
-    "claude-3-opus-20240229": 20000,
-    "claude-3-5-haiku-20241022": 50000,
-    "claude-3-5-sonnet-20241022": 40000,
-    "claude-3-7-sonnet-20250219": 20000,
+    "claude-3-sonnet-20240229": 200000,
+    "claude-3-opus-20240229": 200000,
+    "claude-3-5-haiku-20241022": 200000,
+    "claude-3-5-sonnet-20241022": 200000,
+    "claude-3-7-sonnet-20250219": 200000,
+    "claude-sonnet-4-20250514": 200000,
+    "claude-opus-4-20250514": 200000,
+    "Llama-3.3-8B-Instruct": 128000,
+    "Llama-3.3-70B-Instruct": 128000,
+    "Llama-4-Scout-17B-16E-Instruct-FP8": 128000,
+    "Llama-4-Maverick-17B-128E-Instruct-FP8": 128000,
 }
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1/"
+LLAMA_API_BASE_URL = "https://api.llama.com/compat/v1/"
 
 
 def resolve_model(model: str) -> str:

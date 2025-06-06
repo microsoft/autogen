@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any, Literal
 
 from mcp import StdioServerParameters
@@ -18,10 +19,24 @@ class SseServerParams(BaseModel):
 
     type: Literal["SseServerParams"] = "SseServerParams"
 
-    url: str
-    headers: dict[str, Any] | None = None
-    timeout: float = 5
-    sse_read_timeout: float = 60 * 5
+    url: str  # The SSE endpoint URL.
+    headers: dict[str, Any] | None = None  # Optional headers to include in requests.
+    timeout: float = 5  # HTTP timeout for regular operations.
+    sse_read_timeout: float = 60 * 5  # Timeout for SSE read operations.
 
 
-McpServerParams = Annotated[StdioServerParams | SseServerParams, Field(discriminator="type")]
+class StreamableHttpServerParams(BaseModel):
+    """Parameters for connecting to an MCP server over Streamable HTTP."""
+
+    type: Literal["StreamableHttpServerParams"] = "StreamableHttpServerParams"
+
+    url: str  # The endpoint URL.
+    headers: dict[str, Any] | None = None  # Optional headers to include in requests.
+    timeout: timedelta = timedelta(seconds=30)  # HTTP timeout for regular operations.
+    sse_read_timeout: timedelta = timedelta(seconds=60 * 5)  # Timeout for SSE read operations.
+    terminate_on_close: bool = True
+
+
+McpServerParams = Annotated[
+    StdioServerParams | SseServerParams | StreamableHttpServerParams, Field(discriminator="type")
+]
