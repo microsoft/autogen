@@ -16,8 +16,8 @@ jobs:
       neo4j:
         image: neo4j:5.26.6
         ports:
-          - 7474:7474   # HTTP
-          - 7687:7687   # BOLT
+          - 7474:7474    # HTTP
+          - 7687:7687    # BOLT
         env:
           NEO4J_AUTH: neo4j/password
           NEO4J_dbms_security_procedures_unrestricted: apoc.*
