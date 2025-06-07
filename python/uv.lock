@@ -91,6 +91,7 @@ wheels = [
 
 [[package]]
 name = "agbench"
+version = "0.0.1a1"
 source = { editable = "packages/agbench" }
 dependencies = [
     { name = "azure-identity" },
