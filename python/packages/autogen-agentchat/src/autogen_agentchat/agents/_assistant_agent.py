@@ -1289,6 +1289,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             chat_message=ToolCallSummaryMessage(
                 content=tool_call_summary,
                 source=agent_name,
+                tool_calls=[call for call, _ in normal_tool_calls],
+                results=[result for _, result in normal_tool_calls],
             ),
             inner_messages=inner_messages,
         )
