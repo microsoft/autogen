@@ -43,6 +43,12 @@ llama-cpp = [
 
 graphrag = ["graphrag>=1.0.1"]
 chromadb = ["chromadb>=1.0.0"]
+mem0 = ["mem0ai>=0.1.98"]
+mem0-local = [
+    "mem0ai>=0.1.98",
+    "neo4j>=5.25.0",
+    "chromadb>=1.0.0"
+]
 web-surfer = [
     "autogen-agentchat==0.6.1",
     "playwright>=1.48.0",

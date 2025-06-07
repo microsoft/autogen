@@ -1,0 +1,94 @@
+name: Mem0 Memory Tests
+
+on:
+  # Run on pushes to any branch
+  push:
+  # Also run on pull requests to main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      neo4j:
+        image: neo4j:5.26.6
+        ports:
+          - 7474:7474    # HTTP
+          - 7687:7687    # BOLT
+        env:
+          NEO4J_AUTH: neo4j/password
+          NEO4J_dbms_security_procedures_unrestricted: apoc.*
+          # Add this to ensure Neo4j is ready for connections quickly
+          NEO4J_dbms_memory_pagecache_size: 100M
+          NEO4J_dbms_memory_heap_initial__size: 100M
+          NEO4J_dbms_memory_heap_max__size: 500M
+        # Try a different health check approach
+        options: >-
+          --health-cmd "wget -O /dev/null -q http://localhost:7474 || exit 1"
+          --health-interval 5s
+          --health-timeout 15s
+          --health-retries 10
+          --health-start-period 30s
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Wait for Neo4j
+        run: |
+          # Give Neo4j some extra time to start up
+          sleep 10
+          # Try to connect to Neo4j
+          timeout 30s bash -c 'until curl -s http://localhost:7474 > /dev/null; do sleep 1; done'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+          # Install core packages first (in the right order)
+          cd python/packages/autogen-core
+          pip install -e .
+
+          cd ../autogen-agentchat
+          pip install -e .
+
+          # Now install autogen-ext with its dependencies
+          cd ../autogen-ext
+          pip install -e ".[dev,mem0,mem0-local]"
+
+          # Install test dependencies
+          pip install pytest pytest-asyncio pytest-cov
+          pip install python-dotenv
+
+          # Install dependencies for complex configuration tests
+          pip install "openai>=1.0.0"
+          pip install deepseek-ai
+
+      # Update test config to match the simplified Neo4j setup
+      - name: Update Neo4j password in tests
+        run: |
+          echo "NEO4J_PASSWORD=password" >> $GITHUB_ENV
+
+      - name: Run tests with coverage
+        # env:
+        #   MEM0_API_KEY: ${{ secrets.MEM0_API_KEY }}
+        #   SF_API_KEY: ${{ secrets.SF_API_KEY }}
+        #   DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          cd python/packages/autogen-ext
+          pytest --cov=autogen_ext.memory.mem0 tests/memory/test_mem0.py -v --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./python/packages/autogen-ext/coverage.xml
+          name: codecov-mem0
+          fail_ci_if_error: false
