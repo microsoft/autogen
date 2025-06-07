@@ -7,6 +7,7 @@ class and includes specific fields relevant to the type of message being sent.
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Dict, Generic, List, Literal, Mapping, Optional, Type, TypeVar
+from uuid import uuid4
 
 from autogen_core import Component, ComponentBase, FunctionCall, Image
 from autogen_core.code_executor import CodeBlock, CodeResult
@@ -76,6 +77,9 @@ class BaseChatMessage(BaseMessage, ABC):
     conversation. Agents are expected to process the content of the
     message using models and return a response as another :class:`BaseChatMessage`.
     """
+
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    """A unique identifier for the message."""
 
     source: str
     """The name of the agent that sent this message."""
@@ -148,6 +152,9 @@ class BaseAgentEvent(BaseMessage, ABC):
     You should override the :meth:`to_text` method if you want to provide
     a custom rendering of the content.
     """
+
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    """Unique identifier for the event."""
 
     source: str
     """The name of the agent that sent this message."""
@@ -522,6 +529,9 @@ class ModelClientStreamingChunkEvent(BaseAgentEvent):
 
     content: str
     """A string chunk from the model client."""
+
+    full_message_id: str | None = None
+    """The ID of the full message that this chunk belongs to, if available."""
 
     type: Literal["ModelClientStreamingChunkEvent"] = "ModelClientStreamingChunkEvent"
 

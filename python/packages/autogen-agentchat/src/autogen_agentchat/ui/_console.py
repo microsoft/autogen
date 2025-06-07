@@ -114,6 +114,7 @@ async def Console(
 
     streaming_chunks: List[str] = []
 
+    full_message_ids: set[str] = set()
     async for message in stream:
         if isinstance(message, TaskResult):
             duration = time.time() - start_time
@@ -134,12 +135,17 @@ async def Console(
         elif isinstance(message, Response):
             duration = time.time() - start_time
 
+            message_id = ""
             # Print final response.
             if isinstance(message.chat_message, MultiModalMessage):
                 final_content = message.chat_message.to_text(iterm=render_image_iterm)
             else:
+                message_id = message.chat_message.id
                 final_content = message.chat_message.to_text()
             output = f"{'-' * 10} {message.chat_message.source} {'-' * 10}\n{final_content}\n"
+            # avoid printing this message as it is already printed in the streaming chunks
+            if message_id and message_id in full_message_ids:
+                output = ""
             if message.chat_message.models_usage:
                 if output_stats:
                     output += f"[Prompt tokens: {message.chat_message.models_usage.prompt_tokens}, Completion tokens: {message.chat_message.models_usage.completion_tokens}]\n"
@@ -179,6 +185,8 @@ async def Console(
             if isinstance(message, ModelClientStreamingChunkEvent):
                 await aprint(message.to_text(), end="", flush=True)
                 streaming_chunks.append(message.content)
+                if message.full_message_id:
+                    full_message_ids.add(message.full_message_id)
             else:
                 if streaming_chunks:
                     streaming_chunks.clear()
