@@ -198,6 +198,153 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_reflect_on_tool_use_with_tools_parameter() -> None:
+    """Test that tools parameter is passed to reflection flow (Issue #6328)."""
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            CreateResult(
+                finish_reason="stop",
+                content="Hello",
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[_pass_function, _fail_function],
+        reflect_on_tool_use=True,
+    )
+    await agent.run(task="task")
+
+    # Verify that tools parameter was passed to both initial and reflection calls
+    assert len(model_client.create_calls) == 2
+
+    # Check initial call has tools
+    initial_call = model_client.create_calls[0]
+    assert "tools" in initial_call
+    assert len(initial_call["tools"]) == 2  # _pass_function and _fail_function
+
+    # Check reflection call has tools (this was the bug)
+    reflection_call = model_client.create_calls[1]
+    assert "tools" in reflection_call
+    assert len(reflection_call["tools"]) == 2  # _pass_function and _fail_function
+
+
+@pytest.mark.asyncio
+async def test_tool_call_loop_functionality() -> None:
+    """Test that tool_call_loop parameter enables repeated tool calls (Issue #6268)."""
+    model_client = ReplayChatCompletionClient(
+        [
+            # First tool call
+            CreateResult(
+                finish_reason="function_calls",
+                content=[FunctionCall(id="1", arguments=json.dumps({"input": "step1"}), name="_echo_function")],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            # Second tool call (loop iteration)
+            CreateResult(
+                finish_reason="function_calls",
+                content=[FunctionCall(id="2", arguments=json.dumps({"input": "step2"}), name="_echo_function")],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            # Final text response (ends loop)
+            CreateResult(
+                finish_reason="stop",
+                content="Done with all steps",
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    agent = AssistantAgent(
+        "tool_loop_agent",
+        model_client=model_client,
+        tools=[FunctionTool(_echo_function, description="Echo")],
+        tool_call_loop=True,
+    )
+    result = await agent.run(task="task")
+
+    # Verify that multiple model calls were made due to tool_call_loop
+    assert len(model_client.create_calls) == 3
+
+    # Verify the sequence of events
+    assert len(result.messages) >= 6  # At least: user message, 2 tool call events, 2 execution events, final response
+
+    # Check that we have multiple tool call request events
+    tool_call_events = [msg for msg in result.messages if isinstance(msg, ToolCallRequestEvent)]
+    assert len(tool_call_events) == 2  # Two tool calls in the loop
+
+    # Check that we have multiple tool execution events
+    tool_execution_events = [msg for msg in result.messages if isinstance(msg, ToolCallExecutionEvent)]
+    assert len(tool_execution_events) == 2  # Two tool executions
+
+    # Check final response
+    final_response = result.messages[-1]
+    assert isinstance(final_response, TextMessage)
+    assert final_response.content == "Done with all steps"
+
+
+@pytest.mark.asyncio
+async def test_tool_call_loop_disabled_by_default() -> None:
+    """Test that tool_call_loop is disabled by default."""
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[_pass_function],
+        # tool_call_loop not specified, should default to False
+    )
+    result = await agent.run(task="task")
+
+    # Should only make one model call since tool_call_loop is disabled
+    assert len(model_client.create_calls) == 1
+
+    # Should have tool call summary instead of continuing loop
+    tool_summary_events = [msg for msg in result.messages if isinstance(msg, ToolCallSummaryMessage)]
+    assert len(tool_summary_events) == 1
+
+
+@pytest.mark.asyncio
 async def test_run_with_tools_and_reflection() -> None:
     model_client = ReplayChatCompletionClient(
         [
