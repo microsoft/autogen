@@ -55,7 +55,7 @@ def test_structured_message() -> None:
 
 
 def test_structured_message_component() -> None:
-    # Create a structured message with the test contentformat_string="this is a string {field1} and this is an int {field2}"
+    # Create a structured message with the test content
     format_string = "this is a string {field1} and this is an int {field2}"
     s_m = StructuredMessageFactory(input_model=TestContent, format_string=format_string)
     config = s_m.dump_component()
@@ -250,11 +250,7 @@ def test_streaming_chunk_full_message_id() -> None:
 
     # Test with full_message_id
     full_msg_id = "full-message-123"
-    chunk2 = ModelClientStreamingChunkEvent(
-        source="test_agent",
-        content="chunk2",
-        full_message_id=full_msg_id
-    )
+    chunk2 = ModelClientStreamingChunkEvent(source="test_agent", content="chunk2", full_message_id=full_msg_id)
     assert chunk2.full_message_id == full_msg_id
 
     # Test that chunk has its own ID separate from full_message_id
@@ -287,9 +283,7 @@ def test_message_serialization_with_id() -> None:
 
     # Test with streaming chunk event
     original_chunk = ModelClientStreamingChunkEvent(
-        source="test_agent",
-        content="chunk",
-        full_message_id="full-msg-123"
+        source="test_agent", content="chunk", full_message_id="full-msg-123"
     )
     original_chunk_id = original_chunk.id
 
