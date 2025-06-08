@@ -4,7 +4,14 @@ import pytest
 from autogen_core.memory import MemoryContent, MemoryMimeType
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import UserMessage
-from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
+from autogen_ext.memory.chromadb import (
+    ChromaDBVectorMemory,
+    CustomEmbeddingFunctionConfig,
+    DefaultEmbeddingFunctionConfig,
+    OpenAIEmbeddingFunctionConfig,
+    PersistentChromaDBVectorMemoryConfig,
+    SentenceTransformerEmbeddingFunctionConfig,
+)
 
 
 @pytest.fixture
@@ -240,3 +247,163 @@ async def test_component_serialization(base_config: PersistentChromaDBVectorMemo
 
     await memory.close()
     await loaded_memory.close()
+
+
+# ============================================================================
+# Embedding Function Configuration Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_default_embedding_function(tmp_path: Path) -> None:
+    """Test ChromaDB memory with default embedding function."""
+    config = PersistentChromaDBVectorMemoryConfig(
+        collection_name="test_default_embedding",
+        allow_reset=True,
+        persistence_path=str(tmp_path / "chroma_db_default"),
+        embedding_function_config=DefaultEmbeddingFunctionConfig(),
+    )
+
+    memory = ChromaDBVectorMemory(config=config)
+    await memory.clear()
+
+    # Add test content
+    await memory.add(
+        MemoryContent(
+            content="Default embedding function test content",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"test": "default_embedding"},
+        )
+    )
+
+    # Query and verify
+    results = await memory.query("default embedding test")
+    assert len(results.results) > 0
+    assert any("Default embedding" in str(r.content) for r in results.results)
+
+    await memory.close()
+
+
+@pytest.mark.asyncio
+async def test_sentence_transformer_embedding_function(tmp_path: Path) -> None:
+    """Test ChromaDB memory with SentenceTransformer embedding function."""
+    config = PersistentChromaDBVectorMemoryConfig(
+        collection_name="test_st_embedding",
+        allow_reset=True,
+        persistence_path=str(tmp_path / "chroma_db_st"),
+        embedding_function_config=SentenceTransformerEmbeddingFunctionConfig(
+            model_name="all-MiniLM-L6-v2"  # Use default model for testing
+        ),
+    )
+
+    memory = ChromaDBVectorMemory(config=config)
+    await memory.clear()
+
+    # Add test content
+    await memory.add(
+        MemoryContent(
+            content="SentenceTransformer embedding function test content",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"test": "sentence_transformer"},
+        )
+    )
+
+    # Query and verify
+    results = await memory.query("SentenceTransformer embedding test")
+    assert len(results.results) > 0
+    assert any("SentenceTransformer" in str(r.content) for r in results.results)
+
+    await memory.close()
+
+
+@pytest.mark.asyncio
+async def test_custom_embedding_function(tmp_path: Path) -> None:
+    """Test ChromaDB memory with custom embedding function."""
+
+    def create_mock_embedding_function():
+        """Create a mock embedding function for testing."""
+        try:
+            from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
+
+            # Return the default embedding function as our "custom" function for testing
+            return DefaultEmbeddingFunction()
+        except ImportError:
+            pytest.skip("ChromaDB not available for custom embedding function test")
+
+    config = PersistentChromaDBVectorMemoryConfig(
+        collection_name="test_custom_embedding",
+        allow_reset=True,
+        persistence_path=str(tmp_path / "chroma_db_custom"),
+        embedding_function_config=CustomEmbeddingFunctionConfig(function=create_mock_embedding_function, params={}),
+    )
+
+    memory = ChromaDBVectorMemory(config=config)
+    await memory.clear()
+
+    # Add test content
+    await memory.add(
+        MemoryContent(
+            content="Custom embedding function test content",
+            mime_type=MemoryMimeType.TEXT,
+            metadata={"test": "custom_embedding"},
+        )
+    )
+
+    # Query and verify
+    results = await memory.query("custom embedding test")
+    assert len(results.results) > 0
+    assert any("Custom embedding" in str(r.content) for r in results.results)
+
+    await memory.close()
+
+
+@pytest.mark.asyncio
+async def test_embedding_function_error_handling(tmp_path: Path) -> None:
+    """Test error handling for embedding function configurations."""
+
+    def failing_embedding_function():
+        """A function that raises an error."""
+        raise ValueError("Test embedding function error")
+
+    config = PersistentChromaDBVectorMemoryConfig(
+        collection_name="test_error_embedding",
+        allow_reset=True,
+        persistence_path=str(tmp_path / "chroma_db_error"),
+        embedding_function_config=CustomEmbeddingFunctionConfig(function=failing_embedding_function, params={}),
+    )
+
+    memory = ChromaDBVectorMemory(config=config)
+
+    # Should raise an error when trying to initialize
+    with pytest.raises(ValueError, match="Failed to create custom embedding function"):
+        await memory.add(MemoryContent(content="This should fail", mime_type=MemoryMimeType.TEXT))
+
+    await memory.close()
+
+
+def test_embedding_function_config_validation() -> None:
+    """Test validation of embedding function configurations."""
+
+    # Test default config
+    default_config = DefaultEmbeddingFunctionConfig()
+    assert default_config.function_type == "default"
+
+    # Test SentenceTransformer config
+    st_config = SentenceTransformerEmbeddingFunctionConfig(model_name="test-model")
+    assert st_config.function_type == "sentence_transformer"
+    assert st_config.model_name == "test-model"
+
+    # Test OpenAI config
+    openai_config = OpenAIEmbeddingFunctionConfig(api_key="test-key", model_name="test-model")
+    assert openai_config.function_type == "openai"
+    assert openai_config.api_key == "test-key"
+    assert openai_config.model_name == "test-model"
+
+    # Test custom config
+    def dummy_function():
+        return None
+
+    custom_config = CustomEmbeddingFunctionConfig(function=dummy_function, params={"test": "value"})
+    assert custom_config.function_type == "custom"
+    assert custom_config.function == dummy_function
+    assert custom_config.params == {"test": "value"}

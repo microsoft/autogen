@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Any, Dict, List, Literal
+from typing import Any, Callable, Dict, List, Literal, cast
 
 from autogen_core import CancellationToken, Component, Image
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQueryResult, UpdateContextResult
@@ -23,8 +23,115 @@ except ImportError as e:
     ) from e
 
 
+class BaseEmbeddingFunctionConfig(BaseModel):
+    """Base configuration for embedding functions.
+
+    .. versionadded:: v0.4.1
+       Support for custom embedding functions in ChromaDB memory.
+    """
+
+    function_type: Literal["default", "sentence_transformer", "openai", "custom"]
+
+
+class DefaultEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
+    """Configuration for the default ChromaDB embedding function.
+
+    Uses ChromaDB's default embedding function (Sentence Transformers all-MiniLM-L6-v2).
+
+    .. versionadded:: v0.4.1
+       Support for custom embedding functions in ChromaDB memory.
+    """
+
+    function_type: Literal["default"] = "default"
+
+
+class SentenceTransformerEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
+    """Configuration for SentenceTransformer embedding functions.
+
+    Allows specifying a custom SentenceTransformer model for embeddings.
+
+    .. versionadded:: v0.4.1
+       Support for custom embedding functions in ChromaDB memory.
+
+    Args:
+        model_name (str): Name of the SentenceTransformer model to use.
+            Defaults to "all-MiniLM-L6-v2".
+
+    Example:
+        .. code-block:: python
+
+            config = SentenceTransformerEmbeddingFunctionConfig(model_name="paraphrase-multilingual-mpnet-base-v2")
+    """
+
+    function_type: Literal["sentence_transformer"] = "sentence_transformer"
+    model_name: str = Field(default="all-MiniLM-L6-v2", description="SentenceTransformer model name to use")
+
+
+class OpenAIEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
+    """Configuration for OpenAI embedding functions.
+
+    Uses OpenAI's embedding API for generating embeddings.
+
+    .. versionadded:: v0.4.1
+       Support for custom embedding functions in ChromaDB memory.
+
+    Args:
+        api_key (str): OpenAI API key. If empty, will attempt to use environment variable.
+        model_name (str): OpenAI embedding model name. Defaults to "text-embedding-ada-002".
+
+    Example:
+        .. code-block:: python
+
+            config = OpenAIEmbeddingFunctionConfig(api_key="sk-...", model_name="text-embedding-3-small")
+    """
+
+    function_type: Literal["openai"] = "openai"
+    api_key: str = Field(default="", description="OpenAI API key")
+    model_name: str = Field(default="text-embedding-ada-002", description="OpenAI embedding model name")
+
+
+class CustomEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
+    """Configuration for custom embedding functions.
+
+    Allows using a custom function that returns a ChromaDB-compatible embedding function.
+
+    .. versionadded:: v0.4.1
+       Support for custom embedding functions in ChromaDB memory.
+
+    .. warning::
+       Configurations containing custom functions are not serializable.
+
+    Args:
+        function (Callable): Function that returns a ChromaDB-compatible embedding function.
+        params (Dict[str, Any]): Parameters to pass to the function.
+
+    Example:
+        .. code-block:: python
+
+            def create_my_embedder(param1="default"):
+                # Return a ChromaDB-compatible embedding function
+                class MyCustomEmbeddingFunction(EmbeddingFunction):
+                    def __call__(self, input: Documents) -> Embeddings:
+                        # Custom embedding logic here
+                        return embeddings
+
+                return MyCustomEmbeddingFunction(param1)
+
+
+            config = CustomEmbeddingFunctionConfig(function=create_my_embedder, params={"param1": "custom_value"})
+    """
+
+    function_type: Literal["custom"] = "custom"
+    function: Callable[..., Any] = Field(description="Function that returns an embedding function")
+    params: Dict[str, Any] = Field(default_factory=dict, description="Parameters to pass to the function")
+
+
 class ChromaDBVectorMemoryConfig(BaseModel):
-    """Base configuration for ChromaDB-based memory implementation."""
+    """Base configuration for ChromaDB-based memory implementation.
+
+    .. versionchanged:: v0.4.1
+       Added support for custom embedding functions via embedding_function_config.
+    """
 
     client_type: Literal["persistent", "http"]
     collection_name: str = Field(default="memory_store", description="Name of the ChromaDB collection")
@@ -34,6 +141,9 @@ class ChromaDBVectorMemoryConfig(BaseModel):
     allow_reset: bool = Field(default=False, description="Whether to allow resetting the ChromaDB client")
     tenant: str = Field(default="default_tenant", description="Tenant to use")
     database: str = Field(default="default_database", description="Database to use")
+    embedding_function_config: BaseEmbeddingFunctionConfig = Field(
+        default_factory=DefaultEmbeddingFunctionConfig, description="Configuration for the embedding function"
+    )
 
 
 class PersistentChromaDBVectorMemoryConfig(ChromaDBVectorMemoryConfig):
@@ -86,16 +196,43 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
             from pathlib import Path
             from autogen_agentchat.agents import AssistantAgent
             from autogen_core.memory import MemoryContent, MemoryMimeType
-            from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
+            from autogen_ext.memory.chromadb import (
+                ChromaDBVectorMemory,
+                PersistentChromaDBVectorMemoryConfig,
+                SentenceTransformerEmbeddingFunctionConfig,
+                OpenAIEmbeddingFunctionConfig,
+            )
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-            # Initialize ChromaDB memory with custom config
+            # Initialize ChromaDB memory with default embedding function
             memory = ChromaDBVectorMemory(
                 config=PersistentChromaDBVectorMemoryConfig(
                     collection_name="user_preferences",
                     persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
                     k=3,  # Return top 3 results
                     score_threshold=0.5,  # Minimum similarity score
+                )
+            )
+
+            # Using a custom SentenceTransformer model
+            memory_custom_st = ChromaDBVectorMemory(
+                config=PersistentChromaDBVectorMemoryConfig(
+                    collection_name="multilingual_memory",
+                    persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
+                    embedding_function_config=SentenceTransformerEmbeddingFunctionConfig(
+                        model_name="paraphrase-multilingual-mpnet-base-v2"
+                    ),
+                )
+            )
+
+            # Using OpenAI embeddings
+            memory_openai = ChromaDBVectorMemory(
+                config=PersistentChromaDBVectorMemoryConfig(
+                    collection_name="openai_memory",
+                    persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
+                    embedding_function_config=OpenAIEmbeddingFunctionConfig(
+                        api_key="sk-...", model_name="text-embedding-3-small"
+                    ),
                 )
             )
 
@@ -138,6 +275,58 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         """Get the name of the ChromaDB collection."""
         return self._config.collection_name
 
+    def _create_embedding_function(self) -> Any:
+        """Create an embedding function based on the configuration.
+
+        Returns:
+            A ChromaDB-compatible embedding function.
+
+        Raises:
+            ValueError: If the embedding function type is unsupported.
+            ImportError: If required dependencies are not installed.
+        """
+        try:
+            from chromadb.utils import embedding_functions
+        except ImportError as e:
+            raise ImportError(
+                "ChromaDB embedding functions not available. Ensure chromadb is properly installed."
+            ) from e
+
+        config = self._config.embedding_function_config
+
+        if config.function_type == "default":
+            return embedding_functions.DefaultEmbeddingFunction()
+
+        elif config.function_type == "sentence_transformer":
+            cfg = cast(SentenceTransformerEmbeddingFunctionConfig, config)
+            try:
+                return embedding_functions.SentenceTransformerEmbeddingFunction(model_name=cfg.model_name)
+            except Exception as e:
+                raise ImportError(
+                    f"Failed to create SentenceTransformer embedding function with model '{cfg.model_name}'. "
+                    f"Ensure sentence-transformers is installed and the model is available. Error: {e}"
+                ) from e
+
+        elif config.function_type == "openai":
+            cfg = cast(OpenAIEmbeddingFunctionConfig, config)
+            try:
+                return embedding_functions.OpenAIEmbeddingFunction(api_key=cfg.api_key, model_name=cfg.model_name)
+            except Exception as e:
+                raise ImportError(
+                    f"Failed to create OpenAI embedding function with model '{cfg.model_name}'. "
+                    f"Ensure openai is installed and API key is valid. Error: {e}"
+                ) from e
+
+        elif config.function_type == "custom":
+            cfg = cast(CustomEmbeddingFunctionConfig, config)
+            try:
+                return cfg.function(**cfg.params)
+            except Exception as e:
+                raise ValueError(f"Failed to create custom embedding function. Error: {e}") from e
+
+        else:
+            raise ValueError(f"Unsupported embedding function type: {config.function_type}")
+
     def _ensure_initialized(self) -> None:
         """Ensure ChromaDB client and collection are initialized."""
         if self._client is None:
@@ -171,8 +360,14 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
         if self._collection is None:
             try:
+                # Create embedding function
+                embedding_function = self._create_embedding_function()
+
+                # Create or get collection with embedding function
                 self._collection = self._client.get_or_create_collection(
-                    name=self._config.collection_name, metadata={"distance_metric": self._config.distance_metric}
+                    name=self._config.collection_name,
+                    metadata={"distance_metric": self._config.distance_metric},
+                    embedding_function=embedding_function,
                 )
             except Exception as e:
                 logger.error(f"Failed to get/create collection: {e}")
