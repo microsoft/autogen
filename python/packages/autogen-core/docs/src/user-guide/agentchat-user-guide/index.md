@@ -129,6 +129,7 @@ tutorial/index
 tutorial/models
 tutorial/messages
 tutorial/agents
+tutorial/tool-error-handling
 tutorial/teams
 tutorial/human-in-the-loop
 tutorial/termination
