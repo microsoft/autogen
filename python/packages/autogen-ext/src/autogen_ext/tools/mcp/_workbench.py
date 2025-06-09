@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ._actor import McpSessionActor
-from ._config import McpServerParams, SseServerParams, StdioServerParams
+from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
 
 
 class McpWorkbenchConfig(BaseModel):
@@ -252,7 +252,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             )
             return  # Already initialized, no need to start again
 
-        if isinstance(self._server_params, (StdioServerParams, SseServerParams)):
+        if isinstance(self._server_params, (StdioServerParams, SseServerParams, StreamableHttpServerParams)):
             self._actor = McpSessionActor(self._server_params)
             await self._actor.initialize()
             self._actor_loop = asyncio.get_event_loop()
