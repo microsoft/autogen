@@ -12,6 +12,7 @@ from ..messages import (
     TextMessage,
 )
 from ..state import BaseState
+from ..tracing import trace_invoke_agent_span, trace_create_agent_span
 
 
 class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
@@ -39,10 +40,15 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
     component_type = "agent"
 
     def __init__(self, name: str, description: str) -> None:
-        self._name = name
-        if self._name.isidentifier() is False:
-            raise ValueError("The agent name must be a valid Python identifier.")
-        self._description = description
+        """Initialize the agent with a name and description."""
+        with trace_create_agent_span(
+            agent_name=name,
+            agent_description=description,
+        ):
+            self._name = name
+            if self._name.isidentifier() is False:
+                raise ValueError("The agent name must be a valid Python identifier.")
+            self._description = description
 
     @property
     def name(self) -> str:
@@ -110,34 +116,38 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
-        if cancellation_token is None:
-            cancellation_token = CancellationToken()
-        input_messages: List[BaseChatMessage] = []
-        output_messages: List[BaseAgentEvent | BaseChatMessage] = []
-        if task is None:
-            pass
-        elif isinstance(task, str):
-            text_msg = TextMessage(content=task, source="user")
-            input_messages.append(text_msg)
-            output_messages.append(text_msg)
-        elif isinstance(task, BaseChatMessage):
-            input_messages.append(task)
-            output_messages.append(task)
-        else:
-            if not task:
-                raise ValueError("Task list cannot be empty.")
-            # Task is a sequence of messages.
-            for msg in task:
-                if isinstance(msg, BaseChatMessage):
-                    input_messages.append(msg)
-                    output_messages.append(msg)
-                else:
-                    raise ValueError(f"Invalid message type in sequence: {type(msg)}")
-        response = await self.on_messages(input_messages, cancellation_token)
-        if response.inner_messages is not None:
-            output_messages += response.inner_messages
-        output_messages.append(response.chat_message)
-        return TaskResult(messages=output_messages)
+        with trace_invoke_agent_span(
+            agent_name=self.name,
+            agent_description=self.description,
+        ):
+            if cancellation_token is None:
+                cancellation_token = CancellationToken()
+            input_messages: List[BaseChatMessage] = []
+            output_messages: List[BaseAgentEvent | BaseChatMessage] = []
+            if task is None:
+                pass
+            elif isinstance(task, str):
+                text_msg = TextMessage(content=task, source="user")
+                input_messages.append(text_msg)
+                output_messages.append(text_msg)
+            elif isinstance(task, BaseChatMessage):
+                input_messages.append(task)
+                output_messages.append(task)
+            else:
+                if not task:
+                    raise ValueError("Task list cannot be empty.")
+                # Task is a sequence of messages.
+                for msg in task:
+                    if isinstance(msg, BaseChatMessage):
+                        input_messages.append(msg)
+                        output_messages.append(msg)
+                    else:
+                        raise ValueError(f"Invalid message type in sequence: {type(msg)}")
+            response = await self.on_messages(input_messages, cancellation_token)
+            if response.inner_messages is not None:
+                output_messages += response.inner_messages
+            output_messages.append(response.chat_message)
+            return TaskResult(messages=output_messages)
 
     async def run_stream(
         self,
@@ -147,42 +157,46 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
         and the final task result as the last item in the stream."""
-        if cancellation_token is None:
-            cancellation_token = CancellationToken()
-        input_messages: List[BaseChatMessage] = []
-        output_messages: List[BaseAgentEvent | BaseChatMessage] = []
-        if task is None:
-            pass
-        elif isinstance(task, str):
-            text_msg = TextMessage(content=task, source="user")
-            input_messages.append(text_msg)
-            output_messages.append(text_msg)
-            yield text_msg
-        elif isinstance(task, BaseChatMessage):
-            input_messages.append(task)
-            output_messages.append(task)
-            yield task
-        else:
-            if not task:
-                raise ValueError("Task list cannot be empty.")
-            for msg in task:
-                if isinstance(msg, BaseChatMessage):
-                    input_messages.append(msg)
-                    output_messages.append(msg)
-                    yield msg
-                else:
-                    raise ValueError(f"Invalid message type in sequence: {type(msg)}")
-        async for message in self.on_messages_stream(input_messages, cancellation_token):
-            if isinstance(message, Response):
-                yield message.chat_message
-                output_messages.append(message.chat_message)
-                yield TaskResult(messages=output_messages)
+        with trace_invoke_agent_span(
+            agent_name=self.name,
+            agent_description=self.description,
+        ):
+            if cancellation_token is None:
+                cancellation_token = CancellationToken()
+            input_messages: List[BaseChatMessage] = []
+            output_messages: List[BaseAgentEvent | BaseChatMessage] = []
+            if task is None:
+                pass
+            elif isinstance(task, str):
+                text_msg = TextMessage(content=task, source="user")
+                input_messages.append(text_msg)
+                output_messages.append(text_msg)
+                yield text_msg
+            elif isinstance(task, BaseChatMessage):
+                input_messages.append(task)
+                output_messages.append(task)
+                yield task
             else:
-                yield message
-                if isinstance(message, ModelClientStreamingChunkEvent):
-                    # Skip the model client streaming chunk events.
-                    continue
-                output_messages.append(message)
+                if not task:
+                    raise ValueError("Task list cannot be empty.")
+                for msg in task:
+                    if isinstance(msg, BaseChatMessage):
+                        input_messages.append(msg)
+                        output_messages.append(msg)
+                        yield msg
+                    else:
+                        raise ValueError(f"Invalid message type in sequence: {type(msg)}")
+            async for message in self.on_messages_stream(input_messages, cancellation_token):
+                if isinstance(message, Response):
+                    yield message.chat_message
+                    output_messages.append(message.chat_message)
+                    yield TaskResult(messages=output_messages)
+                else:
+                    yield message
+                    if isinstance(message, ModelClientStreamingChunkEvent):
+                        # Skip the model client streaming chunk events.
+                        continue
+                    output_messages.append(message)
 
     @abstractmethod
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
