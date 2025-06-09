@@ -69,6 +69,7 @@ dev = [
     "autodoc_pydantic~=2.2",
     "pygments",
     "sphinxext-rediraffe",
+    "opentelemetry-instrumentation-openai",
 
     "autogen_ext==0.6.1",
 
