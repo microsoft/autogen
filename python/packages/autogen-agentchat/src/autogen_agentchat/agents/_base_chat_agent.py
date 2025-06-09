@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
-from autogen_core import CancellationToken, ComponentBase
+from autogen_core import CancellationToken, ComponentBase, trace_create_agent_span, trace_invoke_agent_span
 from pydantic import BaseModel
 
 from ..base import ChatAgent, Response, TaskResult
@@ -12,7 +12,6 @@ from ..messages import (
     TextMessage,
 )
 from ..state import BaseState
-from ..tracing import trace_invoke_agent_span, trace_create_agent_span
 
 
 class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):

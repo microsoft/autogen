@@ -5,13 +5,13 @@ from collections.abc import Sequence
 from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypeVar, cast, runtime_checkable
 
 import jsonref
-from opentelemetry.trace import get_tracer
 from pydantic import BaseModel
 from typing_extensions import NotRequired, TypedDict
 
 from .. import EVENT_LOGGER_NAME, CancellationToken
 from .._component_config import ComponentBase
 from .._function_utils import normalize_annotated_type
+from .._telemetry import trace_tool_span
 from ..logging import ToolCallEvent
 
 T = TypeVar("T", bound=BaseModel, contravariant=True)
@@ -148,13 +148,10 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
     async def run(self, args: ArgsT, cancellation_token: CancellationToken) -> ReturnT: ...
 
     async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any:
-        with get_tracer("base_tool").start_as_current_span(
-            self._name,
-            attributes={
-                "tool_name": self._name,
-                "tool_description": self._description,
-                "tool_args": json.dumps(args),
-            },
+        with trace_tool_span(
+            tool_name=self._name,
+            tool_description=self._description,
+            tool_arguments=json.dumps(args),
         ):
             # Execute the tool's run method
             return_value = await self.run(self._args_type.model_validate(args), cancellation_token)

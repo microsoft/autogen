@@ -1,6 +1,6 @@
 from typing import Any, List, Mapping
 
-from autogen_core import DefaultTopicId, MessageContext, event, rpc
+from autogen_core import DefaultTopicId, MessageContext, event, rpc, trace_invoke_agent_span
 
 from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, MessageFactory
 
@@ -18,7 +18,6 @@ from ._events import (
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
-from ...tracing import trace_invoke_agent_span
 
 
 class ChatAgentContainer(SequentialRoutedAgent):
