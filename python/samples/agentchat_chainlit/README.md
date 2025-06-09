@@ -10,7 +10,7 @@ and support streaming messages.
 To run this sample, you will need to install the following packages:
 
 ```shell
-pip install -U chainlit autogen-agentchat autogen-ext[openai] pyyaml
+pip install -U chainlit autogen-agentchat "autogen-ext[openai]" pyyaml
 ```
 
 To use other model providers, you will need to install a different extra
