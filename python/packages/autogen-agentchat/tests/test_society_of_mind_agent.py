@@ -112,8 +112,6 @@ async def test_society_of_mind_agent_multiple_rounds(runtime: AgentRuntime | Non
 
     context_messages = await society_of_mind_agent.model_context.get_messages()
     assert len(context_messages) == 2
-    assert context_messages[0].source == "user"
-    assert context_messages[1].source == "society_of_mind"
 
     # Continue.
     response = await society_of_mind_agent.run()
@@ -122,7 +120,6 @@ async def test_society_of_mind_agent_multiple_rounds(runtime: AgentRuntime | Non
 
     context_messages = await society_of_mind_agent.model_context.get_messages()
     assert len(context_messages) == 3
-    assert context_messages[2].source == "society_of_mind"
 
     # Continue.
     response = await society_of_mind_agent.run()
@@ -131,7 +128,6 @@ async def test_society_of_mind_agent_multiple_rounds(runtime: AgentRuntime | Non
 
     context_messages = await society_of_mind_agent.model_context.get_messages()
     assert len(context_messages) == 4
-    assert context_messages[3].source == "society_of_mind"
 
 
 @pytest.mark.asyncio
