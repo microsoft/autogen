@@ -101,20 +101,37 @@ async def test_society_of_mind_agent_multiple_rounds(runtime: AgentRuntime | Non
     inner_termination = MaxMessageTermination(3)
     inner_team = RoundRobinGroupChat([agent1, agent2], termination_condition=inner_termination, runtime=runtime)
     society_of_mind_agent = SocietyOfMindAgent("society_of_mind", team=inner_team, model_client=model_client)
+
+    context_messages = await society_of_mind_agent.model_context.get_messages()
+    assert len(context_messages) == 0
+
     response = await society_of_mind_agent.run(task="Count to 10.")
     assert len(response.messages) == 2
     assert response.messages[0].source == "user"
     assert response.messages[1].source == "society_of_mind"
 
-    # Continue.
-    response = await society_of_mind_agent.run()
-    assert len(response.messages) == 1
-    assert response.messages[0].source == "society_of_mind"
+    context_messages = await society_of_mind_agent.model_context.get_messages()
+    assert len(context_messages) == 2
+    assert context_messages[0].source == "user"
+    assert context_messages[1].source == "society_of_mind"
 
     # Continue.
     response = await society_of_mind_agent.run()
     assert len(response.messages) == 1
     assert response.messages[0].source == "society_of_mind"
+
+    context_messages = await society_of_mind_agent.model_context.get_messages()
+    assert len(context_messages) == 3
+    assert context_messages[2].source == "society_of_mind"
+
+    # Continue.
+    response = await society_of_mind_agent.run()
+    assert len(response.messages) == 1
+    assert response.messages[0].source == "society_of_mind"
+
+    context_messages = await society_of_mind_agent.model_context.get_messages()
+    assert len(context_messages) == 4
+    assert context_messages[3].source == "society_of_mind"
 
 
 @pytest.mark.asyncio
