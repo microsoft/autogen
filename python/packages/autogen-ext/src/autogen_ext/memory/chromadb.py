@@ -6,10 +6,9 @@ from autogen_core import CancellationToken, Component, Image
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQueryResult, UpdateContextResult
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
-from chromadb import AsyncHttpClient, PersistentClient
+from chromadb import HttpClient, PersistentClient
 from chromadb.api.models.Collection import Collection
-from chromadb.api import AsyncClientAPI, ClientAPI
-from chromadb.api.types import Document, Metadata, Embeddable, EmbeddingFunction
+from chromadb.api.types import Document, Metadata
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
@@ -128,26 +127,18 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
     component_config_schema = ChromaDBVectorMemoryConfig
     component_provider_override = "autogen_ext.memory.chromadb.ChromaDBVectorMemory"
 
-    def __init__(self, config: ChromaDBVectorMemoryConfig | None = None, embedding_function:
-            EmbeddingFunction[Embeddable]
-        | None = None) -> None:
+    def __init__(self, config: ChromaDBVectorMemoryConfig | None = None) -> None:
         """Initialize ChromaDBVectorMemory."""
         self._config = config or PersistentChromaDBVectorMemoryConfig()
         self._client: ClientAPI | None = None
         self._collection: Collection | None = None
-        self._embedding_function = embedding_function
 
     @property
     def collection_name(self) -> str:
         """Get the name of the ChromaDB collection."""
         return self._config.collection_name
-    
-    @property
-    def embedding_function(self) -> EmbeddingFunction[Embeddable] | None:
-        """Get the embedding function used for vectorization."""
-        return self._embedding_function
 
-    async def _ensure_initialized(self) -> None:
+    def _ensure_initialized(self) -> None:
         """Ensure ChromaDB client and collection are initialized."""
         if self._client is None:
             try:
@@ -163,7 +154,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                         database=self._config.database,
                     )
                 elif isinstance(self._config, HttpChromaDBVectorMemoryConfig):
-                    self._client = await AsyncHttpClient(
+                    self._client = HttpClient(
                         host=self._config.host,
                         port=self._config.port,
                         ssl=self._config.ssl,
@@ -180,16 +171,9 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
         if self._collection is None:
             try:
-                if isinstance(self._client, AsyncClientAPI):
-                    self._collection = await self._client.get_or_create_collection(
-                        name=self._config.collection_name, metadata={"distance_metric": self._config.distance_metric},
-                        embedding_function=self._embedding_function
-                    )
-                else:
-                    self._collection = self._client.get_or_create_collection(
-                        name=self._config.collection_name, metadata={"distance_metric": self._config.distance_metric},
-                        embedding_function=self._embedding_function
-                    )
+                self._collection = self._client.get_or_create_collection(
+                    name=self._config.collection_name, metadata={"distance_metric": self._config.distance_metric}
+                )
             except Exception as e:
                 logger.error(f"Failed to get/create collection: {e}")
                 raise
@@ -308,12 +292,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
     async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
         """Add a memory content to ChromaDB."""
-
-        if isinstance(self._client, AsyncClientAPI):
-            await self._ensure_initialized()
-        else:
-            self._ensure_initialized()
-
+        self._ensure_initialized()
         if self._collection is None:
             raise RuntimeError("Failed to initialize ChromaDB")
 
@@ -339,8 +318,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         **kwargs: Any,
     ) -> MemoryQueryResult:
         """Query memory content based on vector similarity."""
-
-        await self._ensure_initialized()
+        self._ensure_initialized()
         if self._collection is None:
             raise RuntimeError("Failed to initialize ChromaDB")
 
@@ -348,21 +326,13 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
             # Extract text for query
             query_text = self._extract_text(query)
 
-            if isinstance(self._client, AsyncClientAPI):
-                # Use async query for AsyncClientAPI
-                results = await self._collection.query(
-                    query_texts=[query_text],
-                    n_results=self._config.k,
-                    include=["documents", "metadatas", "distances"],
-                    **kwargs,
-                )
-            else:
-                results = self._collection.query(
-                    query_texts=[query_text],
-                    n_results=self._config.k,
-                    include=["documents", "metadatas", "distances"],
-                    **kwargs,
-                )
+            # Query ChromaDB
+            results = self._collection.query(
+                query_texts=[query_text],
+                n_results=self._config.k,
+                include=["documents", "metadatas", "distances"],
+                **kwargs,
+            )
 
             # Convert results to MemoryContent list
             memory_results: List[MemoryContent] = []
@@ -408,17 +378,14 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
     async def clear(self) -> None:
         """Clear all entries from memory."""
-        await self._ensure_initialized()
+        self._ensure_initialized()
         if self._collection is None:
             raise RuntimeError("Failed to initialize ChromaDB")
 
         try:
             results = self._collection.get()
             if results and results["ids"]:
-                if isinstance(self._client, AsyncClientAPI):
-                    await self._collection.delete(ids=results["ids"])
-                else:
-                    self._collection.delete(ids=results["ids"])
+                self._collection.delete(ids=results["ids"])
         except Exception as e:
             logger.error(f"Failed to clear ChromaDB collection: {e}")
             raise
@@ -430,16 +397,13 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
     async def reset(self) -> None:
         """Reset the memory by deleting all data."""
-        await self._ensure_initialized()
+        self._ensure_initialized()
         if not self._config.allow_reset:
             raise RuntimeError("Reset not allowed. Set allow_reset=True in config to enable.")
 
         if self._client is not None:
             try:
-                if isinstance(self._client, AsyncClientAPI):
-                    await self._client.reset()
-                else:
-                    self._client.reset()
+                self._client.reset()
             except Exception as e:
                 logger.error(f"Error during ChromaDB reset: {e}")
             finally:
