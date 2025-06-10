@@ -52,7 +52,9 @@ class Tool(Protocol):
 
     def return_value_as_string(self, value: Any) -> str: ...
 
-    async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any: ...
+    async def run_json(
+        self, args: Mapping[str, Any], cancellation_token: CancellationToken, call_id: str | None = None
+    ) -> Any: ...
 
     async def save_state_json(self) -> Mapping[str, Any]: ...
 
@@ -147,11 +149,24 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
     @abstractmethod
     async def run(self, args: ArgsT, cancellation_token: CancellationToken) -> ReturnT: ...
 
-    async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any:
+    async def run_json(
+        self, args: Mapping[str, Any], cancellation_token: CancellationToken, call_id: str | None = None
+    ) -> Any:
+        """Run the tool with the provided arguments in a dictionary.
+
+        Args:
+            args (Mapping[str, Any]): The arguments to pass to the tool.
+            cancellation_token (CancellationToken): A token to cancel the operation if needed.
+            call_id (str | None): An optional identifier for the tool call, used for tracing.
+
+        Returns:
+            Any: The return value of the tool's run method.
+        """
         with trace_tool_span(
             tool_name=self._name,
             tool_description=self._description,
             tool_arguments=json.dumps(args),
+            tool_call_id=call_id,
         ):
             # Execute the tool's run method
             return_value = await self.run(self._args_type.model_validate(args), cancellation_token)

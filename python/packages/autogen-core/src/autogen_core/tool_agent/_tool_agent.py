@@ -83,7 +83,9 @@ class ToolAgent(RoutedAgent):
         else:
             try:
                 arguments = json.loads(message.arguments)
-                result = await tool.run_json(args=arguments, cancellation_token=ctx.cancellation_token)
+                result = await tool.run_json(
+                    args=arguments, cancellation_token=ctx.cancellation_token, call_id=message.id
+                )
                 result_as_str = tool.return_value_as_string(result)
             except json.JSONDecodeError as e:
                 raise InvalidToolArgumentsException(

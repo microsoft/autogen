@@ -1323,7 +1323,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         for handoff_tool in handoff_tools:
             if tool_call.name == handoff_tool.name:
                 # Run handoff tool call.
-                result = await handoff_tool.run_json(arguments, cancellation_token)
+                result = await handoff_tool.run_json(arguments, cancellation_token, call_id=tool_call.id)
                 result_as_str = handoff_tool.return_value_as_string(result)
                 return (
                     tool_call,
@@ -1343,6 +1343,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     name=tool_call.name,
                     arguments=arguments,
                     cancellation_token=cancellation_token,
+                    call_id=tool_call.id,
                 )
                 return (
                     tool_call,

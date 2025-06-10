@@ -105,7 +105,11 @@ class Workbench(ABC, ComponentBase[BaseModel]):
 
     @abstractmethod
     async def call_tool(
-        self, name: str, arguments: Mapping[str, Any] | None = None, cancellation_token: CancellationToken | None = None
+        self,
+        name: str,
+        arguments: Mapping[str, Any] | None = None,
+        cancellation_token: CancellationToken | None = None,
+        call_id: str | None = None,
     ) -> ToolResult:
         """
         Call a tool in the workbench.

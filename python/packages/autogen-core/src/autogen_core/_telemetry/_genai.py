@@ -16,6 +16,8 @@ from opentelemetry.semconv._incubating.attributes.gen_ai_attributes import (
 )
 from opentelemetry.trace import Span, SpanKind
 
+from .._agent_instantiation import AgentInstantiationContext
+
 # Constant for system name
 GENAI_SYSTEM_AUTOGEN = "autogen"
 
@@ -106,6 +108,12 @@ def trace_create_agent_span(
         GEN_AI_SYSTEM: GENAI_SYSTEM_AUTOGEN,
         GEN_AI_AGENT_NAME: agent_name,
     }
+    if agent_id is None:
+        # Try to see if we can get the agent ID from the current context
+        try:
+            agent_id = str(AgentInstantiationContext.current_agent_id())
+        except RuntimeError:
+            agent_id = None
     if agent_id is not None:
         span_attributes[GEN_AI_AGENT_ID] = agent_id
     if agent_description is not None:
