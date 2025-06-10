@@ -5,7 +5,7 @@ from autogen_core.model_context import (
     ChatCompletionContext,
     UnboundedChatCompletionContext,
 )
-from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage, AssistantMessage
+from autogen_core.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -206,7 +206,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
                     continue
                 inner_messages.append(inner_msg)
         assert result is not None
-        
+
         # Add new user/handoff messages to the model context
         await self._add_messages_to_context(
             model_context=model_context,
@@ -249,12 +249,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
                 llm_messages.append(UserMessage(content=self._response_prompt, source="user"))
             completion = await self._model_client.create(messages=llm_messages, cancellation_token=cancellation_token)
             assert isinstance(completion.content, str)
-            await model_context.add_message(
-                AssistantMessage(
-                    content=completion.content,
-                    source=self.name
-                )
-            )
+            await model_context.add_message(AssistantMessage(content=completion.content, source=self.name))
             yield Response(
                 chat_message=TextMessage(source=self.name, content=completion.content, models_usage=completion.usage),
                 inner_messages=[],
