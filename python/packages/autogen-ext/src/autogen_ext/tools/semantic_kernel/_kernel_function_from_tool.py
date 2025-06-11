@@ -1,10 +1,12 @@
 from typing import Any, TypeVar
 
 from autogen_core import CancellationToken
-from autogen_core.tools import BaseTool
+from autogen_core.tools import BaseTool, ToolSchema
 from pydantic import BaseModel
-from semantic_kernel.functions import KernelFunctionFromMethod, kernel_function
+from semantic_kernel.functions import KernelFunctionFromMethod, KernelFunctionFromPrompt, kernel_function
 from semantic_kernel.functions.kernel_parameter_metadata import KernelParameterMetadata
+from semantic_kernel.prompt_template.input_variable import InputVariable
+from semantic_kernel.prompt_template.prompt_template_config import PromptTemplateConfig
 
 InputT = TypeVar("InputT", bound=BaseModel)
 OutputT = TypeVar("OutputT", bound=BaseModel)
@@ -65,3 +67,27 @@ class KernelFunctionFromTool(KernelFunctionFromMethod):
         )
 
         self._tool = tool
+
+
+class KernelFunctionFromToolSchema(KernelFunctionFromPrompt):
+    def __init__(self, tool_schema: ToolSchema, plugin_name: str | None = None):
+        properties = tool_schema.get("parameters", {}).get("properties", {})
+        required = properties.get("required", [])
+
+        prompt_template_config = PromptTemplateConfig(
+            name=tool_schema.get("name", ""),
+            description=tool_schema.get("description", ""),
+            input_variables=[
+                InputVariable(
+                    name=prop_name, description=prop_info.get("description", ""), is_required=prop_name in required
+                )
+                for prop_name, prop_info in properties.items()
+            ],
+        )
+
+        super().__init__(
+            function_name=tool_schema.get("name", ""),
+            plugin_name=plugin_name,
+            description=tool_schema.get("description", ""),
+            prompt_template_config=prompt_template_config,
+        )

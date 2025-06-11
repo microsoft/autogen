@@ -31,7 +31,7 @@ from semantic_kernel.functions.kernel_plugin import KernelPlugin
 from semantic_kernel.kernel import Kernel
 from typing_extensions import AsyncGenerator, Union
 
-from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool
+from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool, KernelFunctionFromToolSchema
 
 from .._utils.parse_r1_content import parse_r1_content
 
@@ -396,6 +396,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 # Convert Tool to KernelFunction using KernelFunctionFromTool
                 kernel_function = KernelFunctionFromTool(tool)  # type: ignore
                 self._tools_plugin.functions[tool.schema["name"]] = kernel_function
+            else:
+                kernel_function = KernelFunctionFromToolSchema(tool)  # type: ignore
+                self._tools_plugin.functions[tool.get("name")] = kernel_function  # type: ignore
 
         kernel.add_plugin(self._tools_plugin)
 
