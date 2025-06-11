@@ -290,7 +290,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
         return UpdateContextResult(memories=query_results)
 
-    async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
+    async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> str:
         """Add a memory content to ChromaDB."""
         self._ensure_initialized()
         if self._collection is None:
@@ -305,7 +305,10 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
             metadata_dict["mime_type"] = str(content.mime_type)
 
             # Add to ChromaDB
-            self._collection.add(documents=[text], metadatas=[metadata_dict], ids=[str(uuid.uuid4())])
+            id_ = str(uuid.uuid4())
+            self._collection.add(documents=[text], metadatas=[metadata_dict], ids=[id_])
+            
+            return id_
 
         except Exception as e:
             logger.error(f"Failed to add content to ChromaDB: {e}")
