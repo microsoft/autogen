@@ -1,11 +1,11 @@
 import base64
 import json
-from typing import List
+from typing import Self
 
 from a2a.types import Message, Role, TextPart, AgentCard, DataPart, FilePart, FileWithBytes, FileWithUri, Artifact
 from autogen_agentchat.messages import BaseChatMessage, BaseAgentEvent, TextMessage, StructuredMessage, \
     StructuredMessageFactory, MultiModalMessage, ModelClientStreamingChunkEvent
-from autogen_core import Image
+from autogen_core import Image, ComponentBase
 from pydantic import BaseModel
 from slugify import slugify
 
@@ -35,17 +35,21 @@ def handle_file_part(file_part: FilePart) -> Image | str:
         # If conversion to Image fails, try converting to string
         return convert_file_to_str(file_part)
 
+class A2aEventMapperConfig(BaseModel):
+    agent_name: str
+    output_content_type: type[BaseModel] | None = None
+    output_content_type_format: str | None = None
 
-class A2aDeserializer(BaseModel):
-    """
-    A2aDeserializer is a class that provides methods to deserialize data.
-    It currently has no implemented methods, but can be extended in the future.
-    """
 
-    def __init__(self, agent_card: AgentCard, /, output_content_type: type[BaseModel] | None = None,
+class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
+    """
+    A2aEventMapper is a class that provides methods to deserialize data.
+    """
+    def __init__(self, agent_name: str, output_content_type: type[BaseModel] | None = None,
                  output_content_type_format: str | None = None):
         super().__init__()
-        self._name = slugify(agent_card.name)
+        self._config = A2aEventMapperConfig(agent_name=agent_name, output_content_type=output_content_type, output_content_type_format=output_content_type_format)
+        self._agent_name = slugify(agent_name)
         self._output_content_type = output_content_type
         self._format_string = output_content_type_format
         self._structured_message_factory: StructuredMessageFactory | None = None
@@ -70,7 +74,7 @@ class A2aDeserializer(BaseModel):
         if is_all_text:
             return TextMessage(
                 content="\n".join(part.root.text for part in message.parts),
-                source=self._name,
+                source=self._agent_name,
                 metadata=message.metadata or dict()
             )
 
@@ -80,7 +84,7 @@ class A2aDeserializer(BaseModel):
                 content = self._output_content_type.model_validate_json(message.parts[0].root.data)
                 return StructuredMessage(
                     content=content,
-                    source=self._name,
+                    source=self._agent_name,
                     format_string=self._format_string,
                     metadata=message.metadata or dict()
                 )
@@ -95,7 +99,7 @@ class A2aDeserializer(BaseModel):
             else:
                 raise ValueError(f"Unsupported part type: {type(part.root)}")
         return MultiModalMessage(
-            source=self._name,
+            source=self._agent_name,
             content=contents,
             metadata=message.metadata or dict()
         )
@@ -128,5 +132,12 @@ class A2aDeserializer(BaseModel):
         return ModelClientStreamingChunkEvent(
             content="\n".join(content),
             metadata=artifact.metadata or dict(),
-            source=self._name
+            source=self._agent_name
         )
+
+    def _to_config(self) -> A2aEventMapperConfig:
+        return self._config
+
+    @classmethod
+    def _from_config(cls, config: A2aEventMapperConfig) -> Self:
+        return cls(config.agent_name, config.output_content_type, config.output_content_type_format)

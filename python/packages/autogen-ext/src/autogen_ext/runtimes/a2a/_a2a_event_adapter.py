@@ -1,33 +1,36 @@
 import json
 import uuid
+from abc import ABC, abstractmethod
 from typing import Union
 
-from a2a.server.tasks import TaskUpdater
-from a2a.types import Role, TaskState, TextPart, Part, FilePart, FileWithBytes, FileWithUri, DataPart, \
+from a2a.types import TaskState, TextPart, Part, FilePart, FileWithBytes, DataPart, \
     TaskArtifactUpdateEvent, Artifact
 from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, TextMessage, MultiModalMessage, \
     StructuredMessage, ModelClientStreamingChunkEvent
 from autogen_core import Image
+from pydantic import BaseModel
 
-from ._a2a_external_user_proxy_agent import A2aExternalUserProxyAgent
+from _a2a_execution_context import A2aExecutionContext
 
 
-class A2aSerializer:
+class A2aEventAdapter(ABC, BaseModel):
 
-    def __init__(self, updater: TaskUpdater, user_proxy_agent: A2aExternalUserProxyAgent):
-        self.updater = updater
-        self.user_proxy_agent = user_proxy_agent
-        self.streaming_chunks_id = None
+    @abstractmethod
+    def handle_events(self, message: Union[BaseAgentEvent, BaseChatMessage], context: A2aExecutionContext):
+        """Handle events from the agent."""
+        pass
 
-    def handle_events(self, message: Union[BaseAgentEvent, BaseChatMessage]):
+class BaseA2aEventAdapter(A2aEventAdapter):
+
+    def handle_events(self, message: Union[BaseAgentEvent, BaseChatMessage], context: A2aExecutionContext):
         """Handler for agent events."""
-        if isinstance(message, BaseChatMessage) and message.source == self.user_proxy_agent.name:
+        if isinstance(message, BaseChatMessage) and message.source == context.user_proxy_agent.name:
             # This is a user message, we can ignore it in the context of task updates
             return
         if isinstance(message, TextMessage):
             text = message.to_text()
-            self.updater.update_status(state=TaskState.working,
-                                  message=self.updater.new_agent_message([Part(root=TextPart(text=text))], metadata= message.metadata or None))
+            context.updater.update_status(state=TaskState.working,
+                                  message=context.updater.new_agent_message([Part(root=TextPart(text=text))], metadata= message.metadata or None))
         if isinstance(message, MultiModalMessage):
             parts = []
             for content in message.content:
@@ -37,43 +40,43 @@ class A2aSerializer:
                     parts.append(Part(root=TextPart(text=content)))
                 else:
                     raise AssertionError("Multimodal message content must be an Image or a string.")
-            self.updater.update_status(state=TaskState.working,
-                message=self.updater.new_agent_message(parts=parts,metadata=message.metadata))
+            context.updater.update_status(state=TaskState.working,
+                message=context.updater.new_agent_message(parts=parts,metadata=message.metadata))
 
         if isinstance(message, StructuredMessage):
             data_part = DataPart(data=json.loads(str(message.to_model_message().content)))
-            self.updater.update_status(state=TaskState.working,
-                                  message=self.updater.new_agent_message(parts=[Part(root=data_part)],
+            context.updater.update_status(state=TaskState.working,
+                                  message=context.updater.new_agent_message(parts=[Part(root=data_part)],
                                                                     metadata=message.metadata))
         if isinstance(message, ModelClientStreamingChunkEvent):
-            if not self.streaming_chunks_id:
-                self.streaming_chunks_id = str(uuid.uuid4())
+            if not context.streaming_chunks_id:
+                context.streaming_chunks_id = str(uuid.uuid4())
 
-            self.updater.event_queue.enqueue_event(
+            context.updater.event_queue.enqueue_event(
                 TaskArtifactUpdateEvent(
-                    taskId=self.updater.task_id,
-                    contextId=self.updater.context_id,
+                    taskId=context.updater.task_id,
+                    contextId=context.updater.context_id,
                     append=True,
                     artifact=Artifact(
-                        artifactId=self.streaming_chunks_id,
+                        artifactId=context.streaming_chunks_id,
                         parts=[Part(root=TextPart(text=message.to_text()))],
                         metadata=message.metadata or None,
                     ),
                 )
             )
         else:
-            if self.streaming_chunks_id:
-                self.updater.event_queue.enqueue_event(
+            if context.streaming_chunks_id:
+                context.updater.event_queue.enqueue_event(
                     TaskArtifactUpdateEvent(
-                        taskId=self.updater.task_id,
-                        contextId=self.updater.context_id,
+                        taskId=context.updater.task_id,
+                        contextId=context.updater.context_id,
                         lastChunk= True,
                         append= True,
                         artifact=Artifact(
-                            artifactId=self.streaming_chunks_id,
+                            artifactId=context.streaming_chunks_id,
                             parts=[],
                             metadata=None,
                         ),
                     )
                 )
-                self.streaming_chunks_id = None
+                context.streaming_chunks_id = None
