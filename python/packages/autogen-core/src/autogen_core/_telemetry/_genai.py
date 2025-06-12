@@ -31,7 +31,6 @@ def trace_tool_span(
     parent: Optional[Span] = None,
     tool_description: Optional[str] = None,
     tool_call_id: Optional[str] = None,
-    tool_arguments: Optional[str] = None,
 ) -> Generator[Span, Any, None]:
     """Context manager to create a span for tool execution following the
     OpenTelemetry Semantic conventions for generative AI systems.
@@ -51,7 +50,6 @@ def trace_tool_span(
         parent (Optional[Span]): The parent span to link this span to.
         tool_description (Optional[str]): A description of the tool.
         tool_call_id (Optional[str]): A unique identifier for the tool call.
-        tool_arguments (Optional[str]): Arguments passed to the tool.
     """
     if tracer is None:
         tracer = trace.get_tracer("autogen-core")
@@ -64,8 +62,6 @@ def trace_tool_span(
         span_attributes[GEN_AI_TOOL_DESCRIPTION] = tool_description
     if tool_call_id is not None:
         span_attributes[GEN_AI_TOOL_CALL_ID] = tool_call_id
-    if tool_arguments is not None:
-        span_attributes["autogen.tool.arguments"] = tool_arguments
     with tracer.start_as_current_span(
         f"{GenAiOperationNameValues.EXECUTE_TOOL.value} {tool_name}",
         kind=SpanKind.INTERNAL,

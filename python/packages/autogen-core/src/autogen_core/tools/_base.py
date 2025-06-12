@@ -165,7 +165,6 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         with trace_tool_span(
             tool_name=self._name,
             tool_description=self._description,
-            tool_arguments=json.dumps(args),
             tool_call_id=call_id,
         ):
             # Execute the tool's run method

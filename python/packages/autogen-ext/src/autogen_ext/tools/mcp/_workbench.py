@@ -211,7 +211,6 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             arguments = {}
         with trace_tool_span(
             tool_name=name,
-            tool_arguments=json.dumps(arguments),
             tool_call_id=call_id,
         ):
             try:
