@@ -246,6 +246,129 @@ async def test_reflect_on_tool_use_with_tools_parameter() -> None:
 
 
 @pytest.mark.asyncio
+async def test_reflect_on_tool_use_with_thought() -> None:
+    """Test that thoughts are properly yielded during reflection flow."""
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            CreateResult(
+                finish_reason="stop",
+                content="Reflection response",
+                usage=RequestUsage(prompt_tokens=15, completion_tokens=8),
+                thought="Reflecting on the tool execution results",
+                cached=False,
+            ),
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[_pass_function, _fail_function],
+        reflect_on_tool_use=True,
+    )
+    result = await agent.run(task="task")
+
+    # Verify that we have the expected sequence of messages
+    assert len(result.messages) == 5
+    assert isinstance(result.messages[0], TextMessage)  # Initial user message
+    assert isinstance(result.messages[1], ToolCallRequestEvent)  # Tool call request
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)  # Tool execution
+    assert isinstance(result.messages[3], ThoughtEvent)  # Thought from reflection
+    assert isinstance(result.messages[4], TextMessage)  # Final reflection response
+
+    # Verify the thought event content
+    thought_event = result.messages[3]
+    assert thought_event.content == "Reflecting on the tool execution results"
+    assert thought_event.source == "tool_use_agent"
+
+    # Verify the final response
+    final_response = result.messages[4]
+    assert final_response.content == "Reflection response"
+    assert final_response.models_usage is not None
+    assert final_response.models_usage.completion_tokens == 8
+    assert final_response.models_usage.prompt_tokens == 15
+
+    # Test streaming to ensure thought events are yielded correctly
+    model_client.reset()
+    messages_from_stream = []
+    async for message in agent.run_stream(task="task"):
+        if not isinstance(message, TaskResult):
+            messages_from_stream.append(message)
+
+    # Verify streaming produces the same sequence
+    assert len(messages_from_stream) == 5
+    assert isinstance(messages_from_stream[3], ThoughtEvent)
+    assert messages_from_stream[3].content == "Reflecting on the tool execution results"
+
+
+@pytest.mark.asyncio
+async def test_reflect_on_tool_use_with_thought_streaming() -> None:
+    """Test that thoughts are properly yielded during reflection flow with streaming."""
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="function_calls",
+                content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_function")],
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            CreateResult(
+                finish_reason="stop",
+                content="Streaming reflection response",
+                usage=RequestUsage(prompt_tokens=15, completion_tokens=8),
+                thought="Streaming thought during reflection",
+                cached=False,
+            ),
+        ],
+        model_info={
+            "function_calling": True,
+            "vision": True,
+            "json_output": True,
+            "family": ModelFamily.GPT_4O,
+            "structured_output": True,
+        },
+    )
+    agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=model_client,
+        tools=[_pass_function, _fail_function],
+        reflect_on_tool_use=True,
+        model_client_stream=True,
+    )
+
+    # Test streaming specifically
+    messages_from_stream = []
+    async for message in agent.run_stream(task="task"):
+        if not isinstance(message, TaskResult):
+            messages_from_stream.append(message)
+
+    # Verify that we have the expected sequence including thought event
+    assert len(messages_from_stream) == 5
+    assert isinstance(messages_from_stream[0], TextMessage)  # Initial user message
+    assert isinstance(messages_from_stream[1], ToolCallRequestEvent)  # Tool call request
+    assert isinstance(messages_from_stream[2], ToolCallExecutionEvent)  # Tool execution
+    assert isinstance(messages_from_stream[3], ThoughtEvent)  # Thought from reflection
+    assert isinstance(messages_from_stream[4], TextMessage)  # Final reflection response
+
+    # Verify the thought event content
+    thought_event = messages_from_stream[3]
+    assert thought_event.content == "Streaming thought during reflection"
+    assert thought_event.source == "tool_use_agent"
+
+
+@pytest.mark.asyncio
 async def test_tool_call_loop_functionality() -> None:
     """Test that tool_call_loop parameter enables repeated tool calls (Issue #6268)."""
     model_client = ReplayChatCompletionClient(
