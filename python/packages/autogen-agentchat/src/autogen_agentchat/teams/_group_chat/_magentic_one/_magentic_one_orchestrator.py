@@ -11,6 +11,7 @@ from autogen_core.models import (
     LLMMessage,
     UserMessage,
 )
+from autogen_core.utils import extract_json_from_str
 
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
@@ -47,6 +48,7 @@ from ._prompts import (
     ORCHESTRATOR_TASK_LEDGER_FULL_PROMPT,
     ORCHESTRATOR_TASK_LEDGER_PLAN_PROMPT,
     ORCHESTRATOR_TASK_LEDGER_PLAN_UPDATE_PROMPT,
+    LedgerEntry,
 )
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -309,11 +311,27 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         assert self._max_json_retries > 0
         key_error: bool = False
         for _ in range(self._max_json_retries):
-            response = await self._model_client.create(self._get_compatible_context(context), json_output=True)
+            if self._model_client.model_info.get("structured_output", False):
+                response = await self._model_client.create(
+                    self._get_compatible_context(context), json_output=LedgerEntry
+                )
+            elif self._model_client.model_info.get("json_output", False):
+                response = await self._model_client.create(
+                    self._get_compatible_context(context), cancellation_token=cancellation_token, json_output=True
+                )
+            else:
+                response = await self._model_client.create(
+                    self._get_compatible_context(context), cancellation_token=cancellation_token
+                )
             ledger_str = response.content
             try:
                 assert isinstance(ledger_str, str)
-                progress_ledger = json.loads(ledger_str)
+                output_json = extract_json_from_str(ledger_str)
+                if len(output_json) != 1:
+                    raise ValueError(
+                        f"Progress ledger should contain a single JSON object, but found: {len(progress_ledger)}"
+                    )
+                progress_ledger = output_json[0]
 
                 # If the team consists of a single agent, deterministically set the next speaker
                 if len(self._participant_names) == 1:
