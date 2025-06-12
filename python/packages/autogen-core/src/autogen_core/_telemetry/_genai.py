@@ -14,6 +14,7 @@ from opentelemetry.semconv._incubating.attributes.gen_ai_attributes import (
     GEN_AI_TOOL_NAME,
     GenAiOperationNameValues,
 )
+from opentelemetry.semconv.attributes.error_attributes import ERROR_TYPE
 from opentelemetry.trace import Span, SpanKind
 
 from .._agent_instantiation import AgentInstantiationContext
@@ -71,7 +72,14 @@ def trace_tool_span(
         context=trace.set_span_in_context(parent) if parent else None,
         attributes=span_attributes,
     ) as span:
-        yield span
+        try:
+            yield span
+        except Exception as e:
+            # Set the exception details on the span if an error occurs
+            span.record_exception(e)
+            span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+            span.set_attribute(ERROR_TYPE, type(e).__name__)
+            raise
 
 
 @contextmanager
@@ -124,7 +132,14 @@ def trace_create_agent_span(
         context=trace.set_span_in_context(parent) if parent else None,
         attributes=span_attributes,
     ) as span:
-        yield span
+        try:
+            yield span
+        except Exception as e:
+            # Set the exception details on the span if an error occurs
+            span.record_exception(e)
+            span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+            span.set_attribute(ERROR_TYPE, type(e).__name__)
+            raise
 
 
 @contextmanager
@@ -171,4 +186,11 @@ def trace_invoke_agent_span(
         context=trace.set_span_in_context(parent) if parent else None,
         attributes=span_attributes,
     ) as span:
-        yield span
+        try:
+            yield span
+        except Exception as e:
+            # Set the exception details on the span if an error occurs
+            span.record_exception(e)
+            span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+            span.set_attribute(ERROR_TYPE, type(e).__name__)
+            raise
