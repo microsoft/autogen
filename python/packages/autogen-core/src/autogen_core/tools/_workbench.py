@@ -120,6 +120,7 @@ class Workbench(ABC, ComponentBase[BaseModel]):
                 If None, the tool will be called with no arguments.
             cancellation_token (CancellationToken | None): An optional cancellation token
                 to cancel the tool execution.
+            call_id (str | None): An optional identifier for the tool call, used for tracing.
         Returns:
             ToolResult: The result of the tool execution.
         """
