@@ -107,7 +107,7 @@ EmbeddingFunctionConfig = Annotated[
         OpenAIEmbeddingFunctionConfig,
         CustomEmbeddingFunctionConfig,
     ],
-    Field(discriminator='function_type')
+    Field(discriminator="function_type"),
 ]
 
 

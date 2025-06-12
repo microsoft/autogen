@@ -264,14 +264,15 @@ def test_http_config(tmp_path: Path) -> None:
         host="localhost",
         port=8000,
         ssl=False,
-        headers={"Authorization": "Bearer test-token"}
+        headers={"Authorization": "Bearer test-token"},
     )
-    
+
     assert config.client_type == "http"
     assert config.host == "localhost"
     assert config.port == 8000
     assert config.ssl is False
     assert config.headers == {"Authorization": "Bearer test-token"}
+
 
 # ============================================================================
 # Embedding Function Configuration Tests
@@ -343,11 +344,13 @@ async def test_sentence_transformer_embedding_function(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_custom_embedding_function(tmp_path: Path) -> None:
     """Test ChromaDB memory with custom embedding function."""
+
     class MockEmbeddingFunction:
         def __call__(self, input):
             if isinstance(input, list):
                 return [[0.0] * 384 for _ in input]
             return [0.0] * 384
+
     config = PersistentChromaDBVectorMemoryConfig(
         collection_name="test_custom_embedding",
         allow_reset=True,
@@ -377,8 +380,7 @@ async def test_openai_embedding_function(tmp_path: Path) -> None:
         allow_reset=True,
         persistence_path=str(tmp_path / "chroma_db_openai"),
         embedding_function_config=OpenAIEmbeddingFunctionConfig(
-            api_key="test-key",
-            model_name="text-embedding-3-small"
+            api_key="test-key", model_name="text-embedding-3-small"
         ),
     )
 

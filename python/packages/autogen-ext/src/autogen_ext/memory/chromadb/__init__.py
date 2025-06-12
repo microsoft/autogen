@@ -1,4 +1,3 @@
-from ._chromadb import ChromaDBVectorMemory
 from ._chroma_configs import (
     ChromaDBVectorMemoryConfig,
     CustomEmbeddingFunctionConfig,
@@ -8,7 +7,7 @@ from ._chroma_configs import (
     PersistentChromaDBVectorMemoryConfig,
     SentenceTransformerEmbeddingFunctionConfig,
 )
-
+from ._chromadb import ChromaDBVectorMemory
 
 __all__ = [
     "ChromaDBVectorMemory",
