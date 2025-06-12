@@ -2,7 +2,21 @@ import asyncio
 import json
 import logging
 import warnings
-from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional, Sequence, Type, TypedDict, Union, cast
+from typing import (
+    Any,
+    AsyncGenerator,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Type,
+    TypedDict,
+    Union,
+    cast,
+)
 
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
@@ -139,6 +153,23 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
     * Custom function calling
     * Multi-turn conversations
+    * Built-in tool support (file_search, code_interpreter, web_search_preview, etc.)
+
+    Args:
+        name (str): Name of the agent
+        description (str): Description of the agent's purpose
+        client (Union[AsyncOpenAI, AsyncAzureOpenAI]): OpenAI client instance
+        model (str): Model to use (e.g. "gpt-4.1")
+        instructions (str): System instructions for the agent
+        tools (Optional[Iterable[Union[str, Tool]]]): Tools the agent can use.
+            Supported string values: "file_search", "code_interpreter", "web_search_preview",
+            "computer_use_preview", "image_generation", "mcp".
+            Also accepts custom Tool objects for function calling.
+        temperature (Optional[float]): Temperature for response generation (default: 1)
+        max_output_tokens (Optional[int]): Maximum output tokens
+        json_mode (bool): Whether to use JSON mode (default: False)
+        store (bool): Whether to store conversations (default: True)
+        truncation (str): Truncation strategy (default: "disabled")
 
     Example:
 
@@ -159,14 +190,17 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     client=client,
                     model="gpt-4.1",
                     instructions="You are a helpful assistant.",
+                    tools=["web_search_preview", "code_interpreter"],
                 )
                 response = await agent.on_messages([TextMessage(source="user", content="Hello!")], cancellation_token)
                 print(response)
 
         asyncio.run(example())
 
+    .. versionchanged:: v0.4.1
 
-    TODO: Add support for advanced features (vector store, multimodal, etc.) in future PRs.
+       Added support for built-in tool types like file_search, web_search_preview,
+       code_interpreter, computer_use_preview, image_generation, and mcp.
 
     """
 
@@ -180,7 +214,21 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         client: Union[AsyncOpenAI, AsyncAzureOpenAI],
         model: str,
         instructions: str,
-        tools: Optional[List[Tool]] = None,
+        tools: Optional[
+            Iterable[
+                Union[
+                    Literal[
+                        "file_search",
+                        "code_interpreter",
+                        "web_search_preview",
+                        "computer_use_preview",
+                        "image_generation",
+                        "mcp",
+                    ],
+                    Tool,
+                ]
+            ]
+        ] = None,
         temperature: Optional[float] = 1,
         max_output_tokens: Optional[int] = None,
         json_mode: bool = False,
@@ -202,12 +250,32 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         self._tool_map: Dict[str, Tool] = {}
         if tools is not None:
             for tool in tools:
-                function_schema: Dict[str, Any] = {
-                    "type": "function",
-                    "function": _convert_tool_to_function_schema(tool),
-                }
-                self._tools.append(function_schema)
-                self._tool_map[tool.name] = tool
+                if isinstance(tool, str):
+                    # Handle built-in tool types
+                    if tool == "file_search":
+                        self._tools.append({"type": "file_search"})
+                    elif tool == "code_interpreter":
+                        self._tools.append({"type": "code_interpreter"})
+                    elif tool == "web_search_preview":
+                        self._tools.append({"type": "web_search_preview"})
+                    elif tool == "computer_use_preview":
+                        self._tools.append({"type": "computer_use_preview"})
+                    elif tool == "image_generation":
+                        self._tools.append({"type": "image_generation"})
+                    elif tool == "mcp":
+                        self._tools.append({"type": "mcp"})
+                    else:
+                        raise ValueError(f"Unsupported built-in tool type: {tool}")
+                elif isinstance(tool, Tool):
+                    # Handle custom function tools
+                    function_schema: Dict[str, Any] = {
+                        "type": "function",
+                        "function": _convert_tool_to_function_schema(tool),
+                    }
+                    self._tools.append(function_schema)
+                    self._tool_map[tool.name] = tool
+                else:
+                    raise ValueError(f"Unsupported tool type: {type(tool)}")
 
     def _convert_message_to_dict(self, message: OpenAIMessage) -> Dict[str, Any]:
         """Convert an OpenAIMessage to a Dict[str, Any]."""
