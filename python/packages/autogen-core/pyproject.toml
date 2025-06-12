@@ -19,9 +19,9 @@ dependencies = [
     "typing-extensions>=4.0.0",
     "pydantic<3.0.0,>=2.10.0",
     "protobuf~=5.29.3",
-    "opentelemetry-api>=1.27.0",
+    "opentelemetry-api>=1.34.1",
     "jsonref~=1.1.0",
-    "opentelemetry-semantic-conventions==0.55b0",
+    "opentelemetry-semantic-conventions==0.55b1",
 ]
 
 
@@ -43,7 +43,7 @@ dev = [
     "llama-index",
     "markdownify",
     "nbqa",
-    "opentelemetry-sdk>=1.27.0",
+    "opentelemetry-sdk>=1.34.1",
     "pip",
     "polars",
     "python-dotenv",
