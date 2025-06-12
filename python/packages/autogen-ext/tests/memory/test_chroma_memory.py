@@ -16,7 +16,7 @@ from autogen_ext.memory.chromadb import (
 
 # Skip all tests if ChromaDB is not available
 try:
-    import chromadb  # noqa: F401
+    import chromadb  # pyright: ignore[reportUnusedImport]
 except ImportError:
     pytest.skip("ChromaDB not available", allow_module_level=True)
 
@@ -344,12 +344,12 @@ async def test_sentence_transformer_embedding_function(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_custom_embedding_function(tmp_path: Path) -> None:
     """Test ChromaDB memory with custom embedding function."""
+    from collections.abc import Sequence
 
     class MockEmbeddingFunction:
-        def __call__(self, input):
-            if isinstance(input, list):
-                return [[0.0] * 384 for _ in input]
-            return [0.0] * 384
+        def __call__(self, input: Sequence[str]) -> list[list[float]]:
+            # Return a batch of embeddings (list of lists)
+            return [[0.0] * 384 for _ in input]
 
     config = PersistentChromaDBVectorMemoryConfig(
         collection_name="test_custom_embedding",
