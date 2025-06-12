@@ -81,7 +81,7 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
         is_only_data = all(isinstance(part.root, DataPart) for part in message.parts) and len(message.parts) == 1
         if is_only_data:
             if self._output_content_type is not None:
-                content = self._output_content_type.model_validate_json(message.parts[0].root.data)
+                content = self._output_content_type.model_validate_json(json.dumps(message.parts[0].root.data))
                 return StructuredMessage(
                     content=content,
                     source=self._agent_name,

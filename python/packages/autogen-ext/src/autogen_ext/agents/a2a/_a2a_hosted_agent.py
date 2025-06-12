@@ -1,6 +1,6 @@
 import json
 import uuid
-from typing import Sequence, List, AsyncGenerator, Optional, Self, Mapping, Any
+from typing import Sequence, List, AsyncGenerator, Optional, Self, Mapping, Any, Union
 
 from a2a.client import A2AClient
 from a2a.types import AgentCard, SendMessageRequest, MessageSendParams, Message, Role, TextPart, Part, DataPart, \
@@ -10,7 +10,7 @@ from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import BaseChatMessage, HandoffMessage, StructuredMessage, TextMessage, \
     MultiModalMessage, BaseAgentEvent, BaseTextChatMessage
-from autogen_core import Component, CancellationToken, Image
+from autogen_core import ComponentBase, CancellationToken, Image
 from httpx import AsyncClient
 from pydantic import BaseModel
 
@@ -31,11 +31,11 @@ class A2aHostedAgentState(BaseModel):
 class A2aHostedAgentConfig(BaseModel):
     """Declarative configuration for the A2aHostedAgent."""
     agent_card: AgentCard
-    event_mapper: A2aEventMapper | None = None
+    event_mapper: A2aEventMapper = None
     http_kwargs: dict = {}
-    handoff_message: str | None = None
+    handoff_message: str = None
 
-class A2aHostedAgent(BaseChatAgent, Component[A2aHostedAgentConfig]):
+class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
 
     def __init__(self, agent_card: AgentCard, event_mapper: A2aEventMapper = None, http_kwargs: dict = None, handoff_message: str = None):
         super().__init__(name="A2aHostedAgent", description="A hosted agent for A2A operations.")
@@ -141,7 +141,7 @@ class A2aHostedAgent(BaseChatAgent, Component[A2aHostedAgentConfig]):
             chat_message=output_messages[-1]  # Return the last message as the chat message
         )
 
-    async def call_agent(self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage= None) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response]:
+    async def call_agent(self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage= None) -> AsyncGenerator[Union[BaseAgentEvent, BaseChatMessage, Response], None]:
         """Call the LLM with the given parameters."""
 
         async with AsyncClient(**self._default_http_kwargs) as httpx_client:
@@ -156,6 +156,7 @@ class A2aHostedAgent(BaseChatAgent, Component[A2aHostedAgentConfig]):
 
         if response.root.result.status.state == TaskState.canceled:
             cancellation_token.cancel()
+            return
         if response.root.result.status.state == TaskState.failed:
             raise RuntimeError(f"Task failed with error: {response.root.result.status.message}")
 
@@ -175,7 +176,7 @@ class A2aHostedAgent(BaseChatAgent, Component[A2aHostedAgentConfig]):
 
         yield last_message
 
-    async def call_agent_stream(self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage= None) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response]:
+    async def call_agent_stream(self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage= None) -> AsyncGenerator[Union[BaseAgentEvent | BaseChatMessage | Response], None]:
         if not self._agent_card.capabilities.streaming:
             raise RuntimeError("Streaming is not supported by this agent.")
         final_state = None
