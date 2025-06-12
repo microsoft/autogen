@@ -481,7 +481,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     is_error=True,
                 )
 
-            result = await tool.run_json(arguments, cancellation_token)
+            result = await tool.run_json(arguments, cancellation_token, call_id=tool_call.id)
             return FunctionExecutionResult(
                 content=tool.return_value_as_string(result), call_id=tool_call.id, name=tool_name, is_error=False
             )
