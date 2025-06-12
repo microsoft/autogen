@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Any, Callable, Dict, List, Literal, cast
+from typing import Any, Callable, Dict, List, Literal, Union
 
 from autogen_core import CancellationToken, Component, Image
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQueryResult, UpdateContextResult
@@ -23,17 +23,7 @@ except ImportError as e:
     ) from e
 
 
-class BaseEmbeddingFunctionConfig(BaseModel):
-    """Base configuration for embedding functions.
-
-    .. versionadded:: v0.4.1
-       Support for custom embedding functions in ChromaDB memory.
-    """
-
-    function_type: Literal["default", "sentence_transformer", "openai", "custom"]
-
-
-class DefaultEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
+class DefaultEmbeddingFunctionConfig(BaseModel):
     """Configuration for the default ChromaDB embedding function.
 
     Uses ChromaDB's default embedding function (Sentence Transformers all-MiniLM-L6-v2).
@@ -45,7 +35,7 @@ class DefaultEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
     function_type: Literal["default"] = "default"
 
 
-class SentenceTransformerEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
+class SentenceTransformerEmbeddingFunctionConfig(BaseModel):
     """Configuration for SentenceTransformer embedding functions.
 
     Allows specifying a custom SentenceTransformer model for embeddings.
@@ -67,7 +57,7 @@ class SentenceTransformerEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
     model_name: str = Field(default="all-MiniLM-L6-v2", description="SentenceTransformer model name to use")
 
 
-class OpenAIEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
+class OpenAIEmbeddingFunctionConfig(BaseModel):
     """Configuration for OpenAI embedding functions.
 
     Uses OpenAI's embedding API for generating embeddings.
@@ -90,7 +80,7 @@ class OpenAIEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
     model_name: str = Field(default="text-embedding-ada-002", description="OpenAI embedding model name")
 
 
-class CustomEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
+class CustomEmbeddingFunctionConfig(BaseModel):
     """Configuration for custom embedding functions.
 
     Allows using a custom function that returns a ChromaDB-compatible embedding function.
@@ -126,6 +116,15 @@ class CustomEmbeddingFunctionConfig(BaseEmbeddingFunctionConfig):
     params: Dict[str, Any] = Field(default_factory=dict, description="Parameters to pass to the function")
 
 
+# Union type for all embedding function configurations
+EmbeddingFunctionConfig = Union[
+    DefaultEmbeddingFunctionConfig,
+    SentenceTransformerEmbeddingFunctionConfig,
+    OpenAIEmbeddingFunctionConfig,
+    CustomEmbeddingFunctionConfig,
+]
+
+
 class ChromaDBVectorMemoryConfig(BaseModel):
     """Base configuration for ChromaDB-based memory implementation.
 
@@ -137,11 +136,11 @@ class ChromaDBVectorMemoryConfig(BaseModel):
     collection_name: str = Field(default="memory_store", description="Name of the ChromaDB collection")
     distance_metric: str = Field(default="cosine", description="Distance metric for similarity search")
     k: int = Field(default=3, description="Number of results to return in queries")
-    score_threshold: float | None = Field(default=None, description="Minimum similarity score threshold")
+    score_threshold: Union[float, None] = Field(default=None, description="Minimum similarity score threshold")
     allow_reset: bool = Field(default=False, description="Whether to allow resetting the ChromaDB client")
     tenant: str = Field(default="default_tenant", description="Tenant to use")
     database: str = Field(default="default_database", description="Database to use")
-    embedding_function_config: BaseEmbeddingFunctionConfig = Field(
+    embedding_function_config: EmbeddingFunctionConfig = Field(
         default_factory=DefaultEmbeddingFunctionConfig, description="Configuration for the embedding function"
     )
 
@@ -160,7 +159,7 @@ class HttpChromaDBVectorMemoryConfig(ChromaDBVectorMemoryConfig):
     host: str = Field(default="localhost", description="Host of the remote server")
     port: int = Field(default=8000, description="Port of the remote server")
     ssl: bool = Field(default=False, description="Whether to use HTTPS")
-    headers: Dict[str, str] | None = Field(default=None, description="Headers to send to the server")
+    headers: Union[Dict[str, str], None] = Field(default=None, description="Headers to send to the server")
 
 
 class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
@@ -182,7 +181,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         `pip install autogen-ext[chromadb]`
 
     Args:
-        config (ChromaDBVectorMemoryConfig | None): Configuration for the ChromaDB memory.
+        config (ChromaDBVectorMemoryConfig or None): Configuration for the ChromaDB memory.
             If None, defaults to a PersistentChromaDBVectorMemoryConfig with default values.
             Two config types are supported:
             - PersistentChromaDBVectorMemoryConfig: For local storage
@@ -264,11 +263,11 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
     component_config_schema = ChromaDBVectorMemoryConfig
     component_provider_override = "autogen_ext.memory.chromadb.ChromaDBVectorMemory"
 
-    def __init__(self, config: ChromaDBVectorMemoryConfig | None = None) -> None:
+    def __init__(self, config: Union[ChromaDBVectorMemoryConfig, None] = None) -> None:
         """Initialize ChromaDBVectorMemory."""
         self._config = config or PersistentChromaDBVectorMemoryConfig()
-        self._client: ClientAPI | None = None
-        self._collection: Collection | None = None
+        self._client: Union[ClientAPI, None] = None
+        self._collection: Union[Collection, None] = None
 
     @property
     def collection_name(self) -> str:
@@ -292,37 +291,43 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                 "ChromaDB embedding functions not available. Ensure chromadb is properly installed."
             ) from e
 
-        config = self._config.embedding_function_config
+        config: EmbeddingFunctionConfig = self._config.embedding_function_config
 
         if config.function_type == "default":
             return embedding_functions.DefaultEmbeddingFunction()
 
         elif config.function_type == "sentence_transformer":
-            cfg = cast(SentenceTransformerEmbeddingFunctionConfig, config)
-            try:
-                return embedding_functions.SentenceTransformerEmbeddingFunction(model_name=cfg.model_name)
-            except Exception as e:
-                raise ImportError(
-                    f"Failed to create SentenceTransformer embedding function with model '{cfg.model_name}'. "
-                    f"Ensure sentence-transformers is installed and the model is available. Error: {e}"
-                ) from e
+            if isinstance(config, SentenceTransformerEmbeddingFunctionConfig):
+                try:
+                    return embedding_functions.SentenceTransformerEmbeddingFunction(model_name=config.model_name)
+                except Exception as e:
+                    raise ImportError(
+                        f"Failed to create SentenceTransformer embedding function with model '{config.model_name}'. "
+                        f"Ensure sentence-transformers is installed and the model is available. Error: {e}"
+                    ) from e
+            else:
+                raise ValueError("Invalid config type for sentence_transformer")
 
         elif config.function_type == "openai":
-            cfg = cast(OpenAIEmbeddingFunctionConfig, config)
-            try:
-                return embedding_functions.OpenAIEmbeddingFunction(api_key=cfg.api_key, model_name=cfg.model_name)
-            except Exception as e:
-                raise ImportError(
-                    f"Failed to create OpenAI embedding function with model '{cfg.model_name}'. "
-                    f"Ensure openai is installed and API key is valid. Error: {e}"
-                ) from e
+            if isinstance(config, OpenAIEmbeddingFunctionConfig):
+                try:
+                    return embedding_functions.OpenAIEmbeddingFunction(api_key=config.api_key, model_name=config.model_name)
+                except Exception as e:
+                    raise ImportError(
+                        f"Failed to create OpenAI embedding function with model '{config.model_name}'. "
+                        f"Ensure openai is installed and API key is valid. Error: {e}"
+                    ) from e
+            else:
+                raise ValueError("Invalid config type for openai")
 
         elif config.function_type == "custom":
-            cfg = cast(CustomEmbeddingFunctionConfig, config)
-            try:
-                return cfg.function(**cfg.params)
-            except Exception as e:
-                raise ValueError(f"Failed to create custom embedding function. Error: {e}") from e
+            if isinstance(config, CustomEmbeddingFunctionConfig):
+                try:
+                    return config.function(**config.params)
+                except Exception as e:
+                    raise ValueError(f"Failed to create custom embedding function. Error: {e}") from e
+            else:
+                raise ValueError("Invalid config type for custom")
 
         else:
             raise ValueError(f"Unsupported embedding function type: {config.function_type}")
@@ -373,7 +378,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                 logger.error(f"Failed to get/create collection: {e}")
                 raise
 
-    def _extract_text(self, content_item: str | MemoryContent) -> str:
+    def _extract_text(self, content_item: Union[str, MemoryContent]) -> str:
         """Extract searchable text from content."""
         if isinstance(content_item, str):
             return content_item
@@ -485,7 +490,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
         return UpdateContextResult(memories=query_results)
 
-    async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
+    async def add(self, content: MemoryContent, cancellation_token: Union[CancellationToken, None] = None) -> None:
         """Add a memory content to ChromaDB."""
         self._ensure_initialized()
         if self._collection is None:
@@ -508,8 +513,8 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
     async def query(
         self,
-        query: str | MemoryContent,
-        cancellation_token: CancellationToken | None = None,
+        query: Union[str, MemoryContent],
+        cancellation_token: Union[CancellationToken, None] = None,
         **kwargs: Any,
     ) -> MemoryQueryResult:
         """Query memory content based on vector similarity."""

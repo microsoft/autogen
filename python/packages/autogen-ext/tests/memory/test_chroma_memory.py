@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import pytest
 from autogen_core.memory import MemoryContent, MemoryMimeType
@@ -320,7 +321,7 @@ async def test_sentence_transformer_embedding_function(tmp_path: Path) -> None:
 async def test_custom_embedding_function(tmp_path: Path) -> None:
     """Test ChromaDB memory with custom embedding function."""
 
-    def create_mock_embedding_function():
+    def create_mock_embedding_function() -> Any:
         """Create a mock embedding function for testing."""
         try:
             from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
@@ -329,6 +330,7 @@ async def test_custom_embedding_function(tmp_path: Path) -> None:
             return DefaultEmbeddingFunction()
         except ImportError:
             pytest.skip("ChromaDB not available for custom embedding function test")
+            return None  # This line will never be reached, but helps with type checking
 
     config = PersistentChromaDBVectorMemoryConfig(
         collection_name="test_custom_embedding",
@@ -361,7 +363,7 @@ async def test_custom_embedding_function(tmp_path: Path) -> None:
 async def test_embedding_function_error_handling(tmp_path: Path) -> None:
     """Test error handling for embedding function configurations."""
 
-    def failing_embedding_function():
+    def failing_embedding_function() -> None:
         """A function that raises an error."""
         raise ValueError("Test embedding function error")
 
@@ -376,6 +378,71 @@ async def test_embedding_function_error_handling(tmp_path: Path) -> None:
 
     # Should raise an error when trying to initialize
     with pytest.raises(ValueError, match="Failed to create custom embedding function"):
+        await memory.add(MemoryContent(content="This should fail", mime_type=MemoryMimeType.TEXT))
+
+    await memory.close()
+
+
+@pytest.mark.asyncio
+async def test_sentence_transformer_error_handling(tmp_path: Path) -> None:
+    """Test error handling for SentenceTransformer embedding function."""
+    config = PersistentChromaDBVectorMemoryConfig(
+        collection_name="test_st_error",
+        allow_reset=True,
+        persistence_path=str(tmp_path / "chroma_db_st_error"),
+        embedding_function_config=SentenceTransformerEmbeddingFunctionConfig(
+            model_name="nonexistent-model-that-should-fail"
+        ),
+    )
+
+    memory = ChromaDBVectorMemory(config=config)
+
+    # Should raise an ImportError when trying to use a nonexistent model
+    with pytest.raises(ImportError, match="Failed to create SentenceTransformer embedding function"):
+        await memory.add(MemoryContent(content="This should fail", mime_type=MemoryMimeType.TEXT))
+
+    await memory.close()
+
+
+@pytest.mark.asyncio
+async def test_openai_error_handling(tmp_path: Path) -> None:
+    """Test error handling for OpenAI embedding function."""
+    config = PersistentChromaDBVectorMemoryConfig(
+        collection_name="test_openai_error",
+        allow_reset=True,
+        persistence_path=str(tmp_path / "chroma_db_openai_error"),
+        embedding_function_config=OpenAIEmbeddingFunctionConfig(
+            api_key="invalid-key", model_name="nonexistent-model"
+        ),
+    )
+
+    memory = ChromaDBVectorMemory(config=config)
+
+    # Should raise an ImportError when trying to use invalid OpenAI config
+    with pytest.raises(ImportError, match="Failed to create OpenAI embedding function"):
+        await memory.add(MemoryContent(content="This should fail", mime_type=MemoryMimeType.TEXT))
+
+    await memory.close()
+
+
+@pytest.mark.asyncio
+async def test_invalid_embedding_function_type(tmp_path: Path) -> None:
+    """Test error handling for invalid embedding function type."""
+    # Create a config with an invalid function_type by manually setting it
+    config = PersistentChromaDBVectorMemoryConfig(
+        collection_name="test_invalid_type",
+        allow_reset=True,
+        persistence_path=str(tmp_path / "chroma_db_invalid"),
+        embedding_function_config=DefaultEmbeddingFunctionConfig(),
+    )
+
+    # Manually modify the function_type to an invalid value
+    config.embedding_function_config.function_type = "invalid_type"  # type: ignore
+
+    memory = ChromaDBVectorMemory(config=config)
+
+    # Should raise a ValueError for unsupported function type
+    with pytest.raises(ValueError, match="Unsupported embedding function type"):
         await memory.add(MemoryContent(content="This should fail", mime_type=MemoryMimeType.TEXT))
 
     await memory.close()
@@ -400,7 +467,7 @@ def test_embedding_function_config_validation() -> None:
     assert openai_config.model_name == "test-model"
 
     # Test custom config
-    def dummy_function():
+    def dummy_function() -> None:
         return None
 
     custom_config = CustomEmbeddingFunctionConfig(function=dummy_function, params={"test": "value"})
