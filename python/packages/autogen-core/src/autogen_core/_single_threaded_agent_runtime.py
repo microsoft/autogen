@@ -266,6 +266,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._serialization_registry = SerializationRegistry()
         self._ignore_unhandled_handler_exceptions = ignore_unhandled_exceptions
         self._background_exception: BaseException | None = None
+        self._agent_instance_types: Dict[str, Type[Agent]] = {}
 
     @property
     def unprocessed_messages_count(
@@ -361,6 +362,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             future = asyncio.get_event_loop().create_future()
             if recipient.type not in self._known_agent_names:
                 future.set_exception(Exception("Recipient not found"))
+                return await future
 
             content = message.__dict__ if hasattr(message, "__dict__") else message
             logger.info(f"Sending message of type {type(message).__name__} to {recipient.type}: {content}")
@@ -909,6 +911,32 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         return type
 
+    async def register_agent_instance(
+        self,
+        agent_instance: Agent,
+        agent_id: AgentId,
+    ) -> AgentId:
+        def agent_factory() -> Agent:
+            raise RuntimeError(
+                "Agent factory was invoked for an agent instance that was not registered. This is likely due to the agent type being incorrectly subscribed to a topic. If this exception occurs when publishing a message to the DefaultTopicId, then it is likely that `skip_class_subscriptions` needs to be turned off when registering the agent."
+            )
+
+        if agent_id in self._instantiated_agents:
+            raise ValueError(f"Agent with id {agent_id} already exists.")
+
+        if agent_id.type not in self._agent_factories:
+            self._agent_factories[agent_id.type] = agent_factory
+            self._agent_instance_types[agent_id.type] = type_func_alias(agent_instance)
+        else:
+            if self._agent_factories[agent_id.type].__code__ != agent_factory.__code__:
+                raise ValueError("Agent factories and agent instances cannot be registered to the same type.")
+            if self._agent_instance_types[agent_id.type] != type_func_alias(agent_instance):
+                raise ValueError("Agent instances must be the same object type.")
+
+        await agent_instance.bind_id_and_runtime(id=agent_id, runtime=self)
+        self._instantiated_agents[agent_id] = agent_instance
+        return agent_id
+
     async def _invoke_agent_factory(
         self,
         agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
@@ -930,8 +958,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     raise ValueError("Agent factory must take 0 or 2 arguments.")
 
                 if inspect.isawaitable(agent):
-                    return cast(T, await agent)
-
+                    agent = cast(T, await agent)
                 return agent
 
             except BaseException as e:

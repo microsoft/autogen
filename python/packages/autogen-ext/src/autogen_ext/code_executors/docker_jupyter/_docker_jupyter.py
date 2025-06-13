@@ -236,7 +236,10 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
                     else:
                         outputs.append(json.dumps(data.data))
             else:
-                return DockerJupyterCodeResult(exit_code=1, output=f"ERROR: {result.output}", output_files=output_files)
+                existing_output = "\n".join([str(output) for output in outputs])
+                return DockerJupyterCodeResult(
+                    exit_code=1, output=existing_output + "\nERROR: " + result.output, output_files=output_files
+                )
         return DockerJupyterCodeResult(
             exit_code=0, output="\n".join([str(output) for output in outputs]), output_files=output_files
         )

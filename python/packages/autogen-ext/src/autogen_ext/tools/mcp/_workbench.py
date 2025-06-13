@@ -1,8 +1,9 @@
+import asyncio
 import builtins
 import warnings
 from typing import Any, List, Literal, Mapping
 
-from autogen_core import CancellationToken, Component, Image
+from autogen_core import CancellationToken, Component, Image, trace_tool_span
 from autogen_core.tools import (
     ImageResultContent,
     ParametersSchema,
@@ -16,7 +17,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ._actor import McpSessionActor
-from ._config import McpServerParams, SseServerParams, StdioServerParams
+from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
 
 
 class McpWorkbenchConfig(BaseModel):
@@ -152,6 +153,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         self._server_params = server_params
         # self._session: ClientSession | None = None
         self._actor: McpSessionActor | None = None
+        self._actor_loop: asyncio.AbstractEventLoop | None = None
         self._read = None
         self._write = None
 
@@ -190,7 +192,11 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         return schema
 
     async def call_tool(
-        self, name: str, arguments: Mapping[str, Any] | None = None, cancellation_token: CancellationToken | None = None
+        self,
+        name: str,
+        arguments: Mapping[str, Any] | None = None,
+        cancellation_token: CancellationToken | None = None,
+        call_id: str | None = None,
     ) -> ToolResult:
         if not self._actor:
             await self.start()  # fallback to start the actor if not initialized instead of raising an error
@@ -202,30 +208,34 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             cancellation_token = CancellationToken()
         if not arguments:
             arguments = {}
-        try:
-            result_future = await self._actor.call("call_tool", {"name": name, "kargs": arguments})
-            cancellation_token.link_future(result_future)
-            result = await result_future
-            assert isinstance(
-                result, CallToolResult
-            ), f"call_tool must return a CallToolResult, instead of : {str(type(result))}"
-            result_parts: List[TextResultContent | ImageResultContent] = []
-            is_error = result.isError
-            for content in result.content:
-                if isinstance(content, TextContent):
-                    result_parts.append(TextResultContent(content=content.text))
-                elif isinstance(content, ImageContent):
-                    result_parts.append(ImageResultContent(content=Image.from_base64(content.data)))
-                elif isinstance(content, EmbeddedResource):
-                    # TODO: how to handle embedded resources?
-                    # For now we just use text representation.
-                    result_parts.append(TextResultContent(content=content.model_dump_json()))
-                else:
-                    raise ValueError(f"Unknown content type from server: {type(content)}")
-        except Exception as e:
-            error_message = self._format_errors(e)
-            is_error = True
-            result_parts = [TextResultContent(content=error_message)]
+        with trace_tool_span(
+            tool_name=name,
+            tool_call_id=call_id,
+        ):
+            try:
+                result_future = await self._actor.call("call_tool", {"name": name, "kargs": arguments})
+                cancellation_token.link_future(result_future)
+                result = await result_future
+                assert isinstance(
+                    result, CallToolResult
+                ), f"call_tool must return a CallToolResult, instead of : {str(type(result))}"
+                result_parts: List[TextResultContent | ImageResultContent] = []
+                is_error = result.isError
+                for content in result.content:
+                    if isinstance(content, TextContent):
+                        result_parts.append(TextResultContent(content=content.text))
+                    elif isinstance(content, ImageContent):
+                        result_parts.append(ImageResultContent(content=Image.from_base64(content.data)))
+                    elif isinstance(content, EmbeddedResource):
+                        # TODO: how to handle embedded resources?
+                        # For now we just use text representation.
+                        result_parts.append(TextResultContent(content=content.model_dump_json()))
+                    else:
+                        raise ValueError(f"Unknown content type from server: {type(content)}")
+            except Exception as e:
+                error_message = self._format_errors(e)
+                is_error = True
+                result_parts = [TextResultContent(content=error_message)]
         return ToolResult(name=name, result=result_parts, is_error=is_error)
 
     def _format_errors(self, error: Exception) -> str:
@@ -250,9 +260,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             )
             return  # Already initialized, no need to start again
 
-        if isinstance(self._server_params, (StdioServerParams, SseServerParams)):
+        if isinstance(self._server_params, (StdioServerParams, SseServerParams, StreamableHttpServerParams)):
             self._actor = McpSessionActor(self._server_params)
             await self._actor.initialize()
+            self._actor_loop = asyncio.get_event_loop()
         else:
             raise ValueError(f"Unsupported server params type: {type(self._server_params)}")
 
@@ -282,4 +293,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
 
     def __del__(self) -> None:
         # Ensure the actor is stopped when the workbench is deleted
-        pass
+        if self._actor and self._actor_loop:
+            loop = self._actor_loop
+            if loop.is_running() and not loop.is_closed():
+                loop.call_soon_threadsafe(lambda: asyncio.create_task(self.stop()))
+            else:
+                msg = "Cannot safely stop actor at [McpWorkbench.__del__]: loop is closed or not running"
+                warnings.warn(msg, RuntimeWarning, stacklevel=2)

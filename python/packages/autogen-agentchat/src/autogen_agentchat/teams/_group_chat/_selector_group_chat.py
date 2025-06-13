@@ -150,9 +150,13 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         base_chat_messages = [m for m in messages if isinstance(m, BaseChatMessage)]
         await self._add_messages_to_context(self._model_context, base_chat_messages)
 
-    async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
+    async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:
         """Selects the next speaker in a group chat using a ChatCompletion client,
         with the selector function as override if it returns a speaker name.
+
+        .. note::
+
+            This method always returns a single speaker name.
 
         A key assumption is that the agent type is the same as the topic type, which we use as the agent name.
         """
@@ -171,7 +175,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                         f"Expected one of: {self._participant_names}."
                     )
                 # Skip the model based selection.
-                return speaker
+                return [speaker]
 
         # Use the candidate function to filter participants if provided
         if self._candidate_func is not None:
@@ -211,7 +215,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             agent_name = participants[0]
         self._previous_speaker = agent_name
         trace_logger.debug(f"Selected speaker: {agent_name}")
-        return agent_name
+        return [agent_name]
 
     def construct_message_history(self, message_history: List[LLMMessage]) -> str:
         # Construct the history of the conversation.
@@ -380,6 +384,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             function that takes the conversation history and returns the name of the next speaker.
             If provided, this function will be used to override the model to select the next speaker.
             If the function returns None, the model will be used to select the next speaker.
+            NOTE: `selector_func` is not serializable and will be ignored during serialization and deserialization process.
         candidate_func (Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], List[str]], Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[List[str]]], optional):
             A custom function that takes the conversation history and returns a filtered list of candidates for the next speaker
             selection using model. If the function returns an empty list or `None`, `SelectorGroupChat` will raise a `ValueError`.

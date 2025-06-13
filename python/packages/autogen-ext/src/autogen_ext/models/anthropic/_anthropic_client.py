@@ -61,6 +61,7 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
+from autogen_core.utils import extract_json_from_str
 from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
@@ -220,7 +221,10 @@ def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
             args = __empty_content_to_whitespace(args)
             if isinstance(args, str):
                 try:
-                    args_dict = json.loads(args)
+                    json_objs = extract_json_from_str(args)
+                    if len(json_objs) != 1:
+                        raise ValueError(f"Expected a single JSON object, but found {len(json_objs)}")
+                    args_dict = json_objs[0]
                 except json.JSONDecodeError:
                     args_dict = {"text": args}
             else:
@@ -1193,11 +1197,15 @@ class AnthropicBedrockChatCompletionClient(
         if bedrock_info is None:
             raise ValueError("bedrock_info is required for AnthropicBedrockChatCompletionClient")
 
-        # Handle bedrock_info as secretestr
+        # Handle bedrock_info
         aws_region = bedrock_info["aws_region"]
-        aws_access_key = bedrock_info["aws_access_key"]
-        aws_secret_key = bedrock_info["aws_secret_key"]
-        aws_session_token = bedrock_info["aws_session_token"]
+        aws_access_key: Optional[str] = None
+        aws_secret_key: Optional[str] = None
+        aws_session_token: Optional[str] = None
+        if all(key in bedrock_info for key in ("aws_access_key", "aws_secret_key", "aws_session_token")):
+            aws_access_key = bedrock_info["aws_access_key"]
+            aws_secret_key = bedrock_info["aws_secret_key"]
+            aws_session_token = bedrock_info["aws_session_token"]
 
         client = AsyncAnthropicBedrock(
             aws_access_key=aws_access_key,
