@@ -40,7 +40,11 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         return [tool.schema for tool in self._tools]
 
     async def call_tool(
-        self, name: str, arguments: Mapping[str, Any] | None = None, cancellation_token: CancellationToken | None = None
+        self,
+        name: str,
+        arguments: Mapping[str, Any] | None = None,
+        cancellation_token: CancellationToken | None = None,
+        call_id: str | None = None,
     ) -> ToolResult:
         tool = next((tool for tool in self._tools if tool.name == name), None)
         if tool is None:
@@ -54,7 +58,7 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         if not arguments:
             arguments = {}
         try:
-            result_future = asyncio.ensure_future(tool.run_json(arguments, cancellation_token))
+            result_future = asyncio.ensure_future(tool.run_json(arguments, cancellation_token, call_id=call_id))
             cancellation_token.link_future(result_future)
             actual_tool_output = await result_future
             is_error = False
