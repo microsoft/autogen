@@ -319,7 +319,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         *,
         task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-        output_task_messages: bool = True,
+        output_task_messages: bool = False,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream. Once the
@@ -337,7 +337,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
                 To gracefully stop the team, use :class:`~autogen_agentchat.conditions.ExternalTermination` instead.
-            output_task_messages (bool): Whether to include task messages in the output stream. Defaults to True for backward compatibility.
+            output_task_messages (bool): Whether to include task messages in the output stream. Defaults to False for backward compatibility.
 
         Returns:
             stream: an :class:`~collections.abc.AsyncGenerator` that yields :class:`~autogen_agentchat.messages.BaseAgentEvent`, :class:`~autogen_agentchat.messages.BaseChatMessage`, and the final result :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream.
@@ -508,15 +508,16 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             stop_reason: str | None = None
             task_messages_count = 0
 
-            # Add task messages to output if they exist and output_task_messages is True
-            if messages is not None and output_task_messages:
+            # Add task messages to output_messages for TaskResult (always)
+            # and to stream only if output_task_messages is True
+            if messages is not None:
                 for msg in messages:
-                    yield msg
-                    output_messages.append(msg)
+                    output_messages.append(msg)  # Always add to output_messages for TaskResult
+                    if output_task_messages:
+                        yield msg  # Only yield to stream if output_task_messages is True
                 task_messages_count = len(messages)
-            elif messages is not None:
-                # Track count to skip task messages in the stream
-                task_messages_count = len(messages)
+            else:
+                task_messages_count = 0
 
             # Yield the messages until the queue is empty.
             received_messages_count = 0
@@ -537,9 +538,13 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 # Skip task messages if output_task_messages is False
                 if not output_task_messages and received_messages_count < task_messages_count:
                     received_messages_count += 1
-                    # Still add to output_messages for the final TaskResult
-                    if not isinstance(message, ModelClientStreamingChunkEvent):
-                        output_messages.append(message)
+                    # Don't add task messages to output_messages when output_task_messages is False
+                    continue
+
+                # Skip adding task messages to output_messages again if they were already added initially
+                if output_task_messages and received_messages_count < task_messages_count:
+                    received_messages_count += 1
+                    yield message
                     continue
 
                 yield message
