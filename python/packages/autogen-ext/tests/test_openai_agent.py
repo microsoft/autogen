@@ -143,7 +143,9 @@ class WeatherTool(Tool):
             return json.dumps(value)
         return str(value)
 
-    async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Dict[str, Any]:
+    async def run_json(
+        self, args: Mapping[str, Any], cancellation_token: CancellationToken, call_id: str | None = None
+    ) -> Dict[str, Any]:
         _ = GetWeatherArgs(**args)
         return WeatherResponse(temperature=72.5, conditions="sunny").model_dump()
 
