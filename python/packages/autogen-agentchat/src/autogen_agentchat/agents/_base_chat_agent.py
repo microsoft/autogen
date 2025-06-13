@@ -153,9 +153,16 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
         *,
         task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
+        output_task_messages: bool = True,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
-        and the final task result as the last item in the stream."""
+        and the final task result as the last item in the stream.
+
+        Args:
+            task: The task to run. Can be a string, a single message, or a sequence of messages.
+            cancellation_token: The cancellation token to kill the task immediately.
+            output_task_messages: Whether to include task messages in the output stream. Defaults to True for backward compatibility.
+        """
         with trace_invoke_agent_span(
             agent_name=self.name,
             agent_description=self.description,
@@ -170,11 +177,13 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
                 text_msg = TextMessage(content=task, source="user")
                 input_messages.append(text_msg)
                 output_messages.append(text_msg)
-                yield text_msg
+                if output_task_messages:
+                    yield text_msg
             elif isinstance(task, BaseChatMessage):
                 input_messages.append(task)
                 output_messages.append(task)
-                yield task
+                if output_task_messages:
+                    yield task
             else:
                 if not task:
                     raise ValueError("Task list cannot be empty.")
@@ -182,7 +191,8 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
                     if isinstance(msg, BaseChatMessage):
                         input_messages.append(msg)
                         output_messages.append(msg)
-                        yield msg
+                        if output_task_messages:
+                            yield msg
                     else:
                         raise ValueError(f"Invalid message type in sequence: {type(msg)}")
             async for message in self.on_messages_stream(input_messages, cancellation_token):
