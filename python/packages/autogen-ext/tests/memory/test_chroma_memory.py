@@ -12,6 +12,7 @@ from autogen_ext.memory.chromadb import (
     OpenAIEmbeddingFunctionConfig,
     PersistentChromaDBVectorMemoryConfig,
     SentenceTransformerEmbeddingFunctionConfig,
+    AzureOpenAIEmbeddingFunctionConfig,
 )
 
 # Skip all tests if ChromaDB is not available
@@ -317,7 +318,7 @@ async def test_sentence_transformer_embedding_function(tmp_path: Path) -> None:
         allow_reset=True,
         persistence_path=str(tmp_path / "chroma_db_st"),
         embedding_function_config=SentenceTransformerEmbeddingFunctionConfig(
-            model_name="all-MiniLM-L6-v2"  # Use default model for testing
+            model="all-MiniLM-L6-v2"  # Use default model for testing
         ),
     )
 
@@ -380,14 +381,39 @@ async def test_openai_embedding_function(tmp_path: Path) -> None:
         allow_reset=True,
         persistence_path=str(tmp_path / "chroma_db_openai"),
         embedding_function_config=OpenAIEmbeddingFunctionConfig(
-            api_key="test-key", model_name="text-embedding-3-small"
+            api_key="test-key", model="text-embedding-3-small"
         ),
     )
 
     # Just test that the config is valid - don't actually try to use OpenAI API
     assert config.embedding_function_config.function_type == "openai"
     assert config.embedding_function_config.api_key == "test-key"
-    assert config.embedding_function_config.model_name == "text-embedding-3-small"
+    assert config.embedding_function_config.model == "text-embedding-3-small"
+
+
+@pytest.mark.asyncio
+async def test_azure_openai_embedding_function(tmp_path: Path) -> None:
+    """Test OpenAI embedding function configuration (without actual API call)."""
+    config = PersistentChromaDBVectorMemoryConfig(
+        collection_name="test_azure_openai_embedding",
+        allow_reset=True,
+        persistence_path=str(tmp_path / "chroma_db_azure_openai"),
+        embedding_function_config=AzureOpenAIEmbeddingFunctionConfig(
+            api_key="test-key",
+            model="text-embedding-3-small",
+            azure_endpoint="https://test-endpoint.openai.azure.com/",
+            azure_deployment="text-embedding-3-small",
+        )
+    )
+
+    # Just test that the config is valid - don't actually try to use Azure OpenAI API
+    assert config.embedding_function_config.function_type == "azure_openai"
+    assert config.embedding_function_config.api_type == "azure"
+    assert config.embedding_function_config.azure_endpoint == "https://test-endpoint.openai.azure.com/"
+    assert config.embedding_function_config.azure_deployment == "text-embedding-3-small"
+    assert config.embedding_function_config.api_version == "2024-12-01-preview"
+    assert config.embedding_function_config.api_key == "test-key"
+    assert config.embedding_function_config.model== "text-embedding-3-small"
 
 
 @pytest.mark.asyncio
@@ -422,15 +448,15 @@ def test_embedding_function_config_validation() -> None:
     assert default_config.function_type == "default"
 
     # Test SentenceTransformer config
-    st_config = SentenceTransformerEmbeddingFunctionConfig(model_name="test-model")
+    st_config = SentenceTransformerEmbeddingFunctionConfig(model="test-model")
     assert st_config.function_type == "sentence_transformer"
-    assert st_config.model_name == "test-model"
+    assert st_config.model == "test-model"
 
     # Test OpenAI config
-    openai_config = OpenAIEmbeddingFunctionConfig(api_key="test-key", model_name="test-model")
+    openai_config = OpenAIEmbeddingFunctionConfig(api_key="test-key", model="test-model")
     assert openai_config.function_type == "openai"
     assert openai_config.api_key == "test-key"
-    assert openai_config.model_name == "test-model"
+    assert openai_config.model== "test-model"
 
     # Test custom config
     def dummy_function() -> None:
