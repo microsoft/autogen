@@ -112,7 +112,8 @@ class DiGraph(BaseModel):
         parents: Dict[str, List[str]] = {node: [] for node in self.nodes}
         for node in self.nodes.values():
             for edge in node.edges:
-                parents[edge.target].append(node.name)
+                if edge.target != node.name:
+                    parents[edge.target].append(node.name)
         return parents
 
     def get_start_nodes(self) -> Set[str]:
