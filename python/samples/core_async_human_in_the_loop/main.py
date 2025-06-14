@@ -189,7 +189,7 @@ Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
                 if tool is None:
                     raise ValueError(f"Tool not found: {call.name}")
                 arguments = json.loads(call.arguments)
-                await tool.run_json(arguments, ctx.cancellation_token)
+                await tool.run_json(arguments, ctx.cancellation_token, call_id=call.id)
             await self.publish_message(
                 TerminateMessage(content="Meeting scheduled"),
                 topic_id=DefaultTopicId("scheduling_assistant_conversation"),
@@ -306,6 +306,7 @@ async def main(model_config: Dict[str, Any], latest_user_input: Optional[str] = 
 
     runtime.start()
     await runtime.stop_when(lambda: termination_handler.is_terminated or needs_user_input_handler.needs_user_input)
+    await model_client.close()
 
     user_input_needed = None
     if needs_user_input_handler.user_input_content is not None:

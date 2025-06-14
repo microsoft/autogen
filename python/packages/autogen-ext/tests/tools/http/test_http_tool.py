@@ -1,4 +1,5 @@
 import json
+import logging
 
 import httpx
 import pytest
@@ -45,12 +46,16 @@ def test_component_base_class(test_config: ComponentModel) -> None:
 
 
 @pytest.mark.asyncio
-async def test_post_request(test_config: ComponentModel, test_server: None) -> None:
+async def test_post_request(test_config: ComponentModel, test_server: None, caplog: pytest.LogCaptureFixture) -> None:
     tool = HttpTool.load_component(test_config)
-    result = await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
 
-    assert isinstance(result, str)
-    assert json.loads(result)["result"] == "Received: test query with value 42"
+    with caplog.at_level(logging.INFO):
+        result = await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
+
+        assert isinstance(result, str)
+        assert json.loads(result)["result"] == "Received: test query with value 42"
+
+        assert "Received: test query with value 42" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -171,7 +176,7 @@ async def test_invalid_request(test_config: ComponentModel, test_server: None) -
     config.config["host"] = "fake"
     tool = HttpTool.load_component(config)
 
-    with pytest.raises(httpx.ConnectError):
+    with pytest.raises((httpx.ConnectError, httpx.ConnectTimeout)):
         await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
 
 

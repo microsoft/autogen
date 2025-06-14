@@ -16,7 +16,7 @@ require("dotenv").config({
 const config: GatsbyConfig = {
   pathPrefix: process.env.PREFIX_PATH_VALUE || "",
   siteMetadata: {
-    title: `AutoGen Studio [Beta]`,
+    title: `AutoGen Studio`,
     description: `Build Multi-Agent Apps`,
     siteUrl: `http://tbd.place`,
   },
@@ -27,7 +27,6 @@ const config: GatsbyConfig = {
   plugins: [
     "gatsby-plugin-postcss",
     "gatsby-plugin-image",
-    "gatsby-plugin-sitemap",
     {
       resolve: "gatsby-plugin-manifest",
       options: {

@@ -188,9 +188,9 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
         )
 
     async def run(self, args: LocalSearchToolArgs, cancellation_token: CancellationToken) -> LocalSearchToolReturn:
-        result = await self._search_engine.asearch(args.query)  # type: ignore
-        assert isinstance(result.response, str), "Expected response to be a string"
-        return LocalSearchToolReturn(answer=result.response)
+        search_result = await self._search_engine.asearch(args.query)  # type: ignore
+        assert isinstance(search_result.response, str), "Expected response to be a string"
+        return LocalSearchToolReturn(answer=search_result.response)
 
     @classmethod
     def from_settings(cls, settings_path: str | Path) -> "LocalSearchTool":

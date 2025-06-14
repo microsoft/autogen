@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.AI;
 
@@ -69,36 +71,48 @@ public class FunctionContract
     /// </summary>
     public string? ReturnDescription { get; set; }
 
-    public static implicit operator FunctionContract(AIFunctionMetadata metadata)
+    public static implicit operator FunctionContract(AIFunction function)
     {
+        var openapiScheme = function.JsonSchema;
+        var parameters = new List<FunctionParameterContract>();
+        string[] isRequiredProperties = [];
+        if (openapiScheme.TryGetProperty("required", out var requiredElement))
+        {
+            isRequiredProperties = requiredElement.Deserialize<string[]>() ?? [];
+        }
+
+        var parameterList = function.UnderlyingMethod?.GetParameters() ?? Array.Empty<ParameterInfo>();
+
+        if (openapiScheme.TryGetProperty("properties", out var propertiesElement))
+        {
+            var properties = propertiesElement.Deserialize<Dictionary<string, JsonElement>>() ?? new Dictionary<string, JsonElement>();
+            foreach (var property in properties)
+            {
+                var parameterType = parameterList.FirstOrDefault(p => p.Name == property.Key)?.ParameterType;
+                var parameter = new FunctionParameterContract
+                {
+                    Name = property.Key,
+                    ParameterType = parameterType, // TODO: Need to get the type from the schema
+                    IsRequired = isRequiredProperties.Contains(property.Key),
+                };
+                if (property.Value.TryGetProperty("description", out var descriptionElement))
+                {
+                    parameter.Description = descriptionElement.GetString();
+                }
+                if (property.Value.TryGetProperty("default", out var defaultValueElement))
+                {
+                    parameter.DefaultValue = defaultValueElement.Deserialize<object>();
+                }
+                parameters.Add(parameter);
+            }
+        }
         return new FunctionContract
         {
-            Namespace = metadata.AdditionalProperties.ContainsKey(NamespaceKey) ? metadata.AdditionalProperties[NamespaceKey] as string : null,
-            ClassName = metadata.AdditionalProperties.ContainsKey(ClassNameKey) ? metadata.AdditionalProperties[ClassNameKey] as string : null,
-            Name = metadata.Name,
-            Description = metadata.Description,
-            Parameters = metadata.Parameters?.Select(p => (FunctionParameterContract)p).ToList(),
-            ReturnType = metadata.ReturnParameter.ParameterType,
-            ReturnDescription = metadata.ReturnParameter.Description,
-        };
-    }
-
-    public static implicit operator AIFunctionMetadata(FunctionContract contract)
-    {
-        return new AIFunctionMetadata(contract.Name)
-        {
-            Description = contract.Description,
-            ReturnParameter = new AIFunctionReturnParameterMetadata()
-            {
-                Description = contract.ReturnDescription,
-                ParameterType = contract.ReturnType,
-            },
-            AdditionalProperties = new Dictionary<string, object?>
-            {
-                [NamespaceKey] = contract.Namespace,
-                [ClassNameKey] = contract.ClassName,
-            },
-            Parameters = [.. contract.Parameters?.Select(p => (AIFunctionParameterMetadata)p)!],
+            Namespace = function.AdditionalProperties.ContainsKey(NamespaceKey) ? function.AdditionalProperties[NamespaceKey] as string : null,
+            ClassName = function.AdditionalProperties.ContainsKey(ClassNameKey) ? function.AdditionalProperties[ClassNameKey] as string : null,
+            Name = function.Name,
+            Description = function.Description,
+            Parameters = parameters,
         };
     }
 }
@@ -132,29 +146,4 @@ public class FunctionParameterContract
     /// The default value of the parameter.
     /// </summary>
     public object? DefaultValue { get; set; }
-
-    // convert to/from FunctionParameterMetadata
-    public static implicit operator FunctionParameterContract(AIFunctionParameterMetadata metadata)
-    {
-        return new FunctionParameterContract
-        {
-            Name = metadata.Name,
-            Description = metadata.Description,
-            ParameterType = metadata.ParameterType,
-            IsRequired = metadata.IsRequired,
-            DefaultValue = metadata.DefaultValue,
-        };
-    }
-
-    public static implicit operator AIFunctionParameterMetadata(FunctionParameterContract contract)
-    {
-        return new AIFunctionParameterMetadata(contract.Name!)
-        {
-            DefaultValue = contract.DefaultValue,
-            Description = contract.Description,
-            IsRequired = contract.IsRequired,
-            ParameterType = contract.ParameterType,
-            HasDefaultValue = contract.DefaultValue != null,
-        };
-    }
 }

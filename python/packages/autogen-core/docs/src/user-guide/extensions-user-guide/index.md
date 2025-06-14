@@ -22,6 +22,7 @@ create-your-own
 :caption: Guides
 
 azure-container-code-executor
+azure-foundry-agent
 ```
 
 AutoGen is designed to be extensible. The `autogen-ext` package contains the built-in component implementations maintained by the AutoGen project.
@@ -43,12 +44,14 @@ We strongly encourage developers to build their own components and publish them 
 
 :::{grid-item-card} {fas}`magnifying-glass;pst-color-primary` Discover
 :link: ./discover.html
+:link-alt: Discover: Discover community extensions and samples
 
 Discover community extensions and samples
 :::
 
 :::{grid-item-card} {fas}`code;pst-color-primary` Create your own
 :link: ./create-your-own.html
+:link-alt: Create your own: Create your own extension
 
 Create your own extension
 :::

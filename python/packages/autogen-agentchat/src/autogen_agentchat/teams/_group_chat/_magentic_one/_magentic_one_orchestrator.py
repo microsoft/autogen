@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any, Dict, List, Mapping
+from typing import Any, Dict, List, Mapping, Sequence
 
 from autogen_core import AgentId, CancellationToken, DefaultTopicId, MessageContext, event, rpc
 from autogen_core.models import (
@@ -11,14 +11,17 @@ from autogen_core.models import (
     LLMMessage,
     UserMessage,
 )
+from autogen_core.utils import extract_json_from_str
 
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
 from ....messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
     HandoffMessage,
+    MessageFactory,
     MultiModalMessage,
+    SelectSpeakerEvent,
     StopMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -26,7 +29,7 @@ from ....messages import (
     ToolCallSummaryMessage,
 )
 from ....state import MagenticOneOrchestratorState
-from ....utils import content_to_str, remove_images
+from ....utils import remove_images
 from .._base_group_chat_manager import BaseGroupChatManager
 from .._events import (
     GroupChatAgentResponse,
@@ -35,6 +38,7 @@ from .._events import (
     GroupChatReset,
     GroupChatStart,
     GroupChatTermination,
+    SerializableException,
 )
 from ._prompts import (
     ORCHESTRATOR_FINAL_ANSWER_PROMPT,
@@ -44,6 +48,7 @@ from ._prompts import (
     ORCHESTRATOR_TASK_LEDGER_FULL_PROMPT,
     ORCHESTRATOR_TASK_LEDGER_PLAN_PROMPT,
     ORCHESTRATOR_TASK_LEDGER_PLAN_UPDATE_PROMPT,
+    LedgerEntry,
 )
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -61,11 +66,13 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         participant_names: List[str],
         participant_descriptions: List[str],
         max_turns: int | None,
+        message_factory: MessageFactory,
         model_client: ChatCompletionClient,
         max_stalls: int,
         final_answer_prompt: str,
-        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
+        output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
+        emit_team_events: bool,
     ):
         super().__init__(
             name,
@@ -77,6 +84,8 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             output_message_queue,
             termination_condition,
             max_turns,
+            message_factory,
+            emit_team_events=emit_team_events,
         )
         self._model_client = model_client
         self._max_stalls = max_stalls
@@ -147,7 +156,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         # Create the initial task ledger
         #################################
         # Combine all message contents for task
-        self._task = " ".join([content_to_str(msg.content) for msg in message.messages])
+        self._task = " ".join([msg.to_model_text() for msg in message.messages])
         planning_conversation: List[LLMMessage] = []
 
         # 1. GATHER FACTS
@@ -181,29 +190,36 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:  # type: ignore
-        delta: List[AgentEvent | ChatMessage] = []
-        if message.agent_response.inner_messages is not None:
-            for inner_message in message.agent_response.inner_messages:
-                delta.append(inner_message)
-        self._message_thread.append(message.agent_response.chat_message)
-        delta.append(message.agent_response.chat_message)
+        try:
+            delta: List[BaseAgentEvent | BaseChatMessage] = []
+            if message.agent_response.inner_messages is not None:
+                for inner_message in message.agent_response.inner_messages:
+                    delta.append(inner_message)
+            await self.update_message_thread([message.agent_response.chat_message])
+            delta.append(message.agent_response.chat_message)
 
-        if self._termination_condition is not None:
-            stop_message = await self._termination_condition(delta)
-            if stop_message is not None:
-                # Reset the termination conditions.
-                await self._termination_condition.reset()
-                # Signal termination.
-                await self._signal_termination(stop_message)
-                return
-        await self._orchestrate_step(ctx.cancellation_token)
+            if self._termination_condition is not None:
+                stop_message = await self._termination_condition(delta)
+                if stop_message is not None:
+                    # Reset the termination conditions.
+                    await self._termination_condition.reset()
+                    # Signal termination.
+                    await self._signal_termination(stop_message)
+                    return
 
-    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
+            await self._orchestrate_step(ctx.cancellation_token)
+        except Exception as e:
+            error = SerializableException.from_exception(e)
+            await self._signal_termination_with_error(error)
+            # Raise the error to the runtime.
+            raise
+
+    async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         pass
 
     async def save_state(self) -> Mapping[str, Any]:
         state = MagenticOneOrchestratorState(
-            message_thread=list(self._message_thread),
+            message_thread=[msg.dump() for msg in self._message_thread],
             current_turn=self._current_turn,
             task=self._task,
             facts=self._facts,
@@ -215,7 +231,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         orchestrator_state = MagenticOneOrchestratorState.model_validate(state)
-        self._message_thread = orchestrator_state.message_thread
+        self._message_thread = [self._message_factory.create(message) for message in orchestrator_state.message_thread]
         self._current_turn = orchestrator_state.current_turn
         self._task = orchestrator_state.task
         self._facts = orchestrator_state.facts
@@ -223,9 +239,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._n_rounds = orchestrator_state.n_rounds
         self._n_stalls = orchestrator_state.n_stalls
 
-    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
+    async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:
         """Not used in this orchestrator, we select next speaker in _orchestrate_step."""
-        return ""
+        return [""]
 
     async def reset(self) -> None:
         """Reset the group chat manager."""
@@ -257,7 +273,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         )
 
         # Save my copy
-        self._message_thread.append(ledger_message)
+        await self.update_message_thread([ledger_message])
 
         # Log it to the output topic.
         await self.publish_message(
@@ -269,7 +285,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast
         await self.publish_message(
-            GroupChatAgentResponse(agent_response=Response(chat_message=ledger_message)),
+            GroupChatAgentResponse(agent_response=Response(chat_message=ledger_message), agent_name=self._name),
             topic_id=DefaultTopicId(type=self._group_topic_type),
         )
 
@@ -295,11 +311,27 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         assert self._max_json_retries > 0
         key_error: bool = False
         for _ in range(self._max_json_retries):
-            response = await self._model_client.create(self._get_compatible_context(context), json_output=True)
+            if self._model_client.model_info.get("structured_output", False):
+                response = await self._model_client.create(
+                    self._get_compatible_context(context), json_output=LedgerEntry
+                )
+            elif self._model_client.model_info.get("json_output", False):
+                response = await self._model_client.create(
+                    self._get_compatible_context(context), cancellation_token=cancellation_token, json_output=True
+                )
+            else:
+                response = await self._model_client.create(
+                    self._get_compatible_context(context), cancellation_token=cancellation_token
+                )
             ledger_str = response.content
             try:
                 assert isinstance(ledger_str, str)
-                progress_ledger = json.loads(ledger_str)
+                output_json = extract_json_from_str(ledger_str)
+                if len(output_json) != 1:
+                    raise ValueError(
+                        f"Progress ledger should contain a single JSON object, but found: {len(progress_ledger)}"
+                    )
+                progress_ledger = output_json[0]
 
                 # If the team consists of a single agent, deterministically set the next speaker
                 if len(self._participant_names) == 1:
@@ -370,7 +402,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast the next step
         message = TextMessage(content=progress_ledger["instruction_or_question"]["answer"], source=self._name)
-        self._message_thread.append(message)  # My copy
+        await self.update_message_thread([message])  # My copy
 
         await self._log_message(f"Next Speaker: {progress_ledger['next_speaker']['answer']}")
         # Log it to the output topic.
@@ -383,7 +415,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast it
         await self.publish_message(  # Broadcast
-            GroupChatAgentResponse(agent_response=Response(chat_message=message)),
+            GroupChatAgentResponse(agent_response=Response(chat_message=message), agent_name=self._name),
             topic_id=DefaultTopicId(type=self._group_topic_type),
             cancellation_token=cancellation_token,
         )
@@ -401,6 +433,15 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             topic_id=DefaultTopicId(type=participant_topic_type),
             cancellation_token=cancellation_token,
         )
+
+        # Send the message to the next speaker
+        if self._emit_team_events:
+            select_msg = SelectSpeakerEvent(content=[next_speaker], source=self._name)
+            await self.publish_message(
+                GroupChatMessage(message=select_msg),
+                topic_id=DefaultTopicId(type=self._output_topic_type),
+            )
+            await self._output_message_queue.put(select_msg)
 
     async def _update_task_ledger(self, cancellation_token: CancellationToken) -> None:
         """Update the task ledger (outer loop) with the latest facts and plan."""
@@ -443,7 +484,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         assert isinstance(response.content, str)
         message = TextMessage(content=response.content, source=self._name)
 
-        self._message_thread.append(message)  # My copy
+        await self.update_message_thread([message])  # My copy
 
         # Log it to the output topic.
         await self.publish_message(
@@ -455,7 +496,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast
         await self.publish_message(
-            GroupChatAgentResponse(agent_response=Response(chat_message=message)),
+            GroupChatAgentResponse(agent_response=Response(chat_message=message), agent_name=self._name),
             topic_id=DefaultTopicId(type=self._group_topic_type),
             cancellation_token=cancellation_token,
         )

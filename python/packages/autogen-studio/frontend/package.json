@@ -37,7 +37,6 @@
     "gatsby-plugin-mdx": "^5.14.0",
     "gatsby-plugin-postcss": "^6.14.0",
     "gatsby-plugin-sharp": "^5.14.0",
-    "gatsby-plugin-sitemap": "^6.14.0",
     "gatsby-source-filesystem": "^5.14.0",
     "gatsby-transformer-sharp": "^5.14.0",
     "install": "^0.13.0",
@@ -46,7 +45,6 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
-    "react-syntax-highlighter": "^15.6.1",
     "remark-gfm": "^4.0.1",
     "tailwindcss": "^3.4.14",
     "yarn": "^1.22.22",
@@ -57,7 +55,6 @@
     "@types/node": "^22.9.0",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
-    "@types/react-syntax-highlighter": "^15.5.13",
     "@types/uuid": "^10.0.0",
     "typescript": "^5.3.3"
   }

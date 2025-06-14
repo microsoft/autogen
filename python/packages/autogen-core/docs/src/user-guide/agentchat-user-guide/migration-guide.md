@@ -45,6 +45,7 @@ See each feature below for detailed information on how to migrate.
   - [Assistant Agent](#assistant-agent)
   - [Multi-Modal Agent](#multi-modal-agent)
   - [User Proxy](#user-proxy)
+  - [RAG Agent](#rag-agent)
   - [Conversable Agent and Register Reply](#conversable-agent-and-register-reply)
   - [Save and Load Agent State](#save-and-load-agent-state)
   - [Two-Agent Chat](#two-agent-chat)
@@ -153,6 +154,7 @@ custom_model_client = OpenAIChatCompletionClient(
         "function_calling": True,
         "json_output": True,
         "family": "unknown",
+        "structured_output": True,
     },
 )
 ```
@@ -220,6 +222,7 @@ async def main():
         print(response)  # Should print response from OpenAI
         response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
         print(response)  # Should print cached response
+        await openai_model_client.close()
 
 
 asyncio.run(main())
@@ -287,6 +290,8 @@ async def main() -> None:
     response = await assistant.on_messages([TextMessage(content="Hello!", source="user")], cancellation_token)
     print(response)
 
+    await model_client.close()
+
 asyncio.run(main())
 ```
 
@@ -327,6 +332,8 @@ async def main() -> None:
     response = await assistant.on_messages([message], cancellation_token)
     print(response)
 
+    await model_client.close()
+
 asyncio.run(main())
 ```
 
@@ -360,6 +367,54 @@ user_proxy = UserProxyAgent("user_proxy")
 
 See {py:class}`~autogen_agentchat.agents.UserProxyAgent`
 for more details and how to customize the input function with timeout.
+
+## RAG Agent
+
+In `v0.2`, there was the concept of teachable agents as well as a RAG agents that could take a database config.
+
+```python
+teachable_agent = ConversableAgent(
+    name="teachable_agent",
+    llm_config=llm_config
+)
+
+# Instantiate a Teachability object. Its parameters are all optional.
+teachability = Teachability(
+    reset_db=False,
+    path_to_db_dir="./tmp/interactive/teachability_db"
+)
+
+teachability.add_to_agent(teachable_agent)
+```
+
+In `v0.4`, you can implement a RAG agent using the {py:class}`~autogen_core.memory.Memory` class. Specifically, you can define a memory store class, and pass that as a parameter to the assistant agent. See the [Memory](memory.ipynb) tutorial for more details.
+
+This clear separation of concerns allows you to implement a memory store that uses any database or storage system you want (you have to inherit from the `Memory` class) and use it with an assistant agent. The example below shows how to use a ChromaDB vector memory store with the assistant agent. In addition, your application logic should determine how and when to add content to the memory store. For example, you may choose to call `memory.add` for every response from the assistant agent or use a separate LLM call to determine if the content should be added to the memory store.
+
+```python
+
+# ...
+# example of a ChromaDBVectorMemory class
+chroma_user_memory = ChromaDBVectorMemory(
+    config=PersistentChromaDBVectorMemoryConfig(
+        collection_name="preferences",
+        persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
+        k=2,  # Return top  k results
+        score_threshold=0.4,  # Minimum similarity score
+    )
+)
+
+# you can add logic such as a document indexer that adds content to the memory store
+
+assistant_agent = AssistantAgent(
+    name="assistant_agent",
+    model_client=OpenAIChatCompletionClient(
+        model="gpt-4o",
+    ),
+    tools=[get_weather],
+    memory=[chroma_user_memory],
+)
+```
 
 ## Conversable Agent and Register Reply
 
@@ -407,18 +462,18 @@ and implement the `on_messages`, `on_reset`, and `produced_message_types` method
 from typing import Sequence
 from autogen_core import CancellationToken
 from autogen_agentchat.agents import BaseChatAgent
-from autogen_agentchat.messages import TextMessage, ChatMessage
+from autogen_agentchat.messages import TextMessage, BaseChatMessage
 from autogen_agentchat.base import Response
 
 class CustomAgent(BaseChatAgent):
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         return Response(chat_message=TextMessage(content="Custom reply", source=self.name))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         pass
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 ```
 
@@ -476,6 +531,8 @@ async def main() -> None:
 
     # Carry on the same chat again.
     response = await assistant.on_messages([TextMessage(content="Tell me a joke.", source="user")], cancellation_token)
+    # Close the connection to the model client.
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -554,6 +611,9 @@ async def main() -> None:
     stream = group_chat.run_stream(task="Write a python script to print 'Hello, world!'")
     # `Console` is a simple UI to display the stream.
     await Console(stream)
+    
+    # Close the connection to the model client.
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -631,7 +691,8 @@ async def main() -> None:
         if user_input == "exit":
             break
         response = await assistant.on_messages([TextMessage(content=user_input, source="user")], CancellationToken())
-        print("Assistant:", response.chat_message.content)
+        print("Assistant:", response.chat_message.to_text())
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -681,8 +742,8 @@ You can use the following conversion functions to convert between a v0.4 message
 from typing import Any, Dict, List, Literal
 
 from autogen_agentchat.messages import (
-    AgentEvent,
-    ChatMessage,
+    BaseAgentEvent,
+    BaseChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
@@ -696,14 +757,14 @@ from autogen_core.models import FunctionExecutionResult
 
 
 def convert_to_v02_message(
-    message: AgentEvent | ChatMessage,
+    message: BaseAgentEvent | BaseChatMessage,
     role: Literal["assistant", "user", "tool"],
     image_detail: Literal["auto", "high", "low"] = "auto",
 ) -> Dict[str, Any]:
     """Convert a v0.4 AgentChat message to a v0.2 message.
 
     Args:
-        message (AgentEvent | ChatMessage): The message to convert.
+        message (BaseAgentEvent | BaseChatMessage): The message to convert.
         role (Literal["assistant", "user", "tool"]): The role of the message.
         image_detail (Literal["auto", "high", "low"], optional): The detail level of image content in multi-modal message. Defaults to "auto".
 
@@ -749,7 +810,7 @@ def convert_to_v02_message(
     return v02_message
 
 
-def convert_to_v04_message(message: Dict[str, Any]) -> AgentEvent | ChatMessage:
+def convert_to_v04_message(message: Dict[str, Any]) -> BaseAgentEvent | BaseChatMessage:
     """Convert a v0.2 message to a v0.4 AgentChat message."""
     if "tool_calls" in message:
         tool_calls: List[FunctionCall] = []
@@ -869,6 +930,8 @@ async def main() -> None:
     stream = group_chat.run_stream(task="Write a short story about a robot that discovers it has feelings.")
     # `Console` is a simple UI to display the stream.
     await Console(stream)
+    # Close the connection to the model client.
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -900,9 +963,7 @@ from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-def create_team() -> RoundRobinGroupChat:
-    model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
-
+def create_team(model_client : OpenAIChatCompletionClient) -> RoundRobinGroupChat:
     writer = AssistantAgent(
         name="writer",
         description="A writer.",
@@ -927,8 +988,9 @@ def create_team() -> RoundRobinGroupChat:
 
 
 async def main() -> None:
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
     # Create team.
-    group_chat = create_team()
+    group_chat = create_team(model_client)
 
     # `run_stream` returns an async generator to stream the intermediate messages.
     stream = group_chat.run_stream(task="Write a short story about a robot that discovers it has feelings.")
@@ -941,7 +1003,7 @@ async def main() -> None:
         json.dump(state, f)
 
     # Create a new team with the same participants configuration.
-    group_chat = create_team()
+    group_chat = create_team(model_client)
 
     # Load the state of the group chat and all participants.
     with open("group_chat_state.json", "r") as f:
@@ -951,6 +1013,9 @@ async def main() -> None:
     # Resume the chat.
     stream = group_chat.run_stream(task="Translate the story into Chinese.")
     await Console(stream)
+
+    # Close the connection to the model client.
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -1000,7 +1065,7 @@ import asyncio
 from typing import Sequence
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
-from autogen_agentchat.messages import AgentEvent, ChatMessage
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -1024,9 +1089,7 @@ def search_web_tool(query: str) -> str:
 def percentage_change_tool(start: float, end: float) -> float:
     return ((end - start) / start) * 100
 
-def create_team() -> SelectorGroupChat:
-    model_client = OpenAIChatCompletionClient(model="gpt-4o")
-
+def create_team(model_client : OpenAIChatCompletionClient) -> SelectorGroupChat:
     planning_agent = AssistantAgent(
         "PlanningAgent",
         description="An agent for planning tasks, this agent should be the first to engage when given a new task.",
@@ -1078,7 +1141,7 @@ def create_team() -> SelectorGroupChat:
 
     # The selector function is a function that takes the current message thread of the group chat
     # and returns the next speaker's name. If None is returned, the LLM-based selection method will be used.
-    def selector_func(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
+    def selector_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> str | None:
         if messages[-1].source != planning_agent.name:
             return planning_agent.name # Always return to the planning agent after the other agents have spoken.
         return None
@@ -1092,7 +1155,8 @@ def create_team() -> SelectorGroupChat:
     return team
 
 async def main() -> None:
-    team = create_team()
+    model_client = OpenAIChatCompletionClient(model="gpt-4o")
+    team = create_team(model_client)
     task = "Who was the Miami Heat player with the highest points in the 2006-2007 season, and what was the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons?"
     await Console(team.run_stream(task=task))
 
@@ -1126,12 +1190,12 @@ from typing import Sequence
 from autogen_core import CancellationToken
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_agentchat.messages import TextMessage, ChatMessage
+from autogen_agentchat.messages import TextMessage, BaseChatMessage
 from autogen_agentchat.base import Response
 
 class CountingAgent(BaseChatAgent):
     """An agent that returns a new number by adding 1 to the last number in the input messages."""
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) == 0:
             last_number = 0 # Start from 0 if no messages are given.
         else:
@@ -1143,7 +1207,7 @@ class CountingAgent(BaseChatAgent):
         pass
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 
 class NestedCountingAgent(BaseChatAgent):
@@ -1153,7 +1217,7 @@ class NestedCountingAgent(BaseChatAgent):
         super().__init__(name, description="An agent that counts numbers.")
         self._counting_team = counting_team
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         # Run the inner team with the given messages and returns the last message produced by the team.
         result = await self._counting_team.run(task=messages, cancellation_token=cancellation_token)
         # To stream the inner messages, implement `on_messages_stream` and use that to implement `on_messages`.
@@ -1165,7 +1229,7 @@ class NestedCountingAgent(BaseChatAgent):
         await self._counting_team.reset()
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         return (TextMessage,)
 
 async def main() -> None:
@@ -1267,7 +1331,9 @@ async def main() -> None:
         if user_input == "exit":
             break
         response = await assistant.on_messages([TextMessage(content=user_input, source="user")], CancellationToken())
-        print("Assistant:", response.chat_message.content)
+        print("Assistant:", response.chat_message.to_text())
+    
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -1300,6 +1366,6 @@ the `v0.4` executors support async API. You can also use
 See [Command Line Code Executors Tutorial](../core-user-guide/components/command-line-code-executors.ipynb)
 in the Core API documentation.
 
-We also added `AzureContainerCodeExecutor` that can use Azure Container Apps (ACA)
+We also added `ACADynamicSessionsCodeExecutor` that can use Azure Container Apps (ACA)
 dynamic sessions for code execution.
 See [ACA Dynamic Sessions Code Executor Docs](../extensions-user-guide/azure-container-code-executor.ipynb).

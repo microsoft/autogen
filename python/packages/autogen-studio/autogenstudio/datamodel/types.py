@@ -1,17 +1,18 @@
 # from dataclasses import Field
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Sequence
 
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import BaseChatMessage
+from autogen_agentchat.messages import ChatMessage, TextMessage
 from autogen_core import ComponentModel
+from autogen_core.models import UserMessage
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, SecretStr
 
 
 class MessageConfig(BaseModel):
     source: str
-    content: str
+    content: str | ChatMessage | Sequence[ChatMessage] | None
     message_type: Optional[str] = "text"
 
 
@@ -21,9 +22,17 @@ class TeamResult(BaseModel):
     duration: float
 
 
-class LLMCallEventMessage(BaseChatMessage):
+class LLMCallEventMessage(TextMessage):
     source: str = "llm_call_event"
-    content: str
+
+    def to_text(self) -> str:
+        return self.content
+
+    def to_model_text(self) -> str:
+        return self.content
+
+    def to_model_message(self) -> UserMessage:
+        raise NotImplementedError("This message type is not supported.")
 
 
 class MessageMeta(BaseModel):
@@ -71,9 +80,7 @@ class GalleryConfig(BaseModel):
     components: GalleryComponents
 
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-        }
+        json_encoders={datetime: lambda v: v.isoformat(), SecretStr: lambda v: v.get_secret_value()}
     )
 
 
@@ -93,7 +100,9 @@ class UISettings(BaseModel):
 
 class SettingsConfig(BaseModel):
     environment: List[EnvironmentVariable] = []
-    default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(model="gpt-4o-mini").dump_component()
+    default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(
+        model="gpt-4o-mini", api_key="your-api-key"
+    ).dump_component()
     ui: UISettings = UISettings()
 
 

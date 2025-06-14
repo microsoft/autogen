@@ -30,7 +30,7 @@ export const SettingsPanel: React.FC = () => {
   const [isModelEditorOpen, setIsModelEditorOpen] = useState(false);
 
   const { user } = useContext(appContext);
-  const userId = user?.email || "";
+  const userId = user?.id || "";
 
   // Get settings from the store
   const { serverSettings, initializeSettings } = useSettingsStore();

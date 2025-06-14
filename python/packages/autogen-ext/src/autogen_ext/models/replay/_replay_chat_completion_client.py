@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import warnings
 from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional, Sequence, Union
-from typing_extensions import Self
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component
 from autogen_core.models import (
@@ -18,6 +17,7 @@ from autogen_core.models import (
 )
 from autogen_core.tools import Tool, ToolSchema
 from pydantic import BaseModel
+from typing_extensions import Self
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -139,7 +139,11 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
             validate_model_info(self._model_info)
         else:
             self._model_info = ModelInfo(
-                vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
+                vision=False,
+                function_calling=False,
+                json_output=False,
+                family=ModelFamily.UNKNOWN,
+                structured_output=False,
             )
         self._total_available_tokens = 10000
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
@@ -158,7 +162,7 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -197,7 +201,7 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
@@ -228,6 +232,9 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
             self._update_total_usage()
 
         self._current_index += 1
+
+    async def close(self) -> None:
+        pass
 
     def actual_usage(self) -> RequestUsage:
         return self._cur_usage

@@ -1,9 +1,10 @@
 import asyncio
 import json
+import logging
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 import pytest
-from autogen_core import AgentId, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
+from autogen_core import EVENT_LOGGER_NAME, AgentId, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -24,6 +25,9 @@ from autogen_core.tool_agent import (
     tool_agent_caller_loop,
 )
 from autogen_core.tools import FunctionTool, Tool, ToolSchema
+from pydantic import BaseModel
+
+logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.INFO)
 
 
 def _pass_function(input: str) -> str:
@@ -40,7 +44,7 @@ async def _async_sleep_function(input: str) -> str:
 
 
 @pytest.mark.asyncio
-async def test_tool_agent() -> None:
+async def test_tool_agent(caplog: pytest.LogCaptureFixture) -> None:
     runtime = SingleThreadedAgentRuntime()
     await ToolAgent.register(
         runtime,
@@ -62,6 +66,9 @@ async def test_tool_agent() -> None:
         FunctionCall(id="1", arguments=json.dumps({"input": "pass"}), name="pass"), agent
     )
     assert result == FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="pass")
+
+    # Check log.
+    assert any(("ToolCall" in record.message and str(agent) in record.message) for record in caplog.records)
 
     # Test raise function
     with pytest.raises(ToolExecutionException):
@@ -95,7 +102,7 @@ async def test_caller_loop() -> None:
             messages: Sequence[LLMMessage],
             *,
             tools: Sequence[Tool | ToolSchema] = [],
-            json_output: Optional[bool] = None,
+            json_output: Optional[bool | type[BaseModel]] = None,
             extra_create_args: Mapping[str, Any] = {},
             cancellation_token: Optional[CancellationToken] = None,
         ) -> CreateResult:
@@ -120,11 +127,14 @@ async def test_caller_loop() -> None:
             messages: Sequence[LLMMessage],
             *,
             tools: Sequence[Tool | ToolSchema] = [],
-            json_output: Optional[bool] = None,
+            json_output: Optional[bool | type[BaseModel]] = None,
             extra_create_args: Mapping[str, Any] = {},
             cancellation_token: Optional[CancellationToken] = None,
         ) -> AsyncGenerator[Union[str, CreateResult], None]:
             raise NotImplementedError()
+
+        async def close(self) -> None:
+            pass
 
         def actual_usage(self) -> RequestUsage:
             return RequestUsage(prompt_tokens=0, completion_tokens=0)
@@ -144,7 +154,13 @@ async def test_caller_loop() -> None:
 
         @property
         def model_info(self) -> ModelInfo:
-            return ModelInfo(vision=False, function_calling=True, json_output=False, family=ModelFamily.UNKNOWN)
+            return ModelInfo(
+                vision=False,
+                function_calling=True,
+                json_output=False,
+                family=ModelFamily.UNKNOWN,
+                structured_output=False,
+            )
 
     client = MockChatCompletionClient()
     tools: List[Tool] = [FunctionTool(_pass_function, name="pass", description="Pass function")]

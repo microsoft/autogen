@@ -141,7 +141,7 @@ def make_move(
     return f"Moved {piece_name} ({piece_symbol}) from {SQUARE_NAMES[new_move.from_square]} to {SQUARE_NAMES[new_move.to_square]}."
 
 
-async def chess_game(runtime: AgentRuntime, model_config: Dict[str, Any]) -> None:  # type: ignore
+async def chess_game(runtime: AgentRuntime, model_client : ChatCompletionClient) -> None:  # type: ignore
     """Create agents for a chess game and return the group chat."""
 
     # Create the board.
@@ -205,8 +205,6 @@ async def chess_game(runtime: AgentRuntime, model_config: Dict[str, Any]) -> Non
         ),
     ]
 
-    model_client = ChatCompletionClient.load_component(model_config)
-
     # Register the agents.
     await ToolAgent.register(
         runtime,
@@ -250,7 +248,8 @@ async def chess_game(runtime: AgentRuntime, model_config: Dict[str, Any]) -> Non
 async def main(model_config: Dict[str, Any]) -> None:
     """Main Entrypoint."""
     runtime = SingleThreadedAgentRuntime()
-    await chess_game(runtime, model_config)
+    model_client = ChatCompletionClient.load_component(model_config)
+    await chess_game(runtime, model_client)
     runtime.start()
     # Publish an initial message to trigger the group chat manager to start
     # orchestration.
@@ -260,6 +259,7 @@ async def main(model_config: Dict[str, Any]) -> None:
         AgentId("PlayerWhite", "default"),
     )
     await runtime.stop_when_idle()
+    await model_client.close()
 
 
 if __name__ == "__main__":

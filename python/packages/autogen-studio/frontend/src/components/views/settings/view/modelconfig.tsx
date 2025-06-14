@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button, Tooltip, Drawer } from "antd";
 import { Edit2, Settings } from "lucide-react";
-import { truncateText } from "../../../utils";
+import { truncateText } from "../../../utils/utils";
 import {
   Component,
   ComponentConfig,
