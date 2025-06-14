@@ -1,4 +1,5 @@
 import json
+import uuid
 from typing import List
 
 import pytest
@@ -54,7 +55,7 @@ def test_structured_message() -> None:
 
 
 def test_structured_message_component() -> None:
-    # Create a structured message with the test contentformat_string="this is a string {field1} and this is an int {field2}"
+    # Create a structured message with the test content
     format_string = "this is a string {field1} and this is an int {field2}"
     s_m = StructuredMessageFactory(input_model=TestContent, format_string=format_string)
     config = s_m.dump_component()
@@ -187,3 +188,114 @@ def test_union_types() -> None:
     loaded_container = TestContainer.model_validate(data)
     assert loaded_container.chat_messages == chat_messages
     assert loaded_container.agent_events == agent_events
+
+
+def test_message_id_field() -> None:
+    """Test that messages have unique ID fields automatically generated."""
+    # Test BaseChatMessage subclass (TextMessage)
+    message1 = TextMessage(source="test_agent", content="Hello, world!")
+    message2 = TextMessage(source="test_agent", content="Hello, world!")
+
+    # Check that IDs are present and unique
+    assert hasattr(message1, "id")
+    assert hasattr(message2, "id")
+    assert message1.id != message2.id
+    assert isinstance(message1.id, str)
+    assert isinstance(message2.id, str)
+
+    # Check that IDs are valid UUIDs
+    try:
+        uuid.UUID(message1.id)
+        uuid.UUID(message2.id)
+    except ValueError:
+        pytest.fail("Generated IDs are not valid UUIDs")
+
+    # Test BaseAgentEvent subclass (ModelClientStreamingChunkEvent)
+    event1 = ModelClientStreamingChunkEvent(source="test_agent", content="chunk1")
+    event2 = ModelClientStreamingChunkEvent(source="test_agent", content="chunk2")
+
+    # Check that IDs are present and unique
+    assert hasattr(event1, "id")
+    assert hasattr(event2, "id")
+    assert event1.id != event2.id
+    assert isinstance(event1.id, str)
+    assert isinstance(event2.id, str)
+
+    # Check that IDs are valid UUIDs
+    try:
+        uuid.UUID(event1.id)
+        uuid.UUID(event2.id)
+    except ValueError:
+        pytest.fail("Generated IDs are not valid UUIDs")
+
+
+def test_custom_message_id() -> None:
+    """Test that custom IDs can be provided."""
+    custom_id = "custom-message-id-123"
+    message = TextMessage(id=custom_id, source="test_agent", content="Hello, world!")
+
+    assert message.id == custom_id
+
+    custom_event_id = "custom-event-id-456"
+    event = ModelClientStreamingChunkEvent(id=custom_event_id, source="test_agent", content="chunk")
+
+    assert event.id == custom_event_id
+
+
+def test_streaming_chunk_full_message_id() -> None:
+    """Test the full_message_id field in ModelClientStreamingChunkEvent."""
+    # Test without full_message_id
+    chunk1 = ModelClientStreamingChunkEvent(source="test_agent", content="chunk1")
+    assert chunk1.full_message_id is None
+
+    # Test with full_message_id
+    full_msg_id = "full-message-123"
+    chunk2 = ModelClientStreamingChunkEvent(source="test_agent", content="chunk2", full_message_id=full_msg_id)
+    assert chunk2.full_message_id == full_msg_id
+
+    # Test that chunk has its own ID separate from full_message_id
+    assert chunk2.id != chunk2.full_message_id
+    assert isinstance(chunk2.id, str)
+
+    # Verify chunk ID is a valid UUID
+    try:
+        uuid.UUID(chunk2.id)
+    except ValueError:
+        pytest.fail("Chunk ID is not a valid UUID")
+
+
+def test_message_serialization_with_id() -> None:
+    """Test that messages with IDs serialize and deserialize correctly."""
+    # Create a message with auto-generated ID
+    original_message = TextMessage(source="test_agent", content="Hello, world!")
+    original_id = original_message.id
+
+    # Serialize to dict
+    message_data = original_message.model_dump()
+    assert "id" in message_data
+    assert message_data["id"] == original_id
+
+    # Deserialize from dict
+    restored_message = TextMessage.model_validate(message_data)
+    assert restored_message.id == original_id
+    assert restored_message.source == "test_agent"
+    assert restored_message.content == "Hello, world!"
+
+    # Test with streaming chunk event
+    original_chunk = ModelClientStreamingChunkEvent(
+        source="test_agent", content="chunk", full_message_id="full-msg-123"
+    )
+    original_chunk_id = original_chunk.id
+
+    # Serialize to dict
+    chunk_data = original_chunk.model_dump()
+    assert "id" in chunk_data
+    assert "full_message_id" in chunk_data
+    assert chunk_data["id"] == original_chunk_id
+    assert chunk_data["full_message_id"] == "full-msg-123"
+
+    # Deserialize from dict
+    restored_chunk = ModelClientStreamingChunkEvent.model_validate(chunk_data)
+    assert restored_chunk.id == original_chunk_id
+    assert restored_chunk.full_message_id == "full-msg-123"
+    assert restored_chunk.content == "chunk"
