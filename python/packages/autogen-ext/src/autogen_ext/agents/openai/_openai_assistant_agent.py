@@ -389,7 +389,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         if tool is None:
             raise ValueError(f"The tool '{tool_call.name}' is not available.")
         arguments = json.loads(tool_call.arguments)
-        result = await tool.run_json(arguments, cancellation_token)
+        result = await tool.run_json(arguments, cancellation_token, call_id=tool_call.id)
         return tool.return_value_as_string(result)
 
     async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
