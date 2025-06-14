@@ -627,8 +627,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         usage = RequestUsage(
             # TODO backup token counting
-            prompt_tokens=result.usage.prompt_tokens if result.usage is not None else 0,
-            completion_tokens=(result.usage.completion_tokens if result.usage is not None else 0),
+            prompt_tokens=result.usage.prompt_tokens
+            if result.usage is not None and result.usage.prompt_tokens is not None
+            else 0,
+            completion_tokens=result.usage.completion_tokens
+            if result.usage is not None and result.usage.completion_tokens is not None
+            else 0,
         )
 
         logger.info(

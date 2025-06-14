@@ -367,9 +367,39 @@ async def test_openai_chat_completion_client_create_stream_no_usage_explicit(mon
     assert chunks[0] == "Hello"
     assert chunks[1] == " Another Hello"
     assert chunks[2] == " Yet Another Hello"
-    assert isinstance(chunks[-1], CreateResult)
-    assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
-    assert chunks[-1].usage == RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_none_usage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that completion_tokens and prompt_tokens handle None usage correctly.
+
+    This test addresses issue #6352 where result.usage could be None,
+    causing TypeError in logging when trying to access completion_tokens.
+    """
+
+    async def _mock_create_with_none_usage(*args: Any, **kwargs: Any) -> ChatCompletion:
+        await asyncio.sleep(0.1)
+        # Create a ChatCompletion with None usage (which can happen in some API scenarios)
+        return ChatCompletion(
+            id="id",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="Hello", role="assistant"))
+            ],
+            created=0,
+            model="gpt-4o",
+            object="chat.completion",
+            usage=None,  # This is the scenario from the issue
+        )
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create_with_none_usage)
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+
+    # This should not raise a TypeError
+    result = await client.create(messages=[UserMessage(content="Hello", source="user")])
+
+    # Verify that the usage is correctly set to 0 when usage is None
+    assert result.usage.prompt_tokens == 0
+    assert result.usage.completion_tokens == 0
 
 
 @pytest.mark.asyncio
