@@ -717,6 +717,7 @@ async def test_digraph_group_chat_loop_with_exit_condition(runtime: AgentRuntime
     assert any(m.content == "exit" for m in result.messages[:-1])  # type: ignore[attr-defined,union-attr]
     assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
 
+
 @pytest.mark.asyncio
 async def test_digraph_group_chat_loop_with_exit_condition_2(runtime: AgentRuntime | None) -> None:
     # Agents A and C: Echo Agents
@@ -761,7 +762,7 @@ async def test_digraph_group_chat_loop_with_exit_condition_2(runtime: AgentRunti
         "user",
         "A",
         "B",  # 1st loop
-        "B", # 2nd loop  
+        "B",  # 2nd loop
         "B",
         "C",
         _DIGRAPH_STOP_AGENT_NAME,
@@ -774,6 +775,7 @@ async def test_digraph_group_chat_loop_with_exit_condition_2(runtime: AgentRunti
     assert result.messages[-2].source == "C"
     assert any(m.content == "exit" for m in result.messages[:-1])  # type: ignore[attr-defined,union-attr]
     assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
+
 
 @pytest.mark.asyncio
 async def test_digraph_group_chat_parallel_join_any_1(runtime: AgentRuntime | None) -> None:
