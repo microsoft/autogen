@@ -719,6 +719,65 @@ async def test_digraph_group_chat_loop_with_exit_condition(runtime: AgentRuntime
 
 
 @pytest.mark.asyncio
+async def test_digraph_group_chat_loop_with_exit_condition_2(runtime: AgentRuntime | None) -> None:
+    # Agents A and C: Echo Agents
+    agent_a = _EchoAgent("A", description="Echo agent A")
+    agent_c = _EchoAgent("C", description="Echo agent C")
+
+    # Replay model client for agent B
+    model_client = ReplayChatCompletionClient(
+        chat_completions=[
+            "loop",  # First time B will ask to loop
+            "loop",  # Second time B will ask to loop
+            "exit",  # Third time B will say exit
+        ]
+    )
+    # Agent B: Assistant Agent using Replay Client
+    agent_b = AssistantAgent("B", description="Decision agent B", model_client=model_client)
+
+    # DiGraph: A → B(self loop) → C (conditional back to A or terminate)
+    graph = DiGraph(
+        nodes={
+            "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
+            "B": DiGraphNode(
+                name="B", edges=[DiGraphEdge(target="C", condition="exit"), DiGraphEdge(target="B", condition="loop")]
+            ),
+            "C": DiGraphNode(name="C", edges=[]),
+        },
+        default_start_node="A",
+    )
+
+    team = GraphFlow(
+        participants=[agent_a, agent_b, agent_c],
+        graph=graph,
+        runtime=runtime,
+        termination_condition=MaxMessageTermination(20),
+    )
+
+    # Run
+    result = await team.run(task="Start")
+
+    # Assert message order
+    expected_sources = [
+        "user",
+        "A",
+        "B",  # 1st loop
+        "B",  # 2nd loop
+        "B",
+        "C",
+        _DIGRAPH_STOP_AGENT_NAME,
+    ]
+
+    actual_sources = [m.source for m in result.messages]
+
+    assert actual_sources == expected_sources
+    assert result.stop_reason is not None
+    assert result.messages[-2].source == "C"
+    assert any(m.content == "exit" for m in result.messages[:-1])  # type: ignore[attr-defined,union-attr]
+    assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
+
+
+@pytest.mark.asyncio
 async def test_digraph_group_chat_parallel_join_any_1(runtime: AgentRuntime | None) -> None:
     agent_a = _EchoAgent("A", description="Echo agent A")
     agent_b = _EchoAgent("B", description="Echo agent B")
