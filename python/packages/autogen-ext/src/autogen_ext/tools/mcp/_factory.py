@@ -1,15 +1,16 @@
 from mcp import ClientSession
 
-from ._config import McpServerParams, SseServerParams, StdioServerParams
+from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
 from ._session import create_mcp_server_session
 from ._sse import SseMcpToolAdapter
 from ._stdio import StdioMcpToolAdapter
+from ._streamable_http import StreamableHttpMcpToolAdapter
 
 
 async def mcp_server_tools(
     server_params: McpServerParams,
     session: ClientSession | None = None,
-) -> list[StdioMcpToolAdapter | SseMcpToolAdapter]:
+) -> list[StdioMcpToolAdapter | SseMcpToolAdapter | StreamableHttpMcpToolAdapter]:
     """Creates a list of MCP tool adapters that can be used with AutoGen agents.
 
     This factory function connects to an MCP server and returns adapters for all available tools.
@@ -26,14 +27,14 @@ async def mcp_server_tools(
     Args:
         server_params (McpServerParams): Connection parameters for the MCP server.
             Can be either StdioServerParams for command-line tools or
-            SseServerParams for HTTP/SSE services.
+            SseServerParams and StreamableHttpServerParams for HTTP/SSE services.
         session (ClientSession | None): Optional existing session to use. This is used
             when you want to reuse an existing connection to the MCP server. The session
             will be reused when creating the MCP tool adapters.
 
     Returns:
-        list[StdioMcpToolAdapter | SseMcpToolAdapter]: A list of tool adapters ready to use
-            with AutoGen agents.
+        list[StdioMcpToolAdapter | SseMcpToolAdapter | StreamableHttpMcpToolAdapter]:
+            A list of tool adapters ready to use with AutoGen agents.
 
     Examples:
 
@@ -200,4 +201,9 @@ async def mcp_server_tools(
         return [StdioMcpToolAdapter(server_params=server_params, tool=tool, session=session) for tool in tools.tools]
     elif isinstance(server_params, SseServerParams):
         return [SseMcpToolAdapter(server_params=server_params, tool=tool, session=session) for tool in tools.tools]
+    elif isinstance(server_params, StreamableHttpServerParams):
+        return [
+            StreamableHttpMcpToolAdapter(server_params=server_params, tool=tool, session=session)
+            for tool in tools.tools
+        ]
     raise ValueError(f"Unsupported server params type: {type(server_params)}")
