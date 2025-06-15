@@ -276,6 +276,7 @@ async def test_openai_chat_completion_client_create_stream_with_usage(
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
     client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
     chunks: List[str | CreateResult] = []
+    # Check that include_usage works when set via create_args
     with caplog.at_level(logging.INFO):
         async for chunk in client.create_stream(
             messages=[UserMessage(content="Hello", source="user")],
@@ -295,6 +296,38 @@ async def test_openai_chat_completion_client_create_stream_with_usage(
         assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
         assert chunks[-1].content in caplog.text
         assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
+
+    chunks = []
+    # Check that include_usage works when set via include_usage flag
+    with caplog.at_level(logging.INFO):
+        async for chunk in client.create_stream(
+            messages=[UserMessage(content="Hello", source="user")],
+            include_usage=True,
+        ):
+            chunks.append(chunk)
+
+        assert "LLMStreamStart" in caplog.text
+        assert "LLMStreamEnd" in caplog.text
+
+        assert chunks[0] == "Hello"
+        assert chunks[1] == " Another Hello"
+        assert chunks[2] == " Yet Another Hello"
+        assert isinstance(chunks[-1], CreateResult)
+        assert isinstance(chunks[-1].content, str)
+        assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+        assert chunks[-1].content in caplog.text
+        assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
+
+    chunks = []
+    # Check that setting both flags to different values raises an exception
+
+    with pytest.raises(ValueError):
+        async for chunk in client.create_stream(
+            messages=[UserMessage(content="Hello", source="user")],
+            extra_create_args={"stream_options": {"include_usage": False}},
+            include_usage=True,
+        ):
+            chunks.append(chunk)
 
 
 @pytest.mark.asyncio
@@ -2483,6 +2516,19 @@ async def test_multimodal_message_test(
         name="ocr_agent", model_client=openai_client, system_message="""You are a helpful agent."""
     )
     _ = await ocr_agent.run(task=multi_modal_message)
+
+
+@pytest.mark.asyncio
+async def test_mistral_remove_name() -> None:
+    # Test that the name pramaeter is removed from the message
+    # when the model is Mistral
+    message = UserMessage(content="foo", source="user")
+    params = to_oai_type(message, prepend_name=False, model="mistral-7b", model_family=ModelFamily.MISTRAL)
+    assert ("name" in params[0]) is False
+
+    # when the model is gpt-4o, the name parameter is not removed
+    params = to_oai_type(message, prepend_name=False, model="gpt-4o", model_family=ModelFamily.GPT_4O)
+    assert ("name" in params[0]) is True
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.

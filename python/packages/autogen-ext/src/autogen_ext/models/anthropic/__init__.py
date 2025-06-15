@@ -1,4 +1,8 @@
-from ._anthropic_client import AnthropicChatCompletionClient, BaseAnthropicChatCompletionClient
+from ._anthropic_client import (
+    AnthropicBedrockChatCompletionClient,
+    AnthropicChatCompletionClient,
+    BaseAnthropicChatCompletionClient,
+)
 from .config import (
     AnthropicBedrockClientConfiguration,
     AnthropicBedrockClientConfigurationConfigModel,
@@ -10,6 +14,7 @@ from .config import (
 
 __all__ = [
     "AnthropicChatCompletionClient",
+    "AnthropicBedrockChatCompletionClient",
     "BaseAnthropicChatCompletionClient",
     "AnthropicClientConfiguration",
     "AnthropicBedrockClientConfiguration",

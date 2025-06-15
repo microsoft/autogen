@@ -6,24 +6,6 @@ from typing import Any, AsyncGenerator, Dict, List, Mapping, Sequence
 
 import pytest
 import pytest_asyncio
-from autogen_core import AgentId, AgentRuntime, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
-from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_core.models import (
-    AssistantMessage,
-    CreateResult,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
-    LLMMessage,
-    RequestUsage,
-    UserMessage,
-)
-from autogen_core.tools import FunctionTool
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_ext.models.replay import ReplayChatCompletionClient
-from pydantic import BaseModel
-from utils import FileLogHandler
-
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import (
     AssistantAgent,
@@ -57,6 +39,23 @@ from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRob
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
+from autogen_core import AgentId, AgentRuntime, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
+from autogen_core.model_context import BufferedChatCompletionContext
+from autogen_core.models import (
+    AssistantMessage,
+    CreateResult,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    LLMMessage,
+    RequestUsage,
+    UserMessage,
+)
+from autogen_core.tools import FunctionTool
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.replay import ReplayChatCompletionClient
+from pydantic import BaseModel
+from utils import FileLogHandler, compare_messages, compare_task_results
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
@@ -270,9 +269,9 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
             task="Write a program that prints 'Hello, world!'",
         ):
             if isinstance(message, TaskResult):
-                assert message == result
+                assert compare_task_results(message, result)
             else:
-                assert message == result.messages[index]
+                assert compare_messages(message, result.messages[index])
             index += 1
 
         # Test message input.
@@ -283,7 +282,7 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
         result_2 = await team.run(
             task=TextMessage(content="Write a program that prints 'Hello, world!'", source="user")
         )
-        assert result == result_2
+        assert compare_task_results(result, result_2)
 
         # Test multi-modal message.
         model_client.reset()
@@ -294,7 +293,9 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
         assert isinstance(result.messages[0], TextMessage)
         assert isinstance(result_2.messages[0], MultiModalMessage)
         assert result.messages[0].content == task.content[0]
-        assert result.messages[1:] == result_2.messages[1:]
+        assert len(result.messages[1:]) == len(result_2.messages[1:])
+        for i in range(1, len(result.messages)):
+            assert compare_messages(result.messages[i], result_2.messages[i])
 
 
 @pytest.mark.asyncio
@@ -340,9 +341,9 @@ async def test_round_robin_group_chat_with_team_event(runtime: AgentRuntime | No
             task="Write a program that prints 'Hello, world!'",
         ):
             if isinstance(message, TaskResult):
-                assert message == result
+                assert compare_task_results(message, result)
             else:
-                assert message == result.messages[index]
+                assert compare_messages(message, result.messages[index])
             index += 1
 
 
@@ -497,9 +498,9 @@ async def test_round_robin_group_chat_with_tools(runtime: AgentRuntime | None) -
         task="Write a program that prints 'Hello, world!'",
     ):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
     # Test Console.
@@ -508,7 +509,7 @@ async def test_round_robin_group_chat_with_tools(runtime: AgentRuntime | None) -
     index = 0
     await team.reset()
     result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
-    assert result2 == result
+    assert compare_task_results(result2, result)
 
 
 @pytest.mark.asyncio
@@ -686,9 +687,9 @@ async def test_selector_group_chat(runtime: AgentRuntime | None) -> None:
         task="Write a program that prints 'Hello, world!'",
     ):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
     # Test Console.
@@ -697,7 +698,7 @@ async def test_selector_group_chat(runtime: AgentRuntime | None) -> None:
     index = 0
     await team.reset()
     result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
-    assert result2 == result
+    assert compare_task_results(result2, result)
 
 
 @pytest.mark.asyncio
@@ -807,9 +808,9 @@ async def test_selector_group_chat_with_team_event(runtime: AgentRuntime | None)
         task="Write a program that prints 'Hello, world!'",
     ):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -911,9 +912,9 @@ async def test_selector_group_chat_two_speakers(runtime: AgentRuntime | None) ->
     await team.reset()
     async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
     # Test Console.
@@ -922,7 +923,7 @@ async def test_selector_group_chat_two_speakers(runtime: AgentRuntime | None) ->
     index = 0
     await team.reset()
     result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
-    assert result2 == result
+    assert compare_task_results(result2, result)
 
 
 @pytest.mark.asyncio
@@ -959,9 +960,9 @@ async def test_selector_group_chat_two_speakers_allow_repeated(runtime: AgentRun
     await team.reset()
     async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
     # Test Console.
@@ -969,7 +970,7 @@ async def test_selector_group_chat_two_speakers_allow_repeated(runtime: AgentRun
     index = 0
     await team.reset()
     result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
-    assert result2 == result
+    assert compare_task_results(result2, result)
 
 
 @pytest.mark.asyncio
@@ -1175,9 +1176,9 @@ async def test_swarm_handoff(runtime: AgentRuntime | None) -> None:
     stream = team.run_stream(task="task")
     async for message in stream:
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
     # Test save and load.
@@ -1249,9 +1250,9 @@ async def test_swarm_handoff_with_team_events(runtime: AgentRuntime | None) -> N
     stream = team.run_stream(task="task")
     async for message in stream:
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
 
@@ -1367,9 +1368,9 @@ async def test_swarm_handoff_using_tool_calls(runtime: AgentRuntime | None) -> N
     stream = team.run_stream(task="task")
     async for message in stream:
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
         index += 1
 
     # Test Console
@@ -1378,7 +1379,7 @@ async def test_swarm_handoff_using_tool_calls(runtime: AgentRuntime | None) -> N
     index = 0
     await team.reset()
     result2 = await Console(team.run_stream(task="task"))
-    assert result2 == result
+    assert compare_task_results(result2, result)
 
 
 @pytest.mark.asyncio
@@ -1472,14 +1473,17 @@ async def test_swarm_with_parallel_tool_calls(runtime: AgentRuntime | None) -> N
     team = Swarm([agent1, agent2], termination_condition=termination, runtime=runtime)
     result = await team.run(task="task")
     assert len(result.messages) == 6
-    assert result.messages[0] == TextMessage(content="task", source="user")
+    assert compare_messages(result.messages[0], TextMessage(content="task", source="user"))
     assert isinstance(result.messages[1], ToolCallRequestEvent)
     assert isinstance(result.messages[2], ToolCallExecutionEvent)
-    assert result.messages[3] == HandoffMessage(
-        content="handoff to agent2",
-        target="agent2",
-        source="agent1",
-        context=expected_handoff_context,
+    assert compare_messages(
+        result.messages[3],
+        HandoffMessage(
+            content="handoff to agent2",
+            target="agent2",
+            source="agent1",
+            context=expected_handoff_context,
+        ),
     )
     assert isinstance(result.messages[4], TextMessage)
     assert result.messages[4].content == "Hello"
@@ -1599,9 +1603,9 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
     index = 0
     async for message in team.run_stream(task=messages):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         else:
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
             index += 1
 
     # Test with invalid message list
@@ -1804,7 +1808,7 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
     streaming: List[str] = []
     async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
         if isinstance(message, TaskResult):
-            assert message == result
+            assert compare_task_results(message, result)
         elif isinstance(message, ModelClientStreamingChunkEvent):
             streaming.append(message.content)
         else:
@@ -1812,5 +1816,5 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
                 assert isinstance(message, SelectorEvent)
                 assert message.content == "".join([chunk for chunk in streaming])
                 streaming = []
-            assert message == result.messages[index]
+            assert compare_messages(message, result.messages[index])
             index += 1

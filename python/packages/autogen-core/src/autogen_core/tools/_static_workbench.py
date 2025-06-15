@@ -1,4 +1,5 @@
 import asyncio
+import builtins
 from typing import Any, Dict, List, Literal, Mapping
 
 from pydantic import BaseModel
@@ -39,7 +40,11 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         return [tool.schema for tool in self._tools]
 
     async def call_tool(
-        self, name: str, arguments: Mapping[str, Any] | None = None, cancellation_token: CancellationToken | None = None
+        self,
+        name: str,
+        arguments: Mapping[str, Any] | None = None,
+        cancellation_token: CancellationToken | None = None,
+        call_id: str | None = None,
     ) -> ToolResult:
         tool = next((tool for tool in self._tools if tool.name == name), None)
         if tool is None:
@@ -53,14 +58,14 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         if not arguments:
             arguments = {}
         try:
-            result_future = asyncio.ensure_future(tool.run_json(arguments, cancellation_token))
+            result_future = asyncio.ensure_future(tool.run_json(arguments, cancellation_token, call_id=call_id))
             cancellation_token.link_future(result_future)
-            result = await result_future
+            actual_tool_output = await result_future
             is_error = False
+            result_str = tool.return_value_as_string(actual_tool_output)
         except Exception as e:
-            result = str(e)
+            result_str = self._format_errors(e)
             is_error = True
-        result_str = tool.return_value_as_string(result)
         return ToolResult(name=tool.name, result=[TextResultContent(content=result_str)], is_error=is_error)
 
     async def start(self) -> None:
@@ -90,3 +95,16 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
     @classmethod
     def _from_config(cls, config: StaticWorkbenchConfig) -> Self:
         return cls(tools=[BaseTool.load_component(tool) for tool in config.tools])
+
+    def _format_errors(self, error: Exception) -> str:
+        """Recursively format errors into a string."""
+
+        error_message = ""
+        if hasattr(builtins, "ExceptionGroup") and isinstance(error, builtins.ExceptionGroup):
+            # ExceptionGroup is available in Python 3.11+.
+            # TODO: how to make this compatible with Python 3.10?
+            for sub_exception in error.exceptions:  # type: ignore
+                error_message += self._format_errors(sub_exception)  # type: ignore
+        else:
+            error_message += f"{str(error)}\n"
+        return error_message.strip()
