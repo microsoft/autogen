@@ -1,3 +1,3 @@
 from ._duckduckgo_search import DuckDuckGoSearchTool
 
-__all__ = ["DuckDuckGoSearchTool"] 
+__all__ = ["DuckDuckGoSearchTool"]

@@ -1,36 +1,37 @@
 # DuckDuckGo Search Agent created by Varad Srivastava
-from typing import Optional, Sequence
+from typing import Any, Optional
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core.models import ChatCompletionClient
+
 from autogen_ext.tools.web_search import DuckDuckGoSearchTool
 
 
 class DuckDuckGoSearchAgent(AssistantAgent):
     """
     A specialized AssistantAgent that uses DuckDuckGo for web searches.
-    
+
     This agent is designed to perform web searches using DuckDuckGo and provide
     relevant information based on the search results. It can be used in group chats
     or as a standalone agent for research and information gathering tasks.
-    
+
     The agent comes pre-configured with a DuckDuckGo search tool and a system message
     optimized for research tasks.
-    
+
     Example:
         ```python
         from autogen_ext.agents.duckduckgo_search import DuckDuckGoSearchAgent
         from autogen_ext.models.openai import OpenAIChatCompletionClient
-        
+
         # Create a model client
         model_client = OpenAIChatCompletionClient(model="gpt-4")
-        
+
         # Create a DuckDuckGo search agent
         search_agent = DuckDuckGoSearchAgent(
             name="researcher",
             model_client=model_client,
         )
-        
+
         # Use the agent
         result = await search_agent.run(task="What are the latest developments in AI?")
         print(result.messages[-1].content)
@@ -41,11 +42,10 @@ class DuckDuckGoSearchAgent(AssistantAgent):
         self,
         name: str,
         model_client: ChatCompletionClient,
-        *,
         description: Optional[str] = None,
         system_message: Optional[str] = None,
-        **kwargs
-    ):
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize a DuckDuckGo Search Agent.
 
@@ -84,5 +84,5 @@ When conducting research:
             description=description,
             system_message=system_message,
             tools=[search_tool],
-            **kwargs
-        ) 
+            **kwargs,
+        )
