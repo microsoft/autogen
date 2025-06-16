@@ -16,19 +16,26 @@ The DuckDuckGo Search Agent is built on top of AutoGen's `AssistantAgent` and co
 
 ## Installation
 
-### Dependencies
+### Simple Installation (Recommended)
 
-The DuckDuckGo search functionality requires the following Python packages:
+Install AutoGen Extensions with DuckDuckGo search dependencies:
+
+```bash
+pip install autogen-ext[duckduckgo-search]
+```
+
+This automatically installs all required dependencies:
+- `httpx>=0.27.0` - For HTTP requests
+- `beautifulsoup4>=4.12.0` - For HTML parsing  
+- `html2text>=2024.2.26` - For converting HTML to text
+- `autogen-agentchat==0.6.1` - For agent functionality
+
+### Manual Installation
+
+Alternatively, you can install dependencies manually:
 
 ```bash
 pip install httpx beautifulsoup4 html2text
-```
-
-### AutoGen Extension
-
-The DuckDuckGo agent is part of the `autogen-ext` package:
-
-```bash
 pip install autogen-ext
 ```
 
@@ -261,8 +268,8 @@ Run the unit tests to verify functionality:
 
 ```bash
 cd python/packages/autogen-ext
-python -m pytest agents/duckduckgo_search/test/test_duckduckgo_search.py -v
-python -m pytest agents/duckduckgo_search/test/test_duckduckgo_agent.py -v
+python -m pytest tests/tools/web_search/test_duckduckgo_search.py -v
+python -m pytest tests/tools/web_search/test_duckduckgo_agent.py -v
 ```
 
 ### Integration Tests
@@ -270,15 +277,7 @@ python -m pytest agents/duckduckgo_search/test/test_duckduckgo_agent.py -v
 Run integration tests (requires network access):
 
 ```bash
-python -m pytest agents/duckduckgo_search/test/test_integration.py -v -m integration
-```
-
-### Manual Testing
-
-Use the example script for manual testing:
-
-```bash
-python duckduckgo_search_example.py
+python -m pytest tests/tools/web_search/test_integration.py -v -m integration
 ```
 
 ## Comparison with Other Search Agents
@@ -328,13 +327,6 @@ logging.basicConfig(level=logging.DEBUG)
 ## Contributing
 
 Follow Autogen repo guidelines.
-
-### Code Style
-
-- Follow PEP 8 guidelines
-- Use type hints
-- Add docstrings for public methods
-- Include unit tests for new features
 
 ## License
 
