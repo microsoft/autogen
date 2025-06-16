@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import BaseChatMessage, TextMessage
-from autogen_core import CancellationToken, FunctionCall
+from autogen_agentchat.messages import BaseChatMessage, MultiModalMessage, TextMessage
+from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import UserMessage
 from autogen_core.tools import Tool, ToolSchema
 from autogen_ext.agents.openai import OpenAIAgent
@@ -143,7 +143,9 @@ class WeatherTool(Tool):
             return json.dumps(value)
         return str(value)
 
-    async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Dict[str, Any]:
+    async def run_json(
+        self, args: Mapping[str, Any], cancellation_token: CancellationToken, call_id: str | None = None
+    ) -> Dict[str, Any]:
         _ = GetWeatherArgs(**args)
         return WeatherResponse(temperature=72.5, conditions="sunny").model_dump()
 
@@ -444,7 +446,7 @@ async def test_build_api_params(agent: OpenAIAgent) -> None:
     agent._json_mode = True  # type: ignore
     params = agent._build_api_parameters([{"role": "user", "content": "hi"}])  # type: ignore
     assert "text.format" not in params
-    assert params.get("response_format") == {"type": "json_object"}
+    assert params.get("text") == {"type": "json_object"}
 
 
 @pytest.mark.asyncio
@@ -566,3 +568,29 @@ async def test_from_config(agent: OpenAIAgent) -> None:
         assert loaded_agent._max_output_tokens == 1000  # type: ignore
         assert loaded_agent._store is True  # type: ignore
         assert loaded_agent._truncation == "auto"  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_multimodal_message_response(agent: OpenAIAgent, cancellation_token: CancellationToken) -> None:
+    # Test that the multimodal message is converted to the correct format
+    img = Image.from_base64(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
+    )
+    multimodal_message = MultiModalMessage(content=["Can you describe the content of this image?", img], source="user")
+
+    # Patch client.responses.create to simulate image-capable output
+    async def mock_responses_create(**kwargs: Any) -> Any:
+        class MockResponse:
+            def __init__(self) -> None:
+                self.output_text = "I see a cat in the image."
+                self.id = "resp-image-001"
+
+        return MockResponse()
+
+    agent._client.responses.create = AsyncMock(side_effect=mock_responses_create)  # type: ignore
+
+    response = await agent.on_messages([multimodal_message], cancellation_token)
+
+    assert response.chat_message is not None
+    assert isinstance(response.chat_message, TextMessage)
+    assert "cat" in response.chat_message.content.lower()

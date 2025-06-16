@@ -70,14 +70,14 @@ class AIAgent(RoutedAgent):
                 await self._response_queue.put({"type":"function","message":f"Executing {call.name}"})
                 if call.name in self._tools:
                     # Execute the tool directly.
-                    result = await self._tools[call.name].run_json(arguments, ctx.cancellation_token)
+                    result = await self._tools[call.name].run_json(arguments, ctx.cancellation_token, call_id=call.id)
                     result_as_str = self._tools[call.name].return_value_as_string(result)
                     tool_call_results.append(
                         FunctionExecutionResult(call_id=call.id, content=result_as_str, is_error=False, name=call.name)
                     )
                 elif call.name in self._delegate_tools:
                     # Execute the tool to get the delegate agent's topic type.
-                    result = await self._delegate_tools[call.name].run_json(arguments, ctx.cancellation_token)
+                    result = await self._delegate_tools[call.name].run_json(arguments, ctx.cancellation_token, call_id=call.id)
                     topic_type = self._delegate_tools[call.name].return_value_as_string(result)
                     # Create the context for the delegate agent, including the function call and the result.
                     delegate_messages = list(message.context) + [

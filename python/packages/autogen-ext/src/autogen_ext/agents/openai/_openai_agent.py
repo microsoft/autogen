@@ -481,7 +481,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     is_error=True,
                 )
 
-            result = await tool.run_json(arguments, cancellation_token)
+            result = await tool.run_json(arguments, cancellation_token, call_id=tool_call.id)
             return FunctionExecutionResult(
                 content=tool.return_value_as_string(result), call_id=tool_call.id, name=tool_name, is_error=False
             )
@@ -505,7 +505,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         if self._tools:
             api_params["tools"] = self._tools
         if self._json_mode:
-            api_params["response_format"] = {"type": "json_object"}
+            api_params["text"] = {"type": "json_object"}
         api_params["store"] = self._store
         api_params["truncation"] = self._truncation
         if self._last_response_id:
