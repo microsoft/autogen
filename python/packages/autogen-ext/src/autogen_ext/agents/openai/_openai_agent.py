@@ -1004,7 +1004,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         if self._tools:
             api_params["tools"] = self._tools
         if self._json_mode:
-            api_params["response_format"] = {"type": "json_object"}
+            api_params["text"] = {"type": "json_object"}
         api_params["store"] = self._store
         api_params["truncation"] = self._truncation
         if self._last_response_id:
