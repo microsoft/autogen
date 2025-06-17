@@ -4,8 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoGen.Core.Orchestrator;
 
 namespace AutoGen.Core;
 
@@ -65,12 +67,20 @@ public class RolePlayOrchestrator : IOrchestrator
         var agentNames = candidates.Select(candidate => candidate.Name);
         var rolePlayMessage = new TextMessage(Role.User,
             content: $@"You are in a role play game. Carefully read the conversation history and carry on the conversation.
-The available roles are:
-{string.Join(",", agentNames)}
 
-Each message will start with 'From name:', e.g:
-From {agentNames.First()}:
-//your message//.");
+## Available Speaker Names
+{string.Join($"{Environment.NewLine}", agentNames.Select(z => $"- {z}"))}
+
+## Output Role
+Each message will use the strickly JSON format with a '//finish' suffix:
+{{""Speaker"":""<From Speaker Name>"", ""Message"":""<Chat Message>""}}//finish
+
+e,g:
+{{""Speaker"":""{agentNames.First()}"", ""Message"":""Hi, I'm {agentNames.First()}.""}}//finish
+
+Note:
+1. ""Speaker"" must be one of the most suitable names in ""Available Speaker names"". You cannot create it yourself, nor can you merge two names, it must be 100% exactly equal. 
+2. You have to output clean JSON result, no other words are allowed.");
 
         var chatHistoryWithName = this.ProcessConversationsForRolePlay(context.ChatHistory);
         var messages = new IMessage[] { rolePlayMessage }.Concat(chatHistoryWithName);
@@ -81,20 +91,98 @@ From {agentNames.First()}:
             {
                 Temperature = 0,
                 MaxToken = 128,
-                StopSequence = [":"],
+                StopSequence = ["finish"],
                 Functions = null,
             },
             cancellationToken: cancellationToken);
 
-        var name = response.GetContent() ?? throw new ArgumentException("No name is returned.");
+        var responseMessageStr = response.GetContent() ?? throw new ArgumentException("No name is returned.");
 
-        // remove From
-        name = name!.Substring(5);
-        var candidate = candidates.FirstOrDefault(x => x.Name!.ToLower() == name.ToLower());
+        RolePlayOrchestratorResponse? responseMessage;
+        try
+        {
+            responseMessage = JsonSerializer.Deserialize<RolePlayOrchestratorResponse>(responseMessageStr);
+            if (responseMessage == null)
+            {
+                throw new Exception("Incorrect RolePlayOrchestratorResponse JSON format.");
+            }
+        }
+        catch
+        {
+            throw;
+        }
+
+        var name = responseMessage.Speaker;
+        var candidate = candidates.FirstOrDefault(x => x.Name!.ToUpper() == name!.ToUpper());
 
         if (candidate != null)
         {
             return candidate;
+        }
+
+        //Regain the correct name
+        var regainMessage = new TextMessage(Role.User,
+            content: @$"Choose a name that is closest to the meaning from ""Available Speaker Names"" by ""Input Name"".
+
+## Example
+### Available Speaker Names
+- Sales Manager
+- General Manager Assistant
+- Chief Financial Officer
+
+### Input Name
+CFO
+
+### Outout Name
+{{""Speaker"":""Chief Financial Officer"", ""Message"":""""}}//finish
+
+## Task
+
+Output Name must be one of the name in the following ""Available Speaker Names"" without any change.
+
+Note:
+1. ""Speaker"" must be one of the most suitable names in ""Available Speaker Names"". You cannot create it yourself, nor can you merge two names, it must be 100% exactly equal. 
+2. You have to output clean JSON result,no other words are allowed.
+
+### Speaker List
+{string.Join($"{Environment.NewLine}", agentNames.Select(z => $"- {z}"))}
+
+### Input Name
+{name}
+
+### Output Name");
+
+        var regainResponse = await this.admin.GenerateReplyAsync(
+            messages: new[] { regainMessage },
+            options: new GenerateReplyOptions
+            {
+                Temperature = 0,
+                MaxToken = 1024,
+                StopSequence = ["//finish"],
+                Functions = null,
+            },
+            cancellationToken: cancellationToken);
+
+        RolePlayOrchestratorResponse? regainResponseMessage;
+        var regainNameStr = regainResponse.GetContent() ?? throw new ArgumentException("No name is returned.");
+        try
+        {
+            regainResponseMessage = JsonSerializer.Deserialize<RolePlayOrchestratorResponse>(regainNameStr);
+            if (regainResponseMessage == null)
+            {
+                throw new Exception("Incorrect RolePlayOrchestratorResponse JSON format.");
+            }
+        }
+        catch
+        {
+            throw;
+        }
+
+        var reaginCandidate = candidates.FirstOrDefault(x => x.Name!.ToUpper() == regainResponseMessage.Speaker!.ToUpper());
+
+        if (reaginCandidate != null)
+        {
+            return reaginCandidate;
         }
 
         var errorMessage = $"The response from admin is {name}, which is either not in the candidates list or not in the correct format.";
