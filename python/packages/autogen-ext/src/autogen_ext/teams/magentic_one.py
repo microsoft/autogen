@@ -14,9 +14,51 @@ from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.openai._openai_client import BaseOpenAIChatCompletionClient
 
+# Docker imports for default code executor
+try:
+    from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+    import docker
+    from docker.errors import DockerException
+    DOCKER_AVAILABLE = True
+except ImportError:
+    DOCKER_AVAILABLE = False
+
 SyncInputFunc = Callable[[str], str]
 AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
 InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
+
+
+def _is_docker_available() -> bool:
+    """Check if Docker is available and running."""
+    if not DOCKER_AVAILABLE:
+        return False
+    
+    try:
+        client = docker.from_env()
+        client.ping()  # type: ignore
+        return True
+    except DockerException:
+        return False
+
+
+def _create_default_code_executor() -> CodeExecutor:
+    """Create the default code executor, preferring Docker if available."""
+    if _is_docker_available():
+        try:
+            return DockerCommandLineCodeExecutor()
+        except Exception:
+            # Fallback to local if Docker fails to initialize
+            pass
+    
+    # Issue warning and use local executor if Docker is not available
+    warnings.warn(
+        "Docker is not available or not running. Using LocalCommandLineCodeExecutor instead of the recommended DockerCommandLineCodeExecutor. "
+        "For security, it is recommended to install Docker and ensure it's running before using MagenticOne. "
+        "To install Docker, visit: https://docs.docker.com/get-docker/",
+        UserWarning,
+        stacklevel=3,
+    )
+    return LocalCommandLineCodeExecutor()
 
 
 class MagenticOne(MagenticOneGroupChat):
@@ -77,7 +119,7 @@ class MagenticOne(MagenticOneGroupChat):
 
             async def example_usage():
                 client = OpenAIChatCompletionClient(model="gpt-4o")
-                m1 = MagenticOne(client=client)
+                m1 = MagenticOne(client=client)  # Uses DockerCommandLineCodeExecutor by default
                 task = "Write a Python script to fetch data from an API."
                 result = await Console(m1.run_stream(task=task))
                 print(result)
@@ -89,20 +131,22 @@ class MagenticOne(MagenticOneGroupChat):
 
         .. code-block:: python
 
-            # Enable human-in-the-loop mode
+            # Enable human-in-the-loop mode with explicit Docker executor
             import asyncio
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_ext.teams.magentic_one import MagenticOne
+            from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
             from autogen_agentchat.ui import Console
 
 
             async def example_usage_hil():
                 client = OpenAIChatCompletionClient(model="gpt-4o")
-                # to enable human-in-the-loop mode, set hil_mode=True
-                m1 = MagenticOne(client=client, hil_mode=True)
-                task = "Write a Python script to fetch data from an API."
-                result = await Console(m1.run_stream(task=task))
-                print(result)
+                # Explicitly specify Docker code executor for better security
+                async with DockerCommandLineCodeExecutor() as code_executor:
+                    m1 = MagenticOne(client=client, hil_mode=True, code_executor=code_executor)
+                    task = "Write a Python script to fetch data from an API."
+                    result = await Console(m1.run_stream(task=task))
+                    print(result)
 
 
             if __name__ == "__main__":
@@ -134,11 +178,11 @@ class MagenticOne(MagenticOneGroupChat):
 
         if code_executor is None:
             warnings.warn(
-                "Instantiating MagenticOne without a code_executor is deprecated. Provide a code_executor to clear this warning (e.g., code_executor=LocalCommandLineCodeExecutor() ).",
+                "Instantiating MagenticOne without a code_executor is deprecated. Provide a code_executor to clear this warning (e.g., code_executor=DockerCommandLineCodeExecutor() ).",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            code_executor = LocalCommandLineCodeExecutor()
+            code_executor = _create_default_code_executor()
 
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)
