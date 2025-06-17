@@ -37,8 +37,8 @@ class AutoGenLM:
         
         self.client = client
         self.model = getattr(client, "model", "unknown")
-        # Call dspy.LM's init
-        self._dspy_lm = dspy.LM(model=self.model)
+        # Initialize basic attributes expected by DSPy
+        self.history = []
 
     async def _acall(self, messages: List[Dict[str, str]], **kw: Any) -> str:
         """Convert DSPy messages to AutoGen format and call the client."""
@@ -61,9 +61,9 @@ class AutoGenLM:
         """Synchronous interface for DSPy compatibility."""
         return asyncio.run(self._acall(messages, **kw))
     
-    def __getattr__(self, name: str) -> Any:
-        """Delegate to DSPy LM for compatibility."""
-        return getattr(self._dspy_lm, name)
+    def basic_request(self, messages: List[Dict[str, str]], **kw: Any) -> str:
+        """DSPy interface method."""
+        return self(messages, **kw)
 
 
 # --------------------------------------------------------------------- #
@@ -72,6 +72,7 @@ class AutoGenLM:
 class DSPyAgentWrapper:
     """
     Exposes `agent.system_message` and each tool description as learnable prompts.
+    This is a DSPy Module that wraps an AutoGen agent.
     """
 
     def __init__(self, agent: Any) -> None:
@@ -81,35 +82,63 @@ class DSPyAgentWrapper:
         self._agent = agent
 
         # Turn system prompt & each tool description into learnable strings
-        system_message = getattr(agent, "system_message", None)
-        if system_message is None:
-            # For AssistantAgent, system message is in _system_messages
-            system_messages = getattr(agent, "_system_messages", [])
-            if system_messages:
-                system_message = system_messages[0].content
-        
+        system_message = self._get_system_message(agent)
         self._system_prompt = dspy.Prompt(system_message or "You are a helpful assistant.")
 
         self._tool_prompts = []
-        tools = getattr(agent, "_tools", []) or getattr(agent, "tools", [])
+        tools = self._get_tools(agent)
         for tool in tools:
             description = getattr(tool, "description", "") or ""
             self._tool_prompts.append(dspy.Prompt(description))
 
-        # Signature is generic: user_request → answer
-        class _Sig(dspy.Signature):
-            """{{system_prompt}}"""
+        # Make this a proper DSPy Module by adding the predict component
+        class AgentSignature(dspy.Signature):
+            """Agent signature for processing user requests."""
             user_request: str = dspy.InputField()
             answer: str = dspy.OutputField()
 
-        self._predict = dspy.Predict(_Sig)
+        self._predict = dspy.Predict(AgentSignature)
+
+    def _get_system_message(self, agent: Any) -> str | None:
+        """Extract system message from agent."""
+        # Try different ways agents might store system messages
+        if hasattr(agent, "system_message"):
+            return agent.system_message
+        elif hasattr(agent, "_system_messages") and agent._system_messages:
+            return agent._system_messages[0].content
+        return None
+
+    def _get_tools(self, agent: Any) -> List[Any]:
+        """Extract tools from agent."""
+        return getattr(agent, "_tools", []) or getattr(agent, "tools", [])
 
     def forward(self, user_request: str) -> Any:
-        """Forward pass through the agent."""
+        """Forward pass through the agent.
+        
+        In a full implementation, this would:
+        1. Update the agent with optimized prompts
+        2. Call the agent's run method 
+        3. Return the result
+        
+        For now, we use a simple predict as a placeholder.
+        """
         _check_dspy_available()
         import dspy
         
         # Patch live values into the wrapped agent
+        self._update_agent_prompts()
+        
+        # In an ideal implementation, we'd call:
+        # result = await self._agent.run(task=user_request)
+        # But this requires proper async handling and depends on the agent interface
+        
+        # For now, use DSPy predict as a fallback
+        prediction = self._predict(user_request=user_request)
+        return dspy.Prediction(answer=prediction.answer)
+
+    def _update_agent_prompts(self) -> None:
+        """Update the agent with current prompt values."""
+        # Update system message
         if hasattr(self._agent, "system_message"):
             self._agent.system_message = self._system_prompt.value
         elif hasattr(self._agent, "_system_messages") and self._agent._system_messages:
@@ -117,16 +146,10 @@ class DSPyAgentWrapper:
             self._agent._system_messages[0] = SystemMessage(content=self._system_prompt.value)
         
         # Update tool descriptions
-        tools = getattr(self._agent, "_tools", []) or getattr(self._agent, "tools", [])
+        tools = self._get_tools(self._agent)
         for prompt, tool in zip(self._tool_prompts, tools):
             if hasattr(tool, "description"):
                 tool.description = prompt.value
-
-        # For now, use the predict method as a fallback
-        # In a real implementation, we'd call the agent's run method
-        # but that requires more complex async handling
-        prediction = self._predict(user_request=user_request)
-        return dspy.Prediction(answer=prediction.answer)
 
     # Convenient handles for back-end to read tuned texts later
     @property
