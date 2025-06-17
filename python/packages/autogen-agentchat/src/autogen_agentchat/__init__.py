@@ -11,4 +11,7 @@ TRACE_LOGGER_NAME = "autogen_agentchat"
 EVENT_LOGGER_NAME = "autogen_agentchat.events"
 """Logger name for event logs."""
 
-__version__ = importlib.metadata.version("autogen_agentchat")
+try:
+    __version__ = importlib.metadata.version("autogen_agentchat")
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "0.6.1-dev"
