@@ -90,7 +90,7 @@ Note:
             options: new GenerateReplyOptions
             {
                 Temperature = 0,
-                MaxToken = 128,
+                MaxToken = 1024,
                 StopSequence = ["finish"],
                 Functions = null,
             },
