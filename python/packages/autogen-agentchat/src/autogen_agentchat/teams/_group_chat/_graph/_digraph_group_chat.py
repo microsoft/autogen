@@ -1,9 +1,9 @@
 import asyncio
 from collections import Counter, deque
-from typing import Any, Callable, Deque, Dict, List, Literal, Mapping, Sequence, Set
+from typing import Any, Callable, Deque, Dict, List, Literal, Mapping, Sequence, Set, Union
 
 from autogen_core import AgentRuntime, CancellationToken, Component, ComponentModel
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from typing_extensions import Self
 
 from autogen_agentchat.agents import BaseChatAgent
@@ -34,15 +34,49 @@ class DiGraphEdge(BaseModel):
 
         This is an experimental feature, and the API will change in the future releases.
 
+    .. warning::
+
+        If the condition is a callable, it will not be serialized in the model.
+
     """
 
     target: str  # Target node name
-    condition: str | None = None  # Optional execution condition (trigger-based)
+    condition: Union[str, Callable[[BaseChatMessage], bool], None] = Field(default=None)
     """(Experimental) Condition to execute this edge.
-    If None, the edge is unconditional. If a string, the edge is conditional on the presence of that string in the last agent chat message.
-    NOTE: This is an experimental feature WILL change in the future releases to allow for better spcification of branching conditions
-    similar to the `TerminationCondition` class.
+    If None, the edge is unconditional.
+    If a string, the edge is conditional on the presence of that string in the last agent chat message.
+    If a callable, the edge is conditional on the callable returning True when given the last message.
     """
+
+    # Using Field to exclude the condition in serialization if it's a callable
+    condition_function: Callable[[BaseChatMessage], bool] | None = Field(default=None, exclude=True)
+
+    @model_validator(mode="after")
+    def _validate_condition(self) -> "DiGraphEdge":
+        # Store callable in a separate field and set condition to None for serialization
+        if callable(self.condition):
+            self.condition_function = self.condition
+            # For serialization purposes, we'll set the condition to None
+            # when storing as a pydantic model/dict
+            object.__setattr__(self, "condition", None)
+        return self
+
+    def check_condition(self, message: BaseChatMessage) -> bool:
+        """Check if the edge condition is satisfied for the given message.
+
+        Args:
+            message: The message to check the condition against.
+
+        Returns:
+            True if condition is satisfied (None condition always returns True),
+            False otherwise.
+        """
+        if self.condition_function is not None:
+            return self.condition_function(message)
+        elif isinstance(self.condition, str):
+            # If it's a string, check if the string is in the message content
+            return self.condition in message.to_model_text()
+        return True  # None condition is always satisfied
 
 
 class DiGraphNode(BaseModel):
@@ -78,7 +112,8 @@ class DiGraph(BaseModel):
         parents: Dict[str, List[str]] = {node: [] for node in self.nodes}
         for node in self.nodes.values():
             for edge in node.edges:
-                parents[edge.target].append(node.name)
+                if edge.target != node.name:
+                    parents[edge.target].append(node.name)
         return parents
 
     def get_start_nodes(self) -> Set[str]:
@@ -125,7 +160,7 @@ class DiGraph(BaseModel):
                     cycle_edges: List[DiGraphEdge] = []
                     for n in cycle_nodes:
                         cycle_edges.extend(self.nodes[n].edges)
-                    if not any(edge.condition for edge in cycle_edges):
+                    if all(edge.condition is None and edge.condition_function is None for edge in cycle_edges):
                         raise ValueError(
                             f"Cycle detected without exit condition: {' -> '.join(cycle_nodes + cycle_nodes[:1])}"
                         )
@@ -164,8 +199,10 @@ class DiGraph(BaseModel):
         # Outgoing edge condition validation (per node)
         for node in self.nodes.values():
             # Check that if a node has an outgoing conditional edge, then all outgoing edges are conditional
-            has_condition = any(edge.condition for edge in node.edges)
-            has_unconditioned = any(edge.condition is None for edge in node.edges)
+            has_condition = any(
+                edge.condition is not None or edge.condition_function is not None for edge in node.edges
+            )
+            has_unconditioned = any(edge.condition is None and edge.condition_function is None for edge in node.edges)
             if has_condition and has_unconditioned:
                 raise ValueError(f"Node '{node.name}' has a mix of conditional and unconditional edges.")
 
@@ -239,11 +276,11 @@ class GraphFlowManager(BaseGroupChatManager):
             return
         assert isinstance(message, BaseChatMessage)
         source = message.source
-        content = message.to_model_text()
 
         # Propagate the update to the children of the node.
         for edge in self._edges[source]:
-            if edge.condition and edge.condition not in content:
+            # Use the new check_condition method that handles both string and callable conditions
+            if not edge.check_condition(message):
                 continue
             if self._activation[edge.target] == "all":
                 self._remaining[edge.target] -= 1
@@ -360,6 +397,11 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
         See the :class:`DiGraphBuilder` documentation for more details.
         The :class:`GraphFlow` class is designed to be used with the :class:`DiGraphBuilder` for creating complex workflows.
 
+    .. warning::
+
+        When using callable conditions in edges, they will not be serialized
+        when calling :meth:`dump_component`. This will be addressed in future releases.
+
 
     Args:
         participants (List[ChatAgent]): The participants in the group chat.
@@ -450,7 +492,7 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
 
             asyncio.run(main())
 
-        **Conditional Branching: A → B (if 'yes') or C (if 'no')**
+        **Conditional Branching: A → B (if 'yes') or C (otherwise)**
 
         .. code-block:: python
 
@@ -473,11 +515,12 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
                 agent_b = AssistantAgent("B", model_client=model_client, system_message="Translate input to English.")
                 agent_c = AssistantAgent("C", model_client=model_client, system_message="Translate input to Chinese.")
 
-                # Create a directed graph with conditional branching flow A -> B ("yes"), A -> C ("no").
+                # Create a directed graph with conditional branching flow A -> B ("yes"), A -> C (otherwise).
                 builder = DiGraphBuilder()
                 builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
-                builder.add_edge(agent_a, agent_b, condition="yes")
-                builder.add_edge(agent_a, agent_c, condition="no")
+                # Create conditions as callables that check the message content.
+                builder.add_edge(agent_a, agent_b, condition=lambda msg: "yes" in msg.to_model_text())
+                builder.add_edge(agent_a, agent_c, condition=lambda msg: "yes" not in msg.to_model_text())
                 graph = builder.build()
 
                 # Create a GraphFlow team with the directed graph.
@@ -494,7 +537,7 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
 
             asyncio.run(main())
 
-        **Loop with exit condition: A → B → C (if 'APPROVE') or A (if 'REJECT')**
+        **Loop with exit condition: A → B → C (if 'APPROVE') or A (otherwise)**
 
         .. code-block:: python
 
@@ -518,17 +561,21 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
                     "B",
                     model_client=model_client,
                     system_message="Provide feedback on the input, if your feedback has been addressed, "
-                    "say 'APPROVE', else say 'REJECT' and provide a reason.",
+                    "say 'APPROVE', otherwise provide a reason for rejection.",
                 )
                 agent_c = AssistantAgent(
                     "C", model_client=model_client, system_message="Translate the final product to Korean."
                 )
 
-                # Create a loop graph with conditional exit: A -> B -> C ("APPROVE"), B -> A ("REJECT").
+                # Create a loop graph with conditional exit: A -> B -> C ("APPROVE"), B -> A (otherwise).
                 builder = DiGraphBuilder()
                 builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
                 builder.add_edge(agent_a, agent_b)
-                builder.add_conditional_edges(agent_b, {"APPROVE": agent_c, "REJECT": agent_a})
+
+                # Create conditional edges using strings
+                builder.add_edge(agent_b, agent_c, condition=lambda msg: "APPROVE" in msg.to_model_text())
+                builder.add_edge(agent_b, agent_a, condition=lambda msg: "APPROVE" not in msg.to_model_text())
+
                 builder.set_entry_point(agent_a)
                 graph = builder.build()
 

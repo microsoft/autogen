@@ -59,6 +59,11 @@ from ._serialization import (
 from ._single_threaded_agent_runtime import SingleThreadedAgentRuntime
 from ._subscription import Subscription
 from ._subscription_context import SubscriptionInstantiationContext
+from ._telemetry import (
+    trace_create_agent_span,
+    trace_invoke_agent_span,
+    trace_tool_span,
+)
 from ._topic import TopicId
 from ._type_prefix_subscription import TypePrefixSubscription
 from ._type_subscription import TypeSubscription
@@ -132,4 +137,7 @@ __all__ = [
     "DropMessage",
     "InterventionHandler",
     "DefaultInterventionHandler",
+    "trace_create_agent_span",
+    "trace_invoke_agent_span",
+    "trace_tool_span",
 ]
