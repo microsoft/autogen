@@ -10,7 +10,7 @@ if TYPE_CHECKING:
         dspy = None
 
 from autogen_agentchat.optimize._backend import BaseBackend
-from autogen_agentchat.optimize._utils import AutoGenLM, DSPyAgentWrapper
+from ._utils import AutoGenLM, DSPyAgentWrapper
 
 
 def _check_dspy_available() -> None:
