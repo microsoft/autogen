@@ -29,7 +29,7 @@ class ToolMaker:
         """
         self.model_client = model_client or OpenAIChatCompletionClient(
             model="gpt-4o",
-            response_format=FunctionToolConfig
+            response_format=FunctionToolConfig # type: ignore[call-arg]
         )
     
     async def run(self, description: str) -> ComponentModel:

@@ -16,6 +16,7 @@ import {
   Trash2Icon,
   Edit,
   Bot,
+  Package,
 } from "lucide-react";
 import { CustomNode } from "./types";
 import {
@@ -32,6 +33,8 @@ import {
   isAssistantAgent,
   isSelectorTeam,
   isWebSurferAgent,
+  isStaticWorkbench,
+  isMcpWorkbench,
 } from "../../../types/guards";
 
 // Icon mapping for different node types
@@ -44,6 +47,7 @@ export const iconMap: Record<
   tool: Wrench,
   model: Brain,
   termination: Timer,
+  workbench: Package,
 };
 
 interface DroppableZoneProps {
@@ -335,9 +339,32 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
   const component = props.data.component as Component<AgentConfig>;
   const hasModel =
     isAssistantAgent(component) && !!component.config.model_client;
-  const toolCount = isAssistantAgent(component)
-    ? component.config.tools?.length || 0
-    : 0;
+
+  // Get workbench info instead of direct tools
+  const workbenchInfo = (() => {
+    if (!isAssistantAgent(component))
+      return { hasWorkbench: false, toolCount: 0, workbenchType: null };
+
+    const workbench = component.config.workbench;
+    if (!workbench)
+      return { hasWorkbench: false, toolCount: 0, workbenchType: null };
+
+    if (isStaticWorkbench(workbench)) {
+      return {
+        hasWorkbench: true,
+        toolCount: workbench.config.tools?.length || 0,
+        workbenchType: "static" as const,
+      };
+    } else if (isMcpWorkbench(workbench)) {
+      return {
+        hasWorkbench: true,
+        toolCount: 0, // MCP tools are dynamic, we don't know the count
+        workbenchType: "mcp" as const,
+      };
+    }
+
+    return { hasWorkbench: false, toolCount: 0, workbenchType: null };
+  })();
 
   return (
     <BaseNode
@@ -349,8 +376,14 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
             <>
               <ConnectionBadge connected={hasModel} label="Model" />
               <ConnectionBadge
-                connected={toolCount > 0}
-                label={`${toolCount} Tools`}
+                connected={workbenchInfo.hasWorkbench}
+                label={
+                  workbenchInfo.workbenchType === "static"
+                    ? `${workbenchInfo.toolCount} Tools`
+                    : workbenchInfo.workbenchType === "mcp"
+                    ? "MCP Workbench"
+                    : "No Tools"
+                }
               />
             </>
           )}
@@ -409,17 +442,27 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
               className="my-left-handle"
             /> */}
               <div className="space-y-1">
-                {component.config.tools && toolCount > 0 && (
-                  <div className="space-y-1">
-                    {component.config.tools.map((tool, index) => (
-                      <div
-                        key={index}
-                        className="relative text-sm py-1 px-2 bg-white rounded flex items-center gap-2"
-                      >
-                        <Wrench className="w-4 h-4 text-gray-500" />
-                        <span>{tool.config.name}</span>
-                      </div>
-                    ))}
+                {workbenchInfo.workbenchType === "static" &&
+                  workbenchInfo.toolCount > 0 &&
+                  isStaticWorkbench(component.config.workbench!) && (
+                    <div className="space-y-1">
+                      {component.config.workbench!.config.tools.map(
+                        (tool, index) => (
+                          <div
+                            key={index}
+                            className="relative text-sm py-1 px-2 bg-white rounded flex items-center gap-2"
+                          >
+                            <Wrench className="w-4 h-4 text-gray-500" />
+                            <span>{tool.config.name}</span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                {workbenchInfo.workbenchType === "mcp" && (
+                  <div className="text-sm py-1 px-2 bg-white rounded flex items-center gap-2">
+                    <Package className="w-4 h-4 text-gray-500" />
+                    <span>MCP Server Tools</span>
                   </div>
                 )}
                 <DroppableZone

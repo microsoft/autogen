@@ -1,13 +1,20 @@
 import React, { useState, useCallback, useRef } from "react";
 import { Button, Breadcrumb, message, Tooltip } from "antd";
 import { ChevronLeft, Code, FormInput, PlayCircle } from "lucide-react";
-import { Component, ComponentConfig } from "../../../../types/datamodel";
+import {
+  Component,
+  ComponentConfig,
+  AgentConfig,
+  AssistantAgentConfig,
+  StaticWorkbenchConfig,
+} from "../../../../types/datamodel";
 import {
   isTeamComponent,
   isAgentComponent,
   isModelComponent,
   isToolComponent,
   isTerminationComponent,
+  isAssistantAgent,
 } from "../../../../types/guards";
 import { AgentFields } from "./fields/agent-fields";
 import { ModelFields } from "./fields/model-fields";
@@ -65,12 +72,26 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
         (current, path) => {
           if (!current) return null;
 
-          const field = current.config[
+          let field = current.config[
             path.parentField as keyof typeof current.config
           ] as
             | Component<ComponentConfig>[]
             | Component<ComponentConfig>
             | undefined;
+
+          // Special handling for tools within workbenches
+          if (path.parentField === "tools" && !field) {
+            // Check if tools are nested within a workbench for agents
+            if (isAgentComponent(current) && isAssistantAgent(current)) {
+              const agentConfig = current.config as AssistantAgentConfig;
+              const workbench = agentConfig.workbench;
+              if (
+                workbench?.provider === "autogen_core.tools.StaticWorkbench"
+              ) {
+                field = (workbench.config as StaticWorkbenchConfig)?.tools;
+              }
+            }
+          }
 
           if (Array.isArray(field)) {
             // If index is provided, use it directly (preferred method)
@@ -120,8 +141,21 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
       }
 
       const [currentPath, ...remainingPath] = path;
-      const field =
+      let field: any =
         root.config[currentPath.parentField as keyof typeof root.config];
+
+      // Special handling for tools within workbenches
+      let isWorkbenchTools = false;
+      if (currentPath.parentField === "tools" && !field) {
+        if (isAgentComponent(root) && isAssistantAgent(root)) {
+          const agentConfig = root.config as AssistantAgentConfig;
+          const workbench = agentConfig.workbench;
+          if (workbench?.provider === "autogen_core.tools.StaticWorkbench") {
+            field = (workbench.config as StaticWorkbenchConfig)?.tools;
+            isWorkbenchTools = true;
+          }
+        }
+      }
 
       const updateField = (fieldValue: any): any => {
         if (Array.isArray(fieldValue)) {
@@ -167,7 +201,21 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
         ...root,
         config: {
           ...root.config,
-          [currentPath.parentField]: updateField(field),
+          ...(isWorkbenchTools &&
+          isAgentComponent(root) &&
+          isAssistantAgent(root)
+            ? {
+                workbench: {
+                  ...(root.config as AssistantAgentConfig).workbench,
+                  config: {
+                    ...(root.config as AssistantAgentConfig).workbench?.config,
+                    tools: updateField(field),
+                  },
+                },
+              }
+            : {
+                [currentPath.parentField]: updateField(field),
+              }),
         },
       };
     },

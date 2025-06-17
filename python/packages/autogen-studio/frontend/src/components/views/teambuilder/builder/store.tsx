@@ -12,6 +12,8 @@ import {
   TeamConfig,
   AgentConfig,
   ToolConfig,
+  WorkbenchConfig,
+  StaticWorkbenchConfig,
   Component,
   ComponentConfig,
 } from "../../../types/datamodel";
@@ -24,6 +26,7 @@ import {
   isTeamComponent,
   isAgentComponent,
   isToolComponent,
+  isWorkbenchComponent,
   isTerminationComponent,
   isModelComponent,
   isSelectorTeam,
@@ -157,17 +160,44 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
             isAgentComponent(targetNode.data.component) &&
             isAssistantAgent(targetNode.data.component)
           ) {
-            if (!targetNode.data.component.config.tools) {
-              targetNode.data.component.config.tools = [];
+            // Get or create workbench
+            if (!targetNode.data.component.config.workbench) {
+              // Create a new StaticWorkbench
+              targetNode.data.component.config.workbench = {
+                provider: "autogen_core.tools.StaticWorkbench",
+                component_type: "workbench",
+                config: {
+                  tools: [],
+                },
+                label: "Static Workbench",
+              } as Component<StaticWorkbenchConfig>;
             }
-            const toolName = getUniqueName(
-              clonedComponent.config.name || clonedComponent.label || "tool",
-              targetNode.data.component.config.tools.map(
-                (t) => t.config.name || t.label || "tool"
-              )
-            );
-            clonedComponent.config.name = toolName;
-            targetNode.data.component.config.tools.push(clonedComponent);
+
+            // Type guard to ensure we have a StaticWorkbench (which supports tools)
+            const workbench = targetNode.data.component.config.workbench;
+            if (workbench.provider === "autogen_core.tools.StaticWorkbench") {
+              const staticWorkbenchConfig =
+                workbench.config as StaticWorkbenchConfig;
+
+              // Ensure the workbench has tools array
+              if (!staticWorkbenchConfig.tools) {
+                staticWorkbenchConfig.tools = [];
+              }
+
+              // Generate unique tool name within the workbench
+              const toolName = getUniqueName(
+                clonedComponent.config.name || clonedComponent.label || "tool",
+                staticWorkbenchConfig.tools.map(
+                  (t: Component<ToolConfig>) =>
+                    t.config.name || t.label || "tool"
+                )
+              );
+              clonedComponent.config.name = toolName;
+
+              // Add tool to workbench
+              staticWorkbenchConfig.tools.push(clonedComponent);
+            }
+
             return {
               nodes: newNodes,
               edges: newEdges,

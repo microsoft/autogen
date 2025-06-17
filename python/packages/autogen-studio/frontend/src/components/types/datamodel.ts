@@ -5,7 +5,8 @@ export type ComponentTypes =
   | "agent"
   | "model"
   | "tool"
-  | "termination";
+  | "termination"
+  | "workbench";
 export interface Component<T extends ComponentConfig> {
   provider: string;
   component_type: ComponentTypes;
@@ -146,6 +147,33 @@ export interface FunctionToolConfig {
   has_cancellation_support: boolean;
 }
 
+// Workbench Configs
+export interface StaticWorkbenchConfig {
+  tools: Component<ToolConfig>[];
+}
+
+export interface StdioServerParams {
+  type: "StdioServerParams";
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  read_timeout_seconds?: number;
+}
+
+export interface SseServerParams {
+  type: "SseServerParams";
+  url: string;
+  headers?: Record<string, any>;
+  timeout?: number;
+  sse_read_timeout?: number;
+}
+
+export type McpServerParams = StdioServerParams | SseServerParams;
+
+export interface McpWorkbenchConfig {
+  server_params: McpServerParams;
+}
+
 // Provider-based Configs
 export interface SelectorGroupChatConfig {
   participants: Component<AgentConfig>[];
@@ -181,7 +209,8 @@ export interface MultimodalWebSurferConfig {
 export interface AssistantAgentConfig {
   name: string;
   model_client: Component<ModelConfig>;
-  tools?: Component<ToolConfig>[];
+  tools?: Component<ToolConfig>[]; // deprecated - use workbench instead
+  workbench?: Component<WorkbenchConfig>;
   handoffs?: any[]; // HandoffBase | str equivalent
   model_context?: Component<ChatCompletionContextConfig>;
   description: string;
@@ -298,6 +327,8 @@ export type ModelConfig =
 
 export type ToolConfig = FunctionToolConfig | PythonCodeExecutionToolConfig;
 
+export type WorkbenchConfig = StaticWorkbenchConfig | McpWorkbenchConfig;
+
 export type ChatCompletionContextConfig = UnboundedChatCompletionContextConfig;
 
 export type TerminationConfig =
@@ -311,6 +342,7 @@ export type ComponentConfig =
   | AgentConfig
   | ModelConfig
   | ToolConfig
+  | WorkbenchConfig
   | TerminationConfig
   | ChatCompletionContextConfig;
 

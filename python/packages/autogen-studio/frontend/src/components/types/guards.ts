@@ -5,6 +5,7 @@ import type {
   AgentConfig,
   ModelConfig,
   ToolConfig,
+  WorkbenchConfig,
   TerminationConfig,
   ChatCompletionContextConfig,
   SelectorGroupChatConfig,
@@ -15,6 +16,8 @@ import type {
   OpenAIClientConfig,
   AzureOpenAIClientConfig,
   FunctionToolConfig,
+  StaticWorkbenchConfig,
+  McpWorkbenchConfig,
   OrTerminationConfig,
   MaxMessageTerminationConfig,
   TextMentionTerminationConfig,
@@ -41,6 +44,10 @@ const PROVIDERS = {
 
   // Tools
   FUNCTION_TOOL: "autogen_core.tools.FunctionTool",
+
+  // Workbenches
+  STATIC_WORKBENCH: "autogen_core.tools.StaticWorkbench",
+  MCP_WORKBENCH: "autogen_ext.tools.mcp.McpWorkbench",
 
   // Termination
   OR_TERMINATION: "autogen_agentchat.base.OrTerminationCondition",
@@ -73,6 +80,10 @@ type ProviderToConfig = {
 
   // Tools
   [PROVIDERS.FUNCTION_TOOL]: FunctionToolConfig;
+
+  // Workbenches
+  [PROVIDERS.STATIC_WORKBENCH]: StaticWorkbenchConfig;
+  [PROVIDERS.MCP_WORKBENCH]: McpWorkbenchConfig;
 
   // Termination
   [PROVIDERS.OR_TERMINATION]: OrTerminationConfig;
@@ -200,6 +211,19 @@ export function isFunctionTool(
   return isComponentOfType(component, PROVIDERS.FUNCTION_TOOL);
 }
 
+// Workbench provider guards with proper type narrowing
+export function isStaticWorkbench(
+  component: Component<ComponentConfig>
+): component is Component<StaticWorkbenchConfig> {
+  return isComponentOfType(component, PROVIDERS.STATIC_WORKBENCH);
+}
+
+export function isMcpWorkbench(
+  component: Component<ComponentConfig>
+): component is Component<McpWorkbenchConfig> {
+  return isComponentOfType(component, PROVIDERS.MCP_WORKBENCH);
+}
+
 // Termination provider guards with proper type narrowing
 export function isOrTermination(
   component: Component<ComponentConfig>
@@ -240,6 +264,13 @@ export function isUnboundedContext(
   component: Component<ComponentConfig>
 ): component is Component<UnboundedChatCompletionContextConfig> {
   return isComponentOfType(component, PROVIDERS.UNBOUNDED_CONTEXT);
+}
+
+// General category type guards
+export function isWorkbenchComponent(
+  component: Component<ComponentConfig>
+): component is Component<WorkbenchConfig> {
+  return component.component_type === "workbench";
 }
 
 // Runtime assertions
