@@ -91,7 +91,7 @@ Note:
             {
                 Temperature = 0,
                 MaxToken = 1024,
-                StopSequence = ["finish"],
+                StopSequence = ["//finish"],
                 Functions = null,
             },
             cancellationToken: cancellationToken);
