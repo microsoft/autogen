@@ -1,8 +1,8 @@
 import asyncio
 import builtins
-from typing import Any, Dict, List, Literal, Mapping
+from typing import Any, Dict, List, Literal, Mapping, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 from .._cancellation_token import CancellationToken
@@ -11,8 +11,15 @@ from ._base import BaseTool, ToolSchema
 from ._workbench import TextResultContent, ToolResult, Workbench
 
 
+class ToolOverride(BaseModel):
+    """Override configuration for a tool's name and/or description."""
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
 class StaticWorkbenchConfig(BaseModel):
     tools: List[ComponentModel] = []
+    tool_overrides: Dict[str, ToolOverride] = Field(default_factory=dict)
 
 
 class StateicWorkbenchState(BaseModel):
@@ -28,16 +35,43 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
     Args:
         tools (List[BaseTool[Any, Any]]): A list of tools to be included in the workbench.
             The tools should be subclasses of :class:`~autogen_core.tools.BaseTool`.
+        tool_overrides (Optional[Dict[str, ToolOverride]]): Optional mapping of original tool
+            names to override configurations for name and/or description. This allows
+            customizing how tools appear to consumers while maintaining the underlying
+            tool functionality.
     """
 
     component_provider_override = "autogen_core.tools.StaticWorkbench"
     component_config_schema = StaticWorkbenchConfig
 
-    def __init__(self, tools: List[BaseTool[Any, Any]]) -> None:
+    def __init__(
+        self, 
+        tools: List[BaseTool[Any, Any]], 
+        tool_overrides: Optional[Dict[str, ToolOverride]] = None
+    ) -> None:
         self._tools = tools
+        self._tool_overrides = tool_overrides or {}
+        # Build reverse mapping from override names to original names for call_tool
+        self._override_name_to_original: Dict[str, str] = {}
+        for original_name, override in self._tool_overrides.items():
+            if override.name:
+                self._override_name_to_original[override.name] = original_name
 
     async def list_tools(self) -> List[ToolSchema]:
-        return [tool.schema for tool in self._tools]
+        result_schemas = []
+        for tool in self._tools:
+            schema = tool.schema.copy()
+            
+            # Apply overrides if they exist for this tool
+            if tool.name in self._tool_overrides:
+                override = self._tool_overrides[tool.name]
+                if override.name is not None:
+                    schema["name"] = override.name
+                if override.description is not None:
+                    schema["description"] = override.description
+            
+            result_schemas.append(schema)
+        return result_schemas
 
     async def call_tool(
         self,
@@ -46,10 +80,13 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         cancellation_token: CancellationToken | None = None,
         call_id: str | None = None,
     ) -> ToolResult:
-        tool = next((tool for tool in self._tools if tool.name == name), None)
+        # Check if the name is an override name and map it back to the original
+        original_name = self._override_name_to_original.get(name, name)
+        
+        tool = next((tool for tool in self._tools if tool.name == original_name), None)
         if tool is None:
             return ToolResult(
-                name=name,
+                name=name,  # Return the requested name (which might be overridden)
                 result=[TextResultContent(content=f"Tool {name} not found.")],
                 is_error=True,
             )
@@ -66,7 +103,7 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         except Exception as e:
             result_str = self._format_errors(e)
             is_error = True
-        return ToolResult(name=tool.name, result=[TextResultContent(content=result_str)], is_error=is_error)
+        return ToolResult(name=name, result=[TextResultContent(content=result_str)], is_error=is_error)
 
     async def start(self) -> None:
         return None
@@ -90,11 +127,17 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
                 await tool.load_state_json(parsed_state.tools[tool.name])
 
     def _to_config(self) -> StaticWorkbenchConfig:
-        return StaticWorkbenchConfig(tools=[tool.dump_component() for tool in self._tools])
+        return StaticWorkbenchConfig(
+            tools=[tool.dump_component() for tool in self._tools],
+            tool_overrides=self._tool_overrides
+        )
 
     @classmethod
     def _from_config(cls, config: StaticWorkbenchConfig) -> Self:
-        return cls(tools=[BaseTool.load_component(tool) for tool in config.tools])
+        return cls(
+            tools=[BaseTool.load_component(tool) for tool in config.tools],
+            tool_overrides=config.tool_overrides
+        )
 
     def _format_errors(self, error: Exception) -> str:
         """Recursively format errors into a string."""
