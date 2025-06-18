@@ -27,7 +27,7 @@ class TraceHelper(Generic[Operation, Destination, ExtraAttributes]):
 
         disable_runtime_tracing = os.environ.get("AUTOGEN_DISABLE_RUNTIME_TRACING") == "true"
         if disable_runtime_tracing:
-            self.tracer_provider = NoOpTracerProvider()
+            self.tracer_provider: TracerProvider = NoOpTracerProvider()
             self.tracer = self.tracer_provider.get_tracer(f"autogen {instrumentation_builder_config.name}")
             return
 
