@@ -19,24 +19,38 @@ class DuckDuckGoSearchAgent(AssistantAgent):
     optimized for research tasks.
 
     Example:
-        ```python
-        from autogen_ext.agents.duckduckgo_search import DuckDuckGoSearchAgent
-        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        .. code-block:: python
 
-        # Create a model client
-        model_client = OpenAIChatCompletionClient(model="gpt-4")
+            from autogen_ext.agents.duckduckgo_search import DuckDuckGoSearchAgent
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-        # Create a DuckDuckGo search agent
-        search_agent = DuckDuckGoSearchAgent(
-            name="researcher",
-            model_client=model_client,
-        )
+            # Create a model client
+            model_client = OpenAIChatCompletionClient(model="gpt-4")
 
-        # Use the agent
-        result = await search_agent.run(task="What are the latest developments in AI?")
-        print(result.messages[-1].content)
-        ```
+            # Create a DuckDuckGo search agent
+            search_agent = DuckDuckGoSearchAgent(
+                name="researcher",
+                model_client=model_client,
+            )
+
+            # Use the agent
+            result = await search_agent.run(task="What are the latest developments in AI?")
+            print(result.messages[-1].content)
     """
+
+    DEFAULT_DESCRIPTION = "A research assistant that uses DuckDuckGo to find and analyze information from the web."
+
+    DEFAULT_SYSTEM_MESSAGE = """You are a research assistant that uses DuckDuckGo to find accurate information.
+
+When conducting research:
+1. Break down complex queries into specific, targeted search terms
+2. Use the duckduckgo_search tool to find relevant information
+3. Analyze and synthesize information from multiple sources when possible
+4. Explain why the information is relevant and how it connects to the query
+5. Cite your sources when providing information
+6. If you're unsure about something, say so and explain why
+7. Provide clear, well-structured responses with key findings highlighted
+"""
 
     def __init__(
         self,
@@ -59,20 +73,10 @@ class DuckDuckGoSearchAgent(AssistantAgent):
             **kwargs: Additional keyword arguments passed to the parent AssistantAgent
         """
         if description is None:
-            description = "A research assistant that uses DuckDuckGo to find and analyze information from the web."
+            description = self.DEFAULT_DESCRIPTION
 
         if system_message is None:
-            system_message = """You are a research assistant that uses DuckDuckGo to find accurate information.
-
-When conducting research:
-1. Break down complex queries into specific, targeted search terms
-2. Use the duckduckgo_search tool to find relevant information
-3. Analyze and synthesize information from multiple sources when possible
-4. Explain why the information is relevant and how it connects to the query
-5. Cite your sources when providing information
-6. If you're unsure about something, say so and explain why
-7. Provide clear, well-structured responses with key findings highlighted
-"""
+            system_message = self.DEFAULT_SYSTEM_MESSAGE
 
         # Create the DuckDuckGo search tool
         search_tool = DuckDuckGoSearchTool()

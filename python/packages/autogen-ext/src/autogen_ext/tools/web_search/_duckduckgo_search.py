@@ -39,18 +39,18 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
     an API key. It can optionally fetch and convert webpage content to markdown format.
 
     Example:
-        ```python
-        from autogen_ext.tools.web_search import DuckDuckGoSearchTool
-        from autogen_agentchat.agents import AssistantAgent
-        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        .. code-block:: python
 
-        # Create the search tool
-        search_tool = DuckDuckGoSearchTool()
+            from autogen_ext.tools.web_search import DuckDuckGoSearchTool
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-        # Create an agent with the search tool
-        model_client = OpenAIChatCompletionClient(model="gpt-4")
-        agent = AssistantAgent(name="search_agent", model_client=model_client, tools=[search_tool])
-        ```
+            # Create the search tool
+            search_tool = DuckDuckGoSearchTool()
+
+            # Create an agent with the search tool
+            model_client = OpenAIChatCompletionClient(model="gpt-4")
+            agent = AssistantAgent(name="search_agent", model_client=model_client, tools=[search_tool])
     """
 
     def __init__(self) -> None:
