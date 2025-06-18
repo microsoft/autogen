@@ -197,11 +197,20 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     ) -> None:
         self._server_params = server_params
         self._tool_overrides = tool_overrides or {}
+        
         # Build reverse mapping from override names to original names for call_tool
         self._override_name_to_original: Dict[str, str] = {}
         for original_name, override in self._tool_overrides.items():
             if override.name:
+                # Check for conflicts with other override names
+                if override.name in self._override_name_to_original:
+                    existing_original = self._override_name_to_original[override.name]
+                    raise ValueError(
+                        f"Tool override name '{override.name}' is used by multiple tools: "
+                        f"'{existing_original}' and '{original_name}'. Override names must be unique."
+                    )
                 self._override_name_to_original[override.name] = original_name
+        
         # self._session: ClientSession | None = None
         self._actor: McpSessionActor | None = None
         self._actor_loop: asyncio.AbstractEventLoop | None = None

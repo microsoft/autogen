@@ -280,6 +280,32 @@ async def test_mcp_workbench_override_name_to_original_mapping(
     assert len(workbench._override_name_to_original) == 2
 
 
+def test_mcp_workbench_conflict_detection() -> None:
+    """Test that McpWorkbench detects conflicts in tool override names."""
+    
+    server_params = StdioServerParams(command="echo", args=["test"])
+    
+    # Test 1: Valid overrides - should work
+    overrides_valid = {
+        "fetch": ToolOverride(name="web_fetch"),
+        "search": ToolOverride(name="advanced_search")
+    }
+    workbench_valid = McpWorkbench(server_params=server_params, tool_overrides=overrides_valid)
+    assert workbench_valid._override_name_to_original["web_fetch"] == "fetch"
+    assert workbench_valid._override_name_to_original["advanced_search"] == "search"
+
+    # Test 2: Duplicate override names - should fail
+    overrides_duplicate = {
+        "fetch": ToolOverride(name="same_name"),
+        "search": ToolOverride(name="same_name")  # Duplicate
+    }
+    try:
+        McpWorkbench(server_params=server_params, tool_overrides=overrides_duplicate)
+        assert False, "Should have raised ValueError for duplicate override names"
+    except ValueError as e:
+        assert "is used by multiple tools" in str(e)
+
+
 if __name__ == "__main__":
     # Run tests individually since we can't use pytest directly
     import sys
@@ -318,6 +344,7 @@ if __name__ == "__main__":
             await test_mcp_workbench_partial_overrides(sample_tools, mock_actor, server_params)
             test_mcp_tool_override_model()
             await test_mcp_workbench_override_name_to_original_mapping(server_params)
+            test_mcp_workbench_conflict_detection()
             
             print("All McpWorkbench override tests passed!")
             

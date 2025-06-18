@@ -51,24 +51,48 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
     ) -> None:
         self._tools = tools
         self._tool_overrides = tool_overrides or {}
+        
         # Build reverse mapping from override names to original names for call_tool
         self._override_name_to_original: Dict[str, str] = {}
+        existing_tool_names = {tool.name for tool in self._tools}
+        
         for original_name, override in self._tool_overrides.items():
             if override.name:
+                # Check for conflicts with existing tool names
+                if override.name in existing_tool_names and override.name != original_name:
+                    raise ValueError(
+                        f"Tool override name '{override.name}' conflicts with existing tool name. "
+                        f"Override names must not conflict with any tool names."
+                    )
+                # Check for conflicts with other override names
+                if override.name in self._override_name_to_original:
+                    existing_original = self._override_name_to_original[override.name]
+                    raise ValueError(
+                        f"Tool override name '{override.name}' is used by multiple tools: "
+                        f"'{existing_original}' and '{original_name}'. Override names must be unique."
+                    )
                 self._override_name_to_original[override.name] = original_name
 
     async def list_tools(self) -> List[ToolSchema]:
         result_schemas = []
         for tool in self._tools:
-            schema = tool.schema.copy()
+            original_schema = tool.schema
             
             # Apply overrides if they exist for this tool
             if tool.name in self._tool_overrides:
                 override = self._tool_overrides[tool.name]
-                if override.name is not None:
-                    schema["name"] = override.name
-                if override.description is not None:
-                    schema["description"] = override.description
+                # Create a new ToolSchema with overrides applied
+                schema: ToolSchema = {
+                    "name": override.name if override.name is not None else original_schema["name"],
+                    "description": override.description if override.description is not None else original_schema.get("description", ""),
+                }
+                # Copy optional fields
+                if "parameters" in original_schema:
+                    schema["parameters"] = original_schema["parameters"]
+                if "strict" in original_schema:
+                    schema["strict"] = original_schema["strict"]
+            else:
+                schema = original_schema
             
             result_schemas.append(schema)
         return result_schemas

@@ -226,10 +226,80 @@ def test_tool_override_model() -> None:
     assert override4.description is None
 
 
+def test_static_workbench_conflict_detection() -> None:
+    """Test that StaticWorkbench detects conflicts in tool override names."""
+    
+    def test_tool_func_1(x: Annotated[int, "Number"]) -> int:
+        return x
+
+    def test_tool_func_2(x: Annotated[int, "Number"]) -> int:
+        return x
+
+    def test_tool_func_3(x: Annotated[int, "Number"]) -> int:
+        return x
+
+    tool1 = FunctionTool(
+        test_tool_func_1,
+        name="tool1",
+        description="Tool 1",
+        global_imports=[ImportFromModule(module="typing_extensions", imports=["Annotated"])],
+    )
+    tool2 = FunctionTool(
+        test_tool_func_2,
+        name="tool2", 
+        description="Tool 2",
+        global_imports=[ImportFromModule(module="typing_extensions", imports=["Annotated"])],
+    )
+    tool3 = FunctionTool(
+        test_tool_func_3,
+        name="tool3",
+        description="Tool 3", 
+        global_imports=[ImportFromModule(module="typing_extensions", imports=["Annotated"])],
+    )
+
+    # Test 1: Valid overrides - should work
+    overrides_valid = {
+        "tool1": ToolOverride(name="renamed_tool1"),
+        "tool2": ToolOverride(name="renamed_tool2")
+    }
+    workbench_valid = StaticWorkbench(tools=[tool1, tool2, tool3], tool_overrides=overrides_valid)
+    assert "renamed_tool1" in workbench_valid._override_name_to_original
+    assert "renamed_tool2" in workbench_valid._override_name_to_original
+
+    # Test 2: Conflict with existing tool name - should fail
+    overrides_conflict = {
+        "tool1": ToolOverride(name="tool2")  # tool2 already exists
+    }
+    try:
+        StaticWorkbench(tools=[tool1, tool2, tool3], tool_overrides=overrides_conflict)
+        assert False, "Should have raised ValueError for name conflict"
+    except ValueError as e:
+        assert "conflicts with existing tool name" in str(e)
+
+    # Test 3: Duplicate override names - should fail
+    overrides_duplicate = {
+        "tool1": ToolOverride(name="same_name"),
+        "tool2": ToolOverride(name="same_name")  # Duplicate
+    }
+    try:
+        StaticWorkbench(tools=[tool1, tool2, tool3], tool_overrides=overrides_duplicate)
+        assert False, "Should have raised ValueError for duplicate override names"
+    except ValueError as e:
+        assert "is used by multiple tools" in str(e)
+
+    # Test 4: Self-renaming - should work
+    overrides_self = {
+        "tool1": ToolOverride(name="tool1")  # Renaming to itself
+    }
+    workbench_self = StaticWorkbench(tools=[tool1, tool2, tool3], tool_overrides=overrides_self)
+    assert workbench_self._override_name_to_original["tool1"] == "tool1"
+
+
 if __name__ == "__main__":
     asyncio.run(test_static_workbench_with_tool_overrides())
     asyncio.run(test_static_workbench_without_overrides())
     asyncio.run(test_static_workbench_serialization_with_overrides()) 
     asyncio.run(test_static_workbench_partial_overrides())
     test_tool_override_model()
+    test_static_workbench_conflict_detection()
     print("All StaticWorkbench override tests passed!")
