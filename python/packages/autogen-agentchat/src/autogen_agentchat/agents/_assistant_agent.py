@@ -1097,6 +1097,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 agent_name=agent_name,
                 inner_messages=inner_messages,
                 output_content_type=output_content_type,
+                tools=[tool for wb in workbench for tool in await wb.list_tools()],
             ):
                 yield reflection_response
         else:
@@ -1192,6 +1193,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         inner_messages: List[BaseAgentEvent | BaseChatMessage],
         output_content_type: type[BaseModel] | None,
+        tools: List[BaseTool[Any, Any]] | None = None,
     ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent | ThoughtEvent, None]:
         """
         If reflect_on_tool_use=True, we do another inference based on tool results
@@ -1206,6 +1208,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             async for chunk in model_client.create_stream(
                 llm_messages,
                 json_output=output_content_type,
+                tools=tools,
+                extra_create_args={"tool_choice": "none"}
             ):
                 if isinstance(chunk, CreateResult):
                     reflection_result = chunk
@@ -1214,7 +1218,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
         else:
-            reflection_result = await model_client.create(llm_messages, json_output=output_content_type)
+            reflection_result = await model_client.create(
+                llm_messages,
+                json_output=output_content_type,
+                tools=tools,
+                extra_create_args={"tool_choice": "none"},
+            )
 
         if not reflection_result or not isinstance(reflection_result.content, str):
             raise RuntimeError("Reflect on tool use produced no valid text response.")
