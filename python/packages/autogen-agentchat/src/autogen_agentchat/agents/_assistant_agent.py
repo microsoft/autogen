@@ -768,16 +768,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             self._reflect_on_tool_use = False
         else:
             self._reflect_on_tool_use = reflect_on_tool_use
-        if self._reflect_on_tool_use and ModelFamily.is_claude(model_client.model_info["family"]):
-            warnings.warn(
-                "Claude models may not work with reflection on tool use because Claude requires that any requests including a previous tool use or tool result must include the original tools definition."
-                "Consider setting reflect_on_tool_use to False. "
-                "As an alternative, consider calling the agent in a loop until it stops producing tool calls. "
-                "See [Single-Agent Team](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html#single-agent-team) "
-                "for more details.",
-                UserWarning,
-                stacklevel=2,
-            )
         self._tool_call_summary_format = tool_call_summary_format
         self._tool_call_summary_formatter = tool_call_summary_formatter
         self._is_running = False
