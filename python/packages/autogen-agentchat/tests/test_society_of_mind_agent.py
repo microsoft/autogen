@@ -119,15 +119,17 @@ async def test_society_of_mind_agent_output_task_messages_parameter(runtime: Age
     # The SocietyOfMindAgent should output the task message (since it's the outer agent)
     # but should NOT forward the task messages from its inner team
     task_messages_in_soma = [msg for msg in soma_messages if isinstance(msg, TextMessage) and msg.source == "user"]
-    inner_task_messages_in_soma = [
-        msg
-        for msg in soma_messages
-        if isinstance(msg, TextMessage) and msg.source == "user" and "Count to 10" in msg.content
-    ]
 
-    # Should have exactly one task message (from the outer level)
+    # Count how many times "Count to 10" appears in the stream
+    # With proper implementation, it should appear exactly once (from outer level only)
+    count_task_messages = sum(
+        1 for msg in soma_messages
+        if isinstance(msg, TextMessage) and msg.source == "user" and "Count to 10" in msg.content
+    )
+
+    # Should have exactly one task message (from the outer level only)
     assert len(task_messages_in_soma) == 1
-    assert len(inner_task_messages_in_soma) == 1
+    assert count_task_messages == 1  # Should appear exactly once, not duplicated from inner team
 
     # Should have the SocietyOfMindAgent's final response
     soma_responses = [msg for msg in soma_messages if isinstance(msg, TextMessage) and msg.source == "society_of_mind"]

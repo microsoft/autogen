@@ -544,7 +544,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 # Skip adding task messages to output_messages again if they were already added initially
                 if output_task_messages and received_messages_count < task_messages_count:
                     received_messages_count += 1
-                    yield message
+                    # Don't yield the message again - it was already yielded initially
                     continue
 
                 yield message
