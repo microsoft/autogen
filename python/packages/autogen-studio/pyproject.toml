@@ -36,6 +36,7 @@ dependencies = [
     "autogen-agentchat>=0.4.9.2,<0.7",
     "autogen-ext[magentic-one, openai, azure]>=0.4.2,<0.7",
     "anthropic",
+    "mcp>=1.9.2",
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
