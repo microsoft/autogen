@@ -68,9 +68,6 @@ class ToolCallConfig(BaseModel):
        Added for future extensibility of tool call loop functionality.
     """
 
-    enable_loop: bool = False
-    """Whether to enable repeated tool calls in a loop."""
-
     max_iterations: int = 10
     """Maximum number of tool call iterations to prevent infinite loops."""
 
@@ -97,6 +94,13 @@ class AssistantAgentConfig(BaseModel):
 
        Added support for repeated tool calls in a loop until the model produces
        a non-tool response or handoff.
+    """
+    tool_call_config: ToolCallConfig | None = None
+    """Configuration for tool call loop behavior.
+
+    .. versionadded:: v0.4.1
+
+       Added to configure tool call loop behavior including max iterations.
     """
     metadata: Dict[str, str] | None = None
     structured_message_factory: ComponentModel | None = None
@@ -436,7 +440,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             # Define the function to be called as a tool.
             def sentiment_analysis(text: str) -> str:
-                \"\"\"Given a text, return the sentiment.\"\"\"
                 return "happy" if "happy" in text else "sad" if "sad" in text else "neutral"
 
 
@@ -694,6 +697,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool = False,
         reflect_on_tool_use: bool | None = None,
         tool_call_loop: bool = False,
+        tool_call_config: ToolCallConfig | None = None,
         tool_call_summary_format: str = "{result}",
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None = None,
         output_content_type: type[BaseModel] | None = None,
@@ -805,6 +809,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # Tool call loop configuration
         self._tool_call_loop = tool_call_loop
+        self._tool_call_config = tool_call_config or ToolCallConfig()
+
+        # Validate tool call configuration
+        if self._tool_call_config.max_iterations < 1:
+            raise ValueError("Maximum number of tool iterations must be at least 1")
+
         self._tool_call_summary_format = tool_call_summary_format
         self._tool_call_summary_formatter = tool_call_summary_formatter
         self._is_running = False
@@ -854,6 +864,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream = self._model_client_stream
         reflect_on_tool_use = self._reflect_on_tool_use
         tool_call_loop = self._tool_call_loop
+        tool_call_config = self._tool_call_config
         tool_call_summary_format = self._tool_call_summary_format
         tool_call_summary_formatter = self._tool_call_summary_formatter
         output_content_type = self._output_content_type
@@ -926,6 +937,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=model_client_stream,
             reflect_on_tool_use=reflect_on_tool_use,
             tool_call_loop=tool_call_loop,
+            tool_call_config=tool_call_config,
             tool_call_summary_format=tool_call_summary_format,
             tool_call_summary_formatter=tool_call_summary_formatter,
             output_content_type=output_content_type,
@@ -1031,6 +1043,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client_stream: bool,
         reflect_on_tool_use: bool,
         tool_call_loop: bool,
+        tool_call_config: ToolCallConfig,
         tool_call_summary_format: str,
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
         output_content_type: type[BaseModel] | None,
@@ -1044,7 +1057,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         # Tool call loop implementation
         current_model_result = model_result
         loop_iteration = 0
-        max_iterations = 10  # Safety limit to prevent infinite loops
+        max_iterations = tool_call_config.max_iterations if tool_call_loop else 1
 
         while True:
             # If direct text response (string), we're done
@@ -1124,7 +1137,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 return
 
             # STEP 4D: Handle tool call loop or finish
-            if tool_call_loop and loop_iteration < max_iterations:
+            if tool_call_loop and loop_iteration < max_iterations - 1:
                 # Continue the loop: make another model call
                 loop_iteration += 1
 
@@ -1189,6 +1202,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                         agent_name=agent_name,
                         inner_messages=inner_messages,
                         output_content_type=output_content_type,
+                        cancellation_token=cancellation_token,
                     ):
                         yield reflection_response
                 else:
@@ -1287,6 +1301,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         inner_messages: List[BaseAgentEvent | BaseChatMessage],
         output_content_type: type[BaseModel] | None,
+        cancellation_token: CancellationToken,
     ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent | ThoughtEvent, None]:
         """
         If reflect_on_tool_use=True, we do another inference based on tool results
@@ -1305,6 +1320,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 llm_messages,
                 tools=tools,
                 json_output=output_content_type,
+                cancellation_token=cancellation_token,
             ):
                 if isinstance(chunk, CreateResult):
                     reflection_result = chunk
@@ -1313,7 +1329,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
         else:
-            reflection_result = await model_client.create(llm_messages, tools=tools, json_output=output_content_type)
+            reflection_result = await model_client.create(
+                llm_messages, tools=tools, json_output=output_content_type, cancellation_token=cancellation_token
+            )
 
         if not reflection_result or not isinstance(reflection_result.content, str):
             raise RuntimeError("Reflect on tool use produced no valid text response.")
@@ -1369,19 +1387,16 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         normal_tool_calls = [(call, result) for call, result in executed_calls_and_results if call.name not in handoffs]
 
         def default_tool_call_summary_formatter(call: FunctionCall, result: FunctionExecutionResult) -> str:
-            return tool_call_summary_format
-
-        summary_formatter = tool_call_summary_formatter or default_tool_call_summary_formatter
-
-        tool_call_summaries = [
-            summary_formatter(call, result).format(
+            return tool_call_summary_format.format(
                 tool_name=call.name,
                 arguments=call.arguments,
                 result=result.content,
                 is_error=result.is_error,
             )
-            for call, result in normal_tool_calls
-        ]
+
+        summary_formatter = tool_call_summary_formatter or default_tool_call_summary_formatter
+
+        tool_call_summaries = [summary_formatter(call, result) for call, result in normal_tool_calls]
 
         tool_call_summary = "\n".join(tool_call_summaries)
         return Response(
@@ -1505,6 +1520,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=self._model_client_stream,
             reflect_on_tool_use=self._reflect_on_tool_use,
             tool_call_loop=self._tool_call_loop,
+            tool_call_config=self._tool_call_config,
             tool_call_summary_format=self._tool_call_summary_format,
             structured_message_factory=self._structured_message_factory.dump_component()
             if self._structured_message_factory
@@ -1537,6 +1553,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client_stream=config.model_client_stream,
             reflect_on_tool_use=config.reflect_on_tool_use,
             tool_call_loop=config.tool_call_loop,
+            tool_call_config=config.tool_call_config,
             tool_call_summary_format=config.tool_call_summary_format,
             output_content_type=output_content_type,
             output_content_type_format=format_string,
