@@ -280,16 +280,6 @@ Run integration tests (requires network access):
 python -m pytest tests/tools/web_search/test_integration.py -v -m integration
 ```
 
-## Comparison with Other Search Agents
-
-| Feature | DuckDuckGo | Bing | Google |
-|---------|------------|------|--------|
-| API Key Required | ❌ | ✅ | ✅ |
-| Privacy-Focused | ✅ | ❌ | ❌ |
-| Rate Limits | Minimal | Yes | Yes |
-| Content Quality | Good | Excellent | Excellent |
-| Speed | Fast | Very Fast | Very Fast |
-| Cost | Free | Paid | Paid |
 
 ## Troubleshooting
 
@@ -338,12 +328,3 @@ For issues and questions:
 - Check the [AutoGen documentation](https://microsoft.github.io/autogen/)
 - Open an issue on the [AutoGen GitHub repository](https://github.com/microsoft/autogen)
 - Review the test files for usage examples
-
-## Changelog
-
-### Version 1.0.0
-- Initial implementation of DuckDuckGo search agent
-- Support for web search with content extraction
-- Privacy-focused search without API keys
-- Comprehensive test suite
-- Documentation and examples 

@@ -38,7 +38,56 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
     This tool uses DuckDuckGo's HTML interface to perform web searches without requiring
     an API key. It can optionally fetch and convert webpage content to markdown format.
 
-    Example:
+    Installation:
+
+    .. code-block:: bash
+
+        pip install autogen-ext[duckduckgo-search]"
+
+    Key Features:
+
+    * No API key required
+    * Supports multiple languages and regions
+    * Optional webpage content fetching
+    * Safe search filtering
+    * Markdown conversion of webpage content
+    * Configurable number of results
+
+    Examples:
+        Using the tool directly:
+
+        .. code-block:: python
+
+            from autogen_ext.tools.web_search import DuckDuckGoSearchTool, DuckDuckGoSearchArgs
+            from autogen_core import CancellationToken
+            import asyncio
+
+            async def main():
+                # Create the search tool
+                search_tool = DuckDuckGoSearchTool()
+
+                # Create search arguments
+                search_args = DuckDuckGoSearchArgs(
+                    query="What is AutoGen?",
+                    num_results=3,
+                    include_snippets=True,
+                    include_content=True
+                )
+
+                # Perform the search
+                results = await search_tool.run(search_args, CancellationToken())
+                
+                # Print results
+                for result in results.results:
+                    print(f"Title: {result['title']}")
+                    print(f"URL: {result['link']}")
+                    print(f"Snippet: {result.get('snippet', '')}")
+                    print("---")
+
+            asyncio.run(main())
+
+        Basic usage with an AssistantAgent:
+
         .. code-block:: python
 
             from autogen_ext.tools.web_search import DuckDuckGoSearchTool
@@ -50,7 +99,71 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
 
             # Create an agent with the search tool
             model_client = OpenAIChatCompletionClient(model="gpt-4")
-            agent = AssistantAgent(name="search_agent", model_client=model_client, tools=[search_tool])
+            agent = AssistantAgent(
+                name="search_agent",
+                model_client=model_client,
+                tools=[search_tool]
+            )
+
+        Advanced usage with custom search parameters:
+
+        .. code-block:: python
+
+            from autogen_ext.tools.web_search import DuckDuckGoSearchArgs
+
+            # Perform a search in Spanish with content fetching
+            search_args = DuckDuckGoSearchArgs(
+                query="inteligencia artificial",
+                language="es",
+                region="es",
+                num_results=5,
+                include_content=True,
+                content_max_length=15000
+            )
+
+            # Use the search args with your agent
+            response = await agent.on_messages(
+                [TextMessage(
+                    source="user",
+                    content="Search for AI in Spanish using these parameters",
+                    tool_calls=[{
+                        "name": "duckduckgo_search",
+                        "args": search_args.dict()
+                    }]
+                )],
+                CancellationToken()
+            )
+
+        Quick search without content fetching:
+
+        .. code-block:: python
+
+            # For faster searches without webpage content
+            search_args = DuckDuckGoSearchArgs(
+                query="latest AI news",
+                num_results=3,
+                include_snippets=True,
+                include_content=False  # Skip content fetching for speed
+            )
+
+    .. note::
+        The tool uses web scraping to fetch results, so it may be affected by:
+        - DuckDuckGo's rate limiting
+        - Changes to DuckDuckGo's HTML structure
+        - Website blocking or requiring JavaScript
+        - Network connectivity issues
+
+    Args:
+        No initialization arguments required.
+
+    Returns:
+        DuckDuckGoSearchResult: A result object containing:
+            - results (List[Dict[str, str]]): List of search results, each containing:
+                - title: The title of the webpage
+                - link: The URL of the webpage
+                - snippet: (optional) A brief excerpt from the webpage
+                - content: (optional) Full webpage content in markdown format
+
     """
 
     def __init__(self) -> None:
