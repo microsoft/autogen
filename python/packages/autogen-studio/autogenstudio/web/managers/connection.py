@@ -317,10 +317,12 @@ class WebSocketManager:
     async def _handle_stream_error(self, run_id: int, error: Exception) -> None:
         """Handle stream errors with proper run updates"""
         if run_id not in self._closed_connections:
+            err_detail = str(error)
+            err_brief = err_detail.split("Traceback", 1)[0].strip() if "Traceback" in err_detail else err_detail
             error_result = TeamResult(
                 task_result=TaskResult(
-                    messages=[TextMessage(source="system", content=str(error))],
-                    stop_reason="An error occurred while processing this run",
+                    messages=[TextMessage(source="system", content=err_detail)],
+                    stop_reason=f"An error occurred while processing this run: {err_brief}",
                 ),
                 usage="",
                 duration=0,
