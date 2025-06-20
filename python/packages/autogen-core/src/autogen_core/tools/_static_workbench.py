@@ -1,14 +1,14 @@
 import asyncio
 import builtins
-from typing import Any, Dict, List, Literal, Mapping
+from typing import Any, AsyncGenerator, Dict, List, Literal, Mapping
 
 from pydantic import BaseModel
 from typing_extensions import Self
 
 from .._cancellation_token import CancellationToken
 from .._component_config import Component, ComponentModel
-from ._base import BaseTool, ToolSchema
-from ._workbench import TextResultContent, ToolResult, Workbench
+from ._base import BaseStreamTool, BaseTool, ToolSchema
+from ._workbench import StreamWorkbench, TextResultContent, ToolResult, Workbench
 
 
 class StaticWorkbenchConfig(BaseModel):
@@ -108,3 +108,51 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         else:
             error_message += f"{str(error)}\n"
         return error_message.strip()
+
+
+class StaticStreamWorkbench(StaticWorkbench):
+    """
+    A workbench that provides a static set of tools that do not change after
+    each tool execution, and supports streaming results.
+    """
+
+    component_provider_override = "autogen_core.tools.StaticStreamWorkbench"
+
+    async def call_tool_stream(
+        self,
+        name: str,
+        arguments: Mapping[str, Any] | None = None,
+        cancellation_token: CancellationToken | None = None,
+        call_id: str | None = None,
+    ) -> AsyncGenerator[Any | ToolResult, None]:
+        tool = next((tool for tool in self._tools if tool.name == name), None)
+        if tool is None:
+            yield ToolResult(
+                name=name,
+                result=[TextResultContent(content=f"Tool {name} not found.")],
+                is_error=True,
+            )
+            return
+        if not cancellation_token:
+            cancellation_token = CancellationToken()
+        if not arguments:
+            arguments = {}
+        try:
+            if isinstance(tool, BaseStreamTool):
+                previous_result: Any | None = None
+                async for result in tool.run_json_stream(arguments, cancellation_token, call_id=call_id):
+                    if previous_result is not None:
+                        yield previous_result
+                    previous_result = result
+                actual_tool_output = previous_result
+            else:
+                # If the tool is not a stream tool, we run it normally and yield the result
+                result_future = asyncio.ensure_future(tool.run_json(arguments, cancellation_token, call_id=call_id))
+                cancellation_token.link_future(result_future)
+                actual_tool_output = await result_future
+            is_error = False
+            result_str = tool.return_value_as_string(actual_tool_output)
+        except Exception as e:
+            result_str = self._format_errors(e)
+            is_error = True
+        yield ToolResult(name=tool.name, result=[TextResultContent(content=result_str)], is_error=is_error)

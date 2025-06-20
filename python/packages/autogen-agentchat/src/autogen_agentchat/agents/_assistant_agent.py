@@ -32,7 +32,7 @@ from autogen_core.models import (
     ModelFamily,
     SystemMessage,
 )
-from autogen_core.tools import BaseTool, FunctionTool, StaticWorkbench, Workbench
+from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, StaticWorkbench, ToolResult, Workbench
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -1051,18 +1051,44 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         yield tool_call_msg
 
         # STEP 4B: Execute tool calls
-        executed_calls_and_results = await asyncio.gather(
-            *[
-                cls._execute_tool_call(
-                    tool_call=call,
-                    workbench=workbench,
-                    handoff_tools=handoff_tools,
-                    agent_name=agent_name,
-                    cancellation_token=cancellation_token,
-                )
-                for call in model_result.content
-            ]
-        )
+        stream = asyncio.Queue[BaseAgentEvent | BaseChatMessage | None]()
+
+        async def _execute_tool_calls(
+            function_calls: List[FunctionCall],
+        ) -> List[Tuple[FunctionCall, FunctionExecutionResult]]:
+            results = await asyncio.gather(
+                *[
+                    cls._execute_tool_call(
+                        tool_call=call,
+                        workbench=workbench,
+                        handoff_tools=handoff_tools,
+                        agent_name=agent_name,
+                        cancellation_token=cancellation_token,
+                        stream=stream,
+                    )
+                    for call in function_calls
+                ]
+            )
+            stream.put_nowait(None)
+            return results
+
+        task = asyncio.create_task(_execute_tool_calls(model_result.content))
+
+        while True:
+            try:
+                event = await stream.get()
+                if event is None:
+                    break
+                if isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
+                    yield event
+                    inner_messages.append(event)
+                else:
+                    raise RuntimeError(f"Unexpected event type: {type(event)}")
+            except asyncio.CancelledError:
+                task.cancel()
+                raise
+
+        executed_calls_and_results = await task
         exec_results = [result for _, result in executed_calls_and_results]
 
         # Yield ToolCallExecutionEvent
@@ -1302,6 +1328,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         cancellation_token: CancellationToken,
+        stream: asyncio.Queue[BaseAgentEvent | BaseChatMessage | None],
     ) -> Tuple[FunctionCall, FunctionExecutionResult]:
         """Execute a single tool call and return the result."""
         # Load the arguments from the tool call.
@@ -1339,18 +1366,38 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         for wb in workbench:
             tools = await wb.list_tools()
             if any(t["name"] == tool_call.name for t in tools):
-                result = await wb.call_tool(
-                    name=tool_call.name,
-                    arguments=arguments,
-                    cancellation_token=cancellation_token,
-                    call_id=tool_call.id,
-                )
+                if isinstance(wb, StaticStreamWorkbench):
+                    tool_result: ToolResult | None = None
+                    async for event in wb.call_tool_stream(
+                        name=tool_call.name,
+                        arguments=arguments,
+                        cancellation_token=cancellation_token,
+                        call_id=tool_call.id,
+                    ):
+                        if isinstance(event, ToolResult):
+                            tool_result = event
+                        elif isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
+                            stream.put_nowait(event)
+                        else:
+                            warnings.warn(
+                                f"Unexpected event type: {type(event)} in tool call streaming.",
+                                UserWarning,
+                                stacklevel=2,
+                            )
+                    assert isinstance(tool_result, ToolResult), "Tool result should not be None in streaming mode."
+                else:
+                    tool_result = await wb.call_tool(
+                        name=tool_call.name,
+                        arguments=arguments,
+                        cancellation_token=cancellation_token,
+                        call_id=tool_call.id,
+                    )
                 return (
                     tool_call,
                     FunctionExecutionResult(
-                        content=result.to_text(),
+                        content=tool_result.to_text(),
                         call_id=tool_call.id,
-                        is_error=result.is_error,
+                        is_error=tool_result.is_error,
                         name=tool_call.name,
                     ),
                 )

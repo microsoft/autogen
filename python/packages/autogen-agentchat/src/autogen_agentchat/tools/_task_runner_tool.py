@@ -1,13 +1,13 @@
 from abc import ABC
-from typing import Annotated, Any, List, Mapping
+from typing import Annotated, Any, AsyncGenerator, List, Mapping
 
 from autogen_core import CancellationToken
-from autogen_core.tools import BaseTool
+from autogen_core.tools import BaseStreamTool
 from pydantic import BaseModel
 
 from ..agents import BaseChatAgent
 from ..base import TaskResult
-from ..messages import BaseChatMessage
+from ..messages import BaseAgentEvent, BaseChatMessage
 from ..teams import BaseGroupChat
 
 
@@ -17,7 +17,7 @@ class TaskRunnerToolArgs(BaseModel):
     task: Annotated[str, "The task to be executed."]
 
 
-class TaskRunnerTool(BaseTool[TaskRunnerToolArgs, TaskResult], ABC):
+class TaskRunnerTool(BaseStreamTool[TaskRunnerToolArgs, BaseAgentEvent | BaseChatMessage, TaskResult], ABC):
     """An base class for tool that can be used to run a task using a team or an agent."""
 
     component_type = "tool"
@@ -32,7 +32,16 @@ class TaskRunnerTool(BaseTool[TaskRunnerToolArgs, TaskResult], ABC):
         )
 
     async def run(self, args: TaskRunnerToolArgs, cancellation_token: CancellationToken) -> TaskResult:
+        """Run the task and return the result."""
         return await self._task_runner.run(task=args.task, cancellation_token=cancellation_token)
+
+    async def run_stream(
+        self, args: TaskRunnerToolArgs, cancellation_token: CancellationToken
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | TaskResult, None]:
+        """Run the task and yield events or messages as they are produced, the final :class:`TaskResult`
+        will be yielded at the end."""
+        async for event in self._task_runner.run_stream(task=args.task, cancellation_token=cancellation_token):
+            yield event
 
     def return_value_as_string(self, value: TaskResult) -> str:
         """Convert the task result to a string."""
