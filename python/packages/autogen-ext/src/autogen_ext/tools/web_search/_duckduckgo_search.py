@@ -42,7 +42,7 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
 
     .. code-block:: bash
 
-        pip install autogen-ext[duckduckgo-search]"
+        pip install "autogen-ext[duckduckgo-search]"
 
     Key Features:
 
@@ -62,27 +62,28 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
             from autogen_core import CancellationToken
             import asyncio
 
+
             async def main():
                 # Create the search tool
                 search_tool = DuckDuckGoSearchTool()
 
                 # Create search arguments
                 search_args = DuckDuckGoSearchArgs(
-                    query="What is AutoGen?",
-                    num_results=3,
-                    include_snippets=True,
-                    include_content=True
+                    query="What is AutoGen?", num_results=3, include_snippets=True, include_content=True
                 )
 
                 # Perform the search
                 results = await search_tool.run(search_args, CancellationToken())
-                
+
                 # Print results
-                for result in results.results:
-                    print(f"Title: {result['title']}")
-                    print(f"URL: {result['link']}")
-                    print(f"Snippet: {result.get('snippet', '')}")
-                    print("---")
+                print(f"Results as string:\\n{search_tool.return_value_as_string(results)}")
+                # This will output something like:
+                # Result 1:
+                # Title: Microsoft AutoGen: The Next-Gen AI Framework
+                # URL: https://microsoft.github.io/autogen/
+                # Snippet: AutoGen is a framework that enables development of LLM applications...
+                # Content: AutoGen is a framework that enables the development of LLM applications...
+
 
             asyncio.run(main())
 
@@ -99,11 +100,7 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
 
             # Create an agent with the search tool
             model_client = OpenAIChatCompletionClient(model="gpt-4")
-            agent = AssistantAgent(
-                name="search_agent",
-                model_client=model_client,
-                tools=[search_tool]
-            )
+            agent = AssistantAgent(name="search_agent", model_client=model_client, tools=[search_tool])
 
         Advanced usage with custom search parameters:
 
@@ -118,20 +115,19 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
                 region="es",
                 num_results=5,
                 include_content=True,
-                content_max_length=15000
+                content_max_length=15000,
             )
 
             # Use the search args with your agent
             response = await agent.on_messages(
-                [TextMessage(
-                    source="user",
-                    content="Search for AI in Spanish using these parameters",
-                    tool_calls=[{
-                        "name": "duckduckgo_search",
-                        "args": search_args.dict()
-                    }]
-                )],
-                CancellationToken()
+                [
+                    TextMessage(
+                        source="user",
+                        content="Search for AI in Spanish using these parameters",
+                        tool_calls=[{"name": "duckduckgo_search", "args": search_args.dict()}],
+                    )
+                ],
+                CancellationToken(),
             )
 
         Quick search without content fetching:
@@ -143,7 +139,7 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
                 query="latest AI news",
                 num_results=3,
                 include_snippets=True,
-                include_content=False  # Skip content fetching for speed
+                include_content=False,  # Skip content fetching for speed
             )
 
     .. note::
@@ -391,3 +387,21 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
             raise ValueError(f"Failed to perform search: {str(e)}") from e
         except Exception as e:
             raise ValueError(f"Error during search: {str(e)}") from e
+
+    def return_value_as_string(self, value: DuckDuckGoSearchResult) -> str:
+        """Convert the search results to a human-readable string format."""
+        if not value.results:
+            return "No search results found."
+
+        parts: List[str] = []
+        for i, result in enumerate(value.results, 1):
+            parts.append(f"Result {i}:")
+            parts.append(f"Title: {result['title']}")
+            parts.append(f"URL: {result['link']}")
+            if "snippet" in result:
+                parts.append(f"Snippet: {result['snippet']}")
+            if "content" in result:
+                parts.append(f"Content: {result['content'][:200]}...")  # Truncate long content
+            parts.append("")  # Empty line between results
+
+        return "\n".join(parts)

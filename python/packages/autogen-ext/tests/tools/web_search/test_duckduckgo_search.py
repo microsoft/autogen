@@ -2,8 +2,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from autogen_core import CancellationToken
-from autogen_ext.tools.web_search import DuckDuckGoSearchTool
-from autogen_ext.tools.web_search._duckduckgo_search import DuckDuckGoSearchArgs, DuckDuckGoSearchResult
+from autogen_ext.tools.web_search._duckduckgo_search import (
+    DuckDuckGoSearchArgs,
+    DuckDuckGoSearchResult,
+    DuckDuckGoSearchTool,
+)
 
 
 class TestDuckDuckGoSearchTool:

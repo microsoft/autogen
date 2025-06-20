@@ -31,8 +31,8 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import Tool, ToolSchema
-from autogen_ext.agents.duckduckgo_search import DuckDuckGoSearchAgent
-from autogen_ext.tools.web_search import DuckDuckGoSearchTool
+from autogen_ext.agents.duckduckgo_search._duckduckgo_agent import DuckDuckGoSearchAgent
+from autogen_ext.tools.web_search._duckduckgo_search import DuckDuckGoSearchTool
 
 
 class MockChatCompletionClient(ChatCompletionClient):
