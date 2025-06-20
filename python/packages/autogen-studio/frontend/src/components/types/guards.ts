@@ -136,6 +136,8 @@ export function isModelComponent(
   return component.component_type === "model";
 }
 
+// NOTE: Tools are now deprecated - use workbenches instead
+// This guard is kept for backward compatibility during migration
 export function isToolComponent(
   component: Component<ComponentConfig>
 ): component is Component<ToolConfig> {
@@ -213,15 +215,15 @@ export function isFunctionTool(
 
 // Workbench provider guards with proper type narrowing
 export function isStaticWorkbench(
-  component: Component<ComponentConfig>
+  component: Component<ComponentConfig> | null | undefined
 ): component is Component<StaticWorkbenchConfig> {
-  return isComponentOfType(component, PROVIDERS.STATIC_WORKBENCH);
+  return !!component && isComponentOfType(component, PROVIDERS.STATIC_WORKBENCH);
 }
 
 export function isMcpWorkbench(
-  component: Component<ComponentConfig>
+  component: Component<ComponentConfig> | null | undefined
 ): component is Component<McpWorkbenchConfig> {
-  return isComponentOfType(component, PROVIDERS.MCP_WORKBENCH);
+  return !!component && isComponentOfType(component, PROVIDERS.MCP_WORKBENCH);
 }
 
 // Termination provider guards with proper type narrowing

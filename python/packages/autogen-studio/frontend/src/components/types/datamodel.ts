@@ -168,7 +168,16 @@ export interface SseServerParams {
   sse_read_timeout?: number;
 }
 
-export type McpServerParams = StdioServerParams | SseServerParams;
+export interface StreamableHttpServerParams {
+  type: "StreamableHttpServerParams";
+  url: string;
+  headers?: Record<string, any>;
+  timeout?: number;
+  sse_read_timeout?: number;
+  terminate_on_close?: boolean;
+}
+
+export type McpServerParams = StdioServerParams | SseServerParams | StreamableHttpServerParams;
 
 export interface McpWorkbenchConfig {
   server_params: McpServerParams;
@@ -209,8 +218,7 @@ export interface MultimodalWebSurferConfig {
 export interface AssistantAgentConfig {
   name: string;
   model_client: Component<ModelConfig>;
-  tools?: Component<ToolConfig>[]; // deprecated - use workbench instead
-  workbench?: Component<WorkbenchConfig>;
+  workbench?: Component<WorkbenchConfig>[] | Component<WorkbenchConfig>;
   handoffs?: any[]; // HandoffBase | str equivalent
   model_context?: Component<ChatCompletionContextConfig>;
   description: string;
@@ -477,6 +485,7 @@ export interface GalleryConfig {
     agents: Component<AgentConfig>[];
     models: Component<ModelConfig>[];
     tools: Component<ToolConfig>[];
+    workbenches: Component<WorkbenchConfig>[];
     terminations: Component<TerminationConfig>[];
   };
 }

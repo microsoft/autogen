@@ -32,7 +32,14 @@ import {
   isSelectorTeam,
   isAssistantAgent,
   isWebSurferAgent,
+  isStaticWorkbench,
 } from "../../../types/guards";
+
+// Helper function to normalize workbench format (handle both single object and array)
+const normalizeWorkbenches = (workbench: Component<WorkbenchConfig>[] | Component<WorkbenchConfig> | undefined): Component<WorkbenchConfig>[] => {
+  if (!workbench) return [];
+  return Array.isArray(workbench) ? workbench : [workbench];
+};
 
 const MAX_HISTORY = 50;
 
@@ -160,10 +167,21 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
             isAgentComponent(targetNode.data.component) &&
             isAssistantAgent(targetNode.data.component)
           ) {
-            // Get or create workbench
+            // Get or create workbenches array
             if (!targetNode.data.component.config.workbench) {
+              targetNode.data.component.config.workbench = [];
+            }
+
+            let workbenches = normalizeWorkbenches(targetNode.data.component.config.workbench);
+            
+            // Find existing StaticWorkbench or create one
+            let staticWorkbenchIndex = workbenches.findIndex(
+              (wb) => isStaticWorkbench(wb)
+            );
+            
+            if (staticWorkbenchIndex === -1) {
               // Create a new StaticWorkbench
-              targetNode.data.component.config.workbench = {
+              const newWorkbench = {
                 provider: "autogen_core.tools.StaticWorkbench",
                 component_type: "workbench",
                 config: {
@@ -171,11 +189,14 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
                 },
                 label: "Static Workbench",
               } as Component<StaticWorkbenchConfig>;
+              workbenches = [...workbenches, newWorkbench];
+              targetNode.data.component.config.workbench = workbenches;
+              staticWorkbenchIndex = workbenches.length - 1;
             }
 
             // Type guard to ensure we have a StaticWorkbench (which supports tools)
-            const workbench = targetNode.data.component.config.workbench;
-            if (workbench.provider === "autogen_core.tools.StaticWorkbench") {
+            const workbench = workbenches[staticWorkbenchIndex];
+            if (isStaticWorkbench(workbench)) {
               const staticWorkbenchConfig =
                 workbench.config as StaticWorkbenchConfig;
 

@@ -8,6 +8,7 @@ import {
   McpWorkbenchConfig,
   StdioServerParams,
   SseServerParams,
+  StreamableHttpServerParams,
 } from "../../../../../types/datamodel";
 import { isStaticWorkbench, isMcpWorkbench } from "../../../../../types/guards";
 import DetailGroup from "../detailgroup";
@@ -331,11 +332,79 @@ export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
               </>
             )}
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-green-800">
-                MCP (Model Context Protocol) workbenches connect to external
-                tool servers that provide dynamic tool capabilities. The tools
-                available depend on what the MCP server provides at runtime.
+            {serverParams.type === "StreamableHttpServerParams" && (
+              <>
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700">
+                    Server URL
+                  </span>
+                  <Input
+                    type="url"
+                    value={serverParams.url || ""}
+                    onChange={(e) =>
+                      handleServerParamsUpdate({ url: e.target.value })
+                    }
+                    placeholder="https://your-streamable-http-server.com"
+                    className="mt-1"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700">
+                    Timeout (seconds)
+                  </span>
+                  <Input
+                    type="number"
+                    value={serverParams.timeout || 30}
+                    onChange={(e) =>
+                      handleServerParamsUpdate({
+                        timeout: parseFloat(e.target.value) || 30,
+                      })
+                    }
+                    className="mt-1"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700">
+                    SSE Read Timeout (seconds)
+                  </span>
+                  <Input
+                    type="number"
+                    value={serverParams.sse_read_timeout || 300}
+                    onChange={(e) =>
+                      handleServerParamsUpdate({
+                        sse_read_timeout: parseFloat(e.target.value) || 300,
+                      })
+                    }
+                    className="mt-1"
+                  />
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={serverParams.terminate_on_close ?? true}
+                    onChange={(e) =>
+                      handleServerParamsUpdate({
+                        terminate_on_close: e.target.checked,
+                      })
+                    }
+                    className="rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Terminate on Close
+                  </span>
+                </label>
+              </>
+            )}
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                {serverParams.type === "StreamableHttpServerParams" 
+                  ? "Streamable HTTP workbenches connect to MCP servers over HTTP with streaming capabilities, ideal for cloud-based services and web APIs."
+                  : "MCP (Model Context Protocol) workbenches connect to external tool servers that provide dynamic tool capabilities. The tools available depend on what the MCP server provides at runtime."
+                }
               </p>
             </div>
           </div>

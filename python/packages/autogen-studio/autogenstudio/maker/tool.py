@@ -6,7 +6,7 @@ from autogen_core._component_config import ComponentModel
 from autogen_core.models import SystemMessage
 
 # Import tools to use as examples
-from autogenstudio.gallery.tools import calculator_tool, fetch_webpage_tool, generate_image_tool
+from autogenstudio.gallery.tools import calculator_tool, fetch_webpage_tool
 
 
 class ToolMakerEvent(BaseModel):
@@ -99,7 +99,7 @@ class ToolMaker:
         # Get example tools as ComponentModels
         calculator_example = calculator_tool.dump_component()
         fetch_webpage_example = fetch_webpage_tool.dump_component()
-        generate_image_example = generate_image_tool.dump_component()
+        # generate_image_example = generate_image_tool.dump_component()
         
         prompt = f"""
         Create a FunctionTool configuration for the following tool description:
@@ -123,7 +123,9 @@ class ToolMaker:
         Here are examples of well-formed tool configurations:
         
         Example 1: Calculator Tool
-        {calculator_example.config}
+        {calculator_example.config} 
+        Example 2: Fetch Webpage Tool
+        {fetch_webpage_example.config}
         
         """
         

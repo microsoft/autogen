@@ -1,6 +1,6 @@
-import React, { useCallback } from "react";
-import { Input, Switch, Button, Tooltip } from "antd";
-import { Edit, HelpCircle, Trash2, PlusCircle } from "lucide-react";
+import React, { useCallback, useState, useRef } from "react";
+import { Input, Switch, Button, Tooltip, Collapse, InputNumber } from "antd";
+import { Edit, HelpCircle, Trash2, PlusCircle, ChevronDown, ChevronRight } from "lucide-react";
 import {
   Component,
   ComponentConfig,
@@ -13,10 +13,18 @@ import {
   isAssistantAgent,
   isUserProxyAgent,
   isWebSurferAgent,
+  isStaticWorkbench,
+  isMcpWorkbench,
 } from "../../../../../types/guards";
 import DetailGroup from "../detailgroup";
 
 const { TextArea } = Input;
+
+// Helper function to normalize workbench format (handle both single object and array)
+const normalizeWorkbenches = (workbench: Component<WorkbenchConfig>[] | Component<WorkbenchConfig> | undefined): Component<WorkbenchConfig>[] => {
+  if (!workbench) return [];
+  return Array.isArray(workbench) ? workbench : [workbench];
+};
 
 interface AgentFieldsProps {
   component: Component<AgentConfig>;
@@ -60,6 +68,12 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
 }) => {
   if (!component) return null;
 
+  // State for managing expanded workbenches and tool editing
+  const [expandedWorkbenches, setExpandedWorkbenches] = useState<Set<number>>(new Set());
+  const [editingTool, setEditingTool] = useState<{ workbenchIndex: number; toolIndex: number } | null>(null);
+  const [toolUpdates, setToolUpdates] = useState<{ [key: string]: Partial<FunctionToolConfig> }>({});
+  const debounceRefs = useRef<{ [key: string]: NodeJS.Timeout }>({});
+
   const handleComponentUpdate = useCallback(
     (updates: Partial<Component<ComponentConfig>>) => {
       onChange({
@@ -86,19 +100,156 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
     [component, handleComponentUpdate]
   );
 
+  // Toggle workbench expansion
+  const toggleWorkbenchExpansion = useCallback((workbenchIndex: number) => {
+    setExpandedWorkbenches(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(workbenchIndex)) {
+        newSet.delete(workbenchIndex);
+      } else {
+        newSet.add(workbenchIndex);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Start editing a tool
+  const startEditingTool = useCallback((workbenchIndex: number, toolIndex: number) => {
+    setEditingTool({ workbenchIndex, toolIndex });
+    setExpandedWorkbenches(prev => new Set(prev).add(workbenchIndex));
+  }, []);
+
+  // Cancel tool editing
+  const cancelEditingTool = useCallback(() => {
+    setEditingTool(null);
+    setToolUpdates({});
+    // Clear any pending debounced updates
+    Object.values(debounceRefs.current).forEach(timeout => clearTimeout(timeout));
+    debounceRefs.current = {};
+  }, []);
+
+  // Handle tool field updates with debouncing
+  const handleToolFieldUpdate = useCallback((
+    workbenchIndex: number,
+    toolIndex: number,
+    field: string,
+    value: any
+  ) => {
+    const key = `${workbenchIndex}-${toolIndex}`;
+    
+    // Update local state immediately for UI responsiveness
+    setToolUpdates(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value,
+      },
+    }));
+
+    // Clear existing timeout
+    if (debounceRefs.current[key]) {
+      clearTimeout(debounceRefs.current[key]);
+    }
+
+    // Set new debounced update
+    debounceRefs.current[key] = setTimeout(() => {
+      const updates = toolUpdates[key] || {};
+      const finalUpdates = { ...updates, [field]: value };
+      
+      // Apply updates to the actual component
+      if (!isAssistantAgent(component)) return;
+      
+      let workbenches = normalizeWorkbenches(component.config.workbench);
+      if (workbenches[workbenchIndex] && isStaticWorkbench(workbenches[workbenchIndex])) {
+        const workbench = workbenches[workbenchIndex];
+        const staticConfig = workbench.config as StaticWorkbenchConfig;
+        const tools = [...(staticConfig.tools || [])];
+        
+        if (tools[toolIndex]) {
+          tools[toolIndex] = {
+            ...tools[toolIndex],
+            config: {
+              ...tools[toolIndex].config,
+              ...finalUpdates,
+            },
+          };
+
+          const updatedWorkbench = {
+            ...workbench,
+            config: {
+              ...staticConfig,
+              tools,
+            },
+          };
+
+          const updatedWorkbenches = [...workbenches];
+          updatedWorkbenches[workbenchIndex] = updatedWorkbench;
+          
+          handleConfigUpdate("workbench", updatedWorkbenches);
+          
+          // Clear the pending updates
+          setToolUpdates(prev => {
+            const newUpdates = { ...prev };
+            delete newUpdates[key];
+            return newUpdates;
+          });
+        }
+      }
+      
+      // Clean up the timeout reference
+      delete debounceRefs.current[key];
+    }, 500); // 500ms debounce
+  }, [component, handleConfigUpdate, toolUpdates]);
+
+  // Get current tool value (either from pending updates or component)
+  const getToolFieldValue = useCallback((
+    workbenchIndex: number,
+    toolIndex: number,
+    field: string,
+    defaultValue: any = ""
+  ) => {
+    const key = `${workbenchIndex}-${toolIndex}`;
+    const pendingUpdate = toolUpdates[key] as any;
+    
+    if (pendingUpdate && pendingUpdate[field] !== undefined) {
+      return pendingUpdate[field];
+    }
+
+    if (!isAssistantAgent(component)) return defaultValue;
+
+    const workbenches = normalizeWorkbenches(component.config.workbench);
+    const workbench = workbenches[workbenchIndex];
+    if (workbench && isStaticWorkbench(workbench)) {
+      const staticConfig = workbench.config as StaticWorkbenchConfig;
+      const tool = staticConfig.tools?.[toolIndex];
+      if (tool) {
+        return (tool.config as any)[field] ?? defaultValue;
+      }
+    }
+    
+    return defaultValue;
+  }, [component, toolUpdates]);
+
   const handleRemoveTool = useCallback(
     (toolIndex: number) => {
       if (!isAssistantAgent(component)) return;
 
-      // Get workbench or create one if it doesn't exist
-      let workbench = component.config.workbench;
-      if (
-        !workbench ||
-        workbench.provider !== "autogen_core.tools.StaticWorkbench"
-      ) {
+      // Get workbenches array
+      let workbenches = normalizeWorkbenches(component.config.workbench);
+      if (workbenches.length === 0) {
+        return; // No workbenches to remove tools from
+      }
+
+      // Find the first StaticWorkbench (for now, assume single workbench usage)
+      const workbenchIndex = workbenches.findIndex(
+        (wb) => isStaticWorkbench(wb)
+      );
+      
+      if (workbenchIndex === -1) {
         return; // Can't remove tools if no StaticWorkbench exists
       }
 
+      const workbench = workbenches[workbenchIndex];
       const staticConfig = workbench.config as StaticWorkbenchConfig;
       const newTools = [...(staticConfig.tools || [])];
       newTools.splice(toolIndex, 1);
@@ -112,7 +263,11 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
         },
       };
 
-      handleConfigUpdate("workbench", updatedWorkbench);
+      // Update the workbenches array
+      const updatedWorkbenches = [...workbenches];
+      updatedWorkbenches[workbenchIndex] = updatedWorkbench;
+
+      handleConfigUpdate("workbench", updatedWorkbenches);
     },
     [component, handleConfigUpdate]
   );
@@ -136,9 +291,16 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
       },
     };
 
-    // Get or create workbench
-    let workbench = component.config.workbench;
-    if (!workbench) {
+    // Get or create workbenches array
+    let workbenches = normalizeWorkbenches(component.config.workbench);
+    
+    // Find existing StaticWorkbench or create one
+    let workbenchIndex = workbenches.findIndex(
+      (wb) => isStaticWorkbench(wb)
+    );
+    
+    let workbench: Component<StaticWorkbenchConfig>;
+    if (workbenchIndex === -1) {
       // Create a new StaticWorkbench
       workbench = {
         provider: "autogen_core.tools.StaticWorkbench",
@@ -148,11 +310,10 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
         },
         label: "Static Workbench",
       } as Component<StaticWorkbenchConfig>;
-    }
-
-    // Ensure it's a StaticWorkbench (since only StaticWorkbench supports tools)
-    if (workbench.provider !== "autogen_core.tools.StaticWorkbench") {
-      return; // Can't add tools to MCP workbench from UI
+      workbenches = [...workbenches, workbench];
+      workbenchIndex = workbenches.length - 1;
+    } else {
+      workbench = workbenches[workbenchIndex] as Component<StaticWorkbenchConfig>;
     }
 
     const staticConfig = workbench.config as StaticWorkbenchConfig;
@@ -168,7 +329,11 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
       },
     };
 
-    handleConfigUpdate("workbench", updatedWorkbench);
+    // Update the workbenches array
+    const updatedWorkbenches = [...workbenches];
+    updatedWorkbenches[workbenchIndex] = updatedWorkbench;
+
+    handleConfigUpdate("workbench", updatedWorkbenches);
 
     // If working copy functionality is available, update that too
     if (
@@ -181,7 +346,7 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
       const updatedCopy = updateComponentAtPath(workingCopy, editPath, {
         config: {
           ...getCurrentComponent(workingCopy)?.config,
-          workbench: updatedWorkbench,
+          workbench: updatedWorkbenches,
         },
       });
       setWorkingCopy(updatedCopy);
@@ -224,6 +389,31 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
               className="mt-1"
             />
           </label>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-sm font-medium text-primary">Version</span>
+              <InputNumber
+                min={1}
+                precision={0}
+                className="w-full mt-1"
+                placeholder="e.g., 1"
+                value={component.version || undefined}
+                onChange={(value) => handleComponentUpdate({ version: value || undefined })}
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-primary">Component Version</span>
+              <InputNumber
+                min={1}
+                precision={0}
+                className="w-full mt-1"
+                placeholder="e.g., 1"
+                value={component.component_version || undefined}
+                onChange={(value) => handleComponentUpdate({ component_version: value || undefined })}
+              />
+            </label>
+          </div>
         </div>
       </DetailGroup>
 
@@ -293,86 +483,6 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                   }
                 />
               </InputWithTooltip>
-
-              {/* Tools Section */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-primary">
-                    Tools
-                  </span>
-                  <Button
-                    type="dashed"
-                    size="small"
-                    onClick={handleAddTool}
-                    icon={<PlusCircle className="w-4 h-4" />}
-                  >
-                    Add Tool
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {(() => {
-                    // Get tools from workbench
-                    const workbench = component.config.workbench;
-                    const tools =
-                      workbench?.provider ===
-                      "autogen_core.tools.StaticWorkbench"
-                        ? (workbench.config as StaticWorkbenchConfig).tools ||
-                          []
-                        : [];
-
-                    return tools.map((tool, index) => (
-                      <div
-                        key={(tool.label || "") + index}
-                        className="bg-secondary p-1 px-2 rounded-md"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">
-                            {tool.config.name || tool.label || ""}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {onNavigate && (
-                              <Button
-                                type="text"
-                                icon={<Edit className="w-4 h-4" />}
-                                onClick={() =>
-                                  onNavigate(
-                                    "tool",
-                                    tool.config.name || tool.label || "",
-                                    "tools"
-                                  )
-                                }
-                              />
-                            )}
-                            <Button
-                              type="text"
-                              danger
-                              icon={<Trash2 className="w-4 h-4" />}
-                              onClick={() => handleRemoveTool(index)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                  {(() => {
-                    const workbench = component.config.workbench;
-                    const tools =
-                      workbench?.provider ===
-                      "autogen_core.tools.StaticWorkbench"
-                        ? (workbench.config as StaticWorkbenchConfig).tools ||
-                          []
-                        : [];
-
-                    return (
-                      tools.length === 0 && (
-                        <div className="text-sm text-secondary text-center bg-secondary/50 p-4 rounded-md">
-                          No tools configured
-                        </div>
-                      )
-                    );
-                  })()}
-                </div>
-              </div>
 
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-primary">
@@ -590,6 +700,302 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
           )}
         </div>
       </DetailGroup>
+
+      {/* Workbench Management Section - Only for AssistantAgent */}
+      {isAssistantAgent(component) && (
+        <DetailGroup title="Workbench Management">
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-blue-800">
+                <strong>Modern Tool Management:</strong> Tools are now managed through workbenches for better resource sharing and lifecycle management. 
+                StaticWorkbenches contain predefined tools, while MCP workbenches provide dynamic tool collections from external servers.
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-primary">
+                Workbenches ({normalizeWorkbenches(component.config.workbench).length})
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  type="dashed"
+                  size="small"
+                  onClick={() => {
+                    // Add Static Workbench
+                    const normalizedWorkbenches = normalizeWorkbenches(component.config.workbench);
+                    const hasStaticWorkbench = normalizedWorkbenches.some(
+                      (wb: Component<WorkbenchConfig>) => isStaticWorkbench(wb)
+                    );
+                  
+                    if (!hasStaticWorkbench) {
+                      const newWorkbench = {
+                        provider: "autogen_core.tools.StaticWorkbench",
+                        component_type: "workbench",
+                        config: { tools: [] },
+                        label: "Static Workbench",
+                      };
+                      const normalizedWorkbenches = normalizeWorkbenches(component.config.workbench);
+                      handleConfigUpdate("workbench", [...normalizedWorkbenches, newWorkbench]);
+                    }
+                  }}
+                  icon={<PlusCircle className="w-4 h-4" />}
+                >
+                  Add Static Workbench
+                </Button>
+                {onNavigate && (
+                  <Button
+                    type="dashed"
+                    size="small"
+                    onClick={() => onNavigate("workbench", "", "workbench")}
+                    icon={<PlusCircle className="w-4 h-4" />}
+                  >
+                    Add MCP Workbench
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              {normalizeWorkbenches(component.config.workbench).map((workbench: Component<WorkbenchConfig>, workbenchIndex: number) => {
+                const isExpanded = expandedWorkbenches.has(workbenchIndex);
+                
+                return (
+                  <div
+                    key={workbenchIndex}
+                    className="bg-secondary/30 p-4 rounded-lg border border-gray-200"
+                  >
+                    {/* Level 1: Workbench Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          onClick={() => toggleWorkbenchExpansion(workbenchIndex)}
+                        />
+                        <div>
+                          <div className="text-sm font-medium">
+                            {workbench.label || workbench.provider.split('.').pop()}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {workbench.provider}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {onNavigate && (
+                          <Button
+                            type="text"
+                            icon={<Edit className="w-4 h-4" />}
+                            onClick={() => {
+                              // Navigate to workbench editor for both Static and MCP workbenches
+                              onNavigate(
+                                "workbench",
+                                workbench.label || workbenchIndex.toString(),
+                                "workbench"
+                              );
+                            }}
+                          />
+                        )}
+                        <Button
+                          type="text"
+                          danger
+                          icon={<Trash2 className="w-4 h-4" />}
+                          onClick={() => {
+                            const normalizedWorkbenches = normalizeWorkbenches(component.config.workbench);
+                            const updatedWorkbenches = [...normalizedWorkbenches];
+                            updatedWorkbenches.splice(workbenchIndex, 1);
+                            handleConfigUpdate("workbench", updatedWorkbenches);
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Level 2: Expanded Workbench Content */}
+                    {isExpanded && (
+                      <>
+                        {/* StaticWorkbench: Show tools with management capabilities */}
+                        {isStaticWorkbench(workbench) && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-gray-700">
+                                Tools ({(workbench.config as StaticWorkbenchConfig).tools?.length || 0})
+                              </span>
+                              <Button
+                                type="dashed"
+                                size="small"
+                                onClick={handleAddTool}
+                                icon={<PlusCircle className="w-3 h-3" />}
+                              >
+                                Add Tool
+                              </Button>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              {((workbench.config as StaticWorkbenchConfig).tools || []).map((tool, toolIndex) => {
+                                const isEditingThisTool = editingTool?.workbenchIndex === workbenchIndex && editingTool?.toolIndex === toolIndex;
+                                
+                                return (
+                                  <div
+                                    key={toolIndex}
+                                    className={`bg-white p-3 rounded border ${isEditingThisTool ? 'border-blue-300 shadow-sm' : 'border-gray-100'}`}
+                                  >
+                                    {/* Level 3: Tool Display/Edit */}
+                                    {!isEditingThisTool ? (
+                                      // Tool Summary View
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                          <div className="text-sm font-medium">
+                                            {tool.config.name || tool.label || "Unnamed Tool"}
+                                          </div>
+                                          <div className="text-xs text-gray-500 truncate">
+                                            {tool.config.description || "No description"}
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            type="text"
+                                            size="small"
+                                            icon={<Edit className="w-3 h-3" />}
+                                            onClick={() => startEditingTool(workbenchIndex, toolIndex)}
+                                          >
+                                            Edit
+                                          </Button>
+                                          <Button
+                                            type="text"
+                                            size="small"
+                                            danger
+                                            icon={<Trash2 className="w-3 h-3" />}
+                                            onClick={() => handleRemoveTool(toolIndex)}
+                                          />
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      // Tool Edit View
+                                      <div className="space-y-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <span className="text-sm font-medium text-blue-600">Editing Tool</span>
+                                          <div className="flex items-center gap-1">
+                                            <Button
+                                              type="primary"
+                                              size="small"
+                                              onClick={cancelEditingTool}
+                                            >
+                                              Done
+                                            </Button>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 gap-3">
+                                          <InputWithTooltip
+                                            label="Function Name"
+                                            tooltip="The name of the Python function"
+                                          >
+                                            <Input
+                                              size="small"
+                                              value={getToolFieldValue(workbenchIndex, toolIndex, "name")}
+                                              onChange={(e) => handleToolFieldUpdate(workbenchIndex, toolIndex, "name", e.target.value)}
+                                              placeholder="function_name"
+                                            />
+                                          </InputWithTooltip>
+                                          
+                                          <InputWithTooltip
+                                            label="Description"
+                                            tooltip="Description of what this tool does"
+                                          >
+                                            <Input
+                                              size="small"
+                                              value={getToolFieldValue(workbenchIndex, toolIndex, "description")}
+                                              onChange={(e) => handleToolFieldUpdate(workbenchIndex, toolIndex, "description", e.target.value)}
+                                              placeholder="Describe what this function does"
+                                            />
+                                          </InputWithTooltip>
+                                          
+                                          <InputWithTooltip
+                                            label="Source Code"
+                                            tooltip="The Python function implementation"
+                                          >
+                                            <TextArea
+                                              size="small"
+                                              rows={6}
+                                              value={getToolFieldValue(workbenchIndex, toolIndex, "source_code")}
+                                              onChange={(e) => handleToolFieldUpdate(workbenchIndex, toolIndex, "source_code", e.target.value)}
+                                              placeholder="def your_function():&#10;    pass"
+                                              style={{ fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace' }}
+                                            />
+                                          </InputWithTooltip>
+                                          
+                                          <InputWithTooltip
+                                            label="Global Imports"
+                                            tooltip="Comma-separated list of global imports (e.g., os, sys, requests)"
+                                          >
+                                            <Input
+                                              size="small"
+                                              value={Array.isArray(getToolFieldValue(workbenchIndex, toolIndex, "global_imports")) 
+                                                ? getToolFieldValue(workbenchIndex, toolIndex, "global_imports").join(", ")
+                                                : getToolFieldValue(workbenchIndex, toolIndex, "global_imports")
+                                              }
+                                              onChange={(e) => handleToolFieldUpdate(
+                                                workbenchIndex, 
+                                                toolIndex, 
+                                                "global_imports", 
+                                                e.target.value.split(",").map(s => s.trim()).filter(s => s)
+                                              )}
+                                              placeholder="os, sys, requests"
+                                            />
+                                          </InputWithTooltip>
+                                          
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-primary">
+                                              Has Cancellation Support
+                                            </span>
+                                            <Switch
+                                              size="small"
+                                              checked={getToolFieldValue(workbenchIndex, toolIndex, "has_cancellation_support", false)}
+                                              onChange={(checked) => handleToolFieldUpdate(workbenchIndex, toolIndex, "has_cancellation_support", checked)}
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              
+                              {((workbench.config as StaticWorkbenchConfig).tools?.length || 0) === 0 && (
+                                <div className="text-xs text-gray-500 text-center p-3 bg-gray-50 rounded">
+                                  No tools configured. Click "Add Tool" to get started.
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* McpWorkbench: Show server info */}
+                        {isMcpWorkbench(workbench) && (
+                          <div className="text-xs text-gray-600">
+                            <div>MCP Server: {(workbench.config as any).server_params?.type || "Not configured"}</div>
+                            <div className="text-gray-500 mt-1">Tools are provided dynamically by the MCP server</div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+              
+              {(() => {
+                const workbenches = normalizeWorkbenches(component.config.workbench);
+                return workbenches.length === 0 && (
+                  <div className="text-sm text-secondary text-center bg-secondary/50 p-4 rounded-md">
+                    No workbenches configured. Add a workbench to provide tools to this agent.
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </DetailGroup>
+      )}
     </div>
   );
 };

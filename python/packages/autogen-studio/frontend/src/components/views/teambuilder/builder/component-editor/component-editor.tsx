@@ -7,24 +7,34 @@ import {
   AgentConfig,
   AssistantAgentConfig,
   StaticWorkbenchConfig,
+  WorkbenchConfig,
 } from "../../../../types/datamodel";
 import {
   isTeamComponent,
   isAgentComponent,
   isModelComponent,
   isToolComponent,
+  isWorkbenchComponent,
   isTerminationComponent,
   isAssistantAgent,
+  isStaticWorkbench,
 } from "../../../../types/guards";
 import { AgentFields } from "./fields/agent-fields";
 import { ModelFields } from "./fields/model-fields";
 import { TeamFields } from "./fields/team-fields";
 import { ToolFields } from "./fields/tool-fields";
+import { WorkbenchFields } from "./fields/workbench-fields";
 import { TerminationFields } from "./fields/termination-fields";
 import debounce from "lodash.debounce";
 import { MonacoEditor } from "../../../monaco";
 import { ComponentTestResult, validationAPI } from "../../api";
 import TestDetails from "./testresults";
+
+// Helper function to normalize workbench format (handle both single object and array)
+const normalizeWorkbenches = (workbench: Component<WorkbenchConfig>[] | Component<WorkbenchConfig> | undefined): Component<WorkbenchConfig>[] => {
+  if (!workbench) return [];
+  return Array.isArray(workbench) ? workbench : [workbench];
+};
 export interface EditPath {
   componentType: string;
   id: string;
@@ -84,11 +94,12 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
             // Check if tools are nested within a workbench for agents
             if (isAgentComponent(current) && isAssistantAgent(current)) {
               const agentConfig = current.config as AssistantAgentConfig;
-              const workbench = agentConfig.workbench;
-              if (
-                workbench?.provider === "autogen_core.tools.StaticWorkbench"
-              ) {
-                field = (workbench.config as StaticWorkbenchConfig)?.tools;
+              const workbenches = normalizeWorkbenches(agentConfig.workbench);
+              const staticWorkbench = workbenches.find(
+                (wb) => isStaticWorkbench(wb)
+              );
+              if (staticWorkbench) {
+                field = (staticWorkbench.config as StaticWorkbenchConfig)?.tools;
               }
             }
           }
@@ -149,9 +160,12 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
       if (currentPath.parentField === "tools" && !field) {
         if (isAgentComponent(root) && isAssistantAgent(root)) {
           const agentConfig = root.config as AssistantAgentConfig;
-          const workbench = agentConfig.workbench;
-          if (workbench?.provider === "autogen_core.tools.StaticWorkbench") {
-            field = (workbench.config as StaticWorkbenchConfig)?.tools;
+          const workbenches = normalizeWorkbenches(agentConfig.workbench);
+          const staticWorkbench = workbenches.find(
+            (wb) => isStaticWorkbench(wb)
+          );
+          if (staticWorkbench) {
+            field = (staticWorkbench.config as StaticWorkbenchConfig)?.tools;
             isWorkbenchTools = true;
           }
         }
@@ -204,15 +218,26 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
           ...(isWorkbenchTools &&
           isAgentComponent(root) &&
           isAssistantAgent(root)
-            ? {
-                workbench: {
-                  ...(root.config as AssistantAgentConfig).workbench,
-                  config: {
-                    ...(root.config as AssistantAgentConfig).workbench?.config,
-                    tools: updateField(field),
-                  },
-                },
-              }
+            ? (() => {
+                const agentConfig = root.config as AssistantAgentConfig;
+                const workbenches = normalizeWorkbenches(agentConfig.workbench);
+                const staticWorkbenchIndex = workbenches.findIndex(
+                  (wb) => isStaticWorkbench(wb)
+                );
+                
+                if (staticWorkbenchIndex !== -1) {
+                  const updatedWorkbenches = [...workbenches];
+                  updatedWorkbenches[staticWorkbenchIndex] = {
+                    ...workbenches[staticWorkbenchIndex],
+                    config: {
+                      ...workbenches[staticWorkbenchIndex].config,
+                      tools: updateField(field),
+                    },
+                  };
+                  return { workbench: updatedWorkbenches };
+                }
+                return {};
+              })()
             : {
                 [currentPath.parentField]: updateField(field),
               }),
@@ -328,8 +353,13 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
         />
       );
     }
+    // NOTE: Individual tools are deprecated - tools are now managed within workbenches
+    // This is kept for backward compatibility during the transition
     if (isToolComponent(currentComponent)) {
       return <ToolFields {...commonProps} />;
+    }
+    if (isWorkbenchComponent(currentComponent)) {
+      return <WorkbenchFields {...commonProps} />;
     }
     if (isTerminationComponent(currentComponent)) {
       return (

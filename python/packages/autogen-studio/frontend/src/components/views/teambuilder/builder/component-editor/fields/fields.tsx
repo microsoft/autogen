@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Form, Input } from "antd";
+import { Button, Form, Input, InputNumber } from "antd";
 
 import {
   Component,
@@ -135,7 +135,32 @@ const NodeEditorFields: React.FC<NodeEditorFieldsProps> = ({
         />
       </DetailGroup>
     );
+  } else if (isWorkbenchComponent(component)) {
+    specificFields = (
+      <DetailGroup title="Workbench Configuration">
+        <WorkbenchFields
+          component={component}
+          onChange={(updates) => {
+            if (
+              workingCopy &&
+              setWorkingCopy &&
+              editPath &&
+              updateComponentAtPath
+            ) {
+              const updatedCopy = updateComponentAtPath(
+                workingCopy,
+                editPath,
+                updates
+              );
+              setWorkingCopy(updatedCopy);
+            }
+          }}
+        />
+      </DetailGroup>
+    );
   }
+  //  NOTE: Individual tools are deprecated - use workbenches instead
+  //  This is kept for backward compatibility during migration
   //  else if (isToolComponent(component)) {
   //   specificFields = (
   //     <DetailGroup title="Configuration">
@@ -232,6 +257,24 @@ export const CommonFields: React.FC = () => {
       <Form.Item label="Description" name="description">
         <TextArea rows={4} />
       </Form.Item>
+      <div className="grid grid-cols-2 gap-4">
+        <Form.Item label="Version" name="version">
+          <InputNumber
+            min={1}
+            precision={0}
+            className="w-full"
+            placeholder="e.g., 1"
+          />
+        </Form.Item>
+        <Form.Item label="Component Version" name="component_version">
+          <InputNumber
+            min={1}
+            precision={0}
+            className="w-full"
+            placeholder="e.g., 1"
+          />
+        </Form.Item>
+      </div>
     </>
   );
 };

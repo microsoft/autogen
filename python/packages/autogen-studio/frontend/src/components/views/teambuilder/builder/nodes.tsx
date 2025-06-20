@@ -22,6 +22,9 @@ import { CustomNode } from "./types";
 import {
   AgentConfig,
   TeamConfig,
+  WorkbenchConfig,
+  StaticWorkbenchConfig,
+  McpWorkbenchConfig,
   ComponentTypes,
   Component,
   ComponentConfig,
@@ -341,30 +344,61 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
     isAssistantAgent(component) && !!component.config.model_client;
 
   // Get workbench info instead of direct tools
-  const workbenchInfo = (() => {
-    if (!isAssistantAgent(component))
-      return { hasWorkbench: false, toolCount: 0, workbenchType: null };
+  const workbenchInfos = (() => {
+    if (!isAssistantAgent(component)) return [];
 
-    const workbench = component.config.workbench;
-    if (!workbench)
-      return { hasWorkbench: false, toolCount: 0, workbenchType: null };
+    const workbenchConfig = component.config.workbench;
+    if (!workbenchConfig) return [];
 
-    if (isStaticWorkbench(workbench)) {
+    // Handle both single workbench object and array of workbenches
+    const workbenches = Array.isArray(workbenchConfig)
+      ? workbenchConfig
+      : [workbenchConfig];
+
+    return workbenches.map((workbench) => {
+      if (!workbench) {
+        return {
+          hasWorkbench: false,
+          toolCount: 0,
+          workbenchType: null,
+          serverType: null,
+          workbench: null,
+        };
+      }
+
+      if (isStaticWorkbench(workbench)) {
+        return {
+          hasWorkbench: true,
+          toolCount: workbench.config.tools?.length || 0,
+          workbenchType: "static" as const,
+          serverType: null,
+          workbench,
+        };
+      } else if (isMcpWorkbench(workbench)) {
+        const serverType = workbench.config.server_params?.type || "unknown";
+        return {
+          hasWorkbench: true,
+          toolCount: 0,
+          workbenchType: "mcp" as const,
+          serverType: serverType,
+          workbench,
+        };
+      }
+
       return {
-        hasWorkbench: true,
-        toolCount: workbench.config.tools?.length || 0,
-        workbenchType: "static" as const,
+        hasWorkbench: false,
+        toolCount: 0,
+        workbenchType: null,
+        serverType: null,
+        workbench: null,
       };
-    } else if (isMcpWorkbench(workbench)) {
-      return {
-        hasWorkbench: true,
-        toolCount: 0, // MCP tools are dynamic, we don't know the count
-        workbenchType: "mcp" as const,
-      };
-    }
-
-    return { hasWorkbench: false, toolCount: 0, workbenchType: null };
+    });
   })();
+
+  const totalToolCount = workbenchInfos.reduce(
+    (sum, info) => sum + (info.workbenchType === "static" ? info.toolCount : 0),
+    0
+  );
 
   return (
     <BaseNode
@@ -376,14 +410,10 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
             <>
               <ConnectionBadge connected={hasModel} label="Model" />
               <ConnectionBadge
-                connected={workbenchInfo.hasWorkbench}
-                label={
-                  workbenchInfo.workbenchType === "static"
-                    ? `${workbenchInfo.toolCount} Tools`
-                    : workbenchInfo.workbenchType === "mcp"
-                    ? "MCP Workbench"
-                    : "No Tools"
-                }
+                connected={workbenchInfos.length > 0}
+                label={`${workbenchInfos.length} Workbench${
+                  workbenchInfos.length !== 1 ? "es" : ""
+                } (${totalToolCount} Tool${totalToolCount !== 1 ? "s" : ""})`}
               />
             </>
           )}
@@ -409,13 +439,6 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
       {(isAssistantAgent(component) || isWebSurferAgent(component)) && (
         <>
           <NodeSection title="Model">
-            {/* <Handle
-              type="target"
-              position={Position.Left}
-              id={`${props.id}-model-input-handle`}
-              className="my-left-handle"
-            /> */}
-
             <div className="relative">
               {component.config?.model_client && (
                 <div className="text-sm">
@@ -434,43 +457,64 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
           </NodeSection>
 
           {isAssistantAgent(component) && (
-            <NodeSection title="Tools">
-              {/* <Handle
-              type="target"
-              position={Position.Left}
-              id={`${props.id}-tool-input-handle`}
-              className="my-left-handle"
-            /> */}
-              <div className="space-y-1">
-                {workbenchInfo.workbenchType === "static" &&
-                  workbenchInfo.toolCount > 0 &&
-                  isStaticWorkbench(component.config.workbench!) && (
-                    <div className="space-y-1">
-                      {component.config.workbench!.config.tools.map(
-                        (tool, index) => (
-                          <div
-                            key={index}
-                            className="relative text-sm py-1 px-2 bg-white rounded flex items-center gap-2"
-                          >
-                            <Wrench className="w-4 h-4 text-gray-500" />
-                            <span>{tool.config.name}</span>
+            <NodeSection title={`Workbenches (${workbenchInfos.length})`}>
+              <Handle
+                type="target"
+                position={Position.Left}
+                id={`${props.id}-workbench-input-handle`}
+                className="my-left-handle"
+              />
+              <div className="space-y-3">
+                {workbenchInfos.length > 0 ? (
+                  workbenchInfos.map((workbenchInfo, index) => (
+                    <div key={index} className="space-y-1">
+                      <div className="text-sm py-1 px-2 bg-white rounded flex items-center gap-2">
+                        <Package className="w-4 h-4 text-gray-500" />
+                        <span>
+                          {workbenchInfo.workbenchType === "static"
+                            ? `Static Workbench (${
+                                workbenchInfo.toolCount
+                              } Tool${
+                                workbenchInfo.toolCount !== 1 ? "s" : ""
+                              })`
+                            : workbenchInfo.workbenchType === "mcp"
+                            ? `MCP Workbench (${workbenchInfo.serverType})`
+                            : "Unknown Workbench"}
+                        </span>
+                      </div>
+                      {workbenchInfo.workbenchType === "static" &&
+                        workbenchInfo.toolCount > 0 && (
+                          <div className="ml-2">
+                            {(
+                              workbenchInfo.workbench as Component<StaticWorkbenchConfig>
+                            ).config.tools.map((tool, toolIndex) => (
+                              <div
+                                key={toolIndex}
+                                className="text-sm py-1 px-2 bg-white rounded flex items-center gap-2 mb-1"
+                              >
+                                <Wrench className="w-4 h-4 text-gray-500" />
+                                <span className="truncate text-xs">
+                                  {tool.config.name ||
+                                    tool.label ||
+                                    "Unnamed Tool"}
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                        )
-                      )}
+                        )}
                     </div>
-                  )}
-                {workbenchInfo.workbenchType === "mcp" && (
-                  <div className="text-sm py-1 px-2 bg-white rounded flex items-center gap-2">
-                    <Package className="w-4 h-4 text-gray-500" />
-                    <span>MCP Server Tools</span>
+                  ))
+                ) : (
+                  <div className="text-xs text-gray-500 text-center p-2">
+                    No workbenches connected
                   </div>
                 )}
                 <DroppableZone
-                  id={`${props.id}@@@tool-zone`}
-                  accepts={["tool"]}
+                  id={`${props.id}@@@workbench-zone`}
+                  accepts={["workbench"]}
                 >
                   <div className="text-secondary text-xs my-1 text-center">
-                    Drop tools here
+                    Drop workbench here
                   </div>
                 </DroppableZone>
               </div>
@@ -484,15 +528,131 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
 
 AgentNode.displayName = "AgentNode";
 
+// Workbench Node
+export const WorkbenchNode = memo<NodeProps<CustomNode>>((props) => {
+  const component = props.data.component as Component<WorkbenchConfig>;
+
+  const workbenchInfo = (() => {
+    if (isStaticWorkbench(component)) {
+      const toolCount = component.config.tools?.length || 0;
+      return {
+        type: "static" as const,
+        toolCount,
+        subtitle: `${toolCount} static tool${toolCount !== 1 ? "s" : ""}`,
+        hasContent: toolCount > 0,
+      };
+    } else if (isMcpWorkbench(component)) {
+      const serverType = component.config.server_params?.type || "unknown";
+      return {
+        type: "mcp" as const,
+        toolCount: 0, // Dynamic - unknown count
+        subtitle: `MCP Server (${serverType})`,
+        hasContent: true,
+      };
+    }
+    return {
+      type: "unknown" as const,
+      toolCount: 0,
+      subtitle: "Unknown workbench type",
+      hasContent: false,
+    };
+  })();
+
+  return (
+    <BaseNode
+      {...props}
+      icon={iconMap.workbench}
+      headerContent={
+        <div className="flex gap-2 mt-2">
+          <ConnectionBadge
+            connected={workbenchInfo.hasContent}
+            label={workbenchInfo.subtitle}
+          />
+        </div>
+      }
+      descriptionContent={
+        <div>
+          <div className="break-words truncate mb-1">
+            {component.description || "Workbench for managing tools"}
+          </div>
+        </div>
+      }
+    >
+      <Handle
+        type="source"
+        position={Position.Right}
+        id={`${props.id}-workbench-output-handle`}
+        className="my-right-handle"
+      />
+
+      {/* Static Workbench Content */}
+      {workbenchInfo.type === "static" && (
+        <NodeSection title={`Tools (${workbenchInfo.toolCount})`}>
+          <div className="space-y-1">
+            {workbenchInfo.toolCount > 0 ? (
+              (component as Component<StaticWorkbenchConfig>).config.tools.map(
+                (tool, index) => (
+                  <div
+                    key={index}
+                    className="text-sm py-1 px-2 bg-white rounded flex items-center gap-2"
+                  >
+                    <Wrench className="w-4 h-4 text-gray-500" />
+                    <span className="truncate text-xs">
+                      {tool.config.name || tool.label || "Unnamed Tool"}
+                    </span>
+                  </div>
+                )
+              )
+            ) : (
+              <div className="text-xs text-gray-500 text-center p-2">
+                No tools configured
+              </div>
+            )}
+            <DroppableZone id={`${props.id}@@@tool-zone`} accepts={["tool"]}>
+              <div className="text-secondary text-xs my-1 text-center">
+                Drop tool here
+              </div>
+            </DroppableZone>
+          </div>
+        </NodeSection>
+      )}
+
+      {/* MCP Workbench Content */}
+      {workbenchInfo.type === "mcp" && (
+        <NodeSection title="MCP Configuration">
+          <div className="space-y-1">
+            <div className="text-sm py-1 px-2 bg-white rounded flex items-center gap-2">
+              <Package className="w-4 h-4 text-gray-500" />
+              <span>Dynamic Tools</span>
+            </div>
+            <div className="text-xs text-gray-600 p-2">
+              Tools provided by{" "}
+              {
+                (component as Component<McpWorkbenchConfig>).config
+                  .server_params.type
+              }{" "}
+              server
+            </div>
+          </div>
+        </NodeSection>
+      )}
+    </BaseNode>
+  );
+});
+
+WorkbenchNode.displayName = "WorkbenchNode";
+
 // Export all node types
 export const nodeTypes = {
   team: TeamNode,
   agent: AgentNode,
+  workbench: WorkbenchNode,
 };
 
 const EDGE_STYLES = {
   "model-connection": { stroke: "rgb(220,220,220)" },
   "tool-connection": { stroke: "rgb(220,220,220)" },
+  "workbench-connection": { stroke: "rgb(34, 197, 94)" }, // Green for workbench connections
   "agent-connection": { stroke: "rgb(220,220,220)" },
   "termination-connection": { stroke: "rgb(220,220,220)" },
 } as const;
@@ -538,6 +698,7 @@ export const CustomEdge = ({
 export const edgeTypes = {
   "model-connection": CustomEdge,
   "tool-connection": CustomEdge,
+  "workbench-connection": CustomEdge,
   "agent-connection": CustomEdge,
   "termination-connection": CustomEdge,
 };
