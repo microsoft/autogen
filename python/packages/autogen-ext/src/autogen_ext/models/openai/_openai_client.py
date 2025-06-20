@@ -265,6 +265,47 @@ def convert_tools(
     return result
 
 
+def convert_tool_choice(
+    tool_choice: Optional[Sequence[Union[str, Tool]]]
+) -> Any:
+    """Convert tool_choice parameter to OpenAI API format.
+    
+    Args:
+        tool_choice: List of tool names (strings) or Tool objects to restrict model choice to.
+        
+    Returns:
+        OpenAI API compatible tool_choice value or None if not specified.
+    """
+    if tool_choice is None:
+        return None
+        
+    if len(tool_choice) == 0:
+        return None
+        
+    # Convert Tool objects to names if needed
+    tool_names = []
+    for item in tool_choice:
+        if isinstance(item, str):
+            tool_names.append(item)
+        elif isinstance(item, Tool):
+            tool_names.append(item.schema["name"])
+        else:
+            raise ValueError(f"tool_choice items must be strings or Tool objects, got {type(item)}")
+    
+    # For OpenAI API, if we want to restrict to specific tools, we can use the "required" mode
+    # Since OpenAI doesn't support specifying multiple specific tools directly,
+    # we'll return the first tool as a specific choice if only one is provided,
+    # or use "required" mode for multiple tools (letting the model choose among them)
+    if len(tool_names) == 1:
+        return {
+            "type": "function",
+            "function": {"name": tool_names[0]}
+        }
+    else:
+        # For multiple tools, use "required" mode which forces the model to use any available tool
+        return "required"
+
+
 def normalize_name(name: str) -> str:
     """
     LLMs sometimes ask functions while ignoring their own format requirements, this function should be used to replace invalid characters with "_".
@@ -449,6 +490,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
+        tool_choice: Optional[Sequence[Union[str, Tool]]],
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
     ) -> CreateParams:
@@ -574,6 +616,29 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             raise ValueError("Model does not support function calling")
 
         converted_tools = convert_tools(tools)
+        
+        # Process tool_choice parameter
+        if tool_choice is not None:
+            if len(tools) == 0:
+                raise ValueError("tool_choice specified but no tools provided")
+            
+            # Validate that all tool_choice items exist in the provided tools  
+            tool_names_available = []
+            for tool in tools:
+                if isinstance(tool, Tool):
+                    tool_names_available.append(tool.schema["name"])
+                else:
+                    tool_names_available.append(tool["name"])
+            
+            for item in tool_choice:
+                tool_name = item if isinstance(item, str) else item.schema["name"]
+                if tool_name not in tool_names_available:
+                    raise ValueError(f"tool_choice references '{tool_name}' but it's not in the provided tools")
+            
+            # Convert to OpenAI format and add to create_args
+            converted_tool_choice = convert_tool_choice(tool_choice)
+            if converted_tool_choice is not None:
+                create_args["tool_choice"] = converted_tool_choice
 
         return CreateParams(
             messages=oai_messages,
@@ -587,6 +652,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -594,6 +660,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_params = self._process_create_args(
             messages,
             tools,
+            tool_choice,
             json_output,
             extra_create_args,
         )
@@ -736,6 +803,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -767,6 +835,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_params = self._process_create_args(
             messages,
             tools,
+            tool_choice,
             json_output,
             extra_create_args,
         )

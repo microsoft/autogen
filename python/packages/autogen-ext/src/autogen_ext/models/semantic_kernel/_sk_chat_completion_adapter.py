@@ -1,7 +1,7 @@
 import json
 import logging
 import warnings
-from typing import Any, Literal, Mapping, Optional, Sequence
+from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
 from autogen_core import EVENT_LOGGER_NAME, FunctionCall
 from autogen_core._cancellation_token import CancellationToken
@@ -442,6 +442,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -472,6 +473,12 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         """
         if isinstance(json_output, type) and issubclass(json_output, BaseModel):
             raise ValueError("structured output is not currently supported in SKChatCompletionAdapter")
+
+        # Handle tool_choice parameter
+        if tool_choice is not None:
+            if len(tools) == 0:
+                raise ValueError("tool_choice specified but no tools provided")
+            logger.warning("tool_choice parameter specified but may not be fully supported by Semantic Kernel")
 
         kernel = self._get_kernel(extra_create_args)
 
@@ -553,6 +560,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -584,6 +592,12 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
         if isinstance(json_output, type) and issubclass(json_output, BaseModel):
             raise ValueError("structured output is not currently supported in SKChatCompletionAdapter")
+
+        # Handle tool_choice parameter
+        if tool_choice is not None:
+            if len(tools) == 0:
+                raise ValueError("tool_choice specified but no tools provided")
+            logger.warning("tool_choice parameter specified but may not be fully supported by Semantic Kernel")
 
         kernel = self._get_kernel(extra_create_args)
         chat_history = self._convert_to_chat_history(messages)

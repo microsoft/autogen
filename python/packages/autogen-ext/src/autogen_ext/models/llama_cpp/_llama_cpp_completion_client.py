@@ -264,6 +264,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
@@ -301,6 +302,14 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             create_args["response_format"] = {"type": "json_object"}
         elif json_output is not False and json_output is not None:
             raise ValueError("json_output must be a boolean, a BaseModel subclass or None.")
+
+        # Handle tool_choice parameter
+        if tool_choice is not None:
+            if not self.model_info["function_calling"]:
+                raise ValueError("tool_choice specified but model does not support function calling")
+            if len(tools) == 0:
+                raise ValueError("tool_choice specified but no tools provided")
+            logger.warning("tool_choice parameter specified but may not be supported by llama-cpp-python")
 
         if self.model_info["function_calling"]:
             # Run this in on the event loop to avoid blocking.
@@ -397,12 +406,21 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
+        # Validate tool_choice parameter even though streaming is not implemented
+        if tool_choice is not None:
+            if not self.model_info["function_calling"]:
+                raise ValueError("tool_choice specified but model does not support function calling")
+            if len(tools) == 0:
+                raise ValueError("tool_choice specified but no tools provided")
+            logger.warning("tool_choice parameter specified but may not be supported by llama-cpp-python")
+        
         raise NotImplementedError("Stream not yet implemented for LlamaCppChatCompletionClient")
         yield ""
 
