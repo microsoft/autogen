@@ -3,7 +3,7 @@ import logging
 import re
 from asyncio import Task
 from inspect import getfullargspec
-from typing import Any, Dict, List, Mapping, Optional, Sequence, cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, Image
 from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
@@ -356,6 +356,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -372,6 +373,12 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         azure_messages_nested = [to_azure_message(msg) for msg in messages]
         azure_messages = [item for sublist in azure_messages_nested for item in sublist]
+
+        # Handle tool_choice parameter - log warning as it might not be supported by Azure AI
+        if tool_choice is not None:
+            if len(tools) == 0:
+                raise ValueError("tool_choice specified but no tools provided")
+            logger.warning("tool_choice parameter specified but may not be supported by Azure AI Inference API")
 
         task: Task[ChatCompletions]
 
@@ -451,6 +458,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -467,6 +475,12 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         # azure_messages = [to_azure_message(m) for m in messages]
         azure_messages_nested = [to_azure_message(msg) for msg in messages]
         azure_messages = [item for sublist in azure_messages_nested for item in sublist]
+
+        # Handle tool_choice parameter - log warning as it might not be supported by Azure AI
+        if tool_choice is not None:
+            if len(tools) == 0:
+                raise ValueError("tool_choice specified but no tools provided")
+            logger.warning("tool_choice parameter specified but may not be supported by Azure AI Inference API")
 
         if len(tools) > 0:
             converted_tools = convert_tools(tools)

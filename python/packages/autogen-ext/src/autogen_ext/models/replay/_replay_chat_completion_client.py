@@ -162,11 +162,16 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
         """Return the next completion from the list."""
+        # Warn if tool_choice is specified since it's ignored in replay mode
+        if tool_choice is not None:
+            logger.warning("tool_choice parameter specified but is ignored in replay mode")
+            
         if self._current_index >= len(self.chat_completions):
             raise ValueError("No more mock responses available")
 
@@ -201,11 +206,16 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """Return the next completion as a stream."""
+        # Warn if tool_choice is specified since it's ignored in replay mode
+        if tool_choice is not None:
+            logger.warning("tool_choice parameter specified but is ignored in replay mode")
+            
         if self._current_index >= len(self.chat_completions):
             raise ValueError("No more mock responses available")
 

@@ -211,6 +211,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
@@ -222,6 +223,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         Args:
             messages (Sequence[LLMMessage]): The messages to send to the model.
             tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
+            tool_choice (Optional[Sequence[Union[str, Tool]]], optional): A list of tool names or Tool objects to restrict the model's choice to. Defaults to None.
             json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither.
                 Defaults to None. If set to a `Pydantic BaseModel <https://docs.pydantic.dev/latest/usage/models/#model>`_ type,
                 it will be used as the output type for structured output.
@@ -241,6 +243,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
@@ -252,6 +255,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         Args:
             messages (Sequence[LLMMessage]): The messages to send to the model.
             tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
+            tool_choice (Optional[Sequence[Union[str, Tool]]], optional): A list of tool names or Tool objects to restrict the model's choice to. Defaults to None.
             json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither.
                 Defaults to None. If set to a `Pydantic BaseModel <https://docs.pydantic.dev/latest/usage/models/#model>`_ type,
                 it will be used as the output type for structured output.
