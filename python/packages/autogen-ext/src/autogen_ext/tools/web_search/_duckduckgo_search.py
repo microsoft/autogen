@@ -389,7 +389,7 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
             raise ValueError(f"Error during search: {str(e)}") from e
 
     def return_value_as_string(self, value: DuckDuckGoSearchResult) -> str:
-        """Convert the search results to a human-readable string format."""
+        """Convert the search results to a human/LLM-readable string format."""
         if not value.results:
             return "No search results found."
 
@@ -401,7 +401,7 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
             if "snippet" in result:
                 parts.append(f"Snippet: {result['snippet']}")
             if "content" in result:
-                parts.append(f"Content: {result['content'][:200]}...")  # Truncate long content
+                parts.append(f"Content: {result['content']}")
             parts.append("")  # Empty line between results
 
         return "\n".join(parts)
