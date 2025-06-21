@@ -50,6 +50,8 @@ class DiGraphEdge(BaseModel):
 
     # Using Field to exclude the condition in serialization if it's a callable
     condition_function: Callable[[BaseChatMessage], bool] | None = Field(default=None, exclude=True)
+    activation_group: str = Field(default="")
+    activation_condition: Literal["all", "any"] = "all"
 
     @model_validator(mode="after")
     def _validate_condition(self) -> "DiGraphEdge":
@@ -59,6 +61,11 @@ class DiGraphEdge(BaseModel):
             # For serialization purposes, we'll set the condition to None
             # when storing as a pydantic model/dict
             object.__setattr__(self, "condition", None)
+
+        # Set activation_group to target if not already set
+        if not self.activation_group:
+            self.activation_group = self.target
+
         return self
 
     def check_condition(self, message: BaseChatMessage) -> bool:
@@ -112,8 +119,7 @@ class DiGraph(BaseModel):
         parents: Dict[str, List[str]] = {node: [] for node in self.nodes}
         for node in self.nodes.values():
             for edge in node.edges:
-                if edge.target != node.name:
-                    parents[edge.target].append(node.name)
+                parents[edge.target].append(node.name)
         return parents
 
     def get_start_nodes(self) -> Set[str]:
@@ -206,7 +212,78 @@ class DiGraph(BaseModel):
             if has_condition and has_unconditioned:
                 raise ValueError(f"Node '{node.name}' has a mix of conditional and unconditional edges.")
 
+        # Validate activation conditions across all edges in the graph
+        self._validate_activation_conditions()
+
         self._has_cycles = self.has_cycles_with_exit()
+
+    def _validate_activation_conditions(self) -> None:
+        """Validate that all edges pointing to the same target node have consistent activation_condition values.
+
+        Raises:
+            ValueError: If edges pointing to the same target have different activation_condition values
+        """
+        target_activation_conditions: Dict[str, Dict[str, str]] = {}  # target_node -> {activation_group -> condition}
+
+        for node in self.nodes.values():
+            for edge in node.edges:
+                target = edge.target  # The target node this edge points to
+                activation_group = edge.activation_group
+
+                if target not in target_activation_conditions:
+                    target_activation_conditions[target] = {}
+
+                if activation_group in target_activation_conditions[target]:
+                    if target_activation_conditions[target][activation_group] != edge.activation_condition:
+                        # Find the source node that has the conflicting condition
+                        conflicting_source = self._find_edge_source_by_target_and_group(
+                            target, activation_group, target_activation_conditions[target][activation_group]
+                        )
+                        raise ValueError(
+                            f"Conflicting activation conditions for target '{target}' group '{activation_group}': "
+                            f"'{target_activation_conditions[target][activation_group]}' (from node '{conflicting_source}') "
+                            f"and '{edge.activation_condition}' (from node '{node.name}')"
+                        )
+                else:
+                    target_activation_conditions[target][activation_group] = edge.activation_condition
+
+    def _find_edge_source_by_target_and_group(
+        self, target: str, activation_group: str, activation_condition: str
+    ) -> str:
+        """Find the source node that has an edge pointing to the given target with the given activation_group and activation_condition."""
+        for node_name, node in self.nodes.items():
+            for edge in node.edges:
+                if (
+                    edge.target == target
+                    and edge.activation_group == activation_group
+                    and edge.activation_condition == activation_condition
+                ):
+                    return node_name
+        return "unknown"
+
+    def get_remaining_map(self) -> Dict[str, Dict[str, int]]:
+        """Get the remaining map that tracks how many edges point to each target node with each activation group.
+
+        Returns:
+            Dictionary mapping target nodes to their activation groups and remaining counts
+        """
+
+        remaining_map: Dict[str, Dict[str, int]] = {}
+
+        for node in self.nodes.values():
+            for edge in node.edges:
+                target = edge.target
+                activation_group = edge.activation_group
+
+                if target not in remaining_map:
+                    remaining_map[target] = {}
+
+                if activation_group not in remaining_map[target]:
+                    remaining_map[target][activation_group] = 0
+
+                remaining_map[target][activation_group] += 1
+
+        return remaining_map
 
 
 class GraphFlowManagerState(BaseGroupChatManagerState):
@@ -254,17 +331,50 @@ class GraphFlowManager(BaseGroupChatManager):
         self._parents = graph.get_parents()
         # Lookup table for outgoing edges for each node.
         self._edges: Dict[str, List[DiGraphEdge]] = {n: node.edges for n, node in graph.nodes.items()}
-        # Activation lookup table for each node.
-        self._activation: Dict[str, Literal["any", "all"]] = {n: node.activation for n, node in graph.nodes.items()}
 
+        # Build activation and enqueued_any lookup tables by collecting all edges and grouping by target node
+        self._build_lookup_tables(graph)
+
+        # Track which activation groups were triggered for each node
+        self._triggered_activation_groups: Dict[str, Set[str]] = {}
         # === Mutable states for the graph execution ===
         # Count the number of remaining parents to activate each node.
-        self._remaining: Counter[str] = Counter({n: len(p) for n, p in self._parents.items()})
-        # Lookup table for nodes that have been enqueued through an any activation.
-        # This is used to prevent re-adding the same node multiple times.
-        self._enqueued_any: Dict[str, bool] = {n: False for n in graph.nodes}
+        self._remaining: Dict[str, Counter[str]] = {
+            target: Counter(groups) for target, groups in graph.get_remaining_map().items()
+        }
+        # cache for remaining
+        self._origin_remaining: Dict[str, Dict[str, int]] = {
+            target: Counter(groups) for target, groups in self._remaining.items()
+        }
+
         # Ready queue for nodes that are ready to execute, starting with the start nodes.
         self._ready: Deque[str] = deque([n for n in graph.get_start_nodes()])
+
+    def _build_lookup_tables(self, graph: DiGraph) -> None:
+        """Build activation and enqueued_any lookup tables by collecting all edges and grouping by target node.
+
+        Args:
+            graph: The directed graph
+        """
+        self._activation: Dict[str, Dict[str, Literal["any", "all"]]] = {}
+        self._enqueued_any: Dict[str, Dict[str, bool]] = {}
+
+        for node in graph.nodes.values():
+            for edge in node.edges:
+                target = edge.target
+                activation_group = edge.activation_group
+
+                # Build activation lookup
+                if target not in self._activation:
+                    self._activation[target] = {}
+                if activation_group not in self._activation[target]:
+                    self._activation[target][activation_group] = edge.activation_condition
+
+                # Build enqueued_any lookup
+                if target not in self._enqueued_any:
+                    self._enqueued_any[target] = {}
+                if activation_group not in self._enqueued_any[target]:
+                    self._enqueued_any[target][activation_group] = False
 
     async def update_message_thread(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> None:
         await super().update_message_thread(messages)
@@ -282,16 +392,55 @@ class GraphFlowManager(BaseGroupChatManager):
             # Use the new check_condition method that handles both string and callable conditions
             if not edge.check_condition(message):
                 continue
-            if self._activation[edge.target] == "all":
-                self._remaining[edge.target] -= 1
-                if self._remaining[edge.target] == 0:
+
+            target = edge.target
+            activation_group = edge.activation_group
+
+            if self._activation[target][activation_group] == "all":
+                self._remaining[target][activation_group] -= 1
+                if self._remaining[target][activation_group] == 0:
                     # If all parents are done, add to the ready queue.
-                    self._ready.append(edge.target)
+                    self._ready.append(target)
+                    # Track which activation group was triggered
+                    self._save_triggered_activation_group(target, activation_group)
             else:
                 # If activation is any, add to the ready queue if not already enqueued.
-                if not self._enqueued_any[edge.target]:
-                    self._ready.append(edge.target)
-                    self._enqueued_any[edge.target] = True
+                if not self._enqueued_any[target][activation_group]:
+                    self._ready.append(target)
+                    self._enqueued_any[target][activation_group] = True
+                    # Track which activation group was triggered
+                    self._save_triggered_activation_group(target, activation_group)
+
+    def _save_triggered_activation_group(self, target: str, activation_group: str) -> None:
+        """Save which activation group was triggered for a target node.
+
+        Args:
+            target: The target node that was triggered
+            activation_group: The activation group that caused the trigger
+        """
+        if target not in self._triggered_activation_groups:
+            self._triggered_activation_groups[target] = set()
+        self._triggered_activation_groups[target].add(activation_group)
+
+    def _reset_triggered_activation_groups(self, speaker: str) -> None:
+        """Reset the bookkeeping for the specific activation groups that were triggered for a speaker.
+
+        Args:
+            speaker: The speaker node to reset activation groups for
+        """
+        if speaker not in self._triggered_activation_groups:
+            return
+
+        for activation_group in self._triggered_activation_groups[speaker]:
+            if self._activation[speaker][activation_group] == "any":
+                self._enqueued_any[speaker][activation_group] = False
+            else:
+                # Reset the remaining count for this activation group using the graph's original count
+                if speaker in self._remaining and activation_group in self._remaining[speaker]:
+                    self._remaining[speaker][activation_group] = self._origin_remaining[speaker][activation_group]
+
+        # Clear the triggered activation groups for this speaker
+        self._triggered_activation_groups[speaker].clear()
 
     async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
         # Drain the ready queue for the next set of speakers.
@@ -299,11 +448,9 @@ class GraphFlowManager(BaseGroupChatManager):
         while self._ready:
             speaker = self._ready.popleft()
             speakers.append(speaker)
-            # Reset the bookkeeping for the node that were selected.
-            if self._activation[speaker] == "any":
-                self._enqueued_any[speaker] = False
-            else:
-                self._remaining[speaker] = len(self._parents[speaker])
+
+            # Reset the bookkeeping for the specific activation groups that were triggered
+            self._reset_triggered_activation_groups(speaker)
 
         # If there are no speakers, trigger the stop agent.
         if not speakers:
@@ -319,7 +466,7 @@ class GraphFlowManager(BaseGroupChatManager):
         state = {
             "message_thread": [message.dump() for message in self._message_thread],
             "current_turn": self._current_turn,
-            "remaining": dict(self._remaining),
+            "remaining": {target: dict(counter) for target, counter in self._remaining.items()},
             "enqueued_any": dict(self._enqueued_any),
             "ready": list(self._ready),
         }
@@ -329,7 +476,7 @@ class GraphFlowManager(BaseGroupChatManager):
         """Restore execution state from saved data."""
         self._message_thread = [self._message_factory.create(msg) for msg in state["message_thread"]]
         self._current_turn = state["current_turn"]
-        self._remaining = Counter(state["remaining"])
+        self._remaining = {target: Counter(groups) for target, groups in state["remaining"].items()}
         self._enqueued_any = state["enqueued_any"]
         self._ready = deque(state["ready"])
 
@@ -339,8 +486,8 @@ class GraphFlowManager(BaseGroupChatManager):
         self._message_thread.clear()
         if self._termination_condition:
             await self._termination_condition.reset()
-        self._remaining = Counter({n: len(p) for n, p in self._parents.items()})
-        self._enqueued_any = {n: False for n in self._graph.nodes}
+        self._remaining = {target: Counter(groups) for target, groups in self._graph.get_remaining_map().items()}
+        self._enqueued_any = {n: {g: False for g in self._enqueued_any[n]} for n in self._enqueued_any}
         self._ready = deque([n for n in self._graph.get_start_nodes()])
 
 
