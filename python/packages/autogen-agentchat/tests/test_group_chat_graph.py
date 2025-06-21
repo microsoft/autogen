@@ -804,7 +804,7 @@ async def test_digraph_group_chat_loop_with_two_cycles(runtime: AgentRuntime | N
     agent_x = AssistantAgent("X", description="Decision agent x", model_client=model_client)
     agent_y = AssistantAgent("Y", description="Decision agent y", model_client=model_client)
 
-    # DiGraph: A ->O  O <-> B (bidirectional) O <-> C (bidirectional)
+    # DiGraph:
     #
     #       A
     #      / \
