@@ -32,7 +32,7 @@ from autogen_core.models import (
     ModelFamily,
     SystemMessage,
 )
-from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, StaticWorkbench, ToolResult, Workbench
+from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, ToolResult, Workbench
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -754,7 +754,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             else:
                 self._workbench = [workbench]
         else:
-            self._workbench = [StaticWorkbench(self._tools)]
+            self._workbench = [StaticStreamWorkbench(self._tools)]
 
         if model_context is not None:
             self._model_context = model_context
@@ -1051,6 +1051,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         yield tool_call_msg
 
         # STEP 4B: Execute tool calls
+        # Use a queue to handle streaming results from tool calls.
         stream = asyncio.Queue[BaseAgentEvent | BaseChatMessage | None]()
 
         async def _execute_tool_calls(
@@ -1069,25 +1070,24 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     for call in function_calls
                 ]
             )
+            # Signal the end of streaming by putting None in the queue.
             stream.put_nowait(None)
             return results
 
         task = asyncio.create_task(_execute_tool_calls(model_result.content))
 
         while True:
-            try:
-                event = await stream.get()
-                if event is None:
-                    break
-                if isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
-                    yield event
-                    inner_messages.append(event)
-                else:
-                    raise RuntimeError(f"Unexpected event type: {type(event)}")
-            except asyncio.CancelledError:
-                task.cancel()
-                raise
+            event = await stream.get()
+            if event is None:
+                # End of streaming, break the loop.
+                break
+            if isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
+                yield event
+                inner_messages.append(event)
+            else:
+                raise RuntimeError(f"Unexpected event type: {type(event)}")
 
+        # Wait for all tool calls to complete.
         executed_calls_and_results = await task
         exec_results = [result for _, result in executed_calls_and_results]
 
@@ -1377,7 +1377,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                         if isinstance(event, ToolResult):
                             tool_result = event
                         elif isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
-                            stream.put_nowait(event)
+                            await stream.put(event)
                         else:
                             warnings.warn(
                                 f"Unexpected event type: {type(event)} in tool call streaming.",
