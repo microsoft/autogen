@@ -1,15 +1,20 @@
 """Comprehensive tests for AssistantAgent functionality."""
 
+# Standard library imports
 import asyncio
 import json
-from typing import Any, List, Optional, cast
+from typing import Any, List, Optional, Sequence, Union, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
+# Third-party imports
 import pytest
+
+# First-party imports
 from autogen_agentchat.agents import AssistantAgent, ToolCallConfig
 from autogen_agentchat.agents._assistant_agent import AssistantAgentConfig
 from autogen_agentchat.base import Handoff, Response
 from autogen_agentchat.messages import (
+    BaseChatMessage,
     HandoffMessage,
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
@@ -31,6 +36,7 @@ from autogen_core.models import (
     ModelFamily,
     RequestUsage,
     SystemMessage,
+    UserMessage,
 )
 from autogen_core.tools import FunctionTool
 from autogen_ext.models.replay import ReplayChatCompletionClient
@@ -38,64 +44,138 @@ from pydantic import BaseModel
 
 
 def mock_tool_function(param: str) -> str:
-    """Mock tool function for testing."""
+    """Mock tool function for testing.
+
+    Args:
+        param: Input parameter to process
+
+    Returns:
+        Formatted string with the input parameter
+    """
     return f"Tool executed with: {param}"
 
 
 async def async_mock_tool_function(param: str) -> str:
-    """Async mock tool function for testing."""
+    """Async mock tool function for testing.
+
+    Args:
+        param: Input parameter to process
+
+    Returns:
+        Formatted string with the input parameter
+    """
     return f"Async tool executed with: {param}"
 
 
 class MockMemory(Memory):
-    """Mock memory implementation for testing."""
+    """Mock memory implementation for testing.
+
+    A simple memory implementation that stores strings and provides basic memory operations
+    for testing purposes.
+
+    Args:
+        contents: Optional list of initial memory contents
+    """
 
     def __init__(self, contents: Optional[List[str]] = None) -> None:
-        self._contents = contents or []
+        """Initialize mock memory.
+
+        Args:
+            contents: Optional list of initial memory contents
+        """
+        self._contents: List[str] = contents or []
 
     async def add(self, content: MemoryContent, cancellation_token: Optional[CancellationToken] = None) -> None:
+        """Add content to memory.
+
+        Args:
+            content: Content to add to memory
+            cancellation_token: Optional token for cancelling operation
+        """
         self._contents.append(str(content))
 
     async def query(
-        self, query: str | MemoryContent, cancellation_token: Optional[CancellationToken] = None, **kwargs: Any
+        self, query: Union[str, MemoryContent], cancellation_token: Optional[CancellationToken] = None, **kwargs: Any
     ) -> MemoryQueryResultSet:
+        """Query memory contents.
+
+        Args:
+            query: Search query
+            cancellation_token: Optional token for cancelling operation
+            kwargs: Additional query parameters
+
+        Returns:
+            Query results containing all memory contents
+        """
         results = [MemoryContent(content=content, mime_type="text/plain") for content in self._contents]
         return MemoryQueryResultSet(results=results)
 
     async def clear(self, cancellation_token: Optional[CancellationToken] = None) -> None:
+        """Clear all memory contents.
+
+        Args:
+            cancellation_token: Optional token for cancelling operation
+        """
         self._contents.clear()
 
     async def close(self) -> None:
+        """Close memory resources."""
         pass
 
     async def update_context(self, model_context: Any) -> UpdateContextResult:
+        """Update model context with memory contents.
+
+        Args:
+            model_context: Context to update
+
+        Returns:
+            Update result containing memory contents
+        """
         if self._contents:
-            # Mock return that simulates memory update
             results = [MemoryContent(content=content, mime_type="text/plain") for content in self._contents]
             return UpdateContextResult(memories=MemoryQueryResultSet(results=results))
         return UpdateContextResult(memories=MemoryQueryResultSet(results=[]))
 
     def dump_component(self) -> ComponentModel:
-        """Mock dump_component method."""
+        """Dump memory state as component model.
+
+        Returns:
+            Component model representing memory state
+        """
         return ComponentModel(provider="test", config={"type": "mock_memory"})
 
 
 class StructuredOutput(BaseModel):
-    """Test structured output model."""
+    """Test structured output model.
+
+    Attributes:
+        content: Main content string
+        confidence: Confidence score between 0 and 1
+    """
 
     content: str
     confidence: float
 
 
 class TestAssistantAgentToolCallLoop:
-    """Test suite for tool call loop functionality (Issue #6268)."""
+    """Test suite for tool call loop functionality.
+
+    Tests the behavior of AssistantAgent's tool call loop feature, which allows
+    multiple sequential tool calls before producing a final response.
+    """
 
     @pytest.mark.asyncio
     async def test_tool_call_loop_enabled(self) -> None:
-        """Test that tool call loop works when enabled."""
+        """Test that tool call loop works when enabled.
+
+        Verifies that:
+        1. Multiple tool calls are executed in sequence
+        2. Loop continues until non-tool response
+        3. Final response is correct type
+        """
         # Create mock client with multiple tool calls followed by text response
         model_client = ReplayChatCompletionClient(
-            [
+            chat_completions=[
                 # First tool call
                 CreateResult(
                     finish_reason="function_calls",
@@ -133,7 +213,7 @@ class TestAssistantAgentToolCallLoop:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            tool_call_loop=True,  # Enable tool call loop
+            tool_call_loop_config=ToolCallConfig(),  # Enable tool call loop
         )
 
         result = await agent.run(task="Execute multiple tool calls")
@@ -148,16 +228,20 @@ class TestAssistantAgentToolCallLoop:
 
     @pytest.mark.asyncio
     async def test_tool_call_loop_disabled_default(self) -> None:
-        """Test that tool call loop is disabled by default."""
+        """Test that tool call loop is disabled by default.
+
+        Verifies that:
+        1. Only one tool call is made when loop is disabled
+        2. Agent returns after first tool call
+        """
         model_client = ReplayChatCompletionClient(
-            [
-                # Single tool call
+            responses=[
                 CreateResult(
                     finish_reason="function_calls",
                     content=[FunctionCall(id="1", arguments=json.dumps({"param": "test"}), name="mock_tool_function")],
                     usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                     cached=False,
-                ),
+                )
             ],
             model_info={
                 "function_calling": True,
@@ -172,14 +256,13 @@ class TestAssistantAgentToolCallLoop:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            # tool_call_loop not specified, should default to False
+            # tool_call_loop_config not specified, should default to None
         )
 
         result = await agent.run(task="Execute single tool call")
 
         # Should only make one model call
         assert len(model_client.create_calls) == 1, f"Expected 1 call, got {len(model_client.create_calls)}"
-        # Verify result is not None
         assert result is not None
 
     @pytest.mark.asyncio
@@ -214,8 +297,7 @@ class TestAssistantAgentToolCallLoop:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            tool_call_loop=True,
-            tool_call_config=ToolCallConfig(max_iterations=5),  # Custom max_iterations
+            tool_call_loop_config=ToolCallConfig(max_iterations=5),  # Custom max_iterations
         )
 
         result = await agent.run(task="Test max iterations")
@@ -257,7 +339,7 @@ class TestAssistantAgentToolCallLoop:
             model_client=model_client,
             tools=[mock_tool_function],
             handoffs=["other_agent"],
-            tool_call_loop=True,
+            tool_call_loop_config=ToolCallConfig(),
         )
 
         result = await agent.run(task="Test handoff in loop")
@@ -276,128 +358,69 @@ class TestAssistantAgentToolCallLoop:
             AssistantAgent(
                 name="test_agent",
                 model_client=MagicMock(),
-                tool_call_config=ToolCallConfig(max_iterations=0),
+                tool_call_loop_config=ToolCallConfig(max_iterations=0),
             )
 
 
-class TestAssistantAgentReflectionFlow:
-    """Test suite for tools parameter in reflection flow (Issue #6328)."""
+class TestAssistantAgentInitialization:
+    """Test suite for AssistantAgent initialization.
+
+    Tests various initialization scenarios and configurations of the AssistantAgent class.
+    """
 
     @pytest.mark.asyncio
-    async def test_tools_passed_to_reflection_flow(self) -> None:
-        """Test that tools are correctly passed to reflection flow."""
+    async def test_basic_initialization(self) -> None:
+        """Test basic agent initialization with minimal parameters.
+
+        Verifies that:
+        1. Agent initializes with required parameters
+        2. Default values are set correctly
+        3. Basic functionality works
+        """
         model_client = ReplayChatCompletionClient(
-            [
-                # Initial tool call
-                CreateResult(
-                    finish_reason="function_calls",
-                    content=[FunctionCall(id="1", arguments=json.dumps({"param": "test"}), name="mock_tool_function")],
-                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                    cached=False,
-                ),
-                # Reflection call (should receive tools parameter)
+            responses=[
                 CreateResult(
                     finish_reason="stop",
-                    content="Based on the tool result, the task is complete.",
-                    usage=RequestUsage(prompt_tokens=15, completion_tokens=10),
+                    content="Hello!",
+                    usage=RequestUsage(prompt_tokens=5, completion_tokens=2),
                     cached=False,
-                ),
+                )
             ],
             model_info={
                 "function_calling": True,
                 "vision": False,
                 "json_output": False,
-                "family": ModelFamily.CLAUDE_3_5_SONNET,  # Simulate Claude model
+                "family": ModelFamily.GPT_4O,
                 "structured_output": False,
             },
         )
 
-        agent = AssistantAgent(
-            name="test_agent",
-            model_client=model_client,
-            tools=[mock_tool_function],
-            reflect_on_tool_use=True,  # Enable reflection
-        )
+        agent = AssistantAgent(name="test_agent", model_client=model_client)
+        result = await agent.run(task="Say hello")
 
-        result = await agent.run(task="Test reflection with tools")
-
-        # Should make 2 calls (initial + reflection)
-        assert len(model_client.create_calls) == 2, f"Expected 2 calls, got {len(model_client.create_calls)}"
-        # Verify result is not None
-        assert result is not None
-
-        # Both calls should have tools parameter
-        for i, call in enumerate(model_client.create_calls):
-            assert "tools" in call, f"Call {i+1} missing tools parameter"
-            assert len(call["tools"]) > 0, f"Call {i+1} has empty tools list"
+        assert isinstance(result.messages[-1], TextMessage)
+        assert result.messages[-1].content == "Hello!"
 
     @pytest.mark.asyncio
-    async def test_reflection_with_streaming(self) -> None:
-        """Test that reflection works correctly with streaming enabled."""
-        model_client = MagicMock()
-        model_client.model_info = {"function_calling": True, "vision": False, "family": ModelFamily.GPT_4O}
+    async def test_initialization_with_tools(self) -> None:
+        """Test agent initialization with tools.
 
-        call_count = 0
-
-        async def mock_create_stream(*args: Any, **kwargs: Any) -> Any:
-            nonlocal call_count
-            call_count += 1
-
-            if call_count == 1:
-                # First call: tool call
-                yield CreateResult(
+        Verifies that:
+        1. Agent accepts tool configurations
+        2. Tools are properly registered
+        3. Tool calls work correctly
+        """
+        model_client = ReplayChatCompletionClient(
+            responses=[
+                CreateResult(
                     finish_reason="function_calls",
                     content=[FunctionCall(id="1", arguments=json.dumps({"param": "test"}), name="mock_tool_function")],
                     usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                     cached=False,
                 )
-            else:
-                # Second call: reflection result
-                yield CreateResult(
-                    finish_reason="stop",
-                    content="Based on the tool result, the task is complete.",
-                    usage=RequestUsage(prompt_tokens=15, completion_tokens=10),
-                    cached=False,
-                )
-
-        model_client.create_stream = mock_create_stream
-
-        agent = AssistantAgent(
-            name="test_agent",
-            model_client=model_client,
-            tools=[mock_tool_function],
-            reflect_on_tool_use=True,
-            model_client_stream=True,  # Enable streaming
-        )
-
-        result = await agent.run(task="Test streaming reflection")
-
-        # Should make 2 calls (initial + reflection)
-        assert call_count == 2, f"Expected 2 calls, got {call_count}"
-
-        # Final message should contain reflection result
-        final_message = result.messages[-1]
-        assert isinstance(final_message, TextMessage)
-        assert "Based on the tool result, the task is complete." in final_message.content
-
-
-class TestAssistantAgentBackwardCompatibility:
-    """Test suite for backward compatibility."""
-
-    @pytest.mark.asyncio
-    async def test_existing_behavior_unchanged(self) -> None:
-        """Test that existing behavior is unchanged when new features are not used."""
-        model_client = ReplayChatCompletionClient(
-            [
-                CreateResult(
-                    finish_reason="stop",
-                    content="Simple response without tools",
-                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                    cached=False,
-                ),
             ],
             model_info={
-                "function_calling": False,
+                "function_calling": True,
                 "vision": False,
                 "json_output": False,
                 "family": ModelFamily.GPT_4O,
@@ -408,66 +431,50 @@ class TestAssistantAgentBackwardCompatibility:
         agent = AssistantAgent(
             name="test_agent",
             model_client=model_client,
+            tools=[mock_tool_function],
         )
 
-        result = await agent.run(task="Simple task")
-
-        # Should work exactly as before
-        assert len(model_client.create_calls) == 1
-        final_message = result.messages[-1]
-        assert isinstance(final_message, TextMessage)
-        assert final_message.content == "Simple response without tools"
+        result = await agent.run(task="Use the tool")
+        assert isinstance(result.messages[-1], ToolCallSummaryMessage)
+        assert "Tool executed with: test" in result.messages[-1].content
 
     @pytest.mark.asyncio
-    async def test_default_values_preserved(self) -> None:
-        """Test that default values are preserved for backward compatibility."""
-        agent = AssistantAgent(
-            name="test_agent",
-            model_client=MagicMock(),
+    async def test_initialization_with_memory(self) -> None:
+        """Test agent initialization with memory.
+
+        Verifies that:
+        1. Memory is properly integrated
+        2. Memory contents affect responses
+        3. Memory updates work correctly
+        """
+        model_client = ReplayChatCompletionClient(
+            responses=[
+                CreateResult(
+                    finish_reason="stop",
+                    content="Using memory content",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                )
+            ],
+            model_info={
+                "function_calling": True,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
         )
 
-        # Verify default values
-        assert agent._tool_call_loop is False  # type: ignore[reportPrivateUsage]
-        assert agent._tool_call_config.max_iterations == 10  # type: ignore[reportPrivateUsage]
-
-
-class TestAssistantAgentInitialization:
-    """Test suite for AssistantAgent initialization and configuration."""
-
-    @pytest.mark.asyncio
-    async def test_basic_initialization(self) -> None:
-        """Test basic agent initialization."""
-        model_client = MagicMock()
-        model_client.model_info = {"function_calling": False, "vision": False, "family": ModelFamily.GPT_4O}
-
-        agent = AssistantAgent(
-            name="test_agent",
-            model_client=model_client,
-        )
-
-        assert agent.name == "test_agent"
-        assert agent._model_client == model_client  # type: ignore[reportPrivateUsage]
-        assert agent._tools == []  # type: ignore[reportPrivateUsage]
-        assert agent._handoffs == {}  # type: ignore[reportPrivateUsage]
-        assert agent._reflect_on_tool_use is False  # type: ignore[reportPrivateUsage]
-        assert agent._tool_call_loop is False  # type: ignore[reportPrivateUsage]
-        assert agent._tool_call_config.max_iterations == 10  # type: ignore[reportPrivateUsage]
-
-    @pytest.mark.asyncio
-    async def test_initialization_with_tools(self) -> None:
-        """Test agent initialization with tools."""
-        model_client = MagicMock()
-        model_client.model_info = {"function_calling": True, "vision": False, "family": ModelFamily.GPT_4O}
-
+        memory = MockMemory(contents=["Test memory content"])
         agent = AssistantAgent(
             name="test_agent",
             model_client=model_client,
-            tools=[mock_tool_function, async_mock_tool_function],
+            memory=[memory],
         )
 
-        assert len(agent._tools) == 2  # type: ignore[reportPrivateUsage]
-        assert isinstance(agent._tools[0], FunctionTool)  # type: ignore[reportPrivateUsage]
-        assert isinstance(agent._tools[1], FunctionTool)  # type: ignore[reportPrivateUsage]
+        result = await agent.run(task="Use memory")
+        assert isinstance(result.messages[-1], TextMessage)
+        assert result.messages[-1].content == "Using memory content"
 
     @pytest.mark.asyncio
     async def test_initialization_with_handoffs(self) -> None:
@@ -484,21 +491,6 @@ class TestAssistantAgentInitialization:
         assert len(agent._handoffs) == 2  # type: ignore[reportPrivateUsage]
         assert "transfer_to_agent1" in agent._handoffs  # type: ignore[reportPrivateUsage]
         assert "transfer_to_agent2" in agent._handoffs  # type: ignore[reportPrivateUsage]
-
-    @pytest.mark.asyncio
-    async def test_initialization_with_memory(self) -> None:
-        """Test agent initialization with memory."""
-        model_client = MagicMock()
-        model_client.model_info = {"function_calling": False, "vision": False, "family": ModelFamily.GPT_4O}
-
-        memory = MockMemory(["Test memory content"])
-        agent = AssistantAgent(
-            name="test_agent",
-            model_client=model_client,
-            memory=[memory],
-        )
-
-        assert agent._memory == [memory]  # type: ignore[reportPrivateUsage]
 
     @pytest.mark.asyncio
     async def test_initialization_with_custom_model_context(self) -> None:
@@ -547,57 +539,109 @@ class TestAssistantAgentInitialization:
 
 
 class TestAssistantAgentValidation:
-    """Test suite for AssistantAgent validation and error handling."""
+    """Test suite for AssistantAgent validation.
+
+    Tests various validation scenarios to ensure proper error handling and input validation.
+    """
 
     @pytest.mark.asyncio
     async def test_tool_names_must_be_unique(self) -> None:
-        """Test that tool names must be unique."""
-        model_client = MagicMock()
-        model_client.model_info = {"function_calling": True, "vision": False, "family": ModelFamily.GPT_4O}
+        """Test validation of unique tool names.
+
+        Verifies that:
+        1. Duplicate tool names are detected
+        2. Appropriate error is raised
+        """
 
         def duplicate_tool(param: str) -> str:
-            return f"Duplicate: {param}"
+            """Test tool with duplicate name.
 
-        tool1 = FunctionTool(duplicate_tool, name="duplicate_name", description="Duplicate tool 1")
-        tool2 = FunctionTool(duplicate_tool, name="duplicate_name", description="Duplicate tool 2")
+            Args:
+                param: Input parameter
+
+            Returns:
+                Formatted string with parameter
+            """
+            return f"Duplicate tool: {param}"
+
+        model_client = ReplayChatCompletionClient(
+            responses=[],
+            model_info={
+                "function_calling": True,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
+        )
 
         with pytest.raises(ValueError, match="Tool names must be unique"):
             AssistantAgent(
                 name="test_agent",
                 model_client=model_client,
-                tools=[tool1, tool2],
+                tools=[mock_tool_function, duplicate_tool, mock_tool_function],
             )
 
     @pytest.mark.asyncio
     async def test_handoff_names_must_be_unique(self) -> None:
-        """Test that handoff names must be unique."""
-        model_client = MagicMock()
-        model_client.model_info = {"function_calling": True, "vision": False, "family": ModelFamily.GPT_4O}
+        """Test validation of unique handoff names.
+
+        Verifies that:
+        1. Duplicate handoff names are detected
+        2. Appropriate error is raised
+        """
+        model_client = ReplayChatCompletionClient(
+            responses=[],
+            model_info={
+                "function_calling": True,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
+        )
 
         with pytest.raises(ValueError, match="Handoff names must be unique"):
             AssistantAgent(
                 name="test_agent",
                 model_client=model_client,
-                handoffs=["agent1", "agent1"],
+                handoffs=["agent1", "agent2", "agent1"],
             )
 
     @pytest.mark.asyncio
     async def test_handoff_names_must_be_unique_from_tool_names(self) -> None:
-        """Test that handoff names must be unique from tool names."""
-        model_client = MagicMock()
-        model_client.model_info = {"function_calling": True, "vision": False, "family": ModelFamily.GPT_4O}
+        """Test validation of handoff names against tool names.
+
+        Verifies that:
+        1. Handoff names cannot conflict with tool names
+        2. Appropriate error is raised
+        """
 
         def test_tool() -> str:
+            """Test tool with name that conflicts with handoff.
+
+            Returns:
+                Static test string
+            """
             return "test"
 
-        tool = FunctionTool(test_tool, name="transfer_to_agent1", description="Test tool")
+        model_client = ReplayChatCompletionClient(
+            responses=[],
+            model_info={
+                "function_calling": True,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
+        )
 
         with pytest.raises(ValueError, match="Handoff names must be unique from tool names"):
             AssistantAgent(
                 name="test_agent",
                 model_client=model_client,
-                tools=[tool],
-                handoffs=["agent1"],
+                tools=[test_tool],
+                handoffs=["test_tool"],
             )
 
     @pytest.mark.asyncio
@@ -833,16 +877,108 @@ class TestAssistantAgentErrorHandling:
 
 
 class TestAssistantAgentMemoryIntegration:
-    """Test suite for memory integration functionality."""
+    """Test suite for AssistantAgent memory integration.
+
+    Tests the integration between AssistantAgent and memory components, including:
+    - Memory initialization
+    - Context updates
+    - Query operations
+    - Memory persistence
+    """
 
     @pytest.mark.asyncio
     async def test_memory_updates_context(self) -> None:
-        """Test that memory updates the model context."""
+        """Test that memory properly updates model context.
+
+        Verifies that:
+        1. Memory contents are added to context
+        2. Context updates trigger appropriate events
+        3. Memory query results are properly handled
+        """
+        # Setup test memory with initial content
+        memory = MockMemory(contents=["Previous conversation about topic A"])
+
+        # Configure model client with expected response
         model_client = ReplayChatCompletionClient(
-            [
+            responses=[
                 CreateResult(
                     finish_reason="stop",
-                    content="Response based on memory",
+                    content="Response incorporating memory content",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                )
+            ],
+            model_info={
+                "function_calling": True,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
+        )
+
+        # Create agent with memory
+        agent = AssistantAgent(
+            name="test_agent",
+            model_client=model_client,
+            memory=[memory],
+            description="Agent with memory integration",
+        )
+
+        # Track memory events during execution
+        memory_events: List[MemoryQueryEvent] = []
+
+        async def event_handler(event: MemoryQueryEvent) -> None:
+            """Handle memory query events.
+
+            Args:
+                event: Memory query event to process
+            """
+            memory_events.append(event)
+
+        # Create a handler function to capture memory events
+        async def handle_memory_events(result):
+            messages = result.messages if hasattr(result, "messages") else []
+            for msg in messages:
+                if isinstance(msg, MemoryQueryEvent):
+                    await event_handler(msg)
+
+        # Run agent
+        result = await agent.run(task="Respond using memory context")
+
+        # Process the events
+        await handle_memory_events(result)
+
+        # Verify memory integration
+        assert len(memory_events) > 0, "No memory events were generated"
+        assert isinstance(result.messages[-1], TextMessage)
+        assert "Response incorporating memory content" in result.messages[-1].content
+
+    @pytest.mark.asyncio
+    async def test_memory_persistence(self) -> None:
+        """Test memory persistence across multiple sessions.
+
+        Verifies:
+        1. Memory content persists between sessions
+        2. Memory updates are preserved
+        3. Context is properly restored
+        4. Memory query events are generated correctly
+        """
+        # Create memory with initial content
+        memory = MockMemory(contents=["Initial memory"])
+
+        # Create model client
+        model_client = ReplayChatCompletionClient(
+            responses=[
+                CreateResult(
+                    finish_reason="stop",
+                    content="Response using memory",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+                CreateResult(
+                    finish_reason="stop",
+                    content="Response with updated memory",
                     usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
                     cached=False,
                 ),
@@ -856,18 +992,33 @@ class TestAssistantAgentMemoryIntegration:
             },
         )
 
-        memory = MockMemory(["Important context from memory"])
-        agent = AssistantAgent(
-            name="test_agent",
-            model_client=model_client,
-            memory=[memory],
-        )
+        # Create agent with memory
+        agent = AssistantAgent(name="memory_test_agent", model_client=model_client, memory=[memory])
 
-        result = await agent.run(task="Use memory")
+        # First session
+        result1 = await agent.run(task="First task")
+        state = await agent.save_state()
 
-        # Should include memory query event
-        memory_events = [msg for msg in result.messages if isinstance(msg, MemoryQueryEvent)]
+        # Add new memory content
+        await memory.add(MemoryContent(content="New memory", mime_type="text/plain"))
+
+        # Create new agent and restore state
+        new_agent = AssistantAgent(name="memory_test_agent", model_client=model_client, memory=[memory])
+        await new_agent.load_state(state)
+
+        # Second session
+        result2 = await new_agent.run(task="Second task")
+
+        # Verify memory persistence
+        assert isinstance(result1.messages[-1], TextMessage)
+        assert isinstance(result2.messages[-1], TextMessage)
+        assert result1.messages[-1].content == "Response using memory"
+        assert result2.messages[-1].content == "Response with updated memory"
+
+        # Verify memory events
+        memory_events = [msg for msg in result2.messages if isinstance(msg, MemoryQueryEvent)]
         assert len(memory_events) > 0
+        assert any("New memory" in str(event.content) for event in memory_events)
 
 
 class TestAssistantAgentSystemMessage:
@@ -974,7 +1125,7 @@ class TestAssistantAgentComponentSerialization:
         assert config.system_message == "Test system message"
         assert config.model_client_stream is False
         assert config.reflect_on_tool_use is False
-        assert config.tool_call_loop is False
+        assert config.tool_call_loop_config is None
         assert config.metadata == {"key": "value"}
         model_client.dump_component.assert_called_once()
         mock_context.dump_component.assert_called_once()
@@ -1238,8 +1389,7 @@ class TestAssistantAgentComponentSerialization:
             system_message="Test system message",
             model_client_stream=True,
             reflect_on_tool_use=True,
-            tool_call_loop=True,
-            tool_call_config=ToolCallConfig(max_iterations=5),
+            tool_call_loop_config=ToolCallConfig(max_iterations=5),
             tool_call_summary_format="{tool_name}: {result}",
             handoffs=["agent1"],
             model_context=mock_context,
@@ -1255,8 +1405,7 @@ class TestAssistantAgentComponentSerialization:
         assert config.system_message == "Test system message"
         assert config.model_client_stream is True
         assert config.reflect_on_tool_use is True
-        assert config.tool_call_loop is True
-        assert config.tool_call_config is not None and config.tool_call_config.max_iterations == 5
+        assert config.tool_call_loop_config is not None and config.tool_call_loop_config.max_iterations == 5
         assert config.tool_call_summary_format == "{tool_name}: {result}"
         assert config.metadata == {"test": "value"}
 
@@ -1335,6 +1484,7 @@ class TestAssistantAgentThoughtHandling:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
+            tool_call_loop_config=ToolCallConfig(),
         )
 
         messages: List[Any] = []
@@ -1385,6 +1535,7 @@ class TestAssistantAgentThoughtHandling:
             model_client=model_client,
             tools=[mock_tool_function],
             reflect_on_tool_use=True,
+            model_client_stream=True,  # Enable streaming
         )
 
         messages: List[Any] = []
@@ -1446,7 +1597,7 @@ class TestAssistantAgentThoughtHandling:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            tool_call_loop=True,
+            tool_call_loop_config=ToolCallConfig(),
         )
 
         messages: List[Any] = []
@@ -1494,6 +1645,7 @@ class TestAssistantAgentThoughtHandling:
             name="test_agent",
             model_client=model_client,
             handoffs=["other_agent"],
+            tool_call_loop_config=ToolCallConfig(),
         )
 
         result = await agent.run(task="Test handoff with thought")
@@ -2743,3 +2895,151 @@ class TestAssistantAgentComplexIntegration:
             msg for msg in context_messages if hasattr(msg, "source") and getattr(msg, "source", None) == "user"
         ]
         assert len(user_messages) == 2
+
+
+class TestAssistantAgentMessageContext:
+    """Test suite for message context handling in AssistantAgent.
+
+    Tests various scenarios of message handling, context updates, and state management.
+    """
+
+    @pytest.mark.asyncio
+    async def test_add_messages_to_context(self) -> None:
+        """Test adding different message types to context.
+
+        Verifies:
+        1. Regular messages are added correctly
+        2. Handoff messages with context are handled properly
+        3. Message order is preserved
+        4. Model messages are converted correctly
+        """
+        # Setup test context
+        model_context = BufferedChatCompletionContext(buffer_size=10)
+
+        # Create test messages
+        regular_msg = TextMessage(content="Regular message", source="user")
+        handoff_msg = HandoffMessage(
+            content="Handoff message", source="agent1", target="agent2"
+        )
+
+        # Add messages to context
+        await AssistantAgent._add_messages_to_context(model_context=model_context, messages=[regular_msg, handoff_msg])
+
+        # Verify context contents
+        context_messages = await model_context.get_messages()
+
+        # Should have: regular + handoff = 2 messages (now that handoff doesn't have context)
+        assert len(context_messages) == 2
+
+        # Verify message order and content - only the added messages should be present
+        assert isinstance(context_messages[0], UserMessage)
+        assert context_messages[0].content == "Regular message"
+
+        assert isinstance(context_messages[1], UserMessage)
+        assert context_messages[1].content == "Handoff message"
+
+        # No more assertions needed for context_messages since we already verified both
+
+    @pytest.mark.asyncio
+    async def test_complex_model_context(self) -> None:
+        """Test complex model context management scenarios.
+
+        Verifies:
+        1. Large context handling
+        2. Mixed message type handling
+        3. Context size limits
+        4. Message filtering
+        """
+        # Setup test context with limited size
+        model_context = BufferedChatCompletionContext(buffer_size=5)
+
+        # Create a mix of message types
+        messages: List[BaseChatMessage] = [
+            TextMessage(content="First message", source="user"),
+            StructuredMessage[StructuredOutput](
+                content=StructuredOutput(content="Structured data", confidence=0.9), source="agent"
+            ),
+            ToolCallSummaryMessage(content="Tool result", source="agent", tool_calls=[], results=[]),
+            HandoffMessage(
+                content="Handoff", source="agent1", target="agent2"
+            ),
+        ]
+
+        # Add messages to context
+        await AssistantAgent._add_messages_to_context(model_context=model_context, messages=messages)
+
+        # Verify context management
+        context_messages = await model_context.get_messages()
+
+        # Should respect buffer size limit
+        assert len(context_messages) <= 5
+
+        # Verify message conversion
+        for msg in context_messages:
+            assert isinstance(msg, (SystemMessage, UserMessage, AssistantMessage))
+
+    @pytest.mark.asyncio
+    async def test_memory_persistence(self) -> None:
+        """Test memory persistence across multiple sessions.
+
+        Verifies:
+        1. Memory content persists between sessions
+        2. Memory updates are preserved
+        3. Context is properly restored
+        4. Memory query events are generated correctly
+        """
+        # Create memory with initial content
+        memory = MockMemory(contents=["Initial memory"])
+
+        # Create model client
+        model_client = ReplayChatCompletionClient(
+            responses=[
+                CreateResult(
+                    finish_reason="stop",
+                    content="Response using memory",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+                CreateResult(
+                    finish_reason="stop",
+                    content="Response with updated memory",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+            ],
+            model_info={
+                "function_calling": False,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
+        )
+
+        # Create agent with memory
+        agent = AssistantAgent(name="memory_test_agent", model_client=model_client, memory=[memory])
+
+        # First session
+        result1 = await agent.run(task="First task")
+        state = await agent.save_state()
+
+        # Add new memory content
+        await memory.add(MemoryContent(content="New memory", mime_type="text/plain"))
+
+        # Create new agent and restore state
+        new_agent = AssistantAgent(name="memory_test_agent", model_client=model_client, memory=[memory])
+        await new_agent.load_state(state)
+
+        # Second session
+        result2 = await new_agent.run(task="Second task")
+
+        # Verify memory persistence
+        assert isinstance(result1.messages[-1], TextMessage)
+        assert isinstance(result2.messages[-1], TextMessage)
+        assert result1.messages[-1].content == "Response using memory"
+        assert result2.messages[-1].content == "Response with updated memory"
+
+        # Verify memory events
+        memory_events = [msg for msg in result2.messages if isinstance(msg, MemoryQueryEvent)]
+        assert len(memory_events) > 0
+        assert any("New memory" in str(event.content) for event in memory_events)

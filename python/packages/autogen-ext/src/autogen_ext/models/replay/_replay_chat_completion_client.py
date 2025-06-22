@@ -40,6 +40,8 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
 
     Args:
         chat_completions (Sequence[Union[str, CreateResult]]): A list of predefined responses to replay.
+        responses (Sequence[Union[str, CreateResult]], optional): Deprecated. Use chat_completions instead.
+        model_info (Optional[ModelInfo], optional): Model information.
 
     Raises:
         ValueError("No more mock responses available"): If the list of provided outputs are exhausted.
@@ -129,10 +131,30 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
 
     def __init__(
         self,
-        chat_completions: Sequence[Union[str, CreateResult]],
+        chat_completions: Optional[Sequence[Union[str, CreateResult]]] = None,
         model_info: Optional[ModelInfo] = None,
+        *,
+        responses: Optional[Sequence[Union[str, CreateResult]]] = None,
     ):
-        self.chat_completions = list(chat_completions)
+        if responses is not None and chat_completions is not None:
+            warnings.warn(
+                "Both 'responses' and 'chat_completions' parameters were provided. Using 'chat_completions'.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.chat_completions = list(chat_completions)
+        elif responses is not None:
+            warnings.warn(
+                "The 'responses' parameter is deprecated. Please use 'chat_completions' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.chat_completions = list(responses)
+        elif chat_completions is not None:
+            self.chat_completions = list(chat_completions)
+        else:
+            raise ValueError("Either 'chat_completions' or 'responses' must be provided")
+        
         self.provided_message_count = len(self.chat_completions)
         if model_info is not None:
             self._model_info = model_info
