@@ -266,44 +266,30 @@ def convert_tools(
 
 
 def convert_tool_choice(
-    tool_choice: Optional[Sequence[Union[str, Tool]]]
+    tool_choice: Tool | Literal["auto"] | None
 ) -> Any:
     """Convert tool_choice parameter to OpenAI API format.
     
     Args:
-        tool_choice: List of tool names (strings) or Tool objects to restrict model choice to.
+        tool_choice: A single Tool object to force the model to use, "auto" to let the model choose any available tool, or None to let the model choose whether to use tools.
         
     Returns:
         OpenAI API compatible tool_choice value or None if not specified.
     """
     if tool_choice is None:
         return None
-        
-    if len(tool_choice) == 0:
-        return None
-        
-    # Convert Tool objects to names if needed
-    tool_names = []
-    for item in tool_choice:
-        if isinstance(item, str):
-            tool_names.append(item)
-        elif isinstance(item, Tool):
-            tool_names.append(item.schema["name"])
-        else:
-            raise ValueError(f"tool_choice items must be strings or Tool objects, got {type(item)}")
     
-    # For OpenAI API, if we want to restrict to specific tools, we can use the "required" mode
-    # Since OpenAI doesn't support specifying multiple specific tools directly,
-    # we'll return the first tool as a specific choice if only one is provided,
-    # or use "required" mode for multiple tools (letting the model choose among them)
-    if len(tool_names) == 1:
+    if tool_choice == "auto":
+        return "auto"
+        
+    # Must be a Tool object
+    if isinstance(tool_choice, Tool):
         return {
             "type": "function",
-            "function": {"name": tool_names[0]}
+            "function": {"name": tool_choice.schema["name"]}
         }
     else:
-        # For multiple tools, use "required" mode which forces the model to use any available tool
-        return "required"
+        raise ValueError(f"tool_choice must be a Tool object, 'auto', or None, got {type(tool_choice)}")
 
 
 def normalize_name(name: str) -> str:
@@ -490,7 +476,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
-        tool_choice: Optional[Sequence[Union[str, Tool]]],
+        tool_choice: Tool | Literal["auto"] | None,
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
     ) -> CreateParams:
@@ -618,11 +604,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         converted_tools = convert_tools(tools)
         
         # Process tool_choice parameter
-        if tool_choice is not None:
+        if tool_choice is not None and tool_choice != "auto":
             if len(tools) == 0:
                 raise ValueError("tool_choice specified but no tools provided")
             
-            # Validate that all tool_choice items exist in the provided tools  
+            # Validate that the tool exists in the provided tools
             tool_names_available = []
             for tool in tools:
                 if isinstance(tool, Tool):
@@ -630,15 +616,15 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 else:
                     tool_names_available.append(tool["name"])
             
-            for item in tool_choice:
-                tool_name = item if isinstance(item, str) else item.schema["name"]
-                if tool_name not in tool_names_available:
-                    raise ValueError(f"tool_choice references '{tool_name}' but it's not in the provided tools")
-            
-            # Convert to OpenAI format and add to create_args
-            converted_tool_choice = convert_tool_choice(tool_choice)
-            if converted_tool_choice is not None:
-                create_args["tool_choice"] = converted_tool_choice
+            # tool_choice is a single Tool object
+            tool_name = tool_choice.schema["name"]
+            if tool_name not in tool_names_available:
+                raise ValueError(f"tool_choice references '{tool_name}' but it's not in the provided tools")
+        
+        # Convert to OpenAI format and add to create_args
+        converted_tool_choice = convert_tool_choice(tool_choice)
+        if converted_tool_choice is not None:
+            create_args["tool_choice"] = converted_tool_choice
 
         return CreateParams(
             messages=oai_messages,
@@ -652,7 +638,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
+        tool_choice: Tool | Literal["auto"] | None = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -803,7 +789,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
+        tool_choice: Tool | Literal["auto"] | None = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,

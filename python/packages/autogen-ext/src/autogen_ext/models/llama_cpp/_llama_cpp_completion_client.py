@@ -264,7 +264,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
+        tool_choice: Tool | Literal["auto"] | None = "auto",
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
@@ -406,7 +406,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
+        tool_choice: Tool | Literal["auto"] | None = "auto",
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,

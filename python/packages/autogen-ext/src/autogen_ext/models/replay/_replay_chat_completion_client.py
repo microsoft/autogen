@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, AsyncGenerator, Dict, List, Literal, Mapping, Optional, Sequence, Union
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component
 from autogen_core.models import (
@@ -162,7 +162,7 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
+        tool_choice: Tool | Literal["auto"] | None = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -206,7 +206,7 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Optional[Sequence[Union[str, Tool]]] = None,
+        tool_choice: Tool | Literal["auto"] | None = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
