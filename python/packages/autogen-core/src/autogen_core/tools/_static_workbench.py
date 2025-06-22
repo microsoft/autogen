@@ -7,7 +7,7 @@ from typing_extensions import Self
 
 from .._cancellation_token import CancellationToken
 from .._component_config import Component, ComponentModel
-from ._base import BaseStreamTool, BaseTool, ToolSchema
+from ._base import BaseTool, StreamTool, ToolSchema
 from ._workbench import StreamWorkbench, TextResultContent, ToolResult, Workbench
 
 
@@ -110,7 +110,7 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         return error_message.strip()
 
 
-class StaticStreamWorkbench(StaticWorkbench):
+class StaticStreamWorkbench(StaticWorkbench, StreamWorkbench):
     """
     A workbench that provides a static set of tools that do not change after
     each tool execution, and supports streaming results.
@@ -138,7 +138,8 @@ class StaticStreamWorkbench(StaticWorkbench):
         if not arguments:
             arguments = {}
         try:
-            if isinstance(tool, BaseStreamTool):
+            actual_tool_output: Any | None = None
+            if isinstance(tool, StreamTool):
                 previous_result: Any | None = None
                 async for result in tool.run_json_stream(arguments, cancellation_token, call_id=call_id):
                     if previous_result is not None:

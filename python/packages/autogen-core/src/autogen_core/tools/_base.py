@@ -61,6 +61,13 @@ class Tool(Protocol):
     async def load_state_json(self, state: Mapping[str, Any]) -> None: ...
 
 
+@runtime_checkable
+class StreamTool(Tool, Protocol):
+    def run_json_stream(
+        self, args: Mapping[str, Any], cancellation_token: CancellationToken, call_id: str | None = None
+    ) -> AsyncGenerator[Any, None]: ...
+
+
 ArgsT = TypeVar("ArgsT", bound=BaseModel, contravariant=True)
 ReturnT = TypeVar("ReturnT", bound=BaseModel, covariant=True)
 StateT = TypeVar("StateT", bound=BaseModel)
@@ -188,7 +195,9 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         pass
 
 
-class BaseStreamTool(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, StreamT, ReturnT], ComponentBase[BaseModel]):
+class BaseStreamTool(
+    BaseTool[ArgsT, ReturnT], StreamTool, ABC, Generic[ArgsT, StreamT, ReturnT], ComponentBase[BaseModel]
+):
     component_type = "tool"
 
     @abstractmethod

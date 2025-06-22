@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from types import TracebackType
-from typing import Any, AsyncGenerator, Generic, List, Literal, Mapping, Optional, Type, TypeVar
+from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Type
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Self
