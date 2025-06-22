@@ -176,6 +176,7 @@ async def test_agent_tool_stream() -> None:
     assert isinstance(result.messages[5], TextMessage)
     assert result.messages[5].content == "Summary from tool agent"
     assert isinstance(result.messages[6], ToolCallExecutionEvent)
+    assert result.messages[6].content[0].content == "tool_agent: Summary from tool agent"
     assert isinstance(result.messages[7], TextMessage)
     assert result.messages[7].content == "Summary from main agent"
 
@@ -190,7 +191,9 @@ async def test_team_tool_stream() -> None:
         [agent1, agent2],
         termination_condition=termination,
     )
-    tool = TeamTool(team=team, name="team_tool", description="A team tool for testing")
+    tool = TeamTool(
+        team=team, name="team_tool", description="A team tool for testing", return_value_as_last_message=True
+    )
 
     model_client = ReplayChatCompletionClient(
         [
@@ -231,5 +234,6 @@ async def test_team_tool_stream() -> None:
     assert result.messages[4].content == "test task from main agent"
     assert result.messages[4].source == "Agent2"
     assert isinstance(result.messages[5], ToolCallExecutionEvent)
+    assert result.messages[5].content[0].content == "test task from main agent"
     assert isinstance(result.messages[6], TextMessage)
     assert result.messages[6].content == "Summary from main agent"

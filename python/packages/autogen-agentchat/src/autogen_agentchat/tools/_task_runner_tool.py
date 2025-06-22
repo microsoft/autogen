@@ -22,8 +22,15 @@ class TaskRunnerTool(BaseStreamTool[TaskRunnerToolArgs, BaseAgentEvent | BaseCha
 
     component_type = "tool"
 
-    def __init__(self, task_runner: BaseGroupChat | BaseChatAgent, name: str, description: str) -> None:
+    def __init__(
+        self,
+        task_runner: BaseGroupChat | BaseChatAgent,
+        name: str,
+        description: str,
+        return_value_as_last_message: bool,
+    ) -> None:
         self._task_runner = task_runner
+        self._return_value_as_last_message = return_value_as_last_message
         super().__init__(
             args_type=TaskRunnerToolArgs,
             return_type=TaskResult,
@@ -45,6 +52,10 @@ class TaskRunnerTool(BaseStreamTool[TaskRunnerToolArgs, BaseAgentEvent | BaseCha
 
     def return_value_as_string(self, value: TaskResult) -> str:
         """Convert the task result to a string."""
+        if self._return_value_as_last_message:
+            if value.messages and isinstance(value.messages[-1], BaseChatMessage):
+                return value.messages[-1].to_model_text()
+            raise ValueError("The last message is not a BaseChatMessage.")
         parts: List[str] = []
         for message in value.messages:
             if isinstance(message, BaseChatMessage):
