@@ -50,7 +50,6 @@ class DiGraphEdge(BaseModel):
 
     # Using Field to exclude the condition in serialization if it's a callable
     condition_function: Callable[[BaseChatMessage], bool] | None = Field(default=None, exclude=True)
-    # Using This Field to exclude the activation_group in serialization if it's the default value
     activation_group: str = Field(default="")
     """Group identifier for forward dependencies.
 
