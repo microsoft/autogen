@@ -50,8 +50,26 @@ class DiGraphEdge(BaseModel):
 
     # Using Field to exclude the condition in serialization if it's a callable
     condition_function: Callable[[BaseChatMessage], bool] | None = Field(default=None, exclude=True)
+    # Using This Field to exclude the activation_group in serialization if it's the default value
     activation_group: str = Field(default="")
+    """Group identifier for forward dependencies.
+
+    When multiple edges point to the same target node, they are grouped by this field.
+    This allows distinguishing between different cycles or dependency patterns.
+
+    Example: In a graph containing a cycle like A->B->C->B, the two edges pointing to B (A->B and C->B)
+    can be in different activation groups to control how B is activated.
+    Defaults to the target node name if not specified.
+    """
     activation_condition: Literal["all", "any"] = "all"
+    """Determines how forward dependencies within the same activation_group are evaluated.
+
+    - "all": All edges in this activation group must be satisfied before the target node can execute
+    - "any": Any single edge in this activation group being satisfied allows the target node to execute
+
+    This is used to handle complex dependency patterns in cyclic graphs where multiple
+    paths can lead to the same target node.
+    """
 
     @model_validator(mode="after")
     def _validate_condition(self) -> "DiGraphEdge":
