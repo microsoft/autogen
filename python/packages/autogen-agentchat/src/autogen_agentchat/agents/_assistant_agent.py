@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import uuid
 import warnings
 from typing import (
     Any,
@@ -849,6 +850,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # STEP 3: Run the first inference
         model_result = None
+        full_message_id = None
         async for inference_output in self._call_llm(
             model_client=model_client,
             model_client_stream=model_client_stream,
@@ -862,6 +864,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         ):
             if isinstance(inference_output, CreateResult):
                 model_result = inference_output
+            elif isinstance(inference_output, tuple):
+                model_result, full_message_id = inference_output
             else:
                 # Streaming chunk event
                 yield inference_output
@@ -901,6 +905,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tool_call_summary_formatter=tool_call_summary_formatter,
             output_content_type=output_content_type,
             format_string=format_string,
+            full_message_id=full_message_id,
         ):
             yield output_event
 
@@ -951,7 +956,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         cancellation_token: CancellationToken,
         output_content_type: type[BaseModel] | None,
-    ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
+    ) -> AsyncGenerator[Union[CreateResult, Tuple[CreateResult, str], ModelClientStreamingChunkEvent], None]:
         """
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
         """
@@ -961,6 +966,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         tools = [tool for wb in workbench for tool in await wb.list_tools()] + handoff_tools
 
         if model_client_stream:
+            full_message_id = str(uuid.uuid4())
             model_result: Optional[CreateResult] = None
             async for chunk in model_client.create_stream(
                 llm_messages,
@@ -971,12 +977,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                    yield ModelClientStreamingChunkEvent(
+                        content=chunk, source=agent_name, full_message_id=full_message_id
+                    )
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
                 raise RuntimeError("No final model result in streaming mode.")
-            yield model_result
+            yield (model_result, full_message_id)
         else:
             model_result = await model_client.create(
                 llm_messages,
@@ -1005,6 +1013,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
         output_content_type: type[BaseModel] | None,
         format_string: str | None = None,
+        full_message_id: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
         Handle final or partial responses from model_result, including tool calls, handoffs,
@@ -1025,8 +1034,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     inner_messages=inner_messages,
                 )
             else:
+                id = full_message_id if full_message_id else str(uuid.uuid4())
                 yield Response(
                     chat_message=TextMessage(
+                        id=id,
                         content=model_result.content,
                         source=agent_name,
                         models_usage=model_result.usage,

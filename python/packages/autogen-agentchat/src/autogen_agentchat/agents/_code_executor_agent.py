@@ -1,10 +1,12 @@
 import logging
 import re
+import uuid
 from typing import (
     AsyncGenerator,
     List,
     Optional,
     Sequence,
+    Tuple,
     Union,
 )
 
@@ -461,6 +463,8 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             ):
                 if isinstance(inference_output, CreateResult):
                     model_result = inference_output
+                elif isinstance(inference_output, tuple):
+                    model_result, _ = inference_output
                 else:
                     # Streaming chunk event
                     yield inference_output
@@ -660,7 +664,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         model_context: ChatCompletionContext,
         agent_name: str,
         cancellation_token: CancellationToken,
-    ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
+    ) -> AsyncGenerator[Union[CreateResult, Tuple[CreateResult, str], ModelClientStreamingChunkEvent], None]:
         """
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
         """
@@ -668,6 +672,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         llm_messages = cls._get_compatible_context(model_client=model_client, messages=system_messages + all_messages)
 
         if model_client_stream:
+            full_message_id = str(uuid.uuid4())
             model_result: Optional[CreateResult] = None
             async for chunk in model_client.create_stream(
                 llm_messages, tools=[], cancellation_token=cancellation_token
@@ -675,12 +680,14 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                    yield ModelClientStreamingChunkEvent(
+                        content=chunk, source=agent_name, full_message_id=full_message_id
+                    )
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
                 raise RuntimeError("No final model result in streaming mode.")
-            yield model_result
+            yield (model_result, full_message_id)
         else:
             model_result = await model_client.create(llm_messages, tools=[], cancellation_token=cancellation_token)
             yield model_result
