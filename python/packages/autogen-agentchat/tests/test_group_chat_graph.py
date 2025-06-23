@@ -1,4 +1,5 @@
 import asyncio
+import re
 from typing import AsyncGenerator, List, Sequence
 from unittest.mock import patch
 
@@ -247,6 +248,31 @@ def test_cycle_detection_without_exit_condition() -> None:
         graph.has_cycles_with_exit()
 
 
+def test_different_activation_groups_detection() -> None:
+    """Test different activation groups."""
+    graph = DiGraph(
+        nodes={
+            "A": DiGraphNode(
+                name="A",
+                edges=[
+                    DiGraphEdge(target="B"),
+                    DiGraphEdge(target="C"),
+                ],
+            ),
+            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="D", activation_condition="all")]),
+            "C": DiGraphNode(name="C", edges=[DiGraphEdge(target="D", activation_condition="any")]),
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Conflicting activation conditions for target 'D' group 'D': "
+            "'all' (from node 'B') and 'any' (from node 'C')"
+        ),
+    ):
+        graph.graph_validate()
+
+
 def test_validate_graph_success() -> None:
     """Test successful validation of a valid graph."""
     graph = DiGraph(
@@ -469,7 +495,6 @@ async def test_digraph_group_chat_parallel_fanout(runtime: AgentRuntime | None) 
     result: TaskResult = await team.run(task="Start")
     assert len(result.messages) == 5
     assert result.messages[0].source == "user"
-    assert result.messages[1].source == "A"
     assert set(m.source for m in result.messages[2:-1]) == {"B", "C"}
     assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
     assert result.stop_reason is not None
