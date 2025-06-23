@@ -15,6 +15,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -265,29 +266,24 @@ def convert_tools(
     return result
 
 
-def convert_tool_choice(
-    tool_choice: Tool | Literal["auto"] | None
-) -> Any:
+def convert_tool_choice(tool_choice: Tool | Literal["auto"] | None) -> Any:
     """Convert tool_choice parameter to OpenAI API format.
-    
+
     Args:
         tool_choice: A single Tool object to force the model to use, "auto" to let the model choose any available tool, or None to let the model choose whether to use tools.
-        
+
     Returns:
         OpenAI API compatible tool_choice value or None if not specified.
     """
     if tool_choice is None:
         return None
-    
+
     if tool_choice == "auto":
         return "auto"
-        
+
     # Must be a Tool object
     if isinstance(tool_choice, Tool):
-        return {
-            "type": "function",
-            "function": {"name": tool_choice.schema["name"]}
-        }
+        return {"type": "function", "function": {"name": tool_choice.schema["name"]}}
     else:
         raise ValueError(f"tool_choice must be a Tool object, 'auto', or None, got {type(tool_choice)}")
 
@@ -602,25 +598,25 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             raise ValueError("Model does not support function calling")
 
         converted_tools = convert_tools(tools)
-        
+
         # Process tool_choice parameter
         if tool_choice is not None and tool_choice != "auto":
             if len(tools) == 0:
                 raise ValueError("tool_choice specified but no tools provided")
-            
+
             # Validate that the tool exists in the provided tools
-            tool_names_available = []
+            tool_names_available: List[str] = []
             for tool in tools:
                 if isinstance(tool, Tool):
                     tool_names_available.append(tool.schema["name"])
                 else:
                     tool_names_available.append(tool["name"])
-            
+
             # tool_choice is a single Tool object
             tool_name = tool_choice.schema["name"]
             if tool_name not in tool_names_available:
                 raise ValueError(f"tool_choice references '{tool_name}' but it's not in the provided tools")
-        
+
         # Convert to OpenAI format and add to create_args
         converted_tool_choice = convert_tool_choice(tool_choice)
         if converted_tool_choice is not None:

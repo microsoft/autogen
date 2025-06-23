@@ -40,39 +40,37 @@ async def test_anthropic_tool_choice_specific_tool():
     # Create mock client and response
     mock_client = AsyncMock()
     mock_message = MagicMock()
-    mock_message.content = [
-        MagicMock(type="tool_use", name="process_text", input={"input": "hello"}, id="call_123")
-    ]
+    mock_message.content = [MagicMock(type="tool_use", name="process_text", input={"input": "hello"}, id="call_123")]
     mock_message.usage.input_tokens = 10
     mock_message.usage.output_tokens = 5
-    
+
     mock_client.messages.create.return_value = mock_message
-    
+
     # Create real client but patch the underlying Anthropic client
     client = AnthropicChatCompletionClient(
         model="claude-3-haiku-20240307",
         api_key="test-key",
     )
-    
+
     # Define tools
     pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
     add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
-    
+
     messages: List[LLMMessage] = [
         UserMessage(content="Process the text 'hello'.", source="user"),
     ]
-    
-    with patch.object(client, '_client', mock_client):
-        result = await client.create(
-            messages=messages, 
+
+    with patch.object(client, "_client", mock_client):
+        await client.create(
+            messages=messages,
             tools=[pass_tool, add_tool],
-            tool_choice=pass_tool  # Force use of specific tool
+            tool_choice=pass_tool,  # Force use of specific tool
         )
-    
+
     # Verify the correct API call was made
     mock_client.messages.create.assert_called_once()
     call_args = mock_client.messages.create.call_args
-    
+
     # Check that tool_choice was set correctly
     assert "tool_choice" in call_args.kwargs
     assert call_args.kwargs["tool_choice"] == {"type": "tool", "name": "process_text"}
@@ -84,39 +82,37 @@ async def test_anthropic_tool_choice_auto():
     # Create mock client and response
     mock_client = AsyncMock()
     mock_message = MagicMock()
-    mock_message.content = [
-        MagicMock(type="tool_use", name="add_numbers", input={"a": 1, "b": 2}, id="call_123")
-    ]
+    mock_message.content = [MagicMock(type="tool_use", name="add_numbers", input={"a": 1, "b": 2}, id="call_123")]
     mock_message.usage.input_tokens = 10
     mock_message.usage.output_tokens = 5
-    
+
     mock_client.messages.create.return_value = mock_message
-    
+
     # Create real client but patch the underlying Anthropic client
     client = AnthropicChatCompletionClient(
         model="claude-3-haiku-20240307",
         api_key="test-key",
     )
-    
+
     # Define tools
     pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
     add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
-    
+
     messages: List[LLMMessage] = [
         UserMessage(content="Add 1 and 2.", source="user"),
     ]
-    
-    with patch.object(client, '_client', mock_client):
-        result = await client.create(
-            messages=messages, 
+
+    with patch.object(client, "_client", mock_client):
+        await client.create(
+            messages=messages,
             tools=[pass_tool, add_tool],
-            tool_choice="auto"  # Let model choose
+            tool_choice="auto",  # Let model choose
         )
-    
+
     # Verify the correct API call was made
     mock_client.messages.create.assert_called_once()
     call_args = mock_client.messages.create.call_args
-    
+
     # Check that tool_choice was set correctly
     assert "tool_choice" in call_args.kwargs
     assert call_args.kwargs["tool_choice"] == {"type": "auto"}
@@ -128,39 +124,37 @@ async def test_anthropic_tool_choice_none():
     # Create mock client and response
     mock_client = AsyncMock()
     mock_message = MagicMock()
-    mock_message.content = [
-        MagicMock(type="text", text="I can help you with that.")
-    ]
+    mock_message.content = [MagicMock(type="text", text="I can help you with that.")]
     mock_message.usage.input_tokens = 10
     mock_message.usage.output_tokens = 5
-    
+
     mock_client.messages.create.return_value = mock_message
-    
+
     # Create real client but patch the underlying Anthropic client
     client = AnthropicChatCompletionClient(
         model="claude-3-haiku-20240307",
         api_key="test-key",
     )
-    
+
     # Define tools
     pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
     add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
-    
+
     messages: List[LLMMessage] = [
         UserMessage(content="Hello there.", source="user"),
     ]
-    
-    with patch.object(client, '_client', mock_client):
-        result = await client.create(
-            messages=messages, 
+
+    with patch.object(client, "_client", mock_client):
+        await client.create(
+            messages=messages,
             tools=[pass_tool, add_tool],
-            tool_choice=None  # Let model choose whether to use tools
+            tool_choice=None,  # Let model choose whether to use tools
         )
-    
+
     # Verify the correct API call was made
     mock_client.messages.create.assert_called_once()
     call_args = mock_client.messages.create.call_args
-    
+
     # Check that tool_choice was not set (None means don't include it)
     assert "tool_choice" not in call_args.kwargs
 
@@ -172,22 +166,22 @@ async def test_anthropic_tool_choice_validation_error():
         model="claude-3-haiku-20240307",
         api_key="test-key",
     )
-    
+
     # Define tools
     pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
     add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
     different_tool = FunctionTool(_pass_function, description="Different tool", name="different_tool")
-    
+
     messages: List[LLMMessage] = [
         UserMessage(content="Hello there.", source="user"),
     ]
-    
+
     # Test with a tool that's not in the tools list
     with pytest.raises(ValueError, match="tool_choice references 'different_tool' but it's not in the available tools"):
         await client.create(
-            messages=messages, 
+            messages=messages,
             tools=[pass_tool, add_tool],
-            tool_choice=different_tool  # This tool is not in the tools list
+            tool_choice=different_tool,  # This tool is not in the tools list
         )
 
 

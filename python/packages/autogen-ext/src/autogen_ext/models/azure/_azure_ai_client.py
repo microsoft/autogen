@@ -53,7 +53,7 @@ from azure.ai.inference.models import (
     UserMessage as AzureUserMessage,
 )
 from pydantic import BaseModel
-from typing_extensions import AsyncGenerator, Union, Unpack
+from typing_extensions import AsyncGenerator, Unpack
 
 from autogen_ext.models.azure.config import (
     GITHUB_MODELS_ENDPOINT,

@@ -1,7 +1,7 @@
 import hashlib
 import json
 import warnings
-from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union, cast
+from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Sequence, Union, cast
 
 from autogen_core import CacheStore, CancellationToken, Component, ComponentModel, InMemoryStore
 from autogen_core.models import (
@@ -137,6 +137,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto"] | None = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -169,6 +170,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto"] | None = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,

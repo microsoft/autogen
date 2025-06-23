@@ -514,7 +514,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
-        tool_choice: Optional[Sequence[Union[str, Tool]]],
+        tool_choice: Tool | Literal["auto"] | None,
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
     ) -> CreateParams:
@@ -586,7 +586,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             raise ValueError("Model does not support function calling and tools were provided")
 
         converted_tools = convert_tools(tools)
-        
+
         # Handle tool_choice parameter - log warning as it might not be supported by Ollama
         if tool_choice is not None:
             if len(tools) == 0:

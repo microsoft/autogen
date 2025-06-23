@@ -171,7 +171,7 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         # Warn if tool_choice is specified since it's ignored in replay mode
         if tool_choice is not None:
             logger.warning("tool_choice parameter specified but is ignored in replay mode")
-            
+
         if self._current_index >= len(self.chat_completions):
             raise ValueError("No more mock responses available")
 
@@ -215,7 +215,7 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         # Warn if tool_choice is specified since it's ignored in replay mode
         if tool_choice is not None:
             logger.warning("tool_choice parameter specified but is ignored in replay mode")
-            
+
         if self._current_index >= len(self.chat_completions):
             raise ValueError("No more mock responses available")
 

@@ -29,7 +29,7 @@ from semantic_kernel.contents import (
 )
 from semantic_kernel.functions.kernel_plugin import KernelPlugin
 from semantic_kernel.kernel import Kernel
-from typing_extensions import AsyncGenerator, Union
+from typing_extensions import AsyncGenerator
 
 from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool, KernelFunctionFromToolSchema
 

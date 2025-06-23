@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
@@ -2163,6 +2163,7 @@ async def test_system_message_merge_with_continuous_system_messages_models() -> 
         tools=[],
         json_output=None,
         extra_create_args={},
+        tool_choice=None,
     )
 
     # Extract the actual messages from the result
@@ -2213,6 +2214,7 @@ async def test_system_message_merge_with_non_continuous_messages() -> None:
             tools=[],
             json_output=None,
             extra_create_args={},
+            tool_choice=None,
         )
 
 
@@ -2249,6 +2251,7 @@ async def test_system_message_not_merged_for_multiple_system_messages_true() -> 
         tools=[],
         json_output=None,
         extra_create_args={},
+        tool_choice=None,
     )
 
     # Extract the actual messages from the result
@@ -2292,6 +2295,7 @@ async def test_no_system_messages_for_gemini_model() -> None:
         tools=[],
         json_output=None,
         extra_create_args={},
+        tool_choice=None,
     )
 
     # Extract the actual messages from the result
@@ -2339,6 +2343,7 @@ async def test_single_system_message_for_gemini_model() -> None:
         tools=[],
         json_output=None,
         extra_create_args={},
+        tool_choice=None,
     )
 
     # Extract the actual messages from the result
@@ -2534,7 +2539,7 @@ async def test_mistral_remove_name() -> None:
 @pytest.mark.asyncio
 async def test_openai_tool_choice_specific_tool(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test tool_choice parameter with a specific tool using mocks."""
-    
+
     def _pass_function(input: str) -> str:
         """Simple passthrough function."""
         return f"Processed: {input}"
@@ -2544,7 +2549,7 @@ async def test_openai_tool_choice_specific_tool(monkeypatch: pytest.MonkeyPatch)
         return a + b
 
     model = "gpt-4o"
-    
+
     # Mock successful completion with specific tool call
     chat_completion = ChatCompletion(
         id="id1",
@@ -2553,6 +2558,7 @@ async def test_openai_tool_choice_specific_tool(monkeypatch: pytest.MonkeyPatch)
                 finish_reason="tool_calls",
                 index=0,
                 message=ChatCompletionMessage(
+                    role="assistant",
                     content=None,
                     tool_calls=[
                         ChatCompletionMessageToolCall(
@@ -2585,11 +2591,11 @@ async def test_openai_tool_choice_specific_tool(monkeypatch: pytest.MonkeyPatch)
 
     with monkeypatch.context() as mp:
         mp.setattr(client, "_client", mock_client)
-        
-        result = await client.create(
+
+        _ = await client.create(
             messages=[UserMessage(content="Process 'hello'", source="user")],
             tools=[pass_tool, add_tool],
-            tool_choice=pass_tool  # Force use of specific tool
+            tool_choice=pass_tool,  # Force use of specific tool
         )
 
     # Verify the correct API call was made
@@ -2598,16 +2604,13 @@ async def test_openai_tool_choice_specific_tool(monkeypatch: pytest.MonkeyPatch)
 
     # Check that tool_choice was set correctly
     assert "tool_choice" in call_args.kwargs
-    assert call_args.kwargs["tool_choice"] == {
-        "type": "function",
-        "function": {"name": "_pass_function"}
-    }
+    assert call_args.kwargs["tool_choice"] == {"type": "function", "function": {"name": "_pass_function"}}
 
 
 @pytest.mark.asyncio
 async def test_openai_tool_choice_auto(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test tool_choice parameter with 'auto' setting using mocks."""
-    
+
     def _pass_function(input: str) -> str:
         """Simple passthrough function."""
         return f"Processed: {input}"
@@ -2617,7 +2620,7 @@ async def test_openai_tool_choice_auto(monkeypatch: pytest.MonkeyPatch) -> None:
         return a + b
 
     model = "gpt-4o"
-    
+
     # Mock successful completion
     chat_completion = ChatCompletion(
         id="id1",
@@ -2626,6 +2629,7 @@ async def test_openai_tool_choice_auto(monkeypatch: pytest.MonkeyPatch) -> None:
                 finish_reason="tool_calls",
                 index=0,
                 message=ChatCompletionMessage(
+                    role="assistant",
                     content=None,
                     tool_calls=[
                         ChatCompletionMessageToolCall(
@@ -2658,11 +2662,11 @@ async def test_openai_tool_choice_auto(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with monkeypatch.context() as mp:
         mp.setattr(client, "_client", mock_client)
-        
-        result = await client.create(
+
+        await client.create(
             messages=[UserMessage(content="Add 1 and 2", source="user")],
             tools=[pass_tool, add_tool],
-            tool_choice="auto"  # Let model choose
+            tool_choice="auto",  # Let model choose
         )
 
     # Verify the correct API call was made
@@ -2677,13 +2681,13 @@ async def test_openai_tool_choice_auto(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_openai_tool_choice_none(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test tool_choice parameter with None setting using mocks."""
-    
+
     def _pass_function(input: str) -> str:
         """Simple passthrough function."""
         return f"Processed: {input}"
 
     model = "gpt-4o"
-    
+
     # Mock successful completion
     chat_completion = ChatCompletion(
         id="id1",
@@ -2692,6 +2696,7 @@ async def test_openai_tool_choice_none(monkeypatch: pytest.MonkeyPatch) -> None:
                 finish_reason="stop",
                 index=0,
                 message=ChatCompletionMessage(
+                    role="assistant",
                     content="I can help you with that!",
                     tool_calls=None,
                 ),
@@ -2714,11 +2719,11 @@ async def test_openai_tool_choice_none(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with monkeypatch.context() as mp:
         mp.setattr(client, "_client", mock_client)
-        
-        result = await client.create(
+
+        await client.create(
             messages=[UserMessage(content="Hello there", source="user")],
             tools=[pass_tool],
-            tool_choice=None  # Let model choose whether to use tools
+            tool_choice=None,  # Let model choose whether to use tools
         )
 
     # Verify the correct API call was made
@@ -2732,7 +2737,7 @@ async def test_openai_tool_choice_none(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_openai_tool_choice_validation_error() -> None:
     """Test tool_choice validation with invalid tool reference."""
-    
+
     def _pass_function(input: str) -> str:
         """Simple passthrough function."""
         return f"Processed: {input}"
@@ -2740,7 +2745,7 @@ async def test_openai_tool_choice_validation_error() -> None:
     def _add_numbers(a: int, b: int) -> int:
         """Add two numbers together."""
         return a + b
-        
+
     def _different_function(text: str) -> str:
         """Different function."""
         return text
@@ -2755,11 +2760,13 @@ async def test_openai_tool_choice_validation_error() -> None:
     messages = [UserMessage(content="Hello there", source="user")]
 
     # Test with a tool that's not in the tools list
-    with pytest.raises(ValueError, match="tool_choice references '_different_function' but it's not in the provided tools"):
+    with pytest.raises(
+        ValueError, match="tool_choice references '_different_function' but it's not in the provided tools"
+    ):
         await client.create(
             messages=messages,
             tools=[pass_tool, add_tool],
-            tool_choice=different_tool  # This tool is not in the tools list
+            tool_choice=different_tool,  # This tool is not in the tools list
         )
 
 

@@ -212,8 +212,6 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         tool_choice: Tool | Literal["auto"] | None = "auto",
-        # None means do not override the default
-        # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -244,8 +242,6 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         tool_choice: Tool | Literal["auto"] | None = "auto",
-        # None means do not override the default
-        # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,

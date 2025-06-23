@@ -420,7 +420,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             if len(tools) == 0:
                 raise ValueError("tool_choice specified but no tools provided")
             logger.warning("tool_choice parameter specified but may not be supported by llama-cpp-python")
-        
+
         raise NotImplementedError("Stream not yet implemented for LlamaCppChatCompletionClient")
         yield ""
 
