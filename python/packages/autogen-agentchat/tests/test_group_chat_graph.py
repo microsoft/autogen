@@ -881,9 +881,9 @@ async def test_digraph_group_chat_parallel_join_any_1(runtime: AgentRuntime | No
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B"), DiGraphEdge(target="C")]),
-            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="D")]),
-            "C": DiGraphNode(name="C", edges=[DiGraphEdge(target="D")]),
-            "D": DiGraphNode(name="D", edges=[], activation="any"),
+            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="D", activation_group="any")]),
+            "C": DiGraphNode(name="C", edges=[DiGraphEdge(target="D", activation_group="any")]),
+            "D": DiGraphNode(name="D", edges=[]),
         }
     )
 
