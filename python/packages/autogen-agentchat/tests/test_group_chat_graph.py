@@ -495,6 +495,7 @@ async def test_digraph_group_chat_parallel_fanout(runtime: AgentRuntime | None) 
     result: TaskResult = await team.run(task="Start")
     assert len(result.messages) == 5
     assert result.messages[0].source == "user"
+    assert result.messages[1].source == "A"
     assert set(m.source for m in result.messages[2:-1]) == {"B", "C"}
     assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
     assert result.stop_reason is not None
