@@ -1,7 +1,6 @@
 # validation/validation_service.py
 import importlib
-from calendar import c
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from autogen_core import ComponentModel, is_component_class
 from pydantic import BaseModel
@@ -70,7 +69,7 @@ class ValidationService:
     @staticmethod
     def validate_config_schema(component: ComponentModel) -> List[ValidationError]:
         """Validate the component configuration against its schema"""
-        errors = []
+        errors: List[ValidationError] = []
         try:
             # Convert to ComponentModel for initial validation
             model = component.model_copy(deep=True)
@@ -123,17 +122,57 @@ class ValidationService:
             component_class.load_component(model)
             return None
         except Exception as e:
-            return ValidationError(
-                field="instantiation",
-                error=f"Failed to instantiate component: {str(e)}",
-                suggestion="Check that the component can be properly instantiated with the given config",
-            )
+            error_str = str(e)
+            
+            # Check for version compatibility issues
+            if "component_version" in error_str and "_from_config_past_version is not implemented" in error_str:
+                # Extract component information for a better error message
+                try:
+                    # Get the current component version
+                    module_path, class_name = component.provider.rsplit(".", maxsplit=1)
+                    module = importlib.import_module(module_path)
+                    component_class = getattr(module, class_name)
+                    current_version = getattr(component_class, 'component_version', None)
+                    config_version = component.component_version or component.version or 1
+                    
+                    return ValidationError(
+                        field="component_version",
+                        error=f"Component version mismatch: Your configuration uses version {config_version}, but the component requires version {current_version}",
+                        suggestion=f"Update your component configuration to use version {current_version}. Set 'component_version: {current_version}' in your configuration.",
+                    )
+                except Exception:
+                    # Fallback to a more general version error message
+                    return ValidationError(
+                        field="component_version",
+                        error="Component version compatibility issue detected",
+                        suggestion="Your component configuration version is outdated. Update the 'component_version' field to match the latest component requirements.",
+                    )
+            
+            # Check for other common instantiation issues
+            elif "Could not import provider" in error_str or "ImportError" in error_str:
+                return ValidationError(
+                    field="provider",
+                    error=f"Provider import failed: {error_str}",
+                    suggestion="Ensure the provider module is installed and the import path is correct",
+                )
+            elif "component_config_schema" in error_str:
+                return ValidationError(
+                    field="config",
+                    error="Component configuration schema validation failed",
+                    suggestion="Check that your configuration matches the component's expected schema",
+                )
+            else:
+                return ValidationError(
+                    field="instantiation",
+                    error=f"Failed to instantiate component: {error_str}",
+                    suggestion="Check that the component can be properly instantiated with the given config",
+                )
 
     @classmethod
     def validate(cls, component: ComponentModel) -> ValidationResponse:
         """Validate a component configuration"""
-        errors = []
-        warnings = []
+        errors: List[ValidationError] = []
+        warnings: List[ValidationError] = []
 
         # Check provider
         if provider_error := cls.validate_provider(component.provider):

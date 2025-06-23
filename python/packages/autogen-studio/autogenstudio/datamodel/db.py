@@ -93,8 +93,8 @@ class Run(BaseDBModel, table=True):
 
     __table_args__ = {"sqlite_autoincrement": True}
 
-    session_id: Optional[int] = Field(
-        default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"), nullable=False)
+    session_id: int = Field(
+        sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"), nullable=False)
     )
     status: RunStatus = Field(default=RunStatus.CREATED)
 
@@ -107,11 +107,9 @@ class Run(BaseDBModel, table=True):
     team_result: Union[TeamResult, dict] = Field(default=None, sa_column=Column(JSON))
 
     error_message: Optional[str] = None
-    version: Optional[str] = "0.0.1"
     messages: Union[List[Message], List[dict]] = Field(default_factory=list, sa_column=Column(JSON))
 
     model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})  # type: ignore[call-arg]
-    user_id: Optional[str] = None
 
 
 class Gallery(BaseDBModel, table=True):
@@ -122,7 +120,7 @@ class Gallery(BaseDBModel, table=True):
             id="",
             name="",
             metadata=GalleryMetadata(author="", version=""),
-            components=GalleryComponents(agents=[], models=[], tools=[], terminations=[], teams=[]),
+            components=GalleryComponents(agents=[], models=[], tools=[], terminations=[], teams=[], workbenches=[]),
         ),
         sa_column=Column(JSON),
     )

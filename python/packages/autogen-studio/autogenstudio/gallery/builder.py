@@ -1,8 +1,6 @@
 import os
-from datetime import datetime
 from typing import List, Optional
 
-import anthropic
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
@@ -14,6 +12,8 @@ from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai._openai_client import AzureOpenAIChatCompletionClient
 from autogen_ext.tools.code_execution import PythonCodeExecutionTool
+from autogen_core.tools import StaticWorkbench
+from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams, StreamableHttpServerParams
 
 from autogenstudio.datamodel import GalleryComponents, GalleryConfig, GalleryMetadata
 
@@ -32,6 +32,7 @@ class GalleryBuilder:
         self.models: List[ComponentModel] = []
         self.tools: List[ComponentModel] = []
         self.terminations: List[ComponentModel] = []
+        self.workbenches: List[ComponentModel] = []
 
         # Default metadata
         self.metadata = GalleryMetadata(
@@ -112,6 +113,13 @@ class GalleryBuilder:
         self.terminations.append(self._update_component_metadata(termination, label, description))
         return self
 
+    def add_workbench(
+        self, workbench: ComponentModel, label: Optional[str] = None, description: Optional[str] = None
+    ) -> "GalleryBuilder":
+        """Add a workbench component to the gallery with optional custom label and description."""
+        self.workbenches.append(self._update_component_metadata(workbench, label, description))
+        return self
+
     def build(self) -> GalleryConfig:
         """Build and return the complete gallery."""
         # Update timestamps
@@ -128,6 +136,7 @@ class GalleryBuilder:
                 models=self.models,
                 tools=self.tools,
                 terminations=self.terminations,
+                workbenches=self.workbenches,
             ),
         )
 
@@ -411,6 +420,46 @@ Read the above conversation. Then select the next role from {participants} to pl
         deep_research_team.dump_component(),
         label="Deep Research Team",
         description="A team with 3 agents - a Research Assistant that performs web searches and analyzes information, a Verifier that ensures research quality and completeness, and a Summary Agent that provides a detailed markdown summary of the research as a report to the user.",
+    )
+
+    # Add workbenches to the gallery
+    
+    # Create a static workbench with basic tools
+    static_workbench = StaticWorkbench(tools=[tools.calculator_tool, tools.fetch_webpage_tool])
+    builder.add_workbench(
+        static_workbench.dump_component(),
+        label="Basic Tools Workbench",
+        description="A static workbench containing basic tools like calculator and webpage fetcher for common tasks.",
+    )
+
+    # Create an MCP workbench for fetching web content using mcp-server-fetch
+    # Note: This requires uv to be installed (comes with uv package manager)
+    fetch_server_params = StdioServerParams(
+        command="uv",
+        args=["tool","run","mcp-server-fetch"],
+        read_timeout_seconds=60,
+    )
+    mcp_workbench = McpWorkbench(server_params=fetch_server_params)
+    builder.add_workbench(
+        mcp_workbench.dump_component(),
+        label="Web Content Fetch Workbench",
+        description="An MCP workbench that provides web content fetching capabilities using the mcp-server-fetch MCP server. Allows agents to fetch and read content from web pages and APIs.",
+    )
+
+    # Create an MCP workbench with StreamableHttpServerParams for HTTP-based MCP servers
+    # Note: This is an example - adjust URL and authentication as needed
+    streamable_server_params = StreamableHttpServerParams(
+        url="http://localhost:8005/mcp",
+        headers={"Authorization": "Bearer your-api-key", "Content-Type": "application/json"},
+        timeout=30,
+        sse_read_timeout=60 * 5,
+        terminate_on_close=True,
+    )
+    streamable_mcp_workbench = McpWorkbench(server_params=streamable_server_params)
+    builder.add_workbench(
+        streamable_mcp_workbench.dump_component(),
+        label="HTTP Streamable MCP Workbench",
+        description="An MCP workbench that connects to HTTP-based MCP servers using Server-Sent Events (SSE). Suitable for cloud-hosted MCP services and custom HTTP MCP implementations.",
     )
 
     return builder.build()
