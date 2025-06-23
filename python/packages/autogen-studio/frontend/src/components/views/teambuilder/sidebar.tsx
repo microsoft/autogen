@@ -272,8 +272,9 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                         <div className="flex items-center gap-1">
                           <Bot className="w-3 h-3" />
                           <span>
-                            {team.component.config.participants.length}{" "}
-                            {team.component.config.participants.length === 1
+                            {team.component.config?.participants?.length || 0}{" "}
+                            {(team.component.config?.participants?.length ||
+                              0) === 1
                               ? "agent"
                               : "agents"}
                           </span>
@@ -380,8 +381,8 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                     <div className="flex items-center gap-1">
                       <Bot className="w-3 h-3" />
                       <span>
-                        {galleryTeam.config.participants.length}{" "}
-                        {galleryTeam.config.participants.length === 1
+                        {galleryTeam.config?.participants?.length || 0}{" "}
+                        {(galleryTeam.config?.participants?.length || 0) === 1
                           ? "agent"
                           : "agents"}
                       </span>

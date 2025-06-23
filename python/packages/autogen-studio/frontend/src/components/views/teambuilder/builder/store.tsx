@@ -36,7 +36,12 @@ import {
 } from "../../../types/guards";
 
 // Helper function to normalize workbench format (handle both single object and array)
-const normalizeWorkbenches = (workbench: Component<WorkbenchConfig>[] | Component<WorkbenchConfig> | undefined): Component<WorkbenchConfig>[] => {
+const normalizeWorkbenches = (
+  workbench:
+    | Component<WorkbenchConfig>[]
+    | Component<WorkbenchConfig>
+    | undefined
+): Component<WorkbenchConfig>[] => {
   if (!workbench) return [];
   return Array.isArray(workbench) ? workbench : [workbench];
 };
@@ -172,23 +177,28 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
               targetNode.data.component.config.workbench = [];
             }
 
-            let workbenches = normalizeWorkbenches(targetNode.data.component.config.workbench);
-            
-            // Find existing StaticWorkbench or create one
-            let staticWorkbenchIndex = workbenches.findIndex(
-              (wb) => isStaticWorkbench(wb)
+            let workbenches = normalizeWorkbenches(
+              targetNode.data.component.config.workbench
             );
-            
+
+            // Find existing StaticWorkbench or create one
+            let staticWorkbenchIndex = workbenches.findIndex((wb) =>
+              isStaticWorkbench(wb)
+            );
+
             if (staticWorkbenchIndex === -1) {
               // Create a new StaticWorkbench
-              const newWorkbench = {
+              const newWorkbench: Component<StaticWorkbenchConfig> = {
                 provider: "autogen_core.tools.StaticWorkbench",
                 component_type: "workbench",
+                version: 1,
+                component_version: 1,
                 config: {
                   tools: [],
                 },
                 label: "Static Workbench",
-              } as Component<StaticWorkbenchConfig>;
+                description: "A static workbench for managing custom tools",
+              };
               workbenches = [...workbenches, newWorkbench];
               targetNode.data.component.config.workbench = workbenches;
               staticWorkbenchIndex = workbenches.length - 1;
@@ -250,6 +260,35 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
               }
               return node;
             });
+
+            return {
+              nodes: newNodes,
+              edges: newEdges,
+              history: [
+                ...state.history.slice(0, state.currentHistoryIndex + 1),
+                { nodes: newNodes, edges: newEdges },
+              ].slice(-MAX_HISTORY),
+              currentHistoryIndex: state.currentHistoryIndex + 1,
+            };
+          }
+        } else if (isWorkbenchComponent(clonedComponent)) {
+          if (
+            isAgentComponent(targetNode.data.component) &&
+            isAssistantAgent(targetNode.data.component)
+          ) {
+            // Initialize workbench array if needed
+            if (!targetNode.data.component.config.workbench) {
+              targetNode.data.component.config.workbench = [];
+            }
+
+            // Normalize to array format
+            let workbenches = normalizeWorkbenches(
+              targetNode.data.component.config.workbench
+            );
+
+            // Add the new workbench
+            workbenches.push(clonedComponent);
+            targetNode.data.component.config.workbench = workbenches;
 
             return {
               nodes: newNodes,
@@ -330,6 +369,18 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
             );
           }
         }
+      } else if (isWorkbenchComponent(clonedComponent)) {
+        const newNode: CustomNode = {
+          id: nanoid(),
+          position,
+          type: clonedComponent.component_type,
+          data: {
+            label: clonedComponent.label || "Workbench",
+            component: clonedComponent,
+            type: clonedComponent.component_type as NodeData["type"],
+          },
+        };
+        newNodes.push(newNode);
       }
 
       const { nodes: layoutedNodes, edges: layoutedEdges } =

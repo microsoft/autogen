@@ -31,7 +31,12 @@ import { ComponentTestResult, validationAPI } from "../../api";
 import TestDetails from "./testresults";
 
 // Helper function to normalize workbench format (handle both single object and array)
-const normalizeWorkbenches = (workbench: Component<WorkbenchConfig>[] | Component<WorkbenchConfig> | undefined): Component<WorkbenchConfig>[] => {
+const normalizeWorkbenches = (
+  workbench:
+    | Component<WorkbenchConfig>[]
+    | Component<WorkbenchConfig>
+    | undefined
+): Component<WorkbenchConfig>[] => {
   if (!workbench) return [];
   return Array.isArray(workbench) ? workbench : [workbench];
 };
@@ -89,17 +94,25 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
             | Component<ComponentConfig>
             | undefined;
 
+          // Special handling for workbench field normalization
+          if (path.parentField === "workbench" && field) {
+            field = normalizeWorkbenches(
+              field as Component<WorkbenchConfig>[] | Component<WorkbenchConfig>
+            );
+          }
+
           // Special handling for tools within workbenches
           if (path.parentField === "tools" && !field) {
             // Check if tools are nested within a workbench for agents
             if (isAgentComponent(current) && isAssistantAgent(current)) {
               const agentConfig = current.config as AssistantAgentConfig;
               const workbenches = normalizeWorkbenches(agentConfig.workbench);
-              const staticWorkbench = workbenches.find(
-                (wb) => isStaticWorkbench(wb)
+              const staticWorkbench = workbenches.find((wb) =>
+                isStaticWorkbench(wb)
               );
               if (staticWorkbench) {
-                field = (staticWorkbench.config as StaticWorkbenchConfig)?.tools;
+                field = (staticWorkbench.config as StaticWorkbenchConfig)
+                  ?.tools;
               }
             }
           }
@@ -155,14 +168,21 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
       let field: any =
         root.config[currentPath.parentField as keyof typeof root.config];
 
+      // Special handling for workbench field normalization
+      if (currentPath.parentField === "workbench" && field) {
+        field = normalizeWorkbenches(
+          field as Component<WorkbenchConfig>[] | Component<WorkbenchConfig>
+        );
+      }
+
       // Special handling for tools within workbenches
       let isWorkbenchTools = false;
       if (currentPath.parentField === "tools" && !field) {
         if (isAgentComponent(root) && isAssistantAgent(root)) {
           const agentConfig = root.config as AssistantAgentConfig;
           const workbenches = normalizeWorkbenches(agentConfig.workbench);
-          const staticWorkbench = workbenches.find(
-            (wb) => isStaticWorkbench(wb)
+          const staticWorkbench = workbenches.find((wb) =>
+            isStaticWorkbench(wb)
           );
           if (staticWorkbench) {
             field = (staticWorkbench.config as StaticWorkbenchConfig)?.tools;
@@ -221,10 +241,10 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
             ? (() => {
                 const agentConfig = root.config as AssistantAgentConfig;
                 const workbenches = normalizeWorkbenches(agentConfig.workbench);
-                const staticWorkbenchIndex = workbenches.findIndex(
-                  (wb) => isStaticWorkbench(wb)
+                const staticWorkbenchIndex = workbenches.findIndex((wb) =>
+                  isStaticWorkbench(wb)
                 );
-                
+
                 if (staticWorkbenchIndex !== -1) {
                   const updatedWorkbenches = [...workbenches];
                   updatedWorkbenches[staticWorkbenchIndex] = {

@@ -13,6 +13,7 @@ import {
   Trash,
   Plus,
   Download,
+  Briefcase,
 } from "lucide-react";
 import { ComponentEditor } from "../teambuilder/builder/component-editor/component-editor";
 import { TruncatableText } from "../atoms";
@@ -24,7 +25,26 @@ import {
 } from "../../types/datamodel";
 import TextArea from "antd/es/input/TextArea";
 
-type CategoryKey = `${ComponentTypes}s`;
+type CategoryKey =
+  | "teams"
+  | "agents"
+  | "models"
+  | "tools"
+  | "workbenches"
+  | "terminations";
+
+// Helper function to get the correct category key for components
+const getCategoryKey = (componentType: ComponentTypes): CategoryKey => {
+  const mapping: Record<ComponentTypes, CategoryKey> = {
+    team: "teams",
+    agent: "agents",
+    model: "models",
+    tool: "tools",
+    workbench: "workbenches",
+    termination: "terminations",
+  };
+  return mapping[componentType];
+};
 
 interface CardActions {
   onEdit: (component: Component<ComponentConfig>, index: number) => void;
@@ -46,7 +66,7 @@ const ComponentCard: React.FC<
   >
     <div className="px-4 py-3 flex items-center justify-between border-b border-tertiary">
       <div className="text-xs text-secondary truncate flex-1">
-        {item.provider}
+        {item.label || "Unnamed Component"}
       </div>
       <div className="flex gap-0">
         {allowDelete && (
@@ -84,7 +104,12 @@ const ComponentCard: React.FC<
       </div>
     </div>
     <div className="p-4 pb-0 pt-3">
-      <div className="text-base font-medium mb-2">{item.label}</div>
+      <div className="text-base font-medium mb-2">
+        {item.label || "Unnamed Component"}
+      </div>
+      <div className="text-xs text-secondary truncate mb-2">
+        {item.provider}
+      </div>
       <div className="text-sm text-secondary line-clamp-2 mb-3 min-h-[40px]">
         <TruncatableText
           content={item.description || ""}
@@ -124,6 +149,7 @@ const iconMap = {
   tool: Wrench,
   model: Brain,
   termination: Timer,
+  workbench: Briefcase,
 } as const;
 
 // Add default configurations for each component type
@@ -139,6 +165,7 @@ const defaultConfigs: Record<ComponentTypes, ComponentConfig> = {
     has_cancellation_support: false,
   },
   termination: { max_messages: 1 },
+  workbench: { tools: [] } as any,
 };
 
 export const GalleryDetail: React.FC<{
@@ -192,26 +219,26 @@ export const GalleryDetail: React.FC<{
     onEdit: (component: Component<ComponentConfig>, index: number) => {
       setEditingComponent({
         component,
-        category: `${activeTab}s` as CategoryKey,
+        category: getCategoryKey(activeTab),
         index,
       });
     },
 
     onDuplicate: (component: Component<ComponentConfig>, index: number) => {
-      const category = `${activeTab}s` as CategoryKey;
+      const category = getCategoryKey(activeTab);
       const baseLabel = component.label?.replace(/_\d+$/, "");
-      const components = gallery.config.components[category];
+      const components = gallery.config.components[category] || [];
 
       const nextNumber =
         Math.max(
           ...components
-            .map((c) => {
+            .map((c: Component<ComponentConfig>) => {
               const match = c.label?.match(
                 new RegExp(`^${baseLabel}_?(\\d+)?$`)
               );
               return match ? parseInt(match[1] || "0") : 0;
             })
-            .filter((n) => !isNaN(n)),
+            .filter((n: number) => !isNaN(n)),
           0
         ) + 1;
 
@@ -222,7 +249,7 @@ export const GalleryDetail: React.FC<{
     },
 
     onDelete: (component: Component<ComponentConfig>, index: number) => {
-      const category = `${activeTab}s` as CategoryKey;
+      const category = getCategoryKey(activeTab);
       updateGallery(category, (components) =>
         components.filter((_, i) => i !== index)
       );
@@ -230,8 +257,8 @@ export const GalleryDetail: React.FC<{
   };
 
   const handleAdd = () => {
-    const category = `${activeTab}s` as CategoryKey;
-    const components = gallery.config.components[category];
+    const category = getCategoryKey(activeTab);
+    const components = gallery.config.components[category] || [];
     let newComponent: Component<ComponentConfig>;
     const newLabel = `New ${
       activeTab.charAt(0).toUpperCase() + activeTab.slice(1)
@@ -316,7 +343,10 @@ export const GalleryDetail: React.FC<{
         <Icon className="w-5 h-5" />
         {key.charAt(0).toUpperCase() + key.slice(1)}s
         <span className="text-xs font-light text-secondary">
-          ({gallery.config.components[`${key}s` as CategoryKey].length})
+          (
+          {gallery.config.components[getCategoryKey(key as ComponentTypes)]
+            ?.length || 0}
+          )
         </span>
       </span>
     ),
@@ -324,8 +354,10 @@ export const GalleryDetail: React.FC<{
       <div>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-base font-medium">
-            {gallery.config.components[`${key}s` as CategoryKey].length}{" "}
-            {gallery.config.components[`${key}s` as CategoryKey].length === 1
+            {gallery.config.components[getCategoryKey(key as ComponentTypes)]
+              ?.length || 0}{" "}
+            {(gallery.config.components[getCategoryKey(key as ComponentTypes)]
+              ?.length || 0) === 1
               ? key.charAt(0).toUpperCase() + key.slice(1)
               : key.charAt(0).toUpperCase() + key.slice(1) + "s"}
           </h3>
@@ -341,7 +373,10 @@ export const GalleryDetail: React.FC<{
           </Button>
         </div>
         <ComponentGrid
-          items={gallery.config.components[`${key}s` as CategoryKey]}
+          items={
+            gallery.config.components[getCategoryKey(key as ComponentTypes)] ||
+            []
+          }
           title={key}
           {...handlers}
         />
