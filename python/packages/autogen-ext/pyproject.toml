@@ -16,7 +16,6 @@ classifiers = [
 ]
 dependencies = [
     "autogen-core==0.6.1",
-    "typing_extensions",
 ]
 
 [project.optional-dependencies]
