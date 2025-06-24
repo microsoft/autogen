@@ -143,7 +143,11 @@ numbers = [10, 20, 30, 40, 50]
 mean = sum(numbers) / len(numbers
 print("The mean is:", mean)
 """.strip()
-
+    incorrect_code_result = """
+    mean = sum(numbers) / len(numbers
+                             ^
+SyntaxError: '(' was never closed
+""".strip()
     correct_code_block = """
 numbers = [10, 20, 30, 40, 50]
 mean = sum(numbers) / len(numbers)
@@ -213,13 +217,9 @@ Here is the updated code to calculate the mean of 10, 20, 30, 40, 50
 
         elif isinstance(message, CodeExecutionEvent) and message_id == 1:
             # Step 2: First code execution
-            execution_text = message.to_text().strip()
-            # Check for key parts of the error message in a platform-agnostic way
             assert (
-                "mean = sum(numbers) / len(numbers" in execution_text
-                and "SyntaxError" in execution_text
-                and "was never closed" in execution_text
-            ), f"Expected syntax error about unclosed parenthesis in execution result, got: {execution_text}"
+                incorrect_code_result in message.to_text().strip()
+            ), f"Expected {incorrect_code_result} in execution result, got: {message.to_text().strip()}"
             incorrect_code_execution_event = message
 
         elif isinstance(message, CodeGenerationEvent) and message_id == 2:
