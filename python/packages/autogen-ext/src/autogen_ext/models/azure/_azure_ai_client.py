@@ -186,6 +186,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         credential (union, AzureKeyCredential, AsyncTokenCredential): The credentials to use. **Required**
         model_info (ModelInfo): The model family and capabilities of the model. **Required.**
         model (str): The name of the model. **Required if model is hosted on GitHub Models.**
+        api_version (optional, str): API version to use when calling Azure AI Service. Default is 2024-05-01-preview.
         frequency_penalty: (optional,float)
         presence_penalty: (optional,float)
         temperature: (optional,float)
@@ -309,7 +310,32 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
     @staticmethod
     def _create_client(config: AzureAIChatCompletionClientConfig) -> ChatCompletionsClient:
-        return ChatCompletionsClient(**config)
+        from typing import Any, Dict, Optional, Union
+
+        from azure.core.credentials import AzureKeyCredential
+        from azure.core.credentials_async import AsyncTokenCredential
+
+        # Create client_args with appropriate typing
+        client_args: Dict[str, Any] = {}
+
+        # We know these keys exist because we validated them in _validate_config
+        # Extract endpoint
+        endpoint = config.get("endpoint")
+        if endpoint is not None:
+            client_args["endpoint"] = endpoint
+
+        # Extract credential with proper type annotation
+        credential: Optional[Union[AzureKeyCredential, AsyncTokenCredential]] = config.get("credential")
+        if credential is not None:
+            client_args["credential"] = credential
+
+        # Extract API version
+        api_version = config.get("api_version")
+        if api_version is not None:
+            client_args["api_version"] = api_version
+
+        # Create the client with the extracted arguments
+        return ChatCompletionsClient(**client_args)
 
     @staticmethod
     def _prepare_create_args(config: Mapping[str, Any]) -> Dict[str, Any]:
