@@ -261,6 +261,7 @@ def test_different_activation_groups_detection() -> None:
             ),
             "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="D", activation_condition="all")]),
             "C": DiGraphNode(name="C", edges=[DiGraphEdge(target="D", activation_condition="any")]),
+            "D": DiGraphNode(name="D", edges=[]),
         }
     )
     with pytest.raises(
