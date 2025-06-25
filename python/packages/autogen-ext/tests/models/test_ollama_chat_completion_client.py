@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, AsyncGenerator, Dict, List, Mapping
+from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional
 
 import httpx
 import pytest
@@ -13,11 +13,11 @@ from autogen_core.models import (
     FunctionExecutionResultMessage,
     UserMessage,
 )
-from autogen_core.tools import FunctionTool
+from autogen_core.tools import FunctionTool, ToolSchema
 from autogen_ext.models.ollama import OllamaChatCompletionClient
-from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CREATE_KWARGS_KEYS
+from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CREATE_KWARGS_KEYS, convert_tools
 from httpx import Response
-from ollama import AsyncClient, ChatResponse, Message
+from ollama import AsyncClient, ChatResponse, Message, Tool
 from pydantic import BaseModel
 
 
@@ -204,6 +204,46 @@ async def test_create_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert create_result.usage is not None
     assert create_result.usage.prompt_tokens == 10
     assert create_result.usage.completion_tokens == 12
+
+
+@pytest.mark.asyncio
+async def test_convert_tools() -> None:
+    def add(x: int, y: Optional[int]) -> str:
+        if y is None:
+            return str(x)
+        return str(x + y)
+
+    add_tool = FunctionTool(add, description="Add two numbers")
+
+    tool_schema_noparam: ToolSchema = {
+        "name": "manual_tool",
+        "description": "A tool defined manually",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "param_with_type": {"type": "integer", "description": "An integer param"},
+                "param_without_type": {"description": "A param without explicit type"},
+            },
+            "required": ["param_with_type"],
+        },
+    }
+
+    converted_tools = convert_tools([add_tool, tool_schema_noparam])
+    assert len(converted_tools) == 2
+    assert isinstance(converted_tools[0].function, Tool.Function)
+    assert isinstance(converted_tools[0].function.parameters, Tool.Function.Parameters)
+    assert converted_tools[0].function.parameters.properties is not None
+    assert converted_tools[0].function.name == add_tool.name
+    assert converted_tools[0].function.parameters.properties["y"].type == "integer"
+
+    # test it defaults to string
+    assert isinstance(converted_tools[1].function, Tool.Function)
+    assert isinstance(converted_tools[1].function.parameters, Tool.Function.Parameters)
+    assert converted_tools[1].function.parameters.properties is not None
+    assert converted_tools[1].function.name == "manual_tool"
+    assert converted_tools[1].function.parameters.properties["param_with_type"].type == "integer"
+    assert converted_tools[1].function.parameters.properties["param_without_type"].type == "string"
+    assert converted_tools[1].function.parameters.required == ["param_with_type"]
 
 
 @pytest.mark.asyncio
@@ -530,7 +570,7 @@ async def test_ollama_create_structured_output(model: str, ollama_client: Ollama
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b"])
+@pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b", "qwen3:0.6b"])
 async def test_ollama_create_tools(model: str, ollama_client: OllamaChatCompletionClient) -> None:
     def add(x: int, y: int) -> str:
         return str(x + y)
@@ -613,7 +653,7 @@ async def test_ollama_create_structured_output_with_tools(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b"])
+@pytest.mark.parametrize("model", ["qwen2.5:0.5b", "llama3.2:1b", "qwen3:0.6b"])
 async def test_ollama_create_stream_tools(model: str, ollama_client: OllamaChatCompletionClient) -> None:
     def add(x: int, y: int) -> str:
         return str(x + y)

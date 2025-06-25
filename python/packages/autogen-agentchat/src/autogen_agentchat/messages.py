@@ -5,11 +5,19 @@ class and includes specific fields relevant to the type of message being sent.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Literal, Mapping, TypeVar
+from datetime import datetime, timezone
+from typing import Any, Dict, Generic, List, Literal, Mapping, Optional, Type, TypeVar
 
-from autogen_core import FunctionCall, Image
+from autogen_core import Component, ComponentBase, FunctionCall, Image
+from autogen_core.code_executor import CodeBlock, CodeResult
 from autogen_core.memory import MemoryContent
-from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage, UserMessage
+from autogen_core.models import (
+    FunctionExecutionResult,
+    LLMMessage,
+    RequestUsage,
+    UserMessage,
+)
+from autogen_core.utils import schema_to_pydantic_model
 from pydantic import BaseModel, Field, computed_field
 from typing_extensions import Annotated, Self
 
@@ -78,6 +86,9 @@ class BaseChatMessage(BaseMessage, ABC):
     metadata: Dict[str, str] = {}
     """Additional metadata about the message."""
 
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    """The time when the message was created."""
+
     @abstractmethod
     def to_model_text(self) -> str:
         """Convert the content of the message to text-only representation.
@@ -96,7 +107,8 @@ class BaseChatMessage(BaseMessage, ABC):
     @abstractmethod
     def to_model_message(self) -> UserMessage:
         """Convert the message content to a :class:`~autogen_core.models.UserMessage`
-        for use with model client, e.g., :class:`~autogen_core.models.ChatCompletionClient`."""
+        for use with model client, e.g., :class:`~autogen_core.models.ChatCompletionClient`.
+        """
         ...
 
 
@@ -146,6 +158,9 @@ class BaseAgentEvent(BaseMessage, ABC):
     metadata: Dict[str, str] = {}
     """Additional metadata about the message."""
 
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    """The time when the message was created."""
+
 
 StructuredContentType = TypeVar("StructuredContentType", bound=BaseModel, covariant=True)
 """Type variable for structured content types."""
@@ -175,26 +190,168 @@ class StructuredMessage(BaseChatMessage, Generic[StructuredContentType]):
 
         print(message.to_text())  # {"text": "Hello", "number": 42}
 
+    .. code-block:: python
+
+        from pydantic import BaseModel
+        from autogen_agentchat.messages import StructuredMessage
+
+
+        class MyMessageContent(BaseModel):
+            text: str
+            number: int
+
+
+        message = StructuredMessage[MyMessageContent](
+            content=MyMessageContent(text="Hello", number=42),
+            source="agent",
+            format_string="Hello, {text} {number}!",
+        )
+
+        print(message.to_text())  # Hello, agent 42!
+
     """
 
     content: StructuredContentType
     """The content of the message. Must be a subclass of
     `Pydantic BaseModel <https://docs.pydantic.dev/latest/concepts/models/>`_."""
 
+    format_string: Optional[str] = None
+    """(Experimental) An optional format string to render the content into a human-readable format.
+    The format string can use the fields of the content model as placeholders.
+    For example, if the content model has a field `name`, you can use
+    `{name}` in the format string to include the value of that field.
+    The format string is used in the :meth:`to_text` method to create a
+    human-readable representation of the message.
+    This setting is experimental and will change in the future.
+    """
+
     @computed_field
     def type(self) -> str:
         return self.__class__.__name__
 
     def to_text(self) -> str:
-        return self.content.model_dump_json(indent=2)
+        if self.format_string is not None:
+            return self.format_string.format(**self.content.model_dump())
+        else:
+            return self.content.model_dump_json()
 
     def to_model_text(self) -> str:
-        return self.content.model_dump_json()
+        if self.format_string is not None:
+            return self.format_string.format(**self.content.model_dump())
+        else:
+            return self.content.model_dump_json()
 
     def to_model_message(self) -> UserMessage:
         return UserMessage(
             content=self.content.model_dump_json(),
             source=self.source,
+        )
+
+
+class StructureMessageConfig(BaseModel):
+    """The declarative configuration for the structured output."""
+
+    json_schema: Dict[str, Any]
+    format_string: Optional[str] = None
+    content_model_name: str
+
+
+class StructuredMessageFactory(ComponentBase[StructureMessageConfig], Component[StructureMessageConfig]):
+    """:meta private:
+
+    A component that creates structured chat messages from Pydantic models or JSON schemas.
+
+    This component helps you generate strongly-typed chat messages with content defined using a Pydantic model.
+    It can be used in declarative workflows where message structure must be validated, formatted, and serialized.
+
+    You can initialize the component directly using a `BaseModel` subclass, or dynamically from a configuration
+    object (e.g., loaded from disk or a database).
+
+    ### Example 1: Create from a Pydantic Model
+
+    .. code-block:: python
+
+        from pydantic import BaseModel
+        from autogen_agentchat.messages import StructuredMessageFactory
+
+
+        class TestContent(BaseModel):
+            field1: str
+            field2: int
+
+
+        format_string = "This is a string {field1} and this is an int {field2}"
+        sm_component = StructuredMessageFactory(input_model=TestContent, format_string=format_string)
+
+        message = sm_component.StructuredMessage(
+            source="test_agent", content=TestContent(field1="Hello", field2=42), format_string=format_string
+        )
+
+        print(message.to_model_text())  # Output: This is a string Hello and this is an int 42
+
+        config = sm_component.dump_component()
+
+        s_m_dyn = StructuredMessageFactory.load_component(config)
+        message = s_m_dyn.StructuredMessage(
+            source="test_agent",
+            content=s_m_dyn.ContentModel(field1="dyn agent", field2=43),
+            format_string=s_m_dyn.format_string,
+        )
+        print(type(message))  # StructuredMessage[GeneratedModel]
+        print(message.to_model_text())  # Output: This is a string dyn agent and this is an int 43
+
+    Attributes:
+        component_config_schema (StructureMessageConfig): Defines the configuration structure for this component.
+        component_provider_override (str): Path used to reference this component in external tooling.
+        component_type (str): Identifier used for categorization (e.g., "structured_message").
+
+    Raises:
+        ValueError: If neither `json_schema` nor `input_model` is provided.
+
+    Args:
+        json_schema (Optional[str]): JSON schema to dynamically create a Pydantic model.
+        input_model (Optional[Type[BaseModel]]): A subclass of `BaseModel` that defines the expected message structure.
+        format_string (Optional[str]): Optional string to render content into a human-readable format.
+        content_model_name (Optional[str]): Optional name for the generated Pydantic model.
+    """
+
+    component_config_schema = StructureMessageConfig
+    component_provider_override = "autogen_agentchat.messages.StructuredMessageFactory"
+    component_type = "structured_message"
+
+    def __init__(
+        self,
+        json_schema: Optional[Dict[str, Any]] = None,
+        input_model: Optional[Type[BaseModel]] = None,
+        format_string: Optional[str] = None,
+        content_model_name: Optional[str] = None,
+    ) -> None:
+        self.format_string = format_string
+
+        if json_schema:
+            self.ContentModel = schema_to_pydantic_model(
+                json_schema, model_name=content_model_name or "GeneratedContentModel"
+            )
+        elif input_model:
+            self.ContentModel = input_model
+        else:
+            raise ValueError("Either `json_schema` or `input_model` must be provided.")
+
+        self.StructuredMessage = StructuredMessage[self.ContentModel]  # type: ignore[name-defined]
+
+    def _to_config(self) -> StructureMessageConfig:
+        return StructureMessageConfig(
+            json_schema=self.ContentModel.model_json_schema(),
+            format_string=self.format_string,
+            content_model_name=self.ContentModel.__name__,
+        )
+
+    @classmethod
+    def _from_config(cls, config: StructureMessageConfig) -> "StructuredMessageFactory":
+        return cls(
+            json_schema=config.json_schema,
+            format_string=config.format_string,
+            content_model_name=config.content_model_name,
         )
 
 
@@ -269,6 +426,12 @@ class ToolCallSummaryMessage(BaseTextChatMessage):
 
     type: Literal["ToolCallSummaryMessage"] = "ToolCallSummaryMessage"
 
+    tool_calls: List[FunctionCall]
+    """The tool calls that were made."""
+
+    results: List[FunctionExecutionResult]
+    """The results of the tool calls."""
+
 
 class ToolCallRequestEvent(BaseAgentEvent):
     """An event signaling a request to use tools."""
@@ -280,6 +443,39 @@ class ToolCallRequestEvent(BaseAgentEvent):
 
     def to_text(self) -> str:
         return str(self.content)
+
+
+class CodeGenerationEvent(BaseAgentEvent):
+    """An event signaling code generation event."""
+
+    retry_attempt: int
+    "Retry number, 0 means first generation"
+
+    content: str
+    "The complete content as string."
+
+    code_blocks: List[CodeBlock]
+    "List of code blocks present in content"
+
+    type: Literal["CodeGenerationEvent"] = "CodeGenerationEvent"
+
+    def to_text(self) -> str:
+        return self.content
+
+
+class CodeExecutionEvent(BaseAgentEvent):
+    """An event signaling code execution event."""
+
+    retry_attempt: int
+    "Retry number, 0 means first execution"
+
+    result: CodeResult
+    "Code Execution Result"
+
+    type: Literal["CodeExecutionEvent"] = "CodeExecutionEvent"
+
+    def to_text(self) -> str:
+        return self.result.output
 
 
 class ToolCallExecutionEvent(BaseAgentEvent):
@@ -347,6 +543,30 @@ class ThoughtEvent(BaseAgentEvent):
         return self.content
 
 
+class SelectSpeakerEvent(BaseAgentEvent):
+    """An event signaling the selection of speakers for a conversation."""
+
+    content: List[str]
+    """The names of the selected speakers."""
+
+    type: Literal["SelectSpeakerEvent"] = "SelectSpeakerEvent"
+
+    def to_text(self) -> str:
+        return str(self.content)
+
+
+class SelectorEvent(BaseAgentEvent):
+    """An event emitted from the `SelectorGroupChat`."""
+
+    content: str
+    """The content of the event."""
+
+    type: Literal["SelectorEvent"] = "SelectorEvent"
+
+    def to_text(self) -> str:
+        return str(self.content)
+
+
 class MessageFactory:
     """:meta private:
 
@@ -369,6 +589,9 @@ class MessageFactory:
         self._message_types[UserInputRequestedEvent.__name__] = UserInputRequestedEvent
         self._message_types[ModelClientStreamingChunkEvent.__name__] = ModelClientStreamingChunkEvent
         self._message_types[ThoughtEvent.__name__] = ThoughtEvent
+        self._message_types[SelectSpeakerEvent.__name__] = SelectSpeakerEvent
+        self._message_types[CodeGenerationEvent.__name__] = CodeGenerationEvent
+        self._message_types[CodeExecutionEvent.__name__] = CodeExecutionEvent
 
     def is_registered(self, message_type: type[BaseAgentEvent | BaseChatMessage]) -> bool:
         """Check if a message type is registered with the factory."""
@@ -409,7 +632,8 @@ class MessageFactory:
 
 
 ChatMessage = Annotated[
-    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
+    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage,
+    Field(discriminator="type"),
 ]
 """The union type of all built-in concrete subclasses of :class:`BaseChatMessage`.
 It does not include :class:`StructuredMessage` types."""
@@ -420,7 +644,10 @@ AgentEvent = Annotated[
     | MemoryQueryEvent
     | UserInputRequestedEvent
     | ModelClientStreamingChunkEvent
-    | ThoughtEvent,
+    | ThoughtEvent
+    | SelectSpeakerEvent
+    | CodeGenerationEvent
+    | CodeExecutionEvent,
     Field(discriminator="type"),
 ]
 """The union type of all built-in concrete subclasses of :class:`BaseAgentEvent`."""
@@ -434,6 +661,7 @@ __all__ = [
     "BaseTextChatMessage",
     "StructuredContentType",
     "StructuredMessage",
+    "StructuredMessageFactory",
     "HandoffMessage",
     "MultiModalMessage",
     "StopMessage",
@@ -445,5 +673,8 @@ __all__ = [
     "UserInputRequestedEvent",
     "ModelClientStreamingChunkEvent",
     "ThoughtEvent",
+    "SelectSpeakerEvent",
     "MessageFactory",
+    "CodeGenerationEvent",
+    "CodeExecutionEvent",
 ]

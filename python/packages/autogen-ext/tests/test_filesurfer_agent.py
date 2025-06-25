@@ -32,7 +32,7 @@ class FileLogHandler(logging.Handler):
             record.msg = json.dumps(
                 {
                     "timestamp": ts,
-                    "message": record.msg.model_dump(),
+                    "message": record.msg.model_dump_json(indent=2),
                     "type": record.msg.__class__.__name__,
                 },
             )
@@ -74,7 +74,7 @@ async def test_run_filesurfer(monkeypatch: pytest.MonkeyPatch) -> None:
 </html>""")
 
     # Mock the API calls
-    model = "gpt-4o-2024-05-13"
+    model = "gpt-4.1-nano-2025-04-14"
     chat_completions = [
         ChatCompletion(
             id="id1",
@@ -153,7 +153,7 @@ async def test_run_filesurfer(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_file_surfer_serialization() -> None:
     """Test that FileSurfer can be serialized and deserialized properly."""
-    model = "gpt-4o-2024-05-13"
+    model = "gpt-4.1-nano-2025-04-14"
     agent = FileSurfer(
         "FileSurfer",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),

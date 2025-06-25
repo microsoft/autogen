@@ -6,172 +6,180 @@ settings for authentication, search behavior, retry policies, and caching.
 
 import logging
 from typing import (
-    Any,
-    Dict,
     List,
     Literal,
     Optional,
-    Type,
     TypeVar,
     Union,
 )
 
-from azure.core.credentials import AzureKeyCredential, TokenCredential
-from pydantic import BaseModel, Field, model_validator
-
-# Add explicit ignore for the specific model validator error
-# pyright: reportArgumentType=false
-# pyright: reportUnknownArgumentType=false
-# pyright: reportUnknownVariableType=false
+from azure.core.credentials import AzureKeyCredential
+from azure.core.credentials_async import AsyncTokenCredential
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 T = TypeVar("T", bound="AzureAISearchConfig")
 
 logger = logging.getLogger(__name__)
 
+QueryTypeLiteral = Literal["simple", "full", "semantic", "vector"]
+DEFAULT_API_VERSION = "2023-10-01-preview"
+
 
 class AzureAISearchConfig(BaseModel):
-    """Configuration for Azure AI Search tool.
+    """Configuration for Azure AI Search with validation.
 
-    This class defines the configuration parameters for :class:`AzureAISearchTool`.
-    It provides options for customizing search behavior including query types,
-    field selection, authentication, retry policies, and caching strategies.
+    This class defines the configuration parameters for Azure AI Search tools, including
+    authentication, search behavior, caching, and embedding settings.
 
     .. note::
-
-        This class requires the :code:`azure` extra for the :code:`autogen-ext` package.
+        This class requires the ``azure`` extra for the ``autogen-ext`` package.
 
         .. code-block:: bash
 
             pip install -U "autogen-ext[azure]"
 
-    Example:
+    .. note::
+        **Prerequisites:**
+
+        1. An Azure AI Search service must be created in your Azure subscription.
+        2. The search index must be properly configured for your use case:
+
+           - For vector search: Index must have vector fields
+           - For semantic search: Index must have semantic configuration
+           - For hybrid search: Both vector fields and text fields must be configured
+        3. Required packages:
+
+           - Base functionality: ``azure-search-documents>=11.4.0``
+           - For Azure OpenAI embeddings: ``openai azure-identity``
+           - For OpenAI embeddings: ``openai``
+
+    Example Usage:
         .. code-block:: python
 
             from azure.core.credentials import AzureKeyCredential
             from autogen_ext.tools.azure import AzureAISearchConfig
 
+            # Basic configuration for full-text search
             config = AzureAISearchConfig(
-                name="doc_search",
-                endpoint="https://my-search.search.windows.net",
-                index_name="my-index",
-                credential=AzureKeyCredential("<your-key>"),
-                query_type="vector",
-                vector_fields=["embedding"],
+                name="doc-search",
+                endpoint="https://your-search.search.windows.net",  # Your Azure AI Search endpoint
+                index_name="<your-index>",  # Name of your search index
+                credential=AzureKeyCredential("<your-key>"),  # Your Azure AI Search admin key
+                query_type="simple",
+                search_fields=["content", "title"],  # Update with your searchable fields
+                top=5,
             )
 
-    For more details, see:
-        * `Azure AI Search Overview <https://learn.microsoft.com/azure/search/search-what-is-azure-search>`_
-        * `Vector Search <https://learn.microsoft.com/azure/search/vector-search-overview>`_
+            # Configuration for vector search with Azure OpenAI embeddings
+            vector_config = AzureAISearchConfig(
+                name="vector-search",
+                endpoint="https://your-search.search.windows.net",
+                index_name="<your-index>",
+                credential=AzureKeyCredential("<your-key>"),
+                query_type="vector",
+                vector_fields=["embedding"],  # Update with your vector field name
+                embedding_provider="azure_openai",
+                embedding_model="text-embedding-ada-002",
+                openai_endpoint="https://your-openai.openai.azure.com",  # Your Azure OpenAI endpoint
+                openai_api_key="<your-openai-key>",  # Your Azure OpenAI key
+                top=5,
+            )
 
-    Args:
-        name (str): Name for the tool instance, used to identify it in the agent's toolkit.
-        description (Optional[str]): Human-readable description of what this tool does and how to use it.
-        endpoint (str): The full URL of your Azure AI Search service, in the format
-            'https://<service-name>.search.windows.net'.
-        index_name (str): Name of the target search index in your Azure AI Search service.
-            The index must be pre-created and properly configured.
-        api_version (str): Azure AI Search REST API version to use. Defaults to '2023-11-01'.
-            Only change if you need specific features from a different API version.
-        credential (Union[AzureKeyCredential, TokenCredential]): Azure authentication credential:
-            - AzureKeyCredential: For API key authentication (admin/query key)
-            - TokenCredential: For Azure AD authentication (e.g., DefaultAzureCredential)
-        query_type (Literal["keyword", "fulltext", "vector", "hybrid"]): The search query mode to use:
-            - 'keyword': Basic keyword search (default)
-            - 'full': Full Lucene query syntax
-            - 'vector': Vector similarity search
-            - 'hybrid': Hybrid search combining multiple techniques
-        search_fields (Optional[List[str]]): List of index fields to search within. If not specified,
-            searches all searchable fields. Example: ['title', 'content'].
-        select_fields (Optional[List[str]]): Fields to return in search results. If not specified,
-            returns all fields. Use to optimize response size.
-        vector_fields (Optional[List[str]]): Vector field names for vector search. Must be configured
-            in your search index as vector fields. Required for vector search.
-        top (Optional[int]): Maximum number of documents to return in search results.
-            Helps control response size and processing time.
-        retry_enabled (bool): Whether to enable retry policy for transient errors. Defaults to True.
-        retry_max_attempts (Optional[int]): Maximum number of retry attempts for failed requests. Defaults to 3.
-        retry_mode (Literal["fixed", "exponential"]): Retry backoff strategy: fixed or exponential. Defaults to "exponential".
-        enable_caching (bool): Whether to enable client-side caching of search results. Defaults to False.
-        cache_ttl_seconds (int): Time-to-live for cached search results in seconds. Defaults to 300 (5 minutes).
-        filter (Optional[str]): OData filter expression to refine search results.
+            # Configuration for hybrid search with semantic ranking
+            hybrid_config = AzureAISearchConfig(
+                name="hybrid-search",
+                endpoint="https://your-search.search.windows.net",
+                index_name="<your-index>",
+                credential=AzureKeyCredential("<your-key>"),
+                query_type="semantic",
+                semantic_config_name="<your-semantic-config>",  # Name of your semantic configuration
+                search_fields=["content", "title"],  # Update with your search fields
+                vector_fields=["embedding"],  # Update with your vector field name
+                embedding_provider="openai",
+                embedding_model="text-embedding-ada-002",
+                openai_api_key="<your-openai-key>",  # Your OpenAI API key
+                top=5,
+            )
     """
 
-    name: str = Field(description="The name of the tool")
-    description: Optional[str] = Field(default=None, description="A description of the tool")
-    endpoint: str = Field(description="The endpoint URL for your Azure AI Search service")
-    index_name: str = Field(description="The name of the search index to query")
-    api_version: str = Field(default="2023-11-01", description="API version to use")
-    credential: Union[AzureKeyCredential, TokenCredential] = Field(
-        description="The credential to use for authentication"
+    name: str = Field(description="The name of this tool instance")
+    description: Optional[str] = Field(default=None, description="Description explaining the tool's purpose")
+    endpoint: str = Field(description="The full URL of your Azure AI Search service")
+    index_name: str = Field(description="Name of the search index to query")
+    credential: Union[AzureKeyCredential, AsyncTokenCredential] = Field(
+        description="Azure credential for authentication (API key or token)"
     )
-    query_type: Literal["keyword", "fulltext", "vector", "hybrid"] = Field(
-        default="keyword", description="Type of query to perform"
+    api_version: str = Field(
+        default=DEFAULT_API_VERSION,
+        description=f"Azure AI Search API version to use. Defaults to {DEFAULT_API_VERSION}.",
     )
-    search_fields: Optional[List[str]] = Field(default=None, description="Optional list of fields to search in")
-    select_fields: Optional[List[str]] = Field(default=None, description="Optional list of fields to return in results")
-    vector_fields: Optional[List[str]] = Field(
-        default=None, description="Optional list of vector fields for vector search"
+    query_type: QueryTypeLiteral = Field(
+        default="simple", description="Type of search to perform: simple, full, semantic, or vector"
     )
-    top: Optional[int] = Field(default=None, description="Optional number of results to return")
-    filter: Optional[str] = Field(default=None, description="Optional OData filter expression to refine search results")
-
-    retry_enabled: bool = Field(default=True, description="Whether to enable retry policy for transient errors")
-    retry_max_attempts: Optional[int] = Field(
-        default=3, description="Maximum number of retry attempts for failed requests"
+    search_fields: Optional[List[str]] = Field(default=None, description="Fields to search within documents")
+    select_fields: Optional[List[str]] = Field(default=None, description="Fields to return in search results")
+    vector_fields: Optional[List[str]] = Field(default=None, description="Fields to use for vector search")
+    top: Optional[int] = Field(
+        default=None, description="Maximum number of results to return. For vector searches, acts as k in k-NN."
     )
-    retry_mode: Literal["fixed", "exponential"] = Field(
-        default="exponential",
-        description="Retry backoff strategy: fixed or exponential",
+    filter: Optional[str] = Field(default=None, description="OData filter expression to refine search results")
+    semantic_config_name: Optional[str] = Field(
+        default=None, description="Semantic configuration name for enhanced results"
     )
 
-    enable_caching: bool = Field(
-        default=False,
-        description="Whether to enable client-side caching of search results",
-    )
-    cache_ttl_seconds: int = Field(
-        default=300,  # 5 minutes
-        description="Time-to-live for cached search results in seconds",
-    )
+    enable_caching: bool = Field(default=False, description="Whether to cache search results")
+    cache_ttl_seconds: int = Field(default=300, description="How long to cache results in seconds")
 
     embedding_provider: Optional[str] = Field(
-        default=None,
-        description="Name of embedding provider to use (e.g., 'azure_openai', 'openai')",
+        default=None, description="Name of embedding provider for client-side embeddings"
     )
-    embedding_model: Optional[str] = Field(default=None, description="Model name to use for generating embeddings")
-    embedding_dimension: Optional[int] = Field(
-        default=None, description="Dimension of embedding vectors produced by the model"
-    )
+    embedding_model: Optional[str] = Field(default=None, description="Model name for client-side embeddings")
+    openai_api_key: Optional[str] = Field(default=None, description="API key for OpenAI/Azure OpenAI embeddings")
+    openai_api_version: Optional[str] = Field(default=None, description="API version for Azure OpenAI embeddings")
+    openai_endpoint: Optional[str] = Field(default=None, description="Endpoint URL for Azure OpenAI embeddings")
 
     model_config = {"arbitrary_types_allowed": True}
 
-    @classmethod
-    @model_validator(mode="before")
-    def validate_credentials(cls: Type[T], data: Any) -> Any:
-        """Validate and convert credential data."""
-        if not isinstance(data, dict):
-            return data
+    @field_validator("endpoint")
+    def validate_endpoint(cls, v: str) -> str:
+        """Validate that the endpoint is a valid URL."""
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("endpoint must be a valid URL starting with http:// or https://")
+        return v
 
-        result = {}
+    @field_validator("query_type")
+    def normalize_query_type(cls, v: QueryTypeLiteral) -> QueryTypeLiteral:
+        """Normalize query type to standard values."""
+        if not v:
+            return "simple"
 
-        for key, value in data.items():
-            result[str(key)] = value
+        if isinstance(v, str) and v.lower() == "fulltext":
+            return "full"
 
-        if "credential" in result:
-            credential = result["credential"]
+        return v
 
-            if isinstance(credential, dict) and "api_key" in credential:
-                api_key = str(credential["api_key"])
-                result["credential"] = AzureKeyCredential(api_key)
+    @field_validator("top")
+    def validate_top(cls, v: Optional[int]) -> Optional[int]:
+        """Ensure top is a positive integer if provided."""
+        if v is not None and v <= 0:
+            raise ValueError("top must be a positive integer")
+        return v
 
-        return result
+    @model_validator(mode="after")
+    def validate_interdependent_fields(self) -> "AzureAISearchConfig":
+        """Validate interdependent fields after all fields have been parsed."""
+        if self.query_type == "semantic" and not self.semantic_config_name:
+            raise ValueError("semantic_config_name must be provided when query_type is 'semantic'")
 
-    def model_dump(self, **kwargs: Any) -> Dict[str, Any]:
-        """Custom model_dump to handle credentials."""
-        result: Dict[str, Any] = super().model_dump(**kwargs)
+        if self.query_type == "vector" and not self.vector_fields:
+            raise ValueError("vector_fields must be provided for vector search")
 
-        if isinstance(self.credential, AzureKeyCredential):
-            result["credential"] = {"type": "AzureKeyCredential"}
-        elif isinstance(self.credential, TokenCredential):
-            result["credential"] = {"type": "TokenCredential"}
+        if (
+            self.embedding_provider
+            and self.embedding_provider.lower() == "azure_openai"
+            and self.embedding_model
+            and not self.openai_endpoint
+        ):
+            raise ValueError("openai_endpoint must be provided for azure_openai embedding provider")
 
-        return result
+        return self

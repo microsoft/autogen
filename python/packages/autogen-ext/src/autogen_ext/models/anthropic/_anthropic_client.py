@@ -5,8 +5,6 @@ import json
 import logging
 import re
 import warnings
-
-# from asyncio import Task
 from typing import (
     Any,
     AsyncGenerator,
@@ -25,7 +23,7 @@ from typing import (
 )
 
 import tiktoken
-from anthropic import AsyncAnthropic, AsyncStream
+from anthropic import AsyncAnthropic, AsyncAnthropicBedrock, AsyncStream
 from anthropic.types import (
     Base64ImageSourceParam,
     ContentBlock,
@@ -63,11 +61,18 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
+from autogen_core.utils import extract_json_from_str
 from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
 from . import _model_info
-from .config import AnthropicClientConfiguration, AnthropicClientConfigurationConfigModel
+from .config import (
+    AnthropicBedrockClientConfiguration,
+    AnthropicBedrockClientConfigurationConfigModel,
+    AnthropicClientConfiguration,
+    AnthropicClientConfigurationConfigModel,
+    BedrockInfo,
+)
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -216,7 +221,10 @@ def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
             args = __empty_content_to_whitespace(args)
             if isinstance(args, str):
                 try:
-                    args_dict = json.loads(args)
+                    json_objs = extract_json_from_str(args)
+                    if len(json_objs) != 1:
+                        raise ValueError(f"Expected a single JSON object, but found {len(json_objs)}")
+                    args_dict = json_objs[0]
                 except json.JSONDecodeError:
                     args_dict = {"text": args}
             else:
@@ -410,7 +418,7 @@ def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
 class BaseAnthropicChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
-        client: AsyncAnthropic,
+        client: Any,
         *,
         create_args: Dict[str, Any],
         model_info: Optional[ModelInfo] = None,
@@ -766,6 +774,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         stop_reason: Optional[str] = None
 
         first_chunk = True
+        serialized_messages: List[Dict[str, Any]] = [self._serialize_message(msg) for msg in anthropic_messages]
 
         # Process the stream
         async for chunk in stream:
@@ -774,7 +783,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                 # Emit the start event.
                 logger.info(
                     LLMStreamStartEvent(
-                        messages=cast(List[Dict[str, Any]], anthropic_messages),
+                        messages=serialized_messages,
                     )
                 )
             # Handle different event types
@@ -1106,5 +1115,140 @@ class AnthropicChatCompletionClient(
         # Handle api_key as SecretStr
         if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
             copied_config["api_key"] = config.api_key.get_secret_value()
+
+        return cls(**copied_config)
+
+
+class AnthropicBedrockChatCompletionClient(
+    BaseAnthropicChatCompletionClient, Component[AnthropicBedrockClientConfigurationConfigModel]
+):
+    """
+    Chat completion client for Anthropic's Claude models on AWS Bedrock.
+
+    Args:
+        model (str): The Claude model to use (e.g., "claude-3-sonnet-20240229", "claude-3-opus-20240229")
+        api_key (str, optional): Anthropic API key. Required if not in environment variables.
+        base_url (str, optional): Override the default API endpoint.
+        max_tokens (int, optional): Maximum tokens in the response. Default is 4096.
+        temperature (float, optional): Controls randomness. Lower is more deterministic. Default is 1.0.
+        top_p (float, optional): Controls diversity via nucleus sampling. Default is 1.0.
+        top_k (int, optional): Controls diversity via top-k sampling. Default is -1 (disabled).
+        model_info (ModelInfo, optional): The capabilities of the model. Required if using a custom model.
+        bedrock_info (BedrockInfo, optional): The capabilities of the model in bedrock. Required if using a model from AWS bedrock.
+
+    To use this client, you must install the Anthropic extension:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[anthropic]"
+
+    Example:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_ext.models.anthropic import AnthropicBedrockChatCompletionClient, BedrockInfo
+        from autogen_core.models import UserMessage, ModelInfo
+
+
+        async def main():
+            anthropic_client = AnthropicBedrockChatCompletionClient(
+                model="anthropic.claude-3-5-sonnet-20240620-v1:0",
+                temperature=0.1,
+                model_info=ModelInfo(
+                    vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True
+                ),
+                bedrock_info=BedrockInfo(
+                    aws_access_key="<aws_access_key>",
+                    aws_secret_key="<aws_secret_key>",
+                    aws_session_token="<aws_session_token>",
+                    aws_region="<aws_region>",
+                ),
+            )
+
+            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            print(result)
+
+
+        if __name__ == "__main__":
+            asyncio.run(main())
+    """
+
+    component_type = "model"
+    component_config_schema = AnthropicBedrockClientConfigurationConfigModel
+    component_provider_override = "autogen_ext.models.anthropic.AnthropicBedrockChatCompletionClient"
+
+    def __init__(self, **kwargs: Unpack[AnthropicBedrockClientConfiguration]):
+        if "model" not in kwargs:
+            raise ValueError("model is required for  AnthropicBedrockChatCompletionClient")
+
+        self._raw_config: Dict[str, Any] = dict(kwargs).copy()
+        copied_args = dict(kwargs).copy()
+
+        model_info: Optional[ModelInfo] = None
+        if "model_info" in kwargs:
+            model_info = kwargs["model_info"]
+            del copied_args["model_info"]
+
+        bedrock_info: Optional[BedrockInfo] = None
+        if "bedrock_info" in kwargs:
+            bedrock_info = kwargs["bedrock_info"]
+
+        if bedrock_info is None:
+            raise ValueError("bedrock_info is required for AnthropicBedrockChatCompletionClient")
+
+        # Handle bedrock_info
+        aws_region = bedrock_info["aws_region"]
+        aws_access_key: Optional[str] = None
+        aws_secret_key: Optional[str] = None
+        aws_session_token: Optional[str] = None
+        if all(key in bedrock_info for key in ("aws_access_key", "aws_secret_key", "aws_session_token")):
+            aws_access_key = bedrock_info["aws_access_key"]
+            aws_secret_key = bedrock_info["aws_secret_key"]
+            aws_session_token = bedrock_info["aws_session_token"]
+
+        client = AsyncAnthropicBedrock(
+            aws_access_key=aws_access_key,
+            aws_secret_key=aws_secret_key,
+            aws_session_token=aws_session_token,
+            aws_region=aws_region,
+        )
+        create_args = _create_args_from_config(copied_args)
+
+        super().__init__(
+            client=client,
+            create_args=create_args,
+            model_info=model_info,
+        )
+
+    def __getstate__(self) -> Dict[str, Any]:
+        state = self.__dict__.copy()
+        state["_client"] = None
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        self.__dict__.update(state)
+        self._client = _anthropic_client_from_config(state["_raw_config"])
+
+    def _to_config(self) -> AnthropicBedrockClientConfigurationConfigModel:
+        copied_config = self._raw_config.copy()
+        return AnthropicBedrockClientConfigurationConfigModel(**copied_config)
+
+    @classmethod
+    def _from_config(cls, config: AnthropicBedrockClientConfigurationConfigModel) -> Self:
+        copied_config = config.model_copy().model_dump(exclude_none=True)
+
+        # Handle api_key as SecretStr
+        if "api_key" in copied_config and isinstance(config.api_key, SecretStr):
+            copied_config["api_key"] = config.api_key.get_secret_value()
+
+        # Handle bedrock_info as SecretStr
+        if "bedrock_info" in copied_config and isinstance(config.bedrock_info, dict):
+            copied_config["bedrock_info"] = {
+                "aws_access_key": config.bedrock_info["aws_access_key"].get_secret_value(),
+                "aws_secret_key": config.bedrock_info["aws_secret_key"].get_secret_value(),
+                "aws_session_token": config.bedrock_info["aws_session_token"].get_secret_value(),
+                "aws_region": config.bedrock_info["aws_region"],
+            }
 
         return cls(**copied_config)

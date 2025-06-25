@@ -525,9 +525,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
-        if create_args.get("model", "unknown").startswith("gemini-"):
-            # Gemini models accept only one system message(else, it will read only the last one)
-            # So, merge system messages into one
+        if not self.model_info.get("multiple_system_messages", False):
+            # Some models accept only one system message(or, it will read only the last one)
+            # So, merge system messages into one (if multiple and continuous)
             system_message_content = ""
             _messages: List[LLMMessage] = []
             _first_system_message_idx = -1
@@ -540,7 +540,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     elif _last_system_message_idx + 1 != idx:
                         # That case, system message is not continuous
                         # Merge system messages only contiues system messages
-                        raise ValueError("Multiple and Not continuous system messages are not supported")
+                        raise ValueError(
+                            "Multiple and Not continuous system messages are not supported if model_info['multiple_system_messages'] is False"
+                        )
                     system_message_content += message.content + "\n"
                     _last_system_message_idx = idx
                 else:
@@ -635,6 +637,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
+                tools=create_params.tools,
             )
         )
 
@@ -737,6 +740,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
+        include_usage: Optional[bool] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """Create a stream of string chunks from the model ending with a :class:`~autogen_core.models.CreateResult`.
 
@@ -745,7 +749,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         In streaming, the default behaviour is not return token usage counts.
         See: `OpenAI API reference for possible args <https://platform.openai.com/docs/api-reference/chat/create>`_.
 
-        You can set `extra_create_args={"stream_options": {"include_usage": True}}`
+        You can set set the `include_usage` flag to True or `extra_create_args={"stream_options": {"include_usage": True}}`. If both the flag and `stream_options` are set, but to different values, an exception will be raised.
         (if supported by the accessed API) to
         return a final chunk with usage set to a :class:`~autogen_core.models.RequestUsage` object
         with prompt and completion token counts,
@@ -766,6 +770,17 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output,
             extra_create_args,
         )
+
+        if include_usage is not None:
+            if "stream_options" in create_params.create_args:
+                stream_options = create_params.create_args["stream_options"]
+                if "include_usage" in stream_options and stream_options["include_usage"] != include_usage:
+                    raise ValueError(
+                        "include_usage and extra_create_args['stream_options']['include_usage'] are both set, but differ in value."
+                    )
+            else:
+                # If stream options are not present, add them.
+                create_params.create_args["stream_options"] = {"include_usage": True}
 
         if max_consecutive_empty_chunk_tolerance != 0:
             warnings.warn(
@@ -1367,6 +1382,11 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                 copied_args["base_url"] = _model_info.ANTHROPIC_OPENAI_BASE_URL
             if "api_key" not in copied_args and "ANTHROPIC_API_KEY" in os.environ:
                 copied_args["api_key"] = os.environ["ANTHROPIC_API_KEY"]
+        if copied_args["model"].startswith("Llama-"):
+            if "base_url" not in copied_args:
+                copied_args["base_url"] = _model_info.LLAMA_API_BASE_URL
+            if "api_key" not in copied_args and "LLAMA_API_KEY" in os.environ:
+                copied_args["api_key"] = os.environ["LLAMA_API_KEY"]
 
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)

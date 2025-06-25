@@ -7,6 +7,8 @@ from unittest.mock import MagicMock
 
 import httpx
 import pytest
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.messages import MultiModalMessage
 from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import (
     AssistantMessage,
@@ -95,7 +97,7 @@ class MockChunkEvent(BaseModel):
 
 
 async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
-    model = resolve_model(kwargs.get("model", "gpt-4o"))
+    model = resolve_model(kwargs.get("model", "gpt-4.1-nano"))
     mock_chunks_content = ["Hello", " Another Hello", " Yet Another Hello"]
 
     # The openai api implementations (OpenAI and Litellm) stream chunks of tokens
@@ -167,7 +169,7 @@ async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatC
 
 async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
     stream = kwargs.get("stream", False)
-    model = resolve_model(kwargs.get("model", "gpt-4o"))
+    model = resolve_model(kwargs.get("model", "gpt-4.1-nano"))
     if not stream:
         await asyncio.sleep(0.1)
         return ChatCompletion(
@@ -186,7 +188,7 @@ async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion | AsyncGener
 
 @pytest.mark.asyncio
 async def test_openai_chat_completion_client() -> None:
-    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+    client = OpenAIChatCompletionClient(model="gpt-4.1-nano", api_key="api_key")
     assert client
 
 
@@ -198,7 +200,7 @@ async def test_openai_chat_completion_client_with_gemini_model() -> None:
 
 @pytest.mark.asyncio
 async def test_openai_chat_completion_client_serialization() -> None:
-    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="sk-password")
+    client = OpenAIChatCompletionClient(model="gpt-4.1-nano", api_key="sk-password")
     assert client
     config = client.dump_component()
     assert config
@@ -274,6 +276,7 @@ async def test_openai_chat_completion_client_create_stream_with_usage(
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
     client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
     chunks: List[str | CreateResult] = []
+    # Check that include_usage works when set via create_args
     with caplog.at_level(logging.INFO):
         async for chunk in client.create_stream(
             messages=[UserMessage(content="Hello", source="user")],
@@ -293,6 +296,38 @@ async def test_openai_chat_completion_client_create_stream_with_usage(
         assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
         assert chunks[-1].content in caplog.text
         assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
+
+    chunks = []
+    # Check that include_usage works when set via include_usage flag
+    with caplog.at_level(logging.INFO):
+        async for chunk in client.create_stream(
+            messages=[UserMessage(content="Hello", source="user")],
+            include_usage=True,
+        ):
+            chunks.append(chunk)
+
+        assert "LLMStreamStart" in caplog.text
+        assert "LLMStreamEnd" in caplog.text
+
+        assert chunks[0] == "Hello"
+        assert chunks[1] == " Another Hello"
+        assert chunks[2] == " Yet Another Hello"
+        assert isinstance(chunks[-1], CreateResult)
+        assert isinstance(chunks[-1].content, str)
+        assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+        assert chunks[-1].content in caplog.text
+        assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
+
+    chunks = []
+    # Check that setting both flags to different values raises an exception
+
+    with pytest.raises(ValueError):
+        async for chunk in client.create_stream(
+            messages=[UserMessage(content="Hello", source="user")],
+            extra_create_args={"stream_options": {"include_usage": False}},
+            include_usage=True,
+        ):
+            chunks.append(chunk)
 
 
 @pytest.mark.asyncio
@@ -467,7 +502,7 @@ def test_convert_tools_accepts_both_tool_and_schema() -> None:
 
 @pytest.mark.asyncio
 async def test_json_mode(monkeypatch: pytest.MonkeyPatch) -> None:
-    model = "gpt-4o-2024-11-20"
+    model = "gpt-4.1-nano-2025-04-14"
 
     called_args = {}
 
@@ -562,7 +597,7 @@ async def test_structured_output_using_response_format(monkeypatch: pytest.Monke
         thoughts: str
         response: Literal["happy", "sad", "neutral"]
 
-    model = "gpt-4o-2024-11-20"
+    model = "gpt-4.1-nano-2025-04-14"
 
     called_args = {}
 
@@ -654,7 +689,7 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
         thoughts: str
         response: Literal["happy", "sad", "neutral"]
 
-    model = "gpt-4o-2024-11-20"
+    model = "gpt-4.1-nano-2025-04-14"
 
     async def _mock_parse(*args: Any, **kwargs: Any) -> ParsedChatCompletion[AgentResponse]:
         return ParsedChatCompletion(
@@ -737,7 +772,7 @@ async def test_structured_output_with_tool_calls(monkeypatch: pytest.MonkeyPatch
         thoughts: str
         response: Literal["happy", "sad", "neutral"]
 
-    model = "gpt-4o-2024-11-20"
+    model = "gpt-4.1-nano-2025-04-14"
 
     async def _mock_parse(*args: Any, **kwargs: Any) -> ParsedChatCompletion[AgentResponse]:
         return ParsedChatCompletion(
@@ -813,7 +848,7 @@ async def test_structured_output_with_streaming(monkeypatch: pytest.MonkeyPatch)
     chunked_content = [raw_content[i : i + 5] for i in range(0, len(raw_content), 5)]
     assert "".join(chunked_content) == raw_content
 
-    model = "gpt-4o-2024-11-20"
+    model = "gpt-4.1-nano-2025-04-14"
     mock_chunk_events = [
         MockChunkEvent(
             type="chunk",
@@ -886,7 +921,7 @@ async def test_structured_output_with_streaming_tool_calls(monkeypatch: pytest.M
     chunked_content = [raw_content[i : i + 5] for i in range(0, len(raw_content), 5)]
     assert "".join(chunked_content) == raw_content
 
-    model = "gpt-4o-2024-11-20"
+    model = "gpt-4.1-nano-2025-04-14"
 
     # generate the list of mock chunk content
     mock_chunk_events = [
@@ -1265,7 +1300,7 @@ async def test_r1_think_field_not_present(monkeypatch: pytest.MonkeyPatch) -> No
 
 @pytest.mark.asyncio
 async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
-    model = "gpt-4o-2024-05-13"
+    model = "gpt-4.1-nano-2025-04-14"
     chat_completions = [
         # Successful completion, single tool call
         ChatCompletion(
@@ -1622,7 +1657,7 @@ def openai_client(request: pytest.FixtureRequest) -> OpenAIChatCompletionClient:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash", "claude-3-5-haiku-20241022"],
+    ["gpt-4.1-nano", "gemini-1.5-flash", "claude-3-5-haiku-20241022"],
 )
 async def test_model_client_basic_completion(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     # Test basic completion
@@ -1639,7 +1674,7 @@ async def test_model_client_basic_completion(model: str, openai_client: OpenAICh
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash", "claude-3-5-haiku-20241022"],
+    ["gpt-4.1-nano", "gemini-1.5-flash", "claude-3-5-haiku-20241022"],
 )
 async def test_model_client_with_function_calling(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     # Test tool calling
@@ -1716,7 +1751,7 @@ async def test_model_client_with_function_calling(model: str, openai_client: Ope
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    ["gpt-4.1-nano", "gemini-1.5-flash"],
 )
 async def test_openai_structured_output_using_response_format(
     model: str, openai_client: OpenAIChatCompletionClient
@@ -1749,7 +1784,7 @@ async def test_openai_structured_output_using_response_format(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    ["gpt-4.1-nano", "gemini-1.5-flash"],
 )
 async def test_openai_structured_output(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     class AgentResponse(BaseModel):
@@ -1769,7 +1804,7 @@ async def test_openai_structured_output(model: str, openai_client: OpenAIChatCom
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
-    ["gpt-4o-mini", "gemini-1.5-flash"],
+    ["gpt-4.1-nano", "gemini-1.5-flash"],
 )
 async def test_openai_structured_output_with_streaming(model: str, openai_client: OpenAIChatCompletionClient) -> None:
     class AgentResponse(BaseModel):
@@ -1795,7 +1830,7 @@ async def test_openai_structured_output_with_streaming(model: str, openai_client
 @pytest.mark.parametrize(
     "model",
     [
-        "gpt-4o-mini",
+        "gpt-4.1-nano",
         # "gemini-1.5-flash", # Gemini models do not support structured output with tool calls from model client.
     ],
 )
@@ -1853,7 +1888,7 @@ async def test_openai_structured_output_with_tool_calls(model: str, openai_clien
 @pytest.mark.parametrize(
     "model",
     [
-        "gpt-4o-mini",
+        "gpt-4.1-nano",
         # "gemini-1.5-flash", # Gemini models do not support structured output with tool calls from model client.
     ],
 )
@@ -2072,7 +2107,7 @@ async def test_add_name_prefixes(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.parametrize(
     "model",
     [
-        "gpt-4o-mini",
+        "gpt-4.1-nano",
         "gemini-1.5-flash",
         "claude-3-5-haiku-20241022",
     ],
@@ -2096,7 +2131,7 @@ async def test_muliple_system_message(model: str, openai_client: OpenAIChatCompl
 
 
 @pytest.mark.asyncio
-async def test_system_message_merge_for_gemini_models() -> None:
+async def test_system_message_merge_with_continuous_system_messages_models() -> None:
     """Tests that system messages are merged correctly for Gemini models."""
     # Create a mock client
     mock_client = MagicMock()
@@ -2109,6 +2144,7 @@ async def test_system_message_merge_for_gemini_models() -> None:
             "json_output": False,
             "family": "unknown",
             "structured_output": False,
+            "multiple_system_messages": False,
         },
     )
 
@@ -2157,6 +2193,7 @@ async def test_system_message_merge_with_non_continuous_messages() -> None:
             "json_output": False,
             "family": "unknown",
             "structured_output": False,
+            "multiple_system_messages": False,
         },
     )
 
@@ -2180,19 +2217,20 @@ async def test_system_message_merge_with_non_continuous_messages() -> None:
 
 
 @pytest.mark.asyncio
-async def test_system_message_not_merged_for_non_gemini_models() -> None:
+async def test_system_message_not_merged_for_multiple_system_messages_true() -> None:
     """Tests that system messages aren't modified for non-Gemini models."""
     # Create a mock client
     mock_client = MagicMock()
     client = BaseOpenAIChatCompletionClient(
         client=mock_client,
-        create_args={"model": "gpt-4o"},
+        create_args={"model": "gpt-4.1-nano"},
         model_info={
             "vision": False,
             "function_calling": False,
             "json_output": False,
             "family": "unknown",
             "structured_output": False,
+            "multiple_system_messages": True,
         },
     )
 
@@ -2352,7 +2390,7 @@ async def test_empty_assistant_content_with_gemini(model: str, openai_client: Op
 @pytest.mark.parametrize(
     "model",
     [
-        "gpt-4o-mini",
+        "gpt-4.1-nano",
         "gemini-1.5-flash",
         "claude-3-5-haiku-20241022",
     ],
@@ -2399,7 +2437,7 @@ def test_openai_model_registry_find_well() -> None:
 @pytest.mark.parametrize(
     "model",
     [
-        "gpt-4o-mini",
+        "gpt-4.1-nano",
     ],
 )
 async def test_openai_model_unknown_message_type(model: str, openai_client: OpenAIChatCompletionClient) -> None:
@@ -2454,6 +2492,43 @@ def test_find_model_family() -> None:
     assert _find_model_family("openai", "gemini-2.0-flash") == ModelFamily.GEMINI_2_0_FLASH
     assert _find_model_family("openai", "claude-3-5-haiku-20241022") == ModelFamily.CLAUDE_3_5_HAIKU
     assert _find_model_family("openai", "error") == ModelFamily.UNKNOWN
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "model",
+    [
+        "gpt-4.1-nano",
+        "gemini-1.5-flash",
+        "claude-3-5-haiku-20241022",
+    ],
+)
+async def test_multimodal_message_test(
+    model: str, openai_client: OpenAIChatCompletionClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Test that the multimodal message is converted to the correct format
+    img = Image.from_base64(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
+    )
+    multi_modal_message = MultiModalMessage(content=["Can you describe the content of this image?", img], source="user")
+
+    ocr_agent = AssistantAgent(
+        name="ocr_agent", model_client=openai_client, system_message="""You are a helpful agent."""
+    )
+    _ = await ocr_agent.run(task=multi_modal_message)
+
+
+@pytest.mark.asyncio
+async def test_mistral_remove_name() -> None:
+    # Test that the name pramaeter is removed from the message
+    # when the model is Mistral
+    message = UserMessage(content="foo", source="user")
+    params = to_oai_type(message, prepend_name=False, model="mistral-7b", model_family=ModelFamily.MISTRAL)
+    assert ("name" in params[0]) is False
+
+    # when the model is gpt-4o, the name parameter is not removed
+    params = to_oai_type(message, prepend_name=False, model="gpt-4o", model_family=ModelFamily.GPT_4O)
+    assert ("name" in params[0]) is True
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.

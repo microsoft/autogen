@@ -1,12 +1,16 @@
-from ._config import McpServerParams, SseServerParams, StdioServerParams
+from mcp import ClientSession
+
+from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
 from ._session import create_mcp_server_session
 from ._sse import SseMcpToolAdapter
 from ._stdio import StdioMcpToolAdapter
+from ._streamable_http import StreamableHttpMcpToolAdapter
 
 
 async def mcp_server_tools(
     server_params: McpServerParams,
-) -> list[StdioMcpToolAdapter | SseMcpToolAdapter]:
+    session: ClientSession | None = None,
+) -> list[StdioMcpToolAdapter | SseMcpToolAdapter | StreamableHttpMcpToolAdapter]:
     """Creates a list of MCP tool adapters that can be used with AutoGen agents.
 
     This factory function connects to an MCP server and returns adapters for all available tools.
@@ -23,11 +27,14 @@ async def mcp_server_tools(
     Args:
         server_params (McpServerParams): Connection parameters for the MCP server.
             Can be either StdioServerParams for command-line tools or
-            SseServerParams for HTTP/SSE services.
+            SseServerParams and StreamableHttpServerParams for HTTP/SSE services.
+        session (ClientSession | None): Optional existing session to use. This is used
+            when you want to reuse an existing connection to the MCP server. The session
+            will be reused when creating the MCP tool adapters.
 
     Returns:
-        list[StdioMcpToolAdapter | SseMcpToolAdapter]: A list of tool adapters ready to use
-            with AutoGen agents.
+        list[StdioMcpToolAdapter | SseMcpToolAdapter | StreamableHttpMcpToolAdapter]:
+            A list of tool adapters ready to use with AutoGen agents.
 
     Examples:
 
@@ -110,6 +117,58 @@ async def mcp_server_tools(
 
             asyncio.run(main())
 
+        **Sharing an MCP client session across multiple tools:**
+
+        You can create a single MCP client session and share it across multiple tools.
+        This is sometimes required when the server maintains a session state
+        (e.g., a browser state) that should be reused for multiple requests.
+
+        The following example show how to create a single MCP client session
+        to a local `Playwright <https://github.com/microsoft/playwright-mcp>`_
+        server and share it across multiple tools.
+
+
+        .. code-block:: python
+
+            import asyncio
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.conditions import TextMentionTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_agentchat.ui import Console
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.tools.mcp import StdioServerParams, create_mcp_server_session, mcp_server_tools
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o", parallel_tool_calls=False)  # type: ignore
+                params = StdioServerParams(
+                    command="npx",
+                    args=["@playwright/mcp@latest"],
+                    read_timeout_seconds=60,
+                )
+                async with create_mcp_server_session(params) as session:
+                    await session.initialize()
+                    tools = await mcp_server_tools(server_params=params, session=session)
+                    print(f"Tools: {[tool.name for tool in tools]}")
+
+                    agent = AssistantAgent(
+                        name="Assistant",
+                        model_client=model_client,
+                        tools=tools,  # type: ignore
+                    )
+
+                    termination = TextMentionTermination("TERMINATE")
+                    team = RoundRobinGroupChat([agent], termination_condition=termination)
+                    await Console(
+                        team.run_stream(
+                            task="Go to https://ekzhu.com/, visit the first link in the page, then tell me about the linked page."
+                        )
+                    )
+
+
+            asyncio.run(main())
+
 
         **Remote MCP service over SSE example:**
 
@@ -130,13 +189,21 @@ async def mcp_server_tools(
 
     For more examples and detailed usage, see the samples directory in the package repository.
     """
-    async with create_mcp_server_session(server_params) as session:
-        await session.initialize()
+    if session is None:
+        async with create_mcp_server_session(server_params) as temp_session:
+            await temp_session.initialize()
 
+            tools = await temp_session.list_tools()
+    else:
         tools = await session.list_tools()
 
     if isinstance(server_params, StdioServerParams):
-        return [StdioMcpToolAdapter(server_params=server_params, tool=tool) for tool in tools.tools]
+        return [StdioMcpToolAdapter(server_params=server_params, tool=tool, session=session) for tool in tools.tools]
     elif isinstance(server_params, SseServerParams):
-        return [SseMcpToolAdapter(server_params=server_params, tool=tool) for tool in tools.tools]
+        return [SseMcpToolAdapter(server_params=server_params, tool=tool, session=session) for tool in tools.tools]
+    elif isinstance(server_params, StreamableHttpServerParams):
+        return [
+            StreamableHttpMcpToolAdapter(server_params=server_params, tool=tool, session=session)
+            for tool in tools.tools
+        ]
     raise ValueError(f"Unsupported server params type: {type(server_params)}")

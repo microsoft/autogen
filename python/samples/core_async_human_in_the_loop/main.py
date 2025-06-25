@@ -189,7 +189,7 @@ Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
                 if tool is None:
                     raise ValueError(f"Tool not found: {call.name}")
                 arguments = json.loads(call.arguments)
-                await tool.run_json(arguments, ctx.cancellation_token)
+                await tool.run_json(arguments, ctx.cancellation_token, call_id=call.id)
             await self.publish_message(
                 TerminateMessage(content="Meeting scheduled"),
                 topic_id=DefaultTopicId("scheduling_assistant_conversation"),
