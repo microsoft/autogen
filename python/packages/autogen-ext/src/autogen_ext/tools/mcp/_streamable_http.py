@@ -49,7 +49,6 @@ class StreamableHttpMcpToolAdapter(
         .. code-block:: python
 
             import asyncio
-            from datetime import timedelta
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_ext.tools.mcp import StreamableHttpMcpToolAdapter, StreamableHttpServerParams
             from autogen_agentchat.agents import AssistantAgent
@@ -62,8 +61,8 @@ class StreamableHttpMcpToolAdapter(
                 server_params = StreamableHttpServerParams(
                     url="https://api.example.com/mcp",
                     headers={"Authorization": "Bearer your-api-key", "Content-Type": "application/json"},
-                    timeout=timedelta(seconds=30),
-                    sse_read_timeout=timedelta(seconds=60 * 5),
+                    timeout=30.0,  # HTTP timeout in seconds
+                    sse_read_timeout=300.0,  # SSE read timeout in seconds (5 minutes)
                     terminate_on_close=True,
                 )
 
