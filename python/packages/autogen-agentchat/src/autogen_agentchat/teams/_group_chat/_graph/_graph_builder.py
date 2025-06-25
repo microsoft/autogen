@@ -74,6 +74,23 @@ class DiGraphBuilder:
         >>> builder.add_edge(agent_b, agent_a, condition=lambda msg: "loop" in msg.to_model_text())
         >>> # Add exit condition to break the loop
         >>> builder.add_edge(agent_b, agent_c, condition=lambda msg: "loop" not in msg.to_model_text())
+
+    Example — Loop with multiple paths to the same node: A → B → C → B:
+        >>> builder = GraphBuilder()
+        >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c)
+        >>> builder.add_edge(agent_a, agent_b)
+        >>> builder.add_edge(agent_b, agent_c)
+        >>> builder.add_edge(agent_c, agent_b, activation_group="loop_back")
+
+    Example — Loop with multiple paths to the same node with any activation condition: A → B → (C1, C2) → B → E(exit):
+        >>> builder = GraphBuilder()
+        >>> builder.add_node(agent_a).add_node(agent_b).add_node(agent_c1).add_node(agent_c2).add_node(agent_e)
+        >>> builder.add_edge(agent_a, agent_b)
+        >>> builder.add_edge(agent_b, agent_c1)
+        >>> builder.add_edge(agent_b, agent_c2)
+        >>> builder.add_edge(agent_b, agent_e, condition="exit")
+        >>> builder.add_edge(agent_c1, agent_b, activation_group="loop_back_group", activation_condition="any")
+        >>> builder.add_edge(agent_c2, agent_b, activation_group="loop_back_group", activation_condition="any")
     """
 
     def __init__(self) -> None:
@@ -97,6 +114,8 @@ class DiGraphBuilder:
         source: Union[str, ChatAgent],
         target: Union[str, ChatAgent],
         condition: Optional[Union[str, Callable[[BaseChatMessage], bool]]] = None,
+        activation_group: Optional[str] = None,
+        activation_condition: Optional[Literal["all", "any"]] = None,
     ) -> "DiGraphBuilder":
         """Add a directed edge from source to target, optionally with a condition.
 
@@ -120,8 +139,18 @@ class DiGraphBuilder:
             raise ValueError(f"Source node '{source_name}' must be added before adding an edge.")
         if target_name not in self.nodes:
             raise ValueError(f"Target node '{target_name}' must be added before adding an edge.")
-
-        self.nodes[source_name].edges.append(DiGraphEdge(target=target_name, condition=condition))
+        if activation_group is None:
+            activation_group = target_name
+        if activation_condition is None:
+            activation_condition = "all"
+        self.nodes[source_name].edges.append(
+            DiGraphEdge(
+                target=target_name,
+                condition=condition,
+                activation_group=activation_group,
+                activation_condition=activation_condition,
+            )
+        )
         return self
 
     def add_conditional_edges(
