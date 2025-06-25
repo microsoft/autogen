@@ -1,0 +1,14 @@
+[
+    {
+        "model": "meta-llama/Llama-3.3-70B-Instruct",
+        "base_url": "https://api.inference.denvrdata.com/v1/",
+        "api_key": "",
+        "price": [0.0, 0.0]
+    },
+    {
+        "model": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        "base_url": "https://api.inference.denvrdata.com/v1/",
+        "api_key": "",
+        "price": [0.0, 0.0]
+    }
+]

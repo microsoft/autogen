@@ -1,0 +1,1 @@
+USER_PROXY_PROMPT = """The user will provide which kind of criteria to screen for in patients. For example, the user can provide 'Colonoscopy screening', 'Diabetes screening', or 'High blood pressure screening'. This is the only time that the User agent should be called. There should be no additional feedback from the user."""
