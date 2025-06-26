@@ -27,17 +27,17 @@ class SentenceTransformerEmbeddingFunctionConfig(BaseModel):
        Support for custom embedding functions in ChromaDB memory.
 
     Args:
-        model_name (str): Name of the SentenceTransformer model to use.
+        model (str): Name of the SentenceTransformer model to use.
             Defaults to "all-MiniLM-L6-v2".
 
     Example:
         .. code-block:: python
 
-            config = SentenceTransformerEmbeddingFunctionConfig(model_name="paraphrase-multilingual-mpnet-base-v2")
+            config = SentenceTransformerEmbeddingFunctionConfig(model="paraphrase-multilingual-mpnet-base-v2")
     """
 
     function_type: Literal["sentence_transformer"] = "sentence_transformer"
-    model_name: str = Field(default="all-MiniLM-L6-v2", description="SentenceTransformer model name to use")
+    model: str = Field(default="all-MiniLM-L6-v2", description="SentenceTransformer model name to use")
 
 
 class OpenAIEmbeddingFunctionConfig(BaseModel):
@@ -50,18 +50,50 @@ class OpenAIEmbeddingFunctionConfig(BaseModel):
 
     Args:
         api_key (str): OpenAI API key. If empty, will attempt to use environment variable.
-        model_name (str): OpenAI embedding model name. Defaults to "text-embedding-ada-002".
+        model (str): OpenAI embedding model name. Defaults to "text-embedding-3-small".
 
     Example:
         .. code-block:: python
 
-            config = OpenAIEmbeddingFunctionConfig(api_key="sk-...", model_name="text-embedding-3-small")
+            config = OpenAIEmbeddingFunctionConfig(api_key="sk-...", model="text-embedding-3-small")
     """
 
     function_type: Literal["openai"] = "openai"
     api_key: str = Field(default="", description="OpenAI API key")
-    model_name: str = Field(default="text-embedding-ada-002", description="OpenAI embedding model name")
+    model: str = Field(default="text-embedding-3-small", description="OpenAI embedding model name")
 
+class AzureOpenAIEmbeddingFunctionConfig(BaseModel):
+    """Configuration for Azure OpenAI embedding functions.
+    Uses Azure OpenAI's embedding API for generating embeddings.
+    .. versionadded:: v0.4.1
+       Support for custom embedding functions in ChromaDB memory.
+    Args:
+        api_key (str): Azure OpenAI API key. If empty, will attempt to use environment variable.
+        api_version (str): Azure OpenAI API version. Defaults to "2024-12-01-preview".
+        model (str): Azure OpenAI embedding model name. Defaults to "text-embedding-3-small".
+        azure_endpoint (str): Azure OpenAI endpoint URL.
+        azure_deployment (str): Azure OpenAI deployment name. Defaults to "text-embedding-3-small".
+    Example:
+        .. code-block:: python
+
+            config = AzureOpenAIEmbeddingFunctionConfig(
+                api_key="your_azure_api_key",
+                azure_endpoint="https://your-azure-endpoint.openai.azure.com/",
+                azure_deployment="text-embedding-3-small",
+                model="text-embedding-3-small"
+            )
+    """
+
+    function_type: Literal["azure_openai"] = "azure_openai"
+    api_type: Literal["azure"] = "azure"
+    api_key: str = Field(default="", description="Azure OpenAI API key")
+    api_version: str = Field(default="2024-12-01-preview", description="Azure OpenAI API version")
+    model: str = Field(default="text-embedding-3-small", description="Azure OpenAI embedding model name")
+    azure_endpoint: str = Field(default="", description="Azure OpenAI endpoint URL")
+    azure_deployment: str = Field(
+        default="",
+        description="Azure OpenAI deployment name."
+    )
 
 class CustomEmbeddingFunctionConfig(BaseModel):
     """Configuration for custom embedding functions.
@@ -105,6 +137,7 @@ EmbeddingFunctionConfig = Annotated[
         DefaultEmbeddingFunctionConfig,
         SentenceTransformerEmbeddingFunctionConfig,
         OpenAIEmbeddingFunctionConfig,
+        AzureOpenAIEmbeddingFunctionConfig,
         CustomEmbeddingFunctionConfig,
     ],
     Field(discriminator="function_type"),

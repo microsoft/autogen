@@ -4,6 +4,7 @@ from ._chroma_configs import (
     DefaultEmbeddingFunctionConfig,
     HttpChromaDBVectorMemoryConfig,
     OpenAIEmbeddingFunctionConfig,
+    AzureOpenAIEmbeddingFunctionConfig,
     PersistentChromaDBVectorMemoryConfig,
     SentenceTransformerEmbeddingFunctionConfig,
 )
@@ -17,5 +18,6 @@ __all__ = [
     "DefaultEmbeddingFunctionConfig",
     "SentenceTransformerEmbeddingFunctionConfig",
     "OpenAIEmbeddingFunctionConfig",
+    "AzureOpenAIEmbeddingFunctionConfig",
     "CustomEmbeddingFunctionConfig",
 ]
