@@ -32,7 +32,12 @@ async def create_mcp_server_session(
             ) as session:
                 yield session
     elif isinstance(server_params, StreamableHttpServerParams):
-        async with streamablehttp_client(**server_params.model_dump(exclude={"type"})) as (
+        # Convert float seconds to timedelta for the streamablehttp_client
+        params_dict = server_params.model_dump(exclude={"type"})
+        params_dict["timeout"] = timedelta(seconds=server_params.timeout)
+        params_dict["sse_read_timeout"] = timedelta(seconds=server_params.sse_read_timeout)
+
+        async with streamablehttp_client(**params_dict) as (
             read,
             write,
             session_id_callback,  # type: ignore[assignment, unused-variable]
@@ -41,6 +46,6 @@ async def create_mcp_server_session(
             async with ClientSession(
                 read_stream=read,
                 write_stream=write,
-                read_timeout_seconds=server_params.sse_read_timeout,
+                read_timeout_seconds=timedelta(seconds=server_params.sse_read_timeout),
             ) as session:
                 yield session
