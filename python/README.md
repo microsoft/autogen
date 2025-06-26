@@ -25,12 +25,18 @@ poe check
 
 - [Install `uv`](https://docs.astral.sh/uv/getting-started/installation/).
 
-**Note:** To prevent incompatibilities between versions the same UV version as is running in CI should be used. Check the version in CI by looking the `setup-uv` action, [here](https://github.com/microsoft/autogen/blob/main/.github/workflows/checks.yml#L40) for example.
+To upgrade `uv` to the latest version, run:
+
+```sh
+uv self update
+```
+
+<!-- **Note:** To prevent incompatibilities between versions the same UV version as is running in CI should be used. Check the version in CI by looking the `setup-uv` action, [here](https://github.com/microsoft/autogen/blob/main/.github/workflows/checks.yml#L40) for example.
 
 For example, to change your version to `0.5.18`, run:
 ```sh
 uv self update 0.5.18
-```
+``` -->
 
 ### Virtual Environment
 
