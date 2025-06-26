@@ -907,7 +907,10 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                           // Get tool count for display
                           const getToolCount = () => {
                             if (isStaticWorkbench(workbench)) {
-                              return (workbench.config as StaticWorkbenchConfig).tools?.length || 0;
+                              return (
+                                (workbench.config as StaticWorkbenchConfig)
+                                  .tools?.length || 0
+                              );
                             }
                             // For MCP workbenches, we don't have a static count
                             return null;
@@ -932,7 +935,8 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                                       {/* Show tool count for static workbenches */}
                                       {toolCount !== null && (
                                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                          {toolCount} {toolCount === 1 ? 'tool' : 'tools'}
+                                          {toolCount}{" "}
+                                          {toolCount === 1 ? "tool" : "tools"}
                                         </span>
                                       )}
                                       {/* Show MCP indicator for MCP workbenches */}
@@ -990,26 +994,29 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                               </div>
 
                               {/* Show tools for StaticWorkbench */}
-                              {isStaticWorkbench(workbench) && (
-                                workbench.config as StaticWorkbenchConfig
-                              ).tools &&
-                              (workbench.config as StaticWorkbenchConfig).tools.length > 0 && (
-                                <div className="mt-3">
-                                  <div className="flex flex-wrap gap-1">
-                                    {(workbench.config as StaticWorkbenchConfig).tools.map((tool, toolIndex) => (
-                                      <span
-                                        key={toolIndex}
-                                        className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
-                                      >
-                                        <Wrench className="w-3 h-3 mr-1" />
-                                        {tool.config.name ||
-                                          tool.label ||
-                                          `Tool ${toolIndex + 1}`}
-                                      </span>
-                                    ))}
+                              {isStaticWorkbench(workbench) &&
+                                (workbench.config as StaticWorkbenchConfig)
+                                  .tools &&
+                                (workbench.config as StaticWorkbenchConfig)
+                                  .tools.length > 0 && (
+                                  <div className="mt-3">
+                                    <div className="flex flex-wrap gap-1">
+                                      {(
+                                        workbench.config as StaticWorkbenchConfig
+                                      ).tools.map((tool, toolIndex) => (
+                                        <span
+                                          key={toolIndex}
+                                          className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
+                                        >
+                                          <Wrench className="w-3 h-3 mr-1" />
+                                          {tool.config.name ||
+                                            tool.label ||
+                                            `Tool ${toolIndex + 1}`}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
                             </div>
                           );
                         }

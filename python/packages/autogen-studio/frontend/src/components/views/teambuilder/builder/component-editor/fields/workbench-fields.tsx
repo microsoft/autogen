@@ -43,11 +43,13 @@ const { Panel } = Collapse;
 interface WorkbenchFieldsProps {
   component: Component<ComponentConfig>;
   onChange: (updates: Partial<Component<ComponentConfig>>) => void;
+  defaultPanelKey?: string[];
 }
 
 export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
   component,
   onChange,
+  defaultPanelKey = ["details", "configuration"],
 }) => {
   const [showAddEnvVar, setShowAddEnvVar] = useState(false);
   const [newEnvVar, setNewEnvVar] = useState({ key: "", value: "" });
@@ -147,7 +149,7 @@ export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
     return (
       <div className="space-y-4">
         <Collapse
-          defaultActiveKey={["configuration"]}
+          defaultActiveKey={defaultPanelKey}
           className="border-0"
           expandIconPosition="end"
           items={[
@@ -391,7 +393,7 @@ export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
     return (
       <div className="space-y-4 scroll">
         <Collapse
-          defaultActiveKey={["configuration"]}
+          defaultActiveKey={defaultPanelKey}
           className="border-0"
           expandIconPosition="end"
           items={[
@@ -800,16 +802,21 @@ export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
                         : "MCP (Model Context Protocol) workbenches connect to external tool servers that provide dynamic tool capabilities. The tools available depend on what the MCP server provides at runtime."}
                     </p>
                   </div>
-
-                  {/* Testing Section */}
-                  <div className="border-t border-secondary pt-6 mt-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <FileText className="w-4 h-4 text-purple-500" />
-                      <span className="font-medium text-primary">Testing</span>
-                    </div>
-                    <McpTestingPanel serverParams={serverParams} />
-                  </div>
                 </div>
+              ),
+            },
+            {
+              key: "testing",
+              label: (
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-purple-500" />
+                  <span className="font-medium">MCP Testing Panel</span>
+                </div>
+              ),
+              children: (
+                <>
+                  <McpTestingPanel serverParams={serverParams} />
+                </>
               ),
             },
           ]}
