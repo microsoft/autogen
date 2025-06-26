@@ -9,7 +9,7 @@ import {
   Info,
 } from "lucide-react";
 import type { Component, McpWorkbenchConfig } from "../../types/datamodel";
-import WorkbenchFields from "../teambuilder/builder/component-editor/fields/workbench-fields";
+import { WorkbenchFields } from "../teambuilder/builder/component-editor/fields/workbench";
 
 interface McpDetailProps {
   workbench: Component<McpWorkbenchConfig>;

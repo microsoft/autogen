@@ -47,6 +47,27 @@ export interface CallToolResponse {
   result?: CallToolResult;
 }
 
+export interface ServerCapabilities {
+  tools?: {
+    listChanged?: boolean;
+  };
+  resources?: {
+    subscribe?: boolean;
+    listChanged?: boolean;
+  };
+  prompts?: {
+    listChanged?: boolean;
+  };
+  logging?: {};
+  sampling?: {};
+}
+
+export interface GetCapabilitiesResponse {
+  status: boolean;
+  message: string;
+  capabilities?: ServerCapabilities;
+}
+
 export class McpAPI extends BaseAPI {
   // Gallery management methods (existing functionality)
   async listGalleries(userId: string): Promise<Gallery[]> {
@@ -87,6 +108,94 @@ export class McpAPI extends BaseAPI {
   }
 
   // MCP Server operations (new functionality)
+  async listResources(serverParams: McpServerParams) {
+    const response = await fetch(`${this.getBaseUrl()}/mcp/resources/list`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ server_params: serverParams }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to list MCP resources");
+    }
+
+    return data;
+  }
+
+  async getResource(serverParams: McpServerParams, uri: string) {
+    const response = await fetch(`${this.getBaseUrl()}/mcp/resources/get`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        server_params: serverParams,
+        uri: uri,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to get MCP resource");
+    }
+
+    return data;
+  }
+
+  async listPrompts(serverParams: McpServerParams) {
+    const response = await fetch(`${this.getBaseUrl()}/mcp/prompts/list`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ server_params: serverParams }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to list MCP prompts");
+    }
+
+    return data;
+  }
+
+  async getPrompt(
+    serverParams: McpServerParams,
+    name: string,
+    promptArgs?: Record<string, any>
+  ) {
+    const response = await fetch(`${this.getBaseUrl()}/mcp/prompts/get`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        server_params: serverParams,
+        name: name,
+        arguments: promptArgs || {},
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to get MCP prompt");
+    }
+
+    return data;
+  }
+
+  async getCapabilities(
+    serverParams: McpServerParams
+  ): Promise<GetCapabilitiesResponse> {
+    const response = await fetch(`${this.getBaseUrl()}/mcp/capabilities/get`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ server_params: serverParams }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to get MCP capabilities");
+    }
+
+    return data;
+  }
+
   async listTools(serverParams: McpServerParams): Promise<ListToolsResponse> {
     const response = await fetch(`${this.getBaseUrl()}/mcp/tools/list`, {
       method: "POST",

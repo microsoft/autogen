@@ -442,7 +442,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     mcp_workbench = McpWorkbench(server_params=fetch_server_params)
     builder.add_workbench(
         mcp_workbench.dump_component(),
-        label="Web Content Fetch Workbench",
+        label="MCP Fetch Workbench",
         description="An MCP workbench that provides web content fetching capabilities using the mcp-server-fetch MCP server. Allows agents to fetch and read content from web pages and APIs.",
     )
 
@@ -458,8 +458,22 @@ Read the above conversation. Then select the next role from {participants} to pl
     streamable_mcp_workbench = McpWorkbench(server_params=streamable_server_params)
     builder.add_workbench(
         streamable_mcp_workbench.dump_component(),
-        label="HTTP Streamable MCP Workbench",
+        label="MCP Streamable HTTP Workbench",
         description="An MCP workbench that connects to HTTP-based MCP servers using Server-Sent Events (SSE). Suitable for cloud-hosted MCP services and custom HTTP MCP implementations.",
+    )
+
+    # Create an MCP workbench for filesystem operations
+    # Note: This requires npx to be installed and allows access to specified directories
+    filesystem_server_params = StdioServerParams(
+        command="npx",
+        args=["-y", "@modelcontextprotocol/server-filesystem", "/Users", "/tmp"],
+        read_timeout_seconds=60,
+    )
+    filesystem_mcp_workbench = McpWorkbench(server_params=filesystem_server_params)
+    builder.add_workbench(
+        filesystem_mcp_workbench.dump_component(),
+        label="MCP Filesystem Workbench",
+        description="An MCP workbench that provides filesystem access capabilities using the @modelcontextprotocol/server-filesystem MCP server. Allows agents to read, write, and manage files and directories within specified allowed paths.",
     )
 
     return builder.build()

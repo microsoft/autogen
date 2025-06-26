@@ -23,7 +23,7 @@ import { AgentFields } from "./fields/agent-fields";
 import { ModelFields } from "./fields/model-fields";
 import { TeamFields } from "./fields/team-fields";
 import { ToolFields } from "./fields/tool-fields";
-import { WorkbenchFields } from "./fields/workbench-fields";
+import { WorkbenchFields } from "./fields/workbench";
 import { TerminationFields } from "./fields/termination-fields";
 import debounce from "lodash.debounce";
 import { MonacoEditor } from "../../../monaco";

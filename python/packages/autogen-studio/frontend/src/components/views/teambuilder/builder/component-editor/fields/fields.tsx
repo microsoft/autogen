@@ -20,7 +20,7 @@ import { AgentFields } from "./agent-fields";
 import { ModelFields } from "./model-fields";
 import { ToolFields } from "./tool-fields";
 import { TerminationFields } from "./termination-fields";
-import { WorkbenchFields } from "./workbench-fields";
+import { WorkbenchFields } from "./workbench";
 import { Edit, MinusCircle, PlusCircle } from "lucide-react";
 import { EditPath } from "../component-editor";
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Tabs, Button, Tooltip, Drawer, Input } from "antd";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Tabs, Button, Tooltip, Drawer, Input, message } from "antd";
 import {
   Package,
   Users,
@@ -14,8 +14,11 @@ import {
   Plus,
   Download,
   Briefcase,
+  Code,
+  FormInput,
 } from "lucide-react";
 import { ComponentEditor } from "../teambuilder/builder/component-editor/component-editor";
+import { MonacoEditor } from "../monaco";
 import { TruncatableText } from "../atoms";
 import {
   Component,
@@ -58,11 +61,22 @@ const ComponentCard: React.FC<
     item: Component<ComponentConfig>;
     index: number;
     allowDelete: boolean;
+    disabled?: boolean;
   }
-> = ({ item, onEdit, onDuplicate, onDelete, index, allowDelete }) => (
+> = ({
+  item,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  index,
+  allowDelete,
+  disabled = false,
+}) => (
   <div
-    className="bg-secondary rounded overflow-hidden group h-full cursor-pointer"
-    onClick={() => onEdit(item, index)}
+    className={`bg-secondary rounded overflow-hidden group h-full ${
+      disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+    }`}
+    onClick={() => !disabled && onEdit(item, index)}
   >
     <div className="px-4 py-3 flex items-center justify-between border-b border-tertiary">
       <div className="text-xs text-secondary truncate flex-1">
@@ -75,9 +89,10 @@ const ComponentCard: React.FC<
             type="text"
             className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600"
             icon={<Trash className="w-3.5 h-3.5" />}
+            disabled={disabled}
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(item, index);
+              if (!disabled) onDelete(item, index);
             }}
           />
         )}
@@ -86,9 +101,10 @@ const ComponentCard: React.FC<
           type="text"
           className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity"
           icon={<Copy className="w-3.5 h-3.5" />}
+          disabled={disabled}
           onClick={(e) => {
             e.stopPropagation();
-            onDuplicate(item, index);
+            if (!disabled) onDuplicate(item, index);
           }}
         />
         <Button
@@ -96,9 +112,10 @@ const ComponentCard: React.FC<
           type="text"
           className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity"
           icon={<Edit className="w-3.5 h-3.5" />}
+          disabled={disabled}
           onClick={(e) => {
             e.stopPropagation();
-            onEdit(item, index);
+            if (!disabled) onEdit(item, index);
           }}
         />
       </div>
@@ -126,8 +143,9 @@ const ComponentGrid: React.FC<
   {
     items: Component<ComponentConfig>[];
     title: string;
+    disabled?: boolean;
   } & CardActions
-> = ({ items, title, ...actions }) => (
+> = ({ items, title, disabled = false, ...actions }) => (
   <div>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
       {items.map((item, idx) => (
@@ -136,6 +154,7 @@ const ComponentGrid: React.FC<
           item={item}
           index={idx}
           allowDelete={items.length > 1}
+          disabled={disabled}
           {...actions}
         />
       ))}
@@ -183,16 +202,29 @@ export const GalleryDetail: React.FC<{
   } | null>(null);
   const [activeTab, setActiveTab] = useState<ComponentTypes>("team");
   const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [isJsonEditing, setIsJsonEditing] = useState(false);
+  const [workingCopy, setWorkingCopy] = useState<Gallery>(gallery);
+  const [jsonValue, setJsonValue] = useState<string>("");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const [tempName, setTempName] = useState(gallery.config.name);
   const [tempDescription, setTempDescription] = useState(
     gallery.config.metadata.description
   );
 
+  const [messageApi, contextHolder] = message.useMessage();
+  const editorRef = useRef(null);
+
   useEffect(() => {
     setTempName(gallery.config.name);
     setTempDescription(gallery.config.metadata.description);
+    setWorkingCopy(gallery);
+    setJsonValue(JSON.stringify(gallery, null, 2));
+    setHasUnsavedChanges(false);
+    setIsDirty(false);
     setActiveTab("team");
     setEditingComponent(null);
+    setIsJsonEditing(false);
   }, [gallery.id]);
 
   const updateGallery = (
@@ -201,18 +233,29 @@ export const GalleryDetail: React.FC<{
       components: Component<ComponentConfig>[]
     ) => Component<ComponentConfig>[]
   ) => {
+    const currentGallery = isJsonEditing ? workingCopy : gallery;
     const updatedGallery = {
-      ...gallery,
+      ...currentGallery,
       config: {
-        ...gallery.config,
+        ...currentGallery.config,
         components: {
-          ...gallery.config.components,
-          [category]: updater(gallery.config.components[category]),
+          ...currentGallery.config.components,
+          [category]: updater(currentGallery.config.components[category]),
         },
       },
     };
-    onSave(updatedGallery);
-    onDirtyStateChange(true);
+
+    if (isJsonEditing) {
+      setWorkingCopy(updatedGallery);
+    } else {
+      onSave(updatedGallery);
+      onDirtyStateChange(true);
+    }
+  };
+
+  const handleJsonChange = (value: string) => {
+    setJsonValue(value);
+    setIsDirty(true);
   };
 
   const handlers = {
@@ -304,6 +347,21 @@ export const GalleryDetail: React.FC<{
     setEditingComponent(null);
   };
 
+  const handleJsonSave = () => {
+    try {
+      const updatedGallery = JSON.parse(jsonValue);
+      setWorkingCopy(updatedGallery);
+      onSave(updatedGallery);
+      onDirtyStateChange(true);
+      setIsJsonEditing(false);
+      setIsDirty(false);
+      messageApi.success("Gallery updated successfully!");
+    } catch (error) {
+      messageApi.error("Invalid JSON format. Please check your syntax.");
+      console.error("JSON parse error:", error);
+    }
+  };
+
   const handleDetailsSave = () => {
     const updatedGallery = {
       ...gallery,
@@ -336,6 +394,8 @@ export const GalleryDetail: React.FC<{
     URL.revokeObjectURL(url);
   };
 
+  const currentGallery = isJsonEditing ? workingCopy : gallery;
+
   const tabItems = Object.entries(iconMap).map(([key, Icon]) => ({
     key,
     label: (
@@ -344,8 +404,9 @@ export const GalleryDetail: React.FC<{
         {key.charAt(0).toUpperCase() + key.slice(1)}s
         <span className="text-xs font-light text-secondary">
           (
-          {gallery.config.components[getCategoryKey(key as ComponentTypes)]
-            ?.length || 0}
+          {currentGallery.config.components[
+            getCategoryKey(key as ComponentTypes)
+          ]?.length || 0}
           )
         </span>
       </span>
@@ -354,10 +415,12 @@ export const GalleryDetail: React.FC<{
       <div>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-base font-medium">
-            {gallery.config.components[getCategoryKey(key as ComponentTypes)]
-              ?.length || 0}{" "}
-            {(gallery.config.components[getCategoryKey(key as ComponentTypes)]
-              ?.length || 0) === 1
+            {currentGallery.config.components[
+              getCategoryKey(key as ComponentTypes)
+            ]?.length || 0}{" "}
+            {(currentGallery.config.components[
+              getCategoryKey(key as ComponentTypes)
+            ]?.length || 0) === 1
               ? key.charAt(0).toUpperCase() + key.slice(1)
               : key.charAt(0).toUpperCase() + key.slice(1) + "s"}
           </h3>
@@ -368,16 +431,19 @@ export const GalleryDetail: React.FC<{
               setActiveTab(key as ComponentTypes);
               handleAdd();
             }}
+            disabled={isJsonEditing}
           >
             {`Add ${key.charAt(0).toUpperCase() + key.slice(1)}`}
           </Button>
         </div>
         <ComponentGrid
           items={
-            gallery.config.components[getCategoryKey(key as ComponentTypes)] ||
-            []
+            currentGallery.config.components[
+              getCategoryKey(key as ComponentTypes)
+            ] || []
           }
           title={key}
+          disabled={isJsonEditing}
           {...handlers}
         />
       </div>
@@ -386,6 +452,8 @@ export const GalleryDetail: React.FC<{
 
   return (
     <div className="max-w-7xl mx-auto px-4">
+      {contextHolder}
+
       <div className="relative h-64 rounded bg-secondary overflow-hidden mb-8">
         <img
           src="/images/bg/layeredbg.svg"
@@ -404,10 +472,10 @@ export const GalleryDetail: React.FC<{
                   />
                 ) : (
                   <h1 className="text-2xl font-medium text-primary">
-                    {gallery.config.name}
+                    {currentGallery.config.name}
                   </h1>
                 )}
-                {gallery.config.url && (
+                {currentGallery.config.url && (
                   <Tooltip title="Remote Gallery">
                     <Globe className="w-5 h-5 text-secondary" />
                   </Tooltip>
@@ -424,7 +492,7 @@ export const GalleryDetail: React.FC<{
             ) : (
               <div className="flex flex-col gap-2">
                 <p className="text-secondary w-1/2 mt-2 line-clamp-2">
-                  {gallery.config.metadata.description}
+                  {currentGallery.config.metadata.description}
                 </p>
                 <div className="flex gap-0">
                   <Tooltip title="Edit Gallery">
@@ -433,12 +501,36 @@ export const GalleryDetail: React.FC<{
                       onClick={() => setIsEditingDetails(true)}
                       type="text"
                       className="text-white hover:text-white/80"
+                      disabled={isJsonEditing}
                     />
                   </Tooltip>
                   <Tooltip title="Download Gallery">
                     <Button
                       icon={<Download className="w-4 h-4" />}
                       onClick={handleDownload}
+                      type="text"
+                      className="text-white hover:text-white/80"
+                    />
+                  </Tooltip>
+                  <Tooltip
+                    title={isJsonEditing ? "Form Editor" : "JSON Editor"}
+                  >
+                    <Button
+                      icon={
+                        isJsonEditing ? (
+                          <FormInput className="w-4 h-4" />
+                        ) : (
+                          <Code className="w-4 h-4" />
+                        )
+                      }
+                      onClick={() => {
+                        const newJsonMode = !isJsonEditing;
+                        setIsJsonEditing(newJsonMode);
+                        if (newJsonMode) {
+                          setJsonValue(JSON.stringify(currentGallery, null, 2));
+                          setIsDirty(false);
+                        }
+                      }}
                       type="text"
                       className="text-white hover:text-white/80"
                     />
@@ -461,7 +553,7 @@ export const GalleryDetail: React.FC<{
             <div className="bg-tertiary backdrop-blur rounded p-2 flex items-center gap-2">
               <Package className="w-4 h-4 text-secondary" />
               <span className="text-sm">
-                {Object.values(gallery.config.components).reduce(
+                {Object.values(currentGallery.config.components).reduce(
                   (sum, arr) => sum + arr.length,
                   0
                 )}{" "}
@@ -469,18 +561,50 @@ export const GalleryDetail: React.FC<{
               </span>
             </div>
             <div className="bg-tertiary backdrop-blur rounded p-2 text-sm">
-              v{gallery.config.metadata.version}
+              v{currentGallery.config.metadata.version}
             </div>
           </div>
         </div>
       </div>
 
-      <Tabs
-        items={tabItems}
-        className="gallery-tabs"
-        size="large"
-        onChange={(key) => setActiveTab(key as ComponentTypes)}
-      />
+      {isJsonEditing ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-medium">JSON Editor</h2>
+              {isDirty && (
+                <span className="text-orange-500 text-sm">• Unsaved changes</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => {
+                setIsJsonEditing(false);
+                setIsDirty(false);
+                setJsonValue(JSON.stringify(gallery, null, 2));
+              }}>Cancel</Button>
+              <Button type="primary" onClick={handleJsonSave}>
+                Save Changes
+              </Button>
+            </div>
+          </div>
+          <div className="h-[600px] border border-secondary rounded">
+            <MonacoEditor
+              editorRef={editorRef}
+              value={jsonValue}
+              onChange={handleJsonChange}
+              language="json"
+              minimap={true}
+            />
+          </div>
+        </div>
+      ) : (
+        <Tabs
+          items={tabItems}
+          className="gallery-tabs"
+          size="large"
+          onChange={(key) => setActiveTab(key as ComponentTypes)}
+        />
+      )}
 
       <Drawer
         title="Edit Component"

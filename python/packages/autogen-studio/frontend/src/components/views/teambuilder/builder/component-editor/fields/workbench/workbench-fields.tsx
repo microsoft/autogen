@@ -27,14 +27,14 @@ import {
   SseServerParams,
   StreamableHttpServerParams,
   FunctionToolConfig,
-} from "../../../../../types/datamodel";
+} from "../../../../../../types/datamodel";
 import {
   isStaticWorkbench,
   isMcpWorkbench,
   isFunctionTool,
-} from "../../../../../types/guards";
-import { ToolFields } from "./tool-fields";
-import { McpTestingPanel } from "./mcp-testing-panel";
+} from "../../../../../../types/guards";
+import { ToolFields } from "../tool-fields";
+import { McpCapabilitiesPanel } from "./mcp-capabilities-panel";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -49,7 +49,7 @@ interface WorkbenchFieldsProps {
 export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
   component,
   onChange,
-  defaultPanelKey = ["details", "configuration"],
+  defaultPanelKey = ["configuration", "testing"],
 }) => {
   const [showAddEnvVar, setShowAddEnvVar] = useState(false);
   const [newEnvVar, setNewEnvVar] = useState({ key: "", value: "" });
@@ -815,7 +815,7 @@ export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
               ),
               children: (
                 <>
-                  <McpTestingPanel serverParams={serverParams} />
+                  <McpCapabilitiesPanel serverParams={serverParams} />
                 </>
               ),
             },

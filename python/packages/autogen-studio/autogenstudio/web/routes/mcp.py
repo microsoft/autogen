@@ -14,7 +14,8 @@ from mcp.types import (
     Resource,
     Prompt,
     GetPromptResult,
-    ReadResourceResult
+    ReadResourceResult,
+    ServerCapabilities
 )
 
 # Import your new MCP client
@@ -67,6 +68,46 @@ class GetPromptRequest(BaseModel):
     server_params: McpServerParams
     name: str
     arguments: Optional[Dict[str, Any]] = None
+
+class GetCapabilitiesRequest(BaseModel):
+    """Request model for getting server capabilities"""
+    server_params: McpServerParams
+
+class GetCapabilitiesResponse(BaseModel):
+    """Response model for server capabilities"""
+    status: bool
+    message: str
+    capabilities: Optional[ServerCapabilities] = None
+
+@router.post("/capabilities/get")
+async def get_mcp_capabilities(request: GetCapabilitiesRequest) -> GetCapabilitiesResponse:
+    """Get the capabilities of the MCP server"""
+    try:
+        logger.info(f"Getting capabilities for MCP server: {request.server_params.type}")
+        
+        # Use the new MCP client directly
+        client = McpClient()
+        capabilities = await client.get_capabilities(request.server_params)
+        
+        logger.info(f"Successfully retrieved server capabilities")
+        
+        return GetCapabilitiesResponse(
+            status=True,
+            message="Capabilities retrieved successfully",
+            capabilities=capabilities
+        )
+    except (McpConnectionError, McpOperationError) as e:
+        logger.error(f"MCP error getting capabilities: {str(e)}")
+        return GetCapabilitiesResponse(
+            status=False,
+            message=f"Failed to get capabilities: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error getting capabilities: {str(e)}")
+        return GetCapabilitiesResponse(
+            status=False,
+            message=f"Failed to get capabilities: {str(e)}"
+        )
 
 @router.post("/tools/list")
 async def list_mcp_tools(request: ListToolsRequest) -> ListToolsResponse:
@@ -297,8 +338,6 @@ async def get_mcp_prompt(request: GetPromptRequest):
             "status": False,
             "message": f"Failed to get prompt: {str(e)}"
         }
-
-# Future capability endpoints (placeholder)
 
 @router.post("/sampling/text")
 async def sample_text(request: dict):
