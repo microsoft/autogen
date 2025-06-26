@@ -3,7 +3,7 @@
 # Standard library imports
 import asyncio
 import json
-from typing import Any, List, Optional, Sequence, Union, cast
+from typing import Any, List, Optional, Union, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third-party imports
@@ -38,7 +38,6 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_core.tools import FunctionTool
 from autogen_ext.models.replay import ReplayChatCompletionClient
 from pydantic import BaseModel
 
@@ -937,8 +936,8 @@ class TestAssistantAgentMemoryIntegration:
             memory_events.append(event)
 
         # Create a handler function to capture memory events
-        async def handle_memory_events(result):
-            messages = result.messages if hasattr(result, "messages") else []
+        async def handle_memory_events(result: Any) -> None:
+            messages: List[BaseChatMessage] = result.messages if hasattr(result, "messages") else []
             for msg in messages:
                 if isinstance(msg, MemoryQueryEvent):
                     await event_handler(msg)
@@ -2918,12 +2917,10 @@ class TestAssistantAgentMessageContext:
 
         # Create test messages
         regular_msg = TextMessage(content="Regular message", source="user")
-        handoff_msg = HandoffMessage(
-            content="Handoff message", source="agent1", target="agent2"
-        )
+        handoff_msg = HandoffMessage(content="Handoff message", source="agent1", target="agent2")
 
         # Add messages to context
-        await AssistantAgent._add_messages_to_context(model_context=model_context, messages=[regular_msg, handoff_msg])
+        await AssistantAgent._add_messages_to_context(model_context=model_context, messages=[regular_msg, handoff_msg])  # type: ignore[reportPrivateUsage]
 
         # Verify context contents
         context_messages = await model_context.get_messages()
@@ -2960,13 +2957,11 @@ class TestAssistantAgentMessageContext:
                 content=StructuredOutput(content="Structured data", confidence=0.9), source="agent"
             ),
             ToolCallSummaryMessage(content="Tool result", source="agent", tool_calls=[], results=[]),
-            HandoffMessage(
-                content="Handoff", source="agent1", target="agent2"
-            ),
+            HandoffMessage(content="Handoff", source="agent1", target="agent2"),
         ]
 
         # Add messages to context
-        await AssistantAgent._add_messages_to_context(model_context=model_context, messages=messages)
+        await AssistantAgent._add_messages_to_context(model_context=model_context, messages=messages)  # type: ignore[reportPrivateUsage]
 
         # Verify context management
         context_messages = await model_context.get_messages()

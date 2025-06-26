@@ -232,12 +232,23 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         handoff_tool_names = [tool.name for tool in self._handoff_tools]
         if len(handoff_tool_names) != len(set(handoff_tool_names)):
             raise ValueError(f"Handoff names must be unique: {handoff_tool_names}")
-        # Check if handoff tool names not in tool names.
-        if any(name in tool_names for name in handoff_tool_names):
-            raise ValueError(
-                f"Handoff names must be unique from tool names. "
-                f"Handoff names: {handoff_tool_names}; tool names: {tool_names}"
-            )
+        # Create sets for faster lookup
+        tool_names_set = set(tool_names)
+        handoff_tool_names_set = set(handoff_tool_names)
+
+        # Check if there's any overlap between handoff tool names and tool names
+        overlap = tool_names_set.intersection(handoff_tool_names_set)
+
+        # Also check if any handoff target name matches a tool name
+        # This handles the case where a handoff is specified directly with a string that matches a tool name
+        for handoff in handoffs or []:
+            if isinstance(handoff, str) and handoff in tool_names_set:
+                raise ValueError("Handoff names must be unique from tool names")
+            elif isinstance(handoff, HandoffBase) and handoff.target in tool_names_set:
+                raise ValueError("Handoff names must be unique from tool names")
+
+        if overlap:
+            raise ValueError("Handoff names must be unique from tool names")
 
         if workbench is not None:
             if self._tools:

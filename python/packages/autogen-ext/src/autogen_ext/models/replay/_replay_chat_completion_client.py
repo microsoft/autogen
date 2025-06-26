@@ -154,7 +154,7 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
             self.chat_completions = list(chat_completions)
         else:
             raise ValueError("Either 'chat_completions' or 'responses' must be provided")
-        
+
         self.provided_message_count = len(self.chat_completions)
         if model_info is not None:
             self._model_info = model_info
