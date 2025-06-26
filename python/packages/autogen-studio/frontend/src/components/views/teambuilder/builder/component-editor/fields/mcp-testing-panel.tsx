@@ -206,17 +206,19 @@ export const McpTestingPanel: React.FC<McpTestingPanelProps> = ({
           className="mt-4"
         >
           <pre className="whitespace-pre-wrap text-sm bg-secondary/30 p-3 rounded border max-h-96 overflow-y-auto">
-            {toolResult.content.map((item, i) => {
-              if (item.type === "text") {
-                return item.text;
-              } else if (item.type === "image") {
-                return `[Image: ${item.mimeType || 'unknown'}]`;
-              } else if (item.type === "resource") {
-                return `[Resource: ${JSON.stringify(item.resource)}]`;
-              } else {
-                return JSON.stringify(item);
-              }
-            }).join("\n")}
+            {toolResult.content
+              .map((item, i) => {
+                if (item.type === "text") {
+                  return item.text;
+                } else if (item.type === "image") {
+                  return `[Image: ${item.mimeType || "unknown"}]`;
+                } else if (item.type === "resource") {
+                  return `[Resource: ${JSON.stringify(item.resource)}]`;
+                } else {
+                  return JSON.stringify(item);
+                }
+              })
+              .join("\n")}
           </pre>
         </Card>
       </div>

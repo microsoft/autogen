@@ -1,8 +1,4 @@
-import {
-  Team,
-  Component,
-  ComponentConfig,
-} from "../../types/datamodel";
+import { Team, Component, ComponentConfig } from "../../types/datamodel";
 import { BaseAPI } from "../../utils/baseapi";
 
 interface ValidationError {

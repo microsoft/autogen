@@ -1,19 +1,15 @@
-from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack
-from typing import Any, Dict, List, Optional, Union, Callable, Awaitable
-from dataclasses import dataclass, field
-from enum import Enum
-import asyncio
-import json
+from typing import Any, Dict, List, Optional, Callable, Awaitable
+from datetime import timedelta
 from loguru import logger
 
 # MCP imports
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.client.sse import sse_client
-from mcp.types import Tool, Resource, Prompt, CallToolResult, GetPromptResult, ReadResourceResult, TextContent, ImageContent, EmbeddedResource
+from mcp.client.streamable_http import streamablehttp_client
+from mcp.types import Tool, Resource, Prompt, CallToolResult, GetPromptResult, ReadResourceResult
 from pydantic import AnyUrl
-import httpx
 
 # Autogen imports (keeping compatibility with your current types)
 from autogen_ext.tools.mcp._config import McpServerParams, StdioServerParams, SseServerParams, StreamableHttpServerParams
@@ -107,10 +103,33 @@ class McpClient:
         return self.session
     
     async def _connect_http(self, server_params: StreamableHttpServerParams) -> ClientSession:
-        """Connect to HTTP MCP server"""
-        # For now, we'll use httpx directly since streamable_http_client might not be available
-        # This is a placeholder - you might need to implement this based on your MCP version
-        raise NotImplementedError("HTTP transport not yet implemented - check your MCP SDK version")
+        """Connect to StreamableHTTP MCP server"""
+        if not self.exit_stack:
+            raise McpConnectionError("Exit stack not initialized")
+            
+        if streamablehttp_client is None:
+            raise McpConnectionError("StreamableHTTP client not available in this MCP version")
+            
+        # Create StreamableHTTP transport
+        http_transport = await self.exit_stack.enter_async_context(
+            streamablehttp_client(
+                url=server_params.url,
+                headers=server_params.headers or {},
+                timeout=timedelta(seconds=server_params.timeout),
+                sse_read_timeout=timedelta(seconds=server_params.sse_read_timeout),
+                auth=getattr(server_params, 'auth', None)
+            )
+        )
+        read, write, get_session_id = http_transport
+        
+        # Create and initialize session
+        self.session = await self.exit_stack.enter_async_context(
+            ClientSession(read, write)
+        )
+        await self.session.initialize()
+        
+        logger.info(f"Connected to MCP server via StreamableHTTP: {server_params.url}")
+        return self.session
     
     async def cleanup(self) -> None:
         """Clean up connection resources"""
