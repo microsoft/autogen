@@ -2,10 +2,8 @@ import {
   Team,
   Component,
   ComponentConfig,
-  McpServerParams,
 } from "../../types/datamodel";
 import { BaseAPI } from "../../utils/baseapi";
-import { getServerUrl } from "../../utils/utils";
 
 interface ValidationError {
   field: string;
@@ -24,36 +22,6 @@ export interface ComponentTestResult {
   message: string;
   data?: any;
   logs: string[];
-}
-
-// MCP-specific interfaces
-export interface McpTool {
-  name: string;
-  description: string;
-  parameters: {
-    type: string;
-    properties: Record<string, any>;
-    required?: string[];
-    additionalProperties?: boolean;
-  };
-}
-
-export interface McpToolResult {
-  name: string;
-  result: Array<{ content: string }>;
-  is_error: boolean;
-}
-
-export interface ListToolsResponse {
-  status: boolean;
-  message: string;
-  tools?: McpTool[];
-}
-
-export interface CallToolResponse {
-  status: boolean;
-  message: string;
-  result?: McpToolResult;
 }
 
 export class TeamAPI extends BaseAPI {
@@ -154,60 +122,5 @@ export class ValidationAPI extends BaseAPI {
   }
 }
 
-export class McpAPI extends BaseAPI {
-  async listTools(serverParams: McpServerParams): Promise<ListToolsResponse> {
-    const response = await fetch(`${this.getBaseUrl()}/mcp/tools`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify({ server_params: serverParams }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to list MCP tools");
-    }
-
-    return data;
-  }
-
-  async callTool(
-    serverParams: McpServerParams,
-    toolName: string,
-    toolArguments: Record<string, any>
-  ): Promise<CallToolResponse> {
-    const response = await fetch(`${this.getBaseUrl()}/mcp/tools/call`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        server_params: serverParams,
-        tool_name: toolName,
-        arguments: toolArguments,
-      }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to call MCP tool");
-    }
-
-    return data;
-  }
-
-  async healthCheck(): Promise<{ status: boolean; message: string }> {
-    const response = await fetch(`${this.getBaseUrl()}/mcp/health`, {
-      method: "GET",
-      headers: this.getHeaders(),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || "MCP health check failed");
-    }
-
-    return data;
-  }
-}
-
 export const teamAPI = new TeamAPI();
 export const validationAPI = new ValidationAPI();
-export const mcpAPI = new McpAPI();

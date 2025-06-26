@@ -12,7 +12,7 @@ import {
 } from "antd";
 import { PlayCircle, Wrench, CheckCircle, XCircle } from "lucide-react";
 import { McpServerParams } from "../../../../../types/datamodel";
-import { mcpAPI, McpTool, McpToolResult } from "../../../api";
+import { mcpAPI, Tool, CallToolResult } from "../../../../mcp/api";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -24,12 +24,12 @@ interface McpTestingPanelProps {
 export const McpTestingPanel: React.FC<McpTestingPanelProps> = ({
   serverParams,
 }) => {
-  const [tools, setTools] = useState<McpTool[]>([]);
-  const [selectedTool, setSelectedTool] = useState<McpTool | null>(null);
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
   const [toolArguments, setToolArguments] = useState<Record<string, any>>({});
   const [loadingTools, setLoadingTools] = useState(false);
   const [executingTool, setExecutingTool] = useState(false);
-  const [toolResult, setToolResult] = useState<McpToolResult | null>(null);
+  const [toolResult, setToolResult] = useState<CallToolResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const runToolRef = useRef<HTMLDivElement>(null);
   const toolResultRef = useRef<HTMLDivElement>(null);
@@ -112,7 +112,7 @@ export const McpTestingPanel: React.FC<McpTestingPanelProps> = ({
     }
   }, [selectedTool, toolArguments, serverParams]);
 
-  const handleToolSelect = (tool: McpTool) => {
+  const handleToolSelect = (tool: Tool) => {
     setSelectedTool(tool);
     setToolArguments({});
     setToolResult(null);
@@ -121,9 +121,10 @@ export const McpTestingPanel: React.FC<McpTestingPanelProps> = ({
   const renderArgumentForm = useCallback(() => {
     if (!selectedTool) return null;
 
-    const { parameters } = selectedTool;
-    const properties = parameters.properties || {};
-    const required = parameters.required || [];
+    const { inputSchema } = selectedTool;
+    // Handle both possible schema structures
+    const properties = inputSchema.properties || inputSchema || {};
+    const required = inputSchema.required || [];
 
     return (
       <Form layout="vertical">
@@ -193,7 +194,7 @@ export const McpTestingPanel: React.FC<McpTestingPanelProps> = ({
         <Card
           title={
             <Space>
-              {toolResult.is_error ? (
+              {toolResult.isError ? (
                 <XCircle className="w-4 h-4 text-red-500" />
               ) : (
                 <CheckCircle className="w-4 h-4 text-green-500" />
@@ -205,7 +206,17 @@ export const McpTestingPanel: React.FC<McpTestingPanelProps> = ({
           className="mt-4"
         >
           <pre className="whitespace-pre-wrap text-sm bg-secondary/30 p-3 rounded border max-h-96 overflow-y-auto">
-            {toolResult.result.map((r, i) => r.content).join("\n")}
+            {toolResult.content.map((item, i) => {
+              if (item.type === "text") {
+                return item.text;
+              } else if (item.type === "image") {
+                return `[Image: ${item.mimeType || 'unknown'}]`;
+              } else if (item.type === "resource") {
+                return `[Resource: ${JSON.stringify(item.resource)}]`;
+              } else {
+                return JSON.stringify(item);
+              }
+            }).join("\n")}
           </pre>
         </Card>
       </div>

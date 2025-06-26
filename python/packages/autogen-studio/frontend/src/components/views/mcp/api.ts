@@ -1,7 +1,54 @@
-import { Gallery, Component, McpWorkbenchConfig } from "../../types/datamodel";
+import {
+  Gallery,
+  Component,
+  McpWorkbenchConfig,
+  McpServerParams,
+} from "../../types/datamodel";
 import { BaseAPI } from "../../utils/baseapi";
 
+// MCP-specific interfaces for server operations
+// MCP types matching backend exactly (native MCP types)
+export interface Tool {
+  name: string;
+  description?: string | null;
+  inputSchema: {
+    [key: string]: any;
+  };
+  annotations?: {
+    title?: string | null;
+    readOnlyHint?: boolean | null;
+    destructiveHint?: boolean | null;
+    idempotentHint?: boolean | null;
+    openWorldHint?: boolean | null;
+  } | null;
+}
+
+export interface CallToolResult {
+  content: Array<{
+    type: "text" | "image" | "resource";
+    text?: string;
+    data?: string;
+    mimeType?: string;
+    resource?: any;
+    annotations?: any;
+  }>;
+  isError?: boolean;
+}
+
+export interface ListToolsResponse {
+  status: boolean;
+  message: string;
+  tools?: Tool[];
+}
+
+export interface CallToolResponse {
+  status: boolean;
+  message: string;
+  result?: CallToolResult;
+}
+
 export class McpAPI extends BaseAPI {
+  // Gallery management methods (existing functionality)
   async listGalleries(userId: string): Promise<Gallery[]> {
     const response = await fetch(
       `${this.getBaseUrl()}/gallery/?user_id=${userId}`,
@@ -39,13 +86,74 @@ export class McpAPI extends BaseAPI {
     );
   }
 
-  // Test MCP server connection (placeholder for now)
+  // MCP Server operations (new functionality)
+  async listTools(serverParams: McpServerParams): Promise<ListToolsResponse> {
+    const response = await fetch(`${this.getBaseUrl()}/mcp/tools/list`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ server_params: serverParams }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to list MCP tools");
+    }
+
+    return data;
+  }
+
+  async callTool(
+    serverParams: McpServerParams,
+    toolName: string,
+    toolArguments: Record<string, any>
+  ): Promise<CallToolResponse> {
+    const response = await fetch(`${this.getBaseUrl()}/mcp/tools/call`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        server_params: serverParams,
+        tool_name: toolName,
+        arguments: toolArguments,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to call MCP tool");
+    }
+
+    return data;
+  }
+
+  async healthCheck(): Promise<{ status: boolean; message: string }> {
+    const response = await fetch(`${this.getBaseUrl()}/mcp/health`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "MCP health check failed");
+    }
+
+    return data;
+  }
+
+  // Test MCP server connection
   async testMcpConnection(
     workbench: Component<McpWorkbenchConfig>
   ): Promise<boolean> {
-    // This is a placeholder - in the future, this would make an actual call to test the MCP server
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return Math.random() > 0.3; // 70% success rate for testing
+    try {
+      // Use the health check or list tools to test connection
+      if (workbench.config.server_params) {
+        const result = await this.listTools(workbench.config.server_params);
+        return result.status;
+      }
+      return false;
+    } catch (error) {
+      console.error("MCP connection test failed:", error);
+      return false;
+    }
   }
 }
 
