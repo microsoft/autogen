@@ -1,4 +1,5 @@
 import asyncio
+import re
 from typing import AsyncGenerator, List, Sequence
 from unittest.mock import patch
 
@@ -245,6 +246,32 @@ def test_cycle_detection_without_exit_condition() -> None:
     )
     with pytest.raises(ValueError, match="Cycle detected without exit condition: A -> B -> C -> A"):
         graph.has_cycles_with_exit()
+
+
+def test_different_activation_groups_detection() -> None:
+    """Test different activation groups."""
+    graph = DiGraph(
+        nodes={
+            "A": DiGraphNode(
+                name="A",
+                edges=[
+                    DiGraphEdge(target="B"),
+                    DiGraphEdge(target="C"),
+                ],
+            ),
+            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="D", activation_condition="all")]),
+            "C": DiGraphNode(name="C", edges=[DiGraphEdge(target="D", activation_condition="any")]),
+            "D": DiGraphNode(name="D", edges=[]),
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Conflicting activation conditions for target 'D' group 'D': "
+            "'all' (from node 'B') and 'any' (from node 'C')"
+        ),
+    ):
+        graph.graph_validate()
 
 
 def test_validate_graph_success() -> None:
@@ -719,7 +746,7 @@ async def test_digraph_group_chat_loop_with_exit_condition(runtime: AgentRuntime
 
 
 @pytest.mark.asyncio
-async def test_digraph_group_chat_loop_with_exit_condition_2(runtime: AgentRuntime | None) -> None:
+async def test_digraph_group_chat_loop_with_self_cycle(runtime: AgentRuntime | None) -> None:
     # Agents A and C: Echo Agents
     agent_a = _EchoAgent("A", description="Echo agent A")
     agent_c = _EchoAgent("C", description="Echo agent C")
@@ -740,7 +767,11 @@ async def test_digraph_group_chat_loop_with_exit_condition_2(runtime: AgentRunti
         nodes={
             "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
             "B": DiGraphNode(
-                name="B", edges=[DiGraphEdge(target="C", condition="exit"), DiGraphEdge(target="B", condition="loop")]
+                name="B",
+                edges=[
+                    DiGraphEdge(target="C", condition="exit"),
+                    DiGraphEdge(target="B", condition="loop", activation_group="B_loop"),
+                ],
             ),
             "C": DiGraphNode(name="C", edges=[]),
         },
@@ -778,6 +809,96 @@ async def test_digraph_group_chat_loop_with_exit_condition_2(runtime: AgentRunti
 
 
 @pytest.mark.asyncio
+async def test_digraph_group_chat_loop_with_two_cycles(runtime: AgentRuntime | None) -> None:
+    # Agents A and C: Echo Agents
+    agent_a = _EchoAgent("A", description="Echo agent A")
+    agent_b = _EchoAgent("B", description="Echo agent B")
+    agent_c = _EchoAgent("C", description="Echo agent C")
+    agent_e = _EchoAgent("E", description="Echo agent E")
+
+    # Replay model client for agent B
+    model_client = ReplayChatCompletionClient(
+        chat_completions=[
+            "to_x",  # First time O will branch to B
+            "to_o",  # X will go back to O
+            "to_y",  # Second time O will branch to C
+            "to_o",  # Y will go back to O
+            "exit",  # Third time O will say exit
+        ]
+    )
+    # Agent o, b, c: Assistant Agent using Replay Client
+    agent_o = AssistantAgent("O", description="Decision agent o", model_client=model_client)
+    agent_x = AssistantAgent("X", description="Decision agent x", model_client=model_client)
+    agent_y = AssistantAgent("Y", description="Decision agent y", model_client=model_client)
+
+    # DiGraph:
+    #
+    #       A
+    #      / \
+    #     B  C
+    #      \ |
+    #  X  = O  = Y (bidirectional)
+    #       |
+    #       E(exit)
+    graph = DiGraph(
+        nodes={
+            "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B"), DiGraphEdge(target="C")]),
+            "B": DiGraphNode(
+                name="B", edges=[DiGraphEdge(target="O")]
+            ),  # default activation group name is same as target node name "O"
+            "C": DiGraphNode(
+                name="C", edges=[DiGraphEdge(target="O")]
+            ),  # default activation group name is same as target node name "O"
+            "O": DiGraphNode(
+                name="O",
+                edges=[
+                    DiGraphEdge(target="X", condition="to_x"),
+                    DiGraphEdge(target="Y", condition="to_y"),
+                    DiGraphEdge(target="E", condition="exit"),
+                ],
+            ),
+            "X": DiGraphNode(name="X", edges=[DiGraphEdge(target="O", condition="to_o", activation_group="x_o_loop")]),
+            "Y": DiGraphNode(name="Y", edges=[DiGraphEdge(target="O", condition="to_o", activation_group="y_o_loop")]),
+            "E": DiGraphNode(name="E", edges=[]),
+        },
+        default_start_node="A",
+    )
+
+    team = GraphFlow(
+        participants=[agent_a, agent_o, agent_b, agent_c, agent_x, agent_y, agent_e],
+        graph=graph,
+        runtime=runtime,
+        termination_condition=MaxMessageTermination(20),
+    )
+
+    # Run
+    result = await team.run(task="Start")
+
+    # Assert message order
+    expected_sources = [
+        "user",
+        "A",
+        "B",
+        "C",
+        "O",
+        "X",  # O -> X
+        "O",  # X -> O
+        "Y",  # O -> Y
+        "O",  # Y -> O
+        "E",  # O -> E
+        _DIGRAPH_STOP_AGENT_NAME,
+    ]
+
+    actual_sources = [m.source for m in result.messages]
+
+    assert actual_sources == expected_sources
+    assert result.stop_reason is not None
+    assert result.messages[-2].source == "E"
+    assert any(m.content == "exit" for m in result.messages[:-1])  # type: ignore[attr-defined,union-attr]
+    assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
+
+
+@pytest.mark.asyncio
 async def test_digraph_group_chat_parallel_join_any_1(runtime: AgentRuntime | None) -> None:
     agent_a = _EchoAgent("A", description="Echo agent A")
     agent_b = _EchoAgent("B", description="Echo agent B")
@@ -787,9 +908,9 @@ async def test_digraph_group_chat_parallel_join_any_1(runtime: AgentRuntime | No
     graph = DiGraph(
         nodes={
             "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B"), DiGraphEdge(target="C")]),
-            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="D")]),
-            "C": DiGraphNode(name="C", edges=[DiGraphEdge(target="D")]),
-            "D": DiGraphNode(name="D", edges=[], activation="any"),
+            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="D", activation_group="any")]),
+            "C": DiGraphNode(name="C", edges=[DiGraphEdge(target="D", activation_group="any")]),
+            "D": DiGraphNode(name="D", edges=[]),
         }
     )
 
