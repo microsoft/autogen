@@ -573,15 +573,21 @@ export const GalleryDetail: React.FC<{
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-medium">JSON Editor</h2>
               {isDirty && (
-                <span className="text-orange-500 text-sm">• Unsaved changes</span>
+                <span className="text-orange-500 text-sm">
+                  • Unsaved changes
+                </span>
               )}
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => {
-                setIsJsonEditing(false);
-                setIsDirty(false);
-                setJsonValue(JSON.stringify(gallery, null, 2));
-              }}>Cancel</Button>
+              <Button
+                onClick={() => {
+                  setIsJsonEditing(false);
+                  setIsDirty(false);
+                  setJsonValue(JSON.stringify(gallery, null, 2));
+                }}
+              >
+                Cancel
+              </Button>
               <Button type="primary" onClick={handleJsonSave}>
                 Save Changes
               </Button>
