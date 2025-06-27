@@ -864,8 +864,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # --- NEW: If the model produced a hidden "thought," yield it as an event ---
         if model_result.thought:
-            thought_id = str(uuid.uuid4())
-            thought_event = ThoughtEvent(content=model_result.thought, source=agent_name, id=thought_id)
+            thought_event = ThoughtEvent(content=model_result.thought, source=agent_name)
             yield thought_event
             inner_messages.append(thought_event)
 
@@ -927,11 +926,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             for mem in memory:
                 update_context_result = await mem.update_context(model_context)
                 if update_context_result and len(update_context_result.memories.results) > 0:
-                    memory_query_id = str(uuid.uuid4())
                     memory_query_event_msg = MemoryQueryEvent(
                         content=update_context_result.memories.results,
                         source=agent_name,
-                        id=memory_query_id,
                     )
                     events.append(memory_query_event_msg)
         return events
@@ -1056,12 +1053,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         )
 
         # STEP 4A: Yield ToolCallRequestEvent
-        tool_call_request_id = str(uuid.uuid4())
         tool_call_msg = ToolCallRequestEvent(
             content=model_result.content,
             source=agent_name,
             models_usage=model_result.usage,
-            id=tool_call_request_id,
         )
         event_logger.debug(tool_call_msg)
         inner_messages.append(tool_call_msg)
@@ -1083,11 +1078,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         exec_results = [result for _, result in executed_calls_and_results]
 
         # Yield ToolCallExecutionEvent
-        tool_call_execution_id = str(uuid.uuid4())
         tool_call_result_msg = ToolCallExecutionEvent(
             content=exec_results,
             source=agent_name,
-            id=tool_call_execution_id,
         )
         event_logger.debug(tool_call_result_msg)
         await model_context.add_message(FunctionExecutionResultMessage(content=exec_results))
@@ -1190,15 +1183,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 )
 
             # Return response for the first handoff
-            # Generate a deterministic ID for the handoff message
-            message_id = str(uuid.uuid4())
             return Response(
                 chat_message=HandoffMessage(
                     content=selected_handoff_message,
                     target=selected_handoff.target,
                     source=agent_name,
                     context=handoff_context,
-                    id=message_id,
                 ),
                 inner_messages=inner_messages,
             )
@@ -1246,8 +1236,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # --- NEW: If the reflection produced a thought, yield it ---
         if reflection_result.thought:
-            thought_id = str(uuid.uuid4())
-            thought_event = ThoughtEvent(content=reflection_result.thought, source=agent_name, id=thought_id)
+            thought_event = ThoughtEvent(content=reflection_result.thought, source=agent_name)
             yield thought_event
             inner_messages.append(thought_event)
 
@@ -1313,15 +1302,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         ]
 
         tool_call_summary = "\n".join(tool_call_summaries)
-        # Generate a deterministic ID for the summary message
-        message_id = str(uuid.uuid4())
         return Response(
             chat_message=ToolCallSummaryMessage(
                 content=tool_call_summary,
                 source=agent_name,
                 tool_calls=[call for call, _ in normal_tool_calls],
                 results=[result for _, result in normal_tool_calls],
-                id=message_id,
             ),
             inner_messages=inner_messages,
         )
