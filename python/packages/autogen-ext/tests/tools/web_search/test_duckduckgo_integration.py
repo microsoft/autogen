@@ -32,7 +32,7 @@ from autogen_core.models import (
 )
 from autogen_core.tools import Tool, ToolSchema
 from autogen_ext.agents.duckduckgo_search._duckduckgo_agent import DuckDuckGoSearchAgent
-from autogen_ext.tools.web_search._duckduckgo_search import DuckDuckGoSearchTool
+from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchTool
 
 
 class MockChatCompletionClient(ChatCompletionClient):
@@ -148,7 +148,7 @@ class TestDuckDuckGoIntegration:
         search_tool = DuckDuckGoSearchTool()
 
         # Test with a simple query
-        from autogen_ext.tools.web_search._duckduckgo_search import DuckDuckGoSearchArgs
+        from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs
 
         args = DuckDuckGoSearchArgs(
             query="Python programming language",
@@ -188,7 +188,7 @@ class TestDuckDuckGoIntegration:
         """Test search with content fetching enabled (slower test)."""
         search_tool = DuckDuckGoSearchTool()
 
-        from autogen_ext.tools.web_search._duckduckgo_search import DuckDuckGoSearchArgs
+        from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs
 
         args = DuckDuckGoSearchArgs(
             query="OpenAI",
@@ -218,7 +218,7 @@ class TestDuckDuckGoIntegration:
         search_tool = DuckDuckGoSearchTool()
 
         # Test with an invalid/problematic query
-        from autogen_ext.tools.web_search._duckduckgo_search import DuckDuckGoSearchArgs
+        from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs
 
         args = DuckDuckGoSearchArgs(
             query="",  # Empty query might cause issues
@@ -263,7 +263,7 @@ class TestDuckDuckGoIntegration:
         """Test search with different parameter combinations."""
         search_tool = DuckDuckGoSearchTool()
 
-        from autogen_ext.tools.web_search._duckduckgo_search import DuckDuckGoSearchArgs
+        from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs
 
         # Test with different languages and regions
         test_cases: List[Dict[str, Any]] = [
@@ -303,7 +303,7 @@ if __name__ == "__main__":
         print("Testing DuckDuckGo Search Tool...")
 
         search_tool = DuckDuckGoSearchTool()
-        from autogen_ext.tools.web_search._duckduckgo_search import DuckDuckGoSearchArgs
+        from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs
 
         args = DuckDuckGoSearchArgs(query="Python programming", num_results=2, include_content=False)
 
