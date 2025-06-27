@@ -24,6 +24,7 @@ from typing import (
     cast,
 )
 
+import openai
 import tiktoken
 from autogen_core import (
     EVENT_LOGGER_NAME,
@@ -85,6 +86,7 @@ from .config import (
     OpenAIClientConfiguration,
     OpenAIClientConfigurationConfigModel,
 )
+from ._error_handler_callback import handle_openai_exceptions
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -387,6 +389,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model_capabilities: Optional[ModelCapabilities] = None,  # type: ignore
         model_info: Optional[ModelInfo] = None,
         add_name_prefixes: bool = False,
+        max_retries: int = 3,
+        backoff_seconds: float = 1.0,
+        error_callbacks: Optional[Dict[Union[Type[Exception], str], Callable[[Exception], Optional[CreateResult]]]] = None,
     ):
         self._client = client
         self._add_name_prefixes = add_name_prefixes
@@ -425,15 +430,33 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             )
         ):
             raise ValueError("Model does not support JSON output.")
+        
+        self._max_retries = max_retries
+        self._backoff_seconds = backoff_seconds
+        self._error_callbacks = error_callbacks
 
         self._create_args = create_args
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
+        # Wrap the methods in the error handler
+        self.create = self._wrap_in_error_handler(self.create)
+        self.create_stream = self._wrap_in_error_handler(self.create_stream)
+
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
         return OpenAIChatCompletionClient(**config)
 
+    def _wrap_in_error_handler(self, func: Callable) -> Callable:
+        """Helper to wrap a method with our retry/error-callback decorator."""
+        return handle_openai_exceptions(
+            retry_exceptions=(openai.RateLimitError, openai.APIStatusError),
+            max_retries=self._max_retries,
+            backoff_seconds=self._backoff_seconds,
+            error_callbacks=self._error_callbacks,
+        )(func)
+    
+    
     def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
         """
         Remove the last assistant message if it is empty.

@@ -2,10 +2,11 @@ import asyncio
 import json
 import logging
 import os
-from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar
-from unittest.mock import MagicMock
+from typing import Annotated, Any, AsyncGenerator, Dict, Generic, List, Literal, Tuple, TypeVar
+from unittest.mock import MagicMock, patch
 
 import httpx
+import openai
 import pytest
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import MultiModalMessage
@@ -24,6 +25,7 @@ from autogen_core.models import (
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.openai import _error_handler_callback as error_handler_module
 from autogen_ext.models.openai._model_info import resolve_model
 from autogen_ext.models.openai._openai_client import (
     BaseOpenAIChatCompletionClient,
@@ -61,6 +63,7 @@ from openai.types.chat.parsed_chat_completion import ParsedChatCompletion, Parse
 from openai.types.chat.parsed_function_tool_call import ParsedFunction, ParsedFunctionToolCall
 from openai.types.completion_usage import CompletionUsage
 from pydantic import BaseModel, Field
+from pytest_mock import MockerFixture
 
 ResponseFormatT = TypeVar("ResponseFormatT", bound=BaseModel)
 
@@ -2131,6 +2134,81 @@ async def test_add_name_prefixes(monkeypatch: pytest.MonkeyPatch) -> None:
     # Name prepended
     assert str(converted_text["content"]) == "Adam said:\n" + str(oai_text["content"])
     assert str(converted_mm["content"][0]["text"]) == "Adam said:\n" + str(oai_mm["content"][0]["text"])
+@pytest.mark.asyncio
+async def test_content_filter_callback(mocker: MockerFixture) -> None:
+    """
+    Test that when a BadRequestError with 'content_filter' is raised,
+    the content_filter_callback is invoked and its returned CreateResult
+    is returned by the decorated function.
+    """
+    # Arrange
+    # Mock the callback so we can verify it is called
+    callback_spy = mocker.spy(error_handler_module, "content_filter_callback")
+
+    # Mock the httpx response
+    error_message = "The response was filtered due to the prompt triggering Azure OpenAI's content management policy. content_filter"
+    mock_response = mocker.Mock(spec=httpx.Response)
+    mock_response.status_code = 400
+    mock_response.content = error_message
+    mock_response.headers = {}
+
+    # A function that always raises a content_filter BadRequestError
+    async def always_fail():
+        raise openai.BadRequestError(
+            error_message,
+            response=mock_response,
+            body=None,
+        )
+
+    # Decorate the function with handle_openai_exceptions
+    decorated = error_handler_module.handle_openai_exceptions(
+        error_callbacks={"content_filter": callback_spy}
+    )(always_fail)
+
+    # Act
+    result = await decorated()
+
+    # Assert
+    assert isinstance(result, CreateResult)
+    assert result.finish_reason == "content_filter"
+    assert "OpenAI content safety blocked" in result.content
+    callback_spy.assert_called_once()
+
+@pytest.mark.asyncio
+@patch("asyncio.sleep", return_value=None)
+async def test_rate_limit_retry(mock_sleep, mocker: MockerFixture):
+    """
+    Test that a function raising RateLimitError is retried.
+    First call fails, second call succeeds.
+    """
+    # Mock the httpx response for the rate limit error
+    mock_response = mocker.Mock(spec=httpx.Response)
+    mock_response.status_code = 429
+    mock_response.headers = {}
+    mock_response.content = "Rate limit exceeded"
+
+    call_count = 0
+    async def maybe_fail():
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise openai.RateLimitError(
+                "Rate limit is exceeded. Try again in 1 seconds.",
+                response=mock_response,
+                body=None
+            )
+        return "success"
+
+    decorated = error_handler_module.handle_openai_exceptions(
+        max_retries=3,
+        backoff_seconds=1.0
+    )(maybe_fail)
+
+    result = await decorated()
+
+    assert result == "success"
+    assert call_count == 2  # ensures first call failed, second succeeded
+    mock_sleep.assert_awaited_once_with(1.0)  # only one retry sleep
 
 
 @pytest.mark.asyncio
