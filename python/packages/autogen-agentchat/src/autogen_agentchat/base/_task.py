@@ -39,7 +39,7 @@ class TaskRunner(Protocol):
         *,
         task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-        output_task_messages: bool = False,
+        output_task_messages: bool = True,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | TaskResult, None]:
         """Run the task and produces a stream of messages and the final result
         :class:`TaskResult` as the last item in the stream.
@@ -53,6 +53,6 @@ class TaskRunner(Protocol):
         Args:
             task: The task to run. Can be a string, a single message, or a sequence of messages.
             cancellation_token: The cancellation token to kill the task immediately.
-            output_task_messages: Whether to include task messages in the output stream. Defaults to False for backward compatibility.
+            output_task_messages: Whether to include task messages in the output stream. Defaults to True for backward compatibility.
         """
         ...

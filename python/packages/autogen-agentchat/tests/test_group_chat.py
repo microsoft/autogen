@@ -261,18 +261,24 @@ async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
 
         assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
-        # Test streaming.
+        # Test streaming with default output_task_messages=True.
         model_client.reset()
-        result_index = 1  # Skip task message in result since output_task_messages=False by default
         await team.reset()
+        streamed_messages: List[BaseAgentEvent | BaseChatMessage] = []
+        final_stream_result: TaskResult | None = None
         async for message in team.run_stream(
             task="Write a program that prints 'Hello, world!'",
         ):
             if isinstance(message, TaskResult):
-                assert compare_task_results(message, result)
+                final_stream_result = message
             else:
-                assert compare_messages(message, result.messages[result_index])
-                result_index += 1
+                streamed_messages.append(message)
+        assert final_stream_result is not None
+        assert compare_task_results(final_stream_result, result)
+        # Verify streamed messages match the complete result.messages
+        assert len(streamed_messages) == len(result.messages)
+        for streamed_msg, expected_msg in zip(streamed_messages, result.messages, strict=False):
+            assert compare_messages(streamed_msg, expected_msg)
 
         # Test message input.
         # Text message.
@@ -331,18 +337,36 @@ async def test_round_robin_group_chat_with_team_event(runtime: AgentRuntime | No
         assert isinstance(result.messages[5], SelectSpeakerEvent)
         assert isinstance(result.messages[6], TextMessage)
 
-        # Test streaming.
+        # Test streaming with default output_task_messages=True.
         model_client.reset()
-        result_index = 1  # Skip task message in result since output_task_messages=False by default
         await team.reset()
+        streamed_messages: List[BaseAgentEvent | BaseChatMessage] = []
+        final_stream_result: TaskResult | None = None
         async for message in team.run_stream(
             task="Write a program that prints 'Hello, world!'",
         ):
             if isinstance(message, TaskResult):
-                assert compare_task_results(message, result)
+                final_stream_result = message
             else:
-                assert compare_messages(message, result.messages[result_index])
-                result_index += 1
+                streamed_messages.append(message)
+        assert final_stream_result is not None
+        assert compare_task_results(final_stream_result, result)
+        # Verify streamed messages match the complete result.messages
+        assert len(streamed_messages) == len(result.messages)
+        for streamed_msg, expected_msg in zip(streamed_messages, result.messages, strict=False):
+            assert compare_messages(streamed_msg, expected_msg)
+
+        # Test multi-modal message.
+        model_client.reset()
+        await team.reset()
+        task = MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")
+        result_2 = await team.run(task=task)
+        assert isinstance(result.messages[0], TextMessage)
+        assert isinstance(result_2.messages[0], MultiModalMessage)
+        assert result.messages[0].content == task.content[0]
+        assert len(result.messages[1:]) == len(result_2.messages[1:])
+        for i in range(1, len(result.messages)):
+            assert compare_messages(result.messages[i], result_2.messages[i])
 
 
 @pytest.mark.asyncio
@@ -490,7 +514,7 @@ async def test_round_robin_group_chat_with_tools(runtime: AgentRuntime | None) -
     # Test streaming.
     await tool_use_agent._model_context.clear()  # pyright: ignore
     model_client.reset()
-    result_index = 1  # Skip task message in result since output_task_messages=False by default
+    result_index = 0  # Include task message in result since output_task_messages=True by default
     await team.reset()
     async for message in team.run_stream(
         task="Write a program that prints 'Hello, world!'",
@@ -678,7 +702,7 @@ async def test_selector_group_chat(runtime: AgentRuntime | None) -> None:
     # Test streaming.
     model_client.reset()
     agent1._count = 0  # pyright: ignore
-    result_index = 1  # Skip task message in result since output_task_messages=False by default
+    result_index = 0  # Include task message in result since output_task_messages=True by default
     await team.reset()
     async for message in team.run_stream(
         task="Write a program that prints 'Hello, world!'",
@@ -798,7 +822,7 @@ async def test_selector_group_chat_with_team_event(runtime: AgentRuntime | None)
     # Test streaming.
     model_client.reset()
     agent1._count = 0  # pyright: ignore
-    result_index = 1  # Skip task message in result since output_task_messages=False by default
+    result_index = 0  # Include task message in result since output_task_messages=True by default
     await team.reset()
     async for message in team.run_stream(
         task="Write a program that prints 'Hello, world!'",
@@ -904,7 +928,7 @@ async def test_selector_group_chat_two_speakers(runtime: AgentRuntime | None) ->
     # Test streaming.
     model_client.reset()
     agent1._count = 0  # pyright: ignore
-    result_index = 1  # Skip task message in result since output_task_messages=False by default
+    result_index = 0  # Include task message in result since output_task_messages=True by default
     await team.reset()
     async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
         if isinstance(message, TaskResult):
@@ -951,7 +975,7 @@ async def test_selector_group_chat_two_speakers_allow_repeated(runtime: AgentRun
 
     # Test streaming.
     model_client.reset()
-    result_index = 1  # Skip task message in result since output_task_messages=False by default
+    result_index = 0  # Include task message in result since output_task_messages=True by default
     await team.reset()
     async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
         if isinstance(message, TaskResult):
@@ -1165,7 +1189,7 @@ async def test_swarm_handoff(runtime: AgentRuntime | None) -> None:
     )
 
     # Test streaming.
-    result_index = 1  # Skip task message in result since output_task_messages=False by default
+    result_index = 0  # Include task message in result since output_task_messages=True by default
     await team.reset()
     stream = team.run_stream(task="task")
     async for message in stream:
@@ -1239,7 +1263,7 @@ async def test_swarm_handoff_with_team_events(runtime: AgentRuntime | None) -> N
     )
 
     # Test streaming.
-    result_index = 1  # Skip task message in result since output_task_messages=False by default
+    result_index = 0  # Include task message in result since output_task_messages=True by default
     await team.reset()
     stream = team.run_stream(task="task")
     async for message in stream:
@@ -1357,7 +1381,7 @@ async def test_swarm_handoff_using_tool_calls(runtime: AgentRuntime | None) -> N
     # Test streaming.
     await agent1._model_context.clear()  # pyright: ignore
     model_client.reset()
-    result_index = 1  # Skip task message in result since output_task_messages=False by default
+    result_index = 0  # Include task message in result since output_task_messages=True by default
     await team.reset()
     stream = team.run_stream(task="task")
     async for message in stream:
@@ -1593,7 +1617,7 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
 
     # Test with streaming
     await team.reset()
-    result_index = 3  # Skip the 3 task messages in result since output_task_messages=False by default
+    result_index = 0  # Include the 3 task messages in result since output_task_messages=True by default
     async for message in team.run_stream(task=messages):
         if isinstance(message, TaskResult):
             assert compare_task_results(message, result)
@@ -1797,17 +1821,28 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
     # Test streaming
     await team.reset()
     model_client.reset()
-    result_index = 1  # Skip task message in result since output_task_messages=False by default
-    streaming: List[str] = []
-    async for message in team.run_stream(task="Write a program that prints 'Hello, world!'"):
+    result_index = 0  # Include task message in result since output_task_messages=True by default
+    streamed_chunks: List[str] = []
+    final_result: TaskResult | None = None
+    async for message in team.run_stream(
+        task="Write a program that prints 'Hello, world!'",
+    ):
         if isinstance(message, TaskResult):
+            final_result = message
             assert compare_task_results(message, result)
         elif isinstance(message, ModelClientStreamingChunkEvent):
-            streaming.append(message.content)
+            streamed_chunks.append(message.content)
         else:
-            if streaming:
+            if streamed_chunks:
                 assert isinstance(message, SelectorEvent)
-                assert message.content == "".join([chunk for chunk in streaming])
-                streaming = []
+                assert message.content == "".join(streamed_chunks)
+                streamed_chunks = []
             assert compare_messages(message, result.messages[result_index])
             result_index += 1
+
+    # Verify we got the expected messages without relying on fragile ordering
+    assert final_result is not None
+    assert len(streamed_chunks) == 0  # All chunks should have been processed
+
+    # Content-based verification instead of index-based
+    # Note: The streaming test verifies the streaming behavior, not the final result content

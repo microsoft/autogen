@@ -176,13 +176,13 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
             elif isinstance(task, str):
                 text_msg = TextMessage(content=task, source="user")
                 input_messages.append(text_msg)
-                output_messages.append(text_msg)
                 if output_task_messages:
+                    output_messages.append(text_msg)
                     yield text_msg
             elif isinstance(task, BaseChatMessage):
                 input_messages.append(task)
-                output_messages.append(task)
                 if output_task_messages:
+                    output_messages.append(task)
                     yield task
             else:
                 if not task:
@@ -190,8 +190,8 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
                 for msg in task:
                     if isinstance(msg, BaseChatMessage):
                         input_messages.append(msg)
-                        output_messages.append(msg)
                         if output_task_messages:
+                            output_messages.append(msg)
                             yield msg
                     else:
                         raise ValueError(f"Invalid message type in sequence: {type(msg)}")
