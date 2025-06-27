@@ -88,7 +88,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
     },
     "o1-2024-12-17": {
         "vision": False,
-        "function_calling": False,
+        "function_calling": True,
         "json_output": False,
         "family": ModelFamily.O1,
         "structured_output": True,
