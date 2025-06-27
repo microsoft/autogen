@@ -625,10 +625,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if create_params.response_format is not None:
             result = cast(ParsedChatCompletion[Any], result)
 
+        # Handle the case where OpenAI API might return None for token counts
+        # even when result.usage is not None
         usage = RequestUsage(
             # TODO backup token counting
-            prompt_tokens=result.usage.prompt_tokens if result.usage is not None else 0,
-            completion_tokens=(result.usage.completion_tokens if result.usage is not None else 0),
+            prompt_tokens=getattr(result.usage, "prompt_tokens", 0) if result.usage is not None else 0,
+            completion_tokens=getattr(result.usage, "completion_tokens", 0) if result.usage is not None else 0,
         )
 
         logger.info(
