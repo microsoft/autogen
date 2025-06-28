@@ -43,11 +43,11 @@ Understand the message types
 Work with AgentChat agents and get started with {py:class}`~autogen_agentchat.agents.AssistantAgent`
 :::
 
-:::{grid-item-card} {fas}`exclamation-triangle;pst-color-primary` Tool Error Handling
-:link: ./tool-error-handling.html
-:link-alt: Tool Error Handling: Best practices for handling errors in tools
+:::{grid-item-card} {fas}`exclamation-triangle;pst-color-primary` Tools and Error Handling
+:link: ../../core-user-guide/components/tools.ipynb
+:link-alt: Tools and Error Handling: Best practices for using tools and handling errors
 
-Best practices for handling errors in tools and providing meaningful feedback
+Best practices for using tools, handling errors, and providing meaningful feedback
 :::
 
 :::{grid-item-card} {fas}`sitemap;pst-color-primary` Teams

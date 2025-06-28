@@ -109,6 +109,12 @@ Sample code and use cases
 
 How to migrate from AutoGen 0.2.x to 0.4.x.
 :::
+
+:::{grid-item-card} {fas}`file;pst-color-primary` Tools and Error Handling
+:link: ../core-user-guide/components/tools.ipynb
+
+Using tools and handling errors in your agents
+:::
 ::::
 
 ```{toctree}
@@ -129,7 +135,6 @@ tutorial/index
 tutorial/models
 tutorial/messages
 tutorial/agents
-tutorial/tool-error-handling
 tutorial/teams
 tutorial/human-in-the-loop
 tutorial/termination
