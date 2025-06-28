@@ -11,8 +11,21 @@ import {
   Card,
   Select,
   Divider,
+  Dropdown,
+  MenuProps,
 } from "antd";
-import { PlayCircle, Wrench, CheckCircle, XCircle } from "lucide-react";
+import {
+  PlayCircle,
+  Wrench,
+  CheckCircle,
+  Search,
+  ChevronDown,
+  Shield,
+  AlertTriangle,
+  RotateCcw,
+  Globe,
+  Hash,
+} from "lucide-react";
 import { McpServerParams } from "../../../../../../types/datamodel";
 import { mcpAPI, Tool, CallToolResult } from "../../../../../mcp/api";
 
@@ -32,6 +45,7 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
   const [executingTool, setExecutingTool] = useState(false);
   const [toolResult, setToolResult] = useState<CallToolResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const runToolRef = useRef<HTMLDivElement>(null);
   const toolResultRef = useRef<HTMLDivElement>(null);
 
@@ -41,18 +55,18 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
       const firstTool = tools[0];
       setSelectedTool(firstTool);
       setToolResult(null);
-      
+
       // Initialize tool arguments with default values based on schema
       const initialArgs: Record<string, any> = {};
       const schema = firstTool.inputSchema;
       const properties = schema?.properties || {};
-      
+
       Object.entries(properties).forEach(([key, propSchema]: [string, any]) => {
         if (propSchema.default !== undefined) {
           initialArgs[key] = propSchema.default;
         }
       });
-      
+
       setToolArguments(initialArgs);
     }
   }, [tools, selectedTool]);
@@ -84,6 +98,10 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
   const handleListTools = useCallback(async () => {
     setLoadingTools(true);
     setError(null);
+    // Clear selected tool and results when loading new tools
+    setSelectedTool(null);
+    setToolResult(null);
+    setToolArguments({});
 
     try {
       const result = await mcpAPI.listTools(serverParams);
@@ -119,10 +137,13 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
         toolName: selectedTool.name,
         arguments: toolArguments,
         argumentTypes: Object.fromEntries(
-          Object.entries(toolArguments).map(([key, value]) => [key, typeof value])
-        )
+          Object.entries(toolArguments).map(([key, value]) => [
+            key,
+            typeof value,
+          ])
+        ),
       });
-      
+
       const result = await mcpAPI.callTool(
         serverParams,
         selectedTool.name,
@@ -141,62 +162,213 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
     }
   }, [serverParams, selectedTool, toolArguments]);
 
-  const renderToolSelector = () => (
-    <Card size="small" title="Available Tools">
-      <Space direction="vertical" style={{ width: "100%" }}>
-        <Button
-          type="primary"
-          onClick={handleListTools}
-          loading={loadingTools}
-          icon={<Wrench size={16} />}
-        >
-          {tools.length > 0 ? "Refresh Tools" : "Load Tools"}
-        </Button>
+  // Filter tools based on search query
+  const filteredTools = tools.filter((tool) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    const displayName = (tool.annotations?.title || tool.name).toLowerCase();
+    const description = (tool.description || "").toLowerCase();
+    return displayName.includes(query) || description.includes(query);
+  });
 
-        {tools.length > 0 && (
-          <Select
-            style={{ width: "100%" }}
-            placeholder="Select a tool to test"
-            value={selectedTool?.name}
-            onChange={(toolName) => {
-              const tool = tools.find((t) => t.name === toolName);
-              setSelectedTool(tool || null);
-              setToolResult(null);
-              
-              // Initialize tool arguments with default values based on schema
-              const initialArgs: Record<string, any> = {};
-              if (tool) {
-                const schema = tool.inputSchema;
-                const properties = schema?.properties || {};
-                
-                Object.entries(properties).forEach(([key, propSchema]: [string, any]) => {
-                  if (propSchema.default !== undefined) {
-                    initialArgs[key] = propSchema.default;
-                  }
-                });
-              }
-              
-              setToolArguments(initialArgs);
-            }}
+  // Helper function to get tool display name
+  const getToolDisplayName = (tool: Tool): string => {
+    return tool.annotations?.title || tool.name;
+  };
+
+  // Helper function to get parameter count
+  const getParameterCount = (tool: Tool): number => {
+    return Object.keys(tool.inputSchema?.properties || {}).length;
+  };
+
+  // Handle tool selection from dropdown
+  const handleMenuClick: MenuProps["onClick"] = (e) => {
+    const toolName = e.key;
+    const tool = tools.find((t) => t.name === toolName);
+    if (tool) {
+      handleToolSelect(tool);
+    }
+  };
+
+  // Handle tool selection
+  const handleToolSelect = (tool: Tool) => {
+    setSelectedTool(tool);
+    setToolResult(null);
+
+    // Initialize tool arguments with default values based on schema
+    const initialArgs: Record<string, any> = {};
+    const schema = tool.inputSchema;
+    const properties = schema?.properties || {};
+
+    Object.entries(properties).forEach(([key, propSchema]: [string, any]) => {
+      if (propSchema.default !== undefined) {
+        initialArgs[key] = propSchema.default;
+      }
+    });
+
+    setToolArguments(initialArgs);
+  };
+
+  const renderToolSelector = () => {
+    if (loadingTools) {
+      return (
+        <Card size="small" title="Available Tools">
+          <div style={{ textAlign: "center", padding: "24px" }}>
+            <Spin size="large" />
+            <div style={{ marginTop: "16px" }}>
+              <Text>Loading tools...</Text>
+            </div>
+          </div>
+        </Card>
+      );
+    }
+
+    if (tools.length === 0) {
+      return (
+        <Card size="small" title="Available Tools">
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Button
+              type="primary"
+              onClick={handleListTools}
+              icon={<Wrench size={16} />}
+            >
+              Load Tools
+            </Button>
+          </Space>
+        </Card>
+      );
+    }
+
+    // Create dropdown menu items
+    const items: MenuProps["items"] = [
+      {
+        type: "group",
+        label: (
+          <div>
+            <div className="text-xs text-secondary mb-1">Select a tool</div>
+            <Input
+              prefix={<Search className="w-4 h-4" />}
+              placeholder="Search tools..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        ),
+        key: "search-tools",
+      },
+      {
+        type: "divider",
+      },
+      ...filteredTools.map((tool) => {
+        const displayName = getToolDisplayName(tool);
+        const paramCount = getParameterCount(tool);
+        const truncatedDescription =
+          tool.description && tool.description.length > 50
+            ? `${tool.description.substring(0, 50)}...`
+            : tool.description || "No description available";
+
+        return {
+          label: (
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{displayName}</span>
+                <div className="flex items-center gap-1 text-xs text-secondary">
+                  <Hash size={12} />
+                  <span>{paramCount}</span>
+                </div>
+              </div>
+              <div className="text-xs text-secondary mt-1">
+                {truncatedDescription}
+              </div>
+            </div>
+          ),
+          key: tool.name,
+          icon: <Wrench className="w-4 h-4" />,
+        };
+      }),
+    ];
+
+    const menuProps = {
+      items,
+      onClick: handleMenuClick,
+    };
+
+    return (
+      <Card
+        size="small"
+        title={
+          <Space style={{ width: "100%", justifyContent: "space-between" }}>
+            <span>Available Tools ({tools.length})</span>
+            <Button
+              type="link"
+              size="small"
+              onClick={handleListTools}
+              loading={loadingTools}
+              icon={<Wrench size={12} />}
+            >
+              Refresh
+            </Button>
+          </Space>
+        }
+      >
+        <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          <Dropdown.Button
+            menu={menuProps}
+            type="default"
+            className="w-full"
+            placement="bottomLeft"
+            icon={<ChevronDown className="w-4 h-4" />}
+            disabled={loadingTools}
           >
-            {tools.map((tool) => (
-              <Option
-                key={tool.name}
-                value={tool.name}
-                title={tool.description}
-              >
-                <Text strong>{tool.name}</Text>
-              </Option>
-            ))}
-          </Select>
-        )}
+            <div className="flex items-center gap-2">
+              <Wrench className="w-4 h-4" />
+              <span>
+                {selectedTool
+                  ? getToolDisplayName(selectedTool)
+                  : "Select a tool"}
+              </span>
+            </div>
+          </Dropdown.Button>
 
-        {tools.length > 0 && (
-          <Text type="secondary">Found {tools.length} tool(s)</Text>
-        )}
-      </Space>
-    </Card>
-  );
+          {selectedTool && (
+            <div className="p-3 bg-secondary rounded border">
+              <div className="flex items-center gap-2 mb-2">
+                <Wrench size={16} />
+                <Text strong>{getToolDisplayName(selectedTool)}</Text>
+                <Tag color="blue">{getParameterCount(selectedTool)} params</Tag>
+                {selectedTool.annotations?.readOnlyHint && (
+                  <Tag color="green" className="text-xs">
+                    Read-only
+                  </Tag>
+                )}
+                {selectedTool.annotations?.destructiveHint && (
+                  <Tag color="red" className="text-xs">
+                    Destructive
+                  </Tag>
+                )}
+                {selectedTool.annotations?.idempotentHint && (
+                  <Tag color="purple" className="text-xs">
+                    Idempotent
+                  </Tag>
+                )}
+                {selectedTool.annotations?.openWorldHint && (
+                  <Tag color="orange" className="text-xs">
+                    Open-world
+                  </Tag>
+                )}
+              </div>
+              {selectedTool.description && (
+                <Text type="secondary" className="text-sm">
+                  {selectedTool.description}
+                </Text>
+              )}
+            </div>
+          )}
+        </Space>
+      </Card>
+    );
+  };
 
   const renderArgumentsForm = () => {
     if (!selectedTool) return null;
@@ -278,12 +450,17 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
                     </Select>
                   ) : (
                     <Input
-                      type={propSchema.type === "number" || propSchema.type === "integer" ? "number" : "text"}
+                      type={
+                        propSchema.type === "number" ||
+                        propSchema.type === "integer"
+                          ? "number"
+                          : "text"
+                      }
                       placeholder={propSchema.description || `Enter ${key}`}
                       value={toolArguments[key] || ""}
                       onChange={(e) => {
                         let value: any = e.target.value;
-                        
+
                         // Convert to appropriate type based on schema
                         if (propSchema.type === "integer") {
                           if (value === "") {
@@ -301,7 +478,7 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
                           }
                         }
                         // Keep strings as-is, booleans are handled separately
-                        
+
                         setToolArguments({
                           ...toolArguments,
                           [key]: value,
@@ -314,9 +491,15 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
                       {propSchema.description}
                     </Text>
                   )}
-                  {(propSchema.type === "integer" || propSchema.type === "number") && (
-                    <Text type="secondary" style={{ fontSize: "11px", fontStyle: "italic" }}>
-                      Expected: {propSchema.type} | Current: {typeof toolArguments[key]} | Value: {JSON.stringify(toolArguments[key])}
+                  {(propSchema.type === "integer" ||
+                    propSchema.type === "number") && (
+                    <Text
+                      type="secondary"
+                      style={{ fontSize: "11px", fontStyle: "italic" }}
+                    >
+                      Expected: {propSchema.type} | Current:{" "}
+                      {typeof toolArguments[key]} | Value:{" "}
+                      {JSON.stringify(toolArguments[key])}
                     </Text>
                   )}
                 </Form.Item>
@@ -404,20 +587,22 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
   }
 
   return (
-    <Space direction="vertical" style={{ width: "100%" }}>
-      {renderToolSelector()}
-      {selectedTool && (
-        <>
-          <Divider />
-          {renderArgumentsForm()}
-        </>
-      )}
-      {toolResult && (
-        <>
-          <Divider />
-          {renderToolResult()}
-        </>
-      )}
-    </Space>
+    <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        {renderToolSelector()}
+        {selectedTool && !loadingTools && (
+          <>
+            <Divider />
+            {renderArgumentsForm()}
+          </>
+        )}
+        {toolResult && !loadingTools && (
+          <>
+            <Divider />
+            {renderToolResult()}
+          </>
+        )}
+      </Space>
+    </div>
   );
 };

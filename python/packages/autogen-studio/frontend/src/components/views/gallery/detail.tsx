@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Tabs, Button, Tooltip, Drawer, Input, message } from "antd";
+import { Tabs, Button, Tooltip, Drawer, Input, message, Dropdown } from "antd";
 import {
   Package,
   Users,
@@ -16,6 +16,7 @@ import {
   Briefcase,
   Code,
   FormInput,
+  ChevronDown,
 } from "lucide-react";
 import { ComponentEditor } from "../teambuilder/builder/component-editor/component-editor";
 import { MonacoEditor } from "../monaco";
@@ -25,6 +26,12 @@ import {
   ComponentConfig,
   ComponentTypes,
   Gallery,
+  WorkbenchConfig,
+  StaticWorkbenchConfig,
+  McpWorkbenchConfig,
+  StdioServerParams,
+  SseServerParams,
+  StreamableHttpServerParams,
 } from "../../types/datamodel";
 import TextArea from "antd/es/input/TextArea";
 
@@ -187,6 +194,51 @@ const defaultConfigs: Record<ComponentTypes, ComponentConfig> = {
   workbench: { tools: [] } as any,
 };
 
+// Workbench type definitions for dropdown
+type WorkbenchType = "static" | "mcp-stdio" | "mcp-sse" | "mcp-http";
+
+const workbenchTypeConfigs: Record<WorkbenchType, { label: string; description: string; config: WorkbenchConfig }> = {
+  static: {
+    label: "Static Workbench",
+    description: "A workbench with a collection of tools",
+    config: { tools: [] } as StaticWorkbenchConfig,
+  },
+  "mcp-stdio": {
+    label: "MCP Stdio Server",
+    description: "Model Context Protocol server via command line",
+    config: {
+      server_params: {
+        type: "StdioServerParams",
+        command: "",
+        args: [],
+        env: {},
+      } as StdioServerParams,
+    } as McpWorkbenchConfig,
+  },
+  "mcp-sse": {
+    label: "MCP SSE Server",
+    description: "Model Context Protocol server via server-sent events",
+    config: {
+      server_params: {
+        type: "SseServerParams",
+        url: "",
+        headers: {},
+      } as SseServerParams,
+    } as McpWorkbenchConfig,
+  },
+  "mcp-http": {
+    label: "MCP HTTP Server",
+    description: "Model Context Protocol server via streamable HTTP",
+    config: {
+      server_params: {
+        type: "StreamableHttpServerParams",
+        url: "",
+        headers: {},
+      } as StreamableHttpServerParams,
+    } as McpWorkbenchConfig,
+  },
+};
+
 export const GalleryDetail: React.FC<{
   gallery: Gallery;
   onSave: (updates: Partial<Gallery>) => void;
@@ -334,6 +386,29 @@ export const GalleryDetail: React.FC<{
     });
   };
 
+  const handleAddWorkbench = (workbenchType: WorkbenchType) => {
+    const category = getCategoryKey("workbench");
+    const typeConfig = workbenchTypeConfigs[workbenchType];
+    
+    const newComponent: Component<ComponentConfig> = {
+      provider: "new",
+      component_type: "workbench",
+      config: typeConfig.config,
+      label: `New ${typeConfig.label}`,
+      description: typeConfig.description,
+    };
+
+    updateGallery(category, (components) => {
+      const newComponents = [...components, newComponent];
+      setEditingComponent({
+        component: newComponent,
+        category,
+        index: newComponents.length - 1,
+      });
+      return newComponents;
+    });
+  };
+
   const handleComponentUpdate = (
     updatedComponent: Component<ComponentConfig>
   ) => {
@@ -424,17 +499,46 @@ export const GalleryDetail: React.FC<{
               ? key.charAt(0).toUpperCase() + key.slice(1)
               : key.charAt(0).toUpperCase() + key.slice(1) + "s"}
           </h3>
-          <Button
-            type="primary"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={() => {
-              setActiveTab(key as ComponentTypes);
-              handleAdd();
-            }}
-            disabled={isJsonEditing}
-          >
-            {`Add ${key.charAt(0).toUpperCase() + key.slice(1)}`}
-          </Button>
+          {key === "workbench" ? (
+            <Dropdown
+              menu={{
+                items: Object.entries(workbenchTypeConfigs).map(([type, config]) => ({
+                  key: type,
+                  label: (
+                    <div className="py-1">
+                      <div className="font-medium">{config.label}</div>
+                      <div className="text-xs text-secondary">{config.description}</div>
+                    </div>
+                  ),
+                  onClick: () => handleAddWorkbench(type as WorkbenchType),
+                })),
+              }}
+              trigger={["click"]}
+              disabled={isJsonEditing}
+            >
+              <Button
+                type="primary"
+                icon={<Plus className="w-4 h-4" />}
+                disabled={isJsonEditing}
+                className="flex items-center gap-1"
+              >
+                Add Workbench
+                <ChevronDown className="w-3 h-3" />
+              </Button>
+            </Dropdown>
+          ) : (
+            <Button
+              type="primary"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => {
+                setActiveTab(key as ComponentTypes);
+                handleAdd();
+              }}
+              disabled={isJsonEditing}
+            >
+              {`Add ${key.charAt(0).toUpperCase() + key.slice(1)}`}
+            </Button>
+          )}
         </div>
         <ComponentGrid
           items={
@@ -451,7 +555,7 @@ export const GalleryDetail: React.FC<{
   }));
 
   return (
-    <div className="max-w-7xl mx-auto px-4">
+    <div className="max-w-7xl px-4">
       {contextHolder}
 
       <div className="relative h-64 rounded bg-secondary overflow-hidden mb-8">

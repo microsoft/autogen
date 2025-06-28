@@ -23,6 +23,8 @@ from typing import Any, Dict, List, Optional, Callable, Awaitable
 from datetime import timedelta
 import asyncio
 import threading
+import sys
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from loguru import logger
 
@@ -56,6 +58,39 @@ class McpClient:
         # Remove persistent state - each operation will create its own session
         pass
     
+    def _extract_real_error(self, e: Exception) -> str:
+        """Extract the real error message from potentially wrapped exceptions"""
+        error_parts = []
+        
+        # Handle ExceptionGroup (Python 3.11+) - use getattr to avoid type checker issues
+        if hasattr(e, 'exceptions') and getattr(e, 'exceptions', None):
+            exceptions_list = getattr(e, 'exceptions')
+            for sub_exc in exceptions_list:
+                error_parts.append(f"{type(sub_exc).__name__}: {str(sub_exc)}")
+                # Log additional details for debugging
+                logger.debug(f"Sub-exception details: {traceback.format_exception(type(sub_exc), sub_exc, sub_exc.__traceback__)}")
+        
+        # Handle chained exceptions
+        elif hasattr(e, '__cause__') and e.__cause__:
+            current = e
+            while current:
+                error_parts.append(f"{type(current).__name__}: {str(current)}")
+                current = getattr(current, '__cause__', None)
+        
+        # Handle context exceptions
+        elif hasattr(e, '__context__') and e.__context__:
+            error_parts.append(f"Context: {type(e.__context__).__name__}: {str(e.__context__)}")
+            error_parts.append(f"Error: {type(e).__name__}: {str(e)}")
+        
+        # Default case
+        else:
+            error_parts.append(f"{type(e).__name__}: {str(e)}")
+        
+        # Add traceback for debugging
+        logger.debug(f"Full traceback: {traceback.format_exc()}")
+        
+        return " | ".join(error_parts)
+
     async def __aenter__(self):
         return self
     
@@ -65,14 +100,20 @@ class McpClient:
     
     async def _execute_with_session(self, server_params: McpServerParams, operation):
         """Execute an operation with a session, managing the session lifecycle properly"""
-        if isinstance(server_params, StdioServerParams):
-            return await self._execute_with_stdio(server_params, operation)
-        elif isinstance(server_params, SseServerParams):
-            return await self._execute_with_sse(server_params, operation)
-        elif isinstance(server_params, StreamableHttpServerParams):
-            return await self._execute_with_http(server_params, operation)
-        else:
-            raise McpConnectionError(f"Unsupported server type: {type(server_params)}")
+        try:
+            if isinstance(server_params, StdioServerParams):
+                return await self._execute_with_stdio(server_params, operation)
+            elif isinstance(server_params, SseServerParams):
+                return await self._execute_with_sse(server_params, operation)
+            elif isinstance(server_params, StreamableHttpServerParams):
+                return await self._execute_with_http(server_params, operation)
+            else:
+                raise McpConnectionError(f"Unsupported server type: {type(server_params)}")
+        except Exception as e:
+            # Extract and log the real error
+            real_error = self._extract_real_error(e)
+            logger.error(f"Session execution failed: {real_error}")
+            raise
     
     async def _execute_with_stdio(self, server_params: StdioServerParams, operation):
         """Execute operation with STDIO session"""
@@ -105,18 +146,24 @@ class McpClient:
         """Execute operation with StreamableHTTP session"""
         if streamablehttp_client is None:
             raise McpConnectionError("StreamableHTTP client not available in this MCP version")
-            
-        async with streamablehttp_client(
-            url=server_params.url,
-            headers=server_params.headers or {},
-            timeout=timedelta(seconds=server_params.timeout),
-            sse_read_timeout=timedelta(seconds=server_params.sse_read_timeout),
-            auth=getattr(server_params, 'auth', None)
-        ) as (read, write, get_session_id):
-            async with ClientSession(read, write) as session:
-                initialize_result = await session.initialize()
-                logger.debug(f"Connected to MCP server via StreamableHTTP: {server_params.url}")
-                return await operation(session, initialize_result)
+        
+        try:
+            async with streamablehttp_client(
+                url=server_params.url,
+                headers=server_params.headers or {},
+                timeout=timedelta(seconds=server_params.timeout),
+                sse_read_timeout=timedelta(seconds=server_params.sse_read_timeout),
+                auth=getattr(server_params, 'auth', None)
+            ) as (read, write, get_session_id):
+                async with ClientSession(read, write) as session:
+                    initialize_result = await session.initialize()
+                    logger.debug(f"Connected to MCP server via StreamableHTTP: {server_params.url}")
+                    return await operation(session, initialize_result)
+        except Exception as e:
+            # Log the actual error details for HTTP connections
+            real_error = self._extract_real_error(e)
+            logger.error(f"StreamableHTTP connection error to {server_params.url}: {real_error}")
+            raise
     
     async def list_tools(self, server_params: McpServerParams) -> List[Tool]:
         """List available tools from an MCP server"""
@@ -129,8 +176,9 @@ class McpClient:
             return await self._execute_with_session(server_params, operation)
             
         except Exception as e:
-            logger.error(f"Failed to list tools: {str(e)}")
-            raise McpOperationError(f"Failed to list tools: {str(e)}")
+            real_error = self._extract_real_error(e)
+            logger.error(f"Failed to list tools: {real_error}")
+            raise McpOperationError(f"Failed to list tools: {real_error}")
     
     async def call_tool(
         self, 
@@ -149,8 +197,9 @@ class McpClient:
             return await self._execute_with_session(server_params, operation)
             
         except Exception as e:
-            logger.error(f"Failed to call tool {tool_name}: {str(e)}")
-            raise McpOperationError(f"Failed to call tool: {str(e)}")
+            real_error = self._extract_real_error(e)
+            logger.error(f"Failed to call tool {tool_name}: {real_error}")
+            raise McpOperationError(f"Failed to call tool: {real_error}")
     
     async def list_resources(self, server_params: McpServerParams) -> List[Resource]:
         """List available resources from an MCP server"""
@@ -224,8 +273,9 @@ class McpClient:
             return await self._execute_with_session(server_params, operation)
             
         except Exception as e:
-            logger.error(f"Failed to get capabilities: {str(e)}")
-            raise McpOperationError(f"Failed to get capabilities: {str(e)}")
+            real_error = self._extract_real_error(e)
+            logger.error(f"Failed to get capabilities: {real_error}")
+            raise McpOperationError(f"Failed to get capabilities: {real_error}")
     
     # Future capability methods (placeholder for when MCP spec supports them)
     async def sample_text(
