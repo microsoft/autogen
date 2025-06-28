@@ -67,7 +67,7 @@ class ModelFamily:
         "gemini-1.5-pro",
         "gemini-2.0-flash",
         "gemini-2.5-pro",
-        "gemini-2.5-flash"
+        "gemini-2.5-flash",
         # anthropic_models
         "claude-3-haiku",
         "claude-3-sonnet",
