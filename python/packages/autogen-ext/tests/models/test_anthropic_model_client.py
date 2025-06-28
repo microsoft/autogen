@@ -35,7 +35,7 @@ def _add_numbers(a: int, b: int) -> int:
 
 
 @pytest.mark.asyncio
-async def test_anthropic_tool_choice_specific_tool():
+async def test_anthropic_tool_choice_specific_tool() -> None:
     """Test tool_choice parameter with a specific tool using mocks."""
     # Create mock client and response
     mock_client = AsyncMock()
@@ -77,7 +77,7 @@ async def test_anthropic_tool_choice_specific_tool():
 
 
 @pytest.mark.asyncio
-async def test_anthropic_tool_choice_auto():
+async def test_anthropic_tool_choice_auto() -> None:
     """Test tool_choice parameter with 'auto' setting using mocks."""
     # Create mock client and response
     mock_client = AsyncMock()
@@ -119,7 +119,7 @@ async def test_anthropic_tool_choice_auto():
 
 
 @pytest.mark.asyncio
-async def test_anthropic_tool_choice_none():
+async def test_anthropic_tool_choice_none() -> None:
     """Test tool_choice parameter with None setting using mocks."""
     # Create mock client and response
     mock_client = AsyncMock()
@@ -160,7 +160,7 @@ async def test_anthropic_tool_choice_none():
 
 
 @pytest.mark.asyncio
-async def test_anthropic_tool_choice_validation_error():
+async def test_anthropic_tool_choice_validation_error() -> None:
     """Test tool_choice validation with invalid tool reference."""
     client = AnthropicChatCompletionClient(
         model="claude-3-haiku-20240307",

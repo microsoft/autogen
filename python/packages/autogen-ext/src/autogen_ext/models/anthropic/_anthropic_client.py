@@ -620,8 +620,8 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                         tool_names_available.append(tool["name"])
             else:
                 # Use last used tools names if available
-                for tool in self._last_used_tools:
-                    tool_names_available.append(tool["name"])
+                for tool_param in self._last_used_tools:
+                    tool_names_available.append(tool_param["name"])
 
             # tool_choice is a single Tool object
             tool_name = tool_choice.schema["name"]
