@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
+# pyright: reportPrivateUsage=false, reportIncompatibleMethodOverride=false, reportUnusedImport=false
 """
-Test script to verify OpenAI agent built-in tools validation works correctly.
+Test script to verify OpenAI agent built-in tools validation and configuration works correctly.
 """
 
-from typing import Any, Dict, List, Union
+import json
+import os
+from typing import Any, Dict, Final, List, Mapping, Type, Union
 from unittest.mock import Mock
 
 import pytest
-from autogen_ext.agents.openai._openai_agent import OpenAIAgent
+from autogen_agentchat.messages import TextMessage
+from autogen_core import CancellationToken, ComponentModel
+from autogen_core.tools import Tool, ToolSchema
+from autogen_ext.agents.openai._openai_agent import OpenAIAgent, OpenAIAgentConfig
 from openai import AsyncOpenAI
+from pydantic import BaseModel
 
 
 class TestOpenAIAgentBuiltinToolValidation:
@@ -285,7 +292,9 @@ class TestOpenAIAgentBuiltinToolValidation:
             {
                 "type": "web_search_preview",
                 "user_location": "",  # Empty string should fail
-                "expected_error": "web_search_preview 'user_location' must be a non-empty string when using string format",
+                "expected_error": (
+                    "web_search_preview 'user_location' must be a non-empty string when using string format"
+                ),
             },
             {
                 "type": "web_search_preview",
@@ -470,3 +479,301 @@ class TestOpenAIAgentBuiltinToolValidation:
                 tools=[invalid_config],  # type: ignore
             )
         assert "Unsupported built-in tool type: invalid_shell_type" in str(exc_info.value)
+
+    # Configuration serialization/deserialization tests
+    def test_config_serialize_builtin_tools(self, mock_client: AsyncOpenAI) -> None:
+        """Test serialization of built-in tools to config."""
+        agent = OpenAIAgent(
+            name="config_test_agent",
+            description="Agent for config testing",
+            client=mock_client,
+            model="gpt-4",
+            instructions="You are a helpful assistant.",
+            tools=[
+                {"type": "web_search_preview", "search_context_size": 5},
+                {"type": "file_search", "vector_store_ids": ["vs_123"]},
+            ],
+        )
+
+        # Serialize to config
+        config = agent._to_config()
+
+        # Verify config contains tools
+        assert config.tools is not None
+        assert len(config.tools) == 2
+
+        # Check tools are preserved as dict format
+        web_search_tool = next(t for t in config.tools if isinstance(t, dict) and t["type"] == "web_search_preview")
+        file_search_tool = next(t for t in config.tools if isinstance(t, dict) and t["type"] == "file_search")
+
+        # "search_context_size" is optional in TypedDict; use .get for safe access
+        assert web_search_tool.get("search_context_size") == 5
+        assert file_search_tool["vector_store_ids"] == ["vs_123"]
+
+    def test_config_deserialize_builtin_tools(self, mock_client: AsyncOpenAI) -> None:
+        """Test deserialization of built-in tools from config."""
+        config = OpenAIAgentConfig(
+            name="deserialize_test_agent",
+            description="Agent for deserialization testing",
+            model="gpt-4",
+            instructions="You are a helpful assistant.",
+            tools=[
+                {"type": "web_search_preview"},
+                {"type": "mcp", "server_label": "test-server", "server_url": "http://localhost:3000"},
+            ],
+        )
+
+        # Deserialize from config
+        agent = OpenAIAgent._from_config(config)
+
+        # Verify agent has tools
+        assert len(agent._tools) == 2
+
+        web_search_tool = next(t for t in agent._tools if t["type"] == "web_search_preview")
+        mcp_tool = next(t for t in agent._tools if t["type"] == "mcp")
+
+        assert web_search_tool is not None
+        assert mcp_tool["server_label"] == "test-server"
+        assert mcp_tool["server_url"] == "http://localhost:3000"
+
+    def test_config_round_trip_builtin_tools(self, mock_client: AsyncOpenAI) -> None:
+        """Test round-trip serialization/deserialization of built-in tools."""
+        original_tools = [
+            {"type": "web_search_preview", "search_context_size": 3},
+            {"type": "file_search", "vector_store_ids": ["vs_abc"], "max_num_results": 5},
+        ]
+
+        # Create original agent
+        original_agent = OpenAIAgent(
+            name="round_trip_agent",
+            description="Round trip test agent",
+            client=mock_client,
+            model="gpt-4",
+            instructions="You are a helpful assistant.",
+            tools=original_tools,  # type: ignore
+        )
+
+        # Serialize to config and back
+        config = original_agent._to_config()
+        reconstructed_agent = OpenAIAgent._from_config(config)
+
+        # Verify agent properties preserved
+        assert reconstructed_agent.name == original_agent.name
+        assert reconstructed_agent.description == original_agent.description
+        assert reconstructed_agent._model == original_agent._model
+
+        # Verify tools preserved
+        assert len(reconstructed_agent._tools) == 2
+
+        web_search_tool = next(t for t in reconstructed_agent._tools if t["type"] == "web_search_preview")
+        file_search_tool = next(t for t in reconstructed_agent._tools if t["type"] == "file_search")
+
+        assert web_search_tool["search_context_size"] == 3
+        assert file_search_tool["vector_store_ids"] == ["vs_abc"]
+        assert file_search_tool["max_num_results"] == 5
+
+    def test_config_json_serialization_builtin_tools(self, mock_client: AsyncOpenAI) -> None:
+        """Test that config with built-in tools can be JSON serialized/deserialized."""
+        agent = OpenAIAgent(
+            name="json_test_agent",
+            description="JSON test agent",
+            client=mock_client,
+            model="gpt-4",
+            instructions="You are a helpful assistant.",
+            tools=[
+                {"type": "web_search_preview", "search_context_size": 7},
+                {"type": "image_generation", "background": "white"},
+            ],
+        )
+
+        # Serialize to config and JSON
+        config = agent._to_config()
+        config_dict = config.model_dump()
+        json_str = json.dumps(config_dict, indent=2)
+
+        # Parse JSON and recreate config
+        parsed_dict = json.loads(json_str)
+        restored_config = OpenAIAgentConfig.model_validate(parsed_dict)
+
+        # Verify config preserved
+        assert restored_config.name == "json_test_agent"
+        assert restored_config.tools is not None
+        assert len(restored_config.tools) == 2
+
+        # Create agent from restored config
+        restored_agent = OpenAIAgent._from_config(restored_config)
+        assert restored_agent.name == "json_test_agent"
+        assert len(restored_agent._tools) == 2
+
+    def test_config_mixed_tools_serialization(self, mock_client: AsyncOpenAI) -> None:
+        """Test serialization of mixed custom and built-in tools."""
+
+        from autogen_core.tools import ToolSchema
+
+        class MockCustomTool(Tool):
+            @property
+            def name(self) -> str:
+                return "custom_test_tool"
+
+            @property
+            def description(self) -> str:
+                return "A custom test tool"
+
+            @property
+            def schema(self) -> "ToolSchema":  # type: ignore[name-defined]
+                return {
+                    "name": self.name,
+                    "description": self.description,
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"input": {"type": "string"}},
+                        "required": ["input"],
+                    },
+                }
+
+            def args_type(self) -> "Type[BaseModel]":  # type: ignore[name-defined]
+                from pydantic import BaseModel
+
+                class _Args(BaseModel):
+                    input: str
+
+                return _Args
+
+            def return_type(self) -> "Type[BaseModel]":  # type: ignore[name-defined]
+                from pydantic import BaseModel
+
+                class _Return(BaseModel):
+                    result: str
+
+                return _Return
+
+            def state_type(self) -> None:  # type: ignore[override]
+                return None
+
+            async def save_state_json(self) -> Dict[str, Any]:  # type: ignore[override]
+                return {}
+
+            async def load_state_json(self, state: Mapping[str, Any]) -> None:  # type: ignore[override]
+                return None
+
+            async def run_json(
+                self,
+                args: Mapping[str, Any],
+                cancellation_token: CancellationToken,
+                call_id: str | None = None,
+            ) -> Dict[str, Any]:
+                return {"result": "test"}
+
+            def return_value_as_string(self, value: Dict[str, Any]) -> str:
+                return str(value)
+
+        custom_tool = MockCustomTool()
+        tools = [
+            custom_tool,  # Custom tool
+            {"type": "web_search_preview"},  # Built-in tool
+        ]
+
+        agent = OpenAIAgent(
+            name="mixed_tools_agent",
+            description="Mixed tools agent",
+            client=mock_client,
+            model="gpt-4",
+            instructions="You are a helpful assistant.",
+            tools=tools,  # type: ignore
+        )
+
+        # Serialize to config
+        config = agent._to_config()
+
+        # Verify both types of tools are present
+        assert config.tools is not None
+        assert len(config.tools) == 2
+
+        component_models = [t for t in config.tools if isinstance(t, ComponentModel)]
+        builtin_tools = [t for t in config.tools if isinstance(t, dict)]
+
+        assert len(component_models) == 1  # Custom tool
+        assert len(builtin_tools) == 1  # Built-in tool
+
+        # Verify custom tool config
+        custom_tool_config = component_models[0]
+        assert custom_tool_config.config.get("name") == "custom_test_tool"
+
+        # Verify built-in tool config
+        builtin_tool_config = builtin_tools[0]
+        assert builtin_tool_config["type"] == "web_search_preview"
+
+
+# Live API Integration Tests
+
+# These tests make a real call to the OpenAI Responses API. They are executed
+# only when an API key is available in the environment so that CI pipelines
+# without secret keys (or local developers without a key) do not incur
+# failures or unexpected costs.
+
+_OPENAI_API_KEY_ENV: Final[str] = "OPENAI_API_KEY"
+
+
+@pytest.mark.skipif(
+    not os.getenv(_OPENAI_API_KEY_ENV),
+    reason="OpenAI API key not available; skipping live API integration tests.",
+)
+@pytest.mark.asyncio
+async def test_openai_agent_live_simple() -> None:  # noqa: D103
+    cancellation_token = CancellationToken()
+    client = AsyncOpenAI()  # API key picked up from env
+
+    agent = OpenAIAgent(
+        name="integration_test_agent",
+        description="Agent used for live API integration testing",
+        client=client,
+        model=os.getenv("OPENAI_MODEL", "gpt-4o"),
+        instructions="You are a concise assistant. Reply briefly.",
+    )
+
+    response = await agent.on_messages(
+        [TextMessage(source="user", content="Say hello briefly.")],
+        cancellation_token,
+    )
+
+    # Basic sanity checks on the response (cast to TextMessage for typing)
+    from typing import cast
+
+    reply_msg = cast(TextMessage, response.chat_message)
+    reply: str = reply_msg.content.strip()
+    assert reply != ""
+    assert "hello" in reply.lower()
+
+
+@pytest.mark.skipif(
+    not os.getenv(_OPENAI_API_KEY_ENV),
+    reason="OpenAI API key not available; skipping live API integration tests.",
+)
+@pytest.mark.asyncio
+async def test_openai_agent_live_with_builtin_tool() -> None:  # noqa: D103
+    """Live test that ensures at least one built-in tool schema reaches the API without error."""
+    cancellation_token = CancellationToken()
+    client = AsyncOpenAI()  # API key picked up from env
+
+    # Use a simple built-in tool that requires no parameters so the test is stable.
+    agent = OpenAIAgent(
+        name="integration_test_agent_builtin",
+        description="Agent used for live API integration testing with built-in tools",
+        client=client,
+        model=os.getenv("OPENAI_MODEL", "gpt-4o"),
+        instructions="You are a concise assistant. Reply briefly.",
+        tools=["web_search_preview"],
+    )
+
+    response = await agent.on_messages(
+        [TextMessage(source="user", content="What is the capital of France?")],
+        cancellation_token,
+    )
+
+    from typing import cast
+
+    reply_msg = cast(TextMessage, response.chat_message)
+    reply: str = reply_msg.content.strip()
+    assert reply != ""
+    # Very loose assertion – just ensure the model responded sensibly
+    assert "paris" in reply.lower()

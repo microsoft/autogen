@@ -214,12 +214,24 @@ class OpenAIAgentState(BaseModel):
     history: List[Dict[str, Any]] = Field(default_factory=list)
 
 
+# Union type for tool configurations in the config schema
+ToolConfigUnion = Union[ComponentModel, BuiltinToolConfig, str]
+
+
 class OpenAIAgentConfig(BaseModel):
+    """Configuration model for OpenAI agent that supports both custom tools and built-in tools.
+
+    .. versionchanged:: v0.6.2
+       Added support for built-in tools in JSON configuration via _to_config and _from_config methods.
+       The tools field now accepts ComponentModel (for custom tools), built-in tool configurations
+       (dict format), and built-in tool names (string format).
+    """
+
     name: str
     description: str
     model: str
     instructions: str
-    tools: List[ComponentModel] | None = None
+    tools: List[ToolConfigUnion] | None = None
     temperature: Optional[float] = 1
     max_output_tokens: Optional[int] = None
     json_mode: bool = False
@@ -260,9 +272,8 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         model (str): Model to use (e.g. "gpt-4.1")
         instructions (str): System instructions for the agent
         tools (Optional[Iterable[Union[str, BuiltinToolConfig, Tool]]]): Tools the agent can use.
-            Supported string values: "web_search_preview", "image_generation", "local_shell" (tools without required params).
-            Tools requiring parameters must use dict configuration: "file_search", "code_interpreter",
-            "computer_use_preview", "mcp".
+            Supported string values: "web_search_preview", "image_generation", "local_shell".
+            These tools do not require any parameters.
             Dict values can provide configuration for built-in tools with parameters.
             Required parameters for built-in tools:
             - file_search: vector_store_ids (List[str])
@@ -404,7 +415,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
         asyncio.run(example())
 
-    .. versionchanged:: v0.4.1
+    .. versionchanged:: v0.6.2
 
        Added support for built-in tool types like file_search, web_search_preview,
        code_interpreter, computer_use_preview, image_generation, and mcp.
@@ -413,7 +424,8 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
        BREAKING CHANGE: Built-in tools are now split into two categories:
 
        **Tools that can use string format** (no required parameters):
-       - web_search_preview: Can be used as "web_search_preview" or with optional config (user_location, search_context_size)
+       - web_search_preview: Can be used as "web_search_preview" or with optional config
+         (user_location, search_context_size)
        - image_generation: Can be used as "image_generation" or with optional config (background, input_image_mask)
        - local_shell: Can be used as "local_shell" (WARNING: Only works with codex-mini-latest model)
 
@@ -494,6 +506,9 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
     def _add_builtin_tool(self, tool_name: str) -> None:
         """Add a built-in tool by name."""
+        # Skip if an identical tool has already been registered (idempotent behaviour)
+        if any(td.get("type") == tool_name for td in self._tools):
+            return  # Duplicate – ignore rather than raise to stay backward-compatible
         # Only allow string format for tools that don't require parameters
         if tool_name == "web_search_preview":
             self._tools.append({"type": "web_search_preview"})
@@ -535,6 +550,10 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         tool_type = tool_config.get("type")
         if not tool_type:
             raise ValueError("Tool configuration must include 'type' field")
+
+        # If an identical configuration is already present we simply ignore the new one (keeps API payload minimal)
+        if cast(Dict[str, Any], tool_config) in self._tools:
+            return
 
         # Initialize tool definition
         tool_def: Dict[str, Any] = {}
@@ -876,7 +895,11 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     )
                     updated: Dict[str, Any] = await agent.modify_assistant(
                         assistant_id="asst_123",
-                        instructions="You are an HR bot, and you have access to files to answer employee questions about company policies. Always response with info from either of the files.",
+                        instructions=(
+                            "You are an HR bot, and you have access to files to answer employee "
+                            "questions about company policies. Always response with info from either "
+                            "of the files."
+                        ),
                         tools=[{"type": "file_search"}],
                         tool_resources={"file_search": {"vector_store_ids": []}},
                     )
@@ -905,31 +928,11 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             assistant_id (str): The ID of the assistant to delete.
 
         Returns:
-            Dict[str, Any]: The deletion status object (e.g., {"id": ..., "object": "assistant.deleted", "deleted": true}).
+            Dict[str, Any]: The deletion status object.
 
-        Example:
-            .. code-block:: python
+                Example::
 
-                import asyncio
-                from typing import Dict, Any
-                from autogen_ext.agents.openai import OpenAIAgent
-                from openai import AsyncOpenAI
-
-
-                async def example() -> None:
-                    client = AsyncOpenAI()
-                    agent = OpenAIAgent(
-                        name="test_agent",
-                        description="Test agent",
-                        client=client,
-                        model="gpt-4",
-                        instructions="You are a helpful assistant.",
-                    )
-                    result: Dict[str, Any] = await agent.delete_assistant("asst_abc123")
-                    print(result)
-
-
-                asyncio.run(example())
+                    {"id": "...", "object": "assistant.deleted", "deleted": true}
 
         """
         if hasattr(self._client, "assistants"):
@@ -1077,8 +1080,10 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             content = getattr(response_obj, "output_text", None)
             response_id = getattr(response_obj, "id", None)
             self._last_response_id = response_id
-            self._message_history.append({"role": "assistant", "content": str(content) if content is not None else ""})
-            final_message = TextMessage(source=self.name, content=str(content) if content is not None else "")
+            # Use a readable placeholder when the API returns no content to aid debugging
+            content_str: str = str(content) if content is not None else "[no content returned]"
+            self._message_history.append({"role": "assistant", "content": content_str})
+            final_message = TextMessage(source=self.name, content=content_str)
             response = Response(chat_message=final_message, inner_messages=inner_messages)
             yield response
         except Exception as e:
@@ -1104,41 +1109,75 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         self._message_history = agent_state.history
 
     def _to_config(self: "OpenAIAgent") -> OpenAIAgentConfig:
-        """Convert the OpenAI agent to a declarative config."""
-        tool_configs: List[Dict[str, Any]] = []
-        for tool in self._tool_map.values():
-            try:
-                if hasattr(tool, "dump_component"):
-                    tool_any = cast(Any, tool)
-                    component_dict = tool_any.dump_component()
-                    tool_configs.append(component_dict)
-                else:
-                    tool_configs.append(
-                        {
-                            "provider": "autogen_core.tools.FunctionTool",
-                            "config": {
-                                "name": tool.name,
-                                "description": getattr(tool, "description", ""),
+        """Convert the OpenAI agent to a declarative config.
+
+        Serializes both custom Tool objects and built-in tools to their appropriate
+        configuration formats for JSON serialization.
+
+        .. versionchanged:: v0.6.2
+           Added support for serializing built-in tools alongside custom tools.
+
+        Returns:
+            OpenAIAgentConfig: The configuration that can recreate this agent.
+        """
+        # Serialize tools in the **original order** they were registered.  We iterate over the
+        # internal ``self._tools`` list which contains both built-in tool definitions **and** the
+        # synthetic "function" records for custom :class:`Tool` objects.  For the latter we
+        # convert the synthetic record back to a :class:`ComponentModel` by looking up the actual
+        # tool instance in ``self._tool_map``.  This approach keeps ordering stable while still
+        # supporting full round-trip serialisation.
+        tool_configs: List[ToolConfigUnion] = []
+
+        for tool_def in self._tools:
+            # 1. Custom function tools are stored internally as ``{"type": "function", "function": {...}}``.
+            if tool_def.get("type") == "function":
+                fn_schema = cast(Dict[str, Any], tool_def.get("function", {}))
+                tool_name = fn_schema.get("name")  # type: ignore[arg-type]
+                if tool_name and tool_name in self._tool_map:
+                    tool_obj = self._tool_map[tool_name]
+                    try:
+                        if hasattr(tool_obj, "dump_component"):
+                            component_model = cast(Any, tool_obj).dump_component()
+                            tool_configs.append(component_model)
+                        else:
+                            component_model = ComponentModel(
+                                provider="autogen_core.tools.FunctionTool",
+                                component_type=None,
+                                config={
+                                    "name": tool_obj.name,
+                                    "description": getattr(tool_obj, "description", ""),
+                                },
+                            )
+                            tool_configs.append(component_model)
+                    except Exception as e:  # pragma: no cover – extremely unlikely
+                        warnings.warn(
+                            f"Error serializing tool '{tool_name}': {e}",
+                            stacklevel=2,
+                        )
+                        component_model = ComponentModel(
+                            provider="autogen_core.tools.FunctionTool",
+                            component_type=None,
+                            config={
+                                "name": tool_name or "unknown_tool",
+                                "description": getattr(tool_obj, "description", ""),
                             },
-                        }
-                    )
-            except Exception as e:
-                warnings.warn(f"Error serializing tool: {e}", stacklevel=2)
-                tool_configs.append(
-                    {
-                        "provider": "autogen_core.tools.FunctionTool",
-                        "config": {
-                            "name": getattr(tool, "name", "unknown_tool"),
-                            "description": getattr(tool, "description", ""),
-                        },
-                    }
+                        )
+                        tool_configs.append(component_model)
+            # 2. Built-in tools are already in their correct dict form – append verbatim.
+            elif "type" in tool_def:  # built-in tool
+                tool_configs.append(cast(BuiltinToolConfig, tool_def))
+            else:  # pragma: no cover – should never happen
+                warnings.warn(
+                    f"Encountered unexpected tool definition during serialisation: {tool_def}",
+                    stacklevel=2,
                 )
+
         return OpenAIAgentConfig(
             name=self.name,
             description=self.description,
             model=self._model,
             instructions=self._instructions,
-            tools=cast(List[ComponentModel], tool_configs),
+            tools=tool_configs if tool_configs else None,
             temperature=self._temperature,
             max_output_tokens=self._max_output_tokens,
             json_mode=self._json_mode,
@@ -1148,36 +1187,63 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
     @classmethod
     def _from_config(cls: Type["OpenAIAgent"], config: OpenAIAgentConfig) -> "OpenAIAgent":
-        """Create an OpenAI agent from a declarative config."""
+        """Create an OpenAI agent from a declarative config.
+
+        Handles both custom Tool objects (from ComponentModel) and built-in tools
+        (from string or dict configurations).
+
+        .. versionchanged:: v0.6.2
+           Added support for loading built-in tools alongside custom tools.
+
+        Args:
+            config: The configuration to load the agent from.
+
+        Returns:
+            OpenAIAgent: The reconstructed agent.
+        """
         from openai import AsyncOpenAI
 
         client = AsyncOpenAI()
 
-        tools: Optional[List[Tool]] = None
+        tools: Optional[List[Union[str, BuiltinToolConfig, Tool]]] = None
         if config.tools:
-            tools_list: List[Tool] = []
+            tools_list: List[Union[str, BuiltinToolConfig, Tool]] = []
             for tool_config in config.tools:
-                try:
-                    provider = tool_config.provider
-                    module_name, class_name = provider.rsplit(".", 1)
-                    module = __import__(module_name, fromlist=[class_name])
-                    tool_cls = getattr(module, class_name)
-                    tool = tool_cls(**tool_config.config)
-                    tools_list.append(cast(Tool, tool))
-                except Exception as e:
-                    warnings.warn(f"Error loading tool: {e}", stacklevel=2)
-                    from autogen_core.tools import FunctionTool
+                # Handle ComponentModel (custom Tool objects)
+                if isinstance(tool_config, ComponentModel):
+                    try:
+                        provider = tool_config.provider
+                        module_name, class_name = provider.rsplit(".", 1)
+                        module = __import__(module_name, fromlist=[class_name])
+                        tool_cls = getattr(module, class_name)
+                        tool = tool_cls(**tool_config.config)
+                        tools_list.append(cast(Tool, tool))
+                    except Exception as e:
+                        warnings.warn(f"Error loading custom tool: {e}", stacklevel=2)
+                        from autogen_core.tools import FunctionTool
 
-                    async def dummy_func(*args: Any, **kwargs: Any) -> str:
-                        return "Tool not fully restored"
+                        async def dummy_func(*args: Any, **kwargs: Any) -> str:
+                            return "Tool not fully restored"
 
-                    tool = FunctionTool(
-                        name=tool_config.config.get("name", "unknown_tool"),
-                        description=tool_config.config.get("description", ""),
-                        func=dummy_func,
-                    )
-                    tools_list.append(tool)
-            tools = tools_list
+                        tool = FunctionTool(
+                            name=tool_config.config.get("name", "unknown_tool"),
+                            description=tool_config.config.get("description", ""),
+                            func=dummy_func,
+                        )
+                        tools_list.append(tool)
+
+                # Handle string format built-in tools
+                elif isinstance(tool_config, str):
+                    tools_list.append(tool_config)
+
+                # Handle dict format built-in tools
+                elif isinstance(tool_config, dict) and "type" in tool_config:
+                    tools_list.append(tool_config)  # type: ignore[arg-type]
+
+                else:
+                    warnings.warn(f"Unknown tool configuration format: {type(tool_config)}", stacklevel=2)
+
+            tools = tools_list if tools_list else None
 
         return cls(
             name=config.name,
@@ -1185,7 +1251,26 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             client=client,
             model=config.model,
             instructions=config.instructions,
-            tools=tools,
+            tools=cast(
+                Optional[
+                    Iterable[
+                        Union[
+                            BuiltinToolConfig,
+                            Tool,
+                            Literal[
+                                "file_search",
+                                "code_interpreter",
+                                "web_search_preview",
+                                "computer_use_preview",
+                                "image_generation",
+                                "mcp",
+                                "local_shell",
+                            ],
+                        ]
+                    ]
+                ],
+                tools,
+            ),
             temperature=config.temperature,
             max_output_tokens=config.max_output_tokens,
             json_mode=config.json_mode,
