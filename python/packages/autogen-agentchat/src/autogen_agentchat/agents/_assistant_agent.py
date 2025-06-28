@@ -768,16 +768,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             self._reflect_on_tool_use = False
         else:
             self._reflect_on_tool_use = reflect_on_tool_use
-        if self._reflect_on_tool_use and ModelFamily.is_claude(model_client.model_info["family"]):
-            warnings.warn(
-                "Claude models may not work with reflection on tool use because Claude requires that any requests including a previous tool use or tool result must include the original tools definition."
-                "Consider setting reflect_on_tool_use to False. "
-                "As an alternative, consider calling the agent in a loop until it stops producing tool calls. "
-                "See [Single-Agent Team](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html#single-agent-team) "
-                "for more details.",
-                UserWarning,
-                stacklevel=2,
-            )
         self._tool_call_summary_format = tool_call_summary_format
         self._tool_call_summary_formatter = tool_call_summary_formatter
         self._is_running = False
@@ -1097,6 +1087,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 agent_name=agent_name,
                 inner_messages=inner_messages,
                 output_content_type=output_content_type,
+                tools=[tool for wb in workbench for tool in await wb.list_tools()],
             ):
                 yield reflection_response
         else:
@@ -1192,6 +1183,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         inner_messages: List[BaseAgentEvent | BaseChatMessage],
         output_content_type: type[BaseModel] | None,
+        tools: List[BaseTool[Any, Any]] | None = None,
     ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent | ThoughtEvent, None]:
         """
         If reflect_on_tool_use=True, we do another inference based on tool results
@@ -1206,6 +1198,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             async for chunk in model_client.create_stream(
                 llm_messages,
                 json_output=output_content_type,
+                tools=tools,
+                extra_create_args={"tool_choice": "none"}
             ):
                 if isinstance(chunk, CreateResult):
                     reflection_result = chunk
@@ -1214,7 +1208,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
         else:
-            reflection_result = await model_client.create(llm_messages, json_output=output_content_type)
+            reflection_result = await model_client.create(
+                llm_messages,
+                json_output=output_content_type,
+                tools=tools,
+                extra_create_args={"tool_choice": "none"},
+            )
 
         if not reflection_result or not isinstance(reflection_result.content, str):
             raise RuntimeError("Reflect on tool use produced no valid text response.")
