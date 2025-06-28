@@ -310,7 +310,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": True,
         "multiple_system_messages": False,
     },
-    "gemini-2.5-flash-preview-05-20": {
+    "gemini-2.5-flash": {
         "vision": True,
         "function_calling": True,
         "json_output": True,
@@ -448,7 +448,7 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gemini-2.0-flash": 1048576,
     "gemini-2.0-flash-lite-preview-02-05": 1048576,
     "gemini-2.5-pro-preview-03-25": 2097152,
-    "gemini-2.5-flash-preview-05-20": 1048576,
+    "gemini-2.5-flash": 1048576,
     "claude-3-haiku-20240307": 50000,
     "claude-3-sonnet-20240229": 200000,
     "claude-3-opus-20240229": 200000,
