@@ -32,7 +32,7 @@ jobs:
         version:
           [
             # For main use the workflow target
-            { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.5.13", sphinx-release-override: "dev" },
+            { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.7.13", sphinx-release-override: "dev" },
             { ref: "python-v0.6.1", dest-dir: stable, uv-version: "0.5.13", sphinx-release-override: "stable" },
             { ref: "v0.4.0.post1", dest-dir: "0.4.0", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "v0.4.1", dest-dir: "0.4.1", uv-version: "0.5.13", sphinx-release-override: "" },
@@ -62,7 +62,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: ${{ matrix.version.uv-version }}
+          version: ${{ matrix.version.uv-version }}    
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -112,7 +112,6 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
