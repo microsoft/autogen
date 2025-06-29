@@ -5,7 +5,20 @@ import json
 import logging
 import uuid
 import warnings
-from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core.memory import Memory
@@ -1266,7 +1279,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 agent_name=agent_name,
                 cancellation_token=cancellation_token,
                 output_content_type=output_content_type,
-                message_id=str(uuid.uuid4()),  # Generate new ID for continuation
+                message_id=message_id,  # Use same message ID for consistency
             ):
                 if isinstance(llm_output, CreateResult):
                     next_model_result = llm_output

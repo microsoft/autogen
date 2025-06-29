@@ -12,7 +12,7 @@ import pytest
 # First-party imports
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.agents._assistant_agent import AssistantAgentConfig
-from autogen_agentchat.base import Handoff, Response
+from autogen_agentchat.base import Handoff, Response, TaskResult
 from autogen_agentchat.messages import (
     BaseChatMessage,
     HandoffMessage,
@@ -38,8 +38,10 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
-from pydantic import BaseModel
+from autogen_ext.tools.mcp import McpWorkbench, SseServerParams
+from pydantic import BaseModel, ValidationError
 
 
 def mock_tool_function(param: str) -> str:
@@ -64,6 +66,30 @@ async def async_mock_tool_function(param: str) -> str:
         Formatted string with the input parameter
     """
     return f"Async tool executed with: {param}"
+
+
+def _pass_function(input: str) -> str:
+    """Pass through function for testing.
+
+    Args:
+        input: Input to pass through
+
+    Returns:
+        The string "pass"
+    """
+    return "pass"
+
+
+def _echo_function(input: str) -> str:
+    """Echo function for testing.
+
+    Args:
+        input: Input to echo
+
+    Returns:
+        The input string
+    """
+    return input
 
 
 class MockMemory(Memory):
@@ -348,7 +374,7 @@ async def test_tools_serialize_and_deserialize() -> None:
 
 
 @pytest.mark.asyncio
-async def test_workbenchs_serialize_and_deserialize() -> None:
+async def test_workbench_serialize_and_deserialize() -> None:
     workbench = McpWorkbench(server_params=SseServerParams(url="http://test-url"))
 
     client = OpenAIChatCompletionClient(
@@ -373,7 +399,7 @@ async def test_workbenchs_serialize_and_deserialize() -> None:
 
 
 @pytest.mark.asyncio
-async def test_multiple_workbenchs_serialize_and_deserialize() -> None:
+async def test_multiple_workbenches_serialize_and_deserialize() -> None:
     workbenches: List[McpWorkbench] = [
         McpWorkbench(server_params=SseServerParams(url="http://test-url-1")),
         McpWorkbench(server_params=SseServerParams(url="http://test-url-2")),
@@ -486,8 +512,13 @@ async def test_tools_deserialize_aware() -> None:
 
     """
 
-    content: str
-    confidence: float
+    # Test that agent can be deserialized from configuration
+    config = json.loads(dump)
+    agent = AssistantAgent.load_component(config)
+
+    # Verify the agent was loaded correctly
+    assert agent.name == "TestAgent"
+    assert agent.description == "An agent that provides assistance with ability to use tools."
 
 
 class TestAssistantAgentToolCallLoop:
