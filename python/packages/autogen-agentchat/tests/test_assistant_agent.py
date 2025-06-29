@@ -156,6 +156,340 @@ class StructuredOutput(BaseModel):
     confidence: float
 
 
+@pytest.mark.asyncio
+async def test_model_client_stream() -> None:
+    mock_client = ReplayChatCompletionClient(
+        [
+            "Response to message 3",
+        ]
+    )
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=mock_client,
+        model_client_stream=True,
+    )
+    chunks: List[str] = []
+    async for message in agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
+            assert message.messages[-1].content == "Response to message 3"
+        elif isinstance(message, ModelClientStreamingChunkEvent):
+            chunks.append(message.content)
+    assert "".join(chunks) == "Response to message 3"
+
+
+@pytest.mark.asyncio
+async def test_model_client_stream_with_tool_calls() -> None:
+    mock_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                content=[
+                    FunctionCall(id="1", name="_pass_function", arguments=r'{"input": "task"}'),
+                    FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
+                ],
+                finish_reason="function_calls",
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            "Example response 2 to task",
+        ]
+    )
+    mock_client._model_info["function_calling"] = True  # pyright: ignore
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=mock_client,
+        model_client_stream=True,
+        reflect_on_tool_use=True,
+        tools=[_pass_function, _echo_function],
+    )
+    chunks: List[str] = []
+    async for message in agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert isinstance(message.messages[-1], TextMessage)
+            assert isinstance(message.messages[1], ToolCallRequestEvent)
+            assert message.messages[-1].content == "Example response 2 to task"
+            assert message.messages[1].content == [
+                FunctionCall(id="1", name="_pass_function", arguments=r'{"input": "task"}'),
+                FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
+            ]
+            assert isinstance(message.messages[2], ToolCallExecutionEvent)
+            assert message.messages[2].content == [
+                FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="_pass_function"),
+                FunctionExecutionResult(call_id="3", content="task", is_error=False, name="_echo_function"),
+            ]
+        elif isinstance(message, ModelClientStreamingChunkEvent):
+            chunks.append(message.content)
+    assert "".join(chunks) == "Example response 2 to task"
+
+
+@pytest.mark.asyncio
+async def test_invalid_structured_output_format() -> None:
+    class AgentResponse(BaseModel):
+        response: str
+        status: str
+
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="stop",
+                content='{"response": "Hello"}',
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+        ]
+    )
+
+    agent = AssistantAgent(
+        name="assistant",
+        model_client=model_client,
+        output_content_type=AgentResponse,
+    )
+
+    with pytest.raises(ValidationError):
+        await agent.run()
+
+
+@pytest.mark.asyncio
+async def test_structured_message_factory_serialization() -> None:
+    class AgentResponse(BaseModel):
+        result: str
+        status: str
+
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="stop",
+                content=AgentResponse(result="All good", status="ok").model_dump_json(),
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            )
+        ]
+    )
+
+    agent = AssistantAgent(
+        name="structured_agent",
+        model_client=model_client,
+        output_content_type=AgentResponse,
+        output_content_type_format="{result} - {status}",
+    )
+
+    dumped = agent.dump_component()
+    restored_agent = AssistantAgent.load_component(dumped)
+    result = await restored_agent.run()
+
+    assert isinstance(result.messages[0], StructuredMessage)
+    assert result.messages[0].content.result == "All good"  # type: ignore
+    assert result.messages[0].content.status == "ok"  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_structured_message_format_string() -> None:
+    class AgentResponse(BaseModel):
+        field1: str
+        field2: str
+
+    expected = AgentResponse(field1="foo", field2="bar")
+
+    model_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                finish_reason="stop",
+                content=expected.model_dump_json(),
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            )
+        ]
+    )
+
+    agent = AssistantAgent(
+        name="formatted_agent",
+        model_client=model_client,
+        output_content_type=AgentResponse,
+        output_content_type_format="{field1} - {field2}",
+    )
+
+    result = await agent.run()
+
+    assert len(result.messages) == 1
+    message = result.messages[0]
+
+    # Check that it's a StructuredMessage with the correct content model
+    assert isinstance(message, StructuredMessage)
+    assert isinstance(message.content, AgentResponse)  # type: ignore[reportUnknownMemberType]
+    assert message.content == expected
+
+    # Check that the format_string was applied correctly
+    assert message.to_model_text() == "foo - bar"
+
+
+@pytest.mark.asyncio
+async def test_tools_serialize_and_deserialize() -> None:
+    def test() -> str:
+        return "hello world"
+
+    client = OpenAIChatCompletionClient(
+        model="gpt-4o",
+        api_key="API_KEY",
+    )
+
+    agent = AssistantAgent(
+        name="test",
+        model_client=client,
+        tools=[test],
+    )
+
+    serialize = agent.dump_component()
+    deserialize = AssistantAgent.load_component(serialize)
+
+    assert deserialize.name == agent.name
+    for original, restored in zip(agent._workbench, deserialize._workbench, strict=True):  # type: ignore
+        assert await original.list_tools() == await restored.list_tools()  # type: ignore
+    assert agent.component_version == deserialize.component_version
+
+
+@pytest.mark.asyncio
+async def test_workbenchs_serialize_and_deserialize() -> None:
+    workbench = McpWorkbench(server_params=SseServerParams(url="http://test-url"))
+
+    client = OpenAIChatCompletionClient(
+        model="gpt-4o",
+        api_key="API_KEY",
+    )
+
+    agent = AssistantAgent(
+        name="test",
+        model_client=client,
+        workbench=workbench,
+    )
+
+    serialize = agent.dump_component()
+    deserialize = AssistantAgent.load_component(serialize)
+
+    assert deserialize.name == agent.name
+    for original, restored in zip(agent._workbench, deserialize._workbench, strict=True):  # type: ignore
+        assert isinstance(original, McpWorkbench)
+        assert isinstance(restored, McpWorkbench)
+        assert original._to_config() == restored._to_config()  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_multiple_workbenchs_serialize_and_deserialize() -> None:
+    workbenches: List[McpWorkbench] = [
+        McpWorkbench(server_params=SseServerParams(url="http://test-url-1")),
+        McpWorkbench(server_params=SseServerParams(url="http://test-url-2")),
+    ]
+
+    client = OpenAIChatCompletionClient(
+        model="gpt-4o",
+        api_key="API_KEY",
+    )
+
+    agent = AssistantAgent(
+        name="test_multi",
+        model_client=client,
+        workbench=workbenches,
+    )
+
+    serialize = agent.dump_component()
+    deserialized_agent: AssistantAgent = AssistantAgent.load_component(serialize)
+
+    assert deserialized_agent.name == agent.name
+    assert isinstance(deserialized_agent._workbench, list)  # type: ignore
+    assert len(deserialized_agent._workbench) == len(workbenches)  # type: ignore
+
+    for original, restored in zip(agent._workbench, deserialized_agent._workbench, strict=True):  # type: ignore
+        assert isinstance(original, McpWorkbench)
+        assert isinstance(restored, McpWorkbench)
+        assert original._to_config() == restored._to_config()  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_tools_deserialize_aware() -> None:
+    dump = """
+    {
+        "provider": "autogen_agentchat.agents.AssistantAgent",
+        "component_type": "agent",
+        "version": 1,
+        "component_version": 2,
+        "description": "An agent that provides assistance with tool use.",
+        "label": "AssistantAgent",
+        "config": {
+            "name": "TestAgent",
+            "model_client":{
+                "provider": "autogen_ext.models.replay.ReplayChatCompletionClient",
+                "component_type": "replay_chat_completion_client",
+                "version": 1,
+                "component_version": 1,
+                "description": "A mock chat completion client that replays predefined responses using an index-based approach.",
+                "label": "ReplayChatCompletionClient",
+                "config": {
+                    "chat_completions": [
+                        {
+                            "finish_reason": "function_calls",
+                            "content": [
+                                {
+                                    "id": "hello",
+                                    "arguments": "{}",
+                                    "name": "hello"
+                                }
+                            ],
+                            "usage": {
+                                "prompt_tokens": 0,
+                                "completion_tokens": 0
+                            },
+                            "cached": false
+                        }
+                    ],
+                    "model_info": {
+                        "vision": false,
+                        "function_calling": true,
+                        "json_output": false,
+                        "family": "unknown",
+                        "structured_output": false
+                    }
+                }
+            },
+            "tools": [
+                {
+                    "provider": "autogen_core.tools.FunctionTool",
+                    "component_type": "tool",
+                    "version": 1,
+                    "component_version": 1,
+                    "description": "Create custom tools by wrapping standard Python functions.",
+                    "label": "FunctionTool",
+                    "config": {
+                        "source_code": "def hello():\\n    return 'Hello, World!'\\n",
+                        "name": "hello",
+                        "description": "",
+                        "global_imports": [],
+                        "has_cancellation_support": false
+                    }
+                }
+            ],
+            "model_context": {
+                "provider": "autogen_core.model_context.UnboundedChatCompletionContext",
+                "component_type": "chat_completion_context",
+                "version": 1,
+                "component_version": 1,
+                "description": "An unbounded chat completion context that keeps a view of the all the messages.",
+                "label": "UnboundedChatCompletionContext",
+                "config": {}
+            },
+            "description": "An agent that provides assistance with ability to use tools.",
+            "system_message": "You are a helpful assistant.",
+            "model_client_stream": false,
+            "reflect_on_tool_use": false,
+            "tool_call_summary_format": "{result}",
+            "metadata": {}
+        }
+    }
+
+    """
+
+    content: str
+    confidence: float
+
+
 class TestAssistantAgentToolCallLoop:
     """Test suite for tool call loop functionality.
 

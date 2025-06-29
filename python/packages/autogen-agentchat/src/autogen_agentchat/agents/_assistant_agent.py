@@ -1,21 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
+import uuid
 import warnings
-from typing import (
-    Any,
-    AsyncGenerator,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, TypeVar, Union
 
 from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core.memory import Memory
@@ -33,7 +23,7 @@ from autogen_core.models import (
     ModelFamily,
     SystemMessage,
 )
-from autogen_core.tools import BaseTool, FunctionTool, StaticWorkbench, Workbench
+from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, ToolResult, Workbench
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
@@ -151,7 +141,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         * Use **`tool_call_summary_format`** for a simple static template.
         * Use **`tool_call_summary_formatter`** for full programmatic control
-          (e.g., “hide large success payloads, show full details on error”).
+          (e.g., "hide large success payloads, show full details on error").
 
         *Note*: `tool_call_summary_formatter` is **not serializable** and will
         be ignored when an agent is loaded from, or exported to, YAML/JSON
@@ -618,7 +608,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             - Start with a pizza crust (store-bought or homemade).
             - Spread a layer of marinara or tomato sauce evenly over the crust.
             - Top with your favorite vegetables like bell peppers, mushrooms, onions, olives, and spinach.
-            - Add some protein if you’d like, such as grilled chicken or pepperoni (ensure it's cheese-free).
+            - Add some protein if you'd like, such as grilled chicken or pepperoni (ensure it's cheese-free).
             - Sprinkle with herbs like oregano and basil, and maybe a drizzle of olive oil.
             - Bake according to the crust instructions until the edges are golden and the veggies are cooked.
 
@@ -830,7 +820,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             else:
                 self._workbench = [workbench]
         else:
-            self._workbench = [StaticWorkbench(self._tools)]
+            self._workbench = [StaticStreamWorkbench(self._tools)]
 
         if model_context is not None:
             self._model_context = model_context
@@ -953,7 +943,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             inner_messages.append(event_msg)
             yield event_msg
 
-        # STEP 3: Run the first inference
+        # STEP 3: Generate a message ID for correlation between streaming chunks and final message
+        message_id = str(uuid.uuid4())
+
+        # STEP 4: Run the first inference
         model_result = None
         async for inference_output in self._call_llm(
             model_client=model_client,
@@ -965,6 +958,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             agent_name=agent_name,
             cancellation_token=cancellation_token,
             output_content_type=output_content_type,
+            message_id=message_id,
         ):
             if isinstance(inference_output, CreateResult):
                 model_result = inference_output
@@ -989,7 +983,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             )
         )
 
-        # STEP 4: Process the model output
+        # STEP 5: Process the model output
         async for output_event in self._process_model_result(
             model_result=model_result,
             inner_messages=inner_messages,
@@ -1007,6 +1001,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tool_call_summary_format=tool_call_summary_format,
             tool_call_summary_formatter=tool_call_summary_formatter,
             output_content_type=output_content_type,
+            message_id=message_id,
             format_string=self._output_content_type_format,
         ):
             yield output_event
@@ -1065,6 +1060,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         cancellation_token: CancellationToken,
         output_content_type: type[BaseModel] | None,
+        message_id: str,
     ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
         """Call the language model with given context and configuration.
 
@@ -1089,6 +1085,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         if model_client_stream:
             model_result: Optional[CreateResult] = None
+
             async for chunk in model_client.create_stream(
                 llm_messages,
                 tools=tools,
@@ -1098,7 +1095,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name, full_message_id=message_id)
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
@@ -1132,6 +1129,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
         max_tool_iterations: int,
         output_content_type: type[BaseModel] | None,
+        message_id: str,
         format_string: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
@@ -1139,7 +1137,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         and reflection if needed. Supports tool call loops when enabled.
         """
 
-        # Tool call loop implementation
+        # Tool call loop implementation with streaming support
         current_model_result = model_result
         # This variable is needed for the final summary/reflection step
         executed_calls_and_results: List[Tuple[FunctionCall, FunctionExecutionResult]] = []
@@ -1147,6 +1145,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         for loop_iteration in range(max_tool_iterations):
             # If direct text response (string), we're done
             if isinstance(current_model_result.content, str):
+                # Use the passed message ID for the final message
                 if output_content_type:
                     content = output_content_type.model_validate_json(current_model_result.content)
                     yield Response(
@@ -1155,6 +1154,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                             source=agent_name,
                             models_usage=current_model_result.usage,
                             format_string=format_string,
+                            id=message_id,
                         ),
                         inner_messages=inner_messages,
                     )
@@ -1164,6 +1164,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                             content=current_model_result.content,
                             source=agent_name,
                             models_usage=current_model_result.usage,
+                            id=message_id,
                         ),
                         inner_messages=inner_messages,
                     )
@@ -1184,19 +1185,46 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             inner_messages.append(tool_call_msg)
             yield tool_call_msg
 
-            # STEP 4B: Execute tool calls
-            executed_calls_and_results = await asyncio.gather(
-                *[
-                    cls._execute_tool_call(
-                        tool_call=call,
-                        workbench=workbench,
-                        handoff_tools=handoff_tools,
-                        agent_name=agent_name,
-                        cancellation_token=cancellation_token,
-                    )
-                    for call in current_model_result.content
-                ]
-            )
+            # STEP 4B: Execute tool calls with streaming support
+            # Use a queue to handle streaming results from tool calls.
+            stream = asyncio.Queue[BaseAgentEvent | BaseChatMessage | None]()
+
+            async def _execute_tool_calls(
+                function_calls: List[FunctionCall],
+                stream_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | None],
+            ) -> List[Tuple[FunctionCall, FunctionExecutionResult]]:
+                results = await asyncio.gather(
+                    *[
+                        cls._execute_tool_call(
+                            tool_call=call,
+                            workbench=workbench,
+                            handoff_tools=handoff_tools,
+                            agent_name=agent_name,
+                            cancellation_token=cancellation_token,
+                            stream=stream_queue,
+                        )
+                        for call in function_calls
+                    ]
+                )
+                # Signal the end of streaming by putting None in the queue.
+                stream_queue.put_nowait(None)
+                return results
+
+            task = asyncio.create_task(_execute_tool_calls(current_model_result.content, stream))
+
+            while True:
+                event = await stream.get()
+                if event is None:
+                    # End of streaming, break the loop.
+                    break
+                if isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
+                    yield event
+                    inner_messages.append(event)
+                else:
+                    raise RuntimeError(f"Unexpected event type: {type(event)}")
+
+            # Wait for all tool calls to complete.
+            executed_calls_and_results = await task
             exec_results = [result for _, result in executed_calls_and_results]
 
             # Yield ToolCallExecutionEvent
@@ -1238,6 +1266,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 agent_name=agent_name,
                 cancellation_token=cancellation_token,
                 output_content_type=output_content_type,
+                message_id=str(uuid.uuid4()),  # Generate new ID for continuation
             ):
                 if isinstance(llm_output, CreateResult):
                     next_model_result = llm_output
@@ -1393,6 +1422,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         reflection_result: Optional[CreateResult] = None
 
+        # Generate a message ID for correlation between chunks and final message in reflection flow
+        reflection_message_id = str(uuid.uuid4())
+
         if model_client_stream:
             async for chunk in model_client.create_stream(
                 llm_messages,
@@ -1402,7 +1434,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 if isinstance(chunk, CreateResult):
                     reflection_result = chunk
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                    yield ModelClientStreamingChunkEvent(
+                        content=chunk, source=agent_name, full_message_id=reflection_message_id
+                    )
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
         else:
@@ -1435,6 +1469,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     content=content,
                     source=agent_name,
                     models_usage=reflection_result.usage,
+                    id=reflection_message_id,
                 ),
                 inner_messages=inner_messages,
             )
@@ -1444,6 +1479,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     content=reflection_result.content,
                     source=agent_name,
                     models_usage=reflection_result.usage,
+                    id=reflection_message_id,
                 ),
                 inner_messages=inner_messages,
             )
@@ -1493,6 +1529,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         cancellation_token: CancellationToken,
+        stream: asyncio.Queue[BaseAgentEvent | BaseChatMessage | None],
     ) -> Tuple[FunctionCall, FunctionExecutionResult]:
         """Execute a single tool call and return the result."""
         # Load the arguments from the tool call.
@@ -1530,18 +1567,38 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         for wb in workbench:
             tools = await wb.list_tools()
             if any(t["name"] == tool_call.name for t in tools):
-                result = await wb.call_tool(
-                    name=tool_call.name,
-                    arguments=arguments,
-                    cancellation_token=cancellation_token,
-                    call_id=tool_call.id,
-                )
+                if isinstance(wb, StaticStreamWorkbench):
+                    tool_result: ToolResult | None = None
+                    async for event in wb.call_tool_stream(
+                        name=tool_call.name,
+                        arguments=arguments,
+                        cancellation_token=cancellation_token,
+                        call_id=tool_call.id,
+                    ):
+                        if isinstance(event, ToolResult):
+                            tool_result = event
+                        elif isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
+                            await stream.put(event)
+                        else:
+                            warnings.warn(
+                                f"Unexpected event type: {type(event)} in tool call streaming.",
+                                UserWarning,
+                                stacklevel=2,
+                            )
+                    assert isinstance(tool_result, ToolResult), "Tool result should not be None in streaming mode."
+                else:
+                    tool_result = await wb.call_tool(
+                        name=tool_call.name,
+                        arguments=arguments,
+                        cancellation_token=cancellation_token,
+                        call_id=tool_call.id,
+                    )
                 return (
                     tool_call,
                     FunctionExecutionResult(
-                        content=result.to_text(),
+                        content=tool_result.to_text(),
                         call_id=tool_call.id,
-                        is_error=result.is_error,
+                        is_error=tool_result.is_error,
                         name=tool_call.name,
                     ),
                 )
