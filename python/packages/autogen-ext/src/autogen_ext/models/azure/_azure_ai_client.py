@@ -1,10 +1,10 @@
 import asyncio
 import logging
 import re
+import warnings
 from asyncio import Task
 from inspect import getfullargspec
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union, cast
-import warnings
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, Image
 from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
@@ -30,9 +30,9 @@ from azure.ai.inference.models import (
 from azure.ai.inference.models import (
     ChatCompletions,
     ChatCompletionsNamedToolChoice,
+    ChatCompletionsNamedToolChoiceFunction,
     ChatCompletionsToolCall,
     ChatCompletionsToolChoicePreset,
-    ChatCompletionsNamedToolChoiceFunction,
     ChatCompletionsToolDefinition,
     CompletionsFinishReason,
     ContentItem,
@@ -360,7 +360,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -388,13 +388,16 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                     UserWarning,
                     stacklevel=2,
                 )
-            tool_choices: Union[ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice] = ChatCompletionsToolChoicePreset.AUTO
+            tool_choices: Union[ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice] = (
+                ChatCompletionsToolChoicePreset.AUTO
+            )
             if isinstance(tool_choice, Tool):
-                tool_choices = ChatCompletionsNamedToolChoice(function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name))
+                tool_choices = ChatCompletionsNamedToolChoice(
+                    function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
+                )
             elif tool_choice is None:
                 tool_choices = ChatCompletionsToolChoicePreset.NONE
             create_args["tool_choice"] = tool_choices
-
 
         task: Task[ChatCompletions]
 
@@ -474,7 +477,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,

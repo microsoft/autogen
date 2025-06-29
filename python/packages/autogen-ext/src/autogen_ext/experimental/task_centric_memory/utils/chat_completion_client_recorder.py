@@ -90,7 +90,7 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
     ) -> CreateResult:
         current_messages: List[Mapping[str, Any]] = [msg.model_dump() for msg in messages]
         if self.mode == "record":
@@ -158,7 +158,7 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         return self.base_client.create_stream(
             messages,

@@ -514,7 +514,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
-        tool_choice: Tool | Literal["auto"] | None,
+        tool_choice: Tool | Literal["auto", "required", "none"],
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
     ) -> CreateParams:
@@ -588,7 +588,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         converted_tools = convert_tools(tools)
 
         # Handle tool_choice parameter - log warning as it might not be supported by Ollama
-        if tool_choice is not None:
+        if tool_choice != "auto" and tool_choice != "none":
             if len(tools) == 0:
                 raise ValueError("tool_choice specified but no tools provided")
             trace_logger.warning("tool_choice parameter specified but may not be supported by Ollama API")
@@ -605,7 +605,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -713,7 +713,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,

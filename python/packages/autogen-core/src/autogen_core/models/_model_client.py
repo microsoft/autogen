@@ -211,7 +211,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -221,7 +221,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         Args:
             messages (Sequence[LLMMessage]): The messages to send to the model.
             tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
-            tool_choice (Tool | Literal["auto"] | None, optional): A single Tool object to force the model to use, "auto" to let the model choose any available tool, or None to disable tool usage. Defaults to "auto".
+            tool_choice (Tool | Literal["auto", "required", "none"], optional): A single Tool object to force the model to use, "auto" to let the model choose any available tool, "required" to force tool usage, or "none" to disable tool usage. Defaults to "auto".
             json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither.
                 Defaults to None. If set to a `Pydantic BaseModel <https://docs.pydantic.dev/latest/usage/models/#model>`_ type,
                 it will be used as the output type for structured output.
@@ -241,7 +241,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -251,7 +251,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         Args:
             messages (Sequence[LLMMessage]): The messages to send to the model.
             tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
-            tool_choice (Tool | Literal["auto"] | None, optional): A single Tool object to force the model to use, "auto" to let the model choose any available tool, or None to disable tool usage. Defaults to "auto".
+            tool_choice (Tool | Literal["auto", "required", "none"], optional): A single Tool object to force the model to use, "auto" to let the model choose any available tool, "required" to force tool usage, or "none" to disable tool usage. Defaults to "auto".
             json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither.
                 Defaults to None. If set to a `Pydantic BaseModel <https://docs.pydantic.dev/latest/usage/models/#model>`_ type,
                 it will be used as the output type for structured output.

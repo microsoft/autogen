@@ -264,7 +264,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
@@ -304,7 +304,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             raise ValueError("json_output must be a boolean, a BaseModel subclass or None.")
 
         # Handle tool_choice parameter
-        if tool_choice is not None:
+        if tool_choice != "auto" and tool_choice != "none":
             if not self.model_info["function_calling"]:
                 raise ValueError("tool_choice specified but model does not support function calling")
             if len(tools) == 0:
@@ -406,7 +406,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
@@ -414,7 +414,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         # Validate tool_choice parameter even though streaming is not implemented
-        if tool_choice is not None:
+        if tool_choice != "auto" and tool_choice != "none":
             if not self.model_info["function_calling"]:
                 raise ValueError("tool_choice specified but model does not support function calling")
             if len(tools) == 0:

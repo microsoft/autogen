@@ -266,26 +266,29 @@ def convert_tools(
     return result
 
 
-def convert_tool_choice(tool_choice: Tool | Literal["auto"] | None) -> Any:
+def convert_tool_choice(tool_choice: Tool | Literal["auto", "required", "none"]) -> Any:
     """Convert tool_choice parameter to OpenAI API format.
 
     Args:
-        tool_choice: A single Tool object to force the model to use, "auto" to let the model choose any available tool, or None to let the model choose whether to use tools.
+        tool_choice: A single Tool object to force the model to use, "auto" to let the model choose any available tool, "required" to force tool usage, or "none" to disable tool usage.
 
     Returns:
         OpenAI API compatible tool_choice value or None if not specified.
     """
-    if tool_choice is None:
-        return None
+    if tool_choice == "none":
+        return "none"
 
     if tool_choice == "auto":
         return "auto"
+
+    if tool_choice == "required":
+        return "required"
 
     # Must be a Tool object
     if isinstance(tool_choice, Tool):
         return {"type": "function", "function": {"name": tool_choice.schema["name"]}}
     else:
-        raise ValueError(f"tool_choice must be a Tool object, 'auto', or None, got {type(tool_choice)}")
+        raise ValueError(f"tool_choice must be a Tool object, 'auto', 'required', or 'none', got {type(tool_choice)}")
 
 
 def normalize_name(name: str) -> str:
@@ -472,7 +475,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
-        tool_choice: Tool | Literal["auto"] | None,
+        tool_choice: Tool | Literal["auto", "required", "none"],
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
     ) -> CreateParams:
@@ -600,7 +603,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         converted_tools = convert_tools(tools)
 
         # Process tool_choice parameter
-        if tool_choice is not None and tool_choice != "auto":
+        if isinstance(tool_choice, Tool):
             if len(tools) == 0:
                 raise ValueError("tool_choice specified but no tools provided")
 
@@ -619,8 +622,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # Convert to OpenAI format and add to create_args
         converted_tool_choice = convert_tool_choice(tool_choice)
-        if converted_tool_choice is not None:
-            create_args["tool_choice"] = converted_tool_choice
+        create_args["tool_choice"] = converted_tool_choice
 
         return CreateParams(
             messages=oai_messages,
@@ -634,7 +636,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -787,7 +789,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto"] | None = "auto",
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
