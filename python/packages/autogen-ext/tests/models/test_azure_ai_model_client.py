@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import datetime
 from typing import Any, AsyncGenerator, List, Type, Union
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from autogen_core import CancellationToken, FunctionCall, Image
@@ -623,3 +623,33 @@ async def test_thought_field_with_tool_calls_streaming(
     assert final_result.content[0].arguments == '{"foo": "bar"}'
 
     assert final_result.thought == "Let me think about what function to call."
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_chat_completion_client_api_version() -> None:
+    """Test that api_version is correctly passed to the ChatCompletionsClient."""
+    custom_api_version = "2024-08-01-preview"
+
+    # Use a context manager to patch the _create_client method instead of the constructor
+    with patch.object(AzureAIChatCompletionClient, "_create_client") as mock_create_client:
+        mock_create_client.return_value = MagicMock()
+
+        _ = AzureAIChatCompletionClient(
+            endpoint="endpoint",
+            credential=AzureKeyCredential("api_key"),
+            model_info={
+                "json_output": False,
+                "function_calling": False,
+                "vision": False,
+                "family": "unknown",
+                "structured_output": False,
+            },
+            model="model",
+            api_version=custom_api_version,
+        )
+
+        # Verify the method was called with a config containing api_version
+        mock_create_client.assert_called_once()
+        config_arg = mock_create_client.call_args[0][0]
+        assert "api_version" in config_arg
+        assert config_arg["api_version"] == custom_api_version

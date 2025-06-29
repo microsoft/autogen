@@ -22,9 +22,21 @@ class JsonSchemaFormat(TypedDict, total=False):
 
 
 class AzureAIClientArguments(TypedDict, total=False):
+    """Arguments for AzureAI clients.
+
+    Required fields:
+    - endpoint (str): The endpoint to use.
+    - credential (Union[AzureKeyCredential, AsyncTokenCredential]): The credentials to use.
+    - model_info (ModelInfo): The model family and capabilities of the model.
+
+    Optional fields:
+    - api_version (str): API version to use when calling Azure AI Service.
+    """
+
     endpoint: str
     credential: Union[AzureKeyCredential, AsyncTokenCredential]
     model_info: ModelInfo
+    api_version: Optional[str]
 
 
 class AzureAICreateArguments(TypedDict, total=False):
