@@ -4,6 +4,7 @@ Each message type inherits either from the BaseChatMessage class or BaseAgentEve
 class and includes specific fields relevant to the type of message being sent.
 """
 
+import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Dict, Generic, List, Literal, Mapping, Optional, Type, TypeVar
@@ -77,6 +78,9 @@ class BaseChatMessage(BaseMessage, ABC):
     message using models and return a response as another :class:`BaseChatMessage`.
     """
 
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    """Unique identifier for this message."""
+
     source: str
     """The name of the agent that sent this message."""
 
@@ -148,6 +152,9 @@ class BaseAgentEvent(BaseMessage, ABC):
     You should override the :meth:`to_text` method if you want to provide
     a custom rendering of the content.
     """
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    """Unique identifier for this event."""
 
     source: str
     """The name of the agent that sent this message."""
@@ -522,6 +529,10 @@ class ModelClientStreamingChunkEvent(BaseAgentEvent):
 
     content: str
     """A string chunk from the model client."""
+
+    full_message_id: str | None = None
+    """Optional reference to the complete message that may come after the chunks.
+    This allows consumers of the stream to correlate chunks with the eventual completed message."""
 
     type: Literal["ModelClientStreamingChunkEvent"] = "ModelClientStreamingChunkEvent"
 
