@@ -646,9 +646,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     component_config_schema = AssistantAgentConfig
     component_provider_override = "autogen_agentchat.agents.AssistantAgent"
 
-    # Store correlation between CreateResult objects and message IDs
-    _message_id_map: Dict[int, str] = {}
-
     def __init__(
         self,
         name: str,
@@ -841,7 +838,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             inner_messages.append(event_msg)
             yield event_msg
 
-        # STEP 3: Run the first inference
+        # STEP 3: Generate a message ID for correlation between streaming chunks and final message
+        message_id = str(uuid.uuid4())
+
+        # STEP 4: Run the first inference
         model_result = None
         async for inference_output in self._call_llm(
             model_client=model_client,
@@ -853,6 +853,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             agent_name=agent_name,
             cancellation_token=cancellation_token,
             output_content_type=output_content_type,
+            message_id=message_id,
         ):
             if isinstance(inference_output, CreateResult):
                 model_result = inference_output
@@ -877,7 +878,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             )
         )
 
-        # STEP 4: Process the model output
+        # STEP 5: Process the model output
         async for output_event in self._process_model_result(
             model_result=model_result,
             inner_messages=inner_messages,
@@ -894,6 +895,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tool_call_summary_format=tool_call_summary_format,
             tool_call_summary_formatter=tool_call_summary_formatter,
             output_content_type=output_content_type,
+            message_id=message_id,
             format_string=format_string,
         ):
             yield output_event
@@ -945,6 +947,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         cancellation_token: CancellationToken,
         output_content_type: type[BaseModel] | None,
+        message_id: str,
     ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
         """
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
@@ -956,11 +959,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         if model_client_stream:
             model_result: Optional[CreateResult] = None
-            # Generate a message ID that will be used for both chunks and the final message
-            full_message_id = str(uuid.uuid4())
-
-            # Store the ID in the model_result for later correlation
-            message_id_for_correlation = full_message_id
 
             async for chunk in model_client.create_stream(
                 llm_messages,
@@ -970,12 +968,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             ):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
-                    # Store the ID in the correlation map using object ID as key
-                    cls._message_id_map[id(model_result)] = message_id_for_correlation
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(
-                        content=chunk, source=agent_name, full_message_id=full_message_id
-                    )
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name, full_message_id=message_id)
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
@@ -1008,6 +1002,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         tool_call_summary_format: str,
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
         output_content_type: type[BaseModel] | None,
+        message_id: str,
         format_string: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
@@ -1017,9 +1012,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # If direct text response (string)
         if isinstance(model_result.content, str):
-            # Use the same ID for the final message as was used for streaming chunks
-            # Get the message ID from the correlation map using object ID as key
-            message_id = cls._message_id_map.get(id(model_result)) or str(uuid.uuid4())
+            # Use the passed message ID for the final message
             if output_content_type:
                 content = output_content_type.model_validate_json(model_result.content)
                 yield Response(
@@ -1042,9 +1035,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     ),
                     inner_messages=inner_messages,
                 )
-            # Clean up the correlation map entry to avoid memory leaks
-            if id(model_result) in cls._message_id_map:
-                del cls._message_id_map[id(model_result)]
             return
 
         # Otherwise, we have function calls
@@ -1214,8 +1204,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         reflection_result: Optional[CreateResult] = None
 
-        # Generate a message ID for correlation between chunks and final message
-        message_id = str(uuid.uuid4())
+        # Generate a message ID for correlation between chunks and final message in reflection flow
+        reflection_message_id = str(uuid.uuid4())
 
         if model_client_stream:
             async for chunk in model_client.create_stream(
@@ -1225,7 +1215,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 if isinstance(chunk, CreateResult):
                     reflection_result = chunk
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name, full_message_id=message_id)
+                    yield ModelClientStreamingChunkEvent(
+                        content=chunk, source=agent_name, full_message_id=reflection_message_id
+                    )
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
         else:
@@ -1256,7 +1248,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     content=content,
                     source=agent_name,
                     models_usage=reflection_result.usage,
-                    id=message_id,
+                    id=reflection_message_id,
                 ),
                 inner_messages=inner_messages,
             )
@@ -1266,7 +1258,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     content=reflection_result.content,
                     source=agent_name,
                     models_usage=reflection_result.usage,
-                    id=message_id,
+                    id=reflection_message_id,
                 ),
                 inner_messages=inner_messages,
             )
