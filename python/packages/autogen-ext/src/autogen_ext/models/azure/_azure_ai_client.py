@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import re
-import warnings
 from asyncio import Task
 from inspect import getfullargspec
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union, cast
@@ -32,7 +31,6 @@ from azure.ai.inference.models import (
     ChatCompletionsNamedToolChoice,
     ChatCompletionsNamedToolChoiceFunction,
     ChatCompletionsToolCall,
-    ChatCompletionsToolChoicePreset,
     ChatCompletionsToolDefinition,
     CompletionsFinishReason,
     ContentItem,
@@ -378,26 +376,12 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         azure_messages_nested = [to_azure_message(msg) for msg in messages]
         azure_messages = [item for sublist in azure_messages_nested for item in sublist]
 
-        # Handle tool_choice parameter - log warning as it might not be supported by Azure AI
-        if tool_choice is not None:
-            if len(tools) == 0:
-                raise ValueError("tool_choice specified but no tools provided")
-            if "tool_choice" not in create_args:
-                warnings.warn(
-                    "tool_choice parameter is specified through the constructor, but overridden in create call",
-                    UserWarning,
-                    stacklevel=2,
-                )
-            tool_choices: Union[ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice] = (
-                ChatCompletionsToolChoicePreset.AUTO
+        if isinstance(tool_choice, Tool):
+            create_args["tool_choice"] = ChatCompletionsNamedToolChoice(
+                function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
             )
-            if isinstance(tool_choice, Tool):
-                tool_choices = ChatCompletionsNamedToolChoice(
-                    function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
-                )
-            elif tool_choice is None:
-                tool_choices = ChatCompletionsToolChoicePreset.NONE
-            create_args["tool_choice"] = tool_choices
+        else:
+            create_args["tool_choice"] = tool_choice
 
         task: Task[ChatCompletions]
 
