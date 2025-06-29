@@ -212,7 +212,7 @@ class TestAssistantAgentToolCallLoop:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            max_tool_iterations=1,
+            max_tool_iterations=3,
         )
 
         result = await agent.run(task="Execute multiple tool calls")
@@ -353,7 +353,9 @@ class TestAssistantAgentToolCallLoop:
     async def test_tool_call_config_validation(self) -> None:
         """Test that ToolCallConfig validation works correctly."""
         # Test that max_iterations must be >= 1
-        with pytest.raises(ValueError, match="Maximum number of tool iterations must be at least 1"):
+        with pytest.raises(
+            ValueError, match="Maximum number of tool iterations must be greater than or equal to 1, got 0"
+        ):
             AssistantAgent(
                 name="test_agent",
                 model_client=MagicMock(),
@@ -1596,7 +1598,7 @@ class TestAssistantAgentThoughtHandling:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            max_tool_iterations=1,
+            max_tool_iterations=3,
         )
 
         messages: List[Any] = []
