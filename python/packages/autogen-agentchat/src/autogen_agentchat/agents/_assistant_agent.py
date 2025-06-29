@@ -1,20 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
+import uuid
 import warnings
-from typing import (
-    Any,
-    AsyncGenerator,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core.memory import Memory
@@ -140,12 +131,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     .. tip::
 
         By default, the tool call results are returned as the response when tool
-        calls are made, so pay close attention to how the tools’ return values
+        calls are made, so pay close attention to how the tools' return values
         are formatted—especially if another agent expects a specific schema.
 
         * Use **`tool_call_summary_format`** for a simple static template.
         * Use **`tool_call_summary_formatter`** for full programmatic control
-          (e.g., “hide large success payloads, show full details on error”).
+          (e.g., "hide large success payloads, show full details on error").
 
         *Note*: `tool_call_summary_formatter` is **not serializable** and will
         be ignored when an agent is loaded from, or exported to, YAML/JSON
@@ -555,7 +546,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             - Start with a pizza crust (store-bought or homemade).
             - Spread a layer of marinara or tomato sauce evenly over the crust.
             - Top with your favorite vegetables like bell peppers, mushrooms, onions, olives, and spinach.
-            - Add some protein if you’d like, such as grilled chicken or pepperoni (ensure it's cheese-free).
+            - Add some protein if you'd like, such as grilled chicken or pepperoni (ensure it's cheese-free).
             - Sprinkle with herbs like oregano and basil, and maybe a drizzle of olive oil.
             - Bake according to the crust instructions until the edges are golden and the veggies are cooked.
 
@@ -847,7 +838,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             inner_messages.append(event_msg)
             yield event_msg
 
-        # STEP 3: Run the first inference
+        # STEP 3: Generate a message ID for correlation between streaming chunks and final message
+        message_id = str(uuid.uuid4())
+
+        # STEP 4: Run the first inference
         model_result = None
         async for inference_output in self._call_llm(
             model_client=model_client,
@@ -859,6 +853,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             agent_name=agent_name,
             cancellation_token=cancellation_token,
             output_content_type=output_content_type,
+            message_id=message_id,
         ):
             if isinstance(inference_output, CreateResult):
                 model_result = inference_output
@@ -883,7 +878,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             )
         )
 
-        # STEP 4: Process the model output
+        # STEP 5: Process the model output
         async for output_event in self._process_model_result(
             model_result=model_result,
             inner_messages=inner_messages,
@@ -900,6 +895,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tool_call_summary_format=tool_call_summary_format,
             tool_call_summary_formatter=tool_call_summary_formatter,
             output_content_type=output_content_type,
+            message_id=message_id,
             format_string=format_string,
         ):
             yield output_event
@@ -951,6 +947,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         cancellation_token: CancellationToken,
         output_content_type: type[BaseModel] | None,
+        message_id: str,
     ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
         """
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
@@ -962,6 +959,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         if model_client_stream:
             model_result: Optional[CreateResult] = None
+
             async for chunk in model_client.create_stream(
                 llm_messages,
                 tools=tools,
@@ -971,7 +969,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name, full_message_id=message_id)
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
@@ -1004,6 +1002,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         tool_call_summary_format: str,
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
         output_content_type: type[BaseModel] | None,
+        message_id: str,
         format_string: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
@@ -1013,6 +1012,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # If direct text response (string)
         if isinstance(model_result.content, str):
+            # Use the passed message ID for the final message
             if output_content_type:
                 content = output_content_type.model_validate_json(model_result.content)
                 yield Response(
@@ -1021,6 +1021,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                         source=agent_name,
                         models_usage=model_result.usage,
                         format_string=format_string,
+                        id=message_id,
                     ),
                     inner_messages=inner_messages,
                 )
@@ -1030,6 +1031,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                         content=model_result.content,
                         source=agent_name,
                         models_usage=model_result.usage,
+                        id=message_id,
                     ),
                     inner_messages=inner_messages,
                 )
@@ -1228,6 +1230,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         reflection_result: Optional[CreateResult] = None
 
+        # Generate a message ID for correlation between chunks and final message in reflection flow
+        reflection_message_id = str(uuid.uuid4())
+
         if model_client_stream:
             async for chunk in model_client.create_stream(
                 llm_messages,
@@ -1236,7 +1241,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 if isinstance(chunk, CreateResult):
                     reflection_result = chunk
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                    yield ModelClientStreamingChunkEvent(
+                        content=chunk, source=agent_name, full_message_id=reflection_message_id
+                    )
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
         else:
@@ -1267,6 +1274,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     content=content,
                     source=agent_name,
                     models_usage=reflection_result.usage,
+                    id=reflection_message_id,
                 ),
                 inner_messages=inner_messages,
             )
@@ -1276,6 +1284,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     content=reflection_result.content,
                     source=agent_name,
                     models_usage=reflection_result.usage,
+                    id=reflection_message_id,
                 ),
                 inner_messages=inner_messages,
             )
