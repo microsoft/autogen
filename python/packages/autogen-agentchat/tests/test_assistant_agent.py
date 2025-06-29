@@ -1419,8 +1419,8 @@ async def test_structured_message_factory_serialization() -> None:
     result = await restored_agent.run()
 
     assert isinstance(result.messages[0], StructuredMessage)
-    assert result.messages[0].content.result == "All good"  # type: ignore[reportUnknownMemberType]
-    assert result.messages[0].content.status == "ok"  # type: ignore[reportUnknownMemberType]
+    assert result.messages[0].content.result == "All good"  # type: ignore
+    assert result.messages[0].content.status == "ok"  # type: ignore
 
 
 @pytest.mark.asyncio
