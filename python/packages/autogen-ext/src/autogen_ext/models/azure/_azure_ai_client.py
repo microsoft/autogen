@@ -4,6 +4,7 @@ import re
 from asyncio import Task
 from inspect import getfullargspec
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union, cast
+import warnings
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, Image
 from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
@@ -28,7 +29,10 @@ from azure.ai.inference.models import (
 )
 from azure.ai.inference.models import (
     ChatCompletions,
+    ChatCompletionsNamedToolChoice,
     ChatCompletionsToolCall,
+    ChatCompletionsToolChoicePreset,
+    ChatCompletionsNamedToolChoiceFunction,
     ChatCompletionsToolDefinition,
     CompletionsFinishReason,
     ContentItem,
@@ -378,7 +382,19 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if tool_choice is not None:
             if len(tools) == 0:
                 raise ValueError("tool_choice specified but no tools provided")
-            logger.warning("tool_choice parameter specified but may not be supported by Azure AI Inference API")
+            if "tool_choice" not in create_args:
+                warnings.warn(
+                    "tool_choice parameter is specified through the constructor, but overridden in create call",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            tool_choices: Union[ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice] = ChatCompletionsToolChoicePreset.AUTO
+            if isinstance(tool_choice, Tool):
+                tool_choices = ChatCompletionsNamedToolChoice(function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name))
+            elif tool_choice is None:
+                tool_choices = ChatCompletionsToolChoicePreset.NONE
+            create_args["tool_choice"] = tool_choices
+
 
         task: Task[ChatCompletions]
 
