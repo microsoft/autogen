@@ -134,18 +134,19 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     **Tool call behavior:**
 
-    * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`.
+    * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`. This ends the tool call iteration loop regardless of the `max_tool_iterations` setting.
     * When the model returns tool calls, they will be executed right away:
         - When `reflect_on_tool_use` is False, the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. You can customise the summary with either a static format string (`tool_call_summary_format`) **or** a callable (`tool_call_summary_formatter`); the callable is evaluated once per tool call.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and final response is returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`.
         - `reflect_on_tool_use` is set to `True` by default when `output_content_type` is set.
         - `reflect_on_tool_use` is set to `False` by default when `output_content_type` is not set.
     * If the model returns multiple tool calls, they will be executed concurrently. To disable parallel tool calls you need to configure the model client. For example, set `parallel_tool_calls=False` for :class:`~autogen_ext.models.openai.OpenAIChatCompletionClient` and :class:`~autogen_ext.models.openai.AzureOpenAIChatCompletionClient`.
+    * The `max_tool_iterations` parameter controls how many sequential tool call iterations the agent can perform in a single run. When set to 1 (default), the agent executes tool calls once and returns the result. When set higher, the agent can make additional model calls to execute more tool calls if the model continues to request them, enabling multi-step tool-based workflows. The agent stops when either the model returns a text response (instead of tool calls) or the maximum number of iterations is reached.
 
     .. tip::
 
         By default, the tool call results are returned as the response when tool
-        calls are made, so pay close attention to how the tools’ return values
+        calls are made, so pay close attention to how the tools' return values
         are formatted—especially if another agent expects a specific schema.
 
         * Use **`tool_call_summary_format`** for a simple static template.
@@ -356,7 +357,59 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             asyncio.run(main())
 
-        **Example 4: agent with Model-Context Protocol (MCP) workbench**
+        **Example 4: agent with max_tool_iterations**
+
+        The following example demonstrates how to use the `max_tool_iterations` parameter
+        to control how many times the agent can execute tool calls in a single run.
+        This is useful when you want the agent to perform multiple sequential tool
+        operations to reach a goal.
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
+
+
+            # Global counter state
+            counter = 0
+
+
+            def increment_counter() -> str:
+                \"\"\"Increment the counter by 1 and return the current value.\"\"\"
+                global counter
+                counter += 1
+                return f"Counter incremented to: {counter}"
+
+
+            def get_counter() -> str:
+                \"\"\"Get the current counter value.\"\"\"
+                global counter
+                return f"Current counter value: {counter}"
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(
+                    model="gpt-4o",
+                    # api_key = "your_openai_api_key"
+                )
+
+                # Create agent with max_tool_iterations=5 to allow multiple tool calls
+                agent = AssistantAgent(
+                    name="assistant",
+                    model_client=model_client,
+                    tools=[increment_counter, get_counter],
+                    max_tool_iterations=5,  # Allow up to 5 tool call iterations
+                    reflect_on_tool_use=True,  # Get a final summary after tool calls
+                )
+
+                await Console(agent.run_stream(task="Increment the counter 3 times and then tell me the final value."))
+
+
+            asyncio.run(main())
+
+        **Example 5: agent with Model-Context Protocol (MCP) workbench**
 
         The following example demonstrates how to create an assistant agent with
         a model client and an :class:`~autogen_ext.tools.mcp.McpWorkbench` for
@@ -394,7 +447,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             asyncio.run(main())
 
-        **Example 5: agent with structured output and tool**
+        **Example 6: agent with structured output and tool**
 
         The following example demonstrates how to create an assistant agent with
         a model client configured to use structured output and a tool.
@@ -462,7 +515,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             ---------- assistant ----------
             {"thoughts":"The user expresses a clear positive emotion by stating they are happy today, suggesting an upbeat mood.","response":"happy"}
 
-        **Example 6: agent with bounded model context**
+        **Example 7: agent with bounded model context**
 
         The following example shows how to use a
         :class:`~autogen_core.model_context.BufferedChatCompletionContext`
@@ -515,7 +568,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             That's great! Blue is often associated with calmness and serenity. Do you have a specific shade of blue that you like, or any particular reason why it's your favorite?
             No, you didn't ask a question. I apologize for any misunderstanding. If you have something specific you'd like to discuss or ask, feel free to let me know!
 
-        **Example 7: agent with memory**
+        **Example 8: agent with memory**
 
         The following example shows how to use a list-based memory with the assistant agent.
         The memory is preloaded with some initial content.
@@ -571,7 +624,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             Serve it with a side salad or some garlic bread to complete the meal! Enjoy your dinner!
 
-        **Example 8: agent with `o1-mini`**
+        **Example 9: agent with `o1-mini`**
 
         The following example shows how to use `o1-mini` model with the assistant agent.
 
@@ -603,7 +656,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             See `o1 beta limitations <https://platform.openai.com/docs/guides/reasoning#beta-limitations>`_ for more details.
 
 
-        **Example 9: agent using reasoning model with custom model context.**
+        **Example 10: agent using reasoning model with custom model context.**
 
         The following example shows how to use a reasoning model (DeepSeek R1) with the assistant agent.
         The model context is used to filter out the thought field from the assistant message.
@@ -1173,32 +1226,33 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             if loop_iteration == max_tool_iterations - 1:
                 break
 
-            # Continue the loop: make another model call
-            # Get tools for the next iteration
-            all_messages = system_messages + await model_context.get_messages()
-            llm_messages = cls._get_compatible_context(model_client=model_client, messages=all_messages)
+            # Continue the loop: make another model call using _call_llm
+            next_model_result: Optional[CreateResult] = None
+            async for llm_output in cls._call_llm(
+                model_client=model_client,
+                model_client_stream=model_client_stream,
+                system_messages=system_messages,
+                model_context=model_context,
+                workbench=workbench,
+                handoff_tools=handoff_tools,
+                agent_name=agent_name,
+                cancellation_token=cancellation_token,
+                output_content_type=output_content_type,
+            ):
+                if isinstance(llm_output, CreateResult):
+                    next_model_result = llm_output
+                else:
+                    # Streaming chunk event
+                    yield llm_output
 
-            # Make another model call
-            if model_client_stream:
-                next_model_result: Optional[CreateResult] = None
-                async for chunk in model_client.create_stream(
-                    llm_messages,
-                    json_output=output_content_type,
-                    cancellation_token=cancellation_token,
-                ):
-                    if isinstance(chunk, CreateResult):
-                        next_model_result = chunk
-                    elif isinstance(chunk, str):
-                        yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
-                    else:
-                        raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
-                if next_model_result is None:
-                    raise RuntimeError("No final model result in streaming mode.")
-                current_model_result = next_model_result
-            else:
-                current_model_result = await model_client.create(
-                    llm_messages, json_output=output_content_type, cancellation_token=cancellation_token
-                )
+            assert next_model_result is not None, "No model result was produced in tool call loop."
+            current_model_result = next_model_result
+
+            # Yield thought event if present
+            if current_model_result.thought:
+                thought_event = ThoughtEvent(content=current_model_result.thought, source=agent_name)
+                yield thought_event
+                inner_messages.append(thought_event)
 
             # Add the assistant message to the model context (including thought if present)
             await model_context.add_message(
@@ -1208,12 +1262,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     thought=getattr(current_model_result, "thought", None),
                 )
             )
-
-            # Yield thought event if present
-            if current_model_result.thought:
-                thought_event = ThoughtEvent(content=current_model_result.thought, source=agent_name)
-                yield thought_event
-                inner_messages.append(thought_event)
 
         # After the loop, reflect or summarize tool results
         if reflect_on_tool_use:
