@@ -34,7 +34,7 @@ from autogen_core.models import (
     SystemMessage,
 )
 from autogen_core.tools import BaseTool, FunctionTool, StaticWorkbench, Workbench
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 from .. import EVENT_LOGGER_NAME
@@ -65,18 +65,6 @@ T = TypeVar("T", bound=BaseModel)
 R = TypeVar("R", bound=BaseModel)
 
 
-class ToolCallConfig(BaseModel):
-    """Configuration for tool call behavior in AssistantAgent.
-
-    .. versionadded:: v0.6.2
-
-       Added for future extensibility of tool call loop functionality.
-    """
-
-    max_iterations: int = 10
-    """Maximum number of tool call iterations to prevent infinite loops."""
-
-
 class AssistantAgentConfig(BaseModel):
     """The declarative configuration for the assistant agent."""
 
@@ -92,11 +80,7 @@ class AssistantAgentConfig(BaseModel):
     model_client_stream: bool = False
     reflect_on_tool_use: bool
     tool_call_summary_format: str
-    tool_call_loop_config: ToolCallConfig | None = None
-    """Configuration for tool call loop behavior.
-
-    .. versionadded:: v0.6.2
-    """
+    max_tool_iterations: int = Field(default=1, ge=1)
     metadata: Dict[str, str] | None = None
     structured_message_factory: ComponentModel | None = None
 
@@ -228,6 +212,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             If this is set, the agent will respond with a :class:`~autogen_agentchat.messages.StructuredMessage` instead of a :class:`~autogen_agentchat.messages.TextMessage`
             in the final response, unless `reflect_on_tool_use` is `False` and a tool call is made.
         output_content_type_format (str | None, optional): (Experimental) The format string used for the content of a :class:`~autogen_agentchat.messages.StructuredMessage` response.
+        max_tool_iterations (int, optional): The maximum number of tool iterations to perform until the model stops making tool calls. Defaults to `1`, which means the agent will
+            only execute the tool calls made by the model once, and return the result as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage`,
+            or a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output)
+            in :attr:`~autogen_agentchat.base.Response.chat_message` as the final response.
+            As soon as the model stops making tool calls, the agent will stop executing tool calls and return the result as the final response.
+            The value must be greater than or equal to 1.
         tool_call_summary_format (str, optional): Static format string applied to each tool call result when composing the :class:`~autogen_agentchat.messages.ToolCallSummaryMessage`.
             Defaults to ``"{result}"``. Ignored if `tool_call_summary_formatter` is provided. When `reflect_on_tool_use` is ``False``, the summaries for all tool
             calls are concatenated with a newline ('\\n') and returned as the response.  Placeholders available in the template:
@@ -691,7 +681,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
         model_client_stream: bool = False,
         reflect_on_tool_use: bool | None = None,
-        tool_call_loop_config: Optional[ToolCallConfig] = None,
+        max_tool_iterations: int = 1,
         tool_call_summary_format: str = "{result}",
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None = None,
         output_content_type: type[BaseModel] | None = None,
@@ -812,12 +802,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 stacklevel=2,
             )
 
-        # Tool call loop configuration
-        self._tool_call_loop_config = tool_call_loop_config
-
-        # Validate tool call configuration
-        if self._tool_call_loop_config and self._tool_call_loop_config.max_iterations < 1:
-            raise ValueError("Maximum number of tool iterations must be at least 1")
+        # Tool call loop
+        self._max_tool_iterations = max_tool_iterations
+        if self._max_tool_iterations < 1:
+            raise ValueError(
+                f"Maximum number of tool iterations must be greater than or equal to 1, got {max_tool_iterations}"
+            )
 
         self._tool_call_summary_format = tool_call_summary_format
         self._tool_call_summary_formatter = tool_call_summary_formatter
@@ -889,7 +879,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client = self._model_client
         model_client_stream = self._model_client_stream
         reflect_on_tool_use = self._reflect_on_tool_use
-        tool_call_loop_config = self._tool_call_loop_config
+        max_tool_iterations = self._max_tool_iterations
         tool_call_summary_format = self._tool_call_summary_format
         tool_call_summary_formatter = self._tool_call_summary_formatter
         output_content_type = self._output_content_type
@@ -960,7 +950,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client=model_client,
             model_client_stream=model_client_stream,
             reflect_on_tool_use=reflect_on_tool_use,
-            tool_call_loop_config=tool_call_loop_config,
+            max_tool_iterations=max_tool_iterations,
             tool_call_summary_format=tool_call_summary_format,
             tool_call_summary_formatter=tool_call_summary_formatter,
             output_content_type=output_content_type,
@@ -1085,9 +1075,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client: ChatCompletionClient,
         model_client_stream: bool,
         reflect_on_tool_use: bool,
-        tool_call_loop_config: ToolCallConfig | None,
         tool_call_summary_format: str,
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
+        max_tool_iterations: int,
         output_content_type: type[BaseModel] | None,
         format_string: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
@@ -1098,12 +1088,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # Tool call loop implementation
         current_model_result = model_result
-        tool_call_loop_enabled = tool_call_loop_config is not None
-        max_iterations = tool_call_loop_config.max_iterations if tool_call_loop_config is not None else 1
         # This variable is needed for the final summary/reflection step
         executed_calls_and_results: List[Tuple[FunctionCall, FunctionExecutionResult]] = []
 
-        for loop_iteration in range(max_iterations):
+        for loop_iteration in range(max_tool_iterations):
             # If direct text response (string), we're done
             if isinstance(current_model_result.content, str):
                 if output_content_type:
@@ -1181,8 +1169,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 return
 
             # STEP 4D: Check if we should continue the loop.
-            # If the loop is disabled, or we are on the last iteration, break to the summary/reflection step.
-            if not tool_call_loop_enabled or loop_iteration == max_iterations - 1:
+            # If we are on the last iteration, break to the summary/reflection step.
+            if loop_iteration == max_tool_iterations - 1:
                 break
 
             # Continue the loop: make another model call
@@ -1560,7 +1548,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             else None,
             model_client_stream=self._model_client_stream,
             reflect_on_tool_use=self._reflect_on_tool_use,
-            tool_call_loop_config=self._tool_call_loop_config,
+            max_tool_iterations=self._max_tool_iterations,
             tool_call_summary_format=self._tool_call_summary_format,
             structured_message_factory=self._structured_message_factory.dump_component()
             if self._structured_message_factory
@@ -1592,7 +1580,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             system_message=config.system_message,
             model_client_stream=config.model_client_stream,
             reflect_on_tool_use=config.reflect_on_tool_use,
-            tool_call_loop_config=config.tool_call_loop_config,
+            max_tool_iterations=config.max_tool_iterations,
             tool_call_summary_format=config.tool_call_summary_format,
             output_content_type=output_content_type,
             output_content_type_format=format_string,

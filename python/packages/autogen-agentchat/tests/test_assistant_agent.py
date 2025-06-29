@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 # First-party imports
-from autogen_agentchat.agents import AssistantAgent, ToolCallConfig
+from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.agents._assistant_agent import AssistantAgentConfig
 from autogen_agentchat.base import Handoff, Response
 from autogen_agentchat.messages import (
@@ -174,7 +174,7 @@ class TestAssistantAgentToolCallLoop:
         """
         # Create mock client with multiple tool calls followed by text response
         model_client = ReplayChatCompletionClient(
-            chat_completions=[
+            [
                 # First tool call
                 CreateResult(
                     finish_reason="function_calls",
@@ -212,7 +212,7 @@ class TestAssistantAgentToolCallLoop:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            tool_call_loop_config=ToolCallConfig(),  # Enable tool call loop
+            max_tool_iterations=1,
         )
 
         result = await agent.run(task="Execute multiple tool calls")
@@ -234,7 +234,7 @@ class TestAssistantAgentToolCallLoop:
         2. Agent returns after first tool call
         """
         model_client = ReplayChatCompletionClient(
-            responses=[
+            [
                 CreateResult(
                     finish_reason="function_calls",
                     content=[FunctionCall(id="1", arguments=json.dumps({"param": "test"}), name="mock_tool_function")],
@@ -255,7 +255,7 @@ class TestAssistantAgentToolCallLoop:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            # tool_call_loop_config not specified, should default to None
+            max_tool_iterations=1,
         )
 
         result = await agent.run(task="Execute single tool call")
@@ -296,7 +296,7 @@ class TestAssistantAgentToolCallLoop:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            tool_call_loop_config=ToolCallConfig(max_iterations=5),  # Custom max_iterations
+            max_tool_iterations=5,  # Set max iterations to 5
         )
 
         result = await agent.run(task="Test max iterations")
@@ -338,7 +338,7 @@ class TestAssistantAgentToolCallLoop:
             model_client=model_client,
             tools=[mock_tool_function],
             handoffs=["other_agent"],
-            tool_call_loop_config=ToolCallConfig(),
+            max_tool_iterations=1,
         )
 
         result = await agent.run(task="Test handoff in loop")
@@ -357,7 +357,7 @@ class TestAssistantAgentToolCallLoop:
             AssistantAgent(
                 name="test_agent",
                 model_client=MagicMock(),
-                tool_call_loop_config=ToolCallConfig(max_iterations=0),
+                max_tool_iterations=0,  # Should raise error
             )
 
 
@@ -377,7 +377,7 @@ class TestAssistantAgentInitialization:
         3. Basic functionality works
         """
         model_client = ReplayChatCompletionClient(
-            responses=[
+            [
                 CreateResult(
                     finish_reason="stop",
                     content="Hello!",
@@ -410,7 +410,7 @@ class TestAssistantAgentInitialization:
         3. Tool calls work correctly
         """
         model_client = ReplayChatCompletionClient(
-            responses=[
+            [
                 CreateResult(
                     finish_reason="function_calls",
                     content=[FunctionCall(id="1", arguments=json.dumps({"param": "test"}), name="mock_tool_function")],
@@ -447,7 +447,7 @@ class TestAssistantAgentInitialization:
         3. Memory updates work correctly
         """
         model_client = ReplayChatCompletionClient(
-            responses=[
+            [
                 CreateResult(
                     finish_reason="stop",
                     content="Using memory content",
@@ -564,7 +564,7 @@ class TestAssistantAgentValidation:
             return f"Duplicate tool: {param}"
 
         model_client = ReplayChatCompletionClient(
-            responses=[],
+            [],
             model_info={
                 "function_calling": True,
                 "vision": False,
@@ -590,7 +590,7 @@ class TestAssistantAgentValidation:
         2. Appropriate error is raised
         """
         model_client = ReplayChatCompletionClient(
-            responses=[],
+            [],
             model_info={
                 "function_calling": True,
                 "vision": False,
@@ -625,7 +625,7 @@ class TestAssistantAgentValidation:
             return "test"
 
         model_client = ReplayChatCompletionClient(
-            responses=[],
+            [],
             model_info={
                 "function_calling": True,
                 "vision": False,
@@ -899,7 +899,7 @@ class TestAssistantAgentMemoryIntegration:
 
         # Configure model client with expected response
         model_client = ReplayChatCompletionClient(
-            responses=[
+            [
                 CreateResult(
                     finish_reason="stop",
                     content="Response incorporating memory content",
@@ -968,7 +968,7 @@ class TestAssistantAgentMemoryIntegration:
 
         # Create model client
         model_client = ReplayChatCompletionClient(
-            responses=[
+            [
                 CreateResult(
                     finish_reason="stop",
                     content="Response using memory",
@@ -1124,7 +1124,7 @@ class TestAssistantAgentComponentSerialization:
         assert config.system_message == "Test system message"
         assert config.model_client_stream is False
         assert config.reflect_on_tool_use is False
-        assert config.tool_call_loop_config is None
+        assert config.max_tool_iterations == 1
         assert config.metadata == {"key": "value"}
         model_client.dump_component.assert_called_once()
         mock_context.dump_component.assert_called_once()
@@ -1388,7 +1388,7 @@ class TestAssistantAgentComponentSerialization:
             system_message="Test system message",
             model_client_stream=True,
             reflect_on_tool_use=True,
-            tool_call_loop_config=ToolCallConfig(max_iterations=5),
+            max_tool_iterations=5,
             tool_call_summary_format="{tool_name}: {result}",
             handoffs=["agent1"],
             model_context=mock_context,
@@ -1404,7 +1404,7 @@ class TestAssistantAgentComponentSerialization:
         assert config.system_message == "Test system message"
         assert config.model_client_stream is True
         assert config.reflect_on_tool_use is True
-        assert config.tool_call_loop_config is not None and config.tool_call_loop_config.max_iterations == 5
+        assert config.max_tool_iterations == 5
         assert config.tool_call_summary_format == "{tool_name}: {result}"
         assert config.metadata == {"test": "value"}
 
@@ -1483,7 +1483,7 @@ class TestAssistantAgentThoughtHandling:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            tool_call_loop_config=ToolCallConfig(),
+            max_tool_iterations=1,
         )
 
         messages: List[Any] = []
@@ -1596,7 +1596,7 @@ class TestAssistantAgentThoughtHandling:
             name="test_agent",
             model_client=model_client,
             tools=[mock_tool_function],
-            tool_call_loop_config=ToolCallConfig(),
+            max_tool_iterations=1,
         )
 
         messages: List[Any] = []
@@ -1644,7 +1644,7 @@ class TestAssistantAgentThoughtHandling:
             name="test_agent",
             model_client=model_client,
             handoffs=["other_agent"],
-            tool_call_loop_config=ToolCallConfig(),
+            max_tool_iterations=1,
         )
 
         result = await agent.run(task="Test handoff with thought")
@@ -2988,7 +2988,7 @@ class TestAssistantAgentMessageContext:
 
         # Create model client
         model_client = ReplayChatCompletionClient(
-            responses=[
+            [
                 CreateResult(
                     finish_reason="stop",
                     content="Response using memory",
