@@ -13,7 +13,6 @@ from typing import (
     Optional,
     Sequence,
     Type,
-    TypedDict,
     Union,
     cast,
 )
@@ -35,7 +34,7 @@ from autogen_core import CancellationToken, Component, ComponentModel, FunctionC
 from autogen_core.models import UserMessage
 from autogen_core.tools import Tool
 from pydantic import BaseModel, Field
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, TypedDict
 
 from openai import AsyncAzureOpenAI, AsyncOpenAI  # type: ignore
 
