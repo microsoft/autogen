@@ -5,11 +5,13 @@ import { appContext } from "../../../hooks/provider";
 import McpSidebar from "./sidebar";
 import McpDetail from "./detail";
 import { mcpAPI } from "./api";
+import { galleryAPI } from "../gallery/api";
 import type {
   Gallery,
   Component,
   McpWorkbenchConfig,
 } from "../../types/datamodel";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
 const McpManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +39,31 @@ const McpManager: React.FC = () => {
     workbench: Component<McpWorkbenchConfig> | null
   ) => {
     setCurrentWorkbench(workbench);
+  };
+
+  const handleGalleryUpdate = async (updatedGallery: Gallery) => {
+    if (!user?.id || !updatedGallery.id) return;
+
+    try {
+      setIsLoading(true);
+      // Sanitize the gallery data by removing timestamps that shouldn't be updated
+      const sanitizedUpdates = {
+        ...updatedGallery,
+        created_at: undefined,
+        updated_at: undefined,
+      };
+      await galleryAPI.updateGallery(
+        updatedGallery.id,
+        sanitizedUpdates,
+        user.id
+      );
+      messageApi.success("Gallery updated successfully");
+    } catch (error) {
+      console.error("Failed to update gallery:", error);
+      messageApi.error("Failed to update gallery");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleTestConnection = async (
@@ -83,6 +110,7 @@ const McpManager: React.FC = () => {
           onSelectWorkbench={handleSelectWorkbench}
           isLoading={isLoading}
           currentWorkbench={currentWorkbench}
+          onGalleryUpdate={handleGalleryUpdate}
         />
       </div>
 
@@ -93,6 +121,11 @@ const McpManager: React.FC = () => {
         }`}
       >
         <div className="p-4 pt-2">
+          <div className="text-xs text-secondary mb-4 border border-dashed rounded-md p-2 ">
+            <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1 text-warning text-orange-500" />{" "}
+            MCP Playground is an experimental view for testing MCP Servers in
+            your Gallery{" "}
+          </div>
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 mb-4 text-sm">
             <span className="text-primary font-medium">MCP Playground</span>

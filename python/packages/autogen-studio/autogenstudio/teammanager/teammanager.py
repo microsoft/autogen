@@ -8,7 +8,7 @@ from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Optiona
 
 import aiofiles
 import yaml
-from autogen_agentchat.agents import UserProxyAgent 
+from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 from autogen_agentchat.teams import BaseGroupChat
@@ -100,7 +100,7 @@ class TeamManager:
 
         self._team = BaseGroupChat.load_component(config)
 
-        for agent in self._team._participants: # type: ignore
+        for agent in self._team._participants:  # type: ignore
             if hasattr(agent, "input_func") and isinstance(agent, UserProxyAgent) and input_func:
                 agent.input_func = input_func
 
@@ -147,7 +147,7 @@ class TeamManager:
 
             # Ensure cleanup happens
             if team and hasattr(team, "_participants"):
-                for agent in team._participants: # type: ignore
+                for agent in team._participants:  # type: ignore
                     if hasattr(agent, "close"):
                         await agent.close()
 
@@ -171,6 +171,6 @@ class TeamManager:
 
         finally:
             if team and hasattr(team, "_participants"):
-                for agent in team._participants: # type: ignore
+                for agent in team._participants:  # type: ignore
                     if hasattr(agent, "close"):
                         await agent.close()

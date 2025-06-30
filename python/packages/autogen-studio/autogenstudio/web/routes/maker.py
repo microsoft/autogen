@@ -1,12 +1,15 @@
 # api/routes/maker.py
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from autogenstudio.maker.tool import ToolMaker, ToolMakerEvent, ComponentModel
-import json
 import asyncio
+import json
+
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+from autogenstudio.maker.tool import ComponentModel, ToolMaker, ToolMakerEvent
 
 router = APIRouter()
 
-@router.websocket("/maker/tool")
+
+@router.websocket("/tool")
 async def maker_tool_websocket(websocket: WebSocket):
     """
     WebSocket endpoint for streaming tool creation events and final tool config.
@@ -15,6 +18,9 @@ async def maker_tool_websocket(websocket: WebSocket):
     """
     await websocket.accept()
     try:
+        # For now, skip authentication for maker tools (experimental feature)
+        # TODO: Add proper authentication when moving to production
+
         data = await websocket.receive_text()
         payload = json.loads(data)
         description = payload.get("description")

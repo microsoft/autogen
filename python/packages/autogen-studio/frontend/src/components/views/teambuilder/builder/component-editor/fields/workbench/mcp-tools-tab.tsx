@@ -13,6 +13,8 @@ import {
   Divider,
   Dropdown,
   MenuProps,
+  Image,
+  Collapse,
 } from "antd";
 import {
   PlayCircle,
@@ -25,6 +27,11 @@ import {
   RotateCcw,
   Globe,
   Hash,
+  FileText,
+  Image as ImageIcon,
+  Code,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { McpServerParams } from "../../../../../../types/datamodel";
 import {
@@ -58,7 +65,9 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
   const [executingTool, setExecutingTool] = useState(false);
   const [toolResult, setToolResult] = useState<CallToolResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [resultView, setResultView] = useState<"raw" | "parsed">("parsed");
   const runToolRef = useRef<HTMLDivElement>(null);
   const toolResultRef = useRef<HTMLDivElement>(null);
 
@@ -110,17 +119,17 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
 
   const handleListTools = useCallback(async () => {
     if (!connected) {
-      setError("WebSocket not connected");
+      setLoadingError("WebSocket not connected");
       return;
     }
 
     if (!wsClient) {
-      setError("WebSocket client not initialized");
+      setLoadingError("WebSocket client not initialized");
       return;
     }
 
     setLoadingTools(true);
-    setError(null);
+    setLoadingError(null);
     // Clear selected tool and results when loading new tools
     setSelectedTool(null);
     setToolResult(null);
@@ -134,10 +143,10 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
       if (result?.tools) {
         setTools(result.tools);
       } else {
-        setError("No tools received from server");
+        setLoadingError("No tools received from server");
       }
     } catch (err: any) {
-      setError(`Failed to fetch tools: ${err.message}`);
+      setLoadingError(`Failed to fetch tools: ${err.message}`);
     } finally {
       setLoadingTools(false);
     }
@@ -223,6 +232,213 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
     setToolArguments(initialArgs);
   };
 
+  // Render MCP result content based on MIME type
+  const renderMCPResult = (content: any, index: number) => {
+    const { type, text, data, mimeType } = content;
+
+    // Helper function to check if data is base64 encoded
+    const isBase64 = (str: string) => {
+      try {
+        return btoa(atob(str)) === str;
+      } catch (err) {
+        return false;
+      }
+    };
+
+    // Helper function to format JSON
+    const formatJSON = (jsonString: string) => {
+      try {
+        const parsed = JSON.parse(jsonString);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        return jsonString;
+      }
+    };
+
+    // Render based on MIME type
+    const renderContent = () => {
+      // Handle images
+      if (mimeType?.startsWith("image/")) {
+        if (data && isBase64(data)) {
+          return (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <ImageIcon size={16} />
+                <Text strong>Image</Text>
+                <Tag color="green">{mimeType}</Tag>
+              </div>
+              <Image
+                src={`data:${mimeType};base64,${data}`}
+                alt="MCP Result Image"
+                style={{ maxWidth: "300px", maxHeight: "300px" }}
+                placeholder={<div>Loading image...</div>}
+              />
+            </div>
+          );
+        }
+      }
+
+      // Handle JSON content
+      if (
+        mimeType === "application/json" ||
+        (type === "text" &&
+          text &&
+          (text.trim().startsWith("{") || text.trim().startsWith("[")))
+      ) {
+        const jsonContent = text || data;
+        const formattedJson = formatJSON(jsonContent);
+
+        return (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Code size={16} />
+              <Text strong>JSON Data</Text>
+              <Tag color="purple">application/json</Tag>
+            </div>
+            <Collapse size="small" ghost defaultActiveKey={["json"]}>
+              <Collapse.Panel
+                header={
+                  <div className="flex items-center gap-2">
+                    <Text type="secondary">View formatted JSON</Text>
+                  </div>
+                }
+                key="json"
+              >
+                <pre
+                  className="bg-secondary text-primary"
+                  style={{
+                    padding: "12px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    lineHeight: "1.4",
+                    overflow: "auto",
+                    maxHeight: "300px",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
+                    margin: 0,
+                    border: "1px solid var(--border-color, #e1e4e8)",
+                  }}
+                >
+                  {formattedJson}
+                </pre>
+              </Collapse.Panel>
+            </Collapse>
+          </div>
+        );
+      }
+
+      // Handle text content
+      if (type === "text") {
+        const textContent = text || data || "";
+        return (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <FileText size={16} />
+              <Text strong>Text Content</Text>
+              {mimeType && <Tag color="blue">{mimeType}</Tag>}
+            </div>
+            {textContent ? (
+              <pre
+                className="bg-secondary text-primary"
+                style={{
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  padding: "12px",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  lineHeight: "1.5",
+                  maxHeight: "400px",
+                  overflow: "auto",
+                  margin: 0,
+                }}
+              >
+                {textContent}
+              </pre>
+            ) : (
+              <Text type="secondary" className="italic">
+                Empty text content
+              </Text>
+            )}
+          </div>
+        );
+      }
+
+      // Handle binary/data content
+      if (data) {
+        const dataPreview =
+          data.length > 100 ? `${data.substring(0, 100)}...` : data;
+
+        return (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Code size={16} />
+              <Text strong>Binary Data</Text>
+              {mimeType && <Tag color="orange">{mimeType}</Tag>}
+              <Tag color="default">{data.length} bytes</Tag>
+            </div>
+            <Collapse size="small" ghost>
+              <Collapse.Panel
+                header={
+                  <div className="flex items-center gap-2">
+                    <Eye size={14} />
+                    <Text type="secondary">View raw data (preview)</Text>
+                  </div>
+                }
+                key="data"
+              >
+                <pre
+                  className="bg-secondary text-primary"
+                  style={{
+                    padding: "12px",
+                    borderRadius: "6px",
+                    fontSize: "11px",
+                    lineHeight: "1.4",
+                    overflow: "auto",
+                    maxHeight: "200px",
+                    border: "1px solid var(--border-color, #e1e4e8)",
+                    fontFamily: "monospace",
+                    wordBreak: "break-all",
+                  }}
+                >
+                  {dataPreview}
+                </pre>
+              </Collapse.Panel>
+            </Collapse>
+          </div>
+        );
+      }
+
+      // Fallback for unknown content types
+      return (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle size={16} />
+            <Text strong>Unknown Content</Text>
+            <Tag color="default">{type}</Tag>
+            {mimeType && <Tag color="gray">{mimeType}</Tag>}
+          </div>
+          <Text type="secondary">
+            No suitable renderer found for this content type.
+          </Text>
+        </div>
+      );
+    };
+
+    return (
+      <Card
+        key={index}
+        size="small"
+        className="bg-secondary"
+        style={{
+          border: "1px solid var(--border-color, #e8e8e8)",
+        }}
+      >
+        {renderContent()}
+      </Card>
+    );
+  };
+
   const renderToolSelector = () => {
     if (loadingTools) {
       return (
@@ -248,6 +464,29 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
             >
               Load Tools
             </Button>
+
+            {loadingError && (
+              <Alert
+                type="error"
+                message="Failed to Load Tools"
+                description={loadingError}
+                action={
+                  <Space>
+                    <Button
+                      size="small"
+                      onClick={handleListTools}
+                      loading={loadingTools}
+                    >
+                      Retry
+                    </Button>
+                    <Button size="small" onClick={() => setLoadingError(null)}>
+                      Clear
+                    </Button>
+                  </Space>
+                }
+                showIcon
+              />
+            )}
           </Space>
         </Card>
       );
@@ -543,77 +782,65 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
     return (
       <Card
         size="small"
+        className="bg-secondary"
         title={
           <Space>
             <CheckCircle size={16} color="green" />
             Tool Result
+            <Tag color="green">
+              {toolResult.content.length} item
+              {toolResult.content.length !== 1 ? "s" : ""}
+            </Tag>
           </Space>
         }
       >
         <div ref={toolResultRef}>
           <Space direction="vertical" style={{ width: "100%" }}>
-            {toolResult.content.map((content, index) => (
-              <Card
-                key={index}
-                size="small"
-                style={{ backgroundColor: "#f9f9f9" }}
-              >
-                <Space direction="vertical" style={{ width: "100%" }}>
-                  <Tag color="blue">{content.type}</Tag>
-                  {content.text && (
-                    <pre
-                      className="break-all"
-                      style={{ whiteSpace: "pre-wrap", margin: 0 }}
-                    >
-                      {content.text}
-                    </pre>
-                  )}
-                  {content.data && (
-                    <div>
-                      <Text strong>Data:</Text>
-                      <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
-                        {content.data}
-                      </pre>
-                    </div>
-                  )}
-                  {content.mimeType && (
-                    <Text type="secondary">MIME Type: {content.mimeType}</Text>
-                  )}
-                </Space>
-              </Card>
-            ))}
+            {toolResult.content.map((content, index) =>
+              renderMCPResult(content, index)
+            )}
           </Space>
         </div>
       </Card>
     );
   };
 
-  if (error) {
-    return (
-      <Alert
-        type="error"
-        message="Tools Error"
-        description={error}
-        action={
-          <Button size="small" onClick={handleListTools} loading={loadingTools}>
-            Retry
-          </Button>
-        }
-      />
-    );
-  }
-
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
       <Space direction="vertical" style={{ width: "100%" }}>
         {renderToolSelector()}
-        {selectedTool && !loadingTools && (
+        {selectedTool && !loadingTools && !loadingError && (
           <>
             <Divider />
             {renderArgumentsForm()}
           </>
         )}
-        {toolResult && !loadingTools && (
+        {error && (
+          <Alert
+            type="error"
+            message="Tool Operation Error"
+            description={error}
+            action={
+              <Space>
+                <Button size="small" onClick={() => setError(null)}>
+                  Clear Error
+                </Button>
+                {selectedTool && (
+                  <Button
+                    size="small"
+                    type="primary"
+                    onClick={handleExecuteTool}
+                    loading={executingTool}
+                  >
+                    Retry
+                  </Button>
+                )}
+              </Space>
+            }
+            showIcon
+          />
+        )}
+        {toolResult && !loadingTools && !loadingError && (
           <>
             <Divider />
             {renderToolResult()}

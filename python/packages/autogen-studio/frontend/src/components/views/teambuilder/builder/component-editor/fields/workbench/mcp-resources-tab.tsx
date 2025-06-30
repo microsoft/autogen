@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Button, Typography, Space, Alert, Spin } from "antd";
 import {
   Package,
@@ -50,15 +50,17 @@ export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
   const [loadingResources, setLoadingResources] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const resourceContentRef = useRef<HTMLDivElement>(null);
 
   const handleListResources = useCallback(async () => {
     if (!connected || !wsClient) {
-      setError("WebSocket not connected");
+      setLoadingError("WebSocket not connected");
       return;
     }
 
     setLoadingResources(true);
-    setError(null);
+    setLoadingError(null);
 
     try {
       const result = await wsClient.executeOperation({
@@ -68,10 +70,12 @@ export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
       if (result?.resources) {
         setResources(result.resources);
       } else {
-        setError("No resources received from server");
+        setLoadingError("No resources received from server");
       }
     } catch (err: any) {
-      setError(`Failed to fetch resources: ${err.message || "Unknown error"}`);
+      setLoadingError(
+        `Failed to fetch resources: ${err.message || "Unknown error"}`
+      );
     } finally {
       setLoadingResources(false);
     }
@@ -112,6 +116,18 @@ export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
     }
   }, [connected, capabilities?.resources, handleListResources]);
 
+  // Auto-scroll to resource content when it appears
+  useEffect(() => {
+    if (resourceContent && resourceContentRef.current) {
+      setTimeout(() => {
+        resourceContentRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }, 100);
+    }
+  }, [resourceContent]);
+
   const renderResourcesList = () => (
     <div className="bg-secondary rounded-lg border border-tertiary p-4">
       <div className="flex items-center gap-2 mb-4">
@@ -131,6 +147,29 @@ export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
         >
           {resources.length > 0 ? "Refresh Resources" : "Load Resources"}
         </Button>
+
+        {loadingError && (
+          <Alert
+            type="error"
+            message="Failed to Load Resources"
+            description={loadingError}
+            action={
+              <Space>
+                <Button
+                  size="small"
+                  onClick={handleListResources}
+                  loading={loadingResources}
+                >
+                  Retry
+                </Button>
+                <Button size="small" onClick={() => setLoadingError(null)}>
+                  Clear
+                </Button>
+              </Space>
+            }
+            showIcon
+          />
+        )}
 
         {resources.length > 0 ? (
           <div className="space-y-3">
@@ -202,7 +241,10 @@ export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
     if (!selectedResource || !resourceContent) return null;
 
     return (
-      <div className="bg-secondary rounded-lg border border-tertiary p-4">
+      <div
+        ref={resourceContentRef}
+        className="bg-secondary rounded-lg border border-tertiary p-4"
+      >
         <div className="flex items-center gap-2 mb-4">
           <Eye size={18} className="text-primary" />
           <h3 className="text-lg font-semibold text-primary m-0">
@@ -269,36 +311,36 @@ export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
     );
   };
 
-  if (error) {
-    return (
-      <Alert
-        type="error"
-        message="Resources Error"
-        description={error}
-        action={
-          <Button
-            size="small"
-            onClick={handleListResources}
-            loading={loadingResources}
-            icon={<RotateCcw size={14} />}
-            className="flex items-center gap-1"
-          >
-            Retry
-          </Button>
-        }
-        className="m-4"
-      />
-    );
-  }
-
   return (
     <div className="p-4 space-y-6 h-full overflow-auto">
       {renderResourcesList()}
-      {selectedResource && resourceContent && (
+      {selectedResource && resourceContent && !loadingError && (
         <>
           <div className="border-t border-tertiary" />
           {renderResourceContent()}
         </>
+      )}
+      {error && (
+        <Alert
+          type="error"
+          message="Resource Operation Error"
+          description={error}
+          action={
+            <Space>
+              <Button size="small" onClick={() => setError(null)}>
+                Clear Error
+              </Button>
+              <Button
+                size="small"
+                onClick={handleListResources}
+                loading={loadingResources}
+              >
+                Retry
+              </Button>
+            </Space>
+          }
+          showIcon
+        />
       )}
     </div>
   );

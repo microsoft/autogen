@@ -123,7 +123,7 @@ class ValidationService:
             return None
         except Exception as e:
             error_str = str(e)
-            
+
             # Check for version compatibility issues
             if "component_version" in error_str and "_from_config_past_version is not implemented" in error_str:
                 # Extract component information for a better error message
@@ -132,9 +132,9 @@ class ValidationService:
                     module_path, class_name = component.provider.rsplit(".", maxsplit=1)
                     module = importlib.import_module(module_path)
                     component_class = getattr(module, class_name)
-                    current_version = getattr(component_class, 'component_version', None)
+                    current_version = getattr(component_class, "component_version", None)
                     config_version = component.component_version or component.version or 1
-                    
+
                     return ValidationError(
                         field="component_version",
                         error=f"Component version mismatch: Your configuration uses version {config_version}, but the component requires version {current_version}",
@@ -147,7 +147,7 @@ class ValidationService:
                         error="Component version compatibility issue detected",
                         suggestion="Your component configuration version is outdated. Update the 'component_version' field to match the latest component requirements.",
                     )
-            
+
             # Check for other common instantiation issues
             elif "Could not import provider" in error_str or "ImportError" in error_str:
                 return ValidationError(

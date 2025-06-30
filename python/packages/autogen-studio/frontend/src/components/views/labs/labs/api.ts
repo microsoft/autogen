@@ -1,4 +1,6 @@
 // api.ts for Tool Maker Lab
+import { BaseAPI } from "../../../utils/baseapi";
+
 export interface ToolMakerEvent {
   status: string;
   content: string;
@@ -19,17 +21,36 @@ export type ToolMakerStreamMessage =
   | { component: ToolComponentModel }
   | { error: string };
 
-export class ToolMakerAPI {
+export class ToolMakerAPI extends BaseAPI {
   ws: WebSocket | null = null;
+
+  // Helper for WebSocket URL construction (similar to MCP implementation)
+  private getWebSocketBaseUrl(url: string): string {
+    try {
+      let baseUrl = url.replace(/(^\w+:|^)\/\//, "");
+      if (baseUrl.startsWith("localhost")) {
+        baseUrl = baseUrl.replace("/api", "");
+      } else if (baseUrl === "/api") {
+        baseUrl = window.location.host;
+      } else {
+        baseUrl = baseUrl.replace("/api", "").replace(/\/$/, "");
+      }
+      return baseUrl;
+    } catch (error) {
+      throw new Error("Invalid server URL configuration");
+    }
+  }
 
   connect(
     onMessage: (msg: ToolMakerStreamMessage) => void,
     onError?: (err: any) => void,
     onClose?: () => void
   ) {
-    const wsUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${
-      window.location.host
-    }/api/maker/tool`;
+    // Use the same server URL logic as other APIs
+    const serverUrl = this.getBaseUrl(); // e.g., "/api" or "http://localhost:8081/api"
+    const baseUrl = this.getWebSocketBaseUrl(serverUrl);
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${baseUrl}/api/maker/tool`;
     this.ws = new window.WebSocket(wsUrl);
     this.ws.onmessage = (event) => {
       try {

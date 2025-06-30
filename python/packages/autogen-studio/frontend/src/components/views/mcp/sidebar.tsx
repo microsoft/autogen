@@ -17,6 +17,9 @@ import type {
 } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
 import Icon from "../../icons";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { AddComponentDropdown } from "../../shared";
+import { isMcpWorkbench } from "../../types/guards";
 
 const { Option } = Select;
 
@@ -26,6 +29,7 @@ interface McpSidebarProps {
   onSelectWorkbench: (workbench: Component<McpWorkbenchConfig> | null) => void;
   isLoading?: boolean;
   currentWorkbench: Component<McpWorkbenchConfig> | null;
+  onGalleryUpdate?: (gallery: Gallery) => void;
 }
 
 export const McpSidebar: React.FC<McpSidebarProps> = ({
@@ -34,6 +38,7 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
   onSelectWorkbench,
   isLoading = false,
   currentWorkbench,
+  onGalleryUpdate,
 }) => {
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [selectedGallery, setSelectedGallery] = useState<Gallery | null>(null);
@@ -47,6 +52,13 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
   // Helper function to get a unique identifier for a workbench
   const getWorkbenchId = (workbench: Component<McpWorkbenchConfig>) => {
     return `${workbench.provider}-${workbench.label || "unnamed"}`;
+  };
+
+  // Helper function to get a unique React key for rendering
+  const getWorkbenchKey = (workbench: Component<McpWorkbenchConfig>, index: number) => {
+    // Use a hash of the workbench config plus index to ensure uniqueness
+    const configStr = JSON.stringify(workbench.config);
+    return `${workbench.provider}-${workbench.label || "unnamed"}-${configStr.slice(0, 20)}-${index}`;
   };
 
   // Load galleries on component mount
@@ -118,6 +130,48 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
     [currentWorkbench, onSelectWorkbench]
   );
 
+  // Handler for when a new MCP workbench is added
+  const handleComponentAdded = useCallback(
+    async (newComponent: Component<any>, category: any) => {
+      if (!selectedGallery || !user?.id || category !== "workbenches") return;
+
+      // Update the gallery with the new component
+      const updatedGallery = {
+        ...selectedGallery,
+        config: {
+          ...selectedGallery.config,
+          components: {
+            ...selectedGallery.config.components,
+            workbenches: [
+              ...(selectedGallery.config.components.workbenches || []),
+              newComponent,
+            ],
+          },
+        },
+      };
+
+      try {
+        // Call the gallery update handler if provided
+        if (onGalleryUpdate) {
+          onGalleryUpdate(updatedGallery);
+        }
+
+        // Update local state
+        setSelectedGallery(updatedGallery);
+        const workbenches = mcpAPI.extractMcpWorkbenches(updatedGallery);
+        setMcpWorkbenches(workbenches);
+
+        // Auto-select the newly added workbench if it's an MCP workbench
+        if (newComponent.component_type === "workbench" && isMcpWorkbench(newComponent)) {
+          onSelectWorkbench(newComponent as Component<McpWorkbenchConfig>);
+        }
+      } catch (error) {
+        console.error("Failed to update gallery with new component:", error);
+      }
+    },
+    [selectedGallery, user?.id, onGalleryUpdate, onSelectWorkbench]
+  );
+
   // Render collapsed state
   if (!isOpen) {
     return (
@@ -157,7 +211,7 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
       </div>
 
       {/* Gallery Selection */}
-      <div className="p-4 border-b border-secondary">
+      <div className="p-4 pl-2 border-b border-secondary">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-secondary">Gallery</span>
           <Tooltip title="Refresh galleries">
@@ -202,9 +256,29 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
 
       {/* Section Label */}
       <div className="py-2 flex text-sm text-secondary px-4">
-        <div className="flex">MCP Workbenches</div>
-        {isLoading && <RefreshCw className="w-4 h-4 ml-2 animate-spin" />}
+        <div className="flex">
+          MCP Workbenches
+          {isLoading && <RefreshCw className="w-4 h-4 ml-2 animate-spin" />}
+        </div>
       </div>
+
+      {/* Add MCP Server Button */}
+      {selectedGallery && (
+        <div className="px-4 pb-3">
+          <AddComponentDropdown
+            componentType="workbench"
+            gallery={selectedGallery}
+            onComponentAdded={handleComponentAdded}
+            disabled={!selectedGallery}
+            buttonText="Add MCP Server"
+            className="w-full"
+            templateFilter={(template) => 
+              template.label.toLowerCase().includes('mcp') || 
+              template.description.toLowerCase().includes('mcp')
+            }
+          />
+        </div>
+      )}
 
       {/* Workbenches List */}
       {!selectedGallery && (
@@ -215,21 +289,21 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
       )}
 
       {selectedGallery && mcpWorkbenches.length === 0 && (
-        <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded mx-4">
+        <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded ml-2">
           <Info className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
           No MCP workbenches found in this gallery
         </div>
       )}
 
       <div className="scroll overflow-y-auto h-[calc(100%-220px)]">
-        {mcpWorkbenches.map((workbench) => {
-          const workbenchId = getWorkbenchId(workbench);
+        {mcpWorkbenches.map((workbench, index) => {
+          const workbenchKey = getWorkbenchKey(workbench, index);
           const isSelected =
             currentWorkbench &&
-            getWorkbenchId(currentWorkbench) === workbenchId;
+            getWorkbenchId(currentWorkbench) === getWorkbenchId(workbench);
 
           return (
-            <div key={workbenchId} className="relative border-secondary">
+            <div key={workbenchKey} className="relative border-secondary">
               <div
                 className={`absolute top-1 left-0.5 z-50 h-[calc(100%-8px)] w-1 bg-opacity-80 rounded ${
                   isSelected ? "bg-accent" : "bg-tertiary"
@@ -287,7 +361,7 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
               {selectedGallery.config.name}
             </span>
             <span className="ml-2 flex-shrink-0">
-              {mcpWorkbenches.length} workbench
+              {mcpWorkbenches.length} MCP workbench
               {mcpWorkbenches.length !== 1 ? "es" : ""}
             </span>
           </div>

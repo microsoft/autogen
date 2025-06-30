@@ -43,12 +43,12 @@ const navigation: INavItem[] = [
     breadcrumbs: [{ name: "Playground", href: "/", current: true }],
   },
   {
-    name: "MCP",
+    name: "MCP (Experimental)",
     href: "/mcp",
     icon: ({ className }: { className?: string }) => (
       <Icon size={6} icon="mcp" className={className} />
     ),
-    breadcrumbs: [{ name: "MCP", href: "/mcp", current: true }],
+    breadcrumbs: [{ name: "MCP (Experimental)", href: "/mcp", current: true }],
   },
   {
     name: "Gallery",

@@ -6,13 +6,13 @@ from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermi
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_core import ComponentModel
 from autogen_core.models import ModelInfo
+from autogen_core.tools import StaticWorkbench
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai._openai_client import AzureOpenAIChatCompletionClient
 from autogen_ext.tools.code_execution import PythonCodeExecutionTool
-from autogen_core.tools import StaticWorkbench
 from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams, StreamableHttpServerParams
 
 from autogenstudio.datamodel import GalleryComponents, GalleryConfig, GalleryMetadata
@@ -423,7 +423,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     )
 
     # Add workbenches to the gallery
-    
+
     # Create a static workbench with basic tools
     static_workbench = StaticWorkbench(tools=[tools.calculator_tool, tools.fetch_webpage_tool])
     builder.add_workbench(
@@ -436,7 +436,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     # Note: This requires uv to be installed (comes with uv package manager)
     fetch_server_params = StdioServerParams(
         command="uv",
-        args=["tool","run","mcp-server-fetch"],
+        args=["tool", "run", "mcp-server-fetch"],
         read_timeout_seconds=60,
     )
     mcp_workbench = McpWorkbench(server_params=fetch_server_params)
@@ -474,6 +474,20 @@ Read the above conversation. Then select the next role from {participants} to pl
         filesystem_mcp_workbench.dump_component(),
         label="MCP Filesystem Workbench",
         description="An MCP workbench that provides filesystem access capabilities using the @modelcontextprotocol/server-filesystem MCP server. Allows agents to read, write, and manage files and directories within specified allowed paths.",
+    )
+
+    # Create an MCP workbench for testing with everything server
+    # Note: This requires npx to be installed and provides comprehensive MCP testing tools
+    everything_server_params = StdioServerParams(
+        command="npx",
+        args=["-y", "@modelcontextprotocol/server-everything"],
+        read_timeout_seconds=60,
+    )
+    everything_mcp_workbench = McpWorkbench(server_params=everything_server_params)
+    builder.add_workbench(
+        everything_mcp_workbench.dump_component(),
+        label="MCP Test Server",
+        description="An MCP workbench that provides comprehensive testing tools using the @modelcontextprotocol/server-everything MCP server. Includes various tools for testing MCP functionality, protocol features, and capabilities.",
     )
 
     return builder.build()

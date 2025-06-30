@@ -57,6 +57,7 @@ import {
 import { isMcpWorkbench } from "../../types/guards";
 import TextArea from "antd/es/input/TextArea";
 import Icon from "../../icons";
+import { AddComponentDropdown } from "../../shared";
 
 type CategoryKey =
   | "teams"
@@ -318,6 +319,22 @@ export const GalleryDetail: React.FC<{
     },
   };
 
+  // Handler for the reusable AddComponentDropdown
+  const handleComponentAdded = (
+    newComponent: Component<ComponentConfig>,
+    category: CategoryKey
+  ) => {
+    updateGallery(category, (components) => {
+      const newComponents = [...components, newComponent];
+      setEditingComponent({
+        component: newComponent,
+        category,
+        index: newComponents.length - 1,
+      });
+      return newComponents;
+    });
+  };
+
   const handleAddWorkbench = (templateId: string) => {
     const category = getCategoryKey("workbench");
 
@@ -336,76 +353,6 @@ export const GalleryDetail: React.FC<{
     } catch (error) {
       console.error("Error creating workbench from template:", error);
       messageApi.error("Failed to create workbench");
-    }
-  };
-
-  // Generic handler for all component types
-  const handleAddComponentFromTemplate = (
-    componentType: ComponentTypes,
-    templateId: string
-  ) => {
-    const category = getCategoryKey(componentType);
-
-    try {
-      let newComponent: Component<ComponentConfig>;
-
-      switch (componentType) {
-        case "team":
-          newComponent = createTeamFromTemplate(templateId);
-          break;
-        case "agent":
-          newComponent = createAgentFromTemplate(templateId);
-          break;
-        case "model":
-          newComponent = createModelFromTemplate(templateId);
-          break;
-        case "tool":
-          newComponent = createToolFromTemplate(templateId);
-          break;
-        case "workbench":
-          newComponent = createWorkbenchFromTemplate(templateId);
-          break;
-        case "termination":
-          newComponent = createTerminationFromTemplate(templateId);
-          break;
-        default:
-          throw new Error(`Unsupported component type: ${componentType}`);
-      }
-
-      updateGallery(category, (components) => {
-        const newComponents = [...components, newComponent];
-        setEditingComponent({
-          component: newComponent,
-          category,
-          index: newComponents.length - 1,
-        });
-        return newComponents;
-      });
-    } catch (error) {
-      console.error(`Error creating ${componentType} from template:`, error);
-      messageApi.error(`Failed to create ${componentType}`);
-    }
-  };
-
-  // Helper function to get dropdown templates for each component type
-  const getDropdownTemplatesForType = (
-    componentType: ComponentTypes
-  ): ComponentDropdownOption[] => {
-    switch (componentType) {
-      case "team":
-        return getTeamTemplatesForDropdown();
-      case "agent":
-        return getAgentTemplatesForDropdown();
-      case "model":
-        return getModelTemplatesForDropdown();
-      case "tool":
-        return getToolTemplatesForDropdown();
-      case "workbench":
-        return getWorkbenchTemplatesForDropdown();
-      case "termination":
-        return getTerminationTemplatesForDropdown();
-      default:
-        return [];
     }
   };
 
@@ -499,40 +446,12 @@ export const GalleryDetail: React.FC<{
               ? key.charAt(0).toUpperCase() + key.slice(1)
               : key.charAt(0).toUpperCase() + key.slice(1) + "s"}
           </h3>
-          <Dropdown
-            menu={{
-              items: getDropdownTemplatesForType(key as ComponentTypes).map(
-                (template) => ({
-                  key: template.key,
-                  label: (
-                    <div className="py-1">
-                      <div className="font-medium">{template.label}</div>
-                      <div className="text-xs text-secondary">
-                        {template.description}
-                      </div>
-                    </div>
-                  ),
-                  onClick: () =>
-                    handleAddComponentFromTemplate(
-                      key as ComponentTypes,
-                      template.templateId
-                    ),
-                })
-              ),
-            }}
-            trigger={["click"]}
+          <AddComponentDropdown
+            componentType={key as ComponentTypes}
+            gallery={currentGallery}
+            onComponentAdded={handleComponentAdded}
             disabled={isJsonEditing}
-          >
-            <Button
-              type="primary"
-              icon={<Plus className="w-4 h-4" />}
-              disabled={isJsonEditing}
-              className="flex items-center gap-1"
-            >
-              Add {key.charAt(0).toUpperCase() + key.slice(1)}
-              <ChevronDown className="w-3 h-3" />
-            </Button>
-          </Dropdown>
+          />
         </div>
         <ComponentGrid
           items={

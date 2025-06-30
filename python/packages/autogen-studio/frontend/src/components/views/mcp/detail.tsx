@@ -29,6 +29,7 @@ const McpDetail: React.FC<McpDetailProps> = ({
       <WorkbenchFields
         component={workbench}
         defaultPanelKey={["testing"]}
+        readonly
         onChange={() => {
           // In the playground, we don't allow editing - this is read-only
           // The user would need to go to the Team Builder to make changes

@@ -283,10 +283,10 @@ class TestMcpWebSocketRoutes:
             mock_state.CONNECTED = "CONNECTED"
             await handle_mcp_operation(mock_websocket, mock_client_session, operation)
             
-            # Verify error response was sent
+            # Verify operation error response was sent (not connection error)
             mock_websocket.send_json.assert_called_once()
             sent_message = mock_websocket.send_json.call_args[0][0]
-            assert sent_message["type"] == "error"
+            assert sent_message["type"] == "operation_error"
             assert sent_message["operation"] == "list_tools"
             assert "Test error" in sent_message["error"]
     

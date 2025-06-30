@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Button, Form, Input, Typography, Space, Alert, Select } from "antd";
 import {
   FileText,
@@ -62,15 +62,20 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [loadingPrompt, setLoadingPrompt] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
+  const promptResultRef = useRef<HTMLDivElement>(null);
 
   const handleListPrompts = useCallback(async () => {
     if (!connected || !wsClient) {
-      setError("WebSocket not connected");
+      setLoadingError("WebSocket not connected");
       return;
     }
 
     setLoadingPrompts(true);
-    setError(null);
+    setLoadingError(null);
 
     try {
       const result = await wsClient.executeOperation({
@@ -80,18 +85,82 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
       if (result?.prompts) {
         setPrompts(result.prompts);
       } else {
-        setError("No prompts received from server");
+        setLoadingError("No prompts received from server");
       }
     } catch (err: any) {
-      setError(`Failed to fetch prompts: ${err.message || "Unknown error"}`);
+      setLoadingError(
+        `Failed to fetch prompts: ${err.message || "Unknown error"}`
+      );
     } finally {
       setLoadingPrompts(false);
     }
   }, [connected, wsClient]);
 
+  // Validation function for required prompt arguments
+  const validatePromptArguments = useCallback(
+    (prompt: Prompt, promptArgs: Record<string, any>): string[] => {
+      const errors: string[] = [];
+      const requiredArgs =
+        prompt.arguments?.filter((arg) => arg.required) || [];
+
+      requiredArgs.forEach((arg) => {
+        const value = promptArgs[arg.name];
+
+        // Check if required field is missing, empty, or only whitespace
+        if (
+          value === undefined ||
+          value === null ||
+          (typeof value === "string" && value.trim() === "")
+        ) {
+          errors.push(`Required argument '${arg.name}' is missing or empty`);
+        }
+      });
+
+      return errors;
+    },
+    []
+  );
+
+  // Real-time validation function
+  const validateField = useCallback(
+    (fieldName: string, value: string, isRequired: boolean): string | null => {
+      if (isRequired && (!value || value.trim() === "")) {
+        return `${fieldName} is required`;
+      }
+      return null;
+    },
+    []
+  );
+
+  // Handle argument change with validation
+  const handleArgumentChange = useCallback(
+    (argName: string, value: string, isRequired: boolean) => {
+      // Update the argument value
+      setPromptArguments((prev) => ({
+        ...prev,
+        [argName]: value,
+      }));
+
+      // Validate the field
+      const error = validateField(argName, value, isRequired);
+      setValidationErrors((prev) => ({
+        ...prev,
+        [argName]: error || "",
+      }));
+    },
+    [validateField]
+  );
+
   const handleGetPrompt = useCallback(
     async (prompt: Prompt) => {
       if (!connected || !wsClient) return;
+
+      // Validate prompt arguments
+      const validationErrors = validatePromptArguments(prompt, promptArguments);
+      if (validationErrors.length > 0) {
+        setError(validationErrors.join(", "));
+        return;
+      }
 
       setLoadingPrompt(true);
       setError(null);
@@ -119,8 +188,20 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
         setLoadingPrompt(false);
       }
     },
-    [connected, wsClient, promptArguments]
+    [connected, wsClient, promptArguments, validatePromptArguments]
   );
+
+  // Auto-scroll to prompt result when it appears
+  useEffect(() => {
+    if (promptResult && promptResultRef.current) {
+      setTimeout(() => {
+        promptResultRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }, 100);
+    }
+  }, [promptResult]);
 
   // Load prompts when connected and capabilities indicate prompts are available
   useEffect(() => {
@@ -135,6 +216,7 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
       setSelectedPrompt(prompts[0]);
       setPromptArguments({});
       setPromptResult(null);
+      setValidationErrors({});
     }
   }, [prompts, selectedPrompt]);
 
@@ -158,6 +240,29 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
           {prompts.length > 0 ? "Refresh Prompts" : "Load Prompts"}
         </Button>
 
+        {loadingError && (
+          <Alert
+            type="error"
+            message="Failed to Load Prompts"
+            description={loadingError}
+            action={
+              <Space>
+                <Button
+                  size="small"
+                  onClick={handleListPrompts}
+                  loading={loadingPrompts}
+                >
+                  Retry
+                </Button>
+                <Button size="small" onClick={() => setLoadingError(null)}>
+                  Clear
+                </Button>
+              </Space>
+            }
+            showIcon
+          />
+        )}
+
         {prompts.length > 0 && (
           <div className="space-y-2">
             <Select
@@ -169,6 +274,9 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
                 setSelectedPrompt(prompt || null);
                 setPromptArguments({});
                 setPromptResult(null);
+                setValidationErrors({});
+                // Clear errors when selecting a new prompt to allow fresh attempts
+                setError(null);
               }}
             >
               {prompts.map((prompt) => (
@@ -241,13 +349,20 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
                     placeholder={arg.description || `Enter ${arg.name}`}
                     value={promptArguments[arg.name] || ""}
                     onChange={(e) =>
-                      setPromptArguments({
-                        ...promptArguments,
-                        [arg.name]: e.target.value,
-                      })
+                      handleArgumentChange(
+                        arg.name,
+                        e.target.value,
+                        arg.required || false
+                      )
                     }
                     className="w-full"
+                    status={validationErrors[arg.name] ? "error" : undefined}
                   />
+                  {validationErrors[arg.name] && (
+                    <Text className="text-red-500 text-xs mt-1 block">
+                      {validationErrors[arg.name]}
+                    </Text>
+                  )}
                   {arg.description && (
                     <Text className="text-secondary text-xs mt-1 block">
                       {arg.description}
@@ -278,7 +393,10 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
     if (!promptResult) return null;
 
     return (
-      <div className="bg-secondary rounded-lg border border-tertiary p-4">
+      <div
+        ref={promptResultRef}
+        className="bg-secondary rounded-lg border border-tertiary p-4"
+      >
         <div className="flex items-center gap-2 mb-4">
           <Eye size={18} className="text-primary" />
           <h3 className="text-lg font-semibold text-primary m-0">
@@ -298,11 +416,7 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
               {promptResult.messages.map((message, index) => (
                 <div
                   key={index}
-                  className={`rounded-lg border-l-4 p-4 ${
-                    message.role === "user"
-                      ? "bg-blue-50 border-l-blue-500"
-                      : "bg-green-50 border-l-green-500"
-                  }`}
+                  className={`rounded-lg border-l-4 p-4  bg-tertiary`}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     {message.role === "user" ? (
@@ -364,14 +478,39 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
 
   return (
     <div className="p-4 space-y-6 h-full overflow-auto">
-      {renderPromptsList()}
-      {selectedPrompt && (
+      {renderPromptsList()}{" "}
+      {selectedPrompt && !loadingError && (
         <>
           <div className="border-t border-tertiary" />
           {renderPromptForm()}
         </>
       )}
-      {promptResult && (
+      {error && (
+        <Alert
+          type="error"
+          message="Prompt Operation Error"
+          description={error}
+          action={
+            <Space>
+              <Button size="small" onClick={() => setError(null)}>
+                Clear Error
+              </Button>
+              {selectedPrompt && (
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => handleGetPrompt(selectedPrompt)}
+                  loading={loadingPrompt}
+                >
+                  Retry
+                </Button>
+              )}
+            </Space>
+          }
+          showIcon
+        />
+      )}
+      {promptResult && !loadingError && (
         <>
           <div className="border-t border-tertiary" />
           {renderPromptResult()}

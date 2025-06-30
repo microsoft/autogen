@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Input, Button, Alert, Spin } from "antd";
+import { Input, Button, Alert, Spin, Tag } from "antd";
 import { SendOutlined } from "@ant-design/icons";
 import {
   toolMakerAPI,
@@ -15,6 +15,21 @@ const ToolMakerLab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<typeof toolMakerAPI | null>(null);
+
+  const exampleTools = [
+    "A tool that fetches the content of a web page",
+    "A calculator tool that performs mathematical operations",
+    "A tool that generates QR codes from text",
+    "A tool that converts text to speech",
+    "A tool that extracts text from images (OCR)",
+    "A tool that validates email addresses",
+    "A tool that generates secure random passwords",
+    "A tool that converts currencies using live exchange rates",
+  ];
+
+  const handleExampleClick = (example: string) => {
+    setDescription(example);
+  };
 
   const handleStart = () => {
     setEvents([]);
@@ -56,11 +71,28 @@ const ToolMakerLab: React.FC = () => {
         This lab allows you to create and test new tools using natural language
         descriptions.
       </p>
+
+      <div className="mb-4">
+        <p className="text-sm font-medium mb-2 text-secondary">
+          Try these examples:
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {exampleTools.map((example, idx) => (
+            <Tag
+              key={idx}
+              className="cursor-pointer hover:bg-primary/10 transition-colors"
+              onClick={() => handleExampleClick(example)}
+            >
+              {example}
+            </Tag>
+          ))}
+        </div>
+      </div>
       <div className="flex gap-2 mb-4">
         <Input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe your tool (e.g. 'A tool that fetches weather data')"
+          placeholder="Describe your tool (e.g. 'A tool that fetches the content of a web page')"
           onPressEnter={handleStart}
           disabled={loading}
         />

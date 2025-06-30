@@ -1,8 +1,8 @@
 import asyncio
 import logging
-from pathlib import Path
 import traceback
 from datetime import date, datetime, time, timezone
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 from autogen_agentchat.base import TaskResult
@@ -83,7 +83,10 @@ class WebSocketManager:
             return False
 
     async def start_stream(
-        self, run_id: int, task: str | ChatMessage | Sequence[ChatMessage] | None, team_config: str | Path | Dict[str, Any] | ComponentModel
+        self,
+        run_id: int,
+        task: str | ChatMessage | Sequence[ChatMessage] | None,
+        team_config: str | Path | Dict[str, Any] | ComponentModel,
     ) -> None:
         """Start streaming task execution with proper run management"""
         if run_id not in self._connections or run_id in self._closed_connections:

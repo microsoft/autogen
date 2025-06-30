@@ -309,6 +309,7 @@ export interface McpWebSocketMessage {
     | "initializing"
     | "initialized"
     | "operation_result"
+    | "operation_error"
     | "error"
     | "pong";
   session_id?: string;
@@ -443,10 +444,8 @@ export class McpWebSocketClient {
               }
               break;
 
-            case "error":
-              this.onStateChange({ error: message.error || "Unknown error" });
-
-              // If it's an operation error, reject the specific operation
+            case "operation_error":
+              // Handle operation-specific errors - reject the specific operation
               if (message.operation) {
                 const promise = this.operationPromises.get(message.operation);
                 if (promise) {
@@ -456,6 +455,13 @@ export class McpWebSocketClient {
                   this.operationPromises.delete(message.operation);
                 }
               }
+              break;
+
+            case "error":
+              // Handle connection/session-level errors - these affect the whole session
+              this.onStateChange({
+                error: message.error || "Connection error",
+              });
               break;
 
             case "pong":

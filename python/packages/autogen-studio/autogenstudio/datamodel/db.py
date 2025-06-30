@@ -93,9 +93,7 @@ class Run(BaseDBModel, table=True):
 
     __table_args__ = {"sqlite_autoincrement": True}
 
-    session_id: int = Field(
-        sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"), nullable=False)
-    )
+    session_id: int = Field(sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"), nullable=False))
     status: RunStatus = Field(default=RunStatus.CREATED)
 
     # Store the original user task
