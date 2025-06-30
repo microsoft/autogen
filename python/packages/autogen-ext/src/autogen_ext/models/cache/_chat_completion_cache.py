@@ -159,6 +159,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
             messages,
             tools=tools,
             json_output=json_output,
+            tool_choice=tool_choice,
             extra_create_args=extra_create_args,
             cancellation_token=cancellation_token,
         )
@@ -202,6 +203,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                 messages,
                 tools=tools,
                 json_output=json_output,
+                tool_choice=tool_choice,
                 extra_create_args=extra_create_args,
                 cancellation_token=cancellation_token,
             )
