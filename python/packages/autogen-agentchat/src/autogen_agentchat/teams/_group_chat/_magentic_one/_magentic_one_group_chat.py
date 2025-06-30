@@ -141,6 +141,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        output_task_messages: bool,
     ) -> Callable[[], MagenticOneOrchestrator]:
         return lambda: MagenticOneOrchestrator(
             name,
@@ -157,6 +158,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             output_message_queue,
             termination_condition,
             self._emit_team_events,
+            output_task_messages,
         )
 
     def _to_config(self) -> MagenticOneGroupChatConfig:

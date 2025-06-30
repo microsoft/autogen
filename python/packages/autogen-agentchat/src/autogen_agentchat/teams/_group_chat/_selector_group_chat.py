@@ -73,6 +73,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         emit_team_events: bool,
         model_context: ChatCompletionContext | None,
         model_client_streaming: bool = False,
+        output_task_messages: bool = True,
     ) -> None:
         super().__init__(
             name,
@@ -86,6 +87,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
+            output_task_messages,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -633,6 +635,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        output_task_messages: bool,
     ) -> Callable[[], BaseGroupChatManager]:
         return lambda: SelectorGroupChatManager(
             name,
@@ -654,6 +657,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._emit_team_events,
             self._model_context,
             self._model_client_streaming,
+            output_task_messages,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:

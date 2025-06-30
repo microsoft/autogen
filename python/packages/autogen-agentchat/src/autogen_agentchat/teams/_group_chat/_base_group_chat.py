@@ -66,6 +66,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._termination_condition = termination_condition
         self._max_turns = max_turns
         self._message_factory = MessageFactory()
+        self._output_task_messages = True  # Default value, will be updated in run_stream
         if custom_message_types is not None:
             for message_type in custom_message_types:
                 self._message_factory.register(message_type)
@@ -141,6 +142,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        output_task_messages: bool,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
@@ -192,6 +194,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 termination_condition=self._termination_condition,
                 max_turns=self._max_turns,
                 message_factory=self._message_factory,
+                output_task_messages=self._output_task_messages,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -418,6 +421,8 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             asyncio.run(main())
 
         """
+        # Update the output_task_messages field with the provided value
+        self._output_task_messages = output_task_messages
 
         # Create the messages list if the task is a string or a chat message.
         messages: List[BaseChatMessage] | None = None
@@ -532,14 +537,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                     stop_reason = message.message.content
                     break
 
-                # Skip task messages if output_task_messages is False
-                # Use message identity instead of fragile counting
-                if not output_task_messages and message in task_messages_list:
-                    continue  # Skip this task message
-
-                # Skip task messages that were already yielded initially when output_task_messages=True
-                if output_task_messages and message in task_messages_list:
-                    continue  # Skip - already yielded initially
+                # Skip initial task messages (either yielded initially or queued by the manager)
+                if message in task_messages_list:
+                    continue  # Skip task messages
 
                 yield message
                 if isinstance(message, ModelClientStreamingChunkEvent):

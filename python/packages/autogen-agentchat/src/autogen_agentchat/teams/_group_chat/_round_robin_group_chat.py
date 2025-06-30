@@ -29,6 +29,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool,
+        output_task_messages: bool = True,
     ) -> None:
         super().__init__(
             name,
@@ -42,6 +43,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
+            output_task_messages,
         )
         self._next_speaker_index = 0
 
@@ -204,6 +206,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        output_task_messages: bool,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
@@ -218,6 +221,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
                 max_turns,
                 message_factory,
                 self._emit_team_events,
+                output_task_messages,
             )
 
         return _factory

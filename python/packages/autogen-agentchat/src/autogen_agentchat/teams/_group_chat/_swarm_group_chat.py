@@ -28,6 +28,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool,
+        output_task_messages: bool = True,
     ) -> None:
         super().__init__(
             name,
@@ -41,6 +42,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
+            output_task_messages,
         )
         self._current_speaker = self._participant_names[0]
 
@@ -254,6 +256,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        output_task_messages: bool,
     ) -> Callable[[], SwarmGroupChatManager]:
         def _factory() -> SwarmGroupChatManager:
             return SwarmGroupChatManager(
@@ -268,6 +271,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
                 max_turns,
                 message_factory,
                 self._emit_team_events,
+                output_task_messages,
             )
 
         return _factory
