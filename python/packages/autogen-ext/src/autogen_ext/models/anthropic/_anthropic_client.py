@@ -631,10 +631,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             if tool_name not in tool_names_available:
                 raise ValueError(f"tool_choice references '{tool_name}' but it's not in the available tools")
 
-        # Convert to Anthropic format and add to request_args
-        converted_tool_choice = convert_tool_choice_anthropic(tool_choice)
-        if converted_tool_choice is not None:
-            request_args["tool_choice"] = converted_tool_choice
+        # Convert to Anthropic format and add to request_args only if tools are provided
+        # According to Anthropic API, tool_choice may only be specified while providing tools
+        if len(tools) > 0 or has_tool_results:
+            converted_tool_choice = convert_tool_choice_anthropic(tool_choice)
+            if converted_tool_choice is not None:
+                request_args["tool_choice"] = converted_tool_choice
 
         # Optional parameters
         for param in ["top_p", "top_k", "stop_sequences", "metadata"]:
@@ -829,10 +831,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             if tool_name not in tool_names_available:
                 raise ValueError(f"tool_choice references '{tool_name}' but it's not in the available tools")
 
-        # Convert to Anthropic format and add to request_args
-        converted_tool_choice = convert_tool_choice_anthropic(tool_choice)
-        if converted_tool_choice is not None:
-            request_args["tool_choice"] = converted_tool_choice
+        # Convert to Anthropic format and add to request_args only if tools are provided
+        # According to Anthropic API, tool_choice may only be specified while providing tools
+        if len(tools) > 0 or has_tool_results:
+            converted_tool_choice = convert_tool_choice_anthropic(tool_choice)
+            if converted_tool_choice is not None:
+                request_args["tool_choice"] = converted_tool_choice
 
         # Optional parameters
         for param in ["top_p", "top_k", "stop_sequences", "metadata"]:

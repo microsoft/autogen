@@ -120,7 +120,7 @@ async def test_anthropic_tool_choice_auto() -> None:
 
 @pytest.mark.asyncio
 async def test_anthropic_tool_choice_none() -> None:
-    """Test tool_choice parameter with None setting using mocks."""
+    """Test tool_choice parameter when no tools are provided - tool_choice should not be included."""
     # Create mock client and response
     mock_client = AsyncMock()
     mock_message = MagicMock()
@@ -136,10 +136,6 @@ async def test_anthropic_tool_choice_none() -> None:
         api_key="test-key",
     )
 
-    # Define tools
-    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
-    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
-
     messages: List[LLMMessage] = [
         UserMessage(content="Hello there.", source="user"),
     ]
@@ -147,15 +143,14 @@ async def test_anthropic_tool_choice_none() -> None:
     with patch.object(client, "_client", mock_client):
         await client.create(
             messages=messages,
-            tools=[pass_tool, add_tool],
-            tool_choice="auto",  # Let model choose whether to use tools
+            # No tools provided - tool_choice should not be included in API call
         )
 
     # Verify the correct API call was made
     mock_client.messages.create.assert_called_once()
     call_args = mock_client.messages.create.call_args
 
-    # Check that tool_choice was not set (None means don't include it)
+    # Check that tool_choice was not set when no tools are provided
     assert "tool_choice" not in call_args.kwargs
 
 
