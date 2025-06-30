@@ -585,13 +585,22 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling and tools were provided")
 
-        converted_tools = convert_tools(tools)
+        converted_tools: List[OllamaTool] = []
 
-        # Handle tool_choice parameter - log warning as it might not be supported by Ollama
-        if tool_choice != "auto" and tool_choice != "none":
-            if len(tools) == 0:
-                raise ValueError("tool_choice specified but no tools provided")
-            trace_logger.warning("tool_choice parameter specified but may not be supported by Ollama API")
+        # Handle tool_choice parameter in a way that is compatible with Ollama API.
+        if isinstance(tool_choice, Tool):
+            # If tool_choice is a Tool, convert it to OllamaTool.
+            converted_tools = convert_tools([tool_choice])
+        elif tool_choice == "none":
+            # No tool choice, do not pass tools to the API.
+            converted_tools = []
+        elif tool_choice == "required":
+            # Required tool choice, pass tools to the API.
+            converted_tools = convert_tools(tools)
+            if len(converted_tools) == 0:
+                raise ValueError("tool_choice 'required' specified but no tools provided")
+        else:
+            converted_tools = convert_tools(tools)
 
         return CreateParams(
             messages=ollama_messages,
