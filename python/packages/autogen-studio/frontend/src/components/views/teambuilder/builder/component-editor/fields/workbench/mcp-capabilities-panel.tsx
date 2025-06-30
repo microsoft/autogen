@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   Button,
   Card,
@@ -19,9 +19,17 @@ import {
   FileText,
   Package,
   Info,
+  Wifi,
+  WifiOff,
+  Play,
+  Unplug,
 } from "lucide-react";
 import { McpServerParams } from "../../../../../../types/datamodel";
-import { mcpAPI, ServerCapabilities } from "../../../../../mcp/api";
+import {
+  ServerCapabilities,
+  McpWebSocketState,
+  McpWebSocketClient,
+} from "../../../../../mcp/api";
 import { McpToolsTab } from "./mcp-tools-tab";
 import { McpResourcesTab } from "./mcp-resources-tab";
 import { McpPromptsTab } from "./mcp-prompts-tab";
@@ -35,43 +43,51 @@ interface McpCapabilitiesPanelProps {
 export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
   serverParams,
 }) => {
-  const [capabilities, setCapabilities] = useState<ServerCapabilities | null>(
-    null
-  );
-  const [loadingCapabilities, setLoadingCapabilities] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [wsState, setWsState] = useState<McpWebSocketState>({
+    connected: false,
+    connecting: false,
+    capabilities: null,
+    sessionId: null,
+    error: null,
+    lastActivity: null,
+  });
+  const [wsClient, setWsClient] = useState<McpWebSocketClient | null>(null);
   const [activeTab, setActiveTab] = useState<string>("tools");
-  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
+  const wsClientRef = useRef<McpWebSocketClient | null>(null);
 
-  const handleGetCapabilities = useCallback(async () => {
-    setLoadingCapabilities(true);
-    setError(null);
-    setHasAttemptedLoad(true);
+  const { connected, connecting, capabilities, error } = wsState;
 
-    try {
-      const result = await mcpAPI.getCapabilities(serverParams);
+  // Keep ref in sync with state
+  React.useEffect(() => {
+    wsClientRef.current = wsClient;
+  }, [wsClient]);
 
-      if (result.status && result.capabilities) {
-        setCapabilities(result.capabilities);
-
-        // Auto-switch to first available capability tab
-        if (result.capabilities.tools) {
-          setActiveTab("tools");
-        } else if (result.capabilities.resources) {
-          setActiveTab("resources");
-        } else if (result.capabilities.prompts) {
-          setActiveTab("prompts");
-        }
-      } else {
-        setError(result.message);
-      }
-    } catch (err: any) {
-      setError(`Failed to fetch capabilities: ${err.message}`);
-    } finally {
-      setLoadingCapabilities(false);
+  // Handle manual connection
+  const handleConnect = useCallback(async () => {
+    // Disconnect any existing client (should already be done by useEffect, but just in case)
+    if (wsClient) {
+      wsClient.disconnect();
     }
+
+    const client = new McpWebSocketClient(serverParams, (stateUpdate) => {
+      setWsState((prev) => {
+        const newState = { ...prev, ...stateUpdate };
+        return newState;
+      });
+    });
+
+    setWsClient(client);
+    await client.connect();
   }, [serverParams]);
+
+  // Handle disconnect
+  const handleDisconnect = useCallback(() => {
+    if (wsClient) {
+      wsClient.disconnect();
+      setWsClient(null);
+    }
+  }, [wsClient]);
 
   // Handle tab switching with loading state to minimize jankiness
   const handleTabChange = useCallback((value: string) => {
@@ -84,90 +100,195 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
     }, 150);
   }, []);
 
-  // Remove auto-load on mount - user will trigger manually
+  // Reset connection and state when server parameters change
+  React.useEffect(() => {
+    // Disconnect current connection if it exists
+    const currentClient = wsClientRef.current;
+    if (currentClient) {
+      currentClient.disconnect();
+      setWsClient(null);
+    }
 
-  const renderInitialState = () => (
-    <div style={{ textAlign: "center", padding: "24px 16px" }}>
-      <Text
-        type="secondary"
-        style={{
-          display: "block",
-          marginBottom: "24px",
-          fontSize: "14px",
-          lineHeight: "1.5",
-        }}
-      >
-        Connect to discover what tools, resources, and prompts this MCP server
-        provides
-      </Text>
-      <Button
-        type="primary"
-        onClick={handleGetCapabilities}
-        loading={loadingCapabilities}
-        icon={<Info size={16} />}
-        size="large"
-        style={{
-          borderRadius: "6px",
-          height: "40px",
-          padding: "0 24px",
-          fontWeight: 500,
-        }}
-      >
-        {loadingCapabilities ? "Connecting..." : "Discover Server Capabilities"}
-      </Button>
-    </div>
-  );
+    // Reset all state to initial values
+    setWsState({
+      connected: false,
+      connecting: false,
+      capabilities: null,
+      sessionId: null,
+      error: null,
+      lastActivity: null,
+    });
 
-  if (error) {
-    return (
-      <Alert
-        type="error"
-        message="Failed to Connect"
-        description={
+    // Reset UI state
+    setActiveTab("tools");
+    setLoadingContent(false);
+  }, [serverParams]); // Only depends on serverParams
+
+  // Auto-switch to first available capability tab when capabilities are loaded
+  React.useEffect(() => {
+    if (capabilities) {
+      if (capabilities.tools) {
+        setActiveTab("tools");
+      } else if (capabilities.resources) {
+        setActiveTab("resources");
+      } else if (capabilities.prompts) {
+        setActiveTab("prompts");
+      }
+    }
+  }, [capabilities]);
+
+  // Cleanup effect - disconnect when component unmounts
+  React.useEffect(() => {
+    return () => {
+      if (wsClient) {
+        wsClient.disconnect();
+      }
+    };
+  }, [wsClient]);
+
+  const renderConnectionStatus = () => {
+    if (connecting) {
+      return (
+        <div className="text-center py-8 px-4">
+          <Spin size="large" className="mb-4" />
           <div>
-            <Text>{error}</Text>
-            <div style={{ marginTop: "8px" }}>
-              <Text type="secondary" style={{ fontSize: "12px" }}>
-                Make sure the MCP server is running and accessible
-              </Text>
-            </div>
+            <Text strong className="block mb-2">
+              Connecting to MCP Server
+            </Text>
+            <Text type="secondary" className="text-sm">
+              Establishing WebSocket connection and discovering capabilities...
+            </Text>
           </div>
-        }
-        action={
-          <Button
-            size="small"
-            onClick={handleGetCapabilities}
-            loading={loadingCapabilities}
-            type="primary"
-            style={{ borderRadius: "4px" }}
-          >
-            Try Again
-          </Button>
-        }
-        style={{ marginBottom: "16px" }}
-      />
-    );
-  }
-
-  if (loadingCapabilities) {
-    return (
-      <div style={{ textAlign: "center", padding: "32px 16px" }}>
-        <Spin size="large" style={{ marginBottom: "16px" }} />
-        <div>
-          <Text strong style={{ display: "block", marginBottom: "4px" }}>
-            Connecting to MCP Server
-          </Text>
-          <Text type="secondary" style={{ fontSize: "13px" }}>
-            Discovering available capabilities...
-          </Text>
+          <div className="mt-4">
+            <Button
+              onClick={handleDisconnect}
+              size="small"
+              icon={<Unplug size={14} />}
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  // Show initial state if user hasn't attempted to load capabilities yet
-  if (!hasAttemptedLoad || !capabilities) {
-    return renderInitialState();
+    if (error) {
+      return (
+        <Alert
+          message="Connection Error"
+          description={
+            <div>
+              <Text>{error}</Text>
+              {error.includes("JSON") && (
+                <div className="mt-2">
+                  <Text type="secondary" className="text-xs">
+                    This might indicate the AutoGen Studio server is not running
+                    or the MCP routes are not properly configured.
+                  </Text>
+                </div>
+              )}
+              <div className="mt-3">
+                <Space>
+                  <Button
+                    type="primary"
+                    size="small"
+                    onClick={handleConnect}
+                    icon={<Wifi size={14} />}
+                  >
+                    Retry Connection
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={handleDisconnect}
+                    icon={<Unplug size={14} />}
+                  >
+                    Reset
+                  </Button>
+                </Space>
+              </div>
+            </div>
+          }
+          type="error"
+          showIcon
+          className="m-4"
+        />
+      );
+    }
+
+    if (!connected && !capabilities) {
+      return (
+        <div className="text-center py-8 px-4">
+          <div className="mb-6">
+            <Title level={4} className="mb-2 text-secondary">
+              MCP Server Testing Panel
+            </Title>
+            <Text
+              type="secondary"
+              className="block text-sm leading-relaxed max-w-md mx-auto"
+            >
+              Click the button below to establish a WebSocket connection and
+              discover what tools, resources, and prompts are available from
+              this MCP server.
+            </Text>
+          </div>
+          <Button
+            type="primary"
+            onClick={handleConnect}
+            icon={<Play size={16} />}
+            size="large"
+            className="rounded-md h-10 px-6 font-medium"
+          >
+            Connect to Server
+          </Button>
+          <div className="mt-4">
+            <Text type="secondary" className="text-xs">
+              Server: {serverParams.type} •{" "}
+              {(serverParams as any).command ||
+                (serverParams as any).url ||
+                "Unknown"}
+            </Text>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const renderConnectionIndicator = () => {
+    if (!connected && !connecting) {
+      return (
+        <Tag
+          color="red"
+          icon={<WifiOff className="inline-block mr-1" size={12} />}
+        >
+          Disconnected
+        </Tag>
+      );
+    }
+
+    if (connecting) {
+      return (
+        <Tag color="orange" icon={<Spin size="small" />}>
+          Connecting
+        </Tag>
+      );
+    }
+
+    return (
+      <Tag
+        color="green"
+        icon={<Wifi className="inline-block mr-1" size={12} />}
+      >
+        Connected
+      </Tag>
+    );
+  };
+
+  // Show connection status if not connected or no capabilities
+  const connectionStatus = renderConnectionStatus();
+  if (connectionStatus) {
+    return connectionStatus;
   }
 
   // Create segmented options based on available capabilities
@@ -176,13 +297,7 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
   if (capabilities?.tools) {
     segmentedOptions.push({
       label: (
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
+        <span className="flex items-center gap-1.5">
           <Wrench size={16} />
           <span>Tools</span>
         </span>
@@ -194,13 +309,7 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
   if (capabilities?.resources) {
     segmentedOptions.push({
       label: (
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
+        <span className="flex items-center gap-1.5">
           <Package size={16} />
           <span>Resources</span>
         </span>
@@ -212,13 +321,7 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
   if (capabilities?.prompts) {
     segmentedOptions.push({
       label: (
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
+        <span className="flex items-center gap-1.5">
           <FileText size={16} />
           <span>Prompts</span>
         </span>
@@ -229,34 +332,117 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
 
   // Render the active tab content
   const renderActiveContent = () => {
+    if (loadingContent) {
+      return (
+        <div className="p-6">
+          <Skeleton active paragraph={{ rows: 4 }} />
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case "tools":
-        return <McpToolsTab serverParams={serverParams} />;
+        return (
+          <McpToolsTab
+            serverParams={serverParams}
+            wsClient={wsClient}
+            connected={connected}
+            capabilities={capabilities}
+          />
+        );
       case "resources":
-        return <McpResourcesTab serverParams={serverParams} />;
+        return (
+          <McpResourcesTab
+            serverParams={serverParams}
+            wsClient={wsClient}
+            connected={connected}
+            capabilities={capabilities}
+          />
+        );
       case "prompts":
-        return <McpPromptsTab serverParams={serverParams} />;
+        return (
+          <McpPromptsTab
+            serverParams={serverParams}
+            wsClient={wsClient}
+            connected={connected}
+            capabilities={capabilities}
+          />
+        );
       default:
-        return null;
+        return (
+          <Empty
+            description="Select a capability to explore"
+            className="py-12 px-6"
+          />
+        );
     }
   };
 
   return (
-    <div>
-      {/* Only show segmented control if there are actual functional capabilities */}
-      {(capabilities?.tools ||
-        capabilities?.resources ||
-        capabilities?.prompts) && (
-        <div>
-          <Segmented
-            value={activeTab}
-            onChange={setActiveTab}
-            options={segmentedOptions}
-            style={{ marginBottom: "16px" }}
-          />
-          <div>{renderActiveContent()}</div>
+    <div className="h-full flex flex-col">
+      <div>
+        <div className="flex justify-between items-center mb-3">
+          <Title level={5} className="m-0">
+            Server Capabilities
+          </Title>
+          <Space>
+            {renderConnectionIndicator()}
+            {connected && (
+              <Button
+                size="small"
+                onClick={handleDisconnect}
+                icon={<Unplug size={12} />}
+                type="text"
+              >
+                Disconnect
+              </Button>
+            )}
+          </Space>
         </div>
-      )}
+
+        {segmentedOptions.length > 0 && (
+          <Segmented
+            options={segmentedOptions}
+            value={activeTab}
+            onChange={handleTabChange}
+            className="w-full"
+          />
+        )}
+      </div>
+
+      <div className="flex-1 overflow-hidden">
+        {connected && !capabilities && !error ? (
+          // Show loading state when connected but capabilities not yet received
+          <div className="text-center py-12 px-6">
+            <Spin size="large" className="mb-4" />
+            <div>
+              <Text strong className="block mb-2">
+                Discovering Server Capabilities
+              </Text>
+              <Text type="secondary" className="text-sm">
+                Retrieving available tools, resources, and prompts...
+              </Text>
+            </div>
+          </div>
+        ) : segmentedOptions.length === 0 ? (
+          <Empty
+            description={
+              <div className="text-center">
+                <Text type="secondary">
+                  This MCP server doesn't expose any capabilities
+                </Text>
+                <br />
+                <Text type="secondary" className="text-xs">
+                  No tools, resources, or prompts are available
+                </Text>
+              </div>
+            }
+            className="py-12 px-6"
+          />
+        ) : (
+          renderActiveContent()
+        )}
+      </div>
     </div>
   );
 };

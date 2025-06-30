@@ -27,7 +27,12 @@ import {
   Hash,
 } from "lucide-react";
 import { McpServerParams } from "../../../../../../types/datamodel";
-import { mcpAPI, Tool, CallToolResult } from "../../../../../mcp/api";
+import {
+  Tool,
+  CallToolResult,
+  McpWebSocketClient,
+  ServerCapabilities,
+} from "../../../../../mcp/api";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -35,9 +40,17 @@ const { Option } = Select;
 
 interface McpToolsTabProps {
   serverParams: McpServerParams;
+  wsClient: McpWebSocketClient | null;
+  connected: boolean;
+  capabilities: ServerCapabilities | null;
 }
 
-export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
+export const McpToolsTab: React.FC<McpToolsTabProps> = ({
+  serverParams,
+  wsClient,
+  connected,
+  capabilities,
+}) => {
   const [tools, setTools] = useState<Tool[]>([]);
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
   const [toolArguments, setToolArguments] = useState<Record<string, any>>({});
@@ -96,6 +109,16 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
   }, [toolResult]);
 
   const handleListTools = useCallback(async () => {
+    if (!connected) {
+      setError("WebSocket not connected");
+      return;
+    }
+
+    if (!wsClient) {
+      setError("WebSocket client not initialized");
+      return;
+    }
+
     setLoadingTools(true);
     setError(null);
     // Clear selected tool and results when loading new tools
@@ -104,63 +127,54 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
     setToolArguments({});
 
     try {
-      const result = await mcpAPI.listTools(serverParams);
+      const result = await wsClient.executeOperation({
+        operation: "list_tools",
+      });
 
-      console.log("Fetched tools:", result);
-
-      if (result.status) {
-        setTools(result.tools || []);
+      if (result?.tools) {
+        setTools(result.tools);
       } else {
-        setError(result.message);
+        setError("No tools received from server");
       }
     } catch (err: any) {
       setError(`Failed to fetch tools: ${err.message}`);
     } finally {
       setLoadingTools(false);
     }
-  }, [serverParams]);
+  }, [connected, wsClient]);
 
-  // Load tools on mount
+  // Load tools when connected and capabilities indicate tools are available
   useEffect(() => {
-    handleListTools();
-  }, [handleListTools]);
+    if (connected && capabilities?.tools && wsClient) {
+      handleListTools();
+    }
+  }, [connected, capabilities?.tools, wsClient, handleListTools]);
 
   const handleExecuteTool = useCallback(async () => {
-    if (!selectedTool) return;
+    if (!selectedTool || !connected || !wsClient) return;
 
     setExecutingTool(true);
     setError(null);
     setToolResult(null);
 
     try {
-      console.log("Executing tool with arguments:", {
-        toolName: selectedTool.name,
+      const result = await wsClient.executeOperation({
+        operation: "call_tool",
+        tool_name: selectedTool.name,
         arguments: toolArguments,
-        argumentTypes: Object.fromEntries(
-          Object.entries(toolArguments).map(([key, value]) => [
-            key,
-            typeof value,
-          ])
-        ),
       });
 
-      const result = await mcpAPI.callTool(
-        serverParams,
-        selectedTool.name,
-        toolArguments
-      );
-
-      if (result.status) {
-        setToolResult(result.result || null);
+      if (result?.result) {
+        setToolResult(result.result);
       } else {
-        setError(result.message);
+        setError("No result received from tool execution");
       }
     } catch (err: any) {
       setError(`Failed to execute tool: ${err.message}`);
     } finally {
       setExecutingTool(false);
     }
-  }, [serverParams, selectedTool, toolArguments]);
+  }, [connected, selectedTool, toolArguments, wsClient]);
 
   // Filter tools based on search query
   const filteredTools = tools.filter((tool) => {
@@ -547,7 +561,10 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({ serverParams }) => {
                 <Space direction="vertical" style={{ width: "100%" }}>
                   <Tag color="blue">{content.type}</Tag>
                   {content.text && (
-                    <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+                    <pre
+                      className="break-all"
+                      style={{ whiteSpace: "pre-wrap", margin: 0 }}
+                    >
                       {content.text}
                     </pre>
                   )}

@@ -7,7 +7,6 @@ import {
   RefreshCw,
   Info,
   Globe,
-  Server,
 } from "lucide-react";
 import { appContext } from "../../../hooks/provider";
 import { mcpAPI } from "./api";
@@ -17,6 +16,7 @@ import type {
   McpWorkbenchConfig,
 } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
+import Icon from "../../icons";
 
 const { Option } = Select;
 
@@ -246,8 +246,12 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
                 {/* Workbench Name and Actions Row */}
                 <div className="flex items-center justify-between min-w-0">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <Server className="w-4 h-4 text-accent flex-shrink-0" />
-                    <div className="truncate flex-1">
+                    <Icon
+                      icon="mcp"
+                      size={4}
+                      className="w-4 h-4 text-accent flex-shrink-0"
+                    />
+                    <div className="truncate flex-1 text-sm">
                       <span className="font-medium">{workbench.label}</span>
                     </div>
                   </div>
@@ -256,7 +260,7 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
                 {/* Workbench Details */}
                 <div className="mt-1 text-sm text-secondary">
                   <div className="flex items-center gap-2">
-                    <span className="truncate">
+                    <span className="truncate text-xs">
                       {workbench.config.server_params?.type?.replace(
                         "ServerParams",
                         ""

@@ -16,6 +16,8 @@ import type {
   OpenAIClientConfig,
   AzureOpenAIClientConfig,
   FunctionToolConfig,
+  PythonCodeExecutionToolConfig,
+  LocalCommandLineCodeExecutorConfig,
   StaticWorkbenchConfig,
   McpWorkbenchConfig,
   OrTerminationConfig,
@@ -44,6 +46,12 @@ const PROVIDERS = {
 
   // Tools
   FUNCTION_TOOL: "autogen_core.tools.FunctionTool",
+  PYTHON_CODE_EXECUTION_TOOL:
+    "autogen_ext.tools.code_execution.PythonCodeExecutionTool",
+
+  // Code Executors
+  LOCAL_COMMAND_LINE_CODE_EXECUTOR:
+    "autogen_ext.code_executors.local.LocalCommandLineCodeExecutor",
 
   // Workbenches
   STATIC_WORKBENCH: "autogen_core.tools.StaticWorkbench",
@@ -80,6 +88,10 @@ type ProviderToConfig = {
 
   // Tools
   [PROVIDERS.FUNCTION_TOOL]: FunctionToolConfig;
+  [PROVIDERS.PYTHON_CODE_EXECUTION_TOOL]: PythonCodeExecutionToolConfig;
+
+  // Code Executors
+  [PROVIDERS.LOCAL_COMMAND_LINE_CODE_EXECUTOR]: LocalCommandLineCodeExecutorConfig;
 
   // Workbenches
   [PROVIDERS.STATIC_WORKBENCH]: StaticWorkbenchConfig;
@@ -217,7 +229,9 @@ export function isFunctionTool(
 export function isStaticWorkbench(
   component: Component<ComponentConfig> | null | undefined
 ): component is Component<StaticWorkbenchConfig> {
-  return !!component && isComponentOfType(component, PROVIDERS.STATIC_WORKBENCH);
+  return (
+    !!component && isComponentOfType(component, PROVIDERS.STATIC_WORKBENCH)
+  );
 }
 
 export function isMcpWorkbench(

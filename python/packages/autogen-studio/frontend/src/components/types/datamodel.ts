@@ -129,11 +129,16 @@ export interface JupyterCodeExecutorConfig extends CodeExecutorBaseConfig {
 
 // Python Code Execution Tool Config
 export interface PythonCodeExecutionToolConfig {
-  executor: Component<
-    | LocalCommandLineCodeExecutorConfig
-    | DockerCommandLineCodeExecutorConfig
-    | JupyterCodeExecutorConfig
-  >;
+  executor: {
+    provider: string;
+    config:
+      | LocalCommandLineCodeExecutorConfig
+      | DockerCommandLineCodeExecutorConfig
+      | JupyterCodeExecutorConfig;
+    version?: number;
+    component_version?: number;
+    description?: string | null;
+  };
   description?: string;
   name?: string;
 }
@@ -177,7 +182,10 @@ export interface StreamableHttpServerParams {
   terminate_on_close?: boolean;
 }
 
-export type McpServerParams = StdioServerParams | SseServerParams | StreamableHttpServerParams;
+export type McpServerParams =
+  | StdioServerParams
+  | SseServerParams
+  | StreamableHttpServerParams;
 
 export interface McpWorkbenchConfig {
   server_params: McpServerParams;

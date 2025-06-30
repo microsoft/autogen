@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Tabs, Button, Tooltip, Drawer, Input, message, Dropdown } from "antd";
+import {
+  Tabs,
+  Button,
+  Tooltip,
+  Drawer,
+  Input,
+  message,
+  Dropdown,
+  Tag,
+} from "antd";
 import {
   Package,
   Users,
@@ -17,6 +26,7 @@ import {
   Code,
   FormInput,
   ChevronDown,
+  Server,
 } from "lucide-react";
 import { ComponentEditor } from "../teambuilder/builder/component-editor/component-editor";
 import { MonacoEditor } from "../monaco";
@@ -26,14 +36,27 @@ import {
   ComponentConfig,
   ComponentTypes,
   Gallery,
-  WorkbenchConfig,
-  StaticWorkbenchConfig,
-  McpWorkbenchConfig,
-  StdioServerParams,
-  SseServerParams,
-  StreamableHttpServerParams,
 } from "../../types/datamodel";
+import {
+  getTemplatesForDropdown,
+  createComponentFromTemplateById,
+  getTeamTemplatesForDropdown,
+  createTeamFromTemplate,
+  getAgentTemplatesForDropdown,
+  createAgentFromTemplate,
+  getModelTemplatesForDropdown,
+  createModelFromTemplate,
+  getToolTemplatesForDropdown,
+  createToolFromTemplate,
+  getWorkbenchTemplatesForDropdown,
+  createWorkbenchFromTemplate,
+  getTerminationTemplatesForDropdown,
+  createTerminationFromTemplate,
+  type ComponentDropdownOption,
+} from "../../types/component-templates";
+import { isMcpWorkbench } from "../../types/guards";
 import TextArea from "antd/es/input/TextArea";
+import Icon from "../../icons";
 
 type CategoryKey =
   | "teams"
@@ -128,8 +151,13 @@ const ComponentCard: React.FC<
       </div>
     </div>
     <div className="p-4 pb-0 pt-3">
-      <div className="text-base font-medium mb-2">
-        {item.label || "Unnamed Component"}
+      <div className="text-base font-medium mb-2 flex items-center gap-2">
+        {item.component_type === "workbench" && isMcpWorkbench(item) && (
+          <Icon icon="mcp" size={6} className="inline-block" />
+        )}{" "}
+        <span className="line-clamp-1">
+          {item.label || "Unnamed Component"}
+        </span>
       </div>
       <div className="text-xs text-secondary truncate mb-2">
         {item.provider}
@@ -177,67 +205,6 @@ const iconMap = {
   termination: Timer,
   workbench: Briefcase,
 } as const;
-
-// Add default configurations for each component type
-const defaultConfigs: Record<ComponentTypes, ComponentConfig> = {
-  team: { selector_prompt: "Default selector prompt", participants: [] } as any,
-  agent: { name: "New Agent", description: "" } as any,
-  model: { model: "gpt-3.5", api_key: "" } as any,
-  tool: {
-    source_code: "",
-    name: "New Tool",
-    description: "A new tool",
-    global_imports: [],
-    has_cancellation_support: false,
-  },
-  termination: { max_messages: 1 },
-  workbench: { tools: [] } as any,
-};
-
-// Workbench type definitions for dropdown
-type WorkbenchType = "static" | "mcp-stdio" | "mcp-sse" | "mcp-http";
-
-const workbenchTypeConfigs: Record<WorkbenchType, { label: string; description: string; config: WorkbenchConfig }> = {
-  static: {
-    label: "Static Workbench",
-    description: "A workbench with a collection of tools",
-    config: { tools: [] } as StaticWorkbenchConfig,
-  },
-  "mcp-stdio": {
-    label: "MCP Stdio Server",
-    description: "Model Context Protocol server via command line",
-    config: {
-      server_params: {
-        type: "StdioServerParams",
-        command: "",
-        args: [],
-        env: {},
-      } as StdioServerParams,
-    } as McpWorkbenchConfig,
-  },
-  "mcp-sse": {
-    label: "MCP SSE Server",
-    description: "Model Context Protocol server via server-sent events",
-    config: {
-      server_params: {
-        type: "SseServerParams",
-        url: "",
-        headers: {},
-      } as SseServerParams,
-    } as McpWorkbenchConfig,
-  },
-  "mcp-http": {
-    label: "MCP HTTP Server",
-    description: "Model Context Protocol server via streamable HTTP",
-    config: {
-      server_params: {
-        type: "StreamableHttpServerParams",
-        url: "",
-        headers: {},
-      } as StreamableHttpServerParams,
-    } as McpWorkbenchConfig,
-  },
-};
 
 export const GalleryDetail: React.FC<{
   gallery: Gallery;
@@ -351,62 +318,95 @@ export const GalleryDetail: React.FC<{
     },
   };
 
-  const handleAdd = () => {
-    const category = getCategoryKey(activeTab);
-    const components = gallery.config.components[category] || [];
-    let newComponent: Component<ComponentConfig>;
-    const newLabel = `New ${
-      activeTab.charAt(0).toUpperCase() + activeTab.slice(1)
-    }`;
+  const handleAddWorkbench = (templateId: string) => {
+    const category = getCategoryKey("workbench");
 
-    if (components.length > 0) {
-      // Clone the entire component and just modify the label
-      newComponent = {
-        ...components[0], // This preserves all fields (provider, version, description, etc.)
-        label: newLabel,
-      };
-    } else {
-      // Only for empty categories, use default config
-      newComponent = {
-        provider: "new",
-        component_type: activeTab,
-        config: defaultConfigs[activeTab],
-        label: newLabel,
-      };
-    }
+    try {
+      const newComponent = createWorkbenchFromTemplate(templateId);
 
-    updateGallery(category, (components) => {
-      const newComponents = [...components, newComponent];
-      setEditingComponent({
-        component: newComponent,
-        category,
-        index: newComponents.length - 1,
+      updateGallery(category, (components) => {
+        const newComponents = [...components, newComponent];
+        setEditingComponent({
+          component: newComponent,
+          category,
+          index: newComponents.length - 1,
+        });
+        return newComponents;
       });
-      return newComponents;
-    });
+    } catch (error) {
+      console.error("Error creating workbench from template:", error);
+      messageApi.error("Failed to create workbench");
+    }
   };
 
-  const handleAddWorkbench = (workbenchType: WorkbenchType) => {
-    const category = getCategoryKey("workbench");
-    const typeConfig = workbenchTypeConfigs[workbenchType];
-    
-    const newComponent: Component<ComponentConfig> = {
-      provider: "new",
-      component_type: "workbench",
-      config: typeConfig.config,
-      label: `New ${typeConfig.label}`,
-      description: typeConfig.description,
-    };
+  // Generic handler for all component types
+  const handleAddComponentFromTemplate = (
+    componentType: ComponentTypes,
+    templateId: string
+  ) => {
+    const category = getCategoryKey(componentType);
 
-    updateGallery(category, (components) => {
-      const newComponents = [...components, newComponent];
-      setEditingComponent({
-        component: newComponent,
-        category,
-        index: newComponents.length - 1,
+    try {
+      let newComponent: Component<ComponentConfig>;
+
+      switch (componentType) {
+        case "team":
+          newComponent = createTeamFromTemplate(templateId);
+          break;
+        case "agent":
+          newComponent = createAgentFromTemplate(templateId);
+          break;
+        case "model":
+          newComponent = createModelFromTemplate(templateId);
+          break;
+        case "tool":
+          newComponent = createToolFromTemplate(templateId);
+          break;
+        case "workbench":
+          newComponent = createWorkbenchFromTemplate(templateId);
+          break;
+        case "termination":
+          newComponent = createTerminationFromTemplate(templateId);
+          break;
+        default:
+          throw new Error(`Unsupported component type: ${componentType}`);
+      }
+
+      updateGallery(category, (components) => {
+        const newComponents = [...components, newComponent];
+        setEditingComponent({
+          component: newComponent,
+          category,
+          index: newComponents.length - 1,
+        });
+        return newComponents;
       });
-      return newComponents;
-    });
+    } catch (error) {
+      console.error(`Error creating ${componentType} from template:`, error);
+      messageApi.error(`Failed to create ${componentType}`);
+    }
+  };
+
+  // Helper function to get dropdown templates for each component type
+  const getDropdownTemplatesForType = (
+    componentType: ComponentTypes
+  ): ComponentDropdownOption[] => {
+    switch (componentType) {
+      case "team":
+        return getTeamTemplatesForDropdown();
+      case "agent":
+        return getAgentTemplatesForDropdown();
+      case "model":
+        return getModelTemplatesForDropdown();
+      case "tool":
+        return getToolTemplatesForDropdown();
+      case "workbench":
+        return getWorkbenchTemplatesForDropdown();
+      case "termination":
+        return getTerminationTemplatesForDropdown();
+      default:
+        return [];
+    }
   };
 
   const handleComponentUpdate = (
@@ -499,46 +499,40 @@ export const GalleryDetail: React.FC<{
               ? key.charAt(0).toUpperCase() + key.slice(1)
               : key.charAt(0).toUpperCase() + key.slice(1) + "s"}
           </h3>
-          {key === "workbench" ? (
-            <Dropdown
-              menu={{
-                items: Object.entries(workbenchTypeConfigs).map(([type, config]) => ({
-                  key: type,
+          <Dropdown
+            menu={{
+              items: getDropdownTemplatesForType(key as ComponentTypes).map(
+                (template) => ({
+                  key: template.key,
                   label: (
                     <div className="py-1">
-                      <div className="font-medium">{config.label}</div>
-                      <div className="text-xs text-secondary">{config.description}</div>
+                      <div className="font-medium">{template.label}</div>
+                      <div className="text-xs text-secondary">
+                        {template.description}
+                      </div>
                     </div>
                   ),
-                  onClick: () => handleAddWorkbench(type as WorkbenchType),
-                })),
-              }}
-              trigger={["click"]}
-              disabled={isJsonEditing}
-            >
-              <Button
-                type="primary"
-                icon={<Plus className="w-4 h-4" />}
-                disabled={isJsonEditing}
-                className="flex items-center gap-1"
-              >
-                Add Workbench
-                <ChevronDown className="w-3 h-3" />
-              </Button>
-            </Dropdown>
-          ) : (
+                  onClick: () =>
+                    handleAddComponentFromTemplate(
+                      key as ComponentTypes,
+                      template.templateId
+                    ),
+                })
+              ),
+            }}
+            trigger={["click"]}
+            disabled={isJsonEditing}
+          >
             <Button
               type="primary"
               icon={<Plus className="w-4 h-4" />}
-              onClick={() => {
-                setActiveTab(key as ComponentTypes);
-                handleAdd();
-              }}
               disabled={isJsonEditing}
+              className="flex items-center gap-1"
             >
-              {`Add ${key.charAt(0).toUpperCase() + key.slice(1)}`}
+              Add {key.charAt(0).toUpperCase() + key.slice(1)}
+              <ChevronDown className="w-3 h-3" />
             </Button>
-          )}
+          </Dropdown>
         </div>
         <ComponentGrid
           items={

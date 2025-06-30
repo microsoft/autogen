@@ -5,6 +5,7 @@ import {
   McpServerParams,
 } from "../../types/datamodel";
 import { BaseAPI } from "../../utils/baseapi";
+import { getServerUrl } from "../../utils/utils";
 
 // MCP-specific interfaces for server operations
 // MCP types matching backend exactly (native MCP types)
@@ -260,9 +261,320 @@ export class McpAPI extends BaseAPI {
       }
       return false;
     } catch (error) {
-      console.error("MCP connection test failed:", error);
       return false;
     }
+  }
+
+  // WebSocket connection management
+  async createWebSocketConnection(serverParams: McpServerParams): Promise<any> {
+    const response = await fetch(`${this.getBaseUrl()}/mcp/ws/connect`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ server_params: serverParams }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `HTTP ${response.status}: ${
+          errorText || "Failed to create WebSocket connection"
+        }`
+      );
+    }
+
+    try {
+      const responseText = await response.text();
+      return JSON.parse(responseText);
+    } catch (jsonError) {
+      throw new Error(
+        `Invalid JSON response from server. Check if the MCP route is properly configured.`
+      );
+    }
+  }
+}
+
+// WebSocket-based MCP functionality
+export interface McpWebSocketState {
+  connected: boolean;
+  connecting: boolean;
+  capabilities: ServerCapabilities | null;
+  sessionId: string | null;
+  error: string | null;
+  lastActivity: Date | null;
+}
+
+export interface McpWebSocketMessage {
+  type:
+    | "connected"
+    | "initializing"
+    | "initialized"
+    | "operation_result"
+    | "error"
+    | "pong";
+  session_id?: string;
+  capabilities?: ServerCapabilities;
+  operation?: string;
+  data?: any;
+  error?: string;
+  message?: string;
+  timestamp?: string;
+}
+
+export interface McpOperationMessage {
+  type: "operation";
+  operation: string;
+  tool_name?: string;
+  arguments?: Record<string, any>;
+  uri?: string;
+  name?: string;
+}
+
+export interface UseMcpWebSocketReturn {
+  state: McpWebSocketState;
+  connect: () => Promise<void>;
+  executeOperation: (
+    operation: Omit<McpOperationMessage, "type">
+  ) => Promise<any>;
+  ping: () => void;
+  disconnect: () => void;
+}
+
+export class McpWebSocketClient {
+  private wsRef: WebSocket | null = null;
+  private operationPromises: Map<
+    string,
+    { resolve: (value: any) => void; reject: (error: any) => void }
+  > = new Map();
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private baseReconnectDelay = 1000;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
+
+  constructor(
+    private serverParams: McpServerParams,
+    private onStateChange: (state: Partial<McpWebSocketState>) => void
+  ) {}
+
+  // Helper for WebSocket URL construction (similar to chat implementation)
+  private getWebSocketBaseUrl(url: string): string {
+    try {
+      let baseUrl = url.replace(/(^\w+:|^)\/\//, "");
+      if (baseUrl.startsWith("localhost")) {
+        baseUrl = baseUrl.replace("/api", "");
+      } else if (baseUrl === "/api") {
+        baseUrl = window.location.host;
+      } else {
+        baseUrl = baseUrl.replace("/api", "").replace(/\/$/, "");
+      }
+      return baseUrl;
+    } catch (error) {
+      throw new Error("Invalid server URL configuration");
+    }
+  }
+
+  async connect(): Promise<void> {
+    this.onStateChange({ connecting: true, error: null });
+
+    try {
+      // First, get the WebSocket connection URL using proper API construction
+      const mcpApiInstance = mcpAPI;
+      const connectionData = await mcpApiInstance.createWebSocketConnection(
+        this.serverParams
+      );
+
+      if (!connectionData.status) {
+        throw new Error(
+          connectionData.message || "Failed to create WebSocket connection"
+        );
+      }
+
+      const { session_id, websocket_url } = connectionData;
+
+      // Construct WebSocket URL using the correct server URL (not window.location.host)
+      // This handles cases where backend runs on different port (e.g., 8081 vs 8000)
+      const serverUrl = getServerUrl(); // e.g., "/api" or "http://localhost:8081/api"
+      const baseUrl = this.getWebSocketBaseUrl(serverUrl);
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${baseUrl}${websocket_url}`;
+
+      // Create WebSocket connection
+      const ws = new WebSocket(wsUrl);
+      this.wsRef = ws;
+
+      ws.onopen = () => {
+        this.onStateChange({
+          connected: true,
+          connecting: false,
+          sessionId: session_id,
+          error: null,
+          lastActivity: new Date(),
+        });
+        this.reconnectAttempts = 0;
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message: McpWebSocketMessage = JSON.parse(event.data);
+
+          this.onStateChange({ lastActivity: new Date() });
+
+          switch (message.type) {
+            case "connected":
+              break;
+
+            case "initializing":
+              break;
+
+            case "initialized":
+              if (message.capabilities) {
+                this.onStateChange({ capabilities: message.capabilities });
+              }
+              break;
+
+            case "operation_result":
+              // Handle operation results
+              if (message.operation) {
+                const operationKey = message.operation;
+                const promise = this.operationPromises.get(operationKey);
+                if (promise) {
+                  promise.resolve(message.data);
+                  this.operationPromises.delete(operationKey);
+                }
+              }
+              break;
+
+            case "error":
+              this.onStateChange({ error: message.error || "Unknown error" });
+
+              // If it's an operation error, reject the specific operation
+              if (message.operation) {
+                const promise = this.operationPromises.get(message.operation);
+                if (promise) {
+                  promise.reject(
+                    new Error(message.error || "Operation failed")
+                  );
+                  this.operationPromises.delete(message.operation);
+                }
+              }
+              break;
+
+            case "pong":
+              // Handle pong response
+              break;
+
+            default:
+              // Unknown message type - silently ignore
+              break;
+          }
+        } catch (error) {
+          // Error parsing WebSocket message - silently ignore
+        }
+      };
+
+      ws.onerror = (error) => {
+        this.onStateChange({
+          error: "WebSocket connection error",
+          connected: false,
+          connecting: false,
+        });
+      };
+
+      ws.onclose = (event) => {
+        this.onStateChange({
+          connected: false,
+          connecting: false,
+        });
+
+        // Attempt to reconnect if not manually closed
+        if (
+          event.code !== 1000 &&
+          this.reconnectAttempts < this.maxReconnectAttempts
+        ) {
+          const delay =
+            this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts);
+
+          this.reconnectTimeout = setTimeout(() => {
+            this.reconnectAttempts++;
+            this.connect();
+          }, delay);
+        }
+      };
+    } catch (error) {
+      this.onStateChange({
+        error: error instanceof Error ? error.message : "Connection failed",
+        connected: false,
+        connecting: false,
+      });
+    }
+  }
+
+  async executeOperation(
+    operation: Omit<McpOperationMessage, "type">
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!this.wsRef || this.wsRef.readyState !== WebSocket.OPEN) {
+        reject(new Error("WebSocket not connected"));
+        return;
+      }
+
+      const operationKey = operation.operation;
+
+      // Store the promise for this operation
+      this.operationPromises.set(operationKey, { resolve, reject });
+
+      // Send the operation message
+      const message: McpOperationMessage = {
+        type: "operation",
+        ...operation,
+      };
+
+      try {
+        this.wsRef.send(JSON.stringify(message));
+      } catch (error) {
+        this.operationPromises.delete(operationKey);
+        reject(error);
+      }
+
+      // Set a timeout for the operation
+      setTimeout(() => {
+        if (this.operationPromises.has(operationKey)) {
+          this.operationPromises.delete(operationKey);
+          reject(new Error("Operation timeout"));
+        }
+      }, 30000); // 30 second timeout
+    });
+  }
+
+  ping(): void {
+    if (this.wsRef && this.wsRef.readyState === WebSocket.OPEN) {
+      this.wsRef.send(JSON.stringify({ type: "ping" }));
+    }
+  }
+
+  disconnect(): void {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    if (this.wsRef) {
+      this.wsRef.close();
+      this.wsRef = null;
+    }
+
+    // Reject all pending operations
+    this.operationPromises.forEach(({ reject }) => {
+      reject(new Error("WebSocket connection closed"));
+    });
+    this.operationPromises.clear();
+
+    this.onStateChange({
+      connected: false,
+      connecting: false,
+      sessionId: null,
+      capabilities: null,
+      error: null,
+    });
   }
 }
 
