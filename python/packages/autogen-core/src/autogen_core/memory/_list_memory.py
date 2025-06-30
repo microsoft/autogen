@@ -1,6 +1,6 @@
 from typing import Any, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 from .._cancellation_token import CancellationToken
@@ -15,7 +15,7 @@ class ListMemoryConfig(BaseModel):
 
     name: str | None = None
     """Optional identifier for this memory instance."""
-    memory_contents: List[MemoryContent] = []
+    memory_contents: List[MemoryContent] = Field(default_factory=list)
     """List of memory contents stored in this memory instance."""
 
 
