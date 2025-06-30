@@ -271,8 +271,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         model (str): Model to use (e.g. "gpt-4.1")
         instructions (str): System instructions for the agent
         tools (Optional[Iterable[Union[str, BuiltinToolConfig, Tool]]]): Tools the agent can use.
-            Supported string values: "web_search_preview", "image_generation", "local_shell".
-            These tools do not require any parameters.
+            Supported string values (no required parameters): "web_search_preview", "image_generation", "local_shell".
             Dict values can provide configuration for built-in tools with parameters.
             Required parameters for built-in tools:
             - file_search: vector_store_ids (List[str])
@@ -303,6 +302,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             from autogen_core import CancellationToken
             from autogen_ext.agents.openai import OpenAIAgent
             from autogen_agentchat.messages import TextMessage
+            import logging
 
 
             async def example():
@@ -319,11 +319,18 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 response = await agent.on_messages(
                     [TextMessage(source="user", content="Search for recent AI developments")], cancellation_token
                 )
-                print(response)
+                logging.info(response)
 
         Usage with configured built-in tools:
 
         .. code-block:: python
+
+            from openai import AsyncOpenAI
+            from autogen_core import CancellationToken
+            from autogen_ext.agents.openai import OpenAIAgent
+            from autogen_agentchat.messages import TextMessage
+            import logging
+
 
             async def example_with_configs():
                 cancellation_token = CancellationToken()
@@ -375,19 +382,27 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 response = await agent.on_messages(
                     [TextMessage(source="user", content="Search for recent AI developments")], cancellation_token
                 )
-                print(response)
+                logging.info(response)
 
         Mixed usage with custom function tools:
 
         .. code-block:: python
 
+            from openai import AsyncOpenAI
+            from autogen_core import CancellationToken
+            from autogen_ext.agents.openai import OpenAIAgent
+            from autogen_agentchat.messages import TextMessage
             from autogen_core.tools import Tool
+            import logging
 
 
             # Custom calculator tool (simplified example)
             class CalculatorTool(Tool):
-                # ... implementation details ...
-                pass
+                name: str = "calculator"
+                description: str = "A simple calculator tool"
+
+                def __init__(self) -> None:
+                    super().__init__(name=self.name, description=self.description)
 
 
             async def example_mixed_tools():
@@ -410,9 +425,11 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 response = await agent.on_messages(
                     [TextMessage(source="user", content="What's 2+2 and what's the weather like?")], cancellation_token
                 )
-                print(response)
+                logging.info(response)
 
-        asyncio.run(example())
+
+            asyncio.run(example_mixed_tools())
+
 
     .. versionchanged:: v0.6.2
 
@@ -423,18 +440,21 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
        BREAKING CHANGE: Built-in tools are now split into two categories:
 
        **Tools that can use string format** (no required parameters):
+
        - web_search_preview: Can be used as "web_search_preview" or with optional config
          (user_location, search_context_size)
        - image_generation: Can be used as "image_generation" or with optional config (background, input_image_mask)
        - local_shell: Can be used as "local_shell" (WARNING: Only works with codex-mini-latest model)
 
        **Tools that REQUIRE dict configuration** (have required parameters):
+
        - file_search: MUST use dict with vector_store_ids (List[str])
        - computer_use_preview: MUST use dict with display_height (int), display_width (int), environment (str)
        - code_interpreter: MUST use dict with container (str)
        - mcp: MUST use dict with server_label (str), server_url (str)
 
        Using required-parameter tools in string format will raise a ValueError with helpful error messages.
+       The tools parameter type annotation only accepts string values for tools that don't require parameters.
 
     """
 
@@ -451,15 +471,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         tools: Optional[
             Iterable[
                 Union[
-                    Literal[
-                        "file_search",
-                        "code_interpreter",
-                        "web_search_preview",
-                        "computer_use_preview",
-                        "image_generation",
-                        "mcp",
-                        "local_shell",
-                    ],
+                    Literal["web_search_preview", "image_generation", "local_shell"],
                     BuiltinToolConfig,
                     Tool,
                 ]
@@ -761,6 +773,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 from typing import Dict, Any
                 from autogen_ext.agents.openai import OpenAIAgent
                 from openai import AsyncOpenAI
+                import logging
 
 
                 async def example() -> None:
@@ -773,7 +786,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                         instructions="You are a helpful assistant.",
                     )
                     assistants: Dict[str, Any] = await agent.list_assistants(limit=5)
-                    print(assistants)
+                    logging.info(assistants)
 
 
                 asyncio.run(example())
@@ -810,6 +823,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 from typing import Dict, Any
                 from autogen_ext.agents.openai import OpenAIAgent
                 from openai import AsyncOpenAI
+                import logging
 
 
                 async def example() -> None:
@@ -822,7 +836,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                         instructions="You are a helpful assistant.",
                     )
                     assistant: Dict[str, Any] = await agent.retrieve_assistant("asst_abc123")
-                    print(assistant)
+                    logging.info(assistant)
 
 
                 asyncio.run(example())
@@ -881,6 +895,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 from typing import Dict, Any
                 from autogen_ext.agents.openai import OpenAIAgent
                 from openai import AsyncOpenAI
+                import logging
 
 
                 async def example() -> None:
@@ -902,7 +917,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                         tools=[{"type": "file_search"}],
                         tool_resources={"file_search": {"vector_store_ids": []}},
                     )
-                    print(updated)
+                    logging.info(updated)
 
 
                 asyncio.run(example())
@@ -929,10 +944,9 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         Returns:
             Dict[str, Any]: The deletion status object.
 
-                Example::
+        Example:
 
-                    {"id": "...", "object": "assistant.deleted", "deleted": true}
-
+            {"id": "...", "object": "assistant.deleted", "deleted": true}
         """
         if hasattr(self._client, "assistants"):
             client_any = cast(Any, self._client)
@@ -1256,15 +1270,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                         Union[
                             BuiltinToolConfig,
                             Tool,
-                            Literal[
-                                "file_search",
-                                "code_interpreter",
-                                "web_search_preview",
-                                "computer_use_preview",
-                                "image_generation",
-                                "mcp",
-                                "local_shell",
-                            ],
+                            Literal["web_search_preview", "image_generation", "local_shell"],
                         ]
                     ]
                 ],

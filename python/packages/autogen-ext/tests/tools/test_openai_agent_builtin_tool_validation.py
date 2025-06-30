@@ -777,3 +777,30 @@ async def test_openai_agent_live_with_builtin_tool() -> None:  # noqa: D103
     assert reply != ""
     # Very loose assertion – just ensure the model responded sensibly
     assert "paris" in reply.lower()
+
+
+@pytest.mark.skipif(
+    not os.getenv(_OPENAI_API_KEY_ENV),
+    reason="OpenAI API key not available; skipping live API integration tests.",
+)
+@pytest.mark.asyncio
+async def test_openai_agent_live_streaming_response() -> None:
+    """Live test that on_messages_stream yields at least a Response without errors."""
+    cancellation_token = CancellationToken()
+    client = AsyncOpenAI()
+    agent = OpenAIAgent(
+        name="streaming_test_agent",
+        description="Live streaming integration test agent",
+        client=client,
+        model=os.getenv("OPENAI_MODEL", "gpt-4o"),
+        instructions="Please say hello.",
+    )
+    from typing import Any
+
+    from autogen_agentchat.base import Response
+
+    events: list[Any] = []
+    async for ev in agent.on_messages_stream([TextMessage(source="user", content="Hello!")], cancellation_token):
+        events.append(ev)
+    # Ensure at least one Response event was yielded
+    assert any(isinstance(e, Response) for e in events)
