@@ -149,6 +149,31 @@ def get_mime_type_from_image(image: Image) -> Literal["image/jpeg", "image/png",
         return "image/jpeg"
 
 
+def convert_tool_choice_anthropic(tool_choice: Tool | Literal["auto", "required", "none"]) -> Any:
+    """Convert tool_choice parameter to Anthropic API format.
+
+    Args:
+        tool_choice: A single Tool object to force the model to use, "auto" to let the model choose any available tool, "required" to force tool usage, or "none" to disable tool usage.
+
+    Returns:
+        Anthropic API compatible tool_choice value.
+    """
+    if tool_choice == "none":
+        return {"type": "none"}
+
+    if tool_choice == "auto":
+        return {"type": "auto"}
+
+    if tool_choice == "required":
+        return {"type": "any"}  # Anthropic uses "any" for required
+
+    # Must be a Tool object
+    if isinstance(tool_choice, Tool):
+        return {"type": "tool", "name": tool_choice.schema["name"]}
+    else:
+        raise ValueError(f"tool_choice must be a Tool object, 'auto', 'required', or 'none', got {type(tool_choice)}")
+
+
 @overload
 def __empty_content_to_whitespace(content: str) -> str: ...
 
@@ -504,6 +529,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -581,6 +607,36 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         elif has_tool_results:
             # anthropic requires tools to be present even if there is any tool use
             request_args["tools"] = self._last_used_tools
+
+        # Process tool_choice parameter
+        if isinstance(tool_choice, Tool):
+            if len(tools) == 0 and not has_tool_results:
+                raise ValueError("tool_choice specified but no tools provided")
+
+            # Validate that the tool exists in the provided tools
+            tool_names_available: List[str] = []
+            if len(tools) > 0:
+                for tool in tools:
+                    if isinstance(tool, Tool):
+                        tool_names_available.append(tool.schema["name"])
+                    else:
+                        tool_names_available.append(tool["name"])
+            else:
+                # Use last used tools names if available
+                for tool_param in self._last_used_tools:
+                    tool_names_available.append(tool_param["name"])
+
+            # tool_choice is a single Tool object
+            tool_name = tool_choice.schema["name"]
+            if tool_name not in tool_names_available:
+                raise ValueError(f"tool_choice references '{tool_name}' but it's not in the available tools")
+
+        # Convert to Anthropic format and add to request_args only if tools are provided
+        # According to Anthropic API, tool_choice may only be specified while providing tools
+        if len(tools) > 0 or has_tool_results:
+            converted_tool_choice = convert_tool_choice_anthropic(tool_choice)
+            if converted_tool_choice is not None:
+                request_args["tool_choice"] = converted_tool_choice
 
         # Optional parameters
         for param in ["top_p", "top_k", "stop_sequences", "metadata"]:
@@ -667,6 +723,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -750,6 +807,36 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             request_args["tools"] = converted_tools
         elif has_tool_results:
             request_args["tools"] = self._last_used_tools
+
+        # Process tool_choice parameter
+        if isinstance(tool_choice, Tool):
+            if len(tools) == 0 and not has_tool_results:
+                raise ValueError("tool_choice specified but no tools provided")
+
+            # Validate that the tool exists in the provided tools
+            tool_names_available: List[str] = []
+            if len(tools) > 0:
+                for tool in tools:
+                    if isinstance(tool, Tool):
+                        tool_names_available.append(tool.schema["name"])
+                    else:
+                        tool_names_available.append(tool["name"])
+            else:
+                # Use last used tools names if available
+                for last_used_tool in self._last_used_tools:
+                    tool_names_available.append(last_used_tool["name"])
+
+            # tool_choice is a single Tool object
+            tool_name = tool_choice.schema["name"]
+            if tool_name not in tool_names_available:
+                raise ValueError(f"tool_choice references '{tool_name}' but it's not in the available tools")
+
+        # Convert to Anthropic format and add to request_args only if tools are provided
+        # According to Anthropic API, tool_choice may only be specified while providing tools
+        if len(tools) > 0 or has_tool_results:
+            converted_tool_choice = convert_tool_choice_anthropic(tool_choice)
+            if converted_tool_choice is not None:
+                request_args["tool_choice"] = converted_tool_choice
 
         # Optional parameters
         for param in ["top_p", "top_k", "stop_sequences", "metadata"]:
