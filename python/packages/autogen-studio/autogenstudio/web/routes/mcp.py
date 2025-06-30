@@ -2,7 +2,6 @@ import asyncio
 import json
 import base64
 import uuid
-import traceback
 from datetime import datetime, timezone
 from typing import Dict
 
@@ -54,6 +53,40 @@ def _extract_real_error(e: Exception) -> str:
         error_parts.append(f"{type(e).__name__}: {str(e)}")
     
     return " | ".join(error_parts)
+
+def _is_websocket_disconnect(e: Exception) -> bool:
+    """Check if an exception (potentially nested) is a WebSocket disconnect"""
+    def check_exception(exc):
+        # Check if it's directly a WebSocketDisconnect
+        if isinstance(exc, WebSocketDisconnect):
+            return True
+        
+        # Check if the exception name or message contains disconnect indicators
+        exc_name = type(exc).__name__
+        exc_str = str(exc)
+        
+        if "WebSocketDisconnect" in exc_name or "NO_STATUS_RCVD" in exc_str:
+            return True
+        
+        # Recursively check ExceptionGroup
+        if hasattr(exc, 'exceptions') and getattr(exc, 'exceptions', None):
+            for sub_exc in getattr(exc, 'exceptions'):
+                if check_exception(sub_exc):
+                    return True
+        
+        # Check chained exceptions
+        if hasattr(exc, '__cause__') and exc.__cause__:
+            if check_exception(exc.__cause__):
+                return True
+        
+        # Check context exceptions
+        if hasattr(exc, '__context__') and exc.__context__:
+            if check_exception(exc.__context__):
+                return True
+        
+        return False
+    
+    return check_exception(e)
 
 router = APIRouter()
 active_sessions: Dict[str, Dict] = {}
@@ -167,6 +200,7 @@ async def handle_mcp_operation(websocket: WebSocket, session: ClientSession, ope
 @router.websocket("/ws/{session_id}")
 async def mcp_websocket(websocket: WebSocket, session_id: str):
     await websocket.accept()
+    logger.info(f"MCP WebSocket connection established for session {session_id}")
     
     try:
         query_params = dict(websocket.query_params)
@@ -214,20 +248,36 @@ async def mcp_websocket(websocket: WebSocket, session_id: str):
             return
             
     except WebSocketDisconnect:
-        pass  # Normal disconnection, no need to log
+        logger.info(f"MCP WebSocket session {session_id} disconnected normally")
     except Exception as e:
         real_error = _extract_real_error(e)
-        logger.error(f"MCP WebSocket error for session {session_id}: {real_error}")
-        try:
-            await send_websocket_message(websocket, {
-                "type": "error",
-                "error": f"Connection error: {real_error}",
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
-        except:
-            pass
+        
+        # Check if this is a WebSocket disconnect wrapped in ExceptionGroup
+        is_websocket_disconnect = _is_websocket_disconnect(e)
+        
+        if is_websocket_disconnect:
+            logger.info(f"MCP WebSocket session {session_id} disconnected (wrapped in ExceptionGroup)")
+        else:
+            logger.error(f"MCP WebSocket error for session {session_id}: {real_error}")
+            
+        # Only send error message for non-disconnect errors
+        if not is_websocket_disconnect:
+            try:
+                await send_websocket_message(websocket, {
+                    "type": "error", 
+                    "error": f"Connection error: {real_error}",
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                })
+            except:
+                pass
     finally:
-        active_sessions.pop(session_id, None)
+        if session_id in active_sessions:
+            session_info = active_sessions.pop(session_id, None)
+            if session_info:
+                duration = datetime.now(timezone.utc) - session_info["created_at"]
+                logger.info(f"MCP session {session_id} ended after {duration.total_seconds():.2f} seconds")
+        else:
+            logger.debug(f"MCP session {session_id} cleanup - session not found in active sessions")
 
 
 async def handle_mcp_session(websocket: WebSocket, session: ClientSession, session_id: str):
@@ -262,38 +312,48 @@ async def handle_mcp_session(websocket: WebSocket, session: ClientSession, sessi
     })
     
     # Main WebSocket message loop
-    while True:
-        try:
-            raw_message = await websocket.receive_text()
-            message = json.loads(raw_message)
-            
-            active_sessions[session_id]["last_activity"] = datetime.now(timezone.utc)
-            
-            message_type = message.get("type")
-            
-            if message_type == "operation":
-                await handle_mcp_operation(websocket, session, message)
+    try:
+        while True:
+            try:
+                raw_message = await websocket.receive_text()
+                message = json.loads(raw_message)
                 
-            elif message_type == "ping":
-                await send_websocket_message(websocket, {
-                    "type": "pong",
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                })
+                active_sessions[session_id]["last_activity"] = datetime.now(timezone.utc)
                 
-            else:
+                message_type = message.get("type")
+                
+                if message_type == "operation":
+                    await handle_mcp_operation(websocket, session, message)
+                    
+                elif message_type == "ping":
+                    await send_websocket_message(websocket, {
+                        "type": "pong",
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+                    
+                else:
+                    await send_websocket_message(websocket, {
+                        "type": "error",
+                        "error": f"Unknown message type: {message_type}",
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+                    
+            except json.JSONDecodeError:
+                logger.warning(f"Invalid JSON received from session {session_id}")
                 await send_websocket_message(websocket, {
                     "type": "error",
-                    "error": f"Unknown message type: {message_type}",
+                    "error": "Invalid message format",
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 })
-                
-        except json.JSONDecodeError:
-            logger.warning(f"Invalid JSON received from session {session_id}")
-            await send_websocket_message(websocket, {
-                "type": "error",
-                "error": "Invalid message format",
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
+    except WebSocketDisconnect:
+        # Handle normal WebSocket disconnection
+        logger.info(f"MCP WebSocket session {session_id} disconnected normally")
+        raise  # Re-raise to be caught by outer handler
+    except Exception as e:
+        # Handle any other exceptions in the message loop
+        real_error = _extract_real_error(e)
+        logger.error(f"Error in MCP session message loop {session_id}: {real_error}")
+        raise
 
 @router.post("/ws/connect")
 async def create_mcp_websocket_connection(request: CreateWebSocketConnectionRequest):

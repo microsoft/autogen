@@ -124,22 +124,10 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
     setLoadingContent(false);
   }, [serverParams]); // Only depends on serverParams
 
-  // Auto-switch to first available capability tab when capabilities are loaded
-  React.useEffect(() => {
-    if (capabilities) {
-      if (capabilities.tools) {
-        setActiveTab("tools");
-      } else if (capabilities.resources) {
-        setActiveTab("resources");
-      } else if (capabilities.prompts) {
-        setActiveTab("prompts");
-      }
-    }
-  }, [capabilities]);
-
   // Cleanup effect - disconnect when component unmounts
   React.useEffect(() => {
     return () => {
+      console.log("Component unmounting, disconnecting WebSocket");
       if (wsClient) {
         wsClient.disconnect();
       }

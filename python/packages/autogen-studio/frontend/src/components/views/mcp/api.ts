@@ -485,19 +485,22 @@ export class McpWebSocketClient {
           connecting: false,
         });
 
-        // Attempt to reconnect if not manually closed
-        if (
-          event.code !== 1000 &&
-          this.reconnectAttempts < this.maxReconnectAttempts
-        ) {
-          const delay =
-            this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts);
+        // // Attempt to reconnect if not manually closed
+        // if (
+        //   event.code !== 1000 &&
+        //   this.reconnectAttempts < this.maxReconnectAttempts
+        // ) {
+        //   const delay =
+        //     this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts);
 
-          this.reconnectTimeout = setTimeout(() => {
-            this.reconnectAttempts++;
-            this.connect();
-          }, delay);
-        }
+        //   this.reconnectTimeout = setTimeout(() => {
+        //     this.reconnectAttempts++;
+        //     this.connect();
+        //     console.log(
+        //       `Reconnecting... Attempt ${this.reconnectAttempts} after ${delay}ms`
+        //     );
+        //   }, delay);
+        // }
       };
     } catch (error) {
       this.onStateChange({
