@@ -379,16 +379,15 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         azure_messages_nested = [to_azure_message(msg) for msg in messages]
         azure_messages = [item for sublist in azure_messages_nested for item in sublist]
 
-        if isinstance(tool_choice, Tool):
-            create_args["tool_choice"] = ChatCompletionsNamedToolChoice(
-                function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
-            )
-        else:
-            create_args["tool_choice"] = tool_choice
-
         task: Task[ChatCompletions]
 
         if len(tools) > 0:
+            if isinstance(tool_choice, Tool):
+                create_args["tool_choice"] = ChatCompletionsNamedToolChoice(
+                    function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
+                )
+            else:
+                create_args["tool_choice"] = tool_choice
             converted_tools = convert_tools(tools)
             task = asyncio.create_task(  # type: ignore
                 self._client.complete(messages=azure_messages, tools=converted_tools, **create_args)  # type: ignore
@@ -482,14 +481,13 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         azure_messages_nested = [to_azure_message(msg) for msg in messages]
         azure_messages = [item for sublist in azure_messages_nested for item in sublist]
 
-        if isinstance(tool_choice, Tool):
-            create_args["tool_choice"] = ChatCompletionsNamedToolChoice(
-                function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
-            )
-        else:
-            create_args["tool_choice"] = tool_choice
-
         if len(tools) > 0:
+            if isinstance(tool_choice, Tool):
+                create_args["tool_choice"] = ChatCompletionsNamedToolChoice(
+                    function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
+                )
+            else:
+                create_args["tool_choice"] = tool_choice
             converted_tools = convert_tools(tools)
             task = asyncio.create_task(
                 self._client.complete(messages=azure_messages, tools=converted_tools, stream=True, **create_args)

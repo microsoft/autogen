@@ -666,9 +666,10 @@ def tool_choice_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletion
                 usage=CompletionsUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
             )
 
-    async def _mock_tool_choice_create(
-        *args: Any, **kwargs: Any
-    ) -> ChatCompletions | AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> Any:
         stream = kwargs.get("stream", False)
 
         if not stream:
@@ -698,7 +699,13 @@ def tool_choice_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletion
         else:
             return _mock_tool_choice_stream(*args, **kwargs)
 
-    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_tool_choice_create)
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
     return AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
@@ -771,7 +778,10 @@ def tool_choice_none_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompl
     Returns a client that simulates no tool calls for tool_choice='none' tests.
     """
 
-    async def _mock_none_tool_choice_create(*args: Any, **kwargs: Any) -> ChatCompletions:
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> ChatCompletions:
         await asyncio.sleep(0.01)
         return ChatCompletions(
             id="id",
@@ -787,7 +797,13 @@ def tool_choice_none_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompl
             usage=CompletionsUsage(prompt_tokens=8, completion_tokens=6, total_tokens=14),
         )
 
-    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_none_tool_choice_create)
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
     return AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
@@ -851,8 +867,85 @@ async def test_azure_ai_tool_choice_required(tool_choice_client: AzureAIChatComp
     assert result.content[0].arguments == '{"input": "hello"}'
 
 
+@pytest.fixture
+def tool_choice_stream_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    """
+    Returns a client that supports function calling for streaming tool choice tests.
+    """
+
+    # Mock tool call for streaming
+    mock_tool_call = MagicMock()
+    mock_tool_call.id = "call_123"
+    mock_tool_call.function = MagicMock()
+    mock_tool_call.function.name = "process_text"
+    mock_tool_call.function.arguments = '{"input": "hello"}'
+
+    # First choice with content
+    first_choice = MagicMock()
+    first_choice.delta = MagicMock()
+    first_choice.delta.content = "Let me process this for you."
+    first_choice.finish_reason = None
+
+    # Tool call choice
+    tool_call_choice = MagicMock()
+    tool_call_choice.delta = MagicMock()
+    tool_call_choice.delta.content = None
+    tool_call_choice.delta.tool_calls = [mock_tool_call]
+    tool_call_choice.finish_reason = "function_calls"
+
+    async def _mock_tool_choice_stream(
+        *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        yield StreamingChatCompletionsUpdate(
+            id="id",
+            choices=[first_choice],
+            created=datetime.now(),
+            model="model",
+        )
+
+        await asyncio.sleep(0.01)
+
+        yield StreamingChatCompletionsUpdate(
+            id="id",
+            choices=[tool_call_choice],
+            created=datetime.now(),
+            model="model",
+            usage=CompletionsUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        )
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> Any:
+        if kwargs.get("stream", False):
+            return _mock_tool_choice_stream(*args, **kwargs)
+        return None
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": True,
+            "vision": False,
+            "family": "test",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+
 @pytest.mark.asyncio
-async def test_azure_ai_tool_choice_specific_tool_streaming(tool_choice_client: AzureAIChatCompletionClient) -> None:
+async def test_azure_ai_tool_choice_specific_tool_streaming(
+    tool_choice_stream_client: AzureAIChatCompletionClient,
+) -> None:
     """Test tool_choice parameter with streaming and a specific tool using mocks."""
     # Define tools
     pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
@@ -863,17 +956,20 @@ async def test_azure_ai_tool_choice_specific_tool_streaming(tool_choice_client: 
     ]
 
     chunks: List[Union[str, CreateResult]] = []
-    async for chunk in tool_choice_client.create_stream(
+    async for chunk in tool_choice_stream_client.create_stream(
         messages=messages,
         tools=[pass_tool, add_tool],
         tool_choice=pass_tool,  # Force use of specific tool
     ):
         chunks.append(chunk)
 
-    # Verify that we got some result and it has the expected finish reason
-    # The existing fixture doesn't handle streaming properly, but we can test
-    # that tool_choice parameter doesn't break the streaming functionality
+    # Verify that we got some result
     final_result = chunks[-1]
     assert isinstance(final_result, CreateResult)
-    # For this test, we just want to verify that streaming works with tool_choice
-    # The actual content will depend on how the mock handles streaming vs non-streaming
+    assert final_result.finish_reason == "function_calls"
+    assert isinstance(final_result.content, list)
+    assert len(final_result.content) == 1
+    assert isinstance(final_result.content[0], FunctionCall)
+    assert final_result.content[0].name == "process_text"
+    assert final_result.content[0].arguments == '{"input": "hello"}'
+    assert final_result.thought == "Let me process this for you."
