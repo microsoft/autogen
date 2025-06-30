@@ -8,8 +8,16 @@ from unittest.mock import AsyncMock, MagicMock
 
 import aiofiles
 import pytest
-from autogen_agentchat.messages import BaseChatMessage, TextMessage, ToolCallRequestEvent
+from autogen_agentchat.base import Handoff
+from autogen_agentchat.messages import (
+    BaseChatMessage,
+    HandoffMessage,
+    TextMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
+)
 from autogen_core import CancellationToken
+from autogen_core.tools import FunctionTool
 from autogen_core.tools._base import BaseTool, Tool
 from autogen_ext.agents.openai import OpenAIAssistantAgent
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
@@ -400,3 +408,202 @@ async def test_save_and_load_state(mock_openai_client: AsyncOpenAI) -> None:
     assert new_agent._initial_message_ids == {"msg1", "msg2"}  # type: ignore
     assert new_agent._vector_store_id == "vector-789"  # type: ignore
     assert new_agent._uploaded_file_ids == ["file-abc", "file-def"]  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_handoffs(client: AsyncOpenAI, cancellation_token: CancellationToken) -> None:
+    handoff = Handoff(target="agent2")
+
+    fake_tool_call = MagicMock()
+    fake_tool_call.type = "function"
+    fake_tool_call.id = "tool-call-1"
+    fake_tool_call.function = MagicMock()
+    fake_tool_call.function.name = handoff.name
+    fake_tool_call.function.arguments = "{}"
+
+    run_requires_action = MagicMock()
+    run_requires_action.id = "run-mock"
+    run_requires_action.status = "requires_action"
+    run_requires_action.required_action = MagicMock()
+    run_requires_action.required_action.submit_tool_outputs = MagicMock()
+    run_requires_action.required_action.submit_tool_outputs.tool_calls = [fake_tool_call]
+
+    if hasattr(client.beta.threads.runs.retrieve, "side_effect"):
+        client.beta.threads.runs.retrieve.side_effect = [run_requires_action]  # type: ignore
+
+    if hasattr(client.beta.threads.runs.cancel, "return_value"):
+        client.beta.threads.runs.cancel = AsyncMock(return_value=MagicMock(id="run-mock", status="cancelled"))  # type: ignore
+
+    agent = OpenAIAssistantAgent(
+        name="assistant",
+        description="OpenAI Assistant Agent",
+        client=client,
+        model="gpt-4.1-nano",
+        instructions="Help the user with their task.",
+        handoffs=[handoff, "handoff2"],
+    )
+
+    assert HandoffMessage in agent.produced_message_types
+
+    message = TextMessage(source="user", content="Please transfer me to agent2")
+    response = await agent.on_messages([message], cancellation_token)
+
+    assert isinstance(response.chat_message, HandoffMessage)
+    assert response.chat_message.content == handoff.message
+    assert response.chat_message.target == handoff.target
+    assert response.chat_message.source == "assistant"
+
+    assert len(response.inner_messages) == 2
+    assert isinstance(response.inner_messages[0], ToolCallRequestEvent)
+    assert isinstance(response.inner_messages[1], ToolCallExecutionEvent)
+
+    await agent.delete_assistant(cancellation_token)
+
+
+@pytest.mark.asyncio
+async def test_handoff_with_tool_call_context(client: AsyncOpenAI, cancellation_token: CancellationToken) -> None:
+    handoff = Handoff(target="agent2")
+
+    handoff_tool_call = MagicMock()
+    handoff_tool_call.type = "function"
+    handoff_tool_call.id = "tool-call-1"
+    handoff_tool_call.function = MagicMock()
+    handoff_tool_call.function.name = handoff.name
+    handoff_tool_call.function.arguments = "{}"
+
+    display_quiz_tool_call = MagicMock()
+    display_quiz_tool_call.type = "function"
+    display_quiz_tool_call.id = "tool-call-2"
+    display_quiz_tool_call.function = MagicMock()
+    display_quiz_tool_call.function.name = "display_quiz"
+    display_quiz_tool_call.function.arguments = (
+        '{"title": "Quiz Title", "questions": [{"question_text": "What is 2+2?", '
+        '"question_type": "MULTIPLE_CHOICE", "choices": ["3", "4", "5"]}]}'
+    )
+
+    run_requires_action = MagicMock()
+    run_requires_action.id = "run-mock"
+    run_requires_action.status = "requires_action"
+    run_requires_action.required_action = MagicMock()
+    run_requires_action.required_action.submit_tool_outputs = MagicMock()
+    run_requires_action.required_action.submit_tool_outputs.tool_calls = [handoff_tool_call, display_quiz_tool_call]
+
+    if hasattr(client.beta.threads.runs.retrieve, "side_effect"):
+        client.beta.threads.runs.retrieve.side_effect = [run_requires_action]  # type: ignore
+
+    if hasattr(client.beta.threads.runs.cancel, "return_value"):
+        client.beta.threads.runs.cancel = AsyncMock(return_value=MagicMock(id="run-mock", status="cancelled"))  # type: ignore
+
+    quiz_tool = DisplayQuizTool()
+
+    agent = OpenAIAssistantAgent(
+        name="assistant",
+        description="OpenAI Assistant Agent",
+        client=client,
+        model="gpt-4.1-nano",
+        instructions="Help the user with their task.",
+        tools=[quiz_tool],
+        handoffs=[handoff],
+    )
+
+    message = TextMessage(source="user", content="Please create a quiz and transfer me to agent2")
+    response = await agent.on_messages([message], cancellation_token)
+
+    assert isinstance(response.chat_message, HandoffMessage)
+    assert response.chat_message.content == handoff.message
+    assert response.chat_message.target == handoff.target
+    assert response.chat_message.source == "assistant"
+
+    assert len(response.inner_messages) == 2
+    assert isinstance(response.inner_messages[0], ToolCallRequestEvent)
+    assert isinstance(response.inner_messages[1], ToolCallExecutionEvent)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client", ["mock"], indirect=True)
+async def test_handoff_edge_cases(client: AsyncOpenAI, cancellation_token: CancellationToken) -> None:
+    display_quiz_tool = DisplayQuizTool()
+
+    handoff_with_tool_name_conflict = Handoff(target="agent2", name="display_quiz")
+
+    with pytest.raises(ValueError) as excinfo:
+        OpenAIAssistantAgent(
+            name="assistant",
+            description="OpenAI Assistant Agent",
+            client=client,
+            model="gpt-4.1-nano",
+            instructions="Help the user with their task.",
+            tools=[display_quiz_tool],
+            handoffs=[handoff_with_tool_name_conflict],
+        )
+    assert "Handoff names must be unique from tool names" in str(excinfo.value)
+
+    handoff1 = Handoff(target="agent1", name="same_handoff_name")
+    handoff2 = Handoff(target="agent2", name="same_handoff_name")
+
+    with pytest.raises(ValueError) as excinfo:
+        OpenAIAssistantAgent(
+            name="assistant",
+            description="OpenAI Assistant Agent",
+            client=client,
+            model="gpt-4.1-nano",
+            instructions="Help the user with their task.",
+            handoffs=[handoff1, handoff2],
+        )
+    assert "Handoff names must be unique" in str(excinfo.value)
+
+    handoff_agent1 = Handoff(target="agent1")
+    handoff_agent2 = Handoff(target="agent2")
+
+    handoff1_tool_call = MagicMock()
+    handoff1_tool_call.type = "function"
+    handoff1_tool_call.id = "tool-call-1"
+    handoff1_tool_call.function = MagicMock()
+    handoff1_tool_call.function.name = handoff_agent1.name
+    handoff1_tool_call.function.arguments = "{}"
+
+    handoff2_tool_call = MagicMock()
+    handoff2_tool_call.type = "function"
+    handoff2_tool_call.id = "tool-call-2"
+    handoff2_tool_call.function = MagicMock()
+    handoff2_tool_call.function.name = handoff_agent2.name
+    handoff2_tool_call.function.arguments = "{}"
+
+    run_requires_action = MagicMock()
+    run_requires_action.id = "run-mock"
+    run_requires_action.status = "requires_action"
+    run_requires_action.required_action = MagicMock()
+    run_requires_action.required_action.submit_tool_outputs = MagicMock()
+    run_requires_action.required_action.submit_tool_outputs.tool_calls = [handoff1_tool_call, handoff2_tool_call]
+
+    if hasattr(client.beta.threads.runs.retrieve, "side_effect"):
+        client.beta.threads.runs.retrieve.side_effect = [run_requires_action]  # type: ignore
+
+    if hasattr(client.beta.threads.runs.cancel, "return_value"):
+        client.beta.threads.runs.cancel = AsyncMock(return_value=MagicMock(id="run-mock", status="cancelled"))  # type: ignore
+
+    agent = OpenAIAssistantAgent(
+        name="assistant",
+        description="OpenAI Assistant Agent",
+        client=client,
+        model="gpt-4.1-nano",
+        instructions="Help the user with their task.",
+        handoffs=[handoff_agent1, handoff_agent2],
+    )
+
+    message = TextMessage(source="user", content="Please transfer me to agent1 and agent2")
+
+    with pytest.warns(UserWarning) as warning_info:
+        response = await agent.on_messages([message], cancellation_token)
+
+    assert any("Multiple handoffs detected" in str(w.message) for w in warning_info)
+
+    assert isinstance(response.chat_message, HandoffMessage)
+    assert response.chat_message.target == handoff_agent1.target
+    assert response.chat_message.source == "assistant"
+
+    assert len(response.inner_messages) == 2
+    assert isinstance(response.inner_messages[0], ToolCallRequestEvent)
+    assert isinstance(response.inner_messages[1], ToolCallExecutionEvent)
+
+    await agent.delete_assistant(cancellation_token)
