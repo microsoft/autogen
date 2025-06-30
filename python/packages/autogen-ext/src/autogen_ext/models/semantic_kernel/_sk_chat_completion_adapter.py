@@ -1,7 +1,7 @@
 import json
 import logging
 import warnings
-from typing import Any, Literal, Mapping, Optional, Sequence
+from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
 from autogen_core import EVENT_LOGGER_NAME, FunctionCall
 from autogen_core._cancellation_token import CancellationToken
@@ -29,7 +29,7 @@ from semantic_kernel.contents import (
 )
 from semantic_kernel.functions.kernel_plugin import KernelPlugin
 from semantic_kernel.kernel import Kernel
-from typing_extensions import AsyncGenerator, Union
+from typing_extensions import AsyncGenerator
 
 from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool, KernelFunctionFromToolSchema
 
@@ -442,6 +442,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -472,6 +473,13 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         """
         if isinstance(json_output, type) and issubclass(json_output, BaseModel):
             raise ValueError("structured output is not currently supported in SKChatCompletionAdapter")
+
+        # Handle tool_choice parameter
+        if tool_choice != "auto":
+            warnings.warn(
+                "tool_choice parameter is specified but may not be fully supported by SKChatCompletionAdapter.",
+                stacklevel=2,
+            )
 
         kernel = self._get_kernel(extra_create_args)
 
@@ -553,6 +561,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -584,6 +593,13 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
         if isinstance(json_output, type) and issubclass(json_output, BaseModel):
             raise ValueError("structured output is not currently supported in SKChatCompletionAdapter")
+
+        # Handle tool_choice parameter
+        if tool_choice != "auto":
+            warnings.warn(
+                "tool_choice parameter is specified but may not be fully supported by SKChatCompletionAdapter.",
+                stacklevel=2,
+            )
 
         kernel = self._get_kernel(extra_create_args)
         chat_history = self._convert_to_chat_history(messages)

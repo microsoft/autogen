@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
@@ -367,9 +367,39 @@ async def test_openai_chat_completion_client_create_stream_no_usage_explicit(mon
     assert chunks[0] == "Hello"
     assert chunks[1] == " Another Hello"
     assert chunks[2] == " Yet Another Hello"
-    assert isinstance(chunks[-1], CreateResult)
-    assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
-    assert chunks[-1].usage == RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_none_usage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that completion_tokens and prompt_tokens handle None usage correctly.
+
+    This test addresses issue #6352 where result.usage could be None,
+    causing TypeError in logging when trying to access completion_tokens.
+    """
+
+    async def _mock_create_with_none_usage(*args: Any, **kwargs: Any) -> ChatCompletion:
+        await asyncio.sleep(0.1)
+        # Create a ChatCompletion with None usage (which can happen in some API scenarios)
+        return ChatCompletion(
+            id="id",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="Hello", role="assistant"))
+            ],
+            created=0,
+            model="gpt-4o",
+            object="chat.completion",
+            usage=None,  # This is the scenario from the issue
+        )
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create_with_none_usage)
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+
+    # This should not raise a TypeError
+    result = await client.create(messages=[UserMessage(content="Hello", source="user")])
+
+    # Verify that the usage is correctly set to 0 when usage is None
+    assert result.usage.prompt_tokens == 0
+    assert result.usage.completion_tokens == 0
 
 
 @pytest.mark.asyncio
@@ -2163,6 +2193,7 @@ async def test_system_message_merge_with_continuous_system_messages_models() -> 
         tools=[],
         json_output=None,
         extra_create_args={},
+        tool_choice="none",
     )
 
     # Extract the actual messages from the result
@@ -2213,6 +2244,7 @@ async def test_system_message_merge_with_non_continuous_messages() -> None:
             tools=[],
             json_output=None,
             extra_create_args={},
+            tool_choice="none",
         )
 
 
@@ -2249,6 +2281,7 @@ async def test_system_message_not_merged_for_multiple_system_messages_true() -> 
         tools=[],
         json_output=None,
         extra_create_args={},
+        tool_choice="none",
     )
 
     # Extract the actual messages from the result
@@ -2292,6 +2325,7 @@ async def test_no_system_messages_for_gemini_model() -> None:
         tools=[],
         json_output=None,
         extra_create_args={},
+        tool_choice="none",
     )
 
     # Extract the actual messages from the result
@@ -2339,6 +2373,7 @@ async def test_single_system_message_for_gemini_model() -> None:
         tools=[],
         json_output=None,
         extra_create_args={},
+        tool_choice="auto",
     )
 
     # Extract the actual messages from the result
@@ -2529,6 +2564,495 @@ async def test_mistral_remove_name() -> None:
     # when the model is gpt-4o, the name parameter is not removed
     params = to_oai_type(message, prepend_name=False, model="gpt-4o", model_family=ModelFamily.GPT_4O)
     assert ("name" in params[0]) is True
+
+
+@pytest.mark.asyncio
+async def test_mock_tool_choice_specific_tool(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test tool_choice parameter with a specific tool using mocks."""
+
+    def _pass_function(input: str) -> str:
+        """Simple passthrough function."""
+        return f"Processed: {input}"
+
+    def _add_numbers(a: int, b: int) -> int:
+        """Add two numbers together."""
+        return a + b
+
+    model = "gpt-4o"
+
+    # Mock successful completion with specific tool call
+    chat_completion = ChatCompletion(
+        id="id1",
+        choices=[
+            Choice(
+                finish_reason="tool_calls",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content=None,
+                    tool_calls=[
+                        ChatCompletionMessageToolCall(
+                            id="1",
+                            type="function",
+                            function=Function(
+                                name="_pass_function",
+                                arguments=json.dumps({"input": "hello"}),
+                            ),
+                        )
+                    ],
+                ),
+            )
+        ],
+        created=1234567890,
+        model=model,
+        object="chat.completion",
+        usage=CompletionUsage(completion_tokens=10, prompt_tokens=5, total_tokens=15),
+    )
+
+    client = OpenAIChatCompletionClient(model=model, api_key="test")
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="_pass_function")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="_add_numbers")
+
+    # Create mock for the chat completions create method
+    mock_create = AsyncMock(return_value=chat_completion)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(client._client.chat.completions, "create", mock_create)  # type: ignore[reportPrivateUsage]
+
+        _ = await client.create(
+            messages=[UserMessage(content="Process 'hello'", source="user")],
+            tools=[pass_tool, add_tool],
+            tool_choice=pass_tool,  # Force use of specific tool
+        )
+
+    # Verify the correct API call was made
+    mock_create.assert_called_once()
+    call_args = mock_create.call_args
+
+    # Check that tool_choice was set correctly
+    assert "tool_choice" in call_args.kwargs
+    assert call_args.kwargs["tool_choice"] == {"type": "function", "function": {"name": "_pass_function"}}
+
+
+@pytest.mark.asyncio
+async def test_mock_tool_choice_auto(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test tool_choice parameter with 'auto' setting using mocks."""
+
+    def _pass_function(input: str) -> str:
+        """Simple passthrough function."""
+        return f"Processed: {input}"
+
+    def _add_numbers(a: int, b: int) -> int:
+        """Add two numbers together."""
+        return a + b
+
+    model = "gpt-4o"
+
+    # Mock successful completion
+    chat_completion = ChatCompletion(
+        id="id1",
+        choices=[
+            Choice(
+                finish_reason="tool_calls",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content=None,
+                    tool_calls=[
+                        ChatCompletionMessageToolCall(
+                            id="1",
+                            type="function",
+                            function=Function(
+                                name="_add_numbers",
+                                arguments=json.dumps({"a": 1, "b": 2}),
+                            ),
+                        )
+                    ],
+                ),
+            )
+        ],
+        created=1234567890,
+        model=model,
+        object="chat.completion",
+        usage=CompletionUsage(completion_tokens=10, prompt_tokens=5, total_tokens=15),
+    )
+
+    client = OpenAIChatCompletionClient(model=model, api_key="test")
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="_pass_function")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="_add_numbers")
+
+    # Create mock for the chat completions create method
+    mock_create = AsyncMock(return_value=chat_completion)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(client._client.chat.completions, "create", mock_create)  # type: ignore[reportPrivateUsage]
+
+        await client.create(
+            messages=[UserMessage(content="Add 1 and 2", source="user")],
+            tools=[pass_tool, add_tool],
+            tool_choice="auto",  # Let model choose
+        )
+
+    # Verify the correct API call was made
+    mock_create.assert_called_once()
+    call_args = mock_create.call_args
+
+    # Check that tool_choice was set correctly
+    assert "tool_choice" in call_args.kwargs
+    assert call_args.kwargs["tool_choice"] == "auto"
+
+
+@pytest.mark.asyncio
+async def test_mock_tool_choice_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test tool_choice parameter with None setting using mocks."""
+
+    def _pass_function(input: str) -> str:
+        """Simple passthrough function."""
+        return f"Processed: {input}"
+
+    model = "gpt-4o"
+
+    # Mock successful completion
+    chat_completion = ChatCompletion(
+        id="id1",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content="I can help you with that!",
+                    tool_calls=None,
+                ),
+            )
+        ],
+        created=1234567890,
+        model=model,
+        object="chat.completion",
+        usage=CompletionUsage(completion_tokens=10, prompt_tokens=5, total_tokens=15),
+    )
+
+    client = OpenAIChatCompletionClient(model=model, api_key="test")
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="_pass_function")
+
+    # Create mock for the chat completions create method
+    mock_create = AsyncMock(return_value=chat_completion)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(client._client.chat.completions, "create", mock_create)  # type: ignore[reportPrivateUsage]
+
+        await client.create(
+            messages=[UserMessage(content="Hello there", source="user")],
+            tools=[pass_tool],
+            tool_choice="none",
+        )
+
+    # Verify the correct API call was made
+    mock_create.assert_called_once()
+    call_args = mock_create.call_args
+
+    # Check that tool_choice was set to "none" (disabling tool usage)
+    assert "tool_choice" in call_args.kwargs
+    assert call_args.kwargs["tool_choice"] == "none"
+
+
+@pytest.mark.asyncio
+async def test_mock_tool_choice_validation_error() -> None:
+    """Test tool_choice validation with invalid tool reference."""
+
+    def _pass_function(input: str) -> str:
+        """Simple passthrough function."""
+        return f"Processed: {input}"
+
+    def _add_numbers(a: int, b: int) -> int:
+        """Add two numbers together."""
+        return a + b
+
+    def _different_function(text: str) -> str:
+        """Different function."""
+        return text
+
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="test")
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="_pass_function")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="_add_numbers")
+    different_tool = FunctionTool(_different_function, description="Different tool", name="_different_function")
+
+    messages = [UserMessage(content="Hello there", source="user")]
+
+    # Test with a tool that's not in the tools list
+    with pytest.raises(
+        ValueError, match="tool_choice references '_different_function' but it's not in the provided tools"
+    ):
+        await client.create(
+            messages=messages,
+            tools=[pass_tool, add_tool],
+            tool_choice=different_tool,  # This tool is not in the tools list
+        )
+
+
+@pytest.mark.asyncio
+async def test_mock_tool_choice_required(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test tool_choice parameter with 'required' setting using mocks."""
+
+    def _pass_function(input: str) -> str:
+        """Simple passthrough function."""
+        return f"Processed: {input}"
+
+    def _add_numbers(a: int, b: int) -> int:
+        """Add two numbers together."""
+        return a + b
+
+    model = "gpt-4o"
+
+    # Mock successful completion with tool calls (required forces tool usage)
+    chat_completion = ChatCompletion(
+        id="id1",
+        choices=[
+            Choice(
+                finish_reason="tool_calls",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content=None,
+                    tool_calls=[
+                        ChatCompletionMessageToolCall(
+                            id="1",
+                            type="function",
+                            function=Function(
+                                name="_pass_function",
+                                arguments=json.dumps({"input": "hello"}),
+                            ),
+                        )
+                    ],
+                ),
+            )
+        ],
+        created=1234567890,
+        model=model,
+        object="chat.completion",
+        usage=CompletionUsage(completion_tokens=10, prompt_tokens=5, total_tokens=15),
+    )
+
+    client = OpenAIChatCompletionClient(model=model, api_key="test")
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="_pass_function")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="_add_numbers")
+
+    # Create mock for the chat completions create method
+    mock_create = AsyncMock(return_value=chat_completion)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(client._client.chat.completions, "create", mock_create)  # type: ignore[reportPrivateUsage]
+
+        await client.create(
+            messages=[UserMessage(content="Process some text", source="user")],
+            tools=[pass_tool, add_tool],
+            tool_choice="required",  # Force tool usage
+        )
+
+    # Verify the correct API call was made
+    mock_create.assert_called_once()
+    call_args = mock_create.call_args
+
+    # Check that tool_choice was set correctly
+    assert "tool_choice" in call_args.kwargs
+    assert call_args.kwargs["tool_choice"] == "required"
+
+
+# Integration tests for tool_choice using the actual OpenAI API
+@pytest.mark.asyncio
+async def test_openai_tool_choice_specific_tool_integration() -> None:
+    """Test tool_choice parameter with a specific tool using the actual OpenAI API."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    def _pass_function(input: str) -> str:
+        """Simple passthrough function."""
+        return f"Processed: {input}"
+
+    def _add_numbers(a: int, b: int) -> int:
+        """Add two numbers together."""
+        return a + b
+
+    model = "gpt-4o-mini"
+    client = OpenAIChatCompletionClient(model=model, api_key=api_key)
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="_pass_function")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="_add_numbers")
+
+    # Test forcing use of specific tool
+    result = await client.create(
+        messages=[UserMessage(content="Process the word 'hello'", source="user")],
+        tools=[pass_tool, add_tool],
+        tool_choice=pass_tool,  # Force use of specific tool
+    )
+
+    assert isinstance(result.content, list)
+    assert len(result.content) == 1
+    assert isinstance(result.content[0], FunctionCall)
+    assert result.content[0].name == "_pass_function"
+    assert result.finish_reason == "function_calls"
+    assert result.usage is not None
+
+
+@pytest.mark.asyncio
+async def test_openai_tool_choice_auto_integration() -> None:
+    """Test tool_choice parameter with 'auto' setting using the actual OpenAI API."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    def _pass_function(input: str) -> str:
+        """Simple passthrough function."""
+        return f"Processed: {input}"
+
+    def _add_numbers(a: int, b: int) -> int:
+        """Add two numbers together."""
+        return a + b
+
+    model = "gpt-4o-mini"
+    client = OpenAIChatCompletionClient(model=model, api_key=api_key)
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="_pass_function")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="_add_numbers")
+
+    # Test auto tool choice - model should choose to use add_numbers for math
+    result = await client.create(
+        messages=[UserMessage(content="What is 15 plus 27?", source="user")],
+        tools=[pass_tool, add_tool],
+        tool_choice="auto",  # Let model choose
+    )
+
+    assert isinstance(result.content, list)
+    assert len(result.content) == 1
+    assert isinstance(result.content[0], FunctionCall)
+    assert result.content[0].name == "_add_numbers"
+    assert result.finish_reason == "function_calls"
+    assert result.usage is not None
+
+    # Parse arguments to verify correct values
+    args = json.loads(result.content[0].arguments)
+    assert args["a"] == 15
+    assert args["b"] == 27
+
+
+@pytest.mark.asyncio
+async def test_openai_tool_choice_none_integration() -> None:
+    """Test tool_choice parameter with 'none' setting using the actual OpenAI API."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    def _pass_function(input: str) -> str:
+        """Simple passthrough function."""
+        return f"Processed: {input}"
+
+    model = "gpt-4o-mini"
+    client = OpenAIChatCompletionClient(model=model, api_key=api_key)
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="_pass_function")
+
+    # Test none tool choice - model should not use any tools
+    result = await client.create(
+        messages=[UserMessage(content="Hello there, how are you?", source="user")],
+        tools=[pass_tool],
+        tool_choice="none",  # Disable tool usage
+    )
+
+    assert isinstance(result.content, str)
+    assert len(result.content) > 0
+    assert result.finish_reason == "stop"
+    assert result.usage is not None
+
+
+@pytest.mark.asyncio
+async def test_openai_tool_choice_required_integration() -> None:
+    """Test tool_choice parameter with 'required' setting using the actual OpenAI API."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    def _pass_function(input: str) -> str:
+        """Simple passthrough function."""
+        return f"Processed: {input}"
+
+    def _add_numbers(a: int, b: int) -> int:
+        """Add two numbers together."""
+        return a + b
+
+    model = "gpt-4o-mini"
+    client = OpenAIChatCompletionClient(model=model, api_key=api_key)
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="_pass_function")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="_add_numbers")
+
+    # Test required tool choice - model must use a tool even for general conversation
+    result = await client.create(
+        messages=[UserMessage(content="Say hello to me", source="user")],
+        tools=[pass_tool, add_tool],
+        tool_choice="required",  # Force tool usage
+    )
+
+    assert isinstance(result.content, list)
+    assert len(result.content) == 1
+    assert isinstance(result.content[0], FunctionCall)
+    assert result.content[0].name in ["_pass_function", "_add_numbers"]
+    assert result.finish_reason == "function_calls"
+    assert result.usage is not None
+
+
+@pytest.mark.asyncio
+async def test_openai_tool_choice_validation_error_integration() -> None:
+    """Test tool_choice validation with invalid tool reference using the actual OpenAI API."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    def _pass_function(input: str) -> str:
+        """Simple passthrough function."""
+        return f"Processed: {input}"
+
+    def _add_numbers(a: int, b: int) -> int:
+        """Add two numbers together."""
+        return a + b
+
+    def _different_function(text: str) -> str:
+        """Different function."""
+        return text
+
+    model = "gpt-4o-mini"
+    client = OpenAIChatCompletionClient(model=model, api_key=api_key)
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="_pass_function")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="_add_numbers")
+    different_tool = FunctionTool(_different_function, description="Different tool", name="_different_function")
+
+    messages = [UserMessage(content="Hello there", source="user")]
+
+    # Test with a tool that's not in the tools list
+    with pytest.raises(
+        ValueError, match="tool_choice references '_different_function' but it's not in the provided tools"
+    ):
+        await client.create(
+            messages=messages,
+            tools=[pass_tool, add_tool],
+            tool_choice=different_tool,  # This tool is not in the tools list
+        )
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.

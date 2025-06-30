@@ -36,7 +36,7 @@ async def create_mcp_server_session(
         params_dict = server_params.model_dump(exclude={"type"})
         params_dict["timeout"] = timedelta(seconds=server_params.timeout)
         params_dict["sse_read_timeout"] = timedelta(seconds=server_params.sse_read_timeout)
-        
+
         async with streamablehttp_client(**params_dict) as (
             read,
             write,
