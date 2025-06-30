@@ -35,7 +35,7 @@ def _add_numbers(a: int, b: int) -> int:
 
 
 @pytest.mark.asyncio
-async def test_anthropic_tool_choice_specific_tool() -> None:
+async def test_mock_tool_choice_specific_tool() -> None:
     """Test tool_choice parameter with a specific tool using mocks."""
     # Create mock client and response
     mock_client = AsyncMock()
@@ -77,7 +77,7 @@ async def test_anthropic_tool_choice_specific_tool() -> None:
 
 
 @pytest.mark.asyncio
-async def test_anthropic_tool_choice_auto() -> None:
+async def test_mock_tool_choice_auto() -> None:
     """Test tool_choice parameter with 'auto' setting using mocks."""
     # Create mock client and response
     mock_client = AsyncMock()
@@ -119,7 +119,7 @@ async def test_anthropic_tool_choice_auto() -> None:
 
 
 @pytest.mark.asyncio
-async def test_anthropic_tool_choice_none() -> None:
+async def test_mock_tool_choice_none() -> None:
     """Test tool_choice parameter when no tools are provided - tool_choice should not be included."""
     # Create mock client and response
     mock_client = AsyncMock()
@@ -155,7 +155,7 @@ async def test_anthropic_tool_choice_none() -> None:
 
 
 @pytest.mark.asyncio
-async def test_anthropic_tool_choice_validation_error() -> None:
+async def test_mock_tool_choice_validation_error() -> None:
     """Test tool_choice validation with invalid tool reference."""
     client = AnthropicChatCompletionClient(
         model="claude-3-haiku-20240307",
@@ -181,7 +181,7 @@ async def test_anthropic_tool_choice_validation_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_anthropic_serialization_api_key() -> None:
+async def test_mock_serialization_api_key() -> None:
     client = AnthropicChatCompletionClient(
         model="claude-3-haiku-20240307",  # Use haiku for faster/cheaper testing
         api_key="sk-password",
@@ -489,7 +489,7 @@ async def test_anthropic_multimodal() -> None:
 
 
 @pytest.mark.asyncio
-async def test_anthropic_serialization() -> None:
+async def test_mock_serialization() -> None:
     """Test serialization and deserialization of component."""
 
     client = AnthropicChatCompletionClient(
@@ -569,7 +569,7 @@ async def test_anthropic_muliple_system_message() -> None:
     assert result_content[-3:] == "BAR"
 
 
-def test_merge_continuous_system_messages() -> None:
+def test_mock_merge_continuous_system_messages() -> None:
     """Tests merging of continuous system messages."""
     client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
 
@@ -594,7 +594,7 @@ def test_merge_continuous_system_messages() -> None:
     assert merged_messages[1].content == "User question"
 
 
-def test_merge_single_system_message() -> None:
+def test_mock_merge_single_system_message() -> None:
     """Tests that a single system message remains unchanged."""
     client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
 
@@ -614,7 +614,7 @@ def test_merge_single_system_message() -> None:
     assert merged_messages[0].content == "Single system instruction"
 
 
-def test_merge_no_system_messages() -> None:
+def test_mock_merge_no_system_messages() -> None:
     """Tests behavior when there are no system messages."""
     client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
 
@@ -633,7 +633,7 @@ def test_merge_no_system_messages() -> None:
     assert merged_messages[0].content == "User question without system"
 
 
-def test_merge_non_continuous_system_messages() -> None:
+def test_mock_merge_non_continuous_system_messages() -> None:
     """Tests that an error is raised for non-continuous system messages."""
     client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
 
@@ -651,7 +651,7 @@ def test_merge_non_continuous_system_messages() -> None:
     # The method is protected, but we need to test it
 
 
-def test_merge_system_messages_empty() -> None:
+def test_mock_merge_system_messages_empty() -> None:
     """Tests that empty message list is handled properly."""
     client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
 
@@ -660,7 +660,7 @@ def test_merge_system_messages_empty() -> None:
     assert len(merged_messages) == 0
 
 
-def test_merge_system_messages_with_special_characters() -> None:
+def test_mock_merge_system_messages_with_special_characters() -> None:
     """Tests system message merging with special characters and formatting."""
     client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
 
@@ -680,7 +680,7 @@ def test_merge_system_messages_with_special_characters() -> None:
     assert system_message.content == "Line 1\nWith newline\nLine 2 with *formatting*\nLine 3 with `code`"
 
 
-def test_merge_system_messages_with_whitespace() -> None:
+def test_mock_merge_system_messages_with_whitespace() -> None:
     """Tests system message merging with extra whitespace."""
     client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
 
@@ -700,7 +700,7 @@ def test_merge_system_messages_with_whitespace() -> None:
     assert system_message.content == "  Message with leading spaces  \n\nMessage with leading newline"
 
 
-def test_merge_system_messages_message_order() -> None:
+def test_mock_merge_system_messages_message_order() -> None:
     """Tests that message order is preserved after merging."""
     client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
 
@@ -731,7 +731,7 @@ def test_merge_system_messages_message_order() -> None:
     assert merged_messages[3].content == "Answer"
 
 
-def test_merge_system_messages_multiple_groups() -> None:
+def test_mock_merge_system_messages_multiple_groups() -> None:
     """Tests that multiple separate groups of system messages raise an error."""
     client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
 
@@ -747,7 +747,7 @@ def test_merge_system_messages_multiple_groups() -> None:
     # The method is protected, but we need to test it
 
 
-def test_merge_system_messages_no_duplicates() -> None:
+def test_mock_merge_system_messages_no_duplicates() -> None:
     """Tests that identical system messages are still merged properly."""
     client = AnthropicChatCompletionClient(model="claude-3-haiku-20240307", api_key="fake-api-key")
 
@@ -768,7 +768,7 @@ def test_merge_system_messages_no_duplicates() -> None:
 
 
 @pytest.mark.asyncio
-async def test_empty_assistant_content_string_with_anthropic() -> None:
+async def test_anthropic_empty_assistant_content_string() -> None:
     """Test that an empty assistant content string is handled correctly."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
@@ -793,7 +793,7 @@ async def test_empty_assistant_content_string_with_anthropic() -> None:
 
 
 @pytest.mark.asyncio
-async def test_claude_trailing_whitespace_at_last_assistant_content() -> None:
+async def test_anthropic_trailing_whitespace_at_last_assistant_content() -> None:
     """Test that an empty assistant content string is handled correctly."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
@@ -814,7 +814,7 @@ async def test_claude_trailing_whitespace_at_last_assistant_content() -> None:
     assert isinstance(result.content, str)
 
 
-def test_rstrip_railing_whitespace_at_last_assistant_content() -> None:
+def test_mock_rstrip_trailing_whitespace_at_last_assistant_content() -> None:
     messages: list[LLMMessage] = [
         UserMessage(content="foo", source="user"),
         UserMessage(content="bar", source="user"),
@@ -827,3 +827,175 @@ def test_rstrip_railing_whitespace_at_last_assistant_content() -> None:
 
     assert isinstance(result[-1].content, str)
     assert result[-1].content == "foobar"
+
+
+@pytest.mark.asyncio
+async def test_anthropic_tool_choice_with_actual_api() -> None:
+    """Test tool_choice parameter with actual Anthropic API endpoints."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    # Test 1: tool_choice with specific tool
+    messages: List[LLMMessage] = [
+        SystemMessage(content="Use the tools as needed to help the user."),
+        UserMessage(content="Process the text 'hello world' using the process_text tool.", source="user"),
+    ]
+
+    result = await client.create(
+        messages=messages,
+        tools=[pass_tool, add_tool],
+        tool_choice=pass_tool,  # Force use of specific tool
+    )
+
+    # Verify we got a tool call for the specified tool
+    assert isinstance(result.content, list)
+    assert len(result.content) >= 1
+    assert isinstance(result.content[0], FunctionCall)
+    assert result.content[0].name == "process_text"
+
+    # Test 2: tool_choice="auto" with tools
+    auto_messages: List[LLMMessage] = [
+        SystemMessage(content="Use the tools as needed to help the user."),
+        UserMessage(content="Add the numbers 5 and 3.", source="user"),
+    ]
+
+    auto_result = await client.create(
+        messages=auto_messages,
+        tools=[pass_tool, add_tool],
+        tool_choice="auto",  # Let model choose
+    )
+
+    # Should get a tool call, likely for add_numbers
+    assert isinstance(auto_result.content, list)
+    assert len(auto_result.content) >= 1
+    assert isinstance(auto_result.content[0], FunctionCall)
+    # Model should choose add_numbers for addition task
+    assert auto_result.content[0].name == "add_numbers"
+
+    # Test 3: No tools provided - should not include tool_choice in API call
+    no_tools_messages: List[LLMMessage] = [
+        UserMessage(content="What is the capital of France?", source="user"),
+    ]
+
+    no_tools_result = await client.create(messages=no_tools_messages)
+
+    # Should get a text response without tool calls
+    assert isinstance(no_tools_result.content, str)
+    assert "paris" in no_tools_result.content.lower()
+
+    # Test 4: tool_choice="required" with tools
+    required_messages: List[LLMMessage] = [
+        SystemMessage(content="You must use one of the available tools to help the user."),
+        UserMessage(content="Help me with something.", source="user"),
+    ]
+
+    required_result = await client.create(
+        messages=required_messages,
+        tools=[pass_tool, add_tool],
+        tool_choice="required",  # Force tool usage
+    )
+
+    # Should get a tool call (model forced to use a tool)
+    assert isinstance(required_result.content, list)
+    assert len(required_result.content) >= 1
+    assert isinstance(required_result.content[0], FunctionCall)
+
+
+@pytest.mark.asyncio
+async def test_anthropic_tool_choice_streaming_with_actual_api() -> None:
+    """Test tool_choice parameter with streaming using actual Anthropic API endpoints."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    # Test streaming with tool_choice
+    messages: List[LLMMessage] = [
+        SystemMessage(content="Use the tools as needed to help the user."),
+        UserMessage(content="Process the text 'streaming test' using the process_text tool.", source="user"),
+    ]
+
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(
+        messages=messages,
+        tools=[pass_tool, add_tool],
+        tool_choice=pass_tool,  # Force use of specific tool
+    ):
+        chunks.append(chunk)
+
+    # Verify we got chunks and a final result
+    assert len(chunks) > 0
+    final_result = chunks[-1]
+    assert isinstance(final_result, CreateResult)
+
+    # Should get a tool call for the specified tool
+    assert isinstance(final_result.content, list)
+    assert len(final_result.content) >= 1
+    assert isinstance(final_result.content[0], FunctionCall)
+    assert final_result.content[0].name == "process_text"
+
+    # Test streaming without tools - should not include tool_choice
+    no_tools_messages: List[LLMMessage] = [
+        UserMessage(content="Tell me a short fact about cats.", source="user"),
+    ]
+
+    no_tools_chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(messages=no_tools_messages):
+        no_tools_chunks.append(chunk)
+
+    # Should get text response
+    assert len(no_tools_chunks) > 0
+    final_no_tools_result = no_tools_chunks[-1]
+    assert isinstance(final_no_tools_result, CreateResult)
+    assert isinstance(final_no_tools_result.content, str)
+    assert len(final_no_tools_result.content) > 0
+
+
+@pytest.mark.asyncio
+async def test_anthropic_tool_choice_none_value_with_actual_api() -> None:
+    """Test tool_choice="none" with actual Anthropic API endpoints."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
+
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    # Test tool_choice="none" - should not use tools even when available
+    messages: List[LLMMessage] = [
+        SystemMessage(content="Answer the user's question directly without using tools."),
+        UserMessage(content="What is 2 + 2?", source="user"),
+    ]
+
+    result = await client.create(
+        messages=messages,
+        tools=[pass_tool, add_tool],
+        tool_choice="none",  # Disable tool usage
+    )
+
+    # Should get a text response, not tool calls
+    assert isinstance(result.content, str)

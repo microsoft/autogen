@@ -159,7 +159,7 @@ def convert_tool_choice_anthropic(tool_choice: Tool | Literal["auto", "required"
         Anthropic API compatible tool_choice value.
     """
     if tool_choice == "none":
-        return None
+        return {"type": "none"}
 
     if tool_choice == "auto":
         return {"type": "auto"}

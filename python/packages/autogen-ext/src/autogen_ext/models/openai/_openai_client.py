@@ -620,9 +620,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             if tool_name not in tool_names_available:
                 raise ValueError(f"tool_choice references '{tool_name}' but it's not in the provided tools")
 
-        # Convert to OpenAI format and add to create_args
-        converted_tool_choice = convert_tool_choice(tool_choice)
-        create_args["tool_choice"] = converted_tool_choice
+        if len(converted_tools) > 0:
+            # Convert to OpenAI format and add to create_args
+            converted_tool_choice = convert_tool_choice(tool_choice)
+            create_args["tool_choice"] = converted_tool_choice
 
         return CreateParams(
             messages=oai_messages,

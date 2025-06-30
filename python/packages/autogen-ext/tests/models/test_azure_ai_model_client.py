@@ -17,8 +17,6 @@ from azure.ai.inference.aio import (
 from azure.ai.inference.models import (
     ChatChoice,
     ChatCompletions,
-    ChatCompletionsNamedToolChoice,
-    ChatCompletionsNamedToolChoiceFunction,
     ChatCompletionsToolCall,
     ChatResponseMessage,
     CompletionsFinishReason,
@@ -644,7 +642,9 @@ def tool_choice_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletion
     Returns a client that supports function calling for tool choice tests.
     """
 
-    async def _mock_tool_choice_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+    async def _mock_tool_choice_stream(
+        *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
         mock_chunks_content = ["Hello", " Another Hello", " Yet Another Hello"]
 
         mock_chunks = [
@@ -687,13 +687,10 @@ def tool_choice_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletion
                             tool_calls=[
                                 ChatCompletionsToolCall(
                                     id="call_123",
-                                    function=AzureFunctionCall(
-                                        name="process_text",
-                                        arguments='{"input": "hello"}'
-                                    )
+                                    function=AzureFunctionCall(name="process_text", arguments='{"input": "hello"}'),
                                 )
-                            ]
-                        )
+                            ],
+                        ),
                     )
                 ],
                 usage=CompletionsUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
@@ -784,10 +781,7 @@ def tool_choice_none_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompl
                 ChatChoice(
                     index=0,
                     finish_reason="stop",
-                    message=ChatResponseMessage(
-                        role="assistant",
-                        content="I can help you with that."
-                    )
+                    message=ChatResponseMessage(role="assistant", content="I can help you with that."),
                 )
             ],
             usage=CompletionsUsage(prompt_tokens=8, completion_tokens=6, total_tokens=14),

@@ -314,7 +314,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         # Only pass the parameters that ChatCompletionsClient accepts
         # Remove 'model_info' and other client-specific parameters
         client_config = {k: v for k, v in config.items() if k not in ("model_info",)}
-        return ChatCompletionsClient(**client_config)
+        return ChatCompletionsClient(**client_config)  # type: ignore
 
     @staticmethod
     def _prepare_create_args(config: Mapping[str, Any]) -> Dict[str, Any]:
