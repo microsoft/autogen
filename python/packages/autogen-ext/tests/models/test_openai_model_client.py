@@ -2193,7 +2193,7 @@ async def test_system_message_merge_with_continuous_system_messages_models() -> 
         tools=[],
         json_output=None,
         extra_create_args={},
-        tool_choice=None,
+        tool_choice="none",
     )
 
     # Extract the actual messages from the result
@@ -2244,7 +2244,7 @@ async def test_system_message_merge_with_non_continuous_messages() -> None:
             tools=[],
             json_output=None,
             extra_create_args={},
-            tool_choice=None,
+            tool_choice="none",
         )
 
 
@@ -2281,7 +2281,7 @@ async def test_system_message_not_merged_for_multiple_system_messages_true() -> 
         tools=[],
         json_output=None,
         extra_create_args={},
-        tool_choice=None,
+        tool_choice="none",
     )
 
     # Extract the actual messages from the result
@@ -2325,7 +2325,7 @@ async def test_no_system_messages_for_gemini_model() -> None:
         tools=[],
         json_output=None,
         extra_create_args={},
-        tool_choice=None,
+        tool_choice="none",
     )
 
     # Extract the actual messages from the result
@@ -2373,7 +2373,7 @@ async def test_single_system_message_for_gemini_model() -> None:
         tools=[],
         json_output=None,
         extra_create_args={},
-        tool_choice=None,
+        tool_choice="auto",
     )
 
     # Extract the actual messages from the result
@@ -2753,7 +2753,7 @@ async def test_openai_tool_choice_none(monkeypatch: pytest.MonkeyPatch) -> None:
         await client.create(
             messages=[UserMessage(content="Hello there", source="user")],
             tools=[pass_tool],
-            tool_choice=None,  # Let model choose whether to use tools
+            tool_choice="none",
         )
 
     # Verify the correct API call was made

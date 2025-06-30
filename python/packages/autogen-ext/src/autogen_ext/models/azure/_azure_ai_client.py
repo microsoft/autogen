@@ -479,11 +479,12 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         azure_messages_nested = [to_azure_message(msg) for msg in messages]
         azure_messages = [item for sublist in azure_messages_nested for item in sublist]
 
-        # Handle tool_choice parameter - log warning as it might not be supported by Azure AI
-        if tool_choice is not None:
-            if len(tools) == 0:
-                raise ValueError("tool_choice specified but no tools provided")
-            logger.warning("tool_choice parameter specified but may not be supported by Azure AI Inference API")
+        if isinstance(tool_choice, Tool):
+            create_args["tool_choice"] = ChatCompletionsNamedToolChoice(
+                function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
+            )
+        else:
+            create_args["tool_choice"] = tool_choice
 
         if len(tools) > 0:
             converted_tools = convert_tools(tools)

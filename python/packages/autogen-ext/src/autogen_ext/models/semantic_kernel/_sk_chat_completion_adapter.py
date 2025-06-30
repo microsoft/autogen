@@ -475,10 +475,11 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             raise ValueError("structured output is not currently supported in SKChatCompletionAdapter")
 
         # Handle tool_choice parameter
-        if tool_choice is not None:
-            if len(tools) == 0:
-                raise ValueError("tool_choice specified but no tools provided")
-            logger.warning("tool_choice parameter specified but may not be fully supported by Semantic Kernel")
+        if tool_choice != "auto":
+            warnings.warn(
+                "tool_choice parameter is specified but may not be fully supported by SKChatCompletionAdapter.",
+                stacklevel=2,
+            )
 
         kernel = self._get_kernel(extra_create_args)
 
@@ -594,10 +595,11 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             raise ValueError("structured output is not currently supported in SKChatCompletionAdapter")
 
         # Handle tool_choice parameter
-        if tool_choice is not None:
-            if len(tools) == 0:
-                raise ValueError("tool_choice specified but no tools provided")
-            logger.warning("tool_choice parameter specified but may not be fully supported by Semantic Kernel")
+        if tool_choice != "auto":
+            warnings.warn(
+                "tool_choice parameter is specified but may not be fully supported by SKChatCompletionAdapter.",
+                stacklevel=2,
+            )
 
         kernel = self._get_kernel(extra_create_args)
         chat_history = self._convert_to_chat_history(messages)

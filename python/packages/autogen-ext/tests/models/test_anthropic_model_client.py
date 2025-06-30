@@ -148,7 +148,7 @@ async def test_anthropic_tool_choice_none() -> None:
         await client.create(
             messages=messages,
             tools=[pass_tool, add_tool],
-            tool_choice=None,  # Let model choose whether to use tools
+            tool_choice="auto",  # Let model choose whether to use tools
         )
 
     # Verify the correct API call was made
