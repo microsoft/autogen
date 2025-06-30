@@ -105,8 +105,11 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 GroupChatStart(messages=message.messages),
                 topic_id=DefaultTopicId(type=self._output_topic_type),
             )
-            for msg in message.messages:
-                await self._output_message_queue.put(msg)
+
+            # Only put messages in output queue if output_task_messages is True
+            if message.output_task_messages:
+                for msg in message.messages:
+                    await self._output_message_queue.put(msg)
 
             # Relay all messages at once to participants
             await self.publish_message(
