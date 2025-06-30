@@ -1752,8 +1752,6 @@ async def test_declarative_groupchats_with_config(runtime: AgentRuntime | None) 
     loaded = RoundRobinGroupChat.load_component(config)
     assert loaded.dump_component() == config
 
-   
-
     # Test selector group chat - verify config is preserved
     selector_prompt = "Custom selector prompt with {roles}, {participants}, {history}"
     selector = SelectorGroupChat(
