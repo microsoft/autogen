@@ -46,7 +46,6 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool = False,
-        output_task_messages: bool = True,
     ):
         super().__init__(
             description="Group chat manager",
@@ -80,7 +79,6 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._current_turn = 0
         self._message_factory = message_factory
         self._emit_team_events = emit_team_events
-        self._output_task_messages = output_task_messages
         self._active_speakers: List[str] = []
 
     @rpc

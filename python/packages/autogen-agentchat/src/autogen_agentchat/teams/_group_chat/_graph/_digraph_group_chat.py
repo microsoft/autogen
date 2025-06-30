@@ -326,7 +326,6 @@ class GraphFlowManager(BaseGroupChatManager):
         max_turns: int | None,
         message_factory: MessageFactory,
         graph: DiGraph,
-        output_task_messages: bool = True,
     ) -> None:
         """Initialize the graph-based execution manager."""
         super().__init__(
@@ -340,7 +339,6 @@ class GraphFlowManager(BaseGroupChatManager):
             termination_condition=termination_condition,
             max_turns=max_turns,
             message_factory=message_factory,
-            output_task_messages=output_task_messages,
         )
         graph.graph_validate()
         if graph.get_has_cycles() and self._termination_condition is None and self._max_turns is None:

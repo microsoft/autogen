@@ -66,7 +66,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._termination_condition = termination_condition
         self._max_turns = max_turns
         self._message_factory = MessageFactory()
-        self._output_task_messages = True  # Default value, will be updated in run_stream
         if custom_message_types is not None:
             for message_type in custom_message_types:
                 self._message_factory.register(message_type)
@@ -142,7 +141,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
-        output_task_messages: bool,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
@@ -194,7 +192,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 termination_condition=self._termination_condition,
                 max_turns=self._max_turns,
                 message_factory=self._message_factory,
-                output_task_messages=self._output_task_messages,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -220,6 +217,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         *,
         task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
+        output_task_messages: bool = True,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
         :meth:`run_stream` to run the team and then returns the final result.
@@ -310,6 +308,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         async for message in self.run_stream(
             task=task,
             cancellation_token=cancellation_token,
+            output_task_messages=output_task_messages,
         ):
             if isinstance(message, TaskResult):
                 result = message
@@ -421,9 +420,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             asyncio.run(main())
 
         """
-        # Update the output_task_messages field with the provided value
-        self._output_task_messages = output_task_messages
-
         # Create the messages list if the task is a string or a chat message.
         messages: List[BaseChatMessage] | None = None
         if task is None:
@@ -511,16 +507,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             # Collect the output messages in order.
             output_messages: List[BaseAgentEvent | BaseChatMessage] = []
             stop_reason: str | None = None
-            task_messages_list: List[BaseChatMessage] = []
-
-            # Add task messages to output_messages and stream only if output_task_messages is True
-            # Also track the actual task message objects for later filtering
-            if messages is not None:
-                for msg in messages:
-                    task_messages_list.append(msg)  # Track actual message objects
-                    if output_task_messages:
-                        output_messages.append(msg)  # Only add to output_messages if output_task_messages is True
-                        yield msg  # Only yield to stream if output_task_messages is True
 
             # Yield the messages until the queue is empty.
             while True:
@@ -536,11 +522,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                         raise RuntimeError(str(message.error))
                     stop_reason = message.message.content
                     break
-
-                # Skip initial task messages (either yielded initially or queued by the manager)
-                if message in task_messages_list:
-                    continue  # Skip task messages
-
                 yield message
                 if isinstance(message, ModelClientStreamingChunkEvent):
                     # Skip the model client streaming chunk events.

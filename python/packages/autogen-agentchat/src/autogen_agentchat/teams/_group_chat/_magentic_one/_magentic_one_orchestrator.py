@@ -73,7 +73,6 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         emit_team_events: bool,
-        output_task_messages: bool = True,
     ):
         super().__init__(
             name,
@@ -87,7 +86,6 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events=emit_team_events,
-            output_task_messages=output_task_messages,
         )
         self._model_client = model_client
         self._max_stalls = max_stalls
