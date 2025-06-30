@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from types import TracebackType
-from typing import Any, List, Literal, Mapping, Optional, Type
+from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Type
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Self
@@ -189,3 +189,28 @@ class Workbench(ABC, ComponentBase[BaseModel]):
         It calls the :meth:`~autogen_core.tools.WorkBench.stop` method to stop the workbench.
         """
         await self.stop()
+
+
+class StreamWorkbench(Workbench, ABC):
+    """A workbench that supports streaming results from tool calls."""
+
+    @abstractmethod
+    def call_tool_stream(
+        self,
+        name: str,
+        arguments: Mapping[str, Any] | None = None,
+        cancellation_token: CancellationToken | None = None,
+        call_id: str | None = None,
+    ) -> AsyncGenerator[Any | ToolResult, None]:
+        """
+        Call a tool in the workbench and return a stream of results.
+
+        Args:
+            name (str): The name of the tool to call.
+            arguments (Mapping[str, Any] | None): The arguments to pass to the tool
+                If None, the tool will be called with no arguments.
+            cancellation_token (CancellationToken | None): An optional cancellation token
+                to cancel the tool execution.
+            call_id (str | None): An optional identifier for the tool call, used for tracing.
+        """
+        ...
