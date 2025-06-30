@@ -862,6 +862,7 @@ async def test_llm_control_params(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_tool_choice_auto(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test tool_choice='auto' (default behavior)"""
+
     def add(x: int, y: int) -> str:
         return str(x + y)
 
@@ -911,7 +912,7 @@ async def test_tool_choice_auto(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "tools" in chat_kwargs_captured
     assert chat_kwargs_captured["tools"] is not None
     assert len(chat_kwargs_captured["tools"]) == 2
-    
+
     # Verify the response
     assert isinstance(create_result.content, list)
     assert len(create_result.content) > 0
@@ -922,6 +923,7 @@ async def test_tool_choice_auto(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_tool_choice_none(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test tool_choice='none' - no tools should be passed to API"""
+
     def add(x: int, y: int) -> str:
         return str(x + y)
 
@@ -969,6 +971,7 @@ async def test_tool_choice_none(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_tool_choice_required(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test tool_choice='required' - tools must be provided and passed to API"""
+
     def add(x: int, y: int) -> str:
         return str(x + y)
 
@@ -1043,6 +1046,7 @@ async def test_tool_choice_required_no_tools_error() -> None:
 @pytest.mark.asyncio
 async def test_tool_choice_specific_tool(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test tool_choice with a specific tool - only that tool should be passed to API"""
+
     def add(x: int, y: int) -> str:
         return str(x + y)
 
@@ -1104,6 +1108,7 @@ async def test_tool_choice_specific_tool(monkeypatch: pytest.MonkeyPatch) -> Non
 @pytest.mark.asyncio
 async def test_tool_choice_stream_auto(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test tool_choice='auto' with streaming"""
+
     def add(x: int, y: int) -> str:
         return str(x + y)
 
@@ -1185,6 +1190,7 @@ async def test_tool_choice_stream_auto(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_tool_choice_stream_none(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test tool_choice='none' with streaming"""
+
     def add(x: int, y: int) -> str:
         return str(x + y)
 
@@ -1255,6 +1261,7 @@ async def test_tool_choice_stream_none(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_tool_choice_default_behavior(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that default behavior (no tool_choice specified) works like 'auto'"""
+
     def add(x: int, y: int) -> str:
         return str(x + y)
 
