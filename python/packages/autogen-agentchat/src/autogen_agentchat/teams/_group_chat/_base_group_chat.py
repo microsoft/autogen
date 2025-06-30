@@ -500,7 +500,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             # The group chat manager will start the group chat by relaying the message to the participants
             # and the group chat manager.
             await self._runtime.send_message(
-                GroupChatStart(messages=messages),
+                GroupChatStart(messages=messages, output_task_messages=output_task_messages),
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
                 cancellation_token=cancellation_token,
             )

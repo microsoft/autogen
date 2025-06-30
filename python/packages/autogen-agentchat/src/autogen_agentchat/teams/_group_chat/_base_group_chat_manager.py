@@ -106,8 +106,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 topic_id=DefaultTopicId(type=self._output_topic_type),
             )
 
-            # Only put messages in output queue if they are not task messages or output_task_messages is True
-            if self._output_task_messages:
+            # Only put messages in output queue if output_task_messages is True
+            if message.output_task_messages:
                 for msg in message.messages:
                     await self._output_message_queue.put(msg)
 

@@ -805,7 +805,6 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
-        output_task_messages: bool,
     ) -> Callable[[], GraphFlowManager]:
         """Creates the factory method for initializing the DiGraph-based chat manager."""
 
@@ -822,7 +821,6 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
                 max_turns=max_turns,
                 message_factory=message_factory,
                 graph=self._graph,
-                output_task_messages=output_task_messages,
             )
 
         return _factory
