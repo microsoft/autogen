@@ -312,7 +312,7 @@ export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-6 h-full overflow-auto">
+    <div className="mt-4 space-y-6 h-full overflow-auto">
       {renderResourcesList()}
       {selectedResource && resourceContent && !loadingError && (
         <>

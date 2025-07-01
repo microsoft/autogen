@@ -3,7 +3,7 @@ import base64
 import json
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 from autogen_ext.tools.mcp._config import (
     McpServerParams,
@@ -17,7 +17,17 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
-from mcp.types import BlobResourceContents, InitializeResult, ServerCapabilities, TextResourceContents
+from mcp.shared.context import RequestContext
+from mcp.shared.session import RequestResponder
+from mcp.types import (
+    BlobResourceContents,
+    ClientResult,
+    InitializeResult,
+    ServerCapabilities,
+    ServerNotification,
+    ServerRequest,
+    TextResourceContents,
+)
 from pydantic import BaseModel
 from pydantic.networks import AnyUrl
 
@@ -30,7 +40,7 @@ def _extract_real_error(e: Exception) -> str:
 
     # Handle ExceptionGroup (Python 3.11+) - use getattr to avoid type checker issues
     if hasattr(e, "exceptions") and getattr(e, "exceptions", None):
-        exceptions_list = e.exceptions
+        exceptions_list = getattr(e, "exceptions", [])
         for sub_exc in exceptions_list:
             error_parts.append(f"{type(sub_exc).__name__}: {str(sub_exc)}")
 
@@ -85,7 +95,8 @@ def _is_websocket_disconnect(e: Exception) -> bool:
 
         # Recursively check ExceptionGroup
         if hasattr(exc, "exceptions") and getattr(exc, "exceptions", None):
-            for sub_exc in exc.exceptions:
+            exceptions_list = getattr(exc, "exceptions", [])
+            for sub_exc in exceptions_list:
                 if check_exception(sub_exc):
                     return True
 
@@ -120,6 +131,14 @@ async def send_websocket_message(websocket: WebSocket, message: dict):
             # Serialize the message to handle AnyUrl and other non-JSON types
             serialized_message = _serialize_for_json(message)
             await websocket.send_json(serialized_message)
+            
+            # Track activity messages for session stats
+            if message.get("type") == "mcp_activity":
+                session_id = message.get("session_id")
+                if session_id and session_id in active_sessions:
+                    active_sessions[session_id]["activity_count"] += 1
+                    active_sessions[session_id]["last_activity"] = datetime.now(timezone.utc)
+                    
     except Exception as e:
         real_error = _extract_real_error(e)
         logger.error(f"Error sending WebSocket message: {real_error}")
@@ -172,8 +191,8 @@ async def handle_mcp_operation(websocket: WebSocket, session: ClientSession, ope
                 },
             )
 
-        elif operation_type == "get_resource":
-            logger.debug(f"Handling get_resource operation: {operation}")
+        elif operation_type == "read_resource":
+            logger.debug(f"Handling read_resource operation: {operation}")
             uri = operation.get("uri")
             if not uri:
                 raise McpOperationError("Resource URI is required")
@@ -278,17 +297,26 @@ async def mcp_websocket(websocket: WebSocket, session_id: str):
                 command=server_params_obj.command, args=server_params_obj.args, env=server_params_obj.env
             )
             async with stdio_client(stdio_params) as (read, write):
-                async with ClientSession(read, write) as session:
+                async with ClientSession(
+                    read, write,
+                    message_handler=create_message_handler(websocket, session_id)
+                ) as session:
                     await handle_mcp_session(websocket, session, session_id)
 
         elif isinstance(server_params_obj, SseServerParams):
             async with sse_client(server_params_obj.url) as (read, write):
-                async with ClientSession(read, write) as session:
+                async with ClientSession(
+                    read, write,
+                    message_handler=create_message_handler(websocket, session_id)
+                ) as session:
                     await handle_mcp_session(websocket, session, session_id)
 
         elif isinstance(server_params_obj, StreamableHttpServerParams):
             async with streamablehttp_client(server_params_obj.url) as (read, write, _):
-                async with ClientSession(read, write) as session:
+                async with ClientSession(
+                    read, write,
+                    message_handler=create_message_handler(websocket, session_id)
+                ) as session:
                     await handle_mcp_session(websocket, session, session_id)
         else:
             await websocket.close(code=4000, reason="Invalid server parameters")
@@ -352,6 +380,8 @@ async def handle_mcp_session(websocket: WebSocket, session: ClientSession, sessi
         "created_at": datetime.now(timezone.utc),
         "last_activity": datetime.now(timezone.utc),
         "capabilities": capabilities_data,
+        "websocket": websocket,  # Store websocket reference for callbacks
+        "activity_count": 0,     # Track number of activity messages
     }
 
     await send_websocket_message(
@@ -414,6 +444,64 @@ async def handle_mcp_session(websocket: WebSocket, session: ClientSession, sessi
         raise
 
 
+def create_message_handler(websocket: WebSocket, session_id: str):
+    """Create a message handler callback that streams MCP protocol messages to the UI"""
+
+    async def message_handler(
+        message: RequestResponder[ServerRequest, ClientResult] | ServerNotification | Exception,
+    ) -> None:
+        try:
+            # Determine message type and content
+            if isinstance(message, Exception):
+                # Handle exceptions in the protocol
+                await send_websocket_message(websocket, {
+                    "type": "mcp_activity",
+                    "activity_type": "error",
+                    "message": f"Protocol error: {str(message)}",
+                    "details": _extract_real_error(message),
+                    "session_id": session_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+
+            elif hasattr(message, "method"):
+                # Handle server notifications and requests
+                method = getattr(message, "method", "unknown")
+                params = getattr(message, "params", None)
+
+                await send_websocket_message(websocket, {
+                    "type": "mcp_activity",
+                    "activity_type": "protocol",
+                    "message": f"MCP {method}",
+                    "details": {
+                        "method": method,
+                        "params": _serialize_for_json(params) if params else None,
+                        "message_type": type(message).__name__,
+                    },
+                    "session_id": session_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+
+            else:
+                # Handle other message types (RequestResponder, etc.)
+                await send_websocket_message(websocket, {
+                    "type": "mcp_activity",
+                    "activity_type": "protocol",
+                    "message": f"MCP message: {type(message).__name__}",
+                    "details": {
+                        "message_type": type(message).__name__,
+                        "content": _serialize_for_json(message) if hasattr(message, "model_dump") else str(message),
+                    },
+                    "session_id": session_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+
+        except Exception as e:
+            # Don't let message handler errors crash the session
+            logger.error(f"Error in message handler for session {session_id}: {_extract_real_error(e)}")
+
+    return message_handler
+
+
 @router.post("/ws/connect")
 async def create_mcp_websocket_connection(request: CreateWebSocketConnectionRequest):
     try:
@@ -451,4 +539,5 @@ async def get_mcp_session_status(session_id: str):
         "capabilities": session_info.get("capabilities"),
         "created_at": session_info["created_at"].isoformat(),
         "last_activity": session_info["last_activity"].isoformat(),
+        "activity_count": session_info.get("activity_count", 0),
     }

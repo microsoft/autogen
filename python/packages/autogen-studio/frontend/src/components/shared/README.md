@@ -11,7 +11,7 @@ import { AddComponentDropdown } from "../../shared";
   componentType="workbench"
   gallery={selectedGallery}
   onComponentAdded={handleComponentAdded}
-/>
+/>;
 ```
 
 ## Advanced Usage with Filtering (MCP Workbenches)
@@ -25,9 +25,9 @@ import { AddComponentDropdown } from "../../shared";
   type="text"
   buttonText="+"
   showChevron={false}
-  templateFilter={(template) => 
-    template.label.toLowerCase().includes('mcp') || 
-    template.description.toLowerCase().includes('mcp')
+  templateFilter={(template) =>
+    template.label.toLowerCase().includes("mcp") ||
+    template.description.toLowerCase().includes("mcp")
   }
 />
 ```

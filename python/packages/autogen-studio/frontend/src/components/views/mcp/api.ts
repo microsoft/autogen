@@ -301,6 +301,8 @@ export interface McpWebSocketState {
   sessionId: string | null;
   error: string | null;
   lastActivity: Date | null;
+  activityMessages: McpActivityMessage[];
+  activityCount: number;
 }
 
 export interface McpWebSocketMessage {
@@ -311,7 +313,8 @@ export interface McpWebSocketMessage {
     | "operation_result"
     | "operation_error"
     | "error"
-    | "pong";
+    | "pong"
+    | "mcp_activity";
   session_id?: string;
   capabilities?: ServerCapabilities;
   operation?: string;
@@ -319,6 +322,18 @@ export interface McpWebSocketMessage {
   error?: string;
   message?: string;
   timestamp?: string;
+  // Activity message fields
+  activity_type?: "protocol" | "error" | "sampling" | "elicitation";
+  details?: any;
+}
+
+export interface McpActivityMessage {
+  id: string;
+  activity_type: "protocol" | "error" | "sampling" | "elicitation";
+  message: string;
+  details?: any;
+  session_id?: string;
+  timestamp: Date;
 }
 
 export interface McpOperationMessage {

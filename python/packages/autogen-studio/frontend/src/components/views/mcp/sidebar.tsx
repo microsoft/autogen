@@ -18,8 +18,6 @@ import type {
 import { getRelativeTimeString } from "../atoms";
 import Icon from "../../icons";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import { AddComponentDropdown } from "../../shared";
-import { isMcpWorkbench } from "../../types/guards";
 
 const { Option } = Select;
 
@@ -45,20 +43,22 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
   const [mcpWorkbenches, setMcpWorkbenches] = useState<
     Component<McpWorkbenchConfig>[]
   >([]);
+  const [selectedWorkbenchIndex, setSelectedWorkbenchIndex] =
+    useState<number>(-1);
   const [loadingGalleries, setLoadingGalleries] = useState(false);
 
   const { user } = useContext(appContext);
 
-  // Helper function to get a unique identifier for a workbench
-  const getWorkbenchId = (workbench: Component<McpWorkbenchConfig>) => {
-    return `${workbench.provider}-${workbench.label || "unnamed"}`;
-  };
-
   // Helper function to get a unique React key for rendering
-  const getWorkbenchKey = (workbench: Component<McpWorkbenchConfig>, index: number) => {
+  const getWorkbenchKey = (
+    workbench: Component<McpWorkbenchConfig>,
+    index: number
+  ) => {
     // Use a hash of the workbench config plus index to ensure uniqueness
     const configStr = JSON.stringify(workbench.config);
-    return `${workbench.provider}-${workbench.label || "unnamed"}-${configStr.slice(0, 20)}-${index}`;
+    return `${workbench.provider}-${
+      workbench.label || "unnamed"
+    }-${configStr.slice(0, 20)}-${index}`;
   };
 
   // Load galleries on component mount
@@ -111,66 +111,37 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
 
       // Auto-select the first workbench if available
       if (workbenches.length > 0) {
-        // Check if current workbench is still in the new gallery
-        const currentStillExists =
-          currentWorkbench &&
-          workbenches.some(
-            (w) => getWorkbenchId(w) === getWorkbenchId(currentWorkbench)
-          );
-
-        if (!currentStillExists) {
-          // Auto-select the first workbench
-          onSelectWorkbench(workbenches[0]);
-        }
+        // Auto-select the first workbench (index 0)
+        setSelectedWorkbenchIndex(0);
+        onSelectWorkbench(workbenches[0]);
       } else {
         // No workbenches available, clear selection
+        setSelectedWorkbenchIndex(-1);
         onSelectWorkbench(null);
       }
     },
-    [currentWorkbench, onSelectWorkbench]
+    [onSelectWorkbench]
   );
 
-  // Handler for when a new MCP workbench is added
-  const handleComponentAdded = useCallback(
-    async (newComponent: Component<any>, category: any) => {
-      if (!selectedGallery || !user?.id || category !== "workbenches") return;
-
-      // Update the gallery with the new component
-      const updatedGallery = {
-        ...selectedGallery,
-        config: {
-          ...selectedGallery.config,
-          components: {
-            ...selectedGallery.config.components,
-            workbenches: [
-              ...(selectedGallery.config.components.workbenches || []),
-              newComponent,
-            ],
-          },
-        },
-      };
-
-      try {
-        // Call the gallery update handler if provided
-        if (onGalleryUpdate) {
-          onGalleryUpdate(updatedGallery);
-        }
-
-        // Update local state
-        setSelectedGallery(updatedGallery);
-        const workbenches = mcpAPI.extractMcpWorkbenches(updatedGallery);
-        setMcpWorkbenches(workbenches);
-
-        // Auto-select the newly added workbench if it's an MCP workbench
-        if (newComponent.component_type === "workbench" && isMcpWorkbench(newComponent)) {
-          onSelectWorkbench(newComponent as Component<McpWorkbenchConfig>);
-        }
-      } catch (error) {
-        console.error("Failed to update gallery with new component:", error);
+  // Sync selection when workbenches change
+  useEffect(() => {
+    if (mcpWorkbenches.length === 0) {
+      // No workbenches, clear selection
+      if (selectedWorkbenchIndex !== -1) {
+        setSelectedWorkbenchIndex(-1);
+        onSelectWorkbench(null);
       }
-    },
-    [selectedGallery, user?.id, onGalleryUpdate, onSelectWorkbench]
-  );
+    } else if (selectedWorkbenchIndex >= mcpWorkbenches.length) {
+      // Current selection is out of bounds, select the last item
+      const newIndex = mcpWorkbenches.length - 1;
+      setSelectedWorkbenchIndex(newIndex);
+      onSelectWorkbench(mcpWorkbenches[newIndex]);
+    } else if (selectedWorkbenchIndex === -1 && mcpWorkbenches.length > 0) {
+      // No selection but workbenches available, auto-select first
+      setSelectedWorkbenchIndex(0);
+      onSelectWorkbench(mcpWorkbenches[0]);
+    }
+  }, [mcpWorkbenches, selectedWorkbenchIndex, onSelectWorkbench]);
 
   // Render collapsed state
   if (!isOpen) {
@@ -262,24 +233,6 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
         </div>
       </div>
 
-      {/* Add MCP Server Button */}
-      {selectedGallery && (
-        <div className="px-4 pb-3">
-          <AddComponentDropdown
-            componentType="workbench"
-            gallery={selectedGallery}
-            onComponentAdded={handleComponentAdded}
-            disabled={!selectedGallery}
-            buttonText="Add MCP Server"
-            className="w-full"
-            templateFilter={(template) => 
-              template.label.toLowerCase().includes('mcp') || 
-              template.description.toLowerCase().includes('mcp')
-            }
-          />
-        </div>
-      )}
-
       {/* Workbenches List */}
       {!selectedGallery && (
         <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded mx-4">
@@ -295,12 +248,10 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
         </div>
       )}
 
-      <div className="scroll overflow-y-auto h-[calc(100%-220px)]">
+      <div className="scroll overflow-y-auto h-[calc(100%-180px)]">
         {mcpWorkbenches.map((workbench, index) => {
           const workbenchKey = getWorkbenchKey(workbench, index);
-          const isSelected =
-            currentWorkbench &&
-            getWorkbenchId(currentWorkbench) === getWorkbenchId(workbench);
+          const isSelected = index === selectedWorkbenchIndex;
 
           return (
             <div key={workbenchKey} className="relative border-secondary">
@@ -315,7 +266,10 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
                     ? "border-accent bg-secondary"
                     : "border-transparent"
                 }`}
-                onClick={() => onSelectWorkbench(workbench)}
+                onClick={() => {
+                  setSelectedWorkbenchIndex(index);
+                  onSelectWorkbench(workbench);
+                }}
               >
                 {/* Workbench Name and Actions Row */}
                 <div className="flex items-center justify-between min-w-0">

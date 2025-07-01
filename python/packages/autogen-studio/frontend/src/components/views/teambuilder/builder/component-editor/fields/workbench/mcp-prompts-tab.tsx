@@ -477,7 +477,7 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
   }
 
   return (
-    <div className="p-4 space-y-6 h-full overflow-auto">
+    <div className="mt-4 space-y-6 h-full overflow-auto">
       {renderPromptsList()}{" "}
       {selectedPrompt && !loadingError && (
         <>

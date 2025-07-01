@@ -82,7 +82,7 @@ export const AddComponentDropdown: React.FC<AddComponentDropdownProps> = ({
     componentType: ComponentTypes
   ): ComponentDropdownOption[] => {
     let templates: ComponentDropdownOption[] = [];
-    
+
     switch (componentType) {
       case "team":
         templates = getTeamTemplatesForDropdown();
@@ -155,14 +155,15 @@ export const AddComponentDropdown: React.FC<AddComponentDropdownProps> = ({
   };
 
   const templates = getDropdownTemplatesForType(componentType);
-  
+
   // Don't render if no templates available
   if (templates.length === 0) {
     return null;
   }
 
-  const displayButtonText = 
-    buttonText || `Add ${componentType.charAt(0).toUpperCase() + componentType.slice(1)}`;
+  const displayButtonText =
+    buttonText ||
+    `Add ${componentType.charAt(0).toUpperCase() + componentType.slice(1)}`;
 
   return (
     <>
@@ -180,7 +181,10 @@ export const AddComponentDropdown: React.FC<AddComponentDropdownProps> = ({
               </div>
             ),
             onClick: () =>
-              handleAddComponentFromTemplate(componentType, template.templateId),
+              handleAddComponentFromTemplate(
+                componentType,
+                template.templateId
+              ),
           })),
         }}
         trigger={["click"]}
