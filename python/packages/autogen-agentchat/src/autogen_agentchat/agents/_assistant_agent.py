@@ -752,7 +752,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         self._output_content_type: type[BaseModel] | None = output_content_type
         self._output_content_type_format = output_content_type_format
         self._structured_message_factory: StructuredMessageFactory | None = None
-        if output_content_type is not None and isinstance(output_content_type, type) and issubclass(output_content_type, BaseModel):
+        if issubclass(output_content_type, BaseModel):
             self._structured_message_factory = StructuredMessageFactory(
                 input_model=output_content_type, format_string=output_content_type_format
             )
@@ -1159,7 +1159,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             # If direct text response (string), we're done
             if isinstance(current_model_result.content, str):
                 # Use the passed message ID for the final message
-                if output_content_type and isinstance(output_content_type, type) and issubclass(output_content_type, BaseModel):
+                if issubclass(output_content_type, BaseModel):
                     content = output_content_type.model_validate_json(current_model_result.content)
                     yield Response(
                         chat_message=StructuredMessage[output_content_type](  # type: ignore[valid-type]
@@ -1475,7 +1475,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             )
         )
 
-        if output_content_type and isinstance(output_content_type, type) and issubclass(output_content_type, BaseModel):
+        if issubclass(output_content_type, BaseModel):
             content = output_content_type.model_validate_json(reflection_result.content)
             yield Response(
                 chat_message=StructuredMessage[output_content_type](  # type: ignore[valid-type]
