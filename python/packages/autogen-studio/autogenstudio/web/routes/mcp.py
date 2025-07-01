@@ -433,7 +433,7 @@ async def create_mcp_websocket_connection(request: CreateWebSocketConnectionRequ
     except Exception as e:
         real_error = _extract_real_error(e)
         logger.error(f"Error creating WebSocket connection: {real_error}")
-        return {"status": False, "message": f"Failed to create WebSocket connection: {real_error}"}
+        return {"status": False, "message": "An internal error occurred while creating the WebSocket connection."}
 
 
 @router.get("/ws/status/{session_id}")
