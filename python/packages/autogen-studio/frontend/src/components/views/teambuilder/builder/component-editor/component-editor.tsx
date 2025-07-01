@@ -1,23 +1,45 @@
 import React, { useState, useCallback, useRef } from "react";
 import { Button, Breadcrumb, message, Tooltip } from "antd";
 import { ChevronLeft, Code, FormInput, PlayCircle } from "lucide-react";
-import { Component, ComponentConfig } from "../../../../types/datamodel";
+import {
+  Component,
+  ComponentConfig,
+  AgentConfig,
+  AssistantAgentConfig,
+  StaticWorkbenchConfig,
+  WorkbenchConfig,
+} from "../../../../types/datamodel";
 import {
   isTeamComponent,
   isAgentComponent,
   isModelComponent,
   isToolComponent,
+  isWorkbenchComponent,
   isTerminationComponent,
+  isAssistantAgent,
+  isStaticWorkbench,
 } from "../../../../types/guards";
 import { AgentFields } from "./fields/agent-fields";
 import { ModelFields } from "./fields/model-fields";
 import { TeamFields } from "./fields/team-fields";
 import { ToolFields } from "./fields/tool-fields";
+import { WorkbenchFields } from "./fields/workbench";
 import { TerminationFields } from "./fields/termination-fields";
 import debounce from "lodash.debounce";
 import { MonacoEditor } from "../../../monaco";
 import { ComponentTestResult, validationAPI } from "../../api";
 import TestDetails from "./testresults";
+
+// Helper function to normalize workbench format (handle both single object and array)
+const normalizeWorkbenches = (
+  workbench:
+    | Component<WorkbenchConfig>[]
+    | Component<WorkbenchConfig>
+    | undefined
+): Component<WorkbenchConfig>[] => {
+  if (!workbench) return [];
+  return Array.isArray(workbench) ? workbench : [workbench];
+};
 export interface EditPath {
   componentType: string;
   id: string;
@@ -65,12 +87,35 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
         (current, path) => {
           if (!current) return null;
 
-          const field = current.config[
+          let field = current.config[
             path.parentField as keyof typeof current.config
           ] as
             | Component<ComponentConfig>[]
             | Component<ComponentConfig>
             | undefined;
+
+          // Special handling for workbench field normalization
+          if (path.parentField === "workbench" && field) {
+            field = normalizeWorkbenches(
+              field as Component<WorkbenchConfig>[] | Component<WorkbenchConfig>
+            );
+          }
+
+          // Special handling for tools within workbenches
+          if (path.parentField === "tools" && !field) {
+            // Check if tools are nested within a workbench for agents
+            if (isAgentComponent(current) && isAssistantAgent(current)) {
+              const agentConfig = current.config as AssistantAgentConfig;
+              const workbenches = normalizeWorkbenches(agentConfig.workbench);
+              const staticWorkbench = workbenches.find((wb) =>
+                isStaticWorkbench(wb)
+              );
+              if (staticWorkbench) {
+                field = (staticWorkbench.config as StaticWorkbenchConfig)
+                  ?.tools;
+              }
+            }
+          }
 
           if (Array.isArray(field)) {
             // If index is provided, use it directly (preferred method)
@@ -120,8 +165,31 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
       }
 
       const [currentPath, ...remainingPath] = path;
-      const field =
+      let field: any =
         root.config[currentPath.parentField as keyof typeof root.config];
+
+      // Special handling for workbench field normalization
+      if (currentPath.parentField === "workbench" && field) {
+        field = normalizeWorkbenches(
+          field as Component<WorkbenchConfig>[] | Component<WorkbenchConfig>
+        );
+      }
+
+      // Special handling for tools within workbenches
+      let isWorkbenchTools = false;
+      if (currentPath.parentField === "tools" && !field) {
+        if (isAgentComponent(root) && isAssistantAgent(root)) {
+          const agentConfig = root.config as AssistantAgentConfig;
+          const workbenches = normalizeWorkbenches(agentConfig.workbench);
+          const staticWorkbench = workbenches.find((wb) =>
+            isStaticWorkbench(wb)
+          );
+          if (staticWorkbench) {
+            field = (staticWorkbench.config as StaticWorkbenchConfig)?.tools;
+            isWorkbenchTools = true;
+          }
+        }
+      }
 
       const updateField = (fieldValue: any): any => {
         if (Array.isArray(fieldValue)) {
@@ -167,7 +235,32 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
         ...root,
         config: {
           ...root.config,
-          [currentPath.parentField]: updateField(field),
+          ...(isWorkbenchTools &&
+          isAgentComponent(root) &&
+          isAssistantAgent(root)
+            ? (() => {
+                const agentConfig = root.config as AssistantAgentConfig;
+                const workbenches = normalizeWorkbenches(agentConfig.workbench);
+                const staticWorkbenchIndex = workbenches.findIndex((wb) =>
+                  isStaticWorkbench(wb)
+                );
+
+                if (staticWorkbenchIndex !== -1) {
+                  const updatedWorkbenches = [...workbenches];
+                  updatedWorkbenches[staticWorkbenchIndex] = {
+                    ...workbenches[staticWorkbenchIndex],
+                    config: {
+                      ...workbenches[staticWorkbenchIndex].config,
+                      tools: updateField(field),
+                    },
+                  };
+                  return { workbench: updatedWorkbenches };
+                }
+                return {};
+              })()
+            : {
+                [currentPath.parentField]: updateField(field),
+              }),
         },
       };
     },
@@ -280,8 +373,13 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
         />
       );
     }
+    // NOTE: Individual tools are deprecated - tools are now managed within workbenches
+    // This is kept for backward compatibility during the transition
     if (isToolComponent(currentComponent)) {
       return <ToolFields {...commonProps} />;
+    }
+    if (isWorkbenchComponent(currentComponent)) {
+      return <WorkbenchFields {...commonProps} />;
     }
     if (isTerminationComponent(currentComponent)) {
       return (

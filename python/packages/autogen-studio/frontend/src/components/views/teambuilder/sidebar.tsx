@@ -244,7 +244,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                     >
                       {/* Team Name and Actions Row */}
                       <div className="flex items-center justify-between">
-                        <span className="font-medium truncate">
+                        <span className="font-medium truncate text-sm">
                           {team.component?.label}
                         </span>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -272,8 +272,9 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                         <div className="flex items-center gap-1">
                           <Bot className="w-3 h-3" />
                           <span>
-                            {team.component.config.participants.length}{" "}
-                            {team.component.config.participants.length === 1
+                            {team.component.config?.participants?.length || 0}{" "}
+                            {(team.component.config?.participants?.length ||
+                              0) === 1
                               ? "agent"
                               : "agents"}
                           </span>
@@ -332,16 +333,16 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
             {selectedGallery?.config.components?.teams.map((galleryTeam) => (
               <div
                 key={galleryTeam.label + galleryTeam.component_type}
-                className="relative border-secondary"
+                className="relative border-secondary -ml-2 group"
               >
                 <div
                   className={`absolute top-1 left-0.5 z-50 h-[calc(100%-8px)]
-                  w-1 bg-opacity-80 rounded bg-tertiary`}
+                  w-1 bg-opacity-80 rounded bg-tertiary group-hover:bg-accent`}
                 />
                 <div className="group ml-1 flex flex-col p-3 rounded-l cursor-pointer hover:bg-secondary">
                   {/* Team Name and Use Template Action */}
                   <div className="flex items-center justify-between">
-                    <span className="font-medium truncate">
+                    <span className="font-medium truncate text-sm">
                       {galleryTeam.label}
                     </span>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -380,8 +381,8 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                     <div className="flex items-center gap-1">
                       <Bot className="w-3 h-3" />
                       <span>
-                        {galleryTeam.config.participants.length}{" "}
-                        {galleryTeam.config.participants.length === 1
+                        {galleryTeam.config?.participants?.length || 0}{" "}
+                        {(galleryTeam.config?.participants?.length || 0) === 1
                           ? "agent"
                           : "agents"}
                       </span>

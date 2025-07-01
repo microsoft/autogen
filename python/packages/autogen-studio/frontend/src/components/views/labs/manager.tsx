@@ -30,6 +30,10 @@ export const LabsManager: React.FC = () => {
     }
   }, [labs, currentLab]);
 
+  useEffect(() => {
+    setLabs(defaultLabs);
+  }, []);
+
   return (
     <div className="relative    flex h-full w-full">
       {/* Sidebar */}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { User, Bot, DraftingCompass, Bug } from "lucide-react";
 import {
   AgentMessageConfig,
@@ -28,24 +28,70 @@ const getImageSource = (item: ImageContent): string => {
 const RenderMultiModal: React.FC<{
   content: (string | ImageContent)[];
   thumbnail?: boolean;
-}> = ({ content, thumbnail = false }) => (
-  <div className="space-y-2">
-    {content.map((item, index) =>
-      typeof item === "string" ? (
-        <TruncatableText key={index} content={item} className="break-all" />
-      ) : (
-        <ClickableImage
-          key={index}
-          src={getImageSource(item)}
-          alt={item.alt || "Image"}
-          className={` h-auto rounded border border-secondary ${
-            thumbnail ? "w-24 h-24 " : " w-full "
-          }`}
-        />
-      )
-    )}
-  </div>
-);
+}> = ({ content, thumbnail = false }) => {
+  // Separate text and images
+  const texts = content.filter((item) => typeof item === "string") as string[];
+  const images = content.filter(
+    (item) => typeof item === "object" && item !== null
+  ) as ImageContent[];
+
+  // Use the larger of the two for navigation
+  const maxLen = Math.max(texts.length, images.length);
+  const [current, setCurrent] = useState(0);
+
+  const showPrev = () => setCurrent((c) => Math.max(0, c - 1));
+  const showNext = () => setCurrent((c) => Math.min(maxLen - 1, c + 1));
+
+  const currentText = texts[current] ?? texts[0] ?? "";
+  const currentImage = images[current] ?? images[0];
+
+  return (
+    <div className="flex gap-4 items-stretch relative">
+      {/* Text on the left, aligned to top */}
+      <div className="flex-1 min-w-0 flex items-start">
+        {currentText && (
+          <TruncatableText
+            content={currentText.slice(0, 500)}
+            className="break-all"
+          />
+        )}
+      </div>
+      {/* Image on the right */}
+      <div className="flex-1 flex justify-center items-center relative">
+        {currentImage && (
+          <ClickableImage
+            src={getImageSource(currentImage)}
+            alt={currentImage.alt || "Image"}
+            className={`rounded border border-secondary max-h-96 w-auto max-w-full object-contain ${
+              thumbnail ? "w-24 h-24" : ""
+            }`}
+          />
+        )}
+        {/* Navigation buttons */}
+        {maxLen > 1 && (
+          <div className="absolute bottom-2 right-2 flex gap-2 z-10">
+            <button
+              onClick={showPrev}
+              disabled={current === 0}
+              className="bg-white/80 hover:bg-white text-black rounded-full px-2 py-1 shadow"
+              aria-label="Previous"
+            >
+              ◀
+            </button>
+            <button
+              onClick={showNext}
+              disabled={current >= maxLen - 1}
+              className="bg-white/80 hover:bg-white text-black rounded-full px-2 py-1 shadow"
+              aria-label="Next"
+            >
+              ▶
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => (
   <div className="space-y-2">
     {content.map((call) => (
@@ -247,7 +293,7 @@ export const RenderMessage: React.FC<MessageProps> = ({
             {messageUtils.isToolCallContent(content) ? (
               <RenderToolCall content={content} />
             ) : messageUtils.isMultiModalContent(content) ? (
-              <RenderMultiModal content={content} thumbnail />
+              <RenderMultiModal content={content} thumbnail={false} />
             ) : messageUtils.isNestedMessageContent(content) ? (
               <RenderNestedMessages content={content} />
             ) : messageUtils.isFunctionExecutionResult(content) ? (
