@@ -514,6 +514,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
+        tool_choice: Tool | Literal["auto", "required", "none"],
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
     ) -> CreateParams:
@@ -584,7 +585,22 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling and tools were provided")
 
-        converted_tools = convert_tools(tools)
+        converted_tools: List[OllamaTool] = []
+
+        # Handle tool_choice parameter in a way that is compatible with Ollama API.
+        if isinstance(tool_choice, Tool):
+            # If tool_choice is a Tool, convert it to OllamaTool.
+            converted_tools = convert_tools([tool_choice])
+        elif tool_choice == "none":
+            # No tool choice, do not pass tools to the API.
+            converted_tools = []
+        elif tool_choice == "required":
+            # Required tool choice, pass tools to the API.
+            converted_tools = convert_tools(tools)
+            if len(converted_tools) == 0:
+                raise ValueError("tool_choice 'required' specified but no tools provided")
+        else:
+            converted_tools = convert_tools(tools)
 
         return CreateParams(
             messages=ollama_messages,
@@ -598,6 +614,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -610,6 +627,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         create_params = self._process_create_args(
             messages,
             tools,
+            tool_choice,
             json_output,
             extra_create_args,
         )
@@ -704,6 +722,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -716,6 +735,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         create_params = self._process_create_args(
             messages,
             tools,
+            tool_choice,
             json_output,
             extra_create_args,
         )

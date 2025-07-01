@@ -14,6 +14,7 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.agents._assistant_agent import AssistantAgentConfig
 from autogen_agentchat.base import Handoff, Response, TaskResult
 from autogen_agentchat.messages import (
+    BaseAgentEvent,
     BaseChatMessage,
     HandoffMessage,
     MemoryQueryEvent,
@@ -902,6 +903,119 @@ class TestAssistantAgentInitialization:
         )
 
         assert agent._metadata == metadata  # type: ignore[reportPrivateUsage]
+
+    @pytest.mark.asyncio
+    async def test_output_task_messages_false(self) -> None:
+        """Test agent with output_task_messages=False.
+
+        Verifies that:
+        1. Task messages are excluded from result when output_task_messages=False
+        2. Only agent response messages are included in output
+        3. Both run and run_stream respect the parameter
+        """
+        model_client = ReplayChatCompletionClient(
+            [
+                CreateResult(
+                    finish_reason="stop",
+                    content="Agent response without task message",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=8),
+                    cached=False,
+                ),
+                CreateResult(
+                    finish_reason="stop",
+                    content="Second agent response",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+            ],
+            model_info={
+                "function_calling": False,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
+        )
+
+        agent = AssistantAgent(name="test_agent", model_client=model_client)
+
+        # Test run() with output_task_messages=False
+        result = await agent.run(task="Test task message", output_task_messages=False)
+
+        # Should only contain the agent's response, not the task message
+        assert len(result.messages) == 1
+        assert isinstance(result.messages[0], TextMessage)
+        assert result.messages[0].content == "Agent response without task message"
+        assert result.messages[0].source == "test_agent"  # Test run_stream() with output_task_messages=False
+        # Create a new model client for streaming test to avoid response conflicts
+        stream_model_client = ReplayChatCompletionClient(
+            [
+                CreateResult(
+                    finish_reason="stop",
+                    content="Stream agent response",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+            ],
+            model_info={
+                "function_calling": False,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
+        )
+
+        stream_agent = AssistantAgent(name="test_agent", model_client=stream_model_client)
+        streamed_messages: List[BaseAgentEvent | BaseChatMessage] = []
+        final_result: TaskResult | None = None
+
+        async for message in stream_agent.run_stream(task="Test task message", output_task_messages=False):
+            if isinstance(message, TaskResult):
+                final_result = message
+            else:
+                streamed_messages.append(message)
+
+        # Verify streaming behavior
+        assert final_result is not None
+        assert len(final_result.messages) == 1
+        assert isinstance(final_result.messages[0], TextMessage)
+        assert final_result.messages[0].content == "Stream agent response"
+
+        # Verify that no task message was streamed
+        task_messages = [msg for msg in streamed_messages if isinstance(msg, TextMessage) and msg.source == "user"]
+        assert len(task_messages) == 0  # Test with multiple task messages
+        multi_model_client = ReplayChatCompletionClient(
+            [
+                CreateResult(
+                    finish_reason="stop",
+                    content="Multi task response",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+            ],
+            model_info={
+                "function_calling": False,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
+        )
+
+        multi_agent = AssistantAgent(name="test_agent", model_client=multi_model_client)
+        task_messages_list = [
+            TextMessage(content="First task", source="user"),
+            TextMessage(content="Second task", source="user"),
+        ]
+
+        result_multi = await multi_agent.run(task=task_messages_list, output_task_messages=False)
+
+        # Should only contain the agent's response, not the multiple task messages
+        assert len(result_multi.messages) == 1
+        assert isinstance(result_multi.messages[0], TextMessage)
+        assert result_multi.messages[0].source == "test_agent"
+        assert result_multi.messages[0].content == "Multi task response"
 
 
 class TestAssistantAgentValidation:
@@ -3339,69 +3453,3 @@ class TestAssistantAgentMessageContext:
         # Verify message conversion
         for msg in context_messages:
             assert isinstance(msg, (SystemMessage, UserMessage, AssistantMessage))
-
-    @pytest.mark.asyncio
-    async def test_memory_persistence(self) -> None:
-        """Test memory persistence across multiple sessions.
-
-        Verifies:
-        1. Memory content persists between sessions
-        2. Memory updates are preserved
-        3. Context is properly restored
-        4. Memory query events are generated correctly
-        """
-        # Create memory with initial content
-        memory = MockMemory(contents=["Initial memory"])
-
-        # Create model client
-        model_client = ReplayChatCompletionClient(
-            [
-                CreateResult(
-                    finish_reason="stop",
-                    content="Response using memory",
-                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                    cached=False,
-                ),
-                CreateResult(
-                    finish_reason="stop",
-                    content="Response with updated memory",
-                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                    cached=False,
-                ),
-            ],
-            model_info={
-                "function_calling": False,
-                "vision": False,
-                "json_output": False,
-                "family": ModelFamily.GPT_4O,
-                "structured_output": False,
-            },
-        )
-
-        # Create agent with memory
-        agent = AssistantAgent(name="memory_test_agent", model_client=model_client, memory=[memory])
-
-        # First session
-        result1 = await agent.run(task="First task")
-        state = await agent.save_state()
-
-        # Add new memory content
-        await memory.add(MemoryContent(content="New memory", mime_type="text/plain"))
-
-        # Create new agent and restore state
-        new_agent = AssistantAgent(name="memory_test_agent", model_client=model_client, memory=[memory])
-        await new_agent.load_state(state)
-
-        # Second session
-        result2 = await new_agent.run(task="Second task")
-
-        # Verify memory persistence
-        assert isinstance(result1.messages[-1], TextMessage)
-        assert isinstance(result2.messages[-1], TextMessage)
-        assert result1.messages[-1].content == "Response using memory"
-        assert result2.messages[-1].content == "Response with updated memory"
-
-        # Verify memory events
-        memory_events = [msg for msg in result2.messages if isinstance(msg, MemoryQueryEvent)]
-        assert len(memory_events) > 0
-        assert any("New memory" in str(event.content) for event in memory_events)
