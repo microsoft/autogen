@@ -3,7 +3,7 @@ import base64
 import json
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from autogen_ext.tools.mcp._config import (
     McpServerParams,
@@ -22,10 +22,16 @@ from mcp.shared.session import RequestResponder
 from mcp.types import (
     BlobResourceContents,
     ClientResult,
+    CreateMessageRequestParams,
+    CreateMessageResult,
+    ElicitRequestParams,
+    ElicitResult,
+    ErrorData,
     InitializeResult,
     ServerCapabilities,
     ServerNotification,
     ServerRequest,
+    TextContent,
     TextResourceContents,
 )
 from pydantic import BaseModel
@@ -131,13 +137,6 @@ async def send_websocket_message(websocket: WebSocket, message: dict):
             # Serialize the message to handle AnyUrl and other non-JSON types
             serialized_message = _serialize_for_json(message)
             await websocket.send_json(serialized_message)
-            
-            # Track activity messages for session stats
-            if message.get("type") == "mcp_activity":
-                session_id = message.get("session_id")
-                if session_id and session_id in active_sessions:
-                    active_sessions[session_id]["activity_count"] += 1
-                    active_sessions[session_id]["last_activity"] = datetime.now(timezone.utc)
                     
     except Exception as e:
         real_error = _extract_real_error(e)
@@ -192,7 +191,6 @@ async def handle_mcp_operation(websocket: WebSocket, session: ClientSession, ope
             )
 
         elif operation_type == "read_resource":
-            logger.debug(f"Handling read_resource operation: {operation}")
             uri = operation.get("uri")
             if not uri:
                 raise McpOperationError("Resource URI is required")
@@ -297,27 +295,36 @@ async def mcp_websocket(websocket: WebSocket, session_id: str):
                 command=server_params_obj.command, args=server_params_obj.args, env=server_params_obj.env
             )
             async with stdio_client(stdio_params) as (read, write):
+                elicitation_callback, pending_elicitations = create_elicitation_callback(websocket, session_id)
                 async with ClientSession(
                     read, write,
-                    message_handler=create_message_handler(websocket, session_id)
+                    message_handler=create_message_handler(websocket, session_id),
+                    sampling_callback=create_sampling_callback(websocket, session_id),
+                    elicitation_callback=elicitation_callback
                 ) as session:
-                    await handle_mcp_session(websocket, session, session_id)
+                    await handle_mcp_session(websocket, session, session_id, pending_elicitations)
 
         elif isinstance(server_params_obj, SseServerParams):
             async with sse_client(server_params_obj.url) as (read, write):
+                elicitation_callback, pending_elicitations = create_elicitation_callback(websocket, session_id)
                 async with ClientSession(
                     read, write,
-                    message_handler=create_message_handler(websocket, session_id)
+                    message_handler=create_message_handler(websocket, session_id),
+                    sampling_callback=create_sampling_callback(websocket, session_id),
+                    elicitation_callback=elicitation_callback
                 ) as session:
-                    await handle_mcp_session(websocket, session, session_id)
+                    await handle_mcp_session(websocket, session, session_id, pending_elicitations)
 
         elif isinstance(server_params_obj, StreamableHttpServerParams):
             async with streamablehttp_client(server_params_obj.url) as (read, write, _):
+                elicitation_callback, pending_elicitations = create_elicitation_callback(websocket, session_id)
                 async with ClientSession(
                     read, write,
-                    message_handler=create_message_handler(websocket, session_id)
+                    message_handler=create_message_handler(websocket, session_id),
+                    sampling_callback=create_sampling_callback(websocket, session_id),
+                    elicitation_callback=elicitation_callback
                 ) as session:
-                    await handle_mcp_session(websocket, session, session_id)
+                    await handle_mcp_session(websocket, session, session_id, pending_elicitations)
         else:
             await websocket.close(code=4000, reason="Invalid server parameters")
             return
@@ -354,11 +361,12 @@ async def mcp_websocket(websocket: WebSocket, session_id: str):
             if session_info:
                 duration = datetime.now(timezone.utc) - session_info["created_at"]
                 logger.info(f"MCP session {session_id} ended after {duration.total_seconds():.2f} seconds")
+
         else:
             logger.debug(f"MCP session {session_id} cleanup - session not found in active sessions")
 
 
-async def handle_mcp_session(websocket: WebSocket, session: ClientSession, session_id: str):
+async def handle_mcp_session(websocket: WebSocket, session: ClientSession, session_id: str, pending_elicitations: Optional[Dict[str, Any]] = None):
     try:
         # Initialize the MCP session
         initialize_result = await session.initialize()
@@ -381,7 +389,7 @@ async def handle_mcp_session(websocket: WebSocket, session: ClientSession, sessi
         "last_activity": datetime.now(timezone.utc),
         "capabilities": capabilities_data,
         "websocket": websocket,  # Store websocket reference for callbacks
-        "activity_count": 0,     # Track number of activity messages
+        "pending_elicitations": pending_elicitations,  # Store the actual pending elicitations dict from callback
     }
 
     await send_websocket_message(
@@ -406,12 +414,83 @@ async def handle_mcp_session(websocket: WebSocket, session: ClientSession, sessi
                 message_type = message.get("type")
 
                 if message_type == "operation":
-                    await handle_mcp_operation(websocket, session, message)
+                    # Run the operation in a background task to avoid blocking the message loop
+                    # This is crucial for allowing elicitation responses to be processed while
+                    # an operation (like a tool call) is pending.
+                    asyncio.create_task(handle_mcp_operation(websocket, session, message))
 
                 elif message_type == "ping":
                     await send_websocket_message(
                         websocket, {"type": "pong", "timestamp": datetime.now(timezone.utc).isoformat()}
                     )
+
+                elif message_type == "elicitation_response":
+                    # Handle user response to elicitation request
+                    request_id = message.get("request_id")
+                    
+                    # Get pending_elicitations from active_sessions instead of parameter
+                    session_info = active_sessions.get(session_id, {})
+                    actual_pending_elicitations = session_info.get("pending_elicitations", {})
+                    
+                    if not request_id:
+                        await send_websocket_message(
+                            websocket,
+                            {
+                                "type": "error",
+                                "error": "Missing request_id in elicitation response",
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                            },
+                        )
+                    elif actual_pending_elicitations and request_id in actual_pending_elicitations:
+                        try:
+                            
+                            # Create the elicitation result based on user action
+                            action = message.get("action", "cancel")  # "accept", "decline", or "cancel"
+                            data = message.get("data", {})
+                            
+                            if action == "accept":
+                                result = ElicitResult(
+                                    action="accept",
+                                    content=data
+                                )
+                            elif action == "decline":
+                                result = ElicitResult(
+                                    action="decline"
+                                )
+                            else:  # cancel or any other action
+                                result = ElicitResult(
+                                    action="cancel"
+                                )
+                            
+                            # Resolve the pending future with the result
+                            future = actual_pending_elicitations[request_id]
+                            
+                            if not future.done():
+                                future.set_result(result)
+                            else:
+                                logger.warning(f"Future for elicitation request {request_id} was already done, skipping")
+                                
+                        except Exception as e:
+                            error_msg = _extract_real_error(e)
+                            logger.error(f"Error processing elicitation response: {error_msg}")
+                            
+                            # Resolve the future with an error
+                            future = actual_pending_elicitations.get(request_id)
+                            if future and not future.done():
+                                future.set_result(ErrorData(
+                                    code=-32603,
+                                    message=f"Error processing elicitation response: {error_msg}"
+                                ))
+                    else: 
+                        logger.warning(f"Unknown elicitation request_id: {request_id}")
+                        await send_websocket_message(
+                            websocket,
+                            {
+                                "type": "operation_error",
+                                "error": f"Unknown elicitation request_id: {request_id}",
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                            },
+                        )
 
                 else:
                     await send_websocket_message(
@@ -451,6 +530,8 @@ def create_message_handler(websocket: WebSocket, session_id: str):
         message: RequestResponder[ServerRequest, ClientResult] | ServerNotification | Exception,
     ) -> None:
         try:
+
+            # print(f"Received message in handler: {message}")
             # Determine message type and content
             if isinstance(message, Exception):
                 # Handle exceptions in the protocol
@@ -502,6 +583,192 @@ def create_message_handler(websocket: WebSocket, session_id: str):
     return message_handler
 
 
+def create_sampling_callback(websocket: WebSocket, session_id: str):
+    """Create a sampling callback that handles AI sampling requests from tools"""
+    
+    async def sampling_callback(
+        context: RequestContext,
+        params: CreateMessageRequestParams,
+    ) -> CreateMessageResult | ErrorData:
+        try:
+            request_id = str(uuid.uuid4())
+            
+            # Send sampling request notification to UI
+            await send_websocket_message(websocket, {
+                "type": "mcp_activity",
+                "activity_type": "sampling",
+                "message": f"Tool requested AI sampling for {len(params.messages)} message(s)",
+                "details": {
+                    "request_id": request_id,
+                    "params": _serialize_for_json(params.model_dump()),
+                    "context": "Tool is requesting AI to generate a response"
+                },
+                "session_id": session_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            
+            # Create a default/dummy response
+            # In a real implementation, this would connect to an LLM
+            dummy_response = CreateMessageResult(
+                role="assistant",
+                content=TextContent(
+                    type="text", 
+                    text="[AutoGen Studio Default Sampling Response - This is a placeholder response for AI sampling requests. In a production setup, this would be handled by your configured LLM.]"
+                ),
+                model="autogen-studio-default"
+            )
+            
+            # Send sampling response notification to UI
+            await send_websocket_message(websocket, {
+                "type": "mcp_activity",
+                "activity_type": "sampling",
+                "message": "Provided default sampling response to tool",
+                "details": {
+                    "request_id": request_id,
+                    "response": _serialize_for_json(dummy_response.model_dump()),
+                    "note": "This is a placeholder response - configure an LLM for real sampling"
+                },
+                "session_id": session_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            
+            logger.info(f"Handled sampling request for session {session_id} with default response")
+            return dummy_response
+            
+        except Exception as e:
+            error_msg = _extract_real_error(e)
+            logger.error(f"Error in sampling callback for session {session_id}: {error_msg}")
+            
+            # Send error notification to UI
+            await send_websocket_message(websocket, {
+                "type": "mcp_activity",
+                "activity_type": "error",
+                "message": f"Sampling callback error: {error_msg}",
+                "details": {"error": error_msg},
+                "session_id": session_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            
+            return ErrorData(
+                code=-32603,  # Internal error
+                message=f"Sampling failed: {error_msg}"
+            )
+    
+    return sampling_callback
+
+
+def create_elicitation_callback(websocket: WebSocket, session_id: str):
+    """Create an elicitation callback that handles user input requests from tools"""
+    
+    # Store pending elicitation requests
+    pending_elicitations = {}
+    
+    async def elicitation_callback(
+        context: RequestContext,
+        params: ElicitRequestParams,
+    ) -> ElicitResult | ErrorData:
+        try:
+            request_id = str(uuid.uuid4())
+            
+            # Send elicitation request notification to UI
+            await send_websocket_message(websocket, {
+                "type": "mcp_activity",
+                "activity_type": "elicitation",
+                "message": f"Tool requesting user input: {params.message}",
+                "details": {
+                    "request_id": request_id,
+                    "message": params.message,
+                    "requestedSchema": _serialize_for_json(params.requestedSchema) if params.requestedSchema else None,
+                    "context": "Tool is requesting additional information from user"
+                },
+                "session_id": session_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            
+            # Send elicitation prompt to UI for user interaction
+            await send_websocket_message(websocket, {
+                "type": "elicitation_request",
+                "request_id": request_id,
+                "message": params.message,
+                "requestedSchema": _serialize_for_json(params.requestedSchema) if params.requestedSchema else None,
+                "session_id": session_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            
+            # Create a future to wait for user response
+            response_future = asyncio.Future()
+            pending_elicitations[request_id] = response_future
+            
+            try:
+                # Wait for user response with timeout (60 seconds)
+                user_response = await asyncio.wait_for(response_future, timeout=60.0)
+                
+                # Send completion notification to UI
+                await send_websocket_message(websocket, {
+                    "type": "mcp_activity",
+                    "activity_type": "elicitation",
+                    "message": f"User responded to elicitation request",
+                    "details": {
+                        "request_id": request_id,
+                        "response": _serialize_for_json(user_response),
+                        "status": "completed"
+                    },
+                    "session_id": session_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+                
+                return user_response
+                
+            except asyncio.TimeoutError:
+                # Handle timeout
+                logger.warning(f"User did not respond to elicitation request {request_id} within 60 seconds")
+                error_msg = "User did not respond to elicitation request within 60 seconds"
+                
+                await send_websocket_message(websocket, {
+                    "type": "mcp_activity",
+                    "activity_type": "error",
+                    "message": f"Elicitation timeout: {error_msg}",
+                    "details": {
+                        "request_id": request_id,
+                        "error": error_msg,
+                        "timeout": 60
+                    },
+                    "session_id": session_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+                
+                return ErrorData(
+                    code=-32603,  # Internal error
+                    message=error_msg
+                )
+                
+            finally:
+                # Clean up pending request
+                pending_elicitations.pop(request_id, None)
+            
+        except Exception as e:
+            error_msg = _extract_real_error(e)
+            logger.error(f"Error in elicitation callback for session {session_id}: {error_msg}")
+            
+            # Send error notification to UI
+            await send_websocket_message(websocket, {
+                "type": "mcp_activity",
+                "activity_type": "error",
+                "message": f"Elicitation callback error: {error_msg}",
+                "details": {"error": error_msg},
+                "session_id": session_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            
+            return ErrorData(
+                code=-32603,  # Internal error
+                message=f"Elicitation failed: {error_msg}"
+            )
+    
+    # Return both the callback and the pending elicitations dictionary
+    return elicitation_callback, pending_elicitations
+
+
 @router.post("/ws/connect")
 async def create_mcp_websocket_connection(request: CreateWebSocketConnectionRequest):
     try:
@@ -539,5 +806,4 @@ async def get_mcp_session_status(session_id: str):
         "capabilities": session_info.get("capabilities"),
         "created_at": session_info["created_at"].isoformat(),
         "last_activity": session_info["last_activity"].isoformat(),
-        "activity_count": session_info.get("activity_count", 0),
     }

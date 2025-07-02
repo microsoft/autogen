@@ -189,3 +189,57 @@ async def test_get_capabilities():
     assert capabilities.tools is not None
     assert capabilities.resources is not None
     assert capabilities.prompts is not None
+
+
+@pytest.mark.anyio
+async def test_elicitation_callback_basic():
+    """Test that elicitation callback is properly created and has expected structure"""
+    from autogenstudio.web.routes.mcp import create_elicitation_callback
+    from unittest.mock import AsyncMock
+    
+    mock_websocket = AsyncMock()
+    session_id = "test-session-123"
+    
+    # Create the elicitation callback - it returns a tuple
+    callback, pending_elicitations = create_elicitation_callback(mock_websocket, session_id)
+    
+    # Test that callback is callable
+    assert callable(callback)
+    
+    # Test that pending_elicitations is a dict and starts empty
+    assert isinstance(pending_elicitations, dict)
+    assert len(pending_elicitations) == 0
+    
+    # Verify callback signature (should accept 2 parameters: context and params)
+    import inspect
+    sig = inspect.signature(callback)
+    assert len(sig.parameters) == 2
+    
+    # Parameter names should be 'context' and 'params'
+    param_names = list(sig.parameters.keys())
+    assert param_names == ['context', 'params']
+
+
+@pytest.mark.anyio 
+async def test_elicitation_callback_creation():
+    """Test that elicitation callback can be created with correct parameters"""
+    from autogenstudio.web.routes.mcp import create_elicitation_callback
+    from unittest.mock import AsyncMock
+    
+    mock_websocket = AsyncMock()
+    session_id = "test-session-456"
+    
+    # Create the callback - it returns a tuple of (callback, pending_elicitations)
+    callback, pending_elicitations = create_elicitation_callback(mock_websocket, session_id)
+    
+    # Verify callback is callable
+    assert callable(callback)
+    
+    # Verify pending_elicitations is a dictionary
+    assert isinstance(pending_elicitations, dict)
+    assert len(pending_elicitations) == 0  # Should start empty
+    
+    # Verify callback has the expected signature by checking it accepts 2 parameters
+    import inspect
+    sig = inspect.signature(callback)
+    assert len(sig.parameters) == 2

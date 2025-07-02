@@ -24,7 +24,11 @@ const { Option } = Select;
 interface McpSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
-  onSelectWorkbench: (workbench: Component<McpWorkbenchConfig> | null) => void;
+  onSelectWorkbench: (
+    workbench: Component<McpWorkbenchConfig> | null,
+    galleryId?: number,
+    workbenchIndex?: number
+  ) => void;
   isLoading?: boolean;
   currentWorkbench: Component<McpWorkbenchConfig> | null;
   onGalleryUpdate?: (gallery: Gallery) => void;
@@ -61,6 +65,20 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
     }-${configStr.slice(0, 20)}-${index}`;
   };
 
+  // Handle gallery selection
+  const handleGallerySelect = useCallback((gallery: Gallery) => {
+    setSelectedGallery(gallery);
+    if (gallery.id) {
+      localStorage.setItem("mcp-view-gallery", gallery.id.toString());
+    }
+
+    // Extract MCP workbenches from the selected gallery
+    const workbenches = mcpAPI.extractMcpWorkbenches(gallery);
+    setMcpWorkbenches(workbenches);
+    // Reset selection - let the effect handle workbench selection
+    setSelectedWorkbenchIndex(-1);
+  }, []);
+
   // Load galleries on component mount
   const loadGalleries = useCallback(async () => {
     if (!user?.id) return;
@@ -70,11 +88,22 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
       const galleriesData = await mcpAPI.listGalleries(user.id);
       setGalleries(galleriesData);
 
-      // Select the first gallery or restore from localStorage
+      // Select gallery based on URL params first, then localStorage, then first gallery
+      const params = new URLSearchParams(window.location.search);
+      const urlGalleryId = params.get("galleryId");
       const savedGalleryId = localStorage.getItem("mcp-view-gallery");
       let galleryToSelect = galleriesData[0];
 
-      if (savedGalleryId) {
+      if (urlGalleryId) {
+        // Prioritize URL parameter
+        const urlGallery = galleriesData.find(
+          (g) => g.id?.toString() === urlGalleryId
+        );
+        if (urlGallery) {
+          galleryToSelect = urlGallery;
+        }
+      } else if (savedGalleryId) {
+        // Fall back to localStorage
         const savedGallery = galleriesData.find(
           (g) => g.id?.toString() === savedGalleryId
         );
@@ -84,7 +113,19 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
       }
 
       if (galleryToSelect) {
-        handleGallerySelect(galleryToSelect);
+        // Set gallery and workbenches, but don't trigger selection here
+        setSelectedGallery(galleryToSelect);
+        if (galleryToSelect.id) {
+          localStorage.setItem(
+            "mcp-view-gallery",
+            galleryToSelect.id.toString()
+          );
+        }
+
+        const workbenches = mcpAPI.extractMcpWorkbenches(galleryToSelect);
+        setMcpWorkbenches(workbenches);
+
+        // Let the effect below handle the workbench selection
       }
     } catch (error) {
       console.error("Failed to load galleries:", error);
@@ -97,51 +138,47 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
     loadGalleries();
   }, [loadGalleries]);
 
-  // Handle gallery selection
-  const handleGallerySelect = useCallback(
-    (gallery: Gallery) => {
-      setSelectedGallery(gallery);
-      if (gallery.id) {
-        localStorage.setItem("mcp-view-gallery", gallery.id.toString());
-      }
-
-      // Extract MCP workbenches from the selected gallery
-      const workbenches = mcpAPI.extractMcpWorkbenches(gallery);
-      setMcpWorkbenches(workbenches);
-
-      // Auto-select the first workbench if available
-      if (workbenches.length > 0) {
-        // Auto-select the first workbench (index 0)
-        setSelectedWorkbenchIndex(0);
-        onSelectWorkbench(workbenches[0]);
-      } else {
-        // No workbenches available, clear selection
-        setSelectedWorkbenchIndex(-1);
-        onSelectWorkbench(null);
-      }
-    },
-    [onSelectWorkbench]
-  );
-
-  // Sync selection when workbenches change
+  // Handle workbench selection after galleries/workbenches are loaded
   useEffect(() => {
-    if (mcpWorkbenches.length === 0) {
-      // No workbenches, clear selection
-      if (selectedWorkbenchIndex !== -1) {
-        setSelectedWorkbenchIndex(-1);
-        onSelectWorkbench(null);
+    if (mcpWorkbenches.length > 0 && selectedGallery && !loadingGalleries) {
+      // Check for URL parameters to restore workbench selection
+      const params = new URLSearchParams(window.location.search);
+      const urlGalleryId = params.get("galleryId");
+      const urlWorkbenchIndex = params.get("workbenchIndex");
+
+      let indexToSelect = 0; // Default to first workbench
+
+      // If URL params match current gallery, try to select the specified workbench
+      if (
+        urlGalleryId &&
+        urlWorkbenchIndex &&
+        selectedGallery.id?.toString() === urlGalleryId
+      ) {
+        const urlIndex = parseInt(urlWorkbenchIndex);
+        if (urlIndex >= 0 && urlIndex < mcpWorkbenches.length) {
+          indexToSelect = urlIndex;
+        }
       }
-    } else if (selectedWorkbenchIndex >= mcpWorkbenches.length) {
-      // Current selection is out of bounds, select the last item
-      const newIndex = mcpWorkbenches.length - 1;
-      setSelectedWorkbenchIndex(newIndex);
-      onSelectWorkbench(mcpWorkbenches[newIndex]);
-    } else if (selectedWorkbenchIndex === -1 && mcpWorkbenches.length > 0) {
-      // No selection but workbenches available, auto-select first
-      setSelectedWorkbenchIndex(0);
-      onSelectWorkbench(mcpWorkbenches[0]);
+
+      // Only update if selection has changed
+      if (selectedWorkbenchIndex !== indexToSelect) {
+        setSelectedWorkbenchIndex(indexToSelect);
+        onSelectWorkbench(
+          mcpWorkbenches[indexToSelect],
+          selectedGallery.id,
+          indexToSelect
+        );
+      }
+    } else if (
+      mcpWorkbenches.length === 0 &&
+      selectedWorkbenchIndex !== -1 &&
+      !loadingGalleries
+    ) {
+      // No workbenches available, clear selection
+      setSelectedWorkbenchIndex(-1);
+      onSelectWorkbench(null);
     }
-  }, [mcpWorkbenches, selectedWorkbenchIndex, onSelectWorkbench]);
+  }, [mcpWorkbenches, selectedGallery, onSelectWorkbench, loadingGalleries]); // Add loadingGalleries to prevent premature execution
 
   // Render collapsed state
   if (!isOpen) {
@@ -165,7 +202,7 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
     <div className="h-full border-r border-secondary bg-primary">
       {/* Header */}
       <div className="flex items-center justify-between pt-0 p-4 pl-2 pr-2 border-b border-secondary">
-        <div className="flex items-center gap-2">
+        <div className="flex sticky items-center gap-2">
           <span className="text-primary font-medium">MCP Playground</span>
           <span className="px-2 py-0.5 text-xs bg-accent/10 text-accent rounded">
             {mcpWorkbenches.length}
@@ -248,7 +285,7 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
         </div>
       )}
 
-      <div className="scroll overflow-y-auto h-[calc(100%-180px)]">
+      <div className="scroll overflow-y-auto h-[calc(100%-230px)]">
         {mcpWorkbenches.map((workbench, index) => {
           const workbenchKey = getWorkbenchKey(workbench, index);
           const isSelected = index === selectedWorkbenchIndex;
@@ -268,7 +305,7 @@ export const McpSidebar: React.FC<McpSidebarProps> = ({
                 }`}
                 onClick={() => {
                   setSelectedWorkbenchIndex(index);
-                  onSelectWorkbench(workbench);
+                  onSelectWorkbench(workbench, selectedGallery?.id, index);
                 }}
               >
                 {/* Workbench Name and Actions Row */}

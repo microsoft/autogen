@@ -302,7 +302,7 @@ export interface McpWebSocketState {
   error: string | null;
   lastActivity: Date | null;
   activityMessages: McpActivityMessage[];
-  activityCount: number;
+  pendingElicitations: ElicitationRequest[];
 }
 
 export interface McpWebSocketMessage {
@@ -314,7 +314,8 @@ export interface McpWebSocketMessage {
     | "operation_error"
     | "error"
     | "pong"
-    | "mcp_activity";
+    | "mcp_activity"
+    | "elicitation_request";
   session_id?: string;
   capabilities?: ServerCapabilities;
   operation?: string;
@@ -325,6 +326,9 @@ export interface McpWebSocketMessage {
   // Activity message fields
   activity_type?: "protocol" | "error" | "sampling" | "elicitation";
   details?: any;
+  // Elicitation fields
+  request_id?: string;
+  requestedSchema?: any;
 }
 
 export interface McpActivityMessage {
@@ -365,11 +369,26 @@ export class McpWebSocketClient {
   private maxReconnectAttempts = 5;
   private baseReconnectDelay = 1000;
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private currentState: McpWebSocketState = {
+    connected: false,
+    connecting: false,
+    capabilities: null,
+    sessionId: null,
+    error: null,
+    lastActivity: null,
+    activityMessages: [],
+    pendingElicitations: [],
+  };
 
   constructor(
     private serverParams: McpServerParams,
     private onStateChange: (state: Partial<McpWebSocketState>) => void
   ) {}
+
+  private updateState(partialState: Partial<McpWebSocketState>) {
+    this.currentState = { ...this.currentState, ...partialState };
+    this.onStateChange(partialState);
+  }
 
   // Helper for WebSocket URL construction (similar to chat implementation)
   private getWebSocketBaseUrl(url: string): string {
@@ -389,7 +408,7 @@ export class McpWebSocketClient {
   }
 
   async connect(): Promise<void> {
-    this.onStateChange({ connecting: true, error: null });
+    this.updateState({ connecting: true, error: null });
 
     try {
       // First, get the WebSocket connection URL using proper API construction
@@ -418,7 +437,7 @@ export class McpWebSocketClient {
       this.wsRef = ws;
 
       ws.onopen = () => {
-        this.onStateChange({
+        this.updateState({
           connected: true,
           connecting: false,
           sessionId: session_id,
@@ -432,7 +451,7 @@ export class McpWebSocketClient {
         try {
           const message: McpWebSocketMessage = JSON.parse(event.data);
 
-          this.onStateChange({ lastActivity: new Date() });
+          this.updateState({ lastActivity: new Date() });
 
           switch (message.type) {
             case "connected":
@@ -443,7 +462,7 @@ export class McpWebSocketClient {
 
             case "initialized":
               if (message.capabilities) {
-                this.onStateChange({ capabilities: message.capabilities });
+                this.updateState({ capabilities: message.capabilities });
               }
               break;
 
@@ -474,13 +493,66 @@ export class McpWebSocketClient {
 
             case "error":
               // Handle connection/session-level errors - these affect the whole session
-              this.onStateChange({
+              this.updateState({
                 error: message.error || "Connection error",
               });
               break;
 
             case "pong":
               // Handle pong response
+              break;
+
+            case "mcp_activity":
+              // Handle activity messages
+              if (message.message && message.activity_type) {
+                const activityMessage: McpActivityMessage = {
+                  id: `${Date.now()}-${Math.random()
+                    .toString(36)
+                    .substr(2, 9)}`,
+                  activity_type: message.activity_type,
+                  message: message.message,
+                  details: message.details,
+                  session_id: message.session_id,
+                  timestamp: message.timestamp
+                    ? new Date(message.timestamp)
+                    : new Date(),
+                };
+
+                // Update state with new activity message
+                this.updateState({
+                  activityMessages: [
+                    ...this.currentState.activityMessages,
+                    activityMessage,
+                  ],
+                });
+              }
+              break;
+
+            case "elicitation_request":
+              // Handle elicitation requests
+              if (message.request_id && message.message) {
+                const elicitationRequest: ElicitationRequest = {
+                  request_id: message.request_id,
+                  message: message.message,
+                  requestedSchema: message.requestedSchema,
+                  session_id:
+                    message.session_id || this.currentState.sessionId || "",
+                  timestamp: message.timestamp || new Date().toISOString(),
+                };
+
+                // Add to pending elicitations
+                this.updateState({
+                  pendingElicitations: [
+                    ...this.currentState.pendingElicitations,
+                    elicitationRequest,
+                  ],
+                });
+              } else {
+                console.error(
+                  "Invalid elicitation request - missing request_id or message:",
+                  message
+                );
+              }
               break;
 
             default:
@@ -493,7 +565,7 @@ export class McpWebSocketClient {
       };
 
       ws.onerror = (error) => {
-        this.onStateChange({
+        this.updateState({
           error: "WebSocket connection error",
           connected: false,
           connecting: false,
@@ -501,7 +573,7 @@ export class McpWebSocketClient {
       };
 
       ws.onclose = (event) => {
-        this.onStateChange({
+        this.updateState({
           connected: false,
           connecting: false,
         });
@@ -524,7 +596,7 @@ export class McpWebSocketClient {
         // }
       };
     } catch (error) {
-      this.onStateChange({
+      this.updateState({
         error: error instanceof Error ? error.message : "Connection failed",
         connected: false,
         connecting: false,
@@ -592,7 +664,7 @@ export class McpWebSocketClient {
     });
     this.operationPromises.clear();
 
-    this.onStateChange({
+    this.updateState({
       connected: false,
       connecting: false,
       sessionId: null,
@@ -600,6 +672,44 @@ export class McpWebSocketClient {
       error: null,
     });
   }
+
+  sendElicitationResponse(response: ElicitationResponse): void {
+    if (this.wsRef && this.wsRef.readyState === WebSocket.OPEN) {
+      try {
+        this.wsRef.send(JSON.stringify(response));
+
+        // Remove the elicitation from pending list
+        this.updateState({
+          pendingElicitations: this.currentState.pendingElicitations.filter(
+            (req) => req.request_id !== response.request_id
+          ),
+        });
+      } catch (error) {
+        console.error("Failed to send elicitation response:", error);
+      }
+    } else {
+      console.error(
+        "WebSocket not connected - cannot send elicitation response"
+      );
+    }
+  }
 }
 
 export const mcpAPI = new McpAPI();
+
+// Elicitation interfaces
+export interface ElicitationRequest {
+  request_id: string;
+  message: string;
+  requestedSchema?: any;
+  session_id: string;
+  timestamp: string;
+}
+
+export interface ElicitationResponse {
+  type: "elicitation_response";
+  request_id: string;
+  action: "accept" | "decline" | "cancel";
+  data?: Record<string, any>;
+  session_id: string;
+}

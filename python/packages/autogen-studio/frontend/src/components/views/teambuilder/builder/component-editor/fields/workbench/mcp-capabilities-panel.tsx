@@ -10,6 +10,9 @@ import {
   Space,
   Tag,
   Skeleton,
+  Collapse,
+  Badge,
+  Tooltip,
 } from "antd";
 import {
   Wrench,
@@ -23,16 +26,24 @@ import {
   WifiOff,
   Play,
   Unplug,
+  Activity,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
 } from "lucide-react";
 import { McpServerParams } from "../../../../../../types/datamodel";
 import {
   ServerCapabilities,
   McpWebSocketState,
   McpWebSocketClient,
-} from "../../../../../mcp/api";
+  McpActivityMessage,
+  ElicitationRequest,
+  ElicitationResponse,
+} from "../../../../../../views/mcp/api";
 import { McpToolsTab } from "./mcp-tools-tab";
 import { McpResourcesTab } from "./mcp-resources-tab";
 import { McpPromptsTab } from "./mcp-prompts-tab";
+import { ElicitationDialog, ElicitationBadge } from "./elicitation-dialog";
 
 const { Text, Title } = Typography;
 
@@ -50,13 +61,36 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
     sessionId: null,
     error: null,
     lastActivity: null,
+    activityMessages: [],
+    pendingElicitations: [],
   });
   const [wsClient, setWsClient] = useState<McpWebSocketClient | null>(null);
   const [activeTab, setActiveTab] = useState<string>("tools");
   const [loadingContent, setLoadingContent] = useState(false);
   const wsClientRef = useRef<McpWebSocketClient | null>(null);
 
-  const { connected, connecting, capabilities, error } = wsState;
+  // Activity stream state
+  const [activityExpanded, setActivityExpanded] = useState<string[]>([]);
+  const activityStreamRef = useRef<HTMLDivElement>(null);
+
+  // Elicitation state
+  const [currentElicitation, setCurrentElicitation] =
+    useState<ElicitationRequest | null>(null);
+  const [elicitationDialogVisible, setElicitationDialogVisible] =
+    useState(false);
+
+  const { connected, connecting, capabilities, error, pendingElicitations } =
+    wsState;
+
+  // Auto-scroll to bottom when new messages arrive
+  React.useEffect(() => {
+    if (activityStreamRef.current && wsState.activityMessages.length > 0) {
+      activityStreamRef.current.scrollTo({
+        top: activityStreamRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [wsState.activityMessages]);
 
   // Keep ref in sync with state
   React.useEffect(() => {
@@ -70,12 +104,15 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
       wsClient.disconnect();
     }
 
-    const client = new McpWebSocketClient(serverParams, (stateUpdate) => {
-      setWsState((prev) => {
-        const newState = { ...prev, ...stateUpdate };
-        return newState;
-      });
-    });
+    const client = new McpWebSocketClient(
+      serverParams,
+      (stateUpdate: Partial<McpWebSocketState>) => {
+        setWsState((prev: McpWebSocketState) => {
+          const newState = { ...prev, ...stateUpdate };
+          return newState;
+        });
+      }
+    );
 
     setWsClient(client);
     await client.connect();
@@ -117,12 +154,67 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
       sessionId: null,
       error: null,
       lastActivity: null,
+      activityMessages: [],
+      pendingElicitations: [],
     });
 
     // Reset UI state
     setActiveTab("tools");
     setLoadingContent(false);
+    setCurrentElicitation(null);
+    setElicitationDialogVisible(false);
+    setActivityExpanded([]);
   }, [serverParams]); // Only depends on serverParams
+
+  // Handle elicitation requests - show dialog for the first pending elicitation
+  React.useEffect(() => {
+    if (pendingElicitations.length > 0 && !currentElicitation) {
+      const firstElicitation = pendingElicitations[0];
+      setCurrentElicitation(firstElicitation);
+      setElicitationDialogVisible(true);
+    } else if (pendingElicitations.length === 0 && currentElicitation) {
+      // No more pending elicitations, close dialog
+      setCurrentElicitation(null);
+      setElicitationDialogVisible(false);
+    }
+  }, [pendingElicitations, currentElicitation]);
+
+  // Handle elicitation response
+  const handleElicitationResponse = useCallback(
+    (response: ElicitationResponse) => {
+      if (wsClient && currentElicitation) {
+        wsClient.sendElicitationResponse(response);
+
+        // Clear current elicitation and close dialog
+        setCurrentElicitation(null);
+        setElicitationDialogVisible(false);
+
+        // If there are more pending elicitations, show the next one
+        if (pendingElicitations.length > 1) {
+          // This will be handled by the useEffect that watches pendingElicitations
+        }
+      } else {
+        console.error(
+          "McpCapabilitiesPanel: Cannot send response - missing wsClient or currentElicitation"
+        );
+      }
+    },
+    [wsClient, currentElicitation, pendingElicitations]
+  );
+
+  // Handle elicitation dialog close (cancel)
+  const handleElicitationCancel = useCallback(() => {
+    if (currentElicitation) {
+      // Send a cancel response
+      const cancelResponse: ElicitationResponse = {
+        type: "elicitation_response",
+        request_id: currentElicitation.request_id,
+        action: "cancel",
+        session_id: currentElicitation.session_id,
+      };
+      handleElicitationResponse(cancelResponse);
+    }
+  }, [currentElicitation, handleElicitationResponse]);
 
   // Cleanup effect - disconnect when component unmounts
   React.useEffect(() => {
@@ -366,13 +458,105 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
     }
   };
 
+  const renderActivityStream = () => {
+    const { activityMessages } = wsState;
+
+    if (!connected || activityMessages.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="h-full flex flex-col border-l border-gray-200">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity size={16} className="text-gray-600" />
+              <span className="font-medium text-sm">Activity Stream</span>
+              <Badge count={activityMessages.length} size="small" />
+            </div>
+            <Button
+              size="small"
+              type="text"
+              onClick={() =>
+                setWsState((prev) => ({ ...prev, activityMessages: [] }))
+              }
+              className="text-xs"
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+
+        {/* Messages Container */}
+        <div
+          ref={activityStreamRef}
+          className="flex-1 overflow-y-auto p-4 space-y-2"
+        >
+          {activityMessages.map((msg: McpActivityMessage) => (
+            <div
+              key={msg.id}
+              className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">
+                    {msg.activity_type === "protocol" && "🔄"}
+                    {msg.activity_type === "error" && "❌"}
+                    {msg.activity_type === "sampling" && "🎯"}
+                    {msg.activity_type === "elicitation" && "💬"}
+                  </span>
+                  <Text strong className="text-sm">
+                    {msg.message}
+                  </Text>
+                </div>
+                <Text
+                  type="secondary"
+                  className="text-xs whitespace-nowrap ml-2"
+                >
+                  {msg.timestamp.toLocaleTimeString()}
+                </Text>
+              </div>
+              {msg.details && (
+                <Collapse
+                  ghost
+                  size="small"
+                  items={[
+                    {
+                      key: "1",
+                      label: (
+                        <Text type="secondary" className="text-xs">
+                          View Details
+                        </Text>
+                      ),
+                      children: (
+                        <pre className="bg-gray-50 p-2 rounded text-xs overflow-x-auto mt-2">
+                          {JSON.stringify(msg.details, null, 2)}
+                        </pre>
+                      ),
+                    },
+                  ]}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div>
         <div className="flex justify-between items-center mb-3">
-          <Title level={5} className="m-0">
-            Server Capabilities
-          </Title>
+          <div className="flex items-center gap-2">
+            <Title level={5} className="m-0">
+              Server Capabilities
+            </Title>
+            {pendingElicitations.length > 0 && (
+              <ElicitationBadge count={pendingElicitations.length} />
+            )}
+          </div>
           <Space>
             {renderConnectionIndicator()}
             {connected && (
@@ -398,39 +582,94 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
         )}
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        {connected && !capabilities && !error ? (
-          // Show loading state when connected but capabilities not yet received
-          <div className="text-center py-12 px-6">
-            <Spin size="large" className="mb-4" />
-            <div>
-              <Text strong className="block mb-2">
-                Discovering Server Capabilities
-              </Text>
-              <Text type="secondary" className="text-sm">
-                Retrieving available tools, resources, and prompts...
-              </Text>
+      {/* Main content area with conditional split view */}
+      <div className="flex-1 overflow-hidden mt-3">
+        {connected && wsState.activityMessages.length > 0 ? (
+          // Split view when there are activity messages
+          <div className="h-full grid grid-cols-2 gap-4">
+            {/* Left panel - Main content */}
+            <div className="h-full overflow-auto">
+              {connected && !capabilities && !error ? (
+                <div className="text-center py-12 px-6">
+                  <Spin size="large" className="mb-4" />
+                  <div>
+                    <Text strong className="block mb-2">
+                      Discovering Server Capabilities
+                    </Text>
+                    <Text type="secondary" className="text-sm">
+                      Retrieving available tools, resources, and prompts...
+                    </Text>
+                  </div>
+                </div>
+              ) : segmentedOptions.length === 0 ? (
+                <Empty
+                  description={
+                    <div className="text-center">
+                      <Text type="secondary">
+                        This MCP server doesn't expose any capabilities
+                      </Text>
+                      <br />
+                      <Text type="secondary" className="text-xs">
+                        No tools, resources, or prompts are available
+                      </Text>
+                    </div>
+                  }
+                  className="py-12 px-6"
+                />
+              ) : (
+                renderActiveContent()
+              )}
             </div>
+
+            {/* Right panel - Activity stream */}
+            {renderActivityStream()}
           </div>
-        ) : segmentedOptions.length === 0 ? (
-          <Empty
-            description={
-              <div className="text-center">
-                <Text type="secondary">
-                  This MCP server doesn't expose any capabilities
-                </Text>
-                <br />
-                <Text type="secondary" className="text-xs">
-                  No tools, resources, or prompts are available
-                </Text>
-              </div>
-            }
-            className="py-12 px-6"
-          />
         ) : (
-          renderActiveContent()
+          // Full width when no activity messages
+          <div className="h-full">
+            {connected && !capabilities && !error ? (
+              <div className="text-center py-12 px-6">
+                <Spin size="large" className="mb-4" />
+                <div>
+                  <Text strong className="block mb-2">
+                    Discovering Server Capabilities
+                  </Text>
+                  <Text type="secondary" className="text-sm">
+                    Retrieving available tools, resources, and prompts...
+                  </Text>
+                </div>
+              </div>
+            ) : segmentedOptions.length === 0 ? (
+              <Empty
+                description={
+                  <div className="text-center">
+                    <Text type="secondary">
+                      This MCP server doesn't expose any capabilities
+                    </Text>
+                    <br />
+                    <Text type="secondary" className="text-xs">
+                      No tools, resources, or prompts are available
+                    </Text>
+                  </div>
+                }
+                className="py-12 px-6"
+              />
+            ) : (
+              renderActiveContent()
+            )}
+          </div>
         )}
       </div>
+
+      {/* Elicitation Dialog - add this outside the main flex container */}
+      {currentElicitation && (
+        <ElicitationDialog
+          visible={elicitationDialogVisible}
+          onCancel={handleElicitationCancel}
+          request={currentElicitation}
+          onResponse={handleElicitationResponse}
+        />
+      )}
     </div>
   );
 };

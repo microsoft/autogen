@@ -217,7 +217,7 @@ class TestMcpWebSocketRoutes:
         from autogenstudio.web.routes.mcp import handle_mcp_operation
         
         operation = {
-            "operation": "get_resource",
+            "operation": "read_resource",
             "uri": "https://example.com/test.txt"
         }
         

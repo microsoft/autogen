@@ -35,10 +35,54 @@ const McpManager: React.FC = () => {
     }
   }, [isSidebarOpen]);
 
+  // Handle initial URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const galleryId = params.get("galleryId");
+    const workbenchIndex = params.get("workbenchIndex");
+
+    if (galleryId && workbenchIndex && !currentWorkbench) {
+      // Pass URL params to sidebar to handle initial selection
+      // The sidebar will handle the actual workbench loading based on these params
+    }
+  }, [currentWorkbench]);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const galleryId = params.get("galleryId");
+      const workbenchIndex = params.get("workbenchIndex");
+
+      if (!galleryId || !workbenchIndex) {
+        // No URL params, clear current workbench
+        if (currentWorkbench) {
+          setCurrentWorkbench(null);
+        }
+      }
+    };
+
+    window.addEventListener("popstate", handleLocationChange);
+    return () => window.removeEventListener("popstate", handleLocationChange);
+  }, [currentWorkbench]);
+
   const handleSelectWorkbench = (
-    workbench: Component<McpWorkbenchConfig> | null
+    workbench: Component<McpWorkbenchConfig> | null,
+    galleryId?: number,
+    workbenchIndex?: number
   ) => {
     setCurrentWorkbench(workbench);
+
+    // Update URL when a workbench is selected
+    if (workbench && galleryId !== undefined && workbenchIndex !== undefined) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("galleryId", galleryId.toString());
+      params.set("workbenchIndex", workbenchIndex.toString());
+      window.history.pushState({}, "", `?${params.toString()}`);
+    } else if (!workbench) {
+      // Clear URL params when no workbench is selected
+      window.history.pushState({}, "", window.location.pathname);
+    }
   };
 
   const handleGalleryUpdate = async (updatedGallery: Gallery) => {
