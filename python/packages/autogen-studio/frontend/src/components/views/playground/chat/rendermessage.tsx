@@ -165,7 +165,7 @@ export const RenderNestedMessages: React.FC<{
       <div
         key={index}
         className={`${
-          index > 0 ? "bordper border-secondary rounded   bg-secondary/30" : ""
+          index > 0 ? "border border-secondary rounded   bg-secondary/30" : ""
         }`}
       >
         {typeof item.content === "string" ? (
