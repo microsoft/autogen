@@ -478,6 +478,25 @@ class GraphFlowManager(BaseGroupChatManager):
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         pass
 
+    def _reset_execution_state(self) -> None:
+        """Reset the graph execution state to the initial state."""
+        self._remaining = {target: Counter(groups) for target, groups in self._graph.get_remaining_map().items()}
+        self._enqueued_any = {n: {g: False for g in self._enqueued_any[n]} for n in self._enqueued_any}
+        self._ready = deque([n for n in self._graph.get_start_nodes()])
+
+    async def _apply_termination_condition(
+        self, delta: Sequence[BaseAgentEvent | BaseChatMessage], increment_turn_count: bool = False
+    ) -> bool:
+        """Apply the termination condition and reset graph execution state when terminated."""
+        # Call the base implementation first
+        terminated = await super()._apply_termination_condition(delta, increment_turn_count)
+        
+        # If terminated, reset the graph execution state for the next task
+        if terminated:
+            self._reset_execution_state()
+        
+        return terminated
+
     async def save_state(self) -> Mapping[str, Any]:
         """Save the execution state."""
         state = {
@@ -503,9 +522,7 @@ class GraphFlowManager(BaseGroupChatManager):
         self._message_thread.clear()
         if self._termination_condition:
             await self._termination_condition.reset()
-        self._remaining = {target: Counter(groups) for target, groups in self._graph.get_remaining_map().items()}
-        self._enqueued_any = {n: {g: False for g in self._enqueued_any[n]} for n in self._enqueued_any}
-        self._ready = deque([n for n in self._graph.get_start_nodes()])
+        self._reset_execution_state()
 
 
 class _StopAgent(BaseChatAgent):
