@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { SendHorizontal, Loader2, Clock } from "lucide-react";
-import { TIMEOUT_CONFIG } from "./types";
+import { createTimeoutConfig } from "./types";
+import { useSettingsStore } from "../../settings/store";
 
 interface InputRequestProps {
   prompt: string;
@@ -17,7 +18,15 @@ const InputRequestView: React.FC<InputRequestProps> = ({
 }) => {
   const [response, setResponse] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [timeLeft, setTimeLeft] = React.useState(TIMEOUT_CONFIG.DURATION_SEC);
+  
+  // Get timeout from settings
+  const { uiSettings } = useSettingsStore();
+  const timeoutConfig = React.useMemo(() => 
+    createTimeoutConfig(uiSettings.human_input_timeout_minutes || 3), 
+    [uiSettings.human_input_timeout_minutes]
+  );
+  
+  const [timeLeft, setTimeLeft] = React.useState(timeoutConfig.DURATION_SEC);
   const [hasInteracted, setHasInteracted] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout>();
@@ -84,7 +93,7 @@ const InputRequestView: React.FC<InputRequestProps> = ({
   };
 
   const getTimeoutWarningClass = () => {
-    if (timeLeft < TIMEOUT_CONFIG.WARNING_THRESHOLD_SEC) {
+    if (timeLeft < timeoutConfig.WARNING_THRESHOLD_SEC) {
       return "text-red-500 font-bold animate-pulse";
     }
     return "text-accent";

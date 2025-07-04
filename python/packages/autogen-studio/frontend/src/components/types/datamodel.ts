@@ -457,6 +457,7 @@ export interface UISettings {
   show_llm_call_events: boolean;
   expanded_messages_by_default?: boolean;
   show_agent_flow_by_default?: boolean;
+  human_input_timeout_minutes?: number; // 1-30 minutes, defaults to 3
   // You can add more UI settings here as needed
 }
 

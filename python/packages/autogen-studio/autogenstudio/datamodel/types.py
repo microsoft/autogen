@@ -7,7 +7,7 @@ from autogen_agentchat.messages import ChatMessage, TextMessage
 from autogen_core import ComponentModel
 from autogen_core.models import UserMessage
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from pydantic import BaseModel, ConfigDict, SecretStr
+from pydantic import BaseModel, ConfigDict, SecretStr, Field
 
 
 class MessageConfig(BaseModel):
@@ -97,6 +97,7 @@ class UISettings(BaseModel):
     show_llm_call_events: bool = False
     expanded_messages_by_default: bool = True
     show_agent_flow_by_default: bool = True
+    human_input_timeout_minutes: int = Field(default=3, ge=1, le=30, description="Human input timeout in minutes (1-30)")
 
 
 class SettingsConfig(BaseModel):
