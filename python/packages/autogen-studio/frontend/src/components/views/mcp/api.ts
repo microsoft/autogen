@@ -450,7 +450,7 @@ export class McpWebSocketClient {
       ws.onmessage = (event) => {
         try {
           const message: McpWebSocketMessage = JSON.parse(event.data);
-
+          console.log("Received MCP WebSocket message:", message);
           this.updateState({ lastActivity: new Date() });
 
           switch (message.type) {
@@ -692,6 +692,12 @@ export class McpWebSocketClient {
         "WebSocket not connected - cannot send elicitation response"
       );
     }
+  }
+
+  clearActivityMessages(): void {
+    this.updateState({
+      activityMessages: [],
+    });
   }
 }
 

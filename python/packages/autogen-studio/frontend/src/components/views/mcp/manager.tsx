@@ -164,7 +164,7 @@ const McpManager: React.FC = () => {
           isSidebarOpen ? "ml-64" : "ml-12"
         }`}
       >
-        <div className="p-4 pt-2">
+        <div className="p-4 pt-2  h-[calc(100%-60px)]">
           <div className="text-xs text-secondary mb-4 border border-dashed rounded-md p-2 ">
             <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1 text-warning text-orange-500" />{" "}
             MCP Playground is an experimental view for testing MCP Servers in
@@ -187,10 +187,13 @@ const McpManager: React.FC = () => {
               Loading...
             </div>
           ) : currentWorkbench ? (
-            <McpDetail
-              workbench={currentWorkbench}
-              onTestConnection={() => handleTestConnection(currentWorkbench)}
-            />
+            <div className=" h-[calc(100vh-235px)]    scroll overflow-auto">
+              {" "}
+              <McpDetail
+                workbench={currentWorkbench}
+                onTestConnection={() => handleTestConnection(currentWorkbench)}
+              />
+            </div>
           ) : (
             <div className="flex items-center justify-center h-[calc(100vh-120px)] text-secondary">
               <div className="text-center">

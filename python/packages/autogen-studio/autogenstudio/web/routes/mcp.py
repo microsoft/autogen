@@ -3,7 +3,7 @@ import base64
 import json
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from autogen_ext.tools.mcp._config import (
     McpServerParams,
@@ -20,29 +20,25 @@ from mcp.client.streamable_http import streamablehttp_client
 from mcp.shared.context import RequestContext
 from mcp.shared.session import RequestResponder
 from mcp.types import (
-    BlobResourceContents,
     ClientResult,
     CreateMessageRequestParams,
     CreateMessageResult,
     ElicitRequestParams,
     ElicitResult,
     ErrorData,
-    InitializeResult,
-    ServerCapabilities,
     ServerNotification,
     ServerRequest,
     TextContent,
-    TextResourceContents,
 )
 from pydantic import BaseModel
 from pydantic.networks import AnyUrl
 
-from autogenstudio.mcp.client import McpConnectionError, McpOperationError
+from autogenstudio.mcp.client import McpOperationError
 
 
 def _extract_real_error(e: Exception) -> str:
     """Extract the real error message from potentially wrapped exceptions"""
-    error_parts = []
+    error_parts: List[str] = []
 
     # Handle ExceptionGroup (Python 3.11+) - use getattr to avoid type checker issues
     if hasattr(e, "exceptions") and getattr(e, "exceptions", None):
@@ -74,9 +70,9 @@ def _serialize_for_json(obj: Any) -> Any:
     if isinstance(obj, AnyUrl):
         return str(obj)
     elif isinstance(obj, dict):
-        return {k: _serialize_for_json(v) for k, v in obj.items()}
+        return {str(k): _serialize_for_json(v) for k, v in obj.items()}  # type: ignore
     elif isinstance(obj, list):
-        return [_serialize_for_json(item) for item in obj]
+        return [_serialize_for_json(item) for item in obj]  # type: ignore
     elif hasattr(obj, "model_dump"):
         # Handle Pydantic models
         return _serialize_for_json(obj.model_dump())
@@ -87,7 +83,7 @@ def _serialize_for_json(obj: Any) -> Any:
 def _is_websocket_disconnect(e: Exception) -> bool:
     """Check if an exception (potentially nested) is a WebSocket disconnect"""
 
-    def check_exception(exc):
+    def check_exception(exc: BaseException) -> bool:
         # Check if it's directly a WebSocketDisconnect
         if isinstance(exc, WebSocketDisconnect):
             return True
@@ -122,14 +118,14 @@ def _is_websocket_disconnect(e: Exception) -> bool:
 
 
 router = APIRouter()
-active_sessions: Dict[str, Dict] = {}
+active_sessions: Dict[str, Dict[str, Any]] = {}
 
 
 class CreateWebSocketConnectionRequest(BaseModel):
     server_params: McpServerParams
 
 
-async def send_websocket_message(websocket: WebSocket, message: dict):
+async def send_websocket_message(websocket: WebSocket, message: Dict[str, Any]):
     try:
         from fastapi.websockets import WebSocketState
 
@@ -143,7 +139,7 @@ async def send_websocket_message(websocket: WebSocket, message: dict):
         logger.error(f"Error sending WebSocket message: {real_error}")
 
 
-async def handle_mcp_operation(websocket: WebSocket, session: ClientSession, operation: dict):
+async def handle_mcp_operation(websocket: WebSocket, session: ClientSession, operation: Dict[str, Any]):
     operation_type = operation.get("operation")
 
     try:
@@ -366,7 +362,7 @@ async def mcp_websocket(websocket: WebSocket, session_id: str):
             logger.debug(f"MCP session {session_id} cleanup - session not found in active sessions")
 
 
-async def handle_mcp_session(websocket: WebSocket, session: ClientSession, session_id: str, pending_elicitations: Optional[Dict[str, Any]] = None):
+async def handle_mcp_session(websocket: WebSocket, session: ClientSession, session_id: str, pending_elicitations: Optional[Dict[str, asyncio.Future[ElicitResult | ErrorData]]] = None):
     try:
         # Initialize the MCP session
         initialize_result = await session.initialize()
@@ -567,7 +563,7 @@ def create_message_handler(websocket: WebSocket, session_id: str):
                 await send_websocket_message(websocket, {
                     "type": "mcp_activity",
                     "activity_type": "protocol",
-                    "message": f"MCP message: {type(message).__name__}",
+                    "message": f"{type(message).__name__}",
                     "details": {
                         "message_type": type(message).__name__,
                         "content": _serialize_for_json(message) if hasattr(message, "model_dump") else str(message),
@@ -587,7 +583,7 @@ def create_sampling_callback(websocket: WebSocket, session_id: str):
     """Create a sampling callback that handles AI sampling requests from tools"""
     
     async def sampling_callback(
-        context: RequestContext,
+        context: RequestContext[Any, Any, Any],
         params: CreateMessageRequestParams,
     ) -> CreateMessageResult | ErrorData:
         try:
@@ -661,10 +657,10 @@ def create_elicitation_callback(websocket: WebSocket, session_id: str):
     """Create an elicitation callback that handles user input requests from tools"""
     
     # Store pending elicitation requests
-    pending_elicitations = {}
+    pending_elicitations: Dict[str, asyncio.Future[ElicitResult | ErrorData]] = {}
     
     async def elicitation_callback(
-        context: RequestContext,
+        context: RequestContext[Any, Any, Any],
         params: ElicitRequestParams,
     ) -> ElicitResult | ErrorData:
         try:
@@ -696,7 +692,7 @@ def create_elicitation_callback(websocket: WebSocket, session_id: str):
             })
             
             # Create a future to wait for user response
-            response_future = asyncio.Future()
+            response_future: asyncio.Future[ElicitResult | ErrorData] = asyncio.Future()
             pending_elicitations[request_id] = response_future
             
             try:

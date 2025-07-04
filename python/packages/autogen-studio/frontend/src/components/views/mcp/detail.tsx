@@ -25,7 +25,7 @@ const McpDetail: React.FC<McpDetailProps> = ({
     serverParams?.type?.replace("ServerParams", "") || "Unknown";
 
   return (
-    <div className="h-full space-y-6">
+    <div className="  ">
       <WorkbenchFields
         component={workbench}
         defaultPanelKey={["testing"]}

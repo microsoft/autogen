@@ -34,7 +34,7 @@ interface McpResourcesTabProps {
   capabilities: ServerCapabilities | null;
 }
 
-export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
+const McpResourcesTabComponent: React.FC<McpResourcesTabProps> = ({
   serverParams,
   wsClient,
   connected,
@@ -59,6 +59,11 @@ export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
       return;
     }
 
+    // Clear activity messages for this new operation
+    if (wsClient.clearActivityMessages) {
+      wsClient.clearActivityMessages();
+    }
+
     setLoadingResources(true);
     setLoadingError(null);
 
@@ -79,11 +84,16 @@ export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
     } finally {
       setLoadingResources(false);
     }
-  }, [connected, wsClient]);
+  }, [connected]);
 
   const handleGetResource = useCallback(
     async (resource: Resource) => {
       if (!connected || !wsClient) return;
+
+      // Clear activity messages for this new operation
+      if (wsClient.clearActivityMessages) {
+        wsClient.clearActivityMessages();
+      }
 
       setLoadingContent(true);
       setError(null);
@@ -345,3 +355,25 @@ export const McpResourcesTab: React.FC<McpResourcesTabProps> = ({
     </div>
   );
 };
+
+// Custom comparison function to prevent unnecessary re-renders
+const arePropsEqual = (
+  prevProps: McpResourcesTabProps,
+  nextProps: McpResourcesTabProps
+): boolean => {
+  // Only re-render if connection state, capabilities, or serverParams change
+  return (
+    prevProps.connected === nextProps.connected &&
+    prevProps.capabilities === nextProps.capabilities &&
+    // Compare serverParams by JSON stringifying (deep comparison)
+    JSON.stringify(prevProps.serverParams) ===
+      JSON.stringify(nextProps.serverParams) &&
+    // Don't compare wsClient directly as it might be recreated, but compare its existence
+    !!prevProps.wsClient === !!nextProps.wsClient
+  );
+};
+
+export const McpResourcesTab = React.memo(
+  McpResourcesTabComponent,
+  arePropsEqual
+);

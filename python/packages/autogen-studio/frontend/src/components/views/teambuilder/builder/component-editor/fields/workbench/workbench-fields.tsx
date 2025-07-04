@@ -476,9 +476,9 @@ export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
     };
 
     return (
-      <div className="space-y-4 scroll">
+      <div className="space-y-4 scroll  h-full">
         {readonly ? (
-          <>
+          <div className=" h-full">
             <CompactOverview />
             <Collapse
               defaultActiveKey={["testing"]}
@@ -501,7 +501,7 @@ export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
                 },
               ]}
             />
-          </>
+          </div>
         ) : (
           <Collapse
             defaultActiveKey={defaultPanelKey}

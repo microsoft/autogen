@@ -424,6 +424,7 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
       case "tools":
         return (
           <McpToolsTab
+            key="tools-tab"
             serverParams={serverParams}
             wsClient={wsClient}
             connected={connected}
@@ -433,6 +434,7 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
       case "resources":
         return (
           <McpResourcesTab
+            key="resources-tab"
             serverParams={serverParams}
             wsClient={wsClient}
             connected={connected}
@@ -442,6 +444,7 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
       case "prompts":
         return (
           <McpPromptsTab
+            key="prompts-tab"
             serverParams={serverParams}
             wsClient={wsClient}
             connected={connected}
@@ -468,11 +471,11 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
     return (
       <div className="h-full flex flex-col border-l border-gray-200">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50/50">
+        <div className="px-4 py-3 border-b border-gray-200  ">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity size={16} className="text-gray-600" />
-              <span className="font-medium text-sm">Activity Stream</span>
+              <span className="font-medium text-sm">Notification Stream</span>
               <Badge count={activityMessages.length} size="small" />
             </div>
             <Button
@@ -491,28 +494,30 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
         {/* Messages Container */}
         <div
           ref={activityStreamRef}
-          className="flex-1 overflow-y-auto p-4 space-y-2"
+          className="flex-1 overflow-y-auto p-2 space-y-1"
         >
           {activityMessages.map((msg: McpActivityMessage) => (
             <div
               key={msg.id}
-              className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
+              className="border bg-secondary rounded p-2 hover:bg-primary transition-colors"
             >
-              <div className="flex items-start justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">
-                    {msg.activity_type === "protocol" && "🔄"}
-                    {msg.activity_type === "error" && "❌"}
-                    {msg.activity_type === "sampling" && "🎯"}
-                    {msg.activity_type === "elicitation" && "💬"}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-gray-500 flex-shrink-0">
+                    {msg.activity_type === "protocol" && <Activity size={14} />}
+                    {msg.activity_type === "error" && <XCircle size={14} />}
+                    {msg.activity_type === "sampling" && (
+                      <CheckCircle size={14} />
+                    )}
+                    {msg.activity_type === "elicitation" && (
+                      <MessageSquare size={14} />
+                    )}
                   </span>
-                  <Text strong className="text-sm">
-                    {msg.message}
-                  </Text>
+                  <Text className="text-sm truncate flex-1">{msg.message}</Text>
                 </div>
                 <Text
                   type="secondary"
-                  className="text-xs whitespace-nowrap ml-2"
+                  className="text-xs whitespace-nowrap ml-2 flex-shrink-0"
                 >
                   {msg.timestamp.toLocaleTimeString()}
                 </Text>
@@ -521,6 +526,7 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
                 <Collapse
                   ghost
                   size="small"
+                  className="mt-1"
                   items={[
                     {
                       key: "1",
@@ -530,7 +536,7 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
                         </Text>
                       ),
                       children: (
-                        <pre className="bg-gray-50 p-2 rounded text-xs overflow-x-auto mt-2">
+                        <pre className="bg-gray-50 p-2 rounded text-xs overflow-x-auto mt-1">
                           {JSON.stringify(msg.details, null, 2)}
                         </pre>
                       ),
@@ -582,51 +588,20 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
         )}
       </div>
 
-      {/* Main content area with conditional split view */}
+      {/* Main content area with stable layout to prevent component remounting */}
       <div className="flex-1 overflow-hidden mt-3">
-        {connected && wsState.activityMessages.length > 0 ? (
-          // Split view when there are activity messages
-          <div className="h-full grid grid-cols-2 gap-4">
-            {/* Left panel - Main content */}
-            <div className="h-full overflow-auto">
-              {connected && !capabilities && !error ? (
-                <div className="text-center py-12 px-6">
-                  <Spin size="large" className="mb-4" />
-                  <div>
-                    <Text strong className="block mb-2">
-                      Discovering Server Capabilities
-                    </Text>
-                    <Text type="secondary" className="text-sm">
-                      Retrieving available tools, resources, and prompts...
-                    </Text>
-                  </div>
-                </div>
-              ) : segmentedOptions.length === 0 ? (
-                <Empty
-                  description={
-                    <div className="text-center">
-                      <Text type="secondary">
-                        This MCP server doesn't expose any capabilities
-                      </Text>
-                      <br />
-                      <Text type="secondary" className="text-xs">
-                        No tools, resources, or prompts are available
-                      </Text>
-                    </div>
-                  }
-                  className="py-12 px-6"
-                />
-              ) : (
-                renderActiveContent()
-              )}
-            </div>
-
-            {/* Right panel - Activity stream */}
-            {renderActivityStream()}
-          </div>
-        ) : (
-          // Full width when no activity messages
-          <div className="h-full">
+        {/* Always use the same container structure to prevent React from unmounting components */}
+        <div
+          className="h-full grid gap-4"
+          style={{
+            gridTemplateColumns:
+              connected && wsState.activityMessages.length > 0
+                ? "1fr 400px"
+                : "1fr",
+          }}
+        >
+          {/* Main content panel */}
+          <div className="h-full overflow-auto">
             {connected && !capabilities && !error ? (
               <div className="text-center py-12 px-6">
                 <Spin size="large" className="mb-4" />
@@ -658,7 +633,12 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
               renderActiveContent()
             )}
           </div>
-        )}
+
+          {/* Activity stream panel - only rendered when there are messages */}
+          {connected &&
+            wsState.activityMessages.length > 0 &&
+            renderActivityStream()}
+        </div>
       </div>
 
       {/* Elicitation Dialog - add this outside the main flex container */}

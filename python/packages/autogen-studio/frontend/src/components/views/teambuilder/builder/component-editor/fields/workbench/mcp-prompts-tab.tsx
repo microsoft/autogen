@@ -47,7 +47,7 @@ interface McpPromptsTabProps {
   capabilities: ServerCapabilities | null;
 }
 
-export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
+const McpPromptsTabComponent: React.FC<McpPromptsTabProps> = ({
   serverParams,
   wsClient,
   connected,
@@ -74,6 +74,11 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
       return;
     }
 
+    // Clear activity messages for this new operation
+    if (wsClient.clearActivityMessages) {
+      wsClient.clearActivityMessages();
+    }
+
     setLoadingPrompts(true);
     setLoadingError(null);
 
@@ -94,7 +99,7 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
     } finally {
       setLoadingPrompts(false);
     }
-  }, [connected, wsClient]);
+  }, [connected]);
 
   // Validation function for required prompt arguments
   const validatePromptArguments = useCallback(
@@ -160,6 +165,11 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
       if (validationErrors.length > 0) {
         setError(validationErrors.join(", "));
         return;
+      }
+
+      // Clear activity messages for this new operation
+      if (wsClient.clearActivityMessages) {
+        wsClient.clearActivityMessages();
       }
 
       setLoadingPrompt(true);
@@ -519,3 +529,22 @@ export const McpPromptsTab: React.FC<McpPromptsTabProps> = ({
     </div>
   );
 };
+
+// Custom comparison function to prevent unnecessary re-renders
+const arePropsEqual = (
+  prevProps: McpPromptsTabProps,
+  nextProps: McpPromptsTabProps
+): boolean => {
+  // Only re-render if connection state, capabilities, or serverParams change
+  return (
+    prevProps.connected === nextProps.connected &&
+    prevProps.capabilities === nextProps.capabilities &&
+    // Compare serverParams by JSON stringifying (deep comparison)
+    JSON.stringify(prevProps.serverParams) ===
+      JSON.stringify(nextProps.serverParams) &&
+    // Don't compare wsClient directly as it might be recreated, but compare its existence
+    !!prevProps.wsClient === !!nextProps.wsClient
+  );
+};
+
+export const McpPromptsTab = React.memo(McpPromptsTabComponent, arePropsEqual);

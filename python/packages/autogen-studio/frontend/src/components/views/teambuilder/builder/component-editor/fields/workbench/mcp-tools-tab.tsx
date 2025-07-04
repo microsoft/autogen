@@ -52,7 +52,7 @@ interface McpToolsTabProps {
   capabilities: ServerCapabilities | null;
 }
 
-export const McpToolsTab: React.FC<McpToolsTabProps> = ({
+const McpToolsTabComponent: React.FC<McpToolsTabProps> = ({
   serverParams,
   wsClient,
   connected,
@@ -117,50 +117,93 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
     }
   }, [toolResult]);
 
-  const handleListTools = useCallback(async () => {
-    if (!connected) {
-      setLoadingError("WebSocket not connected");
-      return;
-    }
-
-    if (!wsClient) {
-      setLoadingError("WebSocket client not initialized");
-      return;
-    }
-
-    setLoadingTools(true);
-    setLoadingError(null);
-    // Clear selected tool and results when loading new tools
-    setSelectedTool(null);
-    setToolResult(null);
-    setToolArguments({});
-
-    try {
-      const result = await wsClient.executeOperation({
-        operation: "list_tools",
-      });
-
-      if (result?.tools) {
-        setTools(result.tools);
-      } else {
-        setLoadingError("No tools received from server");
+  const handleListTools = useCallback(
+    async (clearResults: boolean = false) => {
+      if (!connected) {
+        setLoadingError("WebSocket not connected");
+        return;
       }
-    } catch (err: any) {
-      setLoadingError(`Failed to fetch tools: ${err.message}`);
-    } finally {
-      setLoadingTools(false);
-    }
-  }, [connected, wsClient]);
+
+      if (!wsClient) {
+        setLoadingError("WebSocket client not initialized");
+        return;
+      }
+
+      setLoadingTools(true);
+      setLoadingError(null);
+
+      // Only clear selected tool and results when explicitly requested (e.g., reconnection)
+      if (clearResults) {
+        setSelectedTool(null);
+        setToolResult(null);
+        setToolArguments({});
+      }
+
+      try {
+        const result = await wsClient.executeOperation({
+          operation: "list_tools",
+        });
+
+        if (result?.tools) {
+          setTools(result.tools);
+        } else {
+          setLoadingError("No tools received from server");
+        }
+      } catch (err: any) {
+        setLoadingError(`Failed to fetch tools: ${err.message}`);
+      } finally {
+        setLoadingTools(false);
+      }
+    },
+    [connected]
+  );
+
+  // Wrapper for UI button clicks that should clear results
+  const handleRefreshTools = useCallback(() => {
+    handleListTools(true);
+  }, [handleListTools]);
 
   // Load tools when connected and capabilities indicate tools are available
+  // Use a ref to track if we've already loaded tools to prevent unnecessary reloads
+  const hasLoadedToolsRef = useRef(false);
+
   useEffect(() => {
-    if (connected && capabilities?.tools && wsClient) {
+    console.log(
+      "Tools useEffect triggered - connected:",
+      connected,
+      "capabilities?.tools:",
+      !!capabilities?.tools,
+      "wsClient:",
+      !!wsClient,
+      "hasLoaded:",
+      hasLoadedToolsRef.current
+    );
+
+    if (
+      connected &&
+      capabilities?.tools &&
+      wsClient &&
+      !hasLoadedToolsRef.current
+    ) {
+      console.log("Loading tools for the first time");
+      hasLoadedToolsRef.current = true;
       handleListTools();
+    } else if (!connected || !capabilities?.tools) {
+      // Reset the flag when disconnected or tools capability is removed
+      console.log(
+        "Resetting hasLoadedToolsRef due to disconnection or no tools capability"
+      );
+      hasLoadedToolsRef.current = false;
     }
-  }, [connected, capabilities?.tools, wsClient, handleListTools]);
+  }, [connected, capabilities?.tools, handleListTools]);
 
   const handleExecuteTool = useCallback(async () => {
     if (!selectedTool || !connected || !wsClient) return;
+
+    // Clear activity messages for this new operation
+    if (wsClient.clearActivityMessages) {
+      wsClient.clearActivityMessages();
+    }
 
     setExecutingTool(true);
     setError(null);
@@ -459,7 +502,7 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
           <Space direction="vertical" style={{ width: "100%" }}>
             <Button
               type="primary"
-              onClick={handleListTools}
+              onClick={handleRefreshTools}
               icon={<Wrench size={16} />}
             >
               Load Tools
@@ -474,7 +517,7 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
                   <Space>
                     <Button
                       size="small"
-                      onClick={handleListTools}
+                      onClick={handleRefreshTools}
                       loading={loadingTools}
                     >
                       Retry
@@ -556,7 +599,7 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
             <Button
               type="link"
               size="small"
-              onClick={handleListTools}
+              onClick={handleRefreshTools}
               loading={loadingTools}
               icon={<Wrench size={12} />}
             >
@@ -590,25 +633,28 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
                 <Wrench size={16} />
                 <Text strong>{getToolDisplayName(selectedTool)}</Text>
                 <Tag color="blue">{getParameterCount(selectedTool)} params</Tag>
+              </div>
+              {/* Annotations on their own line, inline and wrapping if needed */}
+              <div className="flex flex-wrap gap-1 mb-2">
                 {selectedTool.annotations?.readOnlyHint && (
-                  <Tag color="green" className="text-xs">
+                  <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
                     Read-only
-                  </Tag>
+                  </div>
                 )}
                 {selectedTool.annotations?.destructiveHint && (
-                  <Tag color="red" className="text-xs">
+                  <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-50 text-red-700 border border-red-200">
                     Destructive
-                  </Tag>
+                  </div>
                 )}
                 {selectedTool.annotations?.idempotentHint && (
-                  <Tag color="purple" className="text-xs">
+                  <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-50 text-purple-700 border border-purple-200">
                     Idempotent
-                  </Tag>
+                  </div>
                 )}
                 {selectedTool.annotations?.openWorldHint && (
-                  <Tag color="orange" className="text-xs">
+                  <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-orange-50 text-orange-700 border border-orange-200">
                     Open-world
-                  </Tag>
+                  </div>
                 )}
               </div>
               {selectedTool.description && (
@@ -631,7 +677,7 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
     const required = schema?.required || [];
 
     return (
-      <Card size="small" title={`Configure ${selectedTool.name}`}>
+      <Card size="small" title={`Run ${selectedTool.name} Tool`}>
         <Space direction="vertical" style={{ width: "100%" }}>
           {selectedTool.description && (
             <Text type="secondary">{selectedTool.description}</Text>
@@ -850,3 +896,22 @@ export const McpToolsTab: React.FC<McpToolsTabProps> = ({
     </div>
   );
 };
+
+// Custom comparison function to prevent unnecessary re-renders
+const arePropsEqual = (
+  prevProps: McpToolsTabProps,
+  nextProps: McpToolsTabProps
+): boolean => {
+  // Only re-render if connection state, capabilities, or serverParams change
+  return (
+    prevProps.connected === nextProps.connected &&
+    prevProps.capabilities === nextProps.capabilities &&
+    // Compare serverParams by JSON stringifying (deep comparison)
+    JSON.stringify(prevProps.serverParams) ===
+      JSON.stringify(nextProps.serverParams) &&
+    // Don't compare wsClient directly as it might be recreated, but compare its existence
+    !!prevProps.wsClient === !!nextProps.wsClient
+  );
+};
+
+export const McpToolsTab = React.memo(McpToolsTabComponent, arePropsEqual);
