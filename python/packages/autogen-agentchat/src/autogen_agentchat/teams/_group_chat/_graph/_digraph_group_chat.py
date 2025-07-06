@@ -472,11 +472,19 @@ class GraphFlowManager(BaseGroupChatManager):
         # If there are no speakers, trigger the stop agent.
         if not speakers:
             speakers = [_DIGRAPH_STOP_AGENT_NAME]
+            # Reset the execution state when the stop agent is selected, as this means the graph has naturally completed
+            self._reset_execution_state()
 
         return speakers
 
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         pass
+
+    def _reset_execution_state(self) -> None:
+        """Reset the graph execution state to the initial state."""
+        self._remaining = {target: Counter(groups) for target, groups in self._graph.get_remaining_map().items()}
+        self._enqueued_any = {n: {g: False for g in self._enqueued_any[n]} for n in self._enqueued_any}
+        self._ready = deque([n for n in self._graph.get_start_nodes()])
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the execution state."""
@@ -503,9 +511,7 @@ class GraphFlowManager(BaseGroupChatManager):
         self._message_thread.clear()
         if self._termination_condition:
             await self._termination_condition.reset()
-        self._remaining = {target: Counter(groups) for target, groups in self._graph.get_remaining_map().items()}
-        self._enqueued_any = {n: {g: False for g in self._enqueued_any[n]} for n in self._enqueued_any}
-        self._ready = deque([n for n in self._graph.get_start_nodes()])
+        self._reset_execution_state()
 
 
 class _StopAgent(BaseChatAgent):
