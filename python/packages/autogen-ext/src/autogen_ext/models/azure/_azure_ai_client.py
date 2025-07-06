@@ -3,7 +3,7 @@ import logging
 import re
 from asyncio import Task
 from inspect import getfullargspec
-from typing import Any, Dict, List, Mapping, Optional, Sequence, cast
+from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union, cast
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, Image
 from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
@@ -28,6 +28,8 @@ from azure.ai.inference.models import (
 )
 from azure.ai.inference.models import (
     ChatCompletions,
+    ChatCompletionsNamedToolChoice,
+    ChatCompletionsNamedToolChoiceFunction,
     ChatCompletionsToolCall,
     ChatCompletionsToolDefinition,
     CompletionsFinishReason,
@@ -53,7 +55,7 @@ from azure.ai.inference.models import (
     UserMessage as AzureUserMessage,
 )
 from pydantic import BaseModel
-from typing_extensions import AsyncGenerator, Union, Unpack
+from typing_extensions import AsyncGenerator, Unpack
 
 from autogen_ext.models.azure.config import (
     GITHUB_MODELS_ENDPOINT,
@@ -309,7 +311,10 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
     @staticmethod
     def _create_client(config: AzureAIChatCompletionClientConfig) -> ChatCompletionsClient:
-        return ChatCompletionsClient(**config)
+        # Only pass the parameters that ChatCompletionsClient accepts
+        # Remove 'model_info' and other client-specific parameters
+        client_config = {k: v for k, v in config.items() if k not in ("model_info",)}
+        return ChatCompletionsClient(**client_config)  # type: ignore
 
     @staticmethod
     def _prepare_create_args(config: Mapping[str, Any]) -> Dict[str, Any]:
@@ -356,6 +361,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -376,6 +382,12 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         task: Task[ChatCompletions]
 
         if len(tools) > 0:
+            if isinstance(tool_choice, Tool):
+                create_args["tool_choice"] = ChatCompletionsNamedToolChoice(
+                    function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
+                )
+            else:
+                create_args["tool_choice"] = tool_choice
             converted_tools = convert_tools(tools)
             task = asyncio.create_task(  # type: ignore
                 self._client.complete(messages=azure_messages, tools=converted_tools, **create_args)  # type: ignore
@@ -451,6 +463,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -469,6 +482,12 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         azure_messages = [item for sublist in azure_messages_nested for item in sublist]
 
         if len(tools) > 0:
+            if isinstance(tool_choice, Tool):
+                create_args["tool_choice"] = ChatCompletionsNamedToolChoice(
+                    function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
+                )
+            else:
+                create_args["tool_choice"] = tool_choice
             converted_tools = convert_tools(tools)
             task = asyncio.create_task(
                 self._client.complete(messages=azure_messages, tools=converted_tools, stream=True, **create_args)

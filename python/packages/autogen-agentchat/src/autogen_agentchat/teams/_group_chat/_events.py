@@ -41,6 +41,9 @@ class GroupChatStart(BaseModel):
     messages: List[BaseChatMessage] | None = None
     """An optional list of messages to start the group chat."""
 
+    output_task_messages: bool = True
+    """Whether to include task messages in the output. Defaults to True for backward compatibility."""
+
 
 class GroupChatAgentResponse(BaseModel):
     """A response published to a group chat."""

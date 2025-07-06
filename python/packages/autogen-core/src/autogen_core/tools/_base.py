@@ -2,7 +2,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypeVar, cast, runtime_checkable
+from typing import Any, AsyncGenerator, Dict, Generic, Mapping, Protocol, Type, TypeVar, cast, runtime_checkable
 
 import jsonref
 from pydantic import BaseModel
@@ -61,9 +61,17 @@ class Tool(Protocol):
     async def load_state_json(self, state: Mapping[str, Any]) -> None: ...
 
 
+@runtime_checkable
+class StreamTool(Tool, Protocol):
+    def run_json_stream(
+        self, args: Mapping[str, Any], cancellation_token: CancellationToken, call_id: str | None = None
+    ) -> AsyncGenerator[Any, None]: ...
+
+
 ArgsT = TypeVar("ArgsT", bound=BaseModel, contravariant=True)
 ReturnT = TypeVar("ReturnT", bound=BaseModel, covariant=True)
 StateT = TypeVar("StateT", bound=BaseModel)
+StreamT = TypeVar("StreamT", bound=BaseModel, covariant=True)
 
 
 class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
@@ -185,6 +193,59 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
 
     async def load_state_json(self, state: Mapping[str, Any]) -> None:
         pass
+
+
+class BaseStreamTool(
+    BaseTool[ArgsT, ReturnT], StreamTool, ABC, Generic[ArgsT, StreamT, ReturnT], ComponentBase[BaseModel]
+):
+    component_type = "tool"
+
+    @abstractmethod
+    def run_stream(self, args: ArgsT, cancellation_token: CancellationToken) -> AsyncGenerator[StreamT | ReturnT, None]:
+        """Run the tool with the provided arguments and return a stream of data and end with the final return value."""
+        ...
+
+    async def run_json_stream(
+        self,
+        args: Mapping[str, Any],
+        cancellation_token: CancellationToken,
+        call_id: str | None = None,
+    ) -> AsyncGenerator[StreamT | ReturnT, None]:
+        """Run the tool with the provided arguments in a dictionary and return a stream of data
+        from the tool's :meth:`run_stream` method and end with the final return value.
+
+        Args:
+            args (Mapping[str, Any]): The arguments to pass to the tool.
+            cancellation_token (CancellationToken): A token to cancel the operation if needed.
+            call_id (str | None): An optional identifier for the tool call, used for tracing.
+
+        Returns:
+            AsyncGenerator[StreamT | ReturnT, None]: A generator yielding results from the tool's :meth:`run_stream` method.
+        """
+        return_value: ReturnT | StreamT | None = None
+        with trace_tool_span(
+            tool_name=self._name,
+            tool_description=self._description,
+            tool_call_id=call_id,
+        ):
+            # Execute the tool's run_stream method
+            async for result in self.run_stream(self._args_type.model_validate(args), cancellation_token):
+                return_value = result
+                yield result
+
+        assert return_value is not None, "The tool must yield a final return value at the end of the stream."
+        if not isinstance(return_value, self._return_type):
+            raise TypeError(
+                f"Expected return value of type {self._return_type.__name__}, but got {type(return_value).__name__}"
+            )
+
+        # Log the tool call event
+        event = ToolCallEvent(
+            tool_name=self.name,
+            arguments=dict(args),  # Using the raw args passed to run_json
+            result=self.return_value_as_string(return_value),
+        )
+        logger.info(event)
 
 
 class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, StateT], ComponentBase[BaseModel]):

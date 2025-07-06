@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
+from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Sequence, Union
 
 import pytest
 from autogen_core import EVENT_LOGGER_NAME, AgentId, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
@@ -102,6 +102,7 @@ async def test_caller_loop() -> None:
             messages: Sequence[LLMMessage],
             *,
             tools: Sequence[Tool | ToolSchema] = [],
+            tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
             json_output: Optional[bool | type[BaseModel]] = None,
             extra_create_args: Mapping[str, Any] = {},
             cancellation_token: Optional[CancellationToken] = None,
@@ -127,6 +128,7 @@ async def test_caller_loop() -> None:
             messages: Sequence[LLMMessage],
             *,
             tools: Sequence[Tool | ToolSchema] = [],
+            tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
             json_output: Optional[bool | type[BaseModel]] = None,
             extra_create_args: Mapping[str, Any] = {},
             cancellation_token: Optional[CancellationToken] = None,
