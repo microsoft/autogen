@@ -552,12 +552,12 @@ async def test_digraph_group_chat_parallel_join_any(runtime: AgentRuntime | None
 
     result: TaskResult = await team.run(task="Start")
 
-    assert len(result.messages) == 5
+    assert len(result.messages) == 4
     assert result.messages[0].source == "user"
     sources = [m.source for m in result.messages[1:]]
 
     # C must be last
-    assert sources[-2] == "C"
+    assert sources[-1] == "C"
 
     # A and B must both execute
     assert {"A", "B"}.issubset(set(sources))
@@ -1402,7 +1402,7 @@ async def test_graph_builder_sequential_execution(runtime: AgentRuntime | None) 
     )
 
     result = await team.run(task="Start")
-    assert [m.source for m in result.messages[1:-1]] == ["A", "B", "C"]
+    assert [m.source for m in result.messages[1:]] == ["A", "B", "C"]
     assert result.stop_reason is not None
 
 
