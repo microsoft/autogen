@@ -465,9 +465,31 @@ class GraphFlowManager(BaseGroupChatManager):
             # Reset the bookkeeping for the specific activation groups that were triggered
             self._reset_triggered_activation_groups(speaker)
 
-        # If there are no speakers, the graph execution is complete.
-        # Signal termination directly since no agents will be selected.
-        if not speakers:
+        return speakers
+
+    async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
+        pass
+
+    async def _apply_termination_condition(
+        self, delta: Sequence[BaseAgentEvent | BaseChatMessage], increment_turn_count: bool = False
+    ) -> bool:
+        """Apply termination condition including graph-specific completion logic.
+        
+        First checks standard termination conditions, then checks if graph execution is complete.
+        
+        Args:
+            delta: The message delta to check termination conditions against
+            increment_turn_count: Whether to increment the turn count
+            
+        Returns:
+            True if the conversation should be terminated, False otherwise
+        """
+        # First apply the standard termination conditions from the base class
+        if await super()._apply_termination_condition(delta, increment_turn_count):
+            return True
+        
+        # Check if the graph execution is complete (no ready speakers)
+        if not self._ready:
             stop_message = StopMessage(
                 content=_DIGRAPH_STOP_AGENT_MESSAGE,
                 source=self._name,
@@ -480,11 +502,9 @@ class GraphFlowManager(BaseGroupChatManager):
             self._current_turn = 0
             # Signal termination to the caller of the team.
             await self._signal_termination(stop_message)
-
-        return speakers
-
-    async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
-        pass
+            return True
+            
+        return False
 
     def _reset_execution_state(self) -> None:
         """Reset the graph execution state to the initial state."""
