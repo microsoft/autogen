@@ -461,14 +461,13 @@ async def test_digraph_group_chat_sequential_execution(runtime: AgentRuntime | N
     # Run the chat
     result: TaskResult = await team.run(task="Hello from User")
 
-    assert len(result.messages) == 5
+    assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].source == "user"
     assert result.messages[1].source == "A"
     assert result.messages[2].source == "B"
     assert result.messages[3].source == "C"
-    assert result.messages[4].source == _DIGRAPH_STOP_AGENT_NAME
-    assert all(isinstance(m, TextMessage) for m in result.messages[:-1])
+    assert all(isinstance(m, TextMessage) for m in result.messages)
     assert result.stop_reason is not None
 
 
@@ -494,11 +493,10 @@ async def test_digraph_group_chat_parallel_fanout(runtime: AgentRuntime | None) 
     )
 
     result: TaskResult = await team.run(task="Start")
-    assert len(result.messages) == 5
+    assert len(result.messages) == 4
     assert result.messages[0].source == "user"
     assert result.messages[1].source == "A"
-    assert set(m.source for m in result.messages[2:-1]) == {"B", "C"}
-    assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
+    assert set(m.source for m in result.messages[2:]) == {"B", "C"}
     assert result.stop_reason is not None
 
 
@@ -524,11 +522,10 @@ async def test_digraph_group_chat_parallel_join_all(runtime: AgentRuntime | None
     )
 
     result: TaskResult = await team.run(task="Go")
-    assert len(result.messages) == 5
+    assert len(result.messages) == 4
     assert result.messages[0].source == "user"
     assert set([result.messages[1].source, result.messages[2].source]) == {"A", "B"}
     assert result.messages[3].source == "C"
-    assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
     assert result.stop_reason is not None
 
 
@@ -570,7 +567,6 @@ async def test_digraph_group_chat_parallel_join_any(runtime: AgentRuntime | None
     index_b = sources.index("B")
     index_c = sources.index("C")
     assert index_c > min(index_a, index_b)
-    assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
     assert result.stop_reason is not None
 
 
@@ -594,10 +590,9 @@ async def test_digraph_group_chat_multiple_start_nodes(runtime: AgentRuntime | N
     )
 
     result: TaskResult = await team.run(task="Start")
-    assert len(result.messages) == 4
+    assert len(result.messages) == 3
     assert result.messages[0].source == "user"
-    assert set(m.source for m in result.messages[1:-1]) == {"A", "B"}
-    assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
+    assert set(m.source for m in result.messages[1:]) == {"A", "B"}
     assert result.stop_reason is not None
 
 
@@ -625,11 +620,10 @@ async def test_digraph_group_chat_disconnected_graph(runtime: AgentRuntime | Non
     )
 
     result: TaskResult = await team.run(task="Go")
-    assert len(result.messages) == 6
+    assert len(result.messages) == 5
     assert result.messages[0].source == "user"
     assert {"A", "C"} == set([result.messages[1].source, result.messages[2].source])
     assert {"B", "D"} == set([result.messages[3].source, result.messages[4].source])
-    assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
     assert result.stop_reason is not None
 
 
@@ -733,16 +727,14 @@ async def test_digraph_group_chat_loop_with_exit_condition(runtime: AgentRuntime
         "A",
         "B",
         "C",
-        _DIGRAPH_STOP_AGENT_NAME,
     ]
 
     actual_sources = [m.source for m in result.messages]
 
     assert actual_sources == expected_sources
     assert result.stop_reason is not None
-    assert result.messages[-2].source == "C"
-    assert any(m.content == "exit" for m in result.messages[:-1])  # type: ignore[attr-defined,union-attr]
-    assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
+    assert result.messages[-1].source == "C"
+    assert any(m.content == "exit" for m in result.messages)  # type: ignore[attr-defined,union-attr]
 
 
 @pytest.mark.asyncio
@@ -796,16 +788,14 @@ async def test_digraph_group_chat_loop_with_self_cycle(runtime: AgentRuntime | N
         "B",  # 2nd loop
         "B",
         "C",
-        _DIGRAPH_STOP_AGENT_NAME,
     ]
 
     actual_sources = [m.source for m in result.messages]
 
     assert actual_sources == expected_sources
     assert result.stop_reason is not None
-    assert result.messages[-2].source == "C"
-    assert any(m.content == "exit" for m in result.messages[:-1])  # type: ignore[attr-defined,union-attr]
-    assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
+    assert result.messages[-1].source == "C"
+    assert any(m.content == "exit" for m in result.messages)  # type: ignore[attr-defined,union-attr]
 
 
 @pytest.mark.asyncio
@@ -886,16 +876,14 @@ async def test_digraph_group_chat_loop_with_two_cycles(runtime: AgentRuntime | N
         "Y",  # O -> Y
         "O",  # Y -> O
         "E",  # O -> E
-        _DIGRAPH_STOP_AGENT_NAME,
     ]
 
     actual_sources = [m.source for m in result.messages]
 
     assert actual_sources == expected_sources
     assert result.stop_reason is not None
-    assert result.messages[-2].source == "E"
-    assert any(m.content == "exit" for m in result.messages[:-1])  # type: ignore[attr-defined,union-attr]
-    assert result.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
+    assert result.messages[-1].source == "E"
+    assert any(m.content == "exit" for m in result.messages)  # type: ignore[attr-defined,union-attr]
 
 
 @pytest.mark.asyncio
@@ -1546,9 +1534,9 @@ async def test_graph_flow_serialize_deserialize() -> None:
     assert isinstance(results.messages[2], TextMessage)
     assert results.messages[2].source == "B"
     assert results.messages[2].content == "0"
-    assert isinstance(results.messages[-1], StopMessage)
-    assert results.messages[-1].source == _DIGRAPH_STOP_AGENT_NAME
-    assert results.messages[-1].content == "Digraph execution is complete"
+    # No stop agent message should appear in the conversation
+    assert all(not isinstance(m, StopMessage) for m in results.messages)
+    assert results.stop_reason is not None
 
 
 @pytest.mark.asyncio
@@ -1590,9 +1578,8 @@ async def test_graph_flow_stateful_pause_and_resume_with_termination() -> None:
 
     # Resume.
     result = await new_team.run()
-    assert len(result.messages) == 2
+    assert len(result.messages) == 1
     assert result.messages[0].source == "B"
-    assert result.messages[1].source == _DIGRAPH_STOP_AGENT_NAME
 
 
 @pytest.mark.asyncio
@@ -1656,27 +1643,25 @@ async def test_digraph_group_chat_multiple_task_execution(runtime: AgentRuntime 
     # Run the first task
     result1: TaskResult = await team.run(task="First task")
 
-    assert len(result1.messages) == 5
+    assert len(result1.messages) == 4
     assert isinstance(result1.messages[0], TextMessage)
     assert result1.messages[0].source == "user"
     assert result1.messages[0].content == "First task"
     assert result1.messages[1].source == "A"
     assert result1.messages[2].source == "B"
     assert result1.messages[3].source == "C"
-    assert result1.messages[4].source == _DIGRAPH_STOP_AGENT_NAME
     assert result1.stop_reason is not None
 
     # Run the second task - should work without explicit reset
     result2: TaskResult = await team.run(task="Second task")
 
-    assert len(result2.messages) == 5
+    assert len(result2.messages) == 4
     assert isinstance(result2.messages[0], TextMessage)
     assert result2.messages[0].source == "user"
     assert result2.messages[0].content == "Second task"
     assert result2.messages[1].source == "A"
     assert result2.messages[2].source == "B"
     assert result2.messages[3].source == "C"
-    assert result2.messages[4].source == _DIGRAPH_STOP_AGENT_NAME
     assert result2.stop_reason is not None
 
     # Verify agents were properly reset and executed again
@@ -1728,10 +1713,9 @@ async def test_digraph_group_chat_resume_with_termination_condition(runtime: Age
     # Resume the graph flow with no task to continue where it left off
     result2: TaskResult = await team.run()
 
-    # Should continue and execute C, then complete with stop agent
-    assert len(result2.messages) == 2
+    # Should continue and execute C, then complete without stop agent message
+    assert len(result2.messages) == 1
     assert result2.messages[0].source == "C"
-    assert result2.messages[1].source == _DIGRAPH_STOP_AGENT_NAME
     assert result2.stop_reason is not None
 
     # Verify C now ran and the execution state was preserved

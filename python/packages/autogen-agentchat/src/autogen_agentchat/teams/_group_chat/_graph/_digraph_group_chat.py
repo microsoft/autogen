@@ -2,20 +2,16 @@ import asyncio
 from collections import Counter, deque
 from typing import Any, Callable, Deque, Dict, List, Literal, Mapping, Sequence, Set, Union
 
-from autogen_core import AgentRuntime, CancellationToken, Component, ComponentModel
+from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel, Field, model_validator
 from typing_extensions import Self
 
-from autogen_agentchat.agents import BaseChatAgent
-from autogen_agentchat.base import ChatAgent, OrTerminationCondition, Response, TerminationCondition
-from autogen_agentchat.conditions import StopMessageTermination
+from autogen_agentchat.base import ChatAgent, TerminationCondition
 from autogen_agentchat.messages import (
     BaseAgentEvent,
     BaseChatMessage,
-    ChatMessage,
     MessageFactory,
     StopMessage,
-    TextMessage,
 )
 from autogen_agentchat.state import BaseGroupChatManagerState
 from autogen_agentchat.teams import BaseGroupChat
@@ -469,11 +465,21 @@ class GraphFlowManager(BaseGroupChatManager):
             # Reset the bookkeeping for the specific activation groups that were triggered
             self._reset_triggered_activation_groups(speaker)
 
-        # If there are no speakers, trigger the stop agent.
+        # If there are no speakers, the graph execution is complete.
+        # Signal termination directly since no agents will be selected.
         if not speakers:
-            speakers = [_DIGRAPH_STOP_AGENT_NAME]
-            # Reset the execution state when the stop agent is selected, as this means the graph has naturally completed
+            stop_message = StopMessage(
+                content=_DIGRAPH_STOP_AGENT_MESSAGE,
+                source=self._name,
+            )
+            # Reset the execution state when the graph has naturally completed
             self._reset_execution_state()
+            # Reset the termination conditions and turn count.
+            if self._termination_condition is not None:
+                await self._termination_condition.reset()
+            self._current_turn = 0
+            # Signal termination to the caller of the team.
+            await self._signal_termination(stop_message)
 
         return speakers
 
@@ -512,21 +518,6 @@ class GraphFlowManager(BaseGroupChatManager):
         if self._termination_condition:
             await self._termination_condition.reset()
         self._reset_execution_state()
-
-
-class _StopAgent(BaseChatAgent):
-    def __init__(self) -> None:
-        super().__init__(_DIGRAPH_STOP_AGENT_NAME, "Agent that terminates the GraphFlow.")
-
-    @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
-        return (TextMessage, StopMessage)
-
-    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
-        return Response(chat_message=StopMessage(content=_DIGRAPH_STOP_AGENT_MESSAGE, source=self.name))
-
-    async def on_reset(self, cancellation_token: CancellationToken) -> None:
-        pass
 
 
 class GraphFlowConfig(BaseModel):
@@ -779,15 +770,8 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
         self._input_participants = participants
         self._input_termination_condition = termination_condition
 
-        stop_agent = _StopAgent()
-        stop_agent_termination = StopMessageTermination()
-        termination_condition = (
-            stop_agent_termination
-            if not termination_condition
-            else OrTerminationCondition(stop_agent_termination, termination_condition)
-        )
-
-        participants = [stop_agent] + participants
+        # No longer add _StopAgent or StopMessageTermination
+        # Termination is now handled directly in GraphFlowManager._apply_termination_condition
         super().__init__(
             participants,
             group_chat_manager_name="GraphManager",
