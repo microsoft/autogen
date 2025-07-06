@@ -6,6 +6,8 @@ import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
+from pydantic import BaseModel, Field
+
 from graphrag.config.config_file_loader import load_config_from_file
 from graphrag.query.indexer_adapters import (
     read_indexer_entities,
@@ -17,7 +19,6 @@ from graphrag.query.llm.get_client import get_llm, get_text_embedder
 from graphrag.query.structured_search.local_search.mixed_context import LocalSearchMixedContext
 from graphrag.query.structured_search.local_search.search import LocalSearch
 from graphrag.vector_stores.lancedb import LanceDBVectorStore
-from pydantic import BaseModel, Field
 
 from ._config import LocalContextConfig, SearchConfig
 from ._config import LocalDataConfig as DataConfig
