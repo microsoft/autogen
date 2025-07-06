@@ -8,6 +8,7 @@ from autogen_core.tools import (
     ImageResultContent,
     ParametersSchema,
     TextResultContent,
+    ToolOverride,
     ToolResult,
     ToolSchema,
     Workbench,
@@ -18,13 +19,6 @@ from typing_extensions import Self
 
 from ._actor import McpSessionActor
 from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
-
-
-class ToolOverride(BaseModel):
-    """Override configuration for a tool's name and/or description."""
-
-    name: Optional[str] = None
-    description: Optional[str] = None
 
 
 class McpWorkbenchConfig(BaseModel):
@@ -82,7 +76,8 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams, ToolOverride
+            from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+            from autogen_core.tools import ToolOverride
 
 
             async def main() -> None:
@@ -199,15 +194,16 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         # Build reverse mapping from override names to original names for call_tool
         self._override_name_to_original: Dict[str, str] = {}
         for original_name, override in self._tool_overrides.items():
-            if override.name:
+            override_name = override.name
+            if override_name and override_name != original_name:
                 # Check for conflicts with other override names
-                if override.name in self._override_name_to_original:
-                    existing_original = self._override_name_to_original[override.name]
+                if override_name in self._override_name_to_original:
+                    existing_original = self._override_name_to_original[override_name]
                     raise ValueError(
-                        f"Tool override name '{override.name}' is used by multiple tools: "
+                        f"Tool override name '{override_name}' is used by multiple tools: "
                         f"'{existing_original}' and '{original_name}'. Override names must be unique."
                     )
-                self._override_name_to_original[override.name] = original_name
+                self._override_name_to_original[override_name] = original_name
 
         # self._session: ClientSession | None = None
         self._actor: McpSessionActor | None = None

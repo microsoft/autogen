@@ -1,7 +1,10 @@
+import asyncio
+from typing import Any, Dict
 from unittest.mock import AsyncMock
 
 import pytest
-from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams, ToolOverride
+from autogen_core.tools import ToolOverride
+from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 from mcp import Tool
 from mcp.types import ListToolsResult
 
@@ -51,18 +54,22 @@ async def test_mcp_workbench_with_tool_overrides(
     """Test McpWorkbench with tool name and description overrides."""
 
     # Define tool overrides
-    overrides = {
+    overrides: Dict[str, ToolOverride] = {
         "fetch": ToolOverride(name="web_fetch", description="Enhanced web fetching tool"),
-        "search": ToolOverride(description="Advanced search functionality"),  # Only description override
+        "search": ToolOverride(description="Advanced search functionality"),  # Only override description
     }
 
     # Create workbench with overrides
     workbench = McpWorkbench(server_params=sample_server_params, tool_overrides=overrides)
-    workbench._actor = mock_mcp_actor
+    workbench._actor = mock_mcp_actor  # type: ignore[reportPrivateUsage]
 
     # Mock list_tools response
     list_tools_result = ListToolsResult(tools=sample_mcp_tools)
-    mock_mcp_actor.call.return_value = list_tools_result
+
+    # The actor.call() should return a Future that when awaited returns the list_tools_result
+    future_result: asyncio.Future[ListToolsResult] = asyncio.Future()
+    future_result.set_result(list_tools_result)
+    mock_mcp_actor.call.return_value = future_result
 
     try:
         # List tools and verify overrides are applied
@@ -81,7 +88,7 @@ async def test_mcp_workbench_with_tool_overrides(
         mock_mcp_actor.call.assert_called_with("list_tools", None)
 
     finally:
-        workbench._actor = None
+        workbench._actor = None  # type: ignore[reportPrivateUsage]
 
 
 @pytest.mark.asyncio
@@ -90,26 +97,32 @@ async def test_mcp_workbench_call_tool_with_overrides(
 ) -> None:
     """Test calling tools with override names maps back to original names."""
 
-    overrides = {"fetch": ToolOverride(name="web_fetch", description="Enhanced web fetching tool")}
+    overrides: Dict[str, ToolOverride] = {
+        "fetch": ToolOverride(name="web_fetch", description="Enhanced web fetching tool")
+    }
 
     workbench = McpWorkbench(server_params=sample_server_params, tool_overrides=overrides)
-    workbench._actor = mock_mcp_actor
+    workbench._actor = mock_mcp_actor  # type: ignore[reportPrivateUsage]
 
     # Mock successful tool call response
     from mcp.types import CallToolResult, TextContent
 
     mock_result = CallToolResult(content=[TextContent(text="Mock response", type="text")], isError=False)
 
-    # Setup mock to return different results for different calls
-    async def mock_call(method, args):
+    # Create futures for each call
+    def mock_call_side_effect(
+        method: str, args: dict[str, Any] | None = None
+    ) -> asyncio.Future[ListToolsResult | CallToolResult]:
+        future_result: asyncio.Future[ListToolsResult | CallToolResult] = asyncio.Future()
         if method == "list_tools":
-            return ListToolsResult(tools=sample_mcp_tools)
+            future_result.set_result(ListToolsResult(tools=sample_mcp_tools))
         elif method == "call_tool":
-            return mock_result
+            future_result.set_result(mock_result)
         else:
-            raise ValueError(f"Unexpected method: {method}")
+            future_result.set_exception(ValueError(f"Unexpected method: {method}"))
+        return future_result
 
-    mock_mcp_actor.call.side_effect = mock_call
+    mock_mcp_actor.call.side_effect = mock_call_side_effect
 
     try:
         # Call tool using override name
@@ -127,7 +140,7 @@ async def test_mcp_workbench_call_tool_with_overrides(
         assert call_args[0][1]["kargs"] == {"url": "https://example.com"}
 
     finally:
-        workbench._actor = None
+        workbench._actor = None  # type: ignore[reportPrivateUsage]
 
 
 @pytest.mark.asyncio
@@ -137,11 +150,13 @@ async def test_mcp_workbench_without_overrides(
     """Test McpWorkbench without overrides (original behavior)."""
 
     workbench = McpWorkbench(server_params=sample_server_params)
-    workbench._actor = mock_mcp_actor
+    workbench._actor = mock_mcp_actor  # type: ignore[reportPrivateUsage]
 
     # Mock list_tools response
     list_tools_result = ListToolsResult(tools=sample_mcp_tools)
-    mock_mcp_actor.call.return_value = list_tools_result
+    future_result: asyncio.Future[ListToolsResult] = asyncio.Future()
+    future_result.set_result(list_tools_result)
+    mock_mcp_actor.call.return_value = future_result
 
     try:
         tools = await workbench.list_tools()
@@ -154,14 +169,16 @@ async def test_mcp_workbench_without_overrides(
         assert tools[1].get("description") == "Searches for information"
 
     finally:
-        workbench._actor = None
+        workbench._actor = None  # type: ignore[reportPrivateUsage]
 
 
 @pytest.mark.asyncio
 async def test_mcp_workbench_serialization_with_overrides(sample_server_params: StdioServerParams) -> None:
     """Test that McpWorkbench can be serialized and deserialized with overrides."""
 
-    overrides = {"fetch": ToolOverride(name="web_fetch", description="Enhanced web fetching tool")}
+    overrides: Dict[str, ToolOverride] = {
+        "fetch": ToolOverride(name="web_fetch", description="Enhanced web fetching tool")
+    }
 
     # Create workbench with overrides
     workbench = McpWorkbench(server_params=sample_server_params, tool_overrides=overrides)
@@ -175,9 +192,9 @@ async def test_mcp_workbench_serialization_with_overrides(sample_server_params: 
 
     # Load workbench from configuration
     new_workbench = McpWorkbench.load_component(config)
-    assert len(new_workbench._tool_overrides) == 1
-    assert new_workbench._tool_overrides["fetch"].name == "web_fetch"
-    assert new_workbench._tool_overrides["fetch"].description == "Enhanced web fetching tool"
+    assert len(new_workbench._tool_overrides) == 1  # type: ignore[reportPrivateUsage]
+    assert new_workbench._tool_overrides["fetch"].name == "web_fetch"  # type: ignore[reportPrivateUsage]
+    assert new_workbench._tool_overrides["fetch"].description == "Enhanced web fetching tool"  # type: ignore[reportPrivateUsage]
 
 
 @pytest.mark.asyncio
@@ -186,17 +203,19 @@ async def test_mcp_workbench_partial_overrides(
 ) -> None:
     """Test McpWorkbench with partial overrides (name only, description only)."""
 
-    overrides = {
+    overrides: Dict[str, ToolOverride] = {
         "fetch": ToolOverride(name="web_fetch"),  # Only name override
         "search": ToolOverride(description="Advanced search"),  # Only description override
     }
 
     workbench = McpWorkbench(server_params=sample_server_params, tool_overrides=overrides)
-    workbench._actor = mock_mcp_actor
+    workbench._actor = mock_mcp_actor  # type: ignore[reportPrivateUsage]
 
     # Mock list_tools response
     list_tools_result = ListToolsResult(tools=sample_mcp_tools)
-    mock_mcp_actor.call.return_value = list_tools_result
+    future_result: asyncio.Future[ListToolsResult] = asyncio.Future()
+    future_result.set_result(list_tools_result)
+    mock_mcp_actor.call.return_value = future_result
 
     try:
         tools = await workbench.list_tools()
@@ -210,7 +229,7 @@ async def test_mcp_workbench_partial_overrides(
         assert tools[1].get("description") == "Advanced search"  # Overridden description
 
     finally:
-        workbench._actor = None
+        workbench._actor = None  # type: ignore[reportPrivateUsage]
 
 
 def test_mcp_tool_override_model() -> None:
@@ -241,19 +260,19 @@ def test_mcp_tool_override_model() -> None:
 async def test_mcp_workbench_override_name_to_original_mapping(sample_server_params: StdioServerParams) -> None:
     """Test that the reverse mapping from override names to original names works correctly."""
 
-    overrides = {
+    overrides: Dict[str, ToolOverride] = {
         "original1": ToolOverride(name="override1"),
         "original2": ToolOverride(name="override2"),
-        "original3": ToolOverride(description="only description override"),  # No name override
+        "original3": ToolOverride(description="only description override"),  # No name change, only description
     }
 
     workbench = McpWorkbench(server_params=sample_server_params, tool_overrides=overrides)
 
     # Check reverse mapping is built correctly
-    assert workbench._override_name_to_original["override1"] == "original1"
-    assert workbench._override_name_to_original["override2"] == "original2"
-    assert "original3" not in workbench._override_name_to_original  # No name override
-    assert len(workbench._override_name_to_original) == 2
+    assert workbench._override_name_to_original["override1"] == "original1"  # type: ignore[reportPrivateUsage]
+    assert workbench._override_name_to_original["override2"] == "original2"  # type: ignore[reportPrivateUsage]
+    assert "original3" not in workbench._override_name_to_original  # type: ignore[reportPrivateUsage]
+    assert len(workbench._override_name_to_original) == 2  # type: ignore[reportPrivateUsage]
 
 
 def test_mcp_workbench_conflict_detection() -> None:
@@ -262,13 +281,16 @@ def test_mcp_workbench_conflict_detection() -> None:
     server_params = StdioServerParams(command="echo", args=["test"])
 
     # Test 1: Valid overrides - should work
-    overrides_valid = {"fetch": ToolOverride(name="web_fetch"), "search": ToolOverride(name="advanced_search")}
+    overrides_valid: Dict[str, ToolOverride] = {
+        "fetch": ToolOverride(name="web_fetch"),
+        "search": ToolOverride(name="advanced_search"),
+    }
     workbench_valid = McpWorkbench(server_params=server_params, tool_overrides=overrides_valid)
-    assert workbench_valid._override_name_to_original["web_fetch"] == "fetch"
-    assert workbench_valid._override_name_to_original["advanced_search"] == "search"
+    assert workbench_valid._override_name_to_original["web_fetch"] == "fetch"  # type: ignore[reportPrivateUsage]
+    assert workbench_valid._override_name_to_original["advanced_search"] == "search"  # type: ignore[reportPrivateUsage]
 
     # Test 2: Duplicate override names - should fail
-    overrides_duplicate = {
+    overrides_duplicate: Dict[str, ToolOverride] = {
         "fetch": ToolOverride(name="same_name"),
         "search": ToolOverride(name="same_name"),  # Duplicate
     }

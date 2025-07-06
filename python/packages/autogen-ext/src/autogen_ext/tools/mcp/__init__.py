@@ -5,7 +5,7 @@ from ._session import create_mcp_server_session
 from ._sse import SseMcpToolAdapter
 from ._stdio import StdioMcpToolAdapter
 from ._streamable_http import StreamableHttpMcpToolAdapter
-from ._workbench import McpWorkbench, ToolOverride
+from ._workbench import McpWorkbench
 
 __all__ = [
     "create_mcp_server_session",
@@ -19,5 +19,4 @@ __all__ = [
     "McpServerParams",
     "mcp_server_tools",
     "McpWorkbench",
-    "ToolOverride",
 ]

@@ -1,5 +1,4 @@
-import asyncio
-from typing import Annotated
+from typing import Annotated, Dict
 
 import pytest
 from autogen_core.code_executor import ImportFromModule
@@ -30,7 +29,7 @@ async def test_static_workbench_with_tool_overrides() -> None:
     )
 
     # Define tool overrides
-    overrides = {
+    overrides: Dict[str, ToolOverride] = {
         "double": ToolOverride(name="multiply_by_two", description="Multiplies a number by 2"),
         "add": ToolOverride(description="Performs addition of two integers"),  # Only override description
     }
@@ -124,7 +123,9 @@ async def test_static_workbench_serialization_with_overrides() -> None:
         global_imports=[ImportFromModule(module="typing_extensions", imports=["Annotated"])],
     )
 
-    overrides = {"double": ToolOverride(name="multiply_by_two", description="Multiplies a number by 2")}
+    overrides: Dict[str, ToolOverride] = {
+        "double": ToolOverride(name="multiply_by_two", description="Multiplies a number by 2")
+    }
 
     # Create workbench with overrides
     workbench = StaticWorkbench(tools=[test_tool], tool_overrides=overrides)
@@ -170,7 +171,7 @@ async def test_static_workbench_partial_overrides() -> None:
         global_imports=[ImportFromModule(module="typing_extensions", imports=["Annotated"])],
     )
 
-    overrides = {
+    overrides: Dict[str, ToolOverride] = {
         "tool1": ToolOverride(name="renamed_tool1"),  # Only name override
         "tool2": ToolOverride(description="New description 2"),  # Only description override
     }
@@ -253,29 +254,32 @@ def test_static_workbench_conflict_detection() -> None:
     )
 
     # Test 1: Valid overrides - should work
-    overrides_valid = {"tool1": ToolOverride(name="renamed_tool1"), "tool2": ToolOverride(name="renamed_tool2")}
+    overrides_valid: Dict[str, ToolOverride] = {
+        "tool1": ToolOverride(name="renamed_tool1"),
+        "tool2": ToolOverride(name="renamed_tool2"),
+    }
     workbench_valid = StaticWorkbench(tools=[tool1, tool2, tool3], tool_overrides=overrides_valid)
-    assert "renamed_tool1" in workbench_valid._override_name_to_original
-    assert "renamed_tool2" in workbench_valid._override_name_to_original
+    assert "renamed_tool1" in workbench_valid._override_name_to_original  # type: ignore[reportPrivateUsage]
+    assert "renamed_tool2" in workbench_valid._override_name_to_original  # type: ignore[reportPrivateUsage]
 
     # Test 2: Conflict with existing tool name - should fail
-    overrides_conflict = {
+    overrides_conflict: Dict[str, ToolOverride] = {
         "tool1": ToolOverride(name="tool2")  # tool2 already exists
     }
     with pytest.raises(ValueError):
         StaticWorkbench(tools=[tool1, tool2, tool3], tool_overrides=overrides_conflict)
 
     # Test 3: Duplicate override names - should fail
-    overrides_duplicate = {
+    overrides_duplicate: Dict[str, ToolOverride] = {
         "tool1": ToolOverride(name="same_name"),
         "tool2": ToolOverride(name="same_name"),  # Duplicate
     }
     with pytest.raises(ValueError):
         StaticWorkbench(tools=[tool1, tool2, tool3], tool_overrides=overrides_duplicate)
 
-    # Test 4: Self-renaming - should work
-    overrides_self = {
+    # Test 4: Self-renaming - should work but not add to reverse mapping
+    overrides_self: Dict[str, ToolOverride] = {
         "tool1": ToolOverride(name="tool1")  # Renaming to itself
     }
     workbench_self = StaticWorkbench(tools=[tool1, tool2, tool3], tool_overrides=overrides_self)
-    assert workbench_self._override_name_to_original["tool1"] == "tool1"
+    assert "tool1" not in workbench_self._override_name_to_original  # type: ignore[reportPrivateUsage]

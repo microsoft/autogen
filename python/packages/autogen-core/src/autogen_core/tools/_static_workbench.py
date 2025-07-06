@@ -7,15 +7,8 @@ from typing_extensions import Self
 
 from .._cancellation_token import CancellationToken
 from .._component_config import Component, ComponentModel
-from ._base import BaseTool, StreamTool, ToolSchema
+from ._base import BaseTool, StreamTool, ToolOverride, ToolSchema
 from ._workbench import StreamWorkbench, TextResultContent, ToolResult, Workbench
-
-
-class ToolOverride(BaseModel):
-    """Override configuration for a tool's name and/or description."""
-
-    name: Optional[str] = None
-    description: Optional[str] = None
 
 
 class StaticWorkbenchConfig(BaseModel):
@@ -56,7 +49,7 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         existing_tool_names = {tool.name for tool in self._tools}
 
         for original_name, override in self._tool_overrides.items():
-            if override.name:
+            if override.name and override.name != original_name:
                 # Check for conflicts with existing tool names
                 if override.name in existing_tool_names and override.name != original_name:
                     raise ValueError(
@@ -73,7 +66,7 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
                 self._override_name_to_original[override.name] = original_name
 
     async def list_tools(self) -> List[ToolSchema]:
-        result_schemas = []
+        result_schemas: List[ToolSchema] = []
         for tool in self._tools:
             original_schema = tool.schema
 
