@@ -24,7 +24,6 @@ from autogen_agentchat.teams._group_chat._events import (  # type: ignore[attr-d
     GroupChatTermination,
 )
 from autogen_agentchat.teams._group_chat._graph._digraph_group_chat import (
-    _DIGRAPH_STOP_AGENT_NAME,  # pyright: ignore[reportPrivateUsage]
     DiGraph,
     DiGraphEdge,
     DiGraphNode,

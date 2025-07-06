@@ -19,8 +19,7 @@ from autogen_agentchat.teams import BaseGroupChat
 from ..._group_chat._base_group_chat_manager import BaseGroupChatManager
 from ..._group_chat._events import GroupChatTermination
 
-_DIGRAPH_STOP_AGENT_NAME = "DiGraphStopAgent"
-_DIGRAPH_STOP_AGENT_MESSAGE = "Digraph execution is complete"
+_DIGRAPH_STOP_MESSAGE = "Digraph execution is complete"
 
 
 class DiGraphEdge(BaseModel):
@@ -487,7 +486,7 @@ class GraphFlowManager(BaseGroupChatManager):
         # Check if the graph execution is complete (no ready speakers) - prioritize this check
         if not self._ready:
             stop_message = StopMessage(
-                content=_DIGRAPH_STOP_AGENT_MESSAGE,
+                content=_DIGRAPH_STOP_MESSAGE,
                 source=self._name,
             )
             # Reset the execution state when the graph has naturally completed
