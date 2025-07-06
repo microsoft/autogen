@@ -407,7 +407,7 @@ class _EchoAgent(BaseChatAgent):
 
     async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) > 0:
-            assert isinstance(messages[0], TextMessage)
+            assert isinstance(messages[0], TextMessage) or isinstance(messages[0], StopMessage)
             self._last_message = messages[0].content
             self._total_messages += 1
             return Response(chat_message=TextMessage(content=messages[0].content, source=self.name))
@@ -1719,10 +1719,10 @@ async def test_digraph_group_chat_resume_with_termination_condition(runtime: Age
     assert result1.messages[1].source == "A"
     assert result1.messages[2].source == "B"
     assert result1.stop_reason is not None
-    
+
     # Verify A and B ran, but C did not
     assert agent_a.total_messages == 1
-    assert agent_b.total_messages == 1 
+    assert agent_b.total_messages == 1
     assert agent_c.total_messages == 0
 
     # Resume the graph flow with no task to continue where it left off
@@ -1736,5 +1736,5 @@ async def test_digraph_group_chat_resume_with_termination_condition(runtime: Age
 
     # Verify C now ran and the execution state was preserved
     assert agent_a.total_messages == 1  # Still only ran once
-    assert agent_b.total_messages == 1  # Still only ran once 
+    assert agent_b.total_messages == 1  # Still only ran once
     assert agent_c.total_messages == 1  # Now ran once

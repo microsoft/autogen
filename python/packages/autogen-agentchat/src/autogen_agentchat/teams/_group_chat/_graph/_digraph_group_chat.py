@@ -404,8 +404,6 @@ class GraphFlowManager(BaseGroupChatManager):
         assert isinstance(message, BaseChatMessage)
         source = message.source
 
-
-
         # Propagate the update to the children of the node.
         for edge in self._edges[source]:
             # Use the new check_condition method that handles both string and callable conditions
@@ -487,8 +485,6 @@ class GraphFlowManager(BaseGroupChatManager):
         self._remaining = {target: Counter(groups) for target, groups in self._graph.get_remaining_map().items()}
         self._enqueued_any = {n: {g: False for g in self._enqueued_any[n]} for n in self._enqueued_any}
         self._ready = deque([n for n in self._graph.get_start_nodes()])
-
-
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the execution state."""
