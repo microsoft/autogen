@@ -6,9 +6,12 @@ from autogen_core import CancellationToken, Component, Image
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQueryResult, UpdateContextResult
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
-from chromadb import HttpClient, PersistentClient
+from chromadb import AsyncHttpClient, PersistentClient
 from chromadb.api.models.Collection import Collection
-from chromadb.api.types import Document, Metadata
+from chromadb.api.models.AsyncCollection import AsyncCollection
+from chromadb.api import AsyncClientAPI, ClientAPI
+from chromadb.api.types import Document, Metadata, EmbeddingFunction
+
 from typing_extensions import Self
 
 from ._chroma_configs import (
@@ -19,6 +22,7 @@ from ._chroma_configs import (
     OpenAIEmbeddingFunctionConfig,
     PersistentChromaDBVectorMemoryConfig,
     SentenceTransformerEmbeddingFunctionConfig,
+    AzureOpenAIEmbeddingFunctionConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -89,7 +93,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                     collection_name="multilingual_memory",
                     persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
                     embedding_function_config=SentenceTransformerEmbeddingFunctionConfig(
-                        model_name="paraphrase-multilingual-mpnet-base-v2"
+                        model="paraphrase-multilingual-mpnet-base-v2"
                     ),
                 )
             )
@@ -100,7 +104,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                     collection_name="openai_memory",
                     persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
                     embedding_function_config=OpenAIEmbeddingFunctionConfig(
-                        api_key="sk-...", model_name="text-embedding-3-small"
+                        api_key="sk-...", model="text-embedding-3-small"
                     ),
                 )
             )
@@ -135,16 +139,17 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
     def __init__(self, config: ChromaDBVectorMemoryConfig | None = None) -> None:
         """Initialize ChromaDBVectorMemory."""
-        self._config = config or PersistentChromaDBVectorMemoryConfig()
-        self._client: ClientAPI | None = None
-        self._collection: Collection | None = None
+        self._config = config or PersistentChromaDBVectorMemoryConfig(client_type="persistent")
+        self._client: ClientAPI | AsyncClientAPI | None = None
+        self._collection: Collection | AsyncCollection | None = None
 
     @property
     def collection_name(self) -> str:
         """Get the name of the ChromaDB collection."""
         return self._config.collection_name
+    
 
-    def _create_embedding_function(self) -> Any:
+    def _create_embedding_function(self) -> EmbeddingFunction[Any]:
         """Create an embedding function based on the configuration.
 
         Returns:
@@ -168,19 +173,35 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
         elif isinstance(config, SentenceTransformerEmbeddingFunctionConfig):
             try:
-                return embedding_functions.SentenceTransformerEmbeddingFunction(model_name=config.model_name)
+                return embedding_functions.SentenceTransformerEmbeddingFunction(model_name=config.model)
             except Exception as e:
                 raise ImportError(
-                    f"Failed to create SentenceTransformer embedding function with model '{config.model_name}'. "
+                    f"Failed to create SentenceTransformer embedding function with model '{config.model}'. "
                     f"Ensure sentence-transformers is installed and the model is available. Error: {e}"
                 ) from e
 
         elif isinstance(config, OpenAIEmbeddingFunctionConfig):
             try:
-                return embedding_functions.OpenAIEmbeddingFunction(api_key=config.api_key, model_name=config.model_name)
+                return embedding_functions.OpenAIEmbeddingFunction(api_key=config.api_key, model_name=config.model)
             except Exception as e:
                 raise ImportError(
-                    f"Failed to create OpenAI embedding function with model '{config.model_name}'. "
+                    f"Failed to create OpenAI embedding function with model '{config.model}'. "
+                    f"Ensure openai is installed and API key is valid. Error: {e}"
+                ) from e
+            
+        elif isinstance(config, AzureOpenAIEmbeddingFunctionConfig):
+            try:
+                return embedding_functions.OpenAIEmbeddingFunction(
+                    api_key=config.api_key,
+                    api_type=config.api_type,
+                    model_name=config.model,
+                    api_base=config.azure_endpoint,
+                    deployment_id=config.azure_deployment,
+                    api_version=config.api_version,
+                )
+            except Exception as e:
+                raise ImportError(
+                    f"Failed to create Azure OpenAI embedding function with model '{config.model}'. "
                     f"Ensure openai is installed and API key is valid. Error: {e}"
                 ) from e
 
@@ -193,7 +214,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         else:
             raise ValueError(f"Unsupported embedding function config type: {type(config)}")
 
-    def _ensure_initialized(self) -> None:
+    async def _ensure_initialized(self) -> None:
         """Ensure ChromaDB client and collection are initialized."""
         if self._client is None:
             try:
@@ -209,7 +230,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                         database=self._config.database,
                     )
                 elif isinstance(self._config, HttpChromaDBVectorMemoryConfig):
-                    self._client = HttpClient(
+                    self._client = await AsyncHttpClient(
                         host=self._config.host,
                         port=self._config.port,
                         ssl=self._config.ssl,
@@ -229,12 +250,18 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                 # Create embedding function
                 embedding_function = self._create_embedding_function()
 
-                # Create or get collection with embedding function
-                self._collection = self._client.get_or_create_collection(
-                    name=self._config.collection_name,
-                    metadata={"distance_metric": self._config.distance_metric},
-                    embedding_function=embedding_function,
-                )
+                if isinstance(self._client, AsyncClientAPI):
+                    self._collection = await self._client.get_or_create_collection(
+                        name=self._config.collection_name, metadata={"distance_metric": self._config.distance_metric},
+                        embedding_function=embedding_function
+                    )
+                else:
+                    self._collection = self._client.get_or_create_collection(
+                        name=self._config.collection_name, metadata={"distance_metric": self._config.distance_metric},
+                        embedding_function=embedding_function
+                    )
+                
+
             except Exception as e:
                 logger.error(f"Failed to get/create collection: {e}")
                 raise
@@ -353,7 +380,9 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
     async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
         """Add a memory content to ChromaDB."""
-        self._ensure_initialized()
+
+        await self._ensure_initialized()
+
         if self._collection is None:
             raise RuntimeError("Failed to initialize ChromaDB")
 
@@ -379,7 +408,8 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         **kwargs: Any,
     ) -> MemoryQueryResult:
         """Query memory content based on vector similarity."""
-        self._ensure_initialized()
+
+        await self._ensure_initialized()
         if self._collection is None:
             raise RuntimeError("Failed to initialize ChromaDB")
 
@@ -387,13 +417,21 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
             # Extract text for query
             query_text = self._extract_text(query)
 
-            # Query ChromaDB
-            results = self._collection.query(
-                query_texts=[query_text],
-                n_results=self._config.k,
-                include=["documents", "metadatas", "distances"],
-                **kwargs,
-            )
+            if isinstance(self._client, AsyncClientAPI):
+                # Use async query for AsyncClientAPI
+                results = await self._collection.query(
+                    query_texts=[query_text],
+                    n_results=self._config.k,
+                    include=["documents", "metadatas", "distances"],
+                    **kwargs,
+                ) # type: ignore
+            else:
+                results = self._collection.query(
+                    query_texts=[query_text],
+                    n_results=self._config.k,
+                    include=["documents", "metadatas", "distances"],
+                    **kwargs,
+                )
 
             # Convert results to MemoryContent list
             memory_results: List[MemoryContent] = []
@@ -439,14 +477,17 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
     async def clear(self) -> None:
         """Clear all entries from memory."""
-        self._ensure_initialized()
+        await self._ensure_initialized()
         if self._collection is None:
             raise RuntimeError("Failed to initialize ChromaDB")
 
         try:
             results = self._collection.get()
             if results and results["ids"]:
-                self._collection.delete(ids=results["ids"])
+                if isinstance(self._client, AsyncClientAPI):
+                    await self._collection.delete(ids=results["ids"])
+                else:
+                    self._collection.delete(ids=results["ids"])
         except Exception as e:
             logger.error(f"Failed to clear ChromaDB collection: {e}")
             raise
@@ -458,13 +499,16 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
 
     async def reset(self) -> None:
         """Reset the memory by deleting all data."""
-        self._ensure_initialized()
+        await self._ensure_initialized()
         if not self._config.allow_reset:
             raise RuntimeError("Reset not allowed. Set allow_reset=True in config to enable.")
 
         if self._client is not None:
             try:
-                self._client.reset()
+                if isinstance(self._client, AsyncClientAPI):
+                    await self._client.reset()
+                else:
+                    self._client.reset()
             except Exception as e:
                 logger.error(f"Error during ChromaDB reset: {e}")
             finally:
