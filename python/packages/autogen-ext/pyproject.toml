@@ -159,7 +159,7 @@ duckduckgo-search = [
     "httpx>=0.27.0",        
     "beautifulsoup4>=4.12.0", 
     "html2text>=2024.2.26",  
-    "autogen-agentchat==0.6.1",
+    "autogen-agentchat==0.6.2",
 ]
 
 [tool.hatch.build.targets.wheel]
