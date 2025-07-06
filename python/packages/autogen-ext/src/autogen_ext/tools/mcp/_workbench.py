@@ -363,10 +363,13 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
 
     def __del__(self) -> None:
         # Ensure the actor is stopped when the workbench is deleted
-        if self._actor and self._actor_loop:
-            loop = self._actor_loop
-            if loop.is_running() and not loop.is_closed():
-                loop.call_soon_threadsafe(lambda: asyncio.create_task(self.stop()))
+        # Use getattr to safely handle cases where attributes may not be set (e.g., if __init__ failed)
+        actor = getattr(self, "_actor", None)
+        actor_loop = getattr(self, "_actor_loop", None)
+
+        if actor and actor_loop:
+            if actor_loop.is_running() and not actor_loop.is_closed():
+                actor_loop.call_soon_threadsafe(lambda: asyncio.create_task(self.stop()))
             else:
                 msg = "Cannot safely stop actor at [McpWorkbench.__del__]: loop is closed or not running"
                 warnings.warn(msg, RuntimeWarning, stacklevel=2)
