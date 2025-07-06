@@ -18,14 +18,14 @@ const InputRequestView: React.FC<InputRequestProps> = ({
 }) => {
   const [response, setResponse] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  
+
   // Get timeout from settings
   const { uiSettings } = useSettingsStore();
-  const timeoutConfig = React.useMemo(() => 
-    createTimeoutConfig(uiSettings.human_input_timeout_minutes || 3), 
+  const timeoutConfig = React.useMemo(
+    () => createTimeoutConfig(uiSettings.human_input_timeout_minutes || 3),
     [uiSettings.human_input_timeout_minutes]
   );
-  
+
   const [timeLeft, setTimeLeft] = React.useState(timeoutConfig.DURATION_SEC);
   const [hasInteracted, setHasInteracted] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
