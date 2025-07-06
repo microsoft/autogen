@@ -404,6 +404,12 @@ class GraphFlowManager(BaseGroupChatManager):
         assert isinstance(message, BaseChatMessage)
         source = message.source
 
+        # Check if the stop agent has executed - this means the graph has naturally completed
+        if source == _DIGRAPH_STOP_AGENT_NAME:
+            # Reset the execution state when the graph naturally completes
+            self._reset_execution_state()
+            return
+
         # Propagate the update to the children of the node.
         for edge in self._edges[source]:
             # Use the new check_condition method that handles both string and callable conditions
@@ -487,13 +493,17 @@ class GraphFlowManager(BaseGroupChatManager):
     async def _apply_termination_condition(
         self, delta: Sequence[BaseAgentEvent | BaseChatMessage], increment_turn_count: bool = False
     ) -> bool:
-        """Apply the termination condition and reset graph execution state when terminated."""
+        """Apply the termination condition without resetting execution state.
+        
+        The execution state is preserved so the graph can be resumed from where it left off.
+        The state is only reset when the graph naturally completes (stop agent is executed).
+        """
         # Call the base implementation first
         terminated = await super()._apply_termination_condition(delta, increment_turn_count)
         
-        # If terminated, reset the graph execution state for the next task
-        if terminated:
-            self._reset_execution_state()
+        # Note: We do NOT reset the execution state here anymore.
+        # The execution state should only be reset when the stop agent runs,
+        # allowing the graph to be resumed from where it left off when termination occurs.
         
         return terminated
 
