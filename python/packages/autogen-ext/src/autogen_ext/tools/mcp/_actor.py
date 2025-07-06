@@ -3,9 +3,10 @@ import atexit
 from typing import Any, Coroutine, Dict, Mapping, TypedDict
 
 from autogen_core import Component, ComponentBase
-from mcp.types import CallToolResult, ListToolsResult
 from pydantic import BaseModel
 from typing_extensions import Self
+
+from mcp.types import CallToolResult, ListToolsResult
 
 from ._config import McpServerParams
 from ._session import create_mcp_server_session
