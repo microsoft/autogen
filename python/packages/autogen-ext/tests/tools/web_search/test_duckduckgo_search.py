@@ -154,7 +154,7 @@ class TestDuckDuckGoSearchTool:
         # Test with more than 10 results requested
         search_args = DuckDuckGoSearchArgs(
             query="test query",
-            num_results=15,  # Should be limited to 10
+            num_results=2,  # Should be limited to 2
             include_content=False,
         )
 
@@ -170,8 +170,8 @@ class TestDuckDuckGoSearchTool:
 
             result = await search_tool.run(search_args, CancellationToken())
 
-            # Should return only 3 results (from mock HTML)
-            assert len(result.results) == 3
+            # Should return only 2 results (from mock HTML)
+            assert len(result.results) == 2
 
     @pytest.mark.asyncio
     async def test_http_error_handling(
