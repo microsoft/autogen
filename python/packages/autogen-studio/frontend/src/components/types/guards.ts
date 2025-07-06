@@ -23,6 +23,13 @@ import type {
   OrTerminationConfig,
   MaxMessageTerminationConfig,
   TextMentionTerminationConfig,
+  StopMessageTerminationConfig,
+  TokenUsageTerminationConfig,
+  HandoffTerminationConfig,
+  TimeoutTerminationConfig,
+  ExternalTerminationConfig,
+  SourceMatchTerminationConfig,
+  TextMessageTerminationConfig,
   UnboundedChatCompletionContextConfig,
   AnthropicClientConfig,
   AndTerminationConfig,
@@ -62,6 +69,13 @@ const PROVIDERS = {
   AND_TERMINATION: "autogen_agentchat.base.AndTerminationCondition",
   MAX_MESSAGE: "autogen_agentchat.conditions.MaxMessageTermination",
   TEXT_MENTION: "autogen_agentchat.conditions.TextMentionTermination",
+  STOP_MESSAGE: "autogen_agentchat.conditions.StopMessageTermination",
+  TOKEN_USAGE: "autogen_agentchat.conditions.TokenUsageTermination",
+  HANDOFF: "autogen_agentchat.conditions.HandoffTermination",
+  TIMEOUT: "autogen_agentchat.conditions.TimeoutTermination",
+  EXTERNAL: "autogen_agentchat.conditions.ExternalTermination",
+  SOURCE_MATCH: "autogen_agentchat.conditions.SourceMatchTermination",
+  TEXT_MESSAGE: "autogen_agentchat.conditions.TextMessageTermination",
 
   // Contexts
   UNBOUNDED_CONTEXT:
@@ -102,6 +116,13 @@ type ProviderToConfig = {
   [PROVIDERS.AND_TERMINATION]: AndTerminationConfig;
   [PROVIDERS.MAX_MESSAGE]: MaxMessageTerminationConfig;
   [PROVIDERS.TEXT_MENTION]: TextMentionTerminationConfig;
+  [PROVIDERS.STOP_MESSAGE]: StopMessageTerminationConfig;
+  [PROVIDERS.TOKEN_USAGE]: TokenUsageTerminationConfig;
+  [PROVIDERS.HANDOFF]: HandoffTerminationConfig;
+  [PROVIDERS.TIMEOUT]: TimeoutTerminationConfig;
+  [PROVIDERS.EXTERNAL]: ExternalTerminationConfig;
+  [PROVIDERS.SOURCE_MATCH]: SourceMatchTerminationConfig;
+  [PROVIDERS.TEXT_MESSAGE]: TextMessageTerminationConfig;
 
   // Contexts
   [PROVIDERS.UNBOUNDED_CONTEXT]: UnboundedChatCompletionContextConfig;
@@ -273,6 +294,48 @@ export function isTextMentionTermination(
   component: Component<ComponentConfig>
 ): component is Component<TextMentionTerminationConfig> {
   return isComponentOfType(component, PROVIDERS.TEXT_MENTION);
+}
+
+export function isStopMessageTermination(
+  component: Component<ComponentConfig>
+): component is Component<StopMessageTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.STOP_MESSAGE);
+}
+
+export function isTokenUsageTermination(
+  component: Component<ComponentConfig>
+): component is Component<TokenUsageTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.TOKEN_USAGE);
+}
+
+export function isHandoffTermination(
+  component: Component<ComponentConfig>
+): component is Component<HandoffTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.HANDOFF);
+}
+
+export function isTimeoutTermination(
+  component: Component<ComponentConfig>
+): component is Component<TimeoutTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.TIMEOUT);
+}
+
+export function isExternalTermination(
+  component: Component<ComponentConfig>
+): component is Component<ExternalTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.EXTERNAL);
+}
+
+export function isSourceMatchTermination(
+  component: Component<ComponentConfig>
+): component is Component<SourceMatchTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.SOURCE_MATCH);
+}
+
+export function isTextMessageTermination(
+  component: Component<ComponentConfig>
+): component is Component<TextMessageTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.TEXT_MESSAGE);
 }
 
 // Context provider guards with proper type narrowing

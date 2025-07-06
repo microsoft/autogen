@@ -18,7 +18,20 @@ export interface Component<T extends ComponentConfig> {
 }
 
 // Message Types
-export interface RequestUsage {
+export type TerminationConfig =
+  | OrTerminationConfig
+  | AndTerminationConfig
+  | MaxMessageTerminationConfig
+  | TextMentionTerminationConfig
+  | StopMessageTerminationConfig
+  | TokenUsageTerminationConfig
+  | HandoffTerminationConfig
+  | TimeoutTerminationConfig
+  | ExternalTerminationConfig
+  | SourceMatchTerminationConfig
+  | TextMessageTerminationConfig;
+
+interface RequestUsage {
   prompt_tokens: number;
   completion_tokens: number;
 }
@@ -322,10 +335,42 @@ export interface AndTerminationConfig {
 
 export interface MaxMessageTerminationConfig {
   max_messages: number;
+  include_agent_event?: boolean;
 }
 
 export interface TextMentionTerminationConfig {
   text: string;
+}
+
+// Additional termination configs
+export interface StopMessageTerminationConfig {
+  // No additional config needed
+}
+
+export interface TokenUsageTerminationConfig {
+  max_total_token?: number;
+  max_prompt_token?: number;
+  max_completion_token?: number;
+}
+
+export interface HandoffTerminationConfig {
+  target: string;
+}
+
+export interface TimeoutTerminationConfig {
+  timeout_seconds: number;
+}
+
+export interface ExternalTerminationConfig {
+  // No additional config needed
+}
+
+export interface SourceMatchTerminationConfig {
+  sources: string[];
+}
+
+export interface TextMessageTerminationConfig {
+  source?: string;
 }
 
 // Config type unions based on provider
@@ -346,12 +391,6 @@ export type ToolConfig = FunctionToolConfig | PythonCodeExecutionToolConfig;
 export type WorkbenchConfig = StaticWorkbenchConfig | McpWorkbenchConfig;
 
 export type ChatCompletionContextConfig = UnboundedChatCompletionContextConfig;
-
-export type TerminationConfig =
-  | OrTerminationConfig
-  | AndTerminationConfig
-  | MaxMessageTerminationConfig
-  | TextMentionTerminationConfig;
 
 export type ComponentConfig =
   | TeamConfig

@@ -82,8 +82,8 @@ export default function ChatView({
 
   // Get settings for timeout configuration
   const { uiSettings } = useSettingsStore();
-  const timeoutConfig = React.useMemo(() => 
-    createTimeoutConfig(uiSettings.human_input_timeout_minutes || 3), 
+  const timeoutConfig = React.useMemo(
+    () => createTimeoutConfig(uiSettings.human_input_timeout_minutes || 3),
     [uiSettings.human_input_timeout_minutes]
   );
 
@@ -437,10 +437,12 @@ export default function ChatView({
         created_at: new Date().toISOString(),
         status: "created", // Start with created status
         messages: [],
-        task: [{
-          content: query,
-          source: "user",
-        }],
+        task: [
+          {
+            content: query,
+            source: "user",
+          },
+        ],
         team_result: null,
         error_message: undefined,
       });
@@ -482,11 +484,13 @@ export default function ChatView({
       created_at: new Date().toISOString(),
       status: "active",
 
-      task: [createMessage(
-        { content: query, source: "user" },
-        runId,
-        session.id || 0
-      ).config],
+      task: [
+        createMessage(
+          { content: query, source: "user" },
+          runId,
+          session.id || 0
+        ).config,
+      ],
       team_result: null,
       messages: [],
       error_message: undefined,

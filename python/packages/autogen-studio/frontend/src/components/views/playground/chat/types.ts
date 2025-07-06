@@ -37,7 +37,9 @@ export const createTimeoutConfig = (timeoutMinutes: number = 3) => ({
   DURATION_MS: timeoutMinutes * 60 * 1000, // timeout in milliseconds
   DURATION_SEC: timeoutMinutes * 60, // timeout in seconds
   WEBSOCKET_CODE: 4000, // WebSocket close code for timeout
-  DEFAULT_MESSAGE: `Input timeout after ${timeoutMinutes} minute${timeoutMinutes !== 1 ? 's' : ''}`,
+  DEFAULT_MESSAGE: `Input timeout after ${timeoutMinutes} minute${
+    timeoutMinutes !== 1 ? "s" : ""
+  }`,
   WARNING_THRESHOLD_SEC: 30, // Show warning when 30 seconds remaining
 });
 

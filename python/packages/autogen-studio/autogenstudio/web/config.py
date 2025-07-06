@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     CONFIG_DIR: str = "configs"  # Default config directory relative to app_root
     DEFAULT_USER_ID: str = "guestuser@gmail.com"
     UPGRADE_DATABASE: bool = False
+    
+    # Lite mode settings
+    LITE_MODE: bool = False
+    LITE_TEAM_FILE: str = ""
+    LITE_SESSION_NAME: str = ""
 
     model_config = {"env_prefix": "AUTOGENSTUDIO_"}
 
