@@ -19,7 +19,7 @@ class LiteStudio:
     
     def __init__(
         self,
-        team: Union[str, Path, Dict[str, Any], ComponentModel, Any, None] = None,
+        team: Union[str, Path, Dict[str, Any], ComponentModel, None] = None,
         host: str = "127.0.0.1",
         port: int = 8080,
         session_name: str = "Lite Session",
@@ -50,7 +50,7 @@ class LiteStudio:
         # Handle team loading
         self.team_file_path = self._load_team(team)
         
-    def _load_team(self, team: Union[str, Path, Dict[str, Any], ComponentModel, Any, None]) -> str:
+    def _load_team(self, team: Union[str, Path, Dict[str, Any], ComponentModel, None]) -> str:
         """
         Load team from file path, object, or create default.
         Returns the file path to the team JSON.

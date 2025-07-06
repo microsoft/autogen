@@ -33,7 +33,12 @@ from mcp.types import (
 from pydantic import BaseModel
 from pydantic.networks import AnyUrl
 
-from autogenstudio.mcp.client import McpOperationError
+# from autogenstudio.mcp.client import McpOperationError
+
+class McpOperationError(Exception):
+    """Raised when MCP operation fails"""
+
+    pass
 
 
 def _extract_real_error(e: Exception) -> str:
