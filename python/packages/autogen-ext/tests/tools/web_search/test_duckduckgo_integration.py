@@ -9,128 +9,14 @@ or fail if there are network issues. They are marked as integration tests
 and can be skipped in CI environments.
 """
 
-import asyncio
-import os
-import sys
-from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List
 
 import pytest
-
-# Add the src directory to Python path for local imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
 from autogen_core import CancellationToken, FunctionCall
-from autogen_core.models import (
-    AssistantMessage,
-    ChatCompletionClient,
-    CreateResult,
-    FunctionExecutionResultMessage,
-    ModelInfo,
-    RequestUsage,
-    SystemMessage,
-    UserMessage,
-)
-from autogen_core.tools import Tool, ToolSchema
+from autogen_core.models import CreateResult, ModelInfo, RequestUsage
 from autogen_ext.agents.duckduckgo_search._duckduckgo_agent import DuckDuckGoSearchAgent
-from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchTool
-
-
-class MockChatCompletionClient(ChatCompletionClient):
-    """Mock chat completion client that simulates tool usage."""
-
-    def __init__(self) -> None:
-        self._model_info = ModelInfo(
-            vision=False,
-            function_calling=True,
-            json_output=False,
-            family="test",
-            structured_output=False,
-        )
-        self.call_count = 0
-
-    @property
-    def model_info(self) -> ModelInfo:
-        return self._model_info
-
-    def actual_usage(self) -> RequestUsage:
-        return RequestUsage(prompt_tokens=0, completion_tokens=0)
-
-    def total_usage(self) -> RequestUsage:
-        return RequestUsage(prompt_tokens=0, completion_tokens=0)
-
-    @property
-    def capabilities(self) -> ModelInfo:
-        return self._model_info
-
-    async def create(
-        self,
-        messages: Sequence[Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]],
-        *,
-        tools: Optional[Sequence[Union[Tool, ToolSchema]]] = None,
-        json_output: Optional[Union[bool, type[Any]]] = None,
-        extra_create_args: Optional[Mapping[str, Any]] = None,
-        cancellation_token: Optional[CancellationToken] = None,
-    ) -> CreateResult:
-        """Mock create method that simulates tool calling."""
-        self.call_count += 1
-
-        # Simulate the model deciding to use the search tool
-        if self.call_count == 1 and tools:
-            # First call: model decides to use search tool
-            return CreateResult(
-                content=[
-                    FunctionCall(
-                        id="call_123",
-                        name="duckduckgo_search",
-                        arguments='{"query": "Python programming", "num_results": 2, "include_content": false}',
-                    )
-                ],
-                usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
-                cached=False,
-                finish_reason="function_calls",
-            )
-        else:
-            # Second call: model provides final response
-            return CreateResult(
-                content="Based on my search results, I found information about Python programming. Python is a popular programming language known for its simplicity and versatility.",
-                usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
-                cached=False,
-                finish_reason="stop",
-            )
-
-    async def create_stream(
-        self,
-        messages: Sequence[Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]],
-        *,
-        tools: Optional[Sequence[Union[Tool, ToolSchema]]] = None,
-        json_output: Optional[Union[bool, type[Any]]] = None,
-        extra_create_args: Optional[Mapping[str, Any]] = None,
-        cancellation_token: Optional[CancellationToken] = None,
-    ) -> AsyncGenerator[Union[str, CreateResult], None]:
-        """Mock create_stream method."""
-        yield "test response"
-
-    async def close(self) -> None:
-        """Mock close method."""
-        pass
-
-    def count_tokens(
-        self,
-        messages: Sequence[Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]],
-        *,
-        tools: Optional[Sequence[Union[Tool, ToolSchema]]] = None,
-    ) -> int:
-        """Mock count_tokens method."""
-        return sum(len(str(msg)) for msg in messages)
-
-    def remaining_tokens(
-        self,
-        messages: Sequence[Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]],
-        *,
-        tools: Optional[Sequence[Union[Tool, ToolSchema]]] = None,
-    ) -> int:
-        """Mock remaining_tokens method."""
-        return 1000
+from autogen_ext.models.replay import ReplayChatCompletionClient
+from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs, DuckDuckGoSearchTool
 
 
 @pytest.mark.integration
@@ -138,9 +24,38 @@ class TestDuckDuckGoIntegration:
     """Integration tests for DuckDuckGo functionality."""
 
     @pytest.fixture
-    def mock_model_client(self) -> MockChatCompletionClient:
-        """Create a mock model client for testing."""
-        return MockChatCompletionClient()
+    def mock_model_client(self) -> ReplayChatCompletionClient:
+        """Create a replay model client for testing."""
+        model_info = ModelInfo(
+            vision=False,
+            function_calling=True,
+            json_output=False,
+            family="test",
+            structured_output=False,
+        )
+
+        # Create responses that simulate tool calling behavior
+        tool_call_response = CreateResult(
+            content=[
+                FunctionCall(
+                    id="call_123",
+                    name="duckduckgo_search",
+                    arguments='{"query": "Python programming", "num_results": 2, "include_content": false}',
+                )
+            ],
+            usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
+            cached=False,
+            finish_reason="function_calls",
+        )
+
+        final_response = CreateResult(
+            content="Based on my search results, I found information about Python programming. Python is a popular programming language known for its simplicity and versatility.",
+            usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
+            cached=False,
+            finish_reason="stop",
+        )
+
+        return ReplayChatCompletionClient(chat_completions=[tool_call_response, final_response], model_info=model_info)
 
     @pytest.mark.asyncio
     async def test_search_tool_real_request(self) -> None:
@@ -148,8 +63,6 @@ class TestDuckDuckGoIntegration:
         search_tool = DuckDuckGoSearchTool()
 
         # Test with a simple query
-        from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs
-
         args = DuckDuckGoSearchArgs(
             query="Python programming language",
             num_results=2,
@@ -174,7 +87,7 @@ class TestDuckDuckGoIntegration:
                 assert "snippet" in search_result
 
     @pytest.mark.asyncio
-    async def test_agent_with_mock_model(self, mock_model_client: MockChatCompletionClient) -> None:
+    async def test_agent_with_mock_model(self, mock_model_client: ReplayChatCompletionClient) -> None:
         """Test the agent with a mock model client that simulates tool usage."""
         agent = DuckDuckGoSearchAgent(name="test_researcher", model_client=mock_model_client)
 
@@ -187,8 +100,6 @@ class TestDuckDuckGoIntegration:
     async def test_search_with_content_fetching(self) -> None:
         """Test search with content fetching enabled (slower test)."""
         search_tool = DuckDuckGoSearchTool()
-
-        from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs
 
         args = DuckDuckGoSearchArgs(
             query="OpenAI",
@@ -218,8 +129,6 @@ class TestDuckDuckGoIntegration:
         search_tool = DuckDuckGoSearchTool()
 
         # Test with an invalid/problematic query
-        from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs
-
         args = DuckDuckGoSearchArgs(
             query="",  # Empty query might cause issues
             num_results=1,
@@ -236,7 +145,7 @@ class TestDuckDuckGoIntegration:
             # If it fails, it should be a ValueError with a descriptive message
             assert "search" in str(e).lower() or "error" in str(e).lower()
 
-    def test_agent_configuration(self, mock_model_client: MockChatCompletionClient) -> None:
+    def test_agent_configuration(self, mock_model_client: ReplayChatCompletionClient) -> None:
         """Test that the agent is configured correctly."""
         agent = DuckDuckGoSearchAgent(name="config_test", model_client=mock_model_client)
 
@@ -262,8 +171,6 @@ class TestDuckDuckGoIntegration:
     async def test_search_different_parameters(self) -> None:
         """Test search with different parameter combinations."""
         search_tool = DuckDuckGoSearchTool()
-
-        from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs
 
         # Test with different languages and regions
         test_cases: List[Dict[str, Any]] = [
@@ -294,31 +201,3 @@ class TestDuckDuckGoIntegration:
                 else:
                     # When snippets are disabled, they shouldn't be included
                     assert "snippet" not in first_result or not first_result["snippet"]
-
-
-if __name__ == "__main__":
-    # Run a simple test to verify functionality
-    # ruff: noqa: T201
-    async def simple_test() -> None:
-        print("Testing DuckDuckGo Search Tool...")
-
-        search_tool = DuckDuckGoSearchTool()
-        from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs
-
-        args = DuckDuckGoSearchArgs(query="Python programming", num_results=2, include_content=False)
-
-        try:
-            result = await search_tool.run(args, CancellationToken())
-            print(f"Found {len(result.results)} results:")
-
-            for i, search_result in enumerate(result.results, 1):
-                print(f"{i}. {search_result['title']}")
-                print(f"   URL: {search_result['link']}")
-                if "snippet" in search_result:
-                    print(f"   {search_result['snippet']}")
-                print()
-
-        except Exception as e:
-            print(f"Error during test: {e}")
-
-    asyncio.run(simple_test())

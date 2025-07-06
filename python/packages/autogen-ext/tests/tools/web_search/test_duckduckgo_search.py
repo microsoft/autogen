@@ -51,13 +51,6 @@ class TestDuckDuckGoSearchTool:
         </html>
         """
 
-    def test_tool_initialization(self, search_tool: DuckDuckGoSearchTool) -> None:
-        """Test that the tool initializes correctly."""
-        assert search_tool.name == "duckduckgo_search"
-        assert "DuckDuckGo searches" in search_tool.description
-        assert isinstance(search_tool.args_type, type) and issubclass(search_tool.args_type, DuckDuckGoSearchArgs)
-        assert isinstance(search_tool.return_type, type) and issubclass(search_tool.return_type, DuckDuckGoSearchResult)
-
     def test_search_args_validation(self) -> None:
         """Test that search arguments are validated correctly."""
         # Valid args

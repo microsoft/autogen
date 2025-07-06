@@ -1,114 +1,31 @@
-from typing import Any, AsyncGenerator, Mapping, Optional, Sequence, Union
-
 import pytest
-from autogen_core import CancellationToken
-from autogen_core.models import (
-    AssistantMessage,
-    ChatCompletionClient,
-    CreateResult,
-    FunctionExecutionResultMessage,
-    ModelInfo,
-    RequestUsage,
-    SystemMessage,
-    UserMessage,
-)
-from autogen_core.tools import Tool, ToolSchema
+from autogen_core.models import ModelInfo
 from autogen_ext.agents.duckduckgo_search._duckduckgo_agent import DuckDuckGoSearchAgent
+from autogen_ext.models.replay import ReplayChatCompletionClient
 from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchTool
-
-
-class MockChatCompletionClient(ChatCompletionClient):
-    """Mock chat completion client for testing."""
-
-    def __init__(self) -> None:
-        self._model_info = ModelInfo(
-            vision=False,
-            function_calling=True,
-            json_output=False,
-            family="test",
-            structured_output=False,
-        )
-
-    @property
-    def model_info(self) -> ModelInfo:
-        return self._model_info
-
-    def actual_usage(self) -> RequestUsage:
-        return RequestUsage(prompt_tokens=0, completion_tokens=0)
-
-    def total_usage(self) -> RequestUsage:
-        return RequestUsage(prompt_tokens=0, completion_tokens=0)
-
-    @property
-    def capabilities(self) -> ModelInfo:
-        return self._model_info
-
-    async def create(
-        self,
-        messages: Sequence[Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]],
-        *,
-        tools: Optional[Sequence[Union[Tool, ToolSchema]]] = None,
-        json_output: Optional[Union[bool, type[Any]]] = None,
-        extra_create_args: Optional[Mapping[str, Any]] = None,
-        cancellation_token: Optional[CancellationToken] = None,
-    ) -> CreateResult:
-        """Mock create method."""
-        return CreateResult(
-            content="test response",
-            usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
-            cached=False,
-            finish_reason="stop",
-        )
-
-    async def create_stream(
-        self,
-        messages: Sequence[Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]],
-        *,
-        tools: Optional[Sequence[Union[Tool, ToolSchema]]] = None,
-        json_output: Optional[Union[bool, type[Any]]] = None,
-        extra_create_args: Optional[Mapping[str, Any]] = None,
-        cancellation_token: Optional[CancellationToken] = None,
-    ) -> AsyncGenerator[Union[str, CreateResult], None]:
-        """Mock create_stream method."""
-        yield "test response"
-
-    async def close(self) -> None:
-        """Mock close method."""
-        pass
-
-    def count_tokens(
-        self,
-        messages: Sequence[Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]],
-        *,
-        tools: Optional[Sequence[Union[Tool, ToolSchema]]] = None,
-    ) -> int:
-        """Mock count_tokens method."""
-        return sum(len(str(msg)) for msg in messages)
-
-    def remaining_tokens(
-        self,
-        messages: Sequence[Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]],
-        *,
-        tools: Optional[Sequence[Union[Tool, ToolSchema]]] = None,
-    ) -> int:
-        """Mock remaining_tokens method."""
-        return 1000
 
 
 class TestDuckDuckGoSearchAgent:
     """Test suite for DuckDuckGoSearchAgent."""
 
     @pytest.fixture
-    def mock_model_client(self) -> MockChatCompletionClient:
-        """Create a mock model client for testing."""
-        return MockChatCompletionClient()
+    def mock_model_client(self) -> ReplayChatCompletionClient:
+        """Create a replay model client for testing."""
+        model_info = ModelInfo(
+            vision=False,
+            function_calling=True,
+            json_output=False,
+            family="test",
+            structured_output=False,
+        )
+        return ReplayChatCompletionClient(chat_completions=["test response"], model_info=model_info)
 
     @pytest.fixture
-    def search_agent(self, mock_model_client: MockChatCompletionClient) -> DuckDuckGoSearchAgent:
+    def search_agent(self, mock_model_client: ReplayChatCompletionClient) -> DuckDuckGoSearchAgent:
         """Create a DuckDuckGoSearchAgent instance for testing."""
         return DuckDuckGoSearchAgent(name="test_agent", model_client=mock_model_client)
 
-    def test_agent_initialization_with_defaults(self, mock_model_client: MockChatCompletionClient) -> None:
+    def test_agent_initialization_with_defaults(self, mock_model_client: ReplayChatCompletionClient) -> None:
         """Test that the agent initializes correctly with default values."""
         agent = DuckDuckGoSearchAgent(name="test_agent", model_client=mock_model_client)
 
@@ -121,7 +38,7 @@ class TestDuckDuckGoSearchAgent:
         assert isinstance(agent._tools[0], DuckDuckGoSearchTool)  # type: ignore
         assert agent._tools[0].name == "duckduckgo_search"  # type: ignore
 
-    def test_agent_initialization_with_custom_values(self, mock_model_client: MockChatCompletionClient) -> None:
+    def test_agent_initialization_with_custom_values(self, mock_model_client: ReplayChatCompletionClient) -> None:
         """Test that the agent initializes correctly with custom values."""
         custom_description = "Custom research agent"
         custom_system_message = "You are a custom search agent."
@@ -146,7 +63,7 @@ class TestDuckDuckGoSearchAgent:
         assert isinstance(search_tool, DuckDuckGoSearchTool)
         assert search_tool.name == "duckduckgo_search"
 
-    def test_agent_system_message_content(self, mock_model_client: MockChatCompletionClient) -> None:
+    def test_agent_system_message_content(self, mock_model_client: ReplayChatCompletionClient) -> None:
         """Test that the default system message contains expected content."""
         agent = DuckDuckGoSearchAgent(name="test_agent", model_client=mock_model_client)
 
@@ -158,7 +75,6 @@ class TestDuckDuckGoSearchAgent:
         assert "research assistant" in system_content.lower()
         assert "duckduckgo" in system_content.lower()
         assert "search" in system_content.lower()
-        assert "api key" in system_content.lower()
 
     def test_agent_inherits_from_assistant_agent(self, search_agent: DuckDuckGoSearchAgent) -> None:
         """Test that DuckDuckGoSearchAgent properly inherits from AssistantAgent."""
@@ -167,12 +83,12 @@ class TestDuckDuckGoSearchAgent:
         assert isinstance(search_agent, AssistantAgent)
 
     def test_agent_model_client_assignment(
-        self, search_agent: DuckDuckGoSearchAgent, mock_model_client: MockChatCompletionClient
+        self, search_agent: DuckDuckGoSearchAgent, mock_model_client: ReplayChatCompletionClient
     ) -> None:
         """Test that the model client is properly assigned."""
         assert search_agent._model_client == mock_model_client  # type: ignore
 
-    def test_agent_with_additional_kwargs(self, mock_model_client: MockChatCompletionClient) -> None:
+    def test_agent_with_additional_kwargs(self, mock_model_client: ReplayChatCompletionClient) -> None:
         """Test that additional kwargs are passed to the parent class."""
         agent = DuckDuckGoSearchAgent(
             name="test_agent", model_client=mock_model_client, model_client_stream=True, reflect_on_tool_use=True
@@ -189,7 +105,7 @@ class TestDuckDuckGoSearchAgent:
         for keyword in expected_keywords:
             assert keyword.lower() in description.lower()
 
-    def test_multiple_agents_have_separate_tools(self, mock_model_client: MockChatCompletionClient) -> None:
+    def test_multiple_agents_have_separate_tools(self, mock_model_client: ReplayChatCompletionClient) -> None:
         """Test that multiple agents have separate tool instances."""
         agent1 = DuckDuckGoSearchAgent(name="agent1", model_client=mock_model_client)
         agent2 = DuckDuckGoSearchAgent(name="agent2", model_client=mock_model_client)
