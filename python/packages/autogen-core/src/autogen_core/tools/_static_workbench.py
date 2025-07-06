@@ -13,6 +13,7 @@ from ._workbench import StreamWorkbench, TextResultContent, ToolResult, Workbenc
 
 class ToolOverride(BaseModel):
     """Override configuration for a tool's name and/or description."""
+
     name: Optional[str] = None
     description: Optional[str] = None
 
@@ -45,17 +46,15 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
     component_config_schema = StaticWorkbenchConfig
 
     def __init__(
-        self, 
-        tools: List[BaseTool[Any, Any]], 
-        tool_overrides: Optional[Dict[str, ToolOverride]] = None
+        self, tools: List[BaseTool[Any, Any]], tool_overrides: Optional[Dict[str, ToolOverride]] = None
     ) -> None:
         self._tools = tools
         self._tool_overrides = tool_overrides or {}
-        
+
         # Build reverse mapping from override names to original names for call_tool
         self._override_name_to_original: Dict[str, str] = {}
         existing_tool_names = {tool.name for tool in self._tools}
-        
+
         for original_name, override in self._tool_overrides.items():
             if override.name:
                 # Check for conflicts with existing tool names
@@ -77,14 +76,16 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
         result_schemas = []
         for tool in self._tools:
             original_schema = tool.schema
-            
+
             # Apply overrides if they exist for this tool
             if tool.name in self._tool_overrides:
                 override = self._tool_overrides[tool.name]
                 # Create a new ToolSchema with overrides applied
                 schema: ToolSchema = {
                     "name": override.name if override.name is not None else original_schema["name"],
-                    "description": override.description if override.description is not None else original_schema.get("description", ""),
+                    "description": override.description
+                    if override.description is not None
+                    else original_schema.get("description", ""),
                 }
                 # Copy optional fields
                 if "parameters" in original_schema:
@@ -93,7 +94,7 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
                     schema["strict"] = original_schema["strict"]
             else:
                 schema = original_schema
-            
+
             result_schemas.append(schema)
         return result_schemas
 
@@ -106,7 +107,7 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
     ) -> ToolResult:
         # Check if the name is an override name and map it back to the original
         original_name = self._override_name_to_original.get(name, name)
-        
+
         tool = next((tool for tool in self._tools if tool.name == original_name), None)
         if tool is None:
             return ToolResult(
@@ -152,16 +153,12 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
 
     def _to_config(self) -> StaticWorkbenchConfig:
         return StaticWorkbenchConfig(
-            tools=[tool.dump_component() for tool in self._tools],
-            tool_overrides=self._tool_overrides
+            tools=[tool.dump_component() for tool in self._tools], tool_overrides=self._tool_overrides
         )
 
     @classmethod
     def _from_config(cls, config: StaticWorkbenchConfig) -> Self:
-        return cls(
-            tools=[BaseTool.load_component(tool) for tool in config.tools],
-            tool_overrides=config.tool_overrides
-        )
+        return cls(tools=[BaseTool.load_component(tool) for tool in config.tools], tool_overrides=config.tool_overrides)
 
     def _format_errors(self, error: Exception) -> str:
         """Recursively format errors into a string."""

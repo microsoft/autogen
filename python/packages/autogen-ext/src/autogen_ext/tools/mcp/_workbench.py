@@ -22,6 +22,7 @@ from ._config import McpServerParams, SseServerParams, StdioServerParams, Stream
 
 class ToolOverride(BaseModel):
     """Override configuration for a tool's name and/or description."""
+
     name: Optional[str] = None
     description: Optional[str] = None
 
@@ -83,19 +84,17 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             import asyncio
             from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams, ToolOverride
 
+
             async def main() -> None:
                 params = StdioServerParams(
                     command="uvx",
                     args=["mcp-server-fetch"],
                     read_timeout_seconds=60,
                 )
-                
+
                 # Override the fetch tool's name and description
                 overrides = {
-                    "fetch": ToolOverride(
-                        name="web_fetch",
-                        description="Enhanced web fetching tool with better error handling"
-                    )
+                    "fetch": ToolOverride(name="web_fetch", description="Enhanced web fetching tool with better error handling")
                 }
 
                 async with McpWorkbench(server_params=params, tool_overrides=overrides) as workbench:
@@ -103,6 +102,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                     # The tool will now appear as "web_fetch" with the new description
                     result = await workbench.call_tool("web_fetch", {"url": "https://github.com/"})
                     print(result)
+
 
             asyncio.run(main())
 
@@ -191,13 +191,11 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     component_config_schema = McpWorkbenchConfig
 
     def __init__(
-        self, 
-        server_params: McpServerParams, 
-        tool_overrides: Optional[Dict[str, ToolOverride]] = None
+        self, server_params: McpServerParams, tool_overrides: Optional[Dict[str, ToolOverride]] = None
     ) -> None:
         self._server_params = server_params
         self._tool_overrides = tool_overrides or {}
-        
+
         # Build reverse mapping from override names to original names for call_tool
         self._override_name_to_original: Dict[str, str] = {}
         for original_name, override in self._tool_overrides.items():
@@ -210,7 +208,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                         f"'{existing_original}' and '{original_name}'. Override names must be unique."
                     )
                 self._override_name_to_original[override.name] = original_name
-        
+
         # self._session: ClientSession | None = None
         self._actor: McpSessionActor | None = None
         self._actor_loop: asyncio.AbstractEventLoop | None = None
@@ -238,7 +236,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             original_name = tool.name
             name = original_name
             description = tool.description or ""
-            
+
             # Apply overrides if they exist for this tool
             if original_name in self._tool_overrides:
                 override = self._tool_overrides[original_name]
@@ -246,7 +244,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                     name = override.name
                 if override.description is not None:
                     description = override.description
-            
+
             parameters = ParametersSchema(
                 type="object",
                 properties=tool.inputSchema.get("properties", {}),
@@ -278,10 +276,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             cancellation_token = CancellationToken()
         if not arguments:
             arguments = {}
-        
+
         # Check if the name is an override name and map it back to the original
         original_name = self._override_name_to_original.get(name, name)
-        
+
         with trace_tool_span(
             tool_name=name,  # Use the requested name for tracing
             tool_call_id=call_id,
@@ -359,17 +357,11 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         pass
 
     def _to_config(self) -> McpWorkbenchConfig:
-        return McpWorkbenchConfig(
-            server_params=self._server_params,
-            tool_overrides=self._tool_overrides
-        )
+        return McpWorkbenchConfig(server_params=self._server_params, tool_overrides=self._tool_overrides)
 
     @classmethod
     def _from_config(cls, config: McpWorkbenchConfig) -> Self:
-        return cls(
-            server_params=config.server_params,
-            tool_overrides=config.tool_overrides
-        )
+        return cls(server_params=config.server_params, tool_overrides=config.tool_overrides)
 
     def __del__(self) -> None:
         # Ensure the actor is stopped when the workbench is deleted
