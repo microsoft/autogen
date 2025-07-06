@@ -474,21 +474,17 @@ class GraphFlowManager(BaseGroupChatManager):
         self, delta: Sequence[BaseAgentEvent | BaseChatMessage], increment_turn_count: bool = False
     ) -> bool:
         """Apply termination condition including graph-specific completion logic.
-        
-        First checks standard termination conditions, then checks if graph execution is complete.
-        
+
+        First checks if graph execution is complete, then checks standard termination conditions.
+
         Args:
             delta: The message delta to check termination conditions against
             increment_turn_count: Whether to increment the turn count
-            
+
         Returns:
             True if the conversation should be terminated, False otherwise
         """
-        # First apply the standard termination conditions from the base class
-        if await super()._apply_termination_condition(delta, increment_turn_count):
-            return True
-        
-        # Check if the graph execution is complete (no ready speakers)
+        # Check if the graph execution is complete (no ready speakers) - prioritize this check
         if not self._ready:
             stop_message = StopMessage(
                 content=_DIGRAPH_STOP_AGENT_MESSAGE,
@@ -503,8 +499,9 @@ class GraphFlowManager(BaseGroupChatManager):
             # Signal termination to the caller of the team.
             await self._signal_termination(stop_message)
             return True
-            
-        return False
+
+        # Apply the standard termination conditions from the base class
+        return await super()._apply_termination_condition(delta, increment_turn_count)
 
     def _reset_execution_state(self) -> None:
         """Reset the graph execution state to the initial state."""
