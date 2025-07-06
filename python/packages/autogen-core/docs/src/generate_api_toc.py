@@ -145,7 +145,7 @@ def clean_rst_files(reference_dir: Path) -> None:
 def generate_rst_files(package_roots: List[Path], reference_dir: Path) -> Set[str]:
     """Generate .rst files for all modules found in the packages."""
     python_ref_dir = reference_dir / "python"
-    python_ref_dir.mkdir(exist_ok=True)
+    python_ref_dir.mkdir(exist_ok=True, parents=True)
     
     # Clean existing RST files first
     clean_rst_files(reference_dir)
