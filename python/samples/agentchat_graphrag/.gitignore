@@ -1,3 +1,6 @@
 model_config.yaml
 data
-cache
+cache 
+prompts
+input
+output
