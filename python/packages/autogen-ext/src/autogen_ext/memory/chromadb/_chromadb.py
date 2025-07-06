@@ -325,7 +325,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                                     memory_strings.append(f"Memory: {memory.content}")
 
                             # Add to context with custom header
-                            memory_context = "IMPORTANT USER INFORMATION:\n" + "\n".join(memory_strings)
+                            memory_context = "IMPORTANT USER INFORMATION:\\n" + "\\n".join(memory_strings)
                             await model_context.add_message(SystemMessage(content=memory_context))
 
                         return UpdateContextResult(memories=query_results)

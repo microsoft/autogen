@@ -23,15 +23,7 @@ logging.getLogger("chromadb").setLevel(logging.ERROR)
 
 
 class Mem0MemoryConfig(BaseModel):
-    """Configuration for Mem0Memory component.
-
-    Attributes:
-        user_id: Optional user ID for memory operations. If not provided, a UUID will be generated.
-        limit: Maximum number of results to return in memory queries.
-        is_cloud: Whether to use cloud Mem0 client (True) or local client (False).
-        api_key: API key for cloud Mem0 client. Required if is_cloud=True.
-        config: Configuration dictionary for local Mem0 client. Required if is_cloud=False.
-    """
+    """Configuration for Mem0Memory component."""
 
     user_id: Optional[str] = Field(
         default=None, description="User ID for memory operations. If not provided, a UUID will be generated."
@@ -68,16 +60,17 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
     relevant memories.
 
     Examples:
-        ```python
-        # Create a cloud Mem0Memory
-        memory = Mem0Memory(is_cloud=True)
 
-        # Add something to memory
-        await memory.add(MemoryContent(content="Important information to remember"))
+        .. code-block:: python
 
-        # Retrieve memories with a search query
-        results = await memory.query("relevant information")
-        ```
+            # Create a cloud Mem0Memory
+            memory = Mem0Memory(is_cloud=True)
+
+            # Add something to memory
+            await memory.add(MemoryContent(content="Important information to remember"))
+
+            # Retrieve memories with a search query
+            results = await memory.query("relevant information")
     """
 
     component_type = "memory"

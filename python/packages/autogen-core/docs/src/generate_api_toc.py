@@ -7,30 +7,58 @@ for the API documentation index.md file.
 """
 
 import os
-import sys
 from pathlib import Path
 from typing import List, Dict, Set
-import importlib.util
-import ast
 import re
 
 
+# Constants for package filtering and organization
+DOCUMENTED_PACKAGES = ["autogen_core", "autogen_agentchat", "autogen_ext"]
+
+PACKAGE_SECTIONS = {
+    "autogen_agentchat": "AutoGen AgentChat",
+    "autogen_core": "AutoGen Core", 
+    "autogen_ext": "AutoGen Extensions"
+}
+
+# Exclusion patterns for submodules that are re-exported by parent modules
+EXCLUSION_PATTERNS = [
+    # task_centric_memory re-exports from memory_controller and utils
+    (r'^autogen_ext\.experimental\.task_centric_memory\.memory_controller$', 
+     'autogen_ext.experimental.task_centric_memory'),
+    # utils package re-exports from utils.apprentice and other utils submodules
+    (r'^autogen_ext\.experimental\.task_centric_memory\.utils\.apprentice$', 
+     'autogen_ext.experimental.task_centric_memory.utils'),
+    (r'^autogen_ext\.experimental\.task_centric_memory\.utils\.chat_completion_client_recorder$', 
+     'autogen_ext.experimental.task_centric_memory.utils'),
+    (r'^autogen_ext\.experimental\.task_centric_memory\.utils\.grader$', 
+     'autogen_ext.experimental.task_centric_memory.utils'),
+    (r'^autogen_ext\.experimental\.task_centric_memory\.utils\.page_logger$', 
+     'autogen_ext.experimental.task_centric_memory.utils'),
+    (r'^autogen_ext\.experimental\.task_centric_memory\.utils\.teachability$', 
+     'autogen_ext.experimental.task_centric_memory.utils'),
+]
+
+
 def find_python_packages() -> List[Path]:
-    """Find all Python packages in the workspace."""
+    """Find documented Python packages in the workspace."""
     packages_dir = Path(__file__).parent.parent.parent.parent.parent / "packages"
     python_packages = []
     
     for package_dir in packages_dir.iterdir():
-        if package_dir.is_dir() and package_dir.name.startswith("autogen"):
-            src_dir = package_dir / "src"
-            if src_dir.exists():
-                python_packages.append(src_dir)
+        if package_dir.is_dir():
+            # Check if this package is in our documented packages list
+            package_name = package_dir.name.replace("-", "_")
+            if package_name in DOCUMENTED_PACKAGES:
+                src_dir = package_dir / "src"
+                if src_dir.exists():
+                    python_packages.append(src_dir)
     
     return python_packages
 
 
 def get_module_hierarchy(package_root: Path) -> Dict[str, Set[str]]:
-    """Get the module hierarchy for a package."""
+    """Get the module hierarchy for a package, filtering only documented packages."""
     modules: Dict[str, Set[str]] = {}
     
     for root, dirs, files in os.walk(package_root):
@@ -52,10 +80,12 @@ def get_module_hierarchy(package_root: Path) -> Dict[str, Set[str]]:
                     module_name = '.'.join(module_parts)
                     package_name = module_parts[0]
                     
-                    if package_name not in modules:
-                        modules[package_name] = set()
-                    
-                    modules[package_name].add(module_name)
+                    # Only include modules from documented packages
+                    if package_name in DOCUMENTED_PACKAGES:
+                        if package_name not in modules:
+                            modules[package_name] = set()
+                        
+                        modules[package_name].add(module_name)
         
         # Also check for directories with __init__.py (packages, excluding private)
         for dir_name in dirs:
@@ -69,47 +99,43 @@ def get_module_hierarchy(package_root: Path) -> Dict[str, Set[str]]:
                         module_name = '.'.join(module_parts)
                         package_name = module_parts[0]
                         
-                        if package_name not in modules:
-                            modules[package_name] = set()
-                        
-                        modules[package_name].add(module_name)
+                        # Only include modules from documented packages
+                        if package_name in DOCUMENTED_PACKAGES:
+                            if package_name not in modules:
+                                modules[package_name] = set()
+                            
+                            modules[package_name].add(module_name)
     
     return modules
 
 
 def should_exclude_submodule(module_name: str, all_modules: Set[str]) -> bool:
     """Check if a submodule should be excluded to avoid duplicate documentation."""
-    # Define patterns where parent modules re-export submodule contents
-    exclusion_patterns = [
-        # task_centric_memory re-exports from memory_controller and utils
-        (r'^autogen_ext\.experimental\.task_centric_memory\.memory_controller$', 
-         'autogen_ext.experimental.task_centric_memory'),
-        # utils package re-exports from utils.apprentice and other utils submodules
-        (r'^autogen_ext\.experimental\.task_centric_memory\.utils\.apprentice$', 
-         'autogen_ext.experimental.task_centric_memory.utils'),
-        (r'^autogen_ext\.experimental\.task_centric_memory\.utils\.chat_completion_client_recorder$', 
-         'autogen_ext.experimental.task_centric_memory.utils'),
-        (r'^autogen_ext\.experimental\.task_centric_memory\.utils\.grader$', 
-         'autogen_ext.experimental.task_centric_memory.utils'),
-        (r'^autogen_ext\.experimental\.task_centric_memory\.utils\.page_logger$', 
-         'autogen_ext.experimental.task_centric_memory.utils'),
-        (r'^autogen_ext\.experimental\.task_centric_memory\.utils\.teachability$', 
-         'autogen_ext.experimental.task_centric_memory.utils'),
-        # Add more patterns as needed for other modules that re-export
-    ]
-    
-    import re
-    for pattern, parent_module in exclusion_patterns:
+    for pattern, parent_module in EXCLUSION_PATTERNS:
         if re.match(pattern, module_name) and parent_module in all_modules:
             return True
     
     return False
 
 
+def clean_rst_files(reference_dir: Path) -> None:
+    """Clean existing RST files to ensure fresh generation."""
+    python_ref_dir = reference_dir / "python"
+    if python_ref_dir.exists():
+        print("🧹 Cleaning existing .rst files...")
+        rst_files = list(python_ref_dir.glob("*.rst"))
+        for rst_file in rst_files:
+            rst_file.unlink()
+        print(f"   Removed {len(rst_files)} existing .rst files")
+
+
 def generate_rst_files(package_roots: List[Path], reference_dir: Path) -> Set[str]:
     """Generate .rst files for all modules found in the packages."""
     python_ref_dir = reference_dir / "python"
     python_ref_dir.mkdir(exist_ok=True)
+    
+    # Clean existing RST files first
+    clean_rst_files(reference_dir)
     
     generated_files = set()
     all_module_names = set()
@@ -161,32 +187,25 @@ def generate_rst_files(package_roots: List[Path], reference_dir: Path) -> Set[st
 
 def generate_toctree_from_rst_files(reference_dir: Path) -> Dict[str, List[str]]:
     """Generate toctree entries directly from existing .rst files."""
-    toctree_sections: Dict[str, List[str]] = {
-        "AutoGen AgentChat": [],
-        "AutoGen Core": [],
-        "AutoGen Extensions": []
-    }
+    # Initialize sections using constants
+    toctree_sections: Dict[str, List[str]] = {section: [] for section in PACKAGE_SECTIONS.values()}
     
     python_ref_dir = reference_dir / "python"
     if not python_ref_dir.exists():
         return toctree_sections
     
-    # Collect modules by package
-    agentchat_modules = []
-    core_modules = []
-    ext_modules = []
+    # Collect modules by package using constants
+    modules_by_section: Dict[str, List[str]] = {section: [] for section in PACKAGE_SECTIONS.values()}
     
     # Get all .rst files and organize them by package
     for rst_file in python_ref_dir.glob("*.rst"):
         module_name = rst_file.stem  # filename without .rst extension
-        rst_path = f"python/{module_name}"
         
-        if module_name.startswith("autogen_agentchat"):
-            agentchat_modules.append(module_name)
-        elif module_name.startswith("autogen_core"):
-            core_modules.append(module_name)
-        elif module_name.startswith("autogen_ext"):
-            ext_modules.append(module_name)
+        # Find which documented package this module belongs to
+        for package_prefix, section_name in PACKAGE_SECTIONS.items():
+            if module_name.startswith(package_prefix):
+                modules_by_section[section_name].append(module_name)
+                break
     
     # Sort modules so parent modules come before child modules
     def sort_modules_hierarchically(modules):
@@ -194,9 +213,8 @@ def generate_toctree_from_rst_files(reference_dir: Path) -> Dict[str, List[str]]
         return sorted(modules, key=lambda x: (x.count('.'), x))
     
     # Apply hierarchical sorting and convert to rst paths
-    toctree_sections["AutoGen AgentChat"] = [f"python/{m}" for m in sort_modules_hierarchically(agentchat_modules)]
-    toctree_sections["AutoGen Core"] = [f"python/{m}" for m in sort_modules_hierarchically(core_modules)]
-    toctree_sections["AutoGen Extensions"] = [f"python/{m}" for m in sort_modules_hierarchically(ext_modules)]
+    for section_name, modules in modules_by_section.items():
+        toctree_sections[section_name] = [f"python/{m}" for m in sort_modules_hierarchically(modules)]
     
     return toctree_sections
 
