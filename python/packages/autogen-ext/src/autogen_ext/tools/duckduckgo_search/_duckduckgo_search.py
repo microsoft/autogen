@@ -58,7 +58,7 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
 
         .. code-block:: python
 
-            from autogen_ext.tools.web_search import DuckDuckGoSearchTool, DuckDuckGoSearchArgs
+            from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchTool, DuckDuckGoSearchArgs
             from autogen_core import CancellationToken
             import asyncio
 
@@ -91,7 +91,7 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
 
         .. code-block:: python
 
-            from autogen_ext.tools.web_search import DuckDuckGoSearchTool
+            from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchTool
             from autogen_agentchat.agents import AssistantAgent
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
@@ -106,7 +106,7 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
 
         .. code-block:: python
 
-            from autogen_ext.tools.web_search import DuckDuckGoSearchArgs
+            from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchArgs
 
             # Perform a search in Spanish with content fetching
             search_args = DuckDuckGoSearchArgs(

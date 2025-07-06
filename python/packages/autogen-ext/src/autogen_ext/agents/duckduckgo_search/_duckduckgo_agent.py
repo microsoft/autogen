@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core.models import ChatCompletionClient
-from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchTool
+from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchTool
 
 
 class DuckDuckGoSearchAgent(AssistantAgent):

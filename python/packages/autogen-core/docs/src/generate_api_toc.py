@@ -40,6 +40,11 @@ EXCLUSION_PATTERNS = [
 ]
 
 
+def is_private_module(module_parts: List[str]) -> bool:
+    """Check if any part of the module path indicates it's a private module."""
+    return any(part.startswith('_') and part != '__init__' for part in module_parts)
+
+
 def find_python_packages() -> List[Path]:
     """Find documented Python packages in the workspace."""
     packages_dir = Path(__file__).parent.parent.parent.parent.parent / "packages"
@@ -77,6 +82,10 @@ def get_module_hierarchy(package_root: Path) -> Dict[str, Set[str]]:
                 module_parts = list(module_path.parts[:-1]) + [module_path.stem]
                 
                 if module_parts:
+                    # Skip if any part of the module path is private
+                    if is_private_module(module_parts):
+                        continue
+                        
                     module_name = '.'.join(module_parts)
                     package_name = module_parts[0]
                     
@@ -96,6 +105,10 @@ def get_module_hierarchy(package_root: Path) -> Dict[str, Set[str]]:
                     module_parts = list(module_path.parts)
                     
                     if module_parts:
+                        # Skip if any part of the module path is private
+                        if is_private_module(module_parts):
+                            continue
+                            
                         module_name = '.'.join(module_parts)
                         package_name = module_parts[0]
                         

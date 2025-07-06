@@ -16,7 +16,7 @@ from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models import CreateResult, ModelInfo, RequestUsage
 from autogen_ext.agents.duckduckgo_search._duckduckgo_agent import DuckDuckGoSearchAgent
 from autogen_ext.models.replay import ReplayChatCompletionClient
-from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchArgs, DuckDuckGoSearchTool
+from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchArgs, DuckDuckGoSearchTool
 
 
 @pytest.mark.integration
