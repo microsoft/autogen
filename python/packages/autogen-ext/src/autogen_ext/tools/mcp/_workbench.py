@@ -95,6 +95,8 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                 async with McpWorkbench(server_params=params, tool_overrides=overrides) as workbench:
                     tools = await workbench.list_tools()
                     # The tool will now appear as "web_fetch" with the new description
+                    print(tools)
+                    # Call the overridden tool
                     result = await workbench.call_tool("web_fetch", {"url": "https://github.com/"})
                     print(result)
 

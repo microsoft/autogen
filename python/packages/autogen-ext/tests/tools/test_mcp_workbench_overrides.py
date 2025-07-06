@@ -35,7 +35,7 @@ def sample_mcp_tools() -> list[Tool]:
 
 
 @pytest.fixture
-def mock_mcp_actor():
+def mock_mcp_actor() -> AsyncMock:
     """Mock MCP session actor."""
     actor = AsyncMock()
     return actor
