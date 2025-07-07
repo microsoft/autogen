@@ -1,245 +1,267 @@
-# #!/usr/bin/env python3
-# """Test the MCP client implementation"""
+#!/usr/bin/env python3
+"""Test the MCP client implementation"""
 
-# import asyncio
-# import pytest
-# from autogenstudio.mcp.client import McpClient, McpConnectionError, McpOperationError
-# from autogen_ext.tools.mcp._config import StdioServerParams, SseServerParams
+import asyncio
+import pytest
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime, timezone
 
+from mcp.types import (
+    ListToolsResult, 
+    Tool, 
+    CallToolResult,
+    TextContent,
+    ListResourcesResult,
+    Resource,
+    ReadResourceResult,
+    TextResourceContents,
+    ListPromptsResult,
+    Prompt,
+    GetPromptResult,
+    PromptMessage,
+    InitializeResult,
+    ServerCapabilities,
+    Implementation
+)
 
-# @pytest.mark.anyio
-# async def test_mcp_client_initialization():
-#     """Test MCP client can be initialized"""
-#     client = McpClient()
-#     assert client is not None
-
-
-# @pytest.mark.anyio
-# async def test_list_tools_with_mocked_session():
-#     """Test our McpClient with a mock session"""
-#     from unittest.mock import AsyncMock, patch
-#     from mcp.types import ListToolsResult, Tool, InitializeResult, Implementation, ServerCapabilities
-    
-#     client = McpClient()
-    
-#     mock_tools = [
-#         Tool(
-#             name="test_tool",
-#             description="A test tool",
-#             inputSchema={
-#                 "type": "object",
-#                 "properties": {"message": {"type": "string"}},
-#                 "required": ["message"]
-#             }
-#         )
-#     ]
-    
-#     mock_session = AsyncMock()
-#     mock_session.list_tools.return_value = ListToolsResult(tools=mock_tools)
-#     mock_session.initialize.return_value = InitializeResult(
-#         protocolVersion="2024-11-05",
-#         capabilities=ServerCapabilities(),
-#         serverInfo=Implementation(name="test-server", version="1.0.0")
-#     )
-    
-#     async def mock_execute(server_params, operation):
-#         return await operation(mock_session, mock_session.initialize.return_value)
-    
-#     with patch.object(client, '_execute_with_session', side_effect=mock_execute):
-#         stdio_params = StdioServerParams(command="test", args=[])
-#         tools = await client.list_tools(stdio_params)
-    
-#     assert len(tools) == 1
-#     assert tools[0].name == "test_tool"
-#     assert tools[0].description == "A test tool"
-    
-#     mock_session.list_tools.assert_called_once()
+from autogenstudio.mcp.client import MCPClient, MCPEventHandler
+from autogenstudio.mcp.utils import McpOperationError
 
 
-# @pytest.mark.anyio
-# async def test_call_tool_with_mocked_session():
-#     """Test our McpClient calling tools"""
-#     from unittest.mock import AsyncMock, patch
-#     from mcp.types import CallToolResult, TextContent, InitializeResult, Implementation, ServerCapabilities
+class MockEventHandler(MCPEventHandler):
+    """Mock event handler for testing"""
     
-#     client = McpClient()
+    def __init__(self):
+        self.events = []
     
-#     mock_session = AsyncMock()
-#     mock_result = CallToolResult(
-#         content=[TextContent(type="text", text="Hello from test tool")]
-#     )
-#     mock_session.call_tool.return_value = mock_result
-#     mock_session.initialize.return_value = InitializeResult(
-#         protocolVersion="2024-11-05",
-#         capabilities=ServerCapabilities(),
-#         serverInfo=Implementation(name="test-server", version="1.0.0")
-#     )
+    async def on_initialized(self, session_id: str, capabilities: Any) -> None:
+        self.events.append(("initialized", session_id, capabilities))
     
-#     async def mock_execute(server_params, operation):
-#         return await operation(mock_session, mock_session.initialize.return_value)
+    async def on_operation_result(self, operation: str, data: dict) -> None:
+        self.events.append(("operation_result", operation, data))
     
-#     with patch.object(client, '_execute_with_session', side_effect=mock_execute):
-#         stdio_params = StdioServerParams(command="test", args=[])
-#         result = await client.call_tool(stdio_params, "test_tool", {"message": "hello"})
+    async def on_operation_error(self, operation: str, error: str) -> None:
+        self.events.append(("operation_error", operation, error))
     
-#     assert isinstance(result, CallToolResult)
-#     assert len(result.content) == 1
-#     assert isinstance(result.content[0], TextContent)
-#     assert result.content[0].text == "Hello from test tool"
+    async def on_mcp_activity(self, activity_type: str, message: str, details: dict) -> None:
+        self.events.append(("mcp_activity", activity_type, message, details))
     
-#     mock_session.call_tool.assert_called_once_with("test_tool", {"message": "hello"})
+    async def on_elicitation_request(self, request_id: str, message: str, requested_schema: Any) -> None:
+        self.events.append(("elicitation_request", request_id, message, requested_schema))
 
 
-# @pytest.mark.anyio
-# async def test_transport_detection():
-#     """Test that our client correctly detects transport types"""
-#     client = McpClient()
+class TestMCPClient:
+    """Test the MCPClient class"""
     
-#     stdio_params = StdioServerParams(command="test", args=[])
-#     assert isinstance(stdio_params, StdioServerParams)
+    @pytest.fixture
+    def mock_session(self):
+        """Create a mock MCP session"""
+        session = AsyncMock()
+        
+        # Mock initialization
+        session.initialize.return_value = InitializeResult(
+            protocolVersion="2024-11-05",
+            capabilities=ServerCapabilities(),
+            serverInfo=Implementation(name="test-server", version="1.0.0")
+        )
+        
+        # Mock tools
+        session.list_tools.return_value = ListToolsResult(
+            tools=[
+                Tool(
+                    name="test_tool",
+                    description="A test tool",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {"message": {"type": "string"}},
+                        "required": ["message"]
+                    }
+                )
+            ]
+        )
+        
+        # Mock tool call
+        session.call_tool.return_value = CallToolResult(
+            content=[TextContent(type="text", text="Tool executed successfully")],
+            isError=False
+        )
+        
+        # Mock resources
+        from pydantic import HttpUrl
+        test_uri = HttpUrl("https://example.com/test.txt")
+        session.list_resources.return_value = ListResourcesResult(
+            resources=[
+                Resource(
+                    uri=test_uri,
+                    name="test.txt",
+                    description="A test resource",
+                    mimeType="text/plain"
+                )
+            ]
+        )
+        
+        session.read_resource.return_value = ReadResourceResult(
+            contents=[TextResourceContents(
+                uri=test_uri,
+                text="This is test content",
+                mimeType="text/plain"
+            )]
+        )
+        
+        # Mock prompts
+        session.list_prompts.return_value = ListPromptsResult(
+            prompts=[
+                Prompt(
+                    name="test_prompt",
+                    description="A test prompt"
+                )
+            ]
+        )
+        
+        session.get_prompt.return_value = GetPromptResult(
+            description="Test prompt result",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(type="text", text="Test prompt content")
+                )
+            ]
+        )
+        
+        return session
     
-#     sse_params = SseServerParams(url="http://test.com", timeout=5.0)
-#     assert isinstance(sse_params, SseServerParams)
+    @pytest.fixture
+    def mock_event_handler(self):
+        """Create a mock event handler"""
+        return MockEventHandler()
+    
+    @pytest.mark.asyncio
+    async def test_client_initialization(self, mock_session, mock_event_handler):
+        """Test MCPClient initialization"""
+        client = MCPClient(mock_session, "test-session", mock_event_handler)
+        
+        assert client.session == mock_session
+        assert client.session_id == "test-session"
+        assert client.event_handler == mock_event_handler
+        assert not client._initialized
+        assert client._capabilities is None
+    
+    @pytest.mark.asyncio
+    async def test_client_initialize(self, mock_session, mock_event_handler):
+        """Test MCPClient.initialize()"""
+        client = MCPClient(mock_session, "test-session", mock_event_handler)
+        
+        await client.initialize()
+        
+        # Verify session.initialize was called
+        mock_session.initialize.assert_called_once()
+        
+        # Verify client state
+        assert client._initialized
+        assert client.capabilities is not None
+        
+        # Verify event handler was called
+        events = [e for e in mock_event_handler.events if e[0] == "initialized"]
+        assert len(events) == 1
+        assert events[0][1] == "test-session"
+    
+    @pytest.mark.asyncio
+    async def test_list_tools_operation(self, mock_session, mock_event_handler):
+        """Test list_tools operation"""
+        client = MCPClient(mock_session, "test-session", mock_event_handler)
+        await client.initialize()
+        
+        # Test list_tools operation
+        operation = {"operation": "list_tools"}
+        await client.handle_operation(operation)
+        
+        # Verify session method was called
+        mock_session.list_tools.assert_called_once()
+        
+        # Verify result event was fired
+        result_events = [e for e in mock_event_handler.events if e[0] == "operation_result"]
+        assert len(result_events) == 1
+        assert result_events[0][1] == "list_tools"
+        assert "tools" in result_events[0][2]
+    
+    @pytest.mark.asyncio
+    async def test_call_tool_operation(self, mock_session, mock_event_handler):
+        """Test call_tool operation"""
+        client = MCPClient(mock_session, "test-session", mock_event_handler)
+        await client.initialize()
+        
+        # Test call_tool operation
+        operation = {
+            "operation": "call_tool",
+            "tool_name": "test_tool",
+            "arguments": {"message": "test"}
+        }
+        await client.handle_operation(operation)
+        
+        # Verify session method was called
+        mock_session.call_tool.assert_called_once_with("test_tool", {"message": "test"})
+        
+        # Verify result event was fired
+        result_events = [e for e in mock_event_handler.events if e[0] == "operation_result"]
+        assert len(result_events) == 1
+        assert result_events[0][1] == "call_tool"
+        assert result_events[0][2]["tool_name"] == "test_tool"
+    
+    @pytest.mark.asyncio
+    async def test_call_tool_missing_name(self, mock_session, mock_event_handler):
+        """Test call_tool operation with missing tool name"""
+        client = MCPClient(mock_session, "test-session", mock_event_handler)
+        await client.initialize()
+        
+        # Test call_tool operation without tool_name
+        operation = {
+            "operation": "call_tool",
+            "arguments": {"message": "test"}
+        }
+        await client.handle_operation(operation)
+        
+        # Verify error event was fired
+        error_events = [e for e in mock_event_handler.events if e[0] == "operation_error"]
+        assert len(error_events) == 1
+        assert error_events[0][1] == "call_tool"
+        assert "Tool name is required" in error_events[0][2]
+    
+    @pytest.mark.asyncio
+    async def test_unknown_operation(self, mock_session, mock_event_handler):
+        """Test unknown operation handling"""
+        client = MCPClient(mock_session, "test-session", mock_event_handler)
+        await client.initialize()
+        
+        # Test unknown operation
+        operation = {"operation": "unknown_op"}
+        await client.handle_operation(operation)
+        
+        # Verify error event was fired
+        error_events = [e for e in mock_event_handler.events if e[0] == "operation_error"]
+        assert len(error_events) == 1
+        assert error_events[0][1] == "unknown_op"
+        assert "Unknown operation" in error_events[0][2]
+    
+    @pytest.mark.asyncio
+    async def test_operation_exception_handling(self, mock_session, mock_event_handler):
+        """Test operation exception handling"""
+        client = MCPClient(mock_session, "test-session", mock_event_handler)
+        await client.initialize()
+        
+        # Mock session to raise exception
+        mock_session.list_tools.side_effect = Exception("Test error")
+        
+        # Test list_tools operation
+        operation = {"operation": "list_tools"}
+        await client.handle_operation(operation)
+        
+        # Verify error event was fired
+        error_events = [e for e in mock_event_handler.events if e[0] == "operation_error"]
+        assert len(error_events) == 1
+        assert error_events[0][1] == "list_tools"
+        assert "Test error" in error_events[0][2]
 
 
-# @pytest.mark.anyio
-# async def test_error_handling_in_our_client():
-#     """Test error handling in our client operations"""
-#     from unittest.mock import AsyncMock, patch
-    
-#     client = McpClient()
-    
-#     async def mock_execute_error(server_params, operation):
-#         raise Exception("Connection failed")
-    
-#     stdio_params = StdioServerParams(command="test", args=[])
-    
-#     with patch.object(client, '_execute_with_session', side_effect=mock_execute_error):
-#         with pytest.raises(McpOperationError, match="Failed to list tools"):
-#             await client.list_tools(stdio_params)
-    
-#     with patch.object(client, '_execute_with_session', side_effect=mock_execute_error):
-#         with pytest.raises(McpOperationError, match="Failed to call tool"):
-#             await client.call_tool(stdio_params, "test_tool", {})
-
-
-# @pytest.mark.anyio
-# async def test_server_params_creation():
-#     """Test creating different server parameter types"""
-    
-#     stdio = StdioServerParams(
-#         command="python",
-#         args=["-m", "my_mcp_server"],
-#         env={"DEBUG": "1"}
-#     )
-#     assert stdio.type == "StdioServerParams"
-#     assert stdio.command == "python"
-#     assert stdio.args == ["-m", "my_mcp_server"]
-    
-#     sse = SseServerParams(
-#         url="http://localhost:3000/sse",
-#         headers={"API-Key": "secret"},
-#         timeout=10.0
-#     )
-#     assert sse.type == "SseServerParams"
-#     assert sse.url == "http://localhost:3000/sse"
-#     assert sse.timeout == 10.0
-
-
-# @pytest.mark.anyio
-# async def test_client_context_manager():
-#     """Test client context manager works without errors"""
-#     client = McpClient()
-    
-#     async with client:
-#         assert client is not None
-
-
-# @pytest.mark.anyio
-# async def test_get_capabilities():
-#     """Test getting server capabilities"""
-#     from unittest.mock import AsyncMock, patch
-#     from mcp.types import ServerCapabilities, ToolsCapability, ResourcesCapability, PromptsCapability, InitializeResult, Implementation
-    
-#     client = McpClient()
-    
-#     mock_capabilities = ServerCapabilities(
-#         tools=ToolsCapability(listChanged=False),
-#         resources=ResourcesCapability(subscribe=False, listChanged=False),
-#         prompts=PromptsCapability(listChanged=False)
-#     )
-    
-#     mock_initialize_result = InitializeResult(
-#         protocolVersion="2025-03-26",
-#         capabilities=mock_capabilities,
-#         serverInfo=Implementation(name="test-server", version="1.0.0")
-#     )
-    
-#     mock_session = AsyncMock()
-#     mock_session.initialize.return_value = mock_initialize_result
-    
-#     async def mock_execute(server_params, operation):
-#         return await operation(mock_session, mock_initialize_result)
-    
-#     with patch.object(client, '_execute_with_session', side_effect=mock_execute):
-#         stdio_params = StdioServerParams(command="test", args=[])
-#         capabilities = await client.get_capabilities(stdio_params)
-    
-#     assert isinstance(capabilities, ServerCapabilities)
-#     assert capabilities.tools is not None
-#     assert capabilities.resources is not None
-#     assert capabilities.prompts is not None
-
-
-# @pytest.mark.anyio
-# async def test_elicitation_callback_basic():
-#     """Test that elicitation callback is properly created and has expected structure"""
-#     from autogenstudio.web.routes.mcp import create_elicitation_callback
-#     from unittest.mock import AsyncMock
-    
-#     mock_websocket = AsyncMock()
-#     session_id = "test-session-123"
-    
-#     # Create the elicitation callback - it returns a tuple
-#     callback, pending_elicitations = create_elicitation_callback(mock_websocket, session_id)
-    
-#     # Test that callback is callable
-#     assert callable(callback)
-    
-#     # Test that pending_elicitations is a dict and starts empty
-#     assert isinstance(pending_elicitations, dict)
-#     assert len(pending_elicitations) == 0
-    
-#     # Verify callback signature (should accept 2 parameters: context and params)
-#     import inspect
-#     sig = inspect.signature(callback)
-#     assert len(sig.parameters) == 2
-    
-#     # Parameter names should be 'context' and 'params'
-#     param_names = list(sig.parameters.keys())
-#     assert param_names == ['context', 'params']
-
-
-# @pytest.mark.anyio 
-# async def test_elicitation_callback_creation():
-#     """Test that elicitation callback can be created with correct parameters"""
-#     from autogenstudio.web.routes.mcp import create_elicitation_callback
-#     from unittest.mock import AsyncMock
-    
-#     mock_websocket = AsyncMock()
-#     session_id = "test-session-456"
-    
-#     # Create the callback - it returns a tuple of (callback, pending_elicitations)
-#     callback, pending_elicitations = create_elicitation_callback(mock_websocket, session_id)
-    
-#     # Verify callback is callable
-#     assert callable(callback)
-    
-#     # Verify pending_elicitations is a dictionary
-#     assert isinstance(pending_elicitations, dict)
-#     assert len(pending_elicitations) == 0  # Should start empty
-    
-#     # Verify callback has the expected signature by checking it accepts 2 parameters
-#     import inspect
-#     sig = inspect.signature(callback)
-#     assert len(sig.parameters) == 2
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

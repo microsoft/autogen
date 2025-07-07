@@ -365,6 +365,7 @@ export class McpWebSocketClient {
     string,
     { resolve: (value: any) => void; reject: (error: any) => void }
   > = new Map();
+  private operationTimers: Map<string, Set<NodeJS.Timeout>> = new Map();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private baseReconnectDelay = 1000;
@@ -388,6 +389,15 @@ export class McpWebSocketClient {
   private updateState(partialState: Partial<McpWebSocketState>) {
     this.currentState = { ...this.currentState, ...partialState };
     this.onStateChange(partialState);
+  }
+
+  // Helper method to clear all timers for a specific operation type
+  private clearTimersForOperation(operationType: string) {
+    const timers = this.operationTimers.get(operationType);
+    if (timers) {
+      timers.forEach((timerId) => clearTimeout(timerId));
+      timers.clear();
+    }
   }
 
   // Helper for WebSocket URL construction (similar to chat implementation)
@@ -472,6 +482,9 @@ export class McpWebSocketClient {
                 const operationKey = message.operation;
                 const promise = this.operationPromises.get(operationKey);
                 if (promise) {
+                  // Clear all timers for this operation type to prevent interference
+                  this.clearTimersForOperation(operationKey);
+                  // Resolve the promise
                   promise.resolve(message.data);
                   this.operationPromises.delete(operationKey);
                 }
@@ -483,6 +496,9 @@ export class McpWebSocketClient {
               if (message.operation) {
                 const promise = this.operationPromises.get(message.operation);
                 if (promise) {
+                  // Clear all timers for this operation type to prevent interference
+                  this.clearTimersForOperation(message.operation);
+                  // Reject the promise
                   promise.reject(
                     new Error(message.error || "Operation failed")
                   );
@@ -631,13 +647,19 @@ export class McpWebSocketClient {
         reject(error);
       }
 
-      // Set a timeout for the operation
-      setTimeout(() => {
+      // Set a timeout for the operation and track it by operation type
+      const timerId = setTimeout(() => {
         if (this.operationPromises.has(operationKey)) {
           this.operationPromises.delete(operationKey);
           reject(new Error("Operation timeout"));
         }
-      }, 30000); // 30 second timeout
+      }, 120000); // 120 second timeout (2 minutes) for long-running operations
+
+      // Track this timer by operation type
+      if (!this.operationTimers.has(operationKey)) {
+        this.operationTimers.set(operationKey, new Set());
+      }
+      this.operationTimers.get(operationKey)!.add(timerId);
     });
   }
 
@@ -658,11 +680,18 @@ export class McpWebSocketClient {
       this.wsRef = null;
     }
 
-    // Reject all pending operations
+    // Reject all pending operations and clear all timers
     this.operationPromises.forEach(({ reject }) => {
       reject(new Error("WebSocket connection closed"));
     });
     this.operationPromises.clear();
+
+    // Clear all operation timers
+    this.operationTimers.forEach((timers) => {
+      timers.forEach((timerId) => clearTimeout(timerId));
+      timers.clear();
+    });
+    this.operationTimers.clear();
 
     this.updateState({
       connected: false,

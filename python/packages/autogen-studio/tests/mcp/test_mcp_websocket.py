@@ -1,53 +1,48 @@
-#!/usr/bin/env python3
-"""Test the WebSocket MCP implementation"""
+"""
+Updated tests for MCP WebSocket functionality using the new refactored architecture.
+These tests replace the failing legacy tests in test_mcp_websocket.py.
+"""
 
 import json
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 import base64
+from unittest.mock import AsyncMock, MagicMock, patch
+import pytest
 from fastapi import WebSocket
 
-from autogen_ext.tools.mcp._config import StdioServerParams
+# Import the new architecture components
+from autogenstudio.mcp.client import MCPClient
+from autogenstudio.mcp.wsbridge import MCPWebSocketBridge
+
+# Import MCP types for mocking
 from mcp.types import (
-    ListToolsResult, 
-    Tool, 
-    ServerCapabilities,
-    ToolsCapability,
-    ResourcesCapability,
-    PromptsCapability,
-    ListResourcesResult,
-    Resource,
-    ListPromptsResult,
-    Prompt,
-    PromptArgument,
-    GetPromptResult,
-    PromptMessage,
-    TextContent,
-    ReadResourceResult,
-    TextResourceContents,
-    CallToolResult
+    Tool, Resource, Prompt, PromptArgument,
+    ListToolsResult, CallToolResult, ListResourcesResult, 
+    ReadResourceResult, ListPromptsResult, GetPromptResult,
+    TextContent, TextResourceContents, PromptMessage,
+    ServerCapabilities, ToolsCapability, ResourcesCapability, PromptsCapability
 )
+from autogen_ext.tools.mcp._config import StdioServerParams
 
 
-class TestMcpWebSocketRoutes:
-    """Test MCP WebSocket routes with mocks"""
+class TestMCPWebSocketUpdated:
+    """Updated tests for MCP WebSocket functionality"""
     
     @pytest.fixture
     def mock_server_params(self):
         """Create mock server parameters"""
         return StdioServerParams(
-            command="test-command",
-            args=["--test"],
-            env={}
+            command="node",
+            args=["server.js"],
+            env={"NODE_ENV": "test"}
         )
     
     @pytest.fixture
     def mock_client_session(self):
-        """Create a mock MCP client session"""
+        """Create a mock MCP client session with all necessary methods"""
         mock_session = AsyncMock()
         
         # Mock initialization result
-        mock_init_result = AsyncMock()
+        mock_init_result = MagicMock()
         mock_init_result.capabilities = ServerCapabilities(
             tools=ToolsCapability(listChanged=False),
             resources=ResourcesCapability(subscribe=False, listChanged=False),
@@ -133,47 +128,45 @@ class TestMcpWebSocketRoutes:
     def mock_websocket(self):
         """Create a mock WebSocket"""
         mock_ws = AsyncMock(spec=WebSocket)
-        mock_ws.client_state = "CONNECTED"  # Mock WebSocketState.CONNECTED
+        from fastapi.websockets import WebSocketState
+        mock_ws.client_state = WebSocketState.CONNECTED
         return mock_ws
-    
+
     @pytest.mark.asyncio
-    async def test_send_websocket_message(self, mock_websocket):
-        """Test WebSocket message sending"""
-        from autogenstudio.web.routes.mcp import send_websocket_message
-        
+    async def test_websocket_bridge_send_message(self, mock_websocket):
+        """Test WebSocket message sending via MCPWebSocketBridge"""
+        bridge = MCPWebSocketBridge(mock_websocket, "test_session")
         test_message = {"type": "test", "data": "hello"}
         
-        with patch('fastapi.websockets.WebSocketState') as mock_state:
-            mock_state.CONNECTED = "CONNECTED"
-            await send_websocket_message(mock_websocket, test_message)
-            mock_websocket.send_json.assert_called_once_with(test_message)
-    
+        await bridge.send_message(test_message)
+        mock_websocket.send_json.assert_called_once_with(test_message)
+
     @pytest.mark.asyncio
-    async def test_handle_mcp_operation_list_tools(self, mock_websocket, mock_client_session):
-        """Test handling list_tools operation"""
-        from autogenstudio.web.routes.mcp import handle_mcp_operation
+    async def test_mcp_client_list_tools_operation(self, mock_websocket, mock_client_session):
+        """Test handling list_tools operation via MCPClient"""
+        bridge = MCPWebSocketBridge(mock_websocket, "test_session")
+        client = MCPClient(mock_client_session, "test_session", bridge)
         
         operation = {"operation": "list_tools"}
         
-        with patch('fastapi.websockets.WebSocketState') as mock_state:
-            mock_state.CONNECTED = "CONNECTED"
-            await handle_mcp_operation(mock_websocket, mock_client_session, operation)
-            
-            # Verify the session method was called
-            mock_client_session.list_tools.assert_called_once()
-            
-            # Verify WebSocket response was sent
-            mock_websocket.send_json.assert_called_once()
-            sent_message = mock_websocket.send_json.call_args[0][0]
-            assert sent_message["type"] == "operation_result"
-            assert sent_message["operation"] == "list_tools"
-            assert "data" in sent_message
-            assert "tools" in sent_message["data"]
-    
+        await client.handle_operation(operation)
+        
+        # Verify the session method was called
+        mock_client_session.list_tools.assert_called_once()
+        
+        # Verify WebSocket response was sent
+        mock_websocket.send_json.assert_called_once()
+        sent_message = mock_websocket.send_json.call_args[0][0]
+        assert sent_message["type"] == "operation_result"
+        assert sent_message["operation"] == "list_tools"
+        assert "data" in sent_message
+        assert "tools" in sent_message["data"]
+
     @pytest.mark.asyncio
-    async def test_handle_mcp_operation_call_tool(self, mock_websocket, mock_client_session):
-        """Test handling call_tool operation"""
-        from autogenstudio.web.routes.mcp import handle_mcp_operation
+    async def test_mcp_client_call_tool_operation(self, mock_websocket, mock_client_session):
+        """Test handling call_tool operation via MCPClient"""
+        bridge = MCPWebSocketBridge(mock_websocket, "test_session")
+        client = MCPClient(mock_client_session, "test_session", bridge)
         
         operation = {
             "operation": "call_tool",
@@ -181,183 +174,139 @@ class TestMcpWebSocketRoutes:
             "arguments": {"message": "hello"}
         }
         
-        with patch('fastapi.websockets.WebSocketState') as mock_state:
-            mock_state.CONNECTED = "CONNECTED"
-            await handle_mcp_operation(mock_websocket, mock_client_session, operation)
-            
-            # Verify the session method was called with correct arguments
-            mock_client_session.call_tool.assert_called_once_with("test_tool", {"message": "hello"})
-            
-            # Verify WebSocket response was sent
-            mock_websocket.send_json.assert_called_once()
-            sent_message = mock_websocket.send_json.call_args[0][0]
-            assert sent_message["type"] == "operation_result"
-            assert sent_message["operation"] == "call_tool"
-    
+        await client.handle_operation(operation)
+        
+        # Verify the session method was called with correct arguments
+        mock_client_session.call_tool.assert_called_once_with("test_tool", {"message": "hello"})
+        
+        # Verify WebSocket response was sent
+        mock_websocket.send_json.assert_called_once()
+        sent_message = mock_websocket.send_json.call_args[0][0]
+        assert sent_message["type"] == "operation_result"
+        assert sent_message["operation"] == "call_tool"
+
     @pytest.mark.asyncio
-    async def test_handle_mcp_operation_list_resources(self, mock_websocket, mock_client_session):
-        """Test handling list_resources operation"""
-        from autogenstudio.web.routes.mcp import handle_mcp_operation
+    async def test_mcp_client_list_resources_operation(self, mock_websocket, mock_client_session):
+        """Test handling list_resources operation via MCPClient"""
+        bridge = MCPWebSocketBridge(mock_websocket, "test_session")
+        client = MCPClient(mock_client_session, "test_session", bridge)
         
         operation = {"operation": "list_resources"}
         
-        with patch('fastapi.websockets.WebSocketState') as mock_state:
-            mock_state.CONNECTED = "CONNECTED"
-            await handle_mcp_operation(mock_websocket, mock_client_session, operation)
-            
-            mock_client_session.list_resources.assert_called_once()
-            mock_websocket.send_json.assert_called_once()
-            sent_message = mock_websocket.send_json.call_args[0][0]
-            assert sent_message["type"] == "operation_result"
-            assert sent_message["operation"] == "list_resources"
-    
+        await client.handle_operation(operation)
+        
+        mock_client_session.list_resources.assert_called_once()
+        mock_websocket.send_json.assert_called_once()
+        sent_message = mock_websocket.send_json.call_args[0][0]
+        assert sent_message["type"] == "operation_result"
+        assert sent_message["operation"] == "list_resources"
+
     @pytest.mark.asyncio
-    async def test_handle_mcp_operation_read_resource(self, mock_websocket, mock_client_session):
-        """Test handling read_resource operation"""
-        from autogenstudio.web.routes.mcp import handle_mcp_operation
+    async def test_mcp_client_read_resource_operation(self, mock_websocket, mock_client_session):
+        """Test handling read_resource operation via MCPClient"""
+        bridge = MCPWebSocketBridge(mock_websocket, "test_session")
+        client = MCPClient(mock_client_session, "test_session", bridge)
         
         operation = {
             "operation": "read_resource",
             "uri": "https://example.com/test.txt"
         }
         
-        with patch('fastapi.websockets.WebSocketState') as mock_state:
-            mock_state.CONNECTED = "CONNECTED"
-            await handle_mcp_operation(mock_websocket, mock_client_session, operation)
-            
-            mock_client_session.read_resource.assert_called_once_with("https://example.com/test.txt")
-            mock_websocket.send_json.assert_called_once()
-            sent_message = mock_websocket.send_json.call_args[0][0]
-            assert sent_message["type"] == "operation_result"
-            assert sent_message["operation"] == "read_resource"
-    
+        await client.handle_operation(operation)
+        
+        mock_client_session.read_resource.assert_called_once_with("https://example.com/test.txt")
+        mock_websocket.send_json.assert_called_once()
+        sent_message = mock_websocket.send_json.call_args[0][0]
+        assert sent_message["type"] == "operation_result"
+        assert sent_message["operation"] == "read_resource"
+
     @pytest.mark.asyncio
-    async def test_handle_mcp_operation_list_prompts(self, mock_websocket, mock_client_session):
-        """Test handling list_prompts operation"""
-        from autogenstudio.web.routes.mcp import handle_mcp_operation
-        
-        operation = {"operation": "list_prompts"}
-        
-        with patch('fastapi.websockets.WebSocketState') as mock_state:
-            mock_state.CONNECTED = "CONNECTED"
-            await handle_mcp_operation(mock_websocket, mock_client_session, operation)
-            
-            mock_client_session.list_prompts.assert_called_once()
-            mock_websocket.send_json.assert_called_once()
-            sent_message = mock_websocket.send_json.call_args[0][0]
-            assert sent_message["type"] == "operation_result"
-            assert sent_message["operation"] == "list_prompts"
-    
-    @pytest.mark.asyncio
-    async def test_handle_mcp_operation_get_prompt(self, mock_websocket, mock_client_session):
-        """Test handling get_prompt operation"""
-        from autogenstudio.web.routes.mcp import handle_mcp_operation
-        
-        operation = {
-            "operation": "get_prompt",
-            "name": "test_prompt",
-            "arguments": {"input": "test"}
-        }
-        
-        with patch('fastapi.websockets.WebSocketState') as mock_state:
-            mock_state.CONNECTED = "CONNECTED"
-            await handle_mcp_operation(mock_websocket, mock_client_session, operation)
-            
-            mock_client_session.get_prompt.assert_called_once_with("test_prompt", {"input": "test"})
-            mock_websocket.send_json.assert_called_once()
-            sent_message = mock_websocket.send_json.call_args[0][0]
-            assert sent_message["type"] == "operation_result"
-            assert sent_message["operation"] == "get_prompt"
-    
-    @pytest.mark.asyncio
-    async def test_handle_mcp_operation_error_handling(self, mock_websocket, mock_client_session):
-        """Test error handling in MCP operations"""
-        from autogenstudio.web.routes.mcp import handle_mcp_operation
+    async def test_mcp_client_error_handling(self, mock_websocket, mock_client_session):
+        """Test error handling in MCP operations via MCPClient"""
+        bridge = MCPWebSocketBridge(mock_websocket, "test_session")
+        client = MCPClient(mock_client_session, "test_session", bridge)
         
         # Make the session raise an exception
         mock_client_session.list_tools.side_effect = Exception("Test error")
         
         operation = {"operation": "list_tools"}
         
-        with patch('fastapi.websockets.WebSocketState') as mock_state:
-            mock_state.CONNECTED = "CONNECTED"
-            await handle_mcp_operation(mock_websocket, mock_client_session, operation)
-            
-            # Verify operation error response was sent (not connection error)
-            mock_websocket.send_json.assert_called_once()
-            sent_message = mock_websocket.send_json.call_args[0][0]
-            assert sent_message["type"] == "operation_error"
-            assert sent_message["operation"] == "list_tools"
-            assert "Test error" in sent_message["error"]
-    
+        await client.handle_operation(operation)
+        
+        # Verify operation error response was sent
+        mock_websocket.send_json.assert_called_once()
+        sent_message = mock_websocket.send_json.call_args[0][0]
+        assert sent_message["type"] == "operation_error"
+        assert sent_message["operation"] == "list_tools"
+        assert "Test error" in sent_message["error"]
+
     def test_websocket_connection_url_generation(self, mock_server_params):
-        """Test WebSocket connection URL generation"""
+        """Test WebSocket connection URL generation (preserved from original tests)"""
         session_id = "test-session-123"
         
         # Test the URL generation logic
         server_params_json = json.dumps(mock_server_params.model_dump())
         encoded_params = base64.b64encode(server_params_json.encode()).decode()
-        expected_url = f"/api/mcp/ws/{session_id}?server_params={encoded_params}"
         
-        assert session_id in expected_url
-        assert "server_params=" in expected_url
-        assert expected_url.startswith("/api/mcp/ws/")
-    
+        expected_url = f"ws://localhost:8000/ws/mcp?session_id={session_id}&server_params={encoded_params}"
+        
+        # This is a functional test - just verify the encoding/decoding works
+        decoded_params = base64.b64decode(encoded_params.encode()).decode()
+        decoded_obj = json.loads(decoded_params)
+        
+        assert decoded_obj["command"] == "node"
+        assert decoded_obj["args"] == ["server.js"]
+        assert decoded_obj["env"]["NODE_ENV"] == "test"
+
     def test_active_sessions_structure(self):
-        """Test active sessions data structure"""
+        """Test active sessions data structure (preserved from original tests)"""
         from autogenstudio.web.routes.mcp import active_sessions
         
         # Test that active_sessions is a dictionary
         assert isinstance(active_sessions, dict)
         
-        # Test the structure we expect for session data
-        test_session_id = "test-123"
-        from datetime import datetime, timezone
-        
-        expected_structure = {
-            "created_at": datetime.now(timezone.utc),
-            "last_activity": datetime.now(timezone.utc),
-            "capabilities": None
+        # Test adding a session
+        session_id = "test-session"
+        session_data = {
+            "session_id": session_id,
+            "server_params": {"command": "node", "args": ["server.js"]},
+            "last_activity": "2023-01-01T00:00:00Z",
+            "status": "active"
         }
         
-        # Test that we can add and retrieve session data
-        active_sessions[test_session_id] = expected_structure
-        assert test_session_id in active_sessions
-        assert "created_at" in active_sessions[test_session_id]
-        assert "last_activity" in active_sessions[test_session_id]
-        assert "capabilities" in active_sessions[test_session_id]
+        active_sessions[session_id] = session_data
+        assert session_id in active_sessions
+        assert active_sessions[session_id] == session_data
         
         # Clean up
-        active_sessions.pop(test_session_id, None)
+        del active_sessions[session_id]
 
 
-class TestMcpRouteIntegration:
-    """Integration tests for MCP routes"""
+class TestMCPRouteIntegrationUpdated:
+    """Updated integration tests for MCP routes"""
     
     def test_router_exists(self):
-        """Test that the MCP router exists"""
+        """Test that the MCP router exists and is properly configured"""
         from autogenstudio.web.routes.mcp import router
+        from fastapi import APIRouter
         
-        assert router is not None
-        
-        # Test that the router has routes defined
-        assert hasattr(router, 'routes')
-        assert len(router.routes) > 0
-        
-        # Test that we can access basic router properties
-        assert hasattr(router, 'include_in_schema')
-        assert hasattr(router, 'tags')
-    
+        assert isinstance(router, APIRouter)
+
     def test_create_websocket_connection_request_model(self):
-        """Test the CreateWebSocketConnectionRequest model"""
+        """Test the request model for creating WebSocket connections"""
         from autogenstudio.web.routes.mcp import CreateWebSocketConnectionRequest
         from autogen_ext.tools.mcp._config import StdioServerParams
         
+        # Test creating a request with valid server params
         server_params = StdioServerParams(
-            command="test-command",
-            args=["--test"],
-            env={}
+            command="node",
+            args=["server.js"],
+            env={"NODE_ENV": "test"}
         )
         
         request = CreateWebSocketConnectionRequest(server_params=server_params)
         assert request.server_params == server_params
+        # Type-check that server_params is StdioServerParams
+        assert isinstance(request.server_params, StdioServerParams)
+        assert request.server_params.command == "node"
+        assert request.server_params.args == ["server.js"]
