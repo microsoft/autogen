@@ -68,7 +68,7 @@ def search_wikipedia(query: str) -> list[str]:
 
 # %%
 async def run_agent(task: str, instruction: str) -> str:
-    model_client = OpenAIChatCompletionClient(model="gpt-4.1-mini")
+    model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
     agent = AssistantAgent(
         "my_agent",
         model_client=model_client,
@@ -143,6 +143,9 @@ agent = Agent()
 
 
 # %%
+react_agent = dspy.ReAct("question -> answer", tools=[search_wikipedia])
+
+# %%
 # Try compilation with the lenient metric
 print("Starting compilation...")
 tp = dspy.MIPROv2(
@@ -151,8 +154,13 @@ tp = dspy.MIPROv2(
     auto="light",
     num_threads=24,
 )
-optimized_agent = tp.compile(agent, trainset=trainset)
+optimized_react_agent = tp.compile(react_agent, trainset=trainset)
+# optimized_agent = tp.compile(agent, trainset=trainset)
 
 # %%
-print(f"Original instruction: {agent.instruction}")
-print(f"Optimized instruction: {optimized_agent.instruction}")
+# print(f"Original instruction: {agent.instruction}")
+# print(f"Optimized instruction: {optimized_agent.instruction}")
+
+
+# %%
+print(react_agent.parameters())
