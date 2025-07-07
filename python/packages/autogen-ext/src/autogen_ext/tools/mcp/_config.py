@@ -1,8 +1,9 @@
 from typing import Any, Literal
 
-from mcp import StdioServerParameters
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
+
+from mcp import StdioServerParameters
 
 
 class StdioServerParams(StdioServerParameters):
