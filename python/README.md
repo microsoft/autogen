@@ -118,13 +118,65 @@ The docstring for a public class or function should include:
 
 - A short description of the class or function at the beginning immediately after the `"""`.
 - A longer description if necessary, explaining the purpose and usage.
-- Args: A list of arguments with their types and descriptions.
-- Returns: A description of the return value and its type.
+- A list of arguments with their types and descriptions, using the `Args` section.
+  Each argument should be listed with its name, type, and a brief description.
+- A description of the return value and its type, using the `Returns` section.
+  If the function does not return anything, you can omit this section.
+- A list of exceptions that the function may raise, with descriptions,
+  using the `Raises` section. This is optional but recommended if the function can raise exceptions that users should be aware of.
 - Examples of how to use the class or function, using the `Examples` section,
   and formatted using `.. code-block:: python` directive. Optionally, also include the output of the example using
   `.. code-block:: text` directive.
-- Raises: A list of exceptions that the function may raise, with descriptions. This is optional
-  but recommended if the function can raise exceptions that users should be aware of.
+
+Here is an example of a docstring for `McpWorkbench` class:
+
+```python
+class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
+    """A workbench that wraps an MCP server and provides an interface
+    to list and call tools provided by the server.
+
+    This workbench should be used as a context manager to ensure proper
+    initialization and cleanup of the underlying MCP session.
+
+    Args:
+        server_params (McpServerParams): The parameters to connect to the MCP server.
+            This can be either a :class:`StdioServerParams` or :class:`SseServerParams`.
+        tool_overrides (Optional[Dict[str, ToolOverride]]): Optional mapping of original tool
+            names to override configurations for name and/or description. This allows
+            customizing how server tools appear to consumers while maintaining the underlying
+            tool functionality.
+
+    Raises:
+        ValueError: If there are conflicts in tool override names.
+
+    Examples:
+
+        Here is a simple example of how to use the workbench with a `mcp-server-fetch` server:
+
+        .. code-block:: python
+
+            import asyncio
+
+            from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+
+
+            async def main() -> None:
+                params = StdioServerParams(
+                    command="uvx",
+                    args=["mcp-server-fetch"],
+                    read_timeout_seconds=60,
+                )
+
+                # You can also use `start()` and `stop()` to manage the session.
+                async with McpWorkbench(server_params=params) as workbench:
+                    tools = await workbench.list_tools()
+                    print(tools)
+                    result = await workbench.call_tool(tools[0]["name"], {"url": "https://github.com/"})
+                    print(result)
+
+
+            asyncio.run(main())
+```
 
 The code blocks with `.. code-block:: python` is checked by the `docs-check-examples` task using Pyright,
 so make sure the code is valid. Running the code as a script and checking it using `pyright`

@@ -32,9 +32,11 @@ class McpWorkbenchState(BaseModel):
 
 
 class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
-    """
-    A workbench that wraps an MCP server and provides an interface
+    """A workbench that wraps an MCP server and provides an interface
     to list and call tools provided by the server.
+
+    This workbench should be used as a context manager to ensure proper
+    initialization and cleanup of the underlying MCP session.
 
     Args:
         server_params (McpServerParams): The parameters to connect to the MCP server.
@@ -43,6 +45,9 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             names to override configurations for name and/or description. This allows
             customizing how server tools appear to consumers while maintaining the underlying
             tool functionality.
+
+    Raises:
+        ValueError: If there are conflicts in tool override names.
 
     Examples:
 
