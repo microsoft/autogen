@@ -197,7 +197,7 @@ jobs:
           source .venv/bin/activate
           poe --directory ${{ matrix.version.poe-dir }} docs-build
           mkdir -p docs-staging/${{ matrix.version.dest-dir }}/
-          mv ./docs/build/* docs-staging/${{ matrix.version.dest-dir }}/
+          mv ${{ matrix.version.poe-dir }}/docs/build/* docs-staging/${{ matrix.version.dest-dir }}/
         working-directory: ./python
         env:
           PY_DOCS_DIR: ${{ matrix.version.dest-dir }}/
