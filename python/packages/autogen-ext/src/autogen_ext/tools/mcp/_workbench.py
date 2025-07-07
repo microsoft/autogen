@@ -1,20 +1,22 @@
 import asyncio
 import builtins
 import warnings
-from typing import Any, List, Literal, Mapping
+from typing import Any, Dict, List, Literal, Mapping, Optional
 
 from autogen_core import CancellationToken, Component, Image, trace_tool_span
 from autogen_core.tools import (
     ImageResultContent,
     ParametersSchema,
     TextResultContent,
+    ToolOverride,
     ToolResult,
     ToolSchema,
     Workbench,
 )
-from mcp.types import CallToolResult, EmbeddedResource, ImageContent, ListToolsResult, TextContent
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing_extensions import Self
+
+from mcp.types import CallToolResult, EmbeddedResource, ImageContent, ListToolsResult, TextContent
 
 from ._actor import McpSessionActor
 from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
@@ -22,6 +24,7 @@ from ._config import McpServerParams, SseServerParams, StdioServerParams, Stream
 
 class McpWorkbenchConfig(BaseModel):
     server_params: McpServerParams
+    tool_overrides: Dict[str, ToolOverride] = Field(default_factory=dict)
 
 
 class McpWorkbenchState(BaseModel):
@@ -29,13 +32,22 @@ class McpWorkbenchState(BaseModel):
 
 
 class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
-    """
-    A workbench that wraps an MCP server and provides an interface
+    """A workbench that wraps an MCP server and provides an interface
     to list and call tools provided by the server.
+
+    This workbench should be used as a context manager to ensure proper
+    initialization and cleanup of the underlying MCP session.
 
     Args:
         server_params (McpServerParams): The parameters to connect to the MCP server.
             This can be either a :class:`StdioServerParams` or :class:`SseServerParams`.
+        tool_overrides (Optional[Dict[str, ToolOverride]]): Optional mapping of original tool
+            names to override configurations for name and/or description. This allows
+            customizing how server tools appear to consumers while maintaining the underlying
+            tool functionality.
+
+    Raises:
+        ValueError: If there are conflicts in tool override names.
 
     Examples:
 
@@ -60,6 +72,38 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                     tools = await workbench.list_tools()
                     print(tools)
                     result = await workbench.call_tool(tools[0]["name"], {"url": "https://github.com/"})
+                    print(result)
+
+
+            asyncio.run(main())
+
+        Example of using tool overrides:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+            from autogen_core.tools import ToolOverride
+
+
+            async def main() -> None:
+                params = StdioServerParams(
+                    command="uvx",
+                    args=["mcp-server-fetch"],
+                    read_timeout_seconds=60,
+                )
+
+                # Override the fetch tool's name and description
+                overrides = {
+                    "fetch": ToolOverride(name="web_fetch", description="Enhanced web fetching tool with better error handling")
+                }
+
+                async with McpWorkbench(server_params=params, tool_overrides=overrides) as workbench:
+                    tools = await workbench.list_tools()
+                    # The tool will now appear as "web_fetch" with the new description
+                    print(tools)
+                    # Call the overridden tool
+                    result = await workbench.call_tool("web_fetch", {"url": "https://github.com/"})
                     print(result)
 
 
@@ -149,8 +193,26 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     component_provider_override = "autogen_ext.tools.mcp.McpWorkbench"
     component_config_schema = McpWorkbenchConfig
 
-    def __init__(self, server_params: McpServerParams) -> None:
+    def __init__(
+        self, server_params: McpServerParams, tool_overrides: Optional[Dict[str, ToolOverride]] = None
+    ) -> None:
         self._server_params = server_params
+        self._tool_overrides = tool_overrides or {}
+
+        # Build reverse mapping from override names to original names for call_tool
+        self._override_name_to_original: Dict[str, str] = {}
+        for original_name, override in self._tool_overrides.items():
+            override_name = override.name
+            if override_name and override_name != original_name:
+                # Check for conflicts with other override names
+                if override_name in self._override_name_to_original:
+                    existing_original = self._override_name_to_original[override_name]
+                    raise ValueError(
+                        f"Tool override name '{override_name}' is used by multiple tools: "
+                        f"'{existing_original}' and '{original_name}'. Override names must be unique."
+                    )
+                self._override_name_to_original[override_name] = original_name
+
         # self._session: ClientSession | None = None
         self._actor: McpSessionActor | None = None
         self._actor_loop: asyncio.AbstractEventLoop | None = None
@@ -175,8 +237,18 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         ), f"list_tools must return a CallToolResult, instead of : {str(type(list_tool_result))}"
         schema: List[ToolSchema] = []
         for tool in list_tool_result.tools:
-            name = tool.name
+            original_name = tool.name
+            name = original_name
             description = tool.description or ""
+
+            # Apply overrides if they exist for this tool
+            if original_name in self._tool_overrides:
+                override = self._tool_overrides[original_name]
+                if override.name is not None:
+                    name = override.name
+                if override.description is not None:
+                    description = override.description
+
             parameters = ParametersSchema(
                 type="object",
                 properties=tool.inputSchema.get("properties", {}),
@@ -208,12 +280,16 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             cancellation_token = CancellationToken()
         if not arguments:
             arguments = {}
+
+        # Check if the name is an override name and map it back to the original
+        original_name = self._override_name_to_original.get(name, name)
+
         with trace_tool_span(
-            tool_name=name,
+            tool_name=name,  # Use the requested name for tracing
             tool_call_id=call_id,
         ):
             try:
-                result_future = await self._actor.call("call_tool", {"name": name, "kargs": arguments})
+                result_future = await self._actor.call("call_tool", {"name": original_name, "kargs": arguments})
                 cancellation_token.link_future(result_future)
                 result = await result_future
                 assert isinstance(
@@ -236,7 +312,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                 error_message = self._format_errors(e)
                 is_error = True
                 result_parts = [TextResultContent(content=error_message)]
-        return ToolResult(name=name, result=result_parts, is_error=is_error)
+        return ToolResult(name=name, result=result_parts, is_error=is_error)  # Return the requested name
 
     def _format_errors(self, error: Exception) -> str:
         """Recursively format errors into a string."""
@@ -285,18 +361,21 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         pass
 
     def _to_config(self) -> McpWorkbenchConfig:
-        return McpWorkbenchConfig(server_params=self._server_params)
+        return McpWorkbenchConfig(server_params=self._server_params, tool_overrides=self._tool_overrides)
 
     @classmethod
     def _from_config(cls, config: McpWorkbenchConfig) -> Self:
-        return cls(server_params=config.server_params)
+        return cls(server_params=config.server_params, tool_overrides=config.tool_overrides)
 
     def __del__(self) -> None:
         # Ensure the actor is stopped when the workbench is deleted
-        if self._actor and self._actor_loop:
-            loop = self._actor_loop
-            if loop.is_running() and not loop.is_closed():
-                loop.call_soon_threadsafe(lambda: asyncio.create_task(self.stop()))
+        # Use getattr to safely handle cases where attributes may not be set (e.g., if __init__ failed)
+        actor = getattr(self, "_actor", None)
+        actor_loop = getattr(self, "_actor_loop", None)
+
+        if actor and actor_loop:
+            if actor_loop.is_running() and not actor_loop.is_closed():
+                actor_loop.call_soon_threadsafe(lambda: asyncio.create_task(self.stop()))
             else:
                 msg = "Cannot safely stop actor at [McpWorkbench.__del__]: loop is closed or not running"
                 warnings.warn(msg, RuntimeWarning, stacklevel=2)
