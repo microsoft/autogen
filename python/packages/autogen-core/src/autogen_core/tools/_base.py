@@ -2,7 +2,19 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, AsyncGenerator, Dict, Generic, Mapping, Protocol, Type, TypeVar, cast, runtime_checkable
+from typing import (
+    Any,
+    AsyncGenerator,
+    Dict,
+    Generic,
+    Mapping,
+    Optional,
+    Protocol,
+    Type,
+    TypeVar,
+    cast,
+    runtime_checkable,
+)
 
 import jsonref
 from pydantic import BaseModel
@@ -31,6 +43,13 @@ class ToolSchema(TypedDict):
     name: str
     description: NotRequired[str]
     strict: NotRequired[bool]
+
+
+class ToolOverride(BaseModel):
+    """Override configuration for a tool's name and/or description."""
+
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 
 @runtime_checkable
