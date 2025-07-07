@@ -377,7 +377,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     client=client,
                     model="gpt-4o",
                     instructions="You are a helpful assistant with specialized tools.",
-                    tools=tools,
+                    tools=tools,  # type: ignore
                 )
                 response = await agent.on_messages(
                     [TextMessage(source="user", content="Search for recent AI developments")], cancellation_token
@@ -388,27 +388,29 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
         .. code-block:: python
 
+            import asyncio
+            import logging
             from openai import AsyncOpenAI
             from autogen_core import CancellationToken
             from autogen_ext.agents.openai import OpenAIAgent
             from autogen_agentchat.messages import TextMessage
-            from autogen_core.tools import Tool
-            import logging
+            from autogen_core.tools import FunctionTool
 
 
-            # Custom calculator tool (simplified example)
-            class CalculatorTool(Tool):
-                name: str = "calculator"
-                description: str = "A simple calculator tool"
+            # Define a simple calculator function
+            async def calculate(a: int, b: int) -> int:
+                '''Simple function to add two numbers.'''
+                return a + b
 
-                def __init__(self) -> None:
-                    super().__init__(name=self.name, description=self.description)
+
+            # Wrap the calculate function as a tool
+            calculator = FunctionTool(calculate, description="A simple calculator tool")
 
 
             async def example_mixed_tools():
                 cancellation_token = CancellationToken()
                 client = AsyncOpenAI()
-                calculator = CalculatorTool()
+                # Use the FunctionTool instance defined above
 
                 agent = OpenAIAgent(
                     name="Mixed Tools Agent",
@@ -423,7 +425,8 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     ],
                 )
                 response = await agent.on_messages(
-                    [TextMessage(source="user", content="What's 2+2 and what's the weather like?")], cancellation_token
+                    [TextMessage(source="user", content="What's 2+2 and what's the weather like?")],
+                    cancellation_token,
                 )
                 logging.info(response)
 
@@ -1282,3 +1285,23 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             store=config.store,
             truncation=config.truncation,
         )
+
+    # Add public API wrappers for configuration and tools
+    def to_config(self) -> OpenAIAgentConfig:
+        """Public wrapper for the private _to_config method."""
+        return self._to_config()
+
+    @classmethod
+    def from_config(cls, config: OpenAIAgentConfig) -> "OpenAIAgent":
+        """Public wrapper for the private _from_config classmethod."""
+        return cls._from_config(config)
+
+    @property
+    def tools(self) -> list[Any]:
+        """Public access to the agent's tools."""
+        return self._tools
+
+    @property
+    def model(self) -> str:
+        """Public access to the agent's model."""
+        return self._model

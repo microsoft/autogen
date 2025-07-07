@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# pyright: reportPrivateUsage=false, reportIncompatibleMethodOverride=false, reportUnusedImport=false
 """
 Test script to verify OpenAI agent built-in tools validation and configuration works correctly.
 """
@@ -16,6 +14,8 @@ from autogen_core.tools import Tool, ToolSchema
 from autogen_ext.agents.openai._openai_agent import OpenAIAgent, OpenAIAgentConfig
 from openai import AsyncOpenAI
 from pydantic import BaseModel
+
+_OPENAI_API_KEY_ENV: Final[str] = "OPENAI_API_KEY"
 
 
 class TestOpenAIAgentBuiltinToolValidation:
@@ -481,6 +481,10 @@ class TestOpenAIAgentBuiltinToolValidation:
         assert "Unsupported built-in tool type: invalid_shell_type" in str(exc_info.value)
 
     # Configuration serialization/deserialization tests
+    @pytest.mark.skipif(
+        not os.getenv(_OPENAI_API_KEY_ENV),
+        reason="OpenAI API key not available; skipping live API integration tests.",
+    )
     def test_config_serialize_builtin_tools(self, mock_client: AsyncOpenAI) -> None:
         """Test serialization of built-in tools to config."""
         agent = OpenAIAgent(
@@ -496,7 +500,7 @@ class TestOpenAIAgentBuiltinToolValidation:
         )
 
         # Serialize to config
-        config = agent._to_config()
+        config = agent.to_config()
 
         # Verify config contains tools
         assert config.tools is not None
@@ -510,6 +514,10 @@ class TestOpenAIAgentBuiltinToolValidation:
         assert web_search_tool.get("search_context_size") == 5
         assert file_search_tool["vector_store_ids"] == ["vs_123"]
 
+    @pytest.mark.skipif(
+        not os.getenv(_OPENAI_API_KEY_ENV),
+        reason="OpenAI API key not available; skipping live API integration tests.",
+    )
     def test_config_deserialize_builtin_tools(self, mock_client: AsyncOpenAI) -> None:
         """Test deserialization of built-in tools from config."""
         config = OpenAIAgentConfig(
@@ -524,18 +532,22 @@ class TestOpenAIAgentBuiltinToolValidation:
         )
 
         # Deserialize from config
-        agent = OpenAIAgent._from_config(config)
+        agent = OpenAIAgent.from_config(config)
 
         # Verify agent has tools
-        assert len(agent._tools) == 2
+        assert len(agent.tools) == 2
 
-        web_search_tool = next(t for t in agent._tools if t["type"] == "web_search_preview")
-        mcp_tool = next(t for t in agent._tools if t["type"] == "mcp")
+        web_search_tool = next(t for t in agent.tools if t["type"] == "web_search_preview")
+        mcp_tool = next(t for t in agent.tools if t["type"] == "mcp")
 
         assert web_search_tool is not None
         assert mcp_tool["server_label"] == "test-server"
         assert mcp_tool["server_url"] == "http://localhost:3000"
 
+    @pytest.mark.skipif(
+        not os.getenv(_OPENAI_API_KEY_ENV),
+        reason="OpenAI API key not available; skipping live API integration tests.",
+    )
     def test_config_round_trip_builtin_tools(self, mock_client: AsyncOpenAI) -> None:
         """Test round-trip serialization/deserialization of built-in tools."""
         original_tools = [
@@ -554,24 +566,28 @@ class TestOpenAIAgentBuiltinToolValidation:
         )
 
         # Serialize to config and back
-        config = original_agent._to_config()
-        reconstructed_agent = OpenAIAgent._from_config(config)
+        config = original_agent.to_config()
+        reconstructed_agent = OpenAIAgent.from_config(config)
 
         # Verify agent properties preserved
         assert reconstructed_agent.name == original_agent.name
         assert reconstructed_agent.description == original_agent.description
-        assert reconstructed_agent._model == original_agent._model
+        assert reconstructed_agent.model == original_agent.model
 
         # Verify tools preserved
-        assert len(reconstructed_agent._tools) == 2
+        assert len(reconstructed_agent.tools) == 2
 
-        web_search_tool = next(t for t in reconstructed_agent._tools if t["type"] == "web_search_preview")
-        file_search_tool = next(t for t in reconstructed_agent._tools if t["type"] == "file_search")
+        web_search_tool = next(t for t in reconstructed_agent.tools if t["type"] == "web_search_preview")
+        file_search_tool = next(t for t in reconstructed_agent.tools if t["type"] == "file_search")
 
         assert web_search_tool["search_context_size"] == 3
         assert file_search_tool["vector_store_ids"] == ["vs_abc"]
         assert file_search_tool["max_num_results"] == 5
 
+    @pytest.mark.skipif(
+        not os.getenv(_OPENAI_API_KEY_ENV),
+        reason="OpenAI API key not available; skipping live API integration tests.",
+    )
     def test_config_json_serialization_builtin_tools(self, mock_client: AsyncOpenAI) -> None:
         """Test that config with built-in tools can be JSON serialized/deserialized."""
         agent = OpenAIAgent(
@@ -587,7 +603,7 @@ class TestOpenAIAgentBuiltinToolValidation:
         )
 
         # Serialize to config and JSON
-        config = agent._to_config()
+        config = agent.to_config()
         config_dict = config.model_dump()
         json_str = json.dumps(config_dict, indent=2)
 
@@ -601,14 +617,16 @@ class TestOpenAIAgentBuiltinToolValidation:
         assert len(restored_config.tools) == 2
 
         # Create agent from restored config
-        restored_agent = OpenAIAgent._from_config(restored_config)
+        restored_agent = OpenAIAgent.from_config(restored_config)
         assert restored_agent.name == "json_test_agent"
-        assert len(restored_agent._tools) == 2
+        assert len(restored_agent.tools) == 2
 
+    @pytest.mark.skipif(
+        not os.getenv(_OPENAI_API_KEY_ENV),
+        reason="OpenAI API key not available; skipping live API integration tests.",
+    )
     def test_config_mixed_tools_serialization(self, mock_client: AsyncOpenAI) -> None:
         """Test serialization of mixed custom and built-in tools."""
-
-        from autogen_core.tools import ToolSchema
 
         class MockCustomTool(Tool):
             @property
@@ -683,7 +701,7 @@ class TestOpenAIAgentBuiltinToolValidation:
         )
 
         # Serialize to config
-        config = agent._to_config()
+        config = agent.to_config()
 
         # Verify both types of tools are present
         assert config.tools is not None
@@ -704,14 +722,7 @@ class TestOpenAIAgentBuiltinToolValidation:
         assert builtin_tool_config["type"] == "web_search_preview"
 
 
-# Live API Integration Tests
-
-# These tests make a real call to the OpenAI Responses API. They are executed
-# only when an API key is available in the environment so that CI pipelines
-# without secret keys (or local developers without a key) do not incur
-# failures or unexpected costs.
-
-_OPENAI_API_KEY_ENV: Final[str] = "OPENAI_API_KEY"
+# Live API Inteṇgration Tests
 
 
 @pytest.mark.skipif(
