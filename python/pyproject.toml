@@ -123,7 +123,7 @@ check = ["fmt", "lint", "pyright", "mypy", "docs-mypy", "test", "markdown-code-l
 docs-mypy = "nbqa mypy docs/src --config-file ./pyproject.toml"
 docs-clean = "rm -rf docs/build docs/src/reference"
 docs-build = "sphinx-build docs/src docs/build"
-docs-serve = "sphinx-autobuild --watch packages/*/src docs/src docs/build --port 8000 --jobs auto"
+docs-serve = "sphinx-autobuild docs/src docs/build --watch packages/ --port 8000 --jobs auto"
 docs-check = "sphinx-build --fail-on-warning docs/src docs/build"
 docs-check-examples = "sphinx-build -b code_lint docs/src docs/build"
 
