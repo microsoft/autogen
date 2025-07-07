@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 from autogen_core import CancellationToken
-from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import (
+from autogen_ext.tools.duckduckgo_search import (
     DuckDuckGoSearchArgs,
     DuckDuckGoSearchResult,
     DuckDuckGoSearchTool,

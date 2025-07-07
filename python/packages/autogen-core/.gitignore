@@ -171,3 +171,6 @@ docs/**/jupyter_execute
 
 # Temporary files
 tmp_code_*.py
+
+# Reference files
+docs/src/reference

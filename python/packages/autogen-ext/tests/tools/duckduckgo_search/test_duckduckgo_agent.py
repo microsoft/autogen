@@ -2,7 +2,7 @@ import pytest
 from autogen_core.models import ModelInfo
 from autogen_ext.agents.duckduckgo_search._duckduckgo_agent import DuckDuckGoSearchAgent
 from autogen_ext.models.replay import ReplayChatCompletionClient
-from autogen_ext.tools.web_search.duckduckgo._duckduckgo_search import DuckDuckGoSearchTool
+from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchTool
 
 
 class TestDuckDuckGoSearchAgent:
