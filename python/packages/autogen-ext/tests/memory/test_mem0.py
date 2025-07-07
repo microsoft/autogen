@@ -67,7 +67,7 @@ def local_config() -> Mem0MemoryConfig:
 
 
 @pytest.mark.asyncio
-@patch("autogen_ext.memory.mem0.Memory0")
+@patch("autogen_ext.memory.mem0._mem0.Memory0")
 async def test_basic_workflow(mock_mem0_class: MagicMock, local_config: Mem0MemoryConfig) -> None:
     """Test basic memory operations."""
     # Setup mock
@@ -201,7 +201,7 @@ async def test_basic_workflow_with_cloud(mock_memory_client_class: MagicMock, cl
 
 
 @pytest.mark.asyncio
-@patch("autogen_ext.memory.mem0.Memory0")
+@patch("autogen_ext.memory.mem0._mem0.Memory0")
 async def test_metadata_handling(mock_mem0_class: MagicMock, local_config: Mem0MemoryConfig) -> None:
     """Test metadata handling."""
     # Setup mock
@@ -263,7 +263,7 @@ async def test_metadata_handling(mock_mem0_class: MagicMock, local_config: Mem0M
 
 
 @pytest.mark.asyncio
-@patch("autogen_ext.memory.mem0.Memory0")
+@patch("autogen_ext.memory.mem0._mem0.Memory0")
 async def test_update_context(mock_mem0_class: MagicMock, local_config: Mem0MemoryConfig) -> None:
     """Test updating model context with retrieved memories."""
     # Setup mock
@@ -315,7 +315,7 @@ async def test_update_context(mock_mem0_class: MagicMock, local_config: Mem0Memo
 
 
 @pytest.mark.asyncio
-@patch("autogen_ext.memory.mem0.MemoryClient")  # Patch for cloud mode
+@patch("autogen_ext.memory.mem0._mem0.MemoryClient")  # Patch for cloud mode
 async def test_component_serialization(mock_memory_client_class: MagicMock) -> None:
     """Test serialization and deserialization of the component."""
     # Setup mock
@@ -369,7 +369,7 @@ async def test_component_serialization(mock_memory_client_class: MagicMock) -> N
 
 
 @pytest.mark.asyncio
-@patch("autogen_ext.memory.mem0.Memory0")
+@patch("autogen_ext.memory.mem0._mem0.Memory0")
 async def test_result_format_handling(mock_mem0_class: MagicMock, local_config: Mem0MemoryConfig) -> None:
     """Test handling of different result formats."""
     # Setup mock
@@ -417,7 +417,7 @@ async def test_result_format_handling(mock_mem0_class: MagicMock, local_config: 
 
 
 @pytest.mark.asyncio
-@patch("autogen_ext.memory.mem0.Memory0")
+@patch("autogen_ext.memory.mem0._mem0.Memory0")
 async def test_init_with_local_config(mock_mem0_class: MagicMock, full_local_config: Dict[str, Any]) -> None:
     """Test initializing memory with local configuration."""
     # Setup mock
@@ -448,7 +448,7 @@ async def test_init_with_local_config(mock_mem0_class: MagicMock, full_local_con
 
 
 @pytest.mark.asyncio
-@patch("autogen_ext.memory.mem0.Memory0")  # Patches the underlying mem0.Memory class
+@patch("autogen_ext.memory.mem0._mem0.Memory0")  # Patches the underlying mem0.Memory class
 async def test_local_config_with_memory_operations(
     mock_mem0_class: MagicMock,
     full_local_config: Dict[str, Any],  # full_local_config fixture provides the mock config

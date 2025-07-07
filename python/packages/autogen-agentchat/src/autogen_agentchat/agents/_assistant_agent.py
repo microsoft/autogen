@@ -5,7 +5,20 @@ import json
 import logging
 import uuid
 import warnings
-from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core.memory import Memory
@@ -20,11 +33,10 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
-    ModelFamily,
     SystemMessage,
 )
-from autogen_core.tools import BaseTool, FunctionTool, StaticWorkbench, Workbench
-from pydantic import BaseModel
+from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, ToolResult, Workbench
+from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 from .. import EVENT_LOGGER_NAME
@@ -50,6 +62,10 @@ from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
+# Add type variables for more specific typing
+T = TypeVar("T", bound=BaseModel)
+R = TypeVar("R", bound=BaseModel)
+
 
 class AssistantAgentConfig(BaseModel):
     """The declarative configuration for the assistant agent."""
@@ -66,13 +82,13 @@ class AssistantAgentConfig(BaseModel):
     model_client_stream: bool = False
     reflect_on_tool_use: bool
     tool_call_summary_format: str
+    max_tool_iterations: int = Field(default=1, ge=1)
     metadata: Dict[str, str] | None = None
     structured_message_factory: ComponentModel | None = None
 
 
 class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     """An agent that provides assistance with tool use.
-
     The :meth:`on_messages` returns a :class:`~autogen_agentchat.base.Response`
     in which :attr:`~autogen_agentchat.base.Response.chat_message` is the final
     response message.
@@ -120,13 +136,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     **Tool call behavior:**
 
-    * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`.
+    * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`. This ends the tool call iteration loop regardless of the `max_tool_iterations` setting.
     * When the model returns tool calls, they will be executed right away:
         - When `reflect_on_tool_use` is False, the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. You can customise the summary with either a static format string (`tool_call_summary_format`) **or** a callable (`tool_call_summary_formatter`); the callable is evaluated once per tool call.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and final response is returned as a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output) in :attr:`~autogen_agentchat.base.Response.chat_message`.
         - `reflect_on_tool_use` is set to `True` by default when `output_content_type` is set.
         - `reflect_on_tool_use` is set to `False` by default when `output_content_type` is not set.
     * If the model returns multiple tool calls, they will be executed concurrently. To disable parallel tool calls you need to configure the model client. For example, set `parallel_tool_calls=False` for :class:`~autogen_ext.models.openai.OpenAIChatCompletionClient` and :class:`~autogen_ext.models.openai.AzureOpenAIChatCompletionClient`.
+    * The `max_tool_iterations` parameter controls how many sequential tool call iterations the agent can perform in a single run. When set to 1 (default), the agent executes tool calls once and returns the result. When set higher, the agent can make additional model calls to execute more tool calls if the model continues to request them, enabling multi-step tool-based workflows. The agent stops when either the model returns a text response (instead of tool calls) or the maximum number of iterations is reached.
 
     .. tip::
 
@@ -174,7 +191,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     messages as the model client produces chunks of response.
     The chunk messages will not be included in the final response's inner messages.
 
-
     Args:
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client to use for inference.
@@ -199,6 +215,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             If this is set, the agent will respond with a :class:`~autogen_agentchat.messages.StructuredMessage` instead of a :class:`~autogen_agentchat.messages.TextMessage`
             in the final response, unless `reflect_on_tool_use` is `False` and a tool call is made.
         output_content_type_format (str | None, optional): (Experimental) The format string used for the content of a :class:`~autogen_agentchat.messages.StructuredMessage` response.
+        max_tool_iterations (int, optional): The maximum number of tool iterations to perform until the model stops making tool calls. Defaults to `1`, which means the agent will
+            only execute the tool calls made by the model once, and return the result as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage`,
+            or a :class:`~autogen_agentchat.messages.TextMessage` or a :class:`~autogen_agentchat.messages.StructuredMessage` (when using structured output)
+            in :attr:`~autogen_agentchat.base.Response.chat_message` as the final response.
+            As soon as the model stops making tool calls, the agent will stop executing tool calls and return the result as the final response.
+            The value must be greater than or equal to 1.
         tool_call_summary_format (str, optional): Static format string applied to each tool call result when composing the :class:`~autogen_agentchat.messages.ToolCallSummaryMessage`.
             Defaults to ``"{result}"``. Ignored if `tool_call_summary_formatter` is provided. When `reflect_on_tool_use` is ``False``, the summaries for all tool
             calls are concatenated with a newline ('\\n') and returned as the response.  Placeholders available in the template:
@@ -337,7 +359,59 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             asyncio.run(main())
 
-        **Example 4: agent with Model-Context Protocol (MCP) workbench**
+        **Example 4: agent with max_tool_iterations**
+
+        The following example demonstrates how to use the `max_tool_iterations` parameter
+        to control how many times the agent can execute tool calls in a single run.
+        This is useful when you want the agent to perform multiple sequential tool
+        operations to reach a goal.
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
+
+
+            # Global counter state
+            counter = 0
+
+
+            def increment_counter() -> str:
+                \"\"\"Increment the counter by 1 and return the current value.\"\"\"
+                global counter
+                counter += 1
+                return f"Counter incremented to: {counter}"
+
+
+            def get_counter() -> str:
+                \"\"\"Get the current counter value.\"\"\"
+                global counter
+                return f"Current counter value: {counter}"
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(
+                    model="gpt-4o",
+                    # api_key = "your_openai_api_key"
+                )
+
+                # Create agent with max_tool_iterations=5 to allow multiple tool calls
+                agent = AssistantAgent(
+                    name="assistant",
+                    model_client=model_client,
+                    tools=[increment_counter, get_counter],
+                    max_tool_iterations=5,  # Allow up to 5 tool call iterations
+                    reflect_on_tool_use=True,  # Get a final summary after tool calls
+                )
+
+                await Console(agent.run_stream(task="Increment the counter 3 times and then tell me the final value."))
+
+
+            asyncio.run(main())
+
+        **Example 5: agent with Model-Context Protocol (MCP) workbench**
 
         The following example demonstrates how to create an assistant agent with
         a model client and an :class:`~autogen_ext.tools.mcp.McpWorkbench` for
@@ -375,7 +449,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             asyncio.run(main())
 
-        **Example 5: agent with structured output and tool**
+        **Example 6: agent with structured output and tool**
 
         The following example demonstrates how to create an assistant agent with
         a model client configured to use structured output and a tool.
@@ -443,7 +517,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             ---------- assistant ----------
             {"thoughts":"The user expresses a clear positive emotion by stating they are happy today, suggesting an upbeat mood.","response":"happy"}
 
-        **Example 6: agent with bounded model context**
+        **Example 7: agent with bounded model context**
 
         The following example shows how to use a
         :class:`~autogen_core.model_context.BufferedChatCompletionContext`
@@ -496,7 +570,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             That's great! Blue is often associated with calmness and serenity. Do you have a specific shade of blue that you like, or any particular reason why it's your favorite?
             No, you didn't ask a question. I apologize for any misunderstanding. If you have something specific you'd like to discuss or ask, feel free to let me know!
 
-        **Example 7: agent with memory**
+        **Example 8: agent with memory**
 
         The following example shows how to use a list-based memory with the assistant agent.
         The memory is preloaded with some initial content.
@@ -552,7 +626,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             Serve it with a side salad or some garlic bread to complete the meal! Enjoy your dinner!
 
-        **Example 8: agent with `o1-mini`**
+        **Example 9: agent with `o1-mini`**
 
         The following example shows how to use `o1-mini` model with the assistant agent.
 
@@ -584,7 +658,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             See `o1 beta limitations <https://platform.openai.com/docs/guides/reasoning#beta-limitations>`_ for more details.
 
 
-        **Example 9: agent using reasoning model with custom model context.**
+        **Example 10: agent using reasoning model with custom model context.**
 
         The following example shows how to use a reasoning model (DeepSeek R1) with the assistant agent.
         The model context is used to filter out the thought field from the assistant message.
@@ -640,6 +714,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             asyncio.run(run_reasoning_agent())
 
+    For detailed examples and usage, see the Examples section below.
     """
 
     component_version = 2
@@ -661,6 +736,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
         model_client_stream: bool = False,
         reflect_on_tool_use: bool | None = None,
+        max_tool_iterations: int = 1,
         tool_call_summary_format: str = "{result}",
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None = None,
         output_content_type: type[BaseModel] | None = None,
@@ -730,12 +806,23 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         handoff_tool_names = [tool.name for tool in self._handoff_tools]
         if len(handoff_tool_names) != len(set(handoff_tool_names)):
             raise ValueError(f"Handoff names must be unique: {handoff_tool_names}")
-        # Check if handoff tool names not in tool names.
-        if any(name in tool_names for name in handoff_tool_names):
-            raise ValueError(
-                f"Handoff names must be unique from tool names. "
-                f"Handoff names: {handoff_tool_names}; tool names: {tool_names}"
-            )
+        # Create sets for faster lookup
+        tool_names_set = set(tool_names)
+        handoff_tool_names_set = set(handoff_tool_names)
+
+        # Check if there's any overlap between handoff tool names and tool names
+        overlap = tool_names_set.intersection(handoff_tool_names_set)
+
+        # Also check if any handoff target name matches a tool name
+        # This handles the case where a handoff is specified directly with a string that matches a tool name
+        for handoff in handoffs or []:
+            if isinstance(handoff, str) and handoff in tool_names_set:
+                raise ValueError("Handoff names must be unique from tool names")
+            elif isinstance(handoff, HandoffBase) and handoff.target in tool_names_set:
+                raise ValueError("Handoff names must be unique from tool names")
+
+        if overlap:
+            raise ValueError("Handoff names must be unique from tool names")
 
         if workbench is not None:
             if self._tools:
@@ -745,7 +832,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             else:
                 self._workbench = [workbench]
         else:
-            self._workbench = [StaticWorkbench(self._tools)]
+            self._workbench = [StaticStreamWorkbench(self._tools)]
 
         if model_context is not None:
             self._model_context = model_context
@@ -759,51 +846,71 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             self._reflect_on_tool_use = False
         else:
             self._reflect_on_tool_use = reflect_on_tool_use
-        if self._reflect_on_tool_use and ModelFamily.is_claude(model_client.model_info["family"]):
-            warnings.warn(
-                "Claude models may not work with reflection on tool use because Claude requires that any requests including a previous tool use or tool result must include the original tools definition."
-                "Consider setting reflect_on_tool_use to False. "
-                "As an alternative, consider calling the agent in a loop until it stops producing tool calls. "
-                "See [Single-Agent Team](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html#single-agent-team) "
-                "for more details.",
-                UserWarning,
-                stacklevel=2,
+
+        # Tool call loop
+        self._max_tool_iterations = max_tool_iterations
+        if self._max_tool_iterations < 1:
+            raise ValueError(
+                f"Maximum number of tool iterations must be greater than or equal to 1, got {max_tool_iterations}"
             )
+
         self._tool_call_summary_format = tool_call_summary_format
         self._tool_call_summary_formatter = tool_call_summary_formatter
         self._is_running = False
 
     @property
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
-        message_types: List[type[BaseChatMessage]] = []
-        if self._handoffs:
-            message_types.append(HandoffMessage)
-        if self._tools:
-            message_types.append(ToolCallSummaryMessage)
-        if self._output_content_type:
-            message_types.append(StructuredMessage[self._output_content_type])  # type: ignore[name-defined]
-        else:
-            message_types.append(TextMessage)
-        return tuple(message_types)
+        """Get the types of messages this agent can produce.
+
+        Returns:
+            Sequence of message types this agent can generate
+        """
+        types: List[type[BaseChatMessage]] = [TextMessage, ToolCallSummaryMessage, HandoffMessage]
+        if self._structured_message_factory is not None:
+            types.append(StructuredMessage)
+        return types
 
     @property
     def model_context(self) -> ChatCompletionContext:
-        """
-        The model context in use by the agent.
+        """Get the model context used by this agent.
+
+        Returns:
+            The chat completion context for this agent
         """
         return self._model_context
 
-    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(
+        self,
+        messages: Sequence[BaseChatMessage],
+        cancellation_token: CancellationToken,
+    ) -> Response:
+        """Process incoming messages and generate a response.
+
+        Args:
+            messages: Sequence of messages to process
+            cancellation_token: Token for cancelling operation
+
+        Returns:
+            Response containing the agent's reply
+        """
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
         raise AssertionError("The stream should have returned the final result.")
 
     async def on_messages_stream(
-        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
-        """
-        Process the incoming messages with the assistant agent and yield events/responses as they happen.
+        self,
+        messages: Sequence[BaseChatMessage],
+        cancellation_token: CancellationToken,
+    ) -> AsyncGenerator[Union[BaseAgentEvent, BaseChatMessage, Response], None]:
+        """Process messages and stream the response.
+
+        Args:
+            messages: Sequence of messages to process
+            cancellation_token: Token for cancelling operation
+
+        Yields:
+            Events, messages and final response during processing
         """
 
         # Gather all relevant state here
@@ -817,10 +924,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client = self._model_client
         model_client_stream = self._model_client_stream
         reflect_on_tool_use = self._reflect_on_tool_use
+        max_tool_iterations = self._max_tool_iterations
         tool_call_summary_format = self._tool_call_summary_format
         tool_call_summary_formatter = self._tool_call_summary_formatter
         output_content_type = self._output_content_type
-        format_string = self._output_content_type_format
 
         # STEP 1: Add new user/handoff messages to the model context
         await self._add_messages_to_context(
@@ -892,11 +999,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             model_client=model_client,
             model_client_stream=model_client_stream,
             reflect_on_tool_use=reflect_on_tool_use,
+            max_tool_iterations=max_tool_iterations,
             tool_call_summary_format=tool_call_summary_format,
             tool_call_summary_formatter=tool_call_summary_formatter,
             output_content_type=output_content_type,
             message_id=message_id,
-            format_string=format_string,
+            format_string=self._output_content_type_format,
         ):
             yield output_event
 
@@ -920,8 +1028,15 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_context: ChatCompletionContext,
         agent_name: str,
     ) -> List[MemoryQueryEvent]:
-        """
-        If memory modules are present, update the model context and return the events produced.
+        """Update model context with memory content.
+
+        Args:
+            memory: Optional sequence of memory stores to query
+            model_context: Context to update with memory content
+            agent_name: Name of the agent for event tracking
+
+        Returns:
+            List of memory query events generated during update
         """
         events: List[MemoryQueryEvent] = []
         if memory:
@@ -949,8 +1064,21 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         output_content_type: type[BaseModel] | None,
         message_id: str,
     ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
-        """
-        Perform a model inference and yield either streaming chunk events or the final CreateResult.
+        """Call the language model with given context and configuration.
+
+        Args:
+            model_client: Client for model inference
+            model_client_stream: Whether to stream responses
+            system_messages: System messages to include
+            model_context: Context containing message history
+            workbench: Available workbenches
+            handoff_tools: Tools for handling handoffs
+            agent_name: Name of the agent
+            cancellation_token: Token for cancelling operation
+            output_content_type: Optional type for structured output
+
+        Returns:
+            Generator yielding model results or streaming chunks
         """
         all_messages = await model_context.get_messages()
         llm_messages = cls._get_compatible_context(model_client=model_client, messages=system_messages + all_messages)
@@ -1001,104 +1129,184 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         reflect_on_tool_use: bool,
         tool_call_summary_format: str,
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None,
+        max_tool_iterations: int,
         output_content_type: type[BaseModel] | None,
         message_id: str,
         format_string: str | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
         Handle final or partial responses from model_result, including tool calls, handoffs,
-        and reflection if needed.
+        and reflection if needed. Supports tool call loops when enabled.
         """
 
-        # If direct text response (string)
-        if isinstance(model_result.content, str):
-            # Use the passed message ID for the final message
-            if output_content_type:
-                content = output_content_type.model_validate_json(model_result.content)
-                yield Response(
-                    chat_message=StructuredMessage[output_content_type](  # type: ignore[valid-type]
-                        content=content,
-                        source=agent_name,
-                        models_usage=model_result.usage,
-                        format_string=format_string,
-                        id=message_id,
-                    ),
-                    inner_messages=inner_messages,
+        # Tool call loop implementation with streaming support
+        current_model_result = model_result
+        # This variable is needed for the final summary/reflection step
+        executed_calls_and_results: List[Tuple[FunctionCall, FunctionExecutionResult]] = []
+
+        for loop_iteration in range(max_tool_iterations):
+            # If direct text response (string), we're done
+            if isinstance(current_model_result.content, str):
+                # Use the passed message ID for the final message
+                if output_content_type:
+                    content = output_content_type.model_validate_json(current_model_result.content)
+                    yield Response(
+                        chat_message=StructuredMessage[output_content_type](  # type: ignore[valid-type]
+                            content=content,
+                            source=agent_name,
+                            models_usage=current_model_result.usage,
+                            format_string=format_string,
+                            id=message_id,
+                        ),
+                        inner_messages=inner_messages,
+                    )
+                else:
+                    yield Response(
+                        chat_message=TextMessage(
+                            content=current_model_result.content,
+                            source=agent_name,
+                            models_usage=current_model_result.usage,
+                            id=message_id,
+                        ),
+                        inner_messages=inner_messages,
+                    )
+                return
+
+            # Otherwise, we have function calls
+            assert isinstance(current_model_result.content, list) and all(
+                isinstance(item, FunctionCall) for item in current_model_result.content
+            )
+
+            # STEP 4A: Yield ToolCallRequestEvent
+            tool_call_msg = ToolCallRequestEvent(
+                content=current_model_result.content,
+                source=agent_name,
+                models_usage=current_model_result.usage,
+            )
+            event_logger.debug(tool_call_msg)
+            inner_messages.append(tool_call_msg)
+            yield tool_call_msg
+
+            # STEP 4B: Execute tool calls with streaming support
+            # Use a queue to handle streaming results from tool calls.
+            stream = asyncio.Queue[BaseAgentEvent | BaseChatMessage | None]()
+
+            async def _execute_tool_calls(
+                function_calls: List[FunctionCall],
+                stream_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | None],
+            ) -> List[Tuple[FunctionCall, FunctionExecutionResult]]:
+                results = await asyncio.gather(
+                    *[
+                        cls._execute_tool_call(
+                            tool_call=call,
+                            workbench=workbench,
+                            handoff_tools=handoff_tools,
+                            agent_name=agent_name,
+                            cancellation_token=cancellation_token,
+                            stream=stream_queue,
+                        )
+                        for call in function_calls
+                    ]
                 )
-            else:
-                yield Response(
-                    chat_message=TextMessage(
-                        content=model_result.content,
-                        source=agent_name,
-                        models_usage=model_result.usage,
-                        id=message_id,
-                    ),
-                    inner_messages=inner_messages,
+                # Signal the end of streaming by putting None in the queue.
+                stream_queue.put_nowait(None)
+                return results
+
+            task = asyncio.create_task(_execute_tool_calls(current_model_result.content, stream))
+
+            while True:
+                event = await stream.get()
+                if event is None:
+                    # End of streaming, break the loop.
+                    break
+                if isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
+                    yield event
+                    inner_messages.append(event)
+                else:
+                    raise RuntimeError(f"Unexpected event type: {type(event)}")
+
+            # Wait for all tool calls to complete.
+            executed_calls_and_results = await task
+            exec_results = [result for _, result in executed_calls_and_results]
+
+            # Yield ToolCallExecutionEvent
+            tool_call_result_msg = ToolCallExecutionEvent(
+                content=exec_results,
+                source=agent_name,
+            )
+            event_logger.debug(tool_call_result_msg)
+            await model_context.add_message(FunctionExecutionResultMessage(content=exec_results))
+            inner_messages.append(tool_call_result_msg)
+            yield tool_call_result_msg
+
+            # STEP 4C: Check for handoff
+            handoff_output = cls._check_and_handle_handoff(
+                model_result=current_model_result,
+                executed_calls_and_results=executed_calls_and_results,
+                inner_messages=inner_messages,
+                handoffs=handoffs,
+                agent_name=agent_name,
+            )
+            if handoff_output:
+                yield handoff_output
+                return
+
+            # STEP 4D: Check if we should continue the loop.
+            # If we are on the last iteration, break to the summary/reflection step.
+            if loop_iteration == max_tool_iterations - 1:
+                break
+
+            # Continue the loop: make another model call using _call_llm
+            next_model_result: Optional[CreateResult] = None
+            async for llm_output in cls._call_llm(
+                model_client=model_client,
+                model_client_stream=model_client_stream,
+                system_messages=system_messages,
+                model_context=model_context,
+                workbench=workbench,
+                handoff_tools=handoff_tools,
+                agent_name=agent_name,
+                cancellation_token=cancellation_token,
+                output_content_type=output_content_type,
+                message_id=message_id,  # Use same message ID for consistency
+            ):
+                if isinstance(llm_output, CreateResult):
+                    next_model_result = llm_output
+                else:
+                    # Streaming chunk event
+                    yield llm_output
+
+            assert next_model_result is not None, "No model result was produced in tool call loop."
+            current_model_result = next_model_result
+
+            # Yield thought event if present
+            if current_model_result.thought:
+                thought_event = ThoughtEvent(content=current_model_result.thought, source=agent_name)
+                yield thought_event
+                inner_messages.append(thought_event)
+
+            # Add the assistant message to the model context (including thought if present)
+            await model_context.add_message(
+                AssistantMessage(
+                    content=current_model_result.content,
+                    source=agent_name,
+                    thought=getattr(current_model_result, "thought", None),
                 )
-            return
+            )
 
-        # Otherwise, we have function calls
-        assert isinstance(model_result.content, list) and all(
-            isinstance(item, FunctionCall) for item in model_result.content
-        )
-
-        # STEP 4A: Yield ToolCallRequestEvent
-        tool_call_msg = ToolCallRequestEvent(
-            content=model_result.content,
-            source=agent_name,
-            models_usage=model_result.usage,
-        )
-        event_logger.debug(tool_call_msg)
-        inner_messages.append(tool_call_msg)
-        yield tool_call_msg
-
-        # STEP 4B: Execute tool calls
-        executed_calls_and_results = await asyncio.gather(
-            *[
-                cls._execute_tool_call(
-                    tool_call=call,
-                    workbench=workbench,
-                    handoff_tools=handoff_tools,
-                    agent_name=agent_name,
-                    cancellation_token=cancellation_token,
-                )
-                for call in model_result.content
-            ]
-        )
-        exec_results = [result for _, result in executed_calls_and_results]
-
-        # Yield ToolCallExecutionEvent
-        tool_call_result_msg = ToolCallExecutionEvent(
-            content=exec_results,
-            source=agent_name,
-        )
-        event_logger.debug(tool_call_result_msg)
-        await model_context.add_message(FunctionExecutionResultMessage(content=exec_results))
-        inner_messages.append(tool_call_result_msg)
-        yield tool_call_result_msg
-
-        # STEP 4C: Check for handoff
-        handoff_output = cls._check_and_handle_handoff(
-            model_result=model_result,
-            executed_calls_and_results=executed_calls_and_results,
-            inner_messages=inner_messages,
-            handoffs=handoffs,
-            agent_name=agent_name,
-        )
-        if handoff_output:
-            yield handoff_output
-            return
-
-        # STEP 4D: Reflect or summarize tool results
+        # After the loop, reflect or summarize tool results
         if reflect_on_tool_use:
             async for reflection_response in cls._reflect_on_tool_use_flow(
                 system_messages=system_messages,
                 model_client=model_client,
                 model_client_stream=model_client_stream,
                 model_context=model_context,
+                workbench=workbench,
+                handoff_tools=handoff_tools,
                 agent_name=agent_name,
                 inner_messages=inner_messages,
                 output_content_type=output_content_type,
+                cancellation_token=cancellation_token,
             ):
                 yield reflection_response
         else:
@@ -1110,6 +1318,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 tool_call_summary_formatter=tool_call_summary_formatter,
                 agent_name=agent_name,
             )
+        return
 
     @staticmethod
     def _check_and_handle_handoff(
@@ -1119,9 +1328,17 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         handoffs: Dict[str, HandoffBase],
         agent_name: str,
     ) -> Optional[Response]:
-        """
-        Detect handoff calls, generate the HandoffMessage if needed, and return a Response.
-        If multiple handoffs exist, only the first is used.
+        """Check for and handle any handoff requests in the model result.
+
+        Args:
+            model_result: Result from model inference
+            executed_calls_and_results: List of executed tool calls and their results
+            inner_messages: List of messages generated during processing
+            handoffs: Dictionary of available handoff configurations
+            agent_name: Name of the agent
+
+        Returns:
+            Optional response containing handoff message if handoff detected
         """
         handoff_reqs = [
             call for call in model_result.content if isinstance(call, FunctionCall) and call.name in handoffs
@@ -1191,9 +1408,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_client: ChatCompletionClient,
         model_client_stream: bool,
         model_context: ChatCompletionContext,
+        workbench: Sequence[Workbench],
+        handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         inner_messages: List[BaseAgentEvent | BaseChatMessage],
         output_content_type: type[BaseModel] | None,
+        cancellation_token: CancellationToken,
     ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent | ThoughtEvent, None]:
         """
         If reflect_on_tool_use=True, we do another inference based on tool results
@@ -1211,6 +1431,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             async for chunk in model_client.create_stream(
                 llm_messages,
                 json_output=output_content_type,
+                cancellation_token=cancellation_token,
+                tool_choice="none",  # Do not use tools in reflection flow.
             ):
                 if isinstance(chunk, CreateResult):
                     reflection_result = chunk
@@ -1221,7 +1443,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
         else:
-            reflection_result = await model_client.create(llm_messages, json_output=output_content_type)
+            reflection_result = await model_client.create(
+                llm_messages,
+                json_output=output_content_type,
+                cancellation_token=cancellation_token,
+                tool_choice="none",  # Do not use tools in reflection flow.
+            )
 
         if not reflection_result or not isinstance(reflection_result.content, str):
             raise RuntimeError("Reflect on tool use produced no valid text response.")
@@ -1279,19 +1506,16 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         normal_tool_calls = [(call, result) for call, result in executed_calls_and_results if call.name not in handoffs]
 
         def default_tool_call_summary_formatter(call: FunctionCall, result: FunctionExecutionResult) -> str:
-            return tool_call_summary_format
-
-        summary_formatter = tool_call_summary_formatter or default_tool_call_summary_formatter
-
-        tool_call_summaries = [
-            summary_formatter(call, result).format(
+            return tool_call_summary_format.format(
                 tool_name=call.name,
                 arguments=call.arguments,
                 result=result.content,
                 is_error=result.is_error,
             )
-            for call, result in normal_tool_calls
-        ]
+
+        summary_formatter = tool_call_summary_formatter or default_tool_call_summary_formatter
+
+        tool_call_summaries = [summary_formatter(call, result) for call, result in normal_tool_calls]
 
         tool_call_summary = "\n".join(tool_call_summaries)
         return Response(
@@ -1311,6 +1535,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         cancellation_token: CancellationToken,
+        stream: asyncio.Queue[BaseAgentEvent | BaseChatMessage | None],
     ) -> Tuple[FunctionCall, FunctionExecutionResult]:
         """Execute a single tool call and return the result."""
         # Load the arguments from the tool call.
@@ -1348,18 +1573,38 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         for wb in workbench:
             tools = await wb.list_tools()
             if any(t["name"] == tool_call.name for t in tools):
-                result = await wb.call_tool(
-                    name=tool_call.name,
-                    arguments=arguments,
-                    cancellation_token=cancellation_token,
-                    call_id=tool_call.id,
-                )
+                if isinstance(wb, StaticStreamWorkbench):
+                    tool_result: ToolResult | None = None
+                    async for event in wb.call_tool_stream(
+                        name=tool_call.name,
+                        arguments=arguments,
+                        cancellation_token=cancellation_token,
+                        call_id=tool_call.id,
+                    ):
+                        if isinstance(event, ToolResult):
+                            tool_result = event
+                        elif isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
+                            await stream.put(event)
+                        else:
+                            warnings.warn(
+                                f"Unexpected event type: {type(event)} in tool call streaming.",
+                                UserWarning,
+                                stacklevel=2,
+                            )
+                    assert isinstance(tool_result, ToolResult), "Tool result should not be None in streaming mode."
+                else:
+                    tool_result = await wb.call_tool(
+                        name=tool_call.name,
+                        arguments=arguments,
+                        cancellation_token=cancellation_token,
+                        call_id=tool_call.id,
+                    )
                 return (
                     tool_call,
                     FunctionExecutionResult(
-                        content=result.to_text(),
+                        content=tool_result.to_text(),
                         call_id=tool_call.id,
-                        is_error=result.is_error,
+                        is_error=tool_result.is_error,
                         name=tool_call.name,
                     ),
                 )
@@ -1414,6 +1659,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             else None,
             model_client_stream=self._model_client_stream,
             reflect_on_tool_use=self._reflect_on_tool_use,
+            max_tool_iterations=self._max_tool_iterations,
             tool_call_summary_format=self._tool_call_summary_format,
             structured_message_factory=self._structured_message_factory.dump_component()
             if self._structured_message_factory
@@ -1445,6 +1691,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             system_message=config.system_message,
             model_client_stream=config.model_client_stream,
             reflect_on_tool_use=config.reflect_on_tool_use,
+            max_tool_iterations=config.max_tool_iterations,
             tool_call_summary_format=config.tool_call_summary_format,
             output_content_type=output_content_type,
             output_content_type_format=format_string,
