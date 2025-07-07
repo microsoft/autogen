@@ -45,6 +45,8 @@ Find community samples and examples of how to use AutoGen
 | [autogen-ext-email](https://github.com/masquerlin/autogen-ext-email) | [PyPi](https://pypi.org/project/autogen-ext-email/) | A Email agent for generating email and sending |
 | [autogen-oaiapi](https://github.com/SongChiYoung/autogen-oaiapi)  | [PyPi](https://pypi.org/project/autogen-oaiapi/) | an OpenAI-style API server built on top of AutoGen |
 | [autogen-contextplus](https://github.com/SongChiYoung/autogen-contextplus)  | [PyPi](https://pypi.org/project/autogen-contextplus/) | Enhanced model_context implementations, with features such as automatic summarization and truncation of model context. |
+| [autogen-ext-yepcode](https://github.com/yepcode/autogen-ext-yepcode)  | [PyPi](https://pypi.org/project/autogen-ext-yepcode/) | Enables agents to securely execute code in isolated remote sandboxes using [YepCode](https://yepcode.io)’s serverless runtime. |
+
 
 <!-- Example -->
 <!-- | [My Model Client](https://github.com/example)  | [PyPi](https://pypi.org/project/example) | Model client for my custom model service | -->
