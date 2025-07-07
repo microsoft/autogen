@@ -32,8 +32,7 @@ class DuckDuckGoSearchResult(BaseModel):
 
 
 class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult]):
-    """
-    A tool for performing DuckDuckGo web searches.
+    """A tool for performing DuckDuckGo web searches.
 
     This tool uses DuckDuckGo's HTML interface to perform web searches without requiring
     an API key. It can optionally fetch and convert webpage content to markdown format.
@@ -54,47 +53,55 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
     * Configurable number of results
 
     Examples:
-        Using the tool directly:
 
-        .. code-block:: python
+    Using the tool directly:
 
-            from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchTool, DuckDuckGoSearchArgs
-            from autogen_core import CancellationToken
-            import asyncio
+    .. code-block:: python
 
-
-            async def main():
-                # Create the search tool
-                search_tool = DuckDuckGoSearchTool()
-
-                # Create search arguments
-                search_args = DuckDuckGoSearchArgs(
-                    query="What is AutoGen?", num_results=3, include_snippets=True, include_content=True
-                )
-
-                # Perform the search
-                results = await search_tool.run(search_args, CancellationToken())
-
-                # Print results
-                print(f"Results as string:\\n{search_tool.return_value_as_string(results)}")
-                # This will output something like:
-                # Result 1:
-                # Title: Microsoft AutoGen: The Next-Gen AI Framework
-                # URL: https://microsoft.github.io/autogen/
-                # Snippet: AutoGen is a framework that enables development of LLM applications...
-                # Content: AutoGen is a framework that enables the development of LLM applications...
+        from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchTool, DuckDuckGoSearchArgs
+        from autogen_core import CancellationToken
+        import asyncio
 
 
-            asyncio.run(main())
+        async def main() -> None:
+            # Create the search tool
+            search_tool = DuckDuckGoSearchTool()
 
-        Basic usage with an AssistantAgent:
+            # Create search arguments
+            search_args = DuckDuckGoSearchArgs(
+                query="What is AutoGen?", num_results=3, include_snippets=True, include_content=True
+            )
 
-        .. code-block:: python
+            # Perform the search
+            results = await search_tool.run(search_args, CancellationToken())
 
-            from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchTool
-            from autogen_agentchat.agents import AssistantAgent
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            # Print results
+            print(f"Results as string:\\n{search_tool.return_value_as_string(results)}")
 
+
+        asyncio.run(main())
+
+    This will output something like:
+
+    .. code-block:: text
+
+        Result 1:
+        Title: Microsoft AutoGen: The Next-Gen AI Framework
+        URL: https://microsoft.github.io/autogen/
+        Snippet: AutoGen is a framework that enables development of LLM applications...
+        Content: AutoGen is a framework that enables the development of LLM applications...
+
+    Basic usage with an :class:`~autogen_agentchat.agents.AssistantAgent`:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchTool
+        from autogen_agentchat.agents import AssistantAgent
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+        async def main() -> None:
             # Create the search tool
             search_tool = DuckDuckGoSearchTool()
 
@@ -102,64 +109,23 @@ class DuckDuckGoSearchTool(BaseTool[DuckDuckGoSearchArgs, DuckDuckGoSearchResult
             model_client = OpenAIChatCompletionClient(model="gpt-4")
             agent = AssistantAgent(name="search_agent", model_client=model_client, tools=[search_tool])
 
-        Advanced usage with custom search parameters:
+            # Run the agent with a search task
+            response = await agent.run(task="Search for information about artificial intelligence")
+            print(response.messages[-1].content)  # type: ignore
 
-        .. code-block:: python
 
-            from autogen_ext.tools.duckduckgo_search import DuckDuckGoSearchArgs
-
-            # Perform a search in Spanish with content fetching
-            search_args = DuckDuckGoSearchArgs(
-                query="inteligencia artificial",
-                language="es",
-                region="es",
-                num_results=5,
-                include_content=True,
-                content_max_length=15000,
-            )
-
-            # Use the search args with your agent
-            response = await agent.on_messages(
-                [
-                    TextMessage(
-                        source="user",
-                        content="Search for AI in Spanish using these parameters",
-                        tool_calls=[{"name": "duckduckgo_search", "args": search_args.dict()}],
-                    )
-                ],
-                CancellationToken(),
-            )
-
-        Quick search without content fetching:
-
-        .. code-block:: python
-
-            # For faster searches without webpage content
-            search_args = DuckDuckGoSearchArgs(
-                query="latest AI news",
-                num_results=3,
-                include_snippets=True,
-                include_content=False,  # Skip content fetching for speed
-            )
+        asyncio.run(main())
 
     .. note::
-        The tool uses web scraping to fetch results, so it may be affected by:
-        - DuckDuckGo's rate limiting
-        - Changes to DuckDuckGo's HTML structure
-        - Website blocking or requiring JavaScript
-        - Network connectivity issues
 
-    Args:
-        No initialization arguments required.
+        The tool uses web scraping to fetch results, so it may be affected by:
+        * DuckDuckGo's rate limiting
+        * Changes to DuckDuckGo's HTML structure
+        * Website blocking or requiring JavaScript
+        * Network connectivity issues
 
     Returns:
-        DuckDuckGoSearchResult: A result object containing:
-            - results (List[Dict[str, str]]): List of search results, each containing:
-                - title: The title of the webpage
-                - link: The URL of the webpage
-                - snippet: (optional) A brief excerpt from the webpage
-                - content: (optional) Full webpage content in markdown format
-
+        DuckDuckGoSearchResult: A result object.
     """
 
     def __init__(self) -> None:

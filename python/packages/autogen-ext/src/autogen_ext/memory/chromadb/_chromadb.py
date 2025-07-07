@@ -45,25 +45,28 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
     For advanced use cases requiring specialized formatting of retrieved content, users should extend
     this class and override the `update_context()` method.
 
-    .. note::
+    This implementation requires the ChromaDB extra to be installed. Install with:
 
-        This implementation requires the ChromaDB extra to be installed. Install with:
-        `pip install autogen-ext[chromadb]`
+    .. code-block:: bash
+
+        pip install "autogen-ext[chromadb]"
 
     Args:
         config (ChromaDBVectorMemoryConfig | None): Configuration for the ChromaDB memory.
             If None, defaults to a PersistentChromaDBVectorMemoryConfig with default values.
             Two config types are supported:
-            - PersistentChromaDBVectorMemoryConfig: For local storage
-            - HttpChromaDBVectorMemoryConfig: For connecting to a remote ChromaDB server
+            * PersistentChromaDBVectorMemoryConfig: For local storage
+            * HttpChromaDBVectorMemoryConfig: For connecting to a remote ChromaDB server
 
     Example:
 
         .. code-block:: python
 
             import os
+            import asyncio
             from pathlib import Path
             from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
             from autogen_core.memory import MemoryContent, MemoryMimeType
             from autogen_ext.memory.chromadb import (
                 ChromaDBVectorMemory,
@@ -73,68 +76,107 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
             )
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-            # Initialize ChromaDB memory with default embedding function
-            memory = ChromaDBVectorMemory(
-                config=PersistentChromaDBVectorMemoryConfig(
-                    collection_name="user_preferences",
-                    persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
-                    k=3,  # Return top 3 results
-                    score_threshold=0.5,  # Minimum similarity score
-                )
-            )
 
-            # Using a custom SentenceTransformer model
-            memory_custom_st = ChromaDBVectorMemory(
-                config=PersistentChromaDBVectorMemoryConfig(
-                    collection_name="multilingual_memory",
-                    persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
-                    embedding_function_config=SentenceTransformerEmbeddingFunctionConfig(
-                        model_name="paraphrase-multilingual-mpnet-base-v2"
+            def get_weather(city: str) -> str:
+                return f"The weather in {city} is sunny with a high of 90°F and a low of 70°F."
+
+
+            def fahrenheit_to_celsius(fahrenheit: float) -> float:
+                return (fahrenheit - 32) * 5.0 / 9.0
+
+
+            async def main() -> None:
+                # Use default embedding function
+                default_memory = ChromaDBVectorMemory(
+                    config=PersistentChromaDBVectorMemoryConfig(
+                        collection_name="user_preferences",
+                        persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
+                        k=3,  # Return top 3 results
+                        score_threshold=0.5,  # Minimum similarity score
+                    )
+                )
+
+                # Using a custom SentenceTransformer model
+                custom_memory = ChromaDBVectorMemory(
+                    config=PersistentChromaDBVectorMemoryConfig(
+                        collection_name="multilingual_memory",
+                        persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
+                        embedding_function_config=SentenceTransformerEmbeddingFunctionConfig(
+                            model_name="paraphrase-multilingual-mpnet-base-v2"
+                        ),
+                    )
+                )
+
+                # Using OpenAI embeddings
+                openai_memory = ChromaDBVectorMemory(
+                    config=PersistentChromaDBVectorMemoryConfig(
+                        collection_name="openai_memory",
+                        persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
+                        embedding_function_config=OpenAIEmbeddingFunctionConfig(
+                            api_key=os.environ["OPENAI_API_KEY"], model_name="text-embedding-3-small"
+                        ),
+                    )
+                )
+
+                # Add user preferences to memory
+                await openai_memory.add(
+                    MemoryContent(
+                        content="The user prefers weather temperatures in Celsius",
+                        mime_type=MemoryMimeType.TEXT,
+                        metadata={"category": "preferences", "type": "units"},
+                    )
+                )
+
+                # Create assistant agent with ChromaDB memory
+                assistant = AssistantAgent(
+                    name="assistant",
+                    model_client=OpenAIChatCompletionClient(
+                        model="gpt-4.1",
                     ),
+                    tools=[
+                        get_weather,
+                        fahrenheit_to_celsius,
+                    ],
+                    max_tool_iterations=10,
+                    memory=[openai_memory],
                 )
-            )
 
-            # Using OpenAI embeddings
-            memory_openai = ChromaDBVectorMemory(
-                config=PersistentChromaDBVectorMemoryConfig(
-                    collection_name="openai_memory",
-                    persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
-                    embedding_function_config=OpenAIEmbeddingFunctionConfig(
-                        api_key="sk-...", model_name="text-embedding-3-small"
-                    ),
-                )
-            )
+                # The memory will automatically retrieve relevant content during conversations
+                await Console(assistant.run_stream(task="What's the temperature in New York?"))
 
-            # Add user preferences to memory
-            await memory.add(
-                MemoryContent(
-                    content="The user prefers temperatures in Celsius",
-                    mime_type=MemoryMimeType.TEXT,
-                    metadata={"category": "preferences", "type": "units"},
-                )
-            )
+                # Remember to close the memory when finished
+                await default_memory.close()
+                await custom_memory.close()
+                await openai_memory.close()
 
-            # Create assistant agent with ChromaDB memory
-            assistant = AssistantAgent(
-                name="assistant",
-                model_client=OpenAIChatCompletionClient(
-                    model="gpt-4o",
-                ),
-                memory=[memory],
-            )
 
-            # The memory will automatically retrieve relevant content during conversations
-            stream = assistant.run_stream(task="What's the weather in New York?")
+            asyncio.run(main())
 
-            # Remember to close the memory when finished
-            await memory.close()
+        Output:
+
+        .. code-block:: text
+
+            ---------- TextMessage (user) ----------
+            What's the temperature in New York?
+            ---------- MemoryQueryEvent (assistant) ----------
+            [MemoryContent(content='The user prefers weather temperatures in Celsius', mime_type='MemoryMimeType.TEXT', metadata={'type': 'units', 'category': 'preferences', 'mime_type': 'MemoryMimeType.TEXT', 'score': 0.3133561611175537, 'id': 'fb00506c-acf4-4174-93d7-2a942593f3f7'}), MemoryContent(content='The user prefers weather temperatures in Celsius', mime_type='MemoryMimeType.TEXT', metadata={'mime_type': 'MemoryMimeType.TEXT', 'category': 'preferences', 'type': 'units', 'score': 0.3133561611175537, 'id': '34311689-b419-4e1a-8bc4-09143f356c66'})]
+            ---------- ToolCallRequestEvent (assistant) ----------
+            [FunctionCall(id='call_7TjsFd430J1aKwU5T2w8bvdh', arguments='{"city":"New York"}', name='get_weather')]
+            ---------- ToolCallExecutionEvent (assistant) ----------
+            [FunctionExecutionResult(content='The weather in New York is sunny with a high of 90°F and a low of 70°F.', name='get_weather', call_id='call_7TjsFd430J1aKwU5T2w8bvdh', is_error=False)]
+            ---------- ToolCallRequestEvent (assistant) ----------
+            [FunctionCall(id='call_RTjMHEZwDXtjurEYTjDlvq9c', arguments='{"fahrenheit": 90}', name='fahrenheit_to_celsius'), FunctionCall(id='call_3mMuCK1aqtzZPTqIHPoHKxtP', arguments='{"fahrenheit": 70}', name='fahrenheit_to_celsius')]
+            ---------- ToolCallExecutionEvent (assistant) ----------
+            [FunctionExecutionResult(content='32.22222222222222', name='fahrenheit_to_celsius', call_id='call_RTjMHEZwDXtjurEYTjDlvq9c', is_error=False), FunctionExecutionResult(content='21.11111111111111', name='fahrenheit_to_celsius', call_id='call_3mMuCK1aqtzZPTqIHPoHKxtP', is_error=False)]
+            ---------- TextMessage (assistant) ----------
+            The temperature in New York today is sunny with a high of about 32°C and a low of about 21°C.
+
     """
 
     component_config_schema = ChromaDBVectorMemoryConfig
     component_provider_override = "autogen_ext.memory.chromadb.ChromaDBVectorMemory"
 
     def __init__(self, config: ChromaDBVectorMemoryConfig | None = None) -> None:
-        """Initialize ChromaDBVectorMemory."""
         self._config = config or PersistentChromaDBVectorMemoryConfig()
         self._client: ClientAPI | None = None
         self._collection: Collection | None = None
@@ -269,67 +311,6 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         self,
         model_context: ChatCompletionContext,
     ) -> UpdateContextResult:
-        """
-        Update the model context with relevant memory content.
-
-        This method retrieves memory content relevant to the last message in the context
-        and adds it as a system message. It serves as the primary customization point for
-        how retrieved memories are incorporated into the conversation.
-
-        By default, this implementation:
-        1. Uses the last message as a query to find semantically similar memories
-        2. Formats retrieved memories as a numbered list
-        3. Adds them to the context as a system message
-
-        For custom memory formatting, extend this class and override this method.
-
-        Args:
-            model_context (ChatCompletionContext): The model context to update with relevant memories.
-
-        Returns:
-            UpdateContextResult: Object containing the memories that were used to update the context.
-
-        Example:
-
-            .. code-block:: python
-
-                from autogen_core.memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
-                from autogen_core.model_context import ChatCompletionContext
-                from autogen_core.models import SystemMessage
-                from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
-
-
-                class CustomVectorMemory(ChromaDBVectorMemory):
-                    async def update_context(
-                        self,
-                        model_context: ChatCompletionContext,
-                    ) -> UpdateContextResult:
-                        # Get the last message to use as query
-                        messages = await model_context.get_messages()
-                        if not messages:
-                            return UpdateContextResult(memories=MemoryQueryResult(results=[]))
-
-                        # Get query results
-                        last_message = messages[-1]
-                        query_text = last_message.content if isinstance(last_message.content, str) else str(last_message)
-                        query_results = await self.query(query_text)
-
-                        if query_results.results:
-                            # Custom formatting based on memory category
-                            memory_strings = []
-                            for memory in query_results.results:
-                                category = memory.metadata.get("category", "general")
-                                if category == "preferences":
-                                    memory_strings.append(f"User Preference: {memory.content}")
-                                else:
-                                    memory_strings.append(f"Memory: {memory.content}")
-
-                            # Add to context with custom header
-                            memory_context = "IMPORTANT USER INFORMATION:\\n" + "\\n".join(memory_strings)
-                            await model_context.add_message(SystemMessage(content=memory_context))
-
-                        return UpdateContextResult(memories=query_results)
-        """
         messages = await model_context.get_messages()
         if not messages:
             return UpdateContextResult(memories=MemoryQueryResult(results=[]))
@@ -352,7 +333,6 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         return UpdateContextResult(memories=query_results)
 
     async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
-        """Add a memory content to ChromaDB."""
         self._ensure_initialized()
         if self._collection is None:
             raise RuntimeError("Failed to initialize ChromaDB")
@@ -378,7 +358,6 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         cancellation_token: CancellationToken | None = None,
         **kwargs: Any,
     ) -> MemoryQueryResult:
-        """Query memory content based on vector similarity."""
         self._ensure_initialized()
         if self._collection is None:
             raise RuntimeError("Failed to initialize ChromaDB")
@@ -438,7 +417,6 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
             raise
 
     async def clear(self) -> None:
-        """Clear all entries from memory."""
         self._ensure_initialized()
         if self._collection is None:
             raise RuntimeError("Failed to initialize ChromaDB")
@@ -457,7 +435,6 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         self._client = None
 
     async def reset(self) -> None:
-        """Reset the memory by deleting all data."""
         self._ensure_initialized()
         if not self._config.allow_reset:
             raise RuntimeError("Reset not allowed. Set allow_reset=True in config to enable.")

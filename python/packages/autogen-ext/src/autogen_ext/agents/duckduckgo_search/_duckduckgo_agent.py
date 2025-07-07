@@ -20,21 +20,27 @@ class DuckDuckGoSearchAgent(AssistantAgent):
     Example:
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.agents.duckduckgo_search import DuckDuckGoSearchAgent
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-            # Create a model client
-            model_client = OpenAIChatCompletionClient(model="gpt-4")
 
-            # Create a DuckDuckGo search agent
-            search_agent = DuckDuckGoSearchAgent(
-                name="researcher",
-                model_client=model_client,
-            )
+            async def main() -> None:
+                # Create a model client
+                model_client = OpenAIChatCompletionClient(model="gpt-4")
 
-            # Use the agent
-            result = await search_agent.run(task="What are the latest developments in AI?")
-            print(result.messages[-1].content)
+                # Create a DuckDuckGo search agent
+                search_agent = DuckDuckGoSearchAgent(
+                    name="researcher",
+                    model_client=model_client,
+                )
+
+                # Use the agent
+                result = await search_agent.run(task="What are the latest developments in AI?")
+                print(result.messages[-1].content)  # type: ignore
+
+
+            asyncio.run(main())
     """
 
     DEFAULT_DESCRIPTION = "A research assistant that uses DuckDuckGo to find and analyze information from the web."
