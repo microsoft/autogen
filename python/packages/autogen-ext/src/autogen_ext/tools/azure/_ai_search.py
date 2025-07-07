@@ -18,11 +18,12 @@ from typing import (
 
 from autogen_core import CancellationToken, Component
 from autogen_core.tools import BaseTool, ToolSchema
+from pydantic import BaseModel, Field
+
 from azure.core.credentials import AzureKeyCredential
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import HttpResponseError, ResourceNotFoundError
 from azure.search.documents.aio import SearchClient
-from pydantic import BaseModel, Field
 
 from ._config import (
     DEFAULT_API_VERSION,
@@ -150,8 +151,9 @@ class EmbeddingProviderMixin:
 
         if embedding_provider.lower() == "azure_openai":
             try:
-                from azure.identity import DefaultAzureCredential
                 from openai import AsyncAzureOpenAI
+
+                from azure.identity import DefaultAzureCredential
             except ImportError:
                 raise ImportError(
                     "Azure OpenAI SDK is required for client-side embedding generation. "

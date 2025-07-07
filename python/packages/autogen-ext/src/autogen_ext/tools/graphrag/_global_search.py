@@ -5,6 +5,8 @@ import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
+from pydantic import BaseModel, Field
+
 from graphrag.config.config_file_loader import load_config_from_file
 from graphrag.query.indexer_adapters import (
     read_indexer_communities,
@@ -15,7 +17,6 @@ from graphrag.query.llm.base import BaseLLM
 from graphrag.query.llm.get_client import get_llm
 from graphrag.query.structured_search.global_search.community_context import GlobalCommunityContext
 from graphrag.query.structured_search.global_search.search import GlobalSearch
-from pydantic import BaseModel, Field
 
 from ._config import GlobalContextConfig as ContextConfig
 from ._config import GlobalDataConfig as DataConfig

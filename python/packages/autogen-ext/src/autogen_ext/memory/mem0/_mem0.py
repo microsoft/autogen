@@ -9,29 +9,17 @@ from autogen_core import CancellationToken, Component, ComponentBase
 from autogen_core.memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
+from mem0 import Memory as Memory0
+from mem0 import MemoryClient
 from pydantic import BaseModel, Field
 from typing_extensions import Self
-
-try:
-    from mem0 import Memory as Memory0
-    from mem0 import MemoryClient
-except ImportError as e:
-    raise ImportError("`mem0ai` not installed. Please install it with `pip install mem0ai`") from e
 
 logger = logging.getLogger(__name__)
 logging.getLogger("chromadb").setLevel(logging.ERROR)
 
 
 class Mem0MemoryConfig(BaseModel):
-    """Configuration for Mem0Memory component.
-
-    Attributes:
-        user_id: Optional user ID for memory operations. If not provided, a UUID will be generated.
-        limit: Maximum number of results to return in memory queries.
-        is_cloud: Whether to use cloud Mem0 client (True) or local client (False).
-        api_key: API key for cloud Mem0 client. Required if is_cloud=True.
-        config: Configuration dictionary for local Mem0 client. Required if is_cloud=False.
-    """
+    """Configuration for Mem0Memory component."""
 
     user_id: Optional[str] = Field(
         default=None, description="User ID for memory operations. If not provided, a UUID will be generated."
@@ -63,21 +51,112 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
     of AutoGen's Memory interface. It supports both cloud and local backends through the
     mem0ai Python package.
 
+    To use this component, you need to have the `mem0` (for cloud-only) or `mem0-local` (for local)
+    extra installed for the `autogen-ext` package:
+
+    .. code-block:: bash
+
+        pip install -U "autogen-ext[mem0]" # For cloud-based Mem0
+        pip install -U "autogen-ext[mem0-local]" # For local Mem0
+
     The memory component can store and retrieve information that agents need to remember
     across conversations. It also provides context updating for language models with
     relevant memories.
 
     Examples:
-        ```python
-        # Create a cloud Mem0Memory
-        memory = Mem0Memory(is_cloud=True)
 
-        # Add something to memory
-        await memory.add(MemoryContent(content="Important information to remember"))
+        .. code-block:: python
 
-        # Retrieve memories with a search query
-        results = await memory.query("relevant information")
-        ```
+            import asyncio
+            from autogen_ext.memory.mem0 import Mem0Memory
+            from autogen_core.memory import MemoryContent
+
+
+            async def main() -> None:
+                # Create a local Mem0Memory (no API key required)
+                memory = Mem0Memory(
+                    is_cloud=False,
+                    config={"path": ":memory:"},  # Use in-memory storage for testing
+                )
+                print("Memory initialized successfully!")
+
+                # Add something to memory
+                test_content = "User likes the color blue."
+                await memory.add(MemoryContent(content=test_content, mime_type="text/plain"))
+                print(f"Added content: {test_content}")
+
+                # Retrieve memories with a search query
+                results = await memory.query("What color does the user like?")
+                print(f"Query results: {len(results.results)} found")
+
+                for i, result in enumerate(results.results):
+                    print(f"Result {i+1}: {result}")
+
+
+            asyncio.run(main())
+
+        Output:
+
+        .. code-block:: text
+
+            Memory initialized successfully!
+            Added content: User likes the color blue.
+            Query results: 1 found
+            Result 1: content='User likes the color blue' mime_type='text/plain' metadata={'score': 0.6977155806281953, 'created_at': datetime.datetime(2025, 7, 6, 17, 25, 18, 754725, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=61200)))}
+
+        Using it with an :class:`~autogen_agentchat.agents.AssistantAgent`:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_core.memory import MemoryContent
+            from autogen_ext.memory.mem0 import Mem0Memory
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                # Create a model client
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1")
+
+                # Create a Mem0 memory instance
+                memory = Mem0Memory(
+                    user_id="user123",
+                    is_cloud=False,
+                    config={"path": ":memory:"},  # Use in-memory storage for testing
+                )
+
+                # Add something to memory
+                test_content = "User likes the color blue."
+                await memory.add(MemoryContent(content=test_content, mime_type="text/plain"))
+
+                # Create an assistant agent with Mem0 memory
+                agent = AssistantAgent(
+                    name="assistant",
+                    model_client=model_client,
+                    memory=[memory],
+                    system_message="You are a helpful assistant that remembers user preferences.",
+                )
+
+                # Run a sample task
+                result = await agent.run(task="What color does the user like?")
+                print(result.messages[-1].content)  # type: ignore
+
+
+            asyncio.run(main())
+
+        Output:
+
+        .. code-block:: text
+
+            User likes the color blue.
+
+    Args:
+        user_id: Optional user ID for memory operations. If not provided, a UUID will be generated.
+        limit: Maximum number of results to return in memory queries.
+        is_cloud: Whether to use cloud Mem0 client (True) or local client (False).
+        api_key: API key for cloud Mem0 client. It will read from the environment MEM0_API_KEY if not provided.
+        config: Configuration dictionary for local Mem0 client. Required if is_cloud=False.
     """
 
     component_type = "memory"
@@ -92,18 +171,6 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
         api_key: Optional[str] = None,
         config: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """Initialize Mem0Memory.
-
-        Args:
-            user_id: Optional user ID for memory operations. If not provided, a UUID will be generated.
-            limit: Maximum number of results to return in memory queries.
-            is_cloud: Whether to use cloud Mem0 client (True) or local client (False).
-            api_key: API key for cloud Mem0 client. It will read from the environment MEM0_API_KEY if not provided.
-            config: Configuration dictionary for local Mem0 client. Required if is_cloud=False.
-
-        Raises:
-            ValueError: If is_cloud=True and api_key is None, or if is_cloud=False and config is None.
-        """
         # Validate parameters
         if not is_cloud and config is None:
             raise ValueError("config is required when using local Mem0 client (is_cloud=False)")

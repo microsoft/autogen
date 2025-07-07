@@ -8,6 +8,7 @@ from typing import Any, Dict
 from pathlib import Path
 import sys
 import os
+import subprocess
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -182,6 +183,35 @@ rediraffe_redirects = {
 }
 
 
+def generate_api_docs() -> None:
+    """Generate API documentation before building."""
+    script_path = Path(__file__).parent / "generate_api_toc.py"
+    if script_path.exists():
+        print("🔄 Generating API documentation...")
+        try:
+            result = subprocess.run(
+                [sys.executable, str(script_path)],
+                cwd=script_path.parent,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            print("✅ API documentation generated successfully")
+            # Print the output for visibility
+            if result.stdout:
+                for line in result.stdout.strip().split('\n'):
+                    print(f"   {line}")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Failed to generate API documentation: {e}")
+            if e.stdout:
+                print(f"stdout: {e.stdout}")
+            if e.stderr:
+                print(f"stderr: {e.stderr}")
+            # Don't fail the build, just warn
+    else:
+        print(f"⚠️  API documentation generator not found at {script_path}")
+
+
 def setup_to_main(
     app: Sphinx, pagename: str, templatename: str, context, doctree
 ) -> None:
@@ -211,6 +241,9 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     Returns:
         the 2 parallel parameters set to ``True``.
     """
+    # Generate API documentation before building
+    app.connect("builder-inited", lambda app: generate_api_docs())
+    
     app.connect("html-page-context", setup_to_main)
 
     # Adding here so it is inline and not in a separate file.
