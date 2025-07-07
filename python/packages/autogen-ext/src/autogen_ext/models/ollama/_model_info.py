@@ -141,7 +141,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
     },
     "llama3.3": {
         "vision": False,
-        "function_calling": False,
+        "function_calling": True,
         "json_output": True,
         "family": ModelFamily.UNKNOWN,
         "structured_output": True,
