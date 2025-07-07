@@ -262,9 +262,6 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        package: ["./packages/autogen-core"]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -278,14 +275,11 @@ jobs:
       - name: Run task
         run: |
           source ${{ github.workspace }}/python/.venv/bin/activate
-          poe --directory ${{ matrix.package }} docs-check
+          poe docs-check
         working-directory: ./python
 
   docs-example-check:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        package: ["./packages/autogen-core"]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -299,7 +293,7 @@ jobs:
       - name: Run task
         run: |
           source ${{ github.workspace }}/python/.venv/bin/activate
-          poe --directory ${{ matrix.package }} docs-check-examples
+          poe docs-check-examples
         working-directory: ./python
 
   samples-code-check:
