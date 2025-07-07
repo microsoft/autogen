@@ -47,7 +47,7 @@ def is_private_module(module_parts: List[str]) -> bool:
 
 def find_python_packages() -> List[Path]:
     """Find documented Python packages in the workspace."""
-    packages_dir = Path(__file__).parent.parent.parent.parent.parent / "packages"
+    packages_dir = Path(__file__).parent.parent.parent / "packages"
     python_packages = []
     
     for package_dir in packages_dir.iterdir():

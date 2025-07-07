@@ -83,10 +83,7 @@ dev = [
 [tool.ruff]
 extend = "../../pyproject.toml"
 exclude = ["build", "dist", "src/autogen_core/application/protos", "tests/protos"]
-include = ["src/**", "docs/**/*.ipynb", "tests/**"]
-
-[tool.ruff.lint.per-file-ignores]
-"docs/**.ipynb" = ["T20"]
+include = ["src/**", "tests/**"]
 
 [tool.pyright]
 extends = "../../pyproject.toml"
@@ -112,24 +109,5 @@ test = "pytest -n auto --cov=src --cov-report=term-missing --cov-report=xml"
 mypy.default_item_type = "cmd"
 mypy.sequence = [
     "mypy --config-file ../../pyproject.toml --exclude src/autogen_core/application/protos --exclude tests/protos src tests",
-    "nbqa mypy docs/src --config-file ../../pyproject.toml",
 ]
-
-# Docs
-docs-clean = "rm -rf docs/build"
-
-# Inline tables are WAY easier to read but for some reason they break pyright. So we have to write it out this way.
-# Example of inline table:
-# docs-build = [
-#     "docs-apidoc-all",
-#     { cmd = "sphinx-build docs/src docs/build" }
-# ]
-
-docs-build = "sphinx-build docs/src docs/build"
-
-docs-serve = "sphinx-autobuild --watch src docs/src docs/build --port 8000 --jobs auto"
-
-docs-check = "sphinx-build --fail-on-warning docs/src docs/build"
-
-docs-check-examples = "sphinx-build -b code_lint docs/src docs/build"
 

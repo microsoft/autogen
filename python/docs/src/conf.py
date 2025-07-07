@@ -150,7 +150,7 @@ html_context = {
     "github_user": "microsoft",
     "github_repo": "autogen",
     "github_version": "main",
-    "doc_path": "python/packages/autogen-core/docs/src/",
+    "doc_path": "python/docs/src/",
 }
 
 autodoc_default_options = {
@@ -183,9 +183,16 @@ rediraffe_redirects = {
 }
 
 
-def generate_api_docs() -> None:
+def generate_api_reference() -> None:
     """Generate API documentation before building."""
-    script_path = Path(__file__).parent / "generate_api_toc.py"
+    reference_dir = Path(__file__).parent / "reference"
+    
+    # Only generate if reference directory doesn't exist
+    if reference_dir.exists():
+        print("📁 Reference directory already exists, skipping API generation")
+        return
+    
+    script_path = Path(__file__).parent / "generate_api_reference.py"
     if script_path.exists():
         print("🔄 Generating API documentation...")
         try:
@@ -242,7 +249,7 @@ def setup(app: Sphinx) -> Dict[str, Any]:
         the 2 parallel parameters set to ``True``.
     """
     # Generate API documentation before building
-    app.connect("builder-inited", lambda app: generate_api_docs())
+    app.connect("builder-inited", lambda app: generate_api_reference())
     
     app.connect("html-page-context", setup_to_main)
 
