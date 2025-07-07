@@ -20,6 +20,21 @@ dev = [
     "tomli-w",
     "chainlit",
     "streamlit",
+    
+    # Documentation
+    "myst-nb==1.1.2",
+    "pydata-sphinx-theme==0.16.0",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "sphinx",
+    "sphinxcontrib-apidoc",
+    "autodoc_pydantic~=2.2",
+    "pygments",
+    "sphinxext-rediraffe",
+    "opentelemetry-instrumentation-openai",
+    "diskcache",
+    "redis",
+    "sphinx-autobuild",
 ]
 
 [tool.uv]
@@ -93,7 +108,6 @@ format.ref = "fmt"
 lint = "python run_task_in_pkgs_if_exist.py lint"
 pyright = "python run_task_in_pkgs_if_exist.py pyright"
 mypy = "python run_task_in_pkgs_if_exist.py mypy"
-docs-mypy = "nbqa mypy docs/src --config-file ./pyproject.toml"
 test = "python run_task_in_pkgs_if_exist.py test"
 markdown-code-lint = """python check_md_code_blocks.py ../README.md ./docs/src/**/*.md ./packages/autogen-magentic-one/README.md"""
 samples-code-check = """pyright ./samples"""
@@ -101,6 +115,7 @@ samples-code-check = """pyright ./samples"""
 check = ["fmt", "lint", "pyright", "mypy", "docs-mypy", "test", "markdown-code-lint", "samples-code-check"]
 
 # Docs
+docs-mypy = "nbqa mypy docs/src --config-file ./pyproject.toml"
 docs-clean = "rm -rf docs/build docs/src/reference"
 docs-build = "sphinx-build docs/src docs/build"
 docs-serve = "sphinx-autobuild --watch packages/*/src docs/src docs/build --port 8000 --jobs auto"

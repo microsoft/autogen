@@ -61,10 +61,13 @@ To create a pull request (PR), ensure the following checks are met. You can run 
 - Test: `poe test`
 - Mypy: `poe mypy`
 - Pyright: `poe pyright`
-- Build docs: `poe --directory ./packages/autogen-core/ docs-build`
-- Auto rebuild+serve docs: `poe --directory ./packages/autogen-core/ docs-serve`
+- Build docs: `poe docs-build`
+- Check docs: `poe docs-check`
+- Clean docs: `poe docs-clean`
+- Check code blocks in API references: `poe docs-check-examples`
+- Auto rebuild+serve docs: `poe docs-serve`
 - Check samples in `python/samples`: `poe samples-code-check`
-Alternatively, you can run all the checks with:
+  Alternatively, you can run all the checks with:
 - `poe check`
 
 > [!NOTE]

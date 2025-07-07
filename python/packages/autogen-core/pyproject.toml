@@ -58,25 +58,6 @@ dev = [
     "types-protobuf",
     "types-requests",
     "wikipedia",
-
-    # Documentation
-    "myst-nb==1.1.2",
-    "pydata-sphinx-theme==0.16.0",
-    "sphinx-copybutton",
-    "sphinx-design",
-    "sphinx",
-    "sphinxcontrib-apidoc",
-    "autodoc_pydantic~=2.2",
-    "pygments",
-    "sphinxext-rediraffe",
-    "opentelemetry-instrumentation-openai",
-
-    "autogen_ext==0.6.2",
-
-    # Documentation tooling
-    "diskcache",
-    "redis",
-    "sphinx-autobuild",
 ]
 
 
