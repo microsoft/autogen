@@ -7,10 +7,11 @@ from typing import Any, Dict, Generic, Type, TypeVar
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 from autogen_core.utils import schema_to_pydantic_model
-from mcp import ClientSession, Tool
-from mcp.types import EmbeddedResource, ImageContent, TextContent
 from pydantic import BaseModel
 from pydantic.networks import AnyUrl
+
+from mcp import ClientSession, Tool
+from mcp.types import EmbeddedResource, ImageContent, TextContent
 
 from ._config import McpServerParams
 from ._session import create_mcp_server_session

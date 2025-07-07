@@ -74,10 +74,16 @@ def register_transformer(api: str, model_family: str, transformer_map: Transform
     Registers a transformer map for a given model family.
 
     Example:
-        register_transformer("gpt-4o", {
-            UserMessage: user_message_to_oai,
-            SystemMessage: system_message_to_oai,
-        })
+
+        .. code-block:: python
+
+            register_transformer(
+                "gpt-4o",
+                {
+                    UserMessage: user_message_to_oai,
+                    SystemMessage: system_message_to_oai,
+                },
+            )
     """
     MESSAGE_TRANSFORMERS[api][model_family] = transformer_map
 
