@@ -1,6 +1,7 @@
 # AutoGen Python Development Guide
 
-[![0.4 Docs](https://img.shields.io/badge/Docs-0.4-blue)](https://microsoft.github.io/autogen/dev/)
+[![Docs (dev)](https://img.shields.io/badge/Docs-dev-blue)](https://microsoft.github.io/autogen/dev/)
+[![Docs (latest release)](https://img.shields.io/badge/Docs-latest%20release-blue)](https://microsoft.github.io/autogen/dev/)
 [![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/) [![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/) [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/)
 
 This directory works as a single `uv` workspace containing all project packages, including:
