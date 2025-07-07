@@ -102,6 +102,11 @@ typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false
 
+[tool.nbqa.addopts]
+mypy = [
+    "--disable-error-code=top-level-await"
+]
+
 [tool.poe.tasks]
 fmt = "python run_task_in_pkgs_if_exist.py fmt"
 format.ref = "fmt"
