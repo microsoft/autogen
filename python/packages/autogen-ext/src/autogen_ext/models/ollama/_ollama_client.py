@@ -315,8 +315,17 @@ def convert_tools(
         if parameters is not None:
             ollama_properties = {}
             for prop_name, prop_schema in parameters["properties"].items():
+                # Determine property type, checking "type" first, then "anyOf", defaulting to "string"
+                prop_type = prop_schema.get("type")
+                if prop_type is None and "anyOf" in prop_schema:
+                    prop_type = next(
+                        (opt.get("type") for opt in prop_schema["anyOf"] if opt.get("type") != "null"),
+                        None,  # Default to None if no non-null type found in anyOf
+                    )
+                prop_type = prop_type or "string"
+
                 ollama_properties[prop_name] = OllamaTool.Function.Parameters.Property(
-                    type=prop_schema["type"],
+                    type=prop_type,
                     description=prop_schema["description"] if "description" in prop_schema else None,
                 )
         result.append(
@@ -505,6 +514,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
+        tool_choice: Tool | Literal["auto", "required", "none"],
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
     ) -> CreateParams:
@@ -575,7 +585,22 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling and tools were provided")
 
-        converted_tools = convert_tools(tools)
+        converted_tools: List[OllamaTool] = []
+
+        # Handle tool_choice parameter in a way that is compatible with Ollama API.
+        if isinstance(tool_choice, Tool):
+            # If tool_choice is a Tool, convert it to OllamaTool.
+            converted_tools = convert_tools([tool_choice])
+        elif tool_choice == "none":
+            # No tool choice, do not pass tools to the API.
+            converted_tools = []
+        elif tool_choice == "required":
+            # Required tool choice, pass tools to the API.
+            converted_tools = convert_tools(tools)
+            if len(converted_tools) == 0:
+                raise ValueError("tool_choice 'required' specified but no tools provided")
+        else:
+            converted_tools = convert_tools(tools)
 
         return CreateParams(
             messages=ollama_messages,
@@ -589,6 +614,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -601,6 +627,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         create_params = self._process_create_args(
             messages,
             tools,
+            tool_choice,
             json_output,
             extra_create_args,
         )
@@ -695,6 +722,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -707,6 +735,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         create_params = self._process_create_args(
             messages,
             tools,
+            tool_choice,
             json_output,
             extra_create_args,
         )

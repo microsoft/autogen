@@ -7,7 +7,7 @@ An example with two chess player agents that executes its own tools to demonstra
 First, you need a shell with AutoGen core and required dependencies installed.
 
 ```bash
-pip install "autogen-ext[openai,azure]" "chess"
+pip install "autogen-ext[openai,azure]" "chess" "pyyaml"
 ```
 
 ## Model Configuration

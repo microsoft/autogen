@@ -1,7 +1,8 @@
 import asyncio
 import logging
+import trace
 import traceback
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 from autogen_agentchat.base import TaskResult
@@ -87,12 +88,12 @@ class WebSocketManager:
         """Start streaming task execution with proper run management"""
         if run_id not in self._connections or run_id in self._closed_connections:
             raise ValueError(f"No active connection for run {run_id}")
-
         with RunContext.populate_context(run_id=run_id):
             team_manager = TeamManager()
             cancellation_token = CancellationToken()
             self._cancellation_tokens[run_id] = cancellation_token
             final_result = None
+            env_vars = None  # Ensure env_vars is always defined
 
             try:
                 # Update run with task and status
@@ -276,14 +277,15 @@ class WebSocketManager:
         self._input_responses.pop(run_id, None)
 
     def _convert_images_in_dict(self, obj: Any) -> Any:
-        """Recursively find and convert Image objects in dictionaries and lists"""
+        """Recursively find and convert Image and datetime objects in dictionaries and lists"""
         if isinstance(obj, dict):
             return {k: self._convert_images_in_dict(v) for k, v in obj.items()}
         elif isinstance(obj, list):
             return [self._convert_images_in_dict(item) for item in obj]
-        elif isinstance(obj, AGImage):  # Assuming you've imported AGImage
-            # Convert the Image object to a serializable format
+        elif isinstance(obj, AGImage):
             return {"type": "image", "url": f"data:image/png;base64,{obj.to_base64()}", "alt": "Image"}
+        elif isinstance(obj, (datetime, date, time)):
+            return obj.isoformat()
         else:
             return obj
 
@@ -306,6 +308,7 @@ class WebSocketManager:
             logger.warning(f"WebSocket disconnected while sending message for run {run_id}")
             await self.disconnect(run_id)
         except Exception as e:
+            traceback.print_exc()
             logger.error(f"Error sending message for run {run_id}: {e}, {message}")
             # Don't try to send error message here to avoid potential recursive loop
             await self._update_run_status(run_id, RunStatus.ERROR, str(e))

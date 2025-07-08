@@ -1,11 +1,11 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any, List, Sequence
 
-from autogen_core import DefaultTopicId, MessageContext, event, rpc
+from autogen_core import CancellationToken, DefaultTopicId, MessageContext, event, rpc
 
 from ...base import TerminationCondition
-from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, StopMessage
+from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectSpeakerEvent, StopMessage
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
@@ -45,6 +45,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        emit_team_events: bool = False,
     ):
         super().__init__(
             description="Group chat manager",
@@ -77,6 +78,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._max_turns = max_turns
         self._current_turn = 0
         self._message_factory = message_factory
+        self._emit_team_events = emit_team_events
+        self._active_speakers: List[str] = []
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -102,8 +105,11 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 GroupChatStart(messages=message.messages),
                 topic_id=DefaultTopicId(type=self._output_topic_type),
             )
-            for msg in message.messages:
-                await self._output_message_queue.put(msg)
+
+            # Only put messages in output queue if output_task_messages is True
+            if message.output_task_messages:
+                for msg in message.messages:
+                    await self._output_message_queue.put(msg)
 
             # Relay all messages at once to participants
             await self.publish_message(
@@ -113,94 +119,116 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             )
 
             # Append all messages to thread
-            self._message_thread.extend(message.messages)
+            await self.update_message_thread(message.messages)
 
             # Check termination condition after processing all messages
-            if self._termination_condition is not None:
-                stop_message = await self._termination_condition(message.messages)
-                if stop_message is not None:
-                    # Reset the termination condition.
-                    await self._termination_condition.reset()
-                    # Signal termination to the caller of the team.
-                    await self._signal_termination(stop_message)
-                    # Stop the group chat.
-                    return
+            if await self._apply_termination_condition(message.messages):
+                # Stop the group chat.
+                return
 
-        # Select a speaker to start/continue the conversation
-        speaker_name_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
-        # Link the select speaker future to the cancellation token.
-        ctx.cancellation_token.link_future(speaker_name_future)
-        speaker_name = await speaker_name_future
-        if speaker_name not in self._participant_name_to_topic_type:
-            raise RuntimeError(f"Speaker {speaker_name} not found in participant names.")
-        speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
-        await self.publish_message(
-            GroupChatRequestPublish(),
-            topic_id=DefaultTopicId(type=speaker_topic_type),
-            cancellation_token=ctx.cancellation_token,
-        )
+        # Select speakers to start/continue the conversation
+        await self._transition_to_next_speakers(ctx.cancellation_token)
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
         try:
-            # Append the message to the message thread and construct the delta.
+            # Construct the detla from the agent response.
             delta: List[BaseAgentEvent | BaseChatMessage] = []
             if message.agent_response.inner_messages is not None:
                 for inner_message in message.agent_response.inner_messages:
-                    self._message_thread.append(inner_message)
                     delta.append(inner_message)
-            self._message_thread.append(message.agent_response.chat_message)
             delta.append(message.agent_response.chat_message)
 
+            # Append the messages to the message thread.
+            await self.update_message_thread(delta)
+
+            # Remove the agent from the active speakers list.
+            self._active_speakers.remove(message.agent_name)
+            if len(self._active_speakers) > 0:
+                # If there are still active speakers, return without doing anything.
+                return
+
             # Check if the conversation should be terminated.
-            if self._termination_condition is not None:
-                stop_message = await self._termination_condition(delta)
-                if stop_message is not None:
-                    # Reset the termination conditions and turn count.
-                    await self._termination_condition.reset()
-                    self._current_turn = 0
-                    # Signal termination to the caller of the team.
-                    await self._signal_termination(stop_message)
-                    # Stop the group chat.
-                    return
+            if await self._apply_termination_condition(delta, increment_turn_count=True):
+                # Stop the group chat.
+                return
 
-            # Increment the turn count.
-            self._current_turn += 1
-            # Check if the maximum number of turns has been reached.
-            if self._max_turns is not None:
-                if self._current_turn >= self._max_turns:
-                    stop_message = StopMessage(
-                        content=f"Maximum number of turns {self._max_turns} reached.",
-                        source=self._name,
-                    )
-                    # Reset the termination conditions and turn count.
-                    if self._termination_condition is not None:
-                        await self._termination_condition.reset()
-                    self._current_turn = 0
-                    # Signal termination to the caller of the team.
-                    await self._signal_termination(stop_message)
-                    # Stop the group chat.
-                    return
-
-            # Select a speaker to continue the conversation.
-            speaker_name_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
-            # Link the select speaker future to the cancellation token.
-            ctx.cancellation_token.link_future(speaker_name_future)
-            speaker_name = await speaker_name_future
-            if speaker_name not in self._participant_name_to_topic_type:
-                raise RuntimeError(f"Speaker {speaker_name} not found in participant names.")
-            speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
-            await self.publish_message(
-                GroupChatRequestPublish(),
-                topic_id=DefaultTopicId(type=speaker_topic_type),
-                cancellation_token=ctx.cancellation_token,
-            )
+            # Select speakers to continue the conversation.
+            await self._transition_to_next_speakers(ctx.cancellation_token)
         except Exception as e:
             # Handle the exception and signal termination with an error.
             error = SerializableException.from_exception(e)
             await self._signal_termination_with_error(error)
             # Raise the exception to the runtime.
             raise
+
+    async def _transition_to_next_speakers(self, cancellation_token: CancellationToken) -> None:
+        speaker_names_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
+        # Link the select speaker future to the cancellation token.
+        cancellation_token.link_future(speaker_names_future)
+        speaker_names = await speaker_names_future
+        if isinstance(speaker_names, str):
+            # If only one speaker is selected, convert it to a list.
+            speaker_names = [speaker_names]
+        for speaker_name in speaker_names:
+            if speaker_name not in self._participant_name_to_topic_type:
+                raise RuntimeError(f"Speaker {speaker_name} not found in participant names.")
+        await self._log_speaker_selection(speaker_names)
+
+        # Send request to publish message to the next speakers
+        for speaker_name in speaker_names:
+            speaker_topic_type = self._participant_name_to_topic_type[speaker_name]
+            await self.publish_message(
+                GroupChatRequestPublish(),
+                topic_id=DefaultTopicId(type=speaker_topic_type),
+                cancellation_token=cancellation_token,
+            )
+            self._active_speakers.append(speaker_name)
+
+    async def _apply_termination_condition(
+        self, delta: Sequence[BaseAgentEvent | BaseChatMessage], increment_turn_count: bool = False
+    ) -> bool:
+        """Apply the termination condition to the delta and return True if the conversation should be terminated.
+        It also resets the termination condition and turn count, and signals termination to the caller of the team."""
+        if self._termination_condition is not None:
+            stop_message = await self._termination_condition(delta)
+            if stop_message is not None:
+                # Reset the termination conditions and turn count.
+                await self._termination_condition.reset()
+                self._current_turn = 0
+                # Signal termination to the caller of the team.
+                await self._signal_termination(stop_message)
+                # Stop the group chat.
+                return True
+        if increment_turn_count:
+            # Increment the turn count.
+            self._current_turn += 1
+        # Check if the maximum number of turns has been reached.
+        if self._max_turns is not None:
+            if self._current_turn >= self._max_turns:
+                stop_message = StopMessage(
+                    content=f"Maximum number of turns {self._max_turns} reached.",
+                    source=self._name,
+                )
+                # Reset the termination conditions and turn count.
+                if self._termination_condition is not None:
+                    await self._termination_condition.reset()
+                self._current_turn = 0
+                # Signal termination to the caller of the team.
+                await self._signal_termination(stop_message)
+                # Stop the group chat.
+                return True
+        return False
+
+    async def _log_speaker_selection(self, speaker_names: List[str]) -> None:
+        """Log the selected speaker to the output message queue."""
+        select_msg = SelectSpeakerEvent(content=speaker_names, source=self._name)
+        if self._emit_team_events:
+            await self.publish_message(
+                GroupChatMessage(message=select_msg),
+                topic_id=DefaultTopicId(type=self._output_topic_type),
+            )
+            await self._output_message_queue.put(select_msg)
 
     async def _signal_termination(self, message: StopMessage) -> None:
         termination_event = GroupChatTermination(message=message)
@@ -260,10 +288,26 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         """
         ...
 
+    async def update_message_thread(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> None:
+        """Update the message thread with the new messages.
+        This is called when the group chat receives a GroupChatStart or GroupChatAgentResponse event,
+        before calling the select_speakers method.
+        """
+        self._message_thread.extend(messages)
+
     @abstractmethod
-    async def select_speaker(self, thread: List[BaseAgentEvent | BaseChatMessage]) -> str:
-        """Select a speaker from the participants and return the
-        topic type of the selected speaker."""
+    async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:
+        """Select speakers from the participants and return the topic types of the selected speaker.
+        This is called when the group chat manager have received all responses from the participants
+        for a turn and is ready to select the next speakers for the next turn.
+
+        Args:
+            thread: The message thread of the group chat.
+
+        Returns:
+            A list of topic types of the selected speakers.
+            If only one speaker is selected, a single string is returned instead of a list.
+        """
         ...
 
     @abstractmethod

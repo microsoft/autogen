@@ -3,11 +3,12 @@ import logging
 import os
 from datetime import datetime
 from typing import Any, AsyncGenerator, List, Type, Union
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import CreateResult, ModelFamily, UserMessage
+from autogen_core.tools import FunctionTool
 from autogen_ext.models.azure import AzureAIChatCompletionClient
 from autogen_ext.models.azure.config import GITHUB_MODELS_ENDPOINT
 from azure.ai.inference.aio import (
@@ -570,7 +571,7 @@ def thought_with_tool_call_stream_client(monkeypatch: pytest.MonkeyPatch) -> Azu
         )
 
     mock_client = MagicMock()
-    mock_client.close = MagicMock()
+    mock_client.close = AsyncMock()
 
     async def mock_complete(*args: Any, **kwargs: Any) -> Any:
         if kwargs.get("stream", False):
@@ -623,3 +624,352 @@ async def test_thought_field_with_tool_calls_streaming(
     assert final_result.content[0].arguments == '{"foo": "bar"}'
 
     assert final_result.thought == "Let me think about what function to call."
+
+
+def _pass_function(input: str) -> str:
+    """Simple passthrough function."""
+    return f"Processed: {input}"
+
+
+def _add_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+
+
+@pytest.fixture
+def tool_choice_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    """
+    Returns a client that supports function calling for tool choice tests.
+    """
+
+    async def _mock_tool_choice_stream(
+        *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        mock_chunks_content = ["Hello", " Another Hello", " Yet Another Hello"]
+
+        mock_chunks = [
+            StreamingChatChoiceUpdate(
+                index=0,
+                finish_reason="stop",
+                delta=StreamingChatResponseMessageUpdate(role="assistant", content=chunk_content),
+            )
+            for chunk_content in mock_chunks_content
+        ]
+
+        for mock_chunk in mock_chunks:
+            await asyncio.sleep(0.01)
+            yield StreamingChatCompletionsUpdate(
+                id="id",
+                choices=[mock_chunk],
+                created=datetime.now(),
+                model="model",
+                usage=CompletionsUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> Any:
+        stream = kwargs.get("stream", False)
+
+        if not stream:
+            await asyncio.sleep(0.01)
+            return ChatCompletions(
+                id="id",
+                created=datetime.now(),
+                model="model",
+                choices=[
+                    ChatChoice(
+                        index=0,
+                        finish_reason=CompletionsFinishReason.TOOL_CALLS,
+                        message=ChatResponseMessage(
+                            role="assistant",
+                            content="",
+                            tool_calls=[
+                                ChatCompletionsToolCall(
+                                    id="call_123",
+                                    function=AzureFunctionCall(name="process_text", arguments='{"input": "hello"}'),
+                                )
+                            ],
+                        ),
+                    )
+                ],
+                usage=CompletionsUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+        else:
+            return _mock_tool_choice_stream(*args, **kwargs)
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": True,
+            "vision": False,
+            "family": "test",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_tool_choice_specific_tool(tool_choice_client: AzureAIChatCompletionClient) -> None:
+    """Test tool_choice parameter with a specific tool using mocks."""
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    messages = [
+        UserMessage(content="Process the text 'hello'.", source="user"),
+    ]
+
+    result = await tool_choice_client.create(
+        messages=messages,
+        tools=[pass_tool, add_tool],
+        tool_choice=pass_tool,  # Force use of specific tool
+    )
+
+    # Verify the result
+    assert result.finish_reason == "function_calls"
+    assert isinstance(result.content, list)
+    assert len(result.content) == 1
+    assert isinstance(result.content[0], FunctionCall)
+    assert result.content[0].name == "process_text"
+    assert result.content[0].arguments == '{"input": "hello"}'
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_tool_choice_auto(tool_choice_client: AzureAIChatCompletionClient) -> None:
+    """Test tool_choice parameter with 'auto' setting using mocks."""
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    messages = [
+        UserMessage(content="Add 1 and 2.", source="user"),
+    ]
+
+    result = await tool_choice_client.create(
+        messages=messages,
+        tools=[pass_tool, add_tool],
+        tool_choice="auto",  # Let the model choose
+    )
+
+    # Verify the result
+    assert result.finish_reason == "function_calls"
+    assert isinstance(result.content, list)
+    assert len(result.content) == 1
+    assert isinstance(result.content[0], FunctionCall)
+    assert result.content[0].name == "process_text"  # Our mock always returns process_text
+    assert result.content[0].arguments == '{"input": "hello"}'
+
+
+@pytest.fixture
+def tool_choice_none_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    """
+    Returns a client that simulates no tool calls for tool_choice='none' tests.
+    """
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> ChatCompletions:
+        await asyncio.sleep(0.01)
+        return ChatCompletions(
+            id="id",
+            created=datetime.now(),
+            model="model",
+            choices=[
+                ChatChoice(
+                    index=0,
+                    finish_reason="stop",
+                    message=ChatResponseMessage(role="assistant", content="I can help you with that."),
+                )
+            ],
+            usage=CompletionsUsage(prompt_tokens=8, completion_tokens=6, total_tokens=14),
+        )
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": True,
+            "vision": False,
+            "family": "test",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_tool_choice_none(tool_choice_none_client: AzureAIChatCompletionClient) -> None:
+    """Test tool_choice parameter with 'none' setting using mocks."""
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    messages = [
+        UserMessage(content="Just say hello.", source="user"),
+    ]
+
+    result = await tool_choice_none_client.create(
+        messages=messages,
+        tools=[pass_tool, add_tool],
+        tool_choice="none",  # Prevent tool usage
+    )
+
+    # Verify the result
+    assert result.finish_reason == "stop"
+    assert isinstance(result.content, str)
+    assert result.content == "I can help you with that."
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_tool_choice_required(tool_choice_client: AzureAIChatCompletionClient) -> None:
+    """Test tool_choice parameter with 'required' setting using mocks."""
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    messages = [
+        UserMessage(content="Process some text.", source="user"),
+    ]
+
+    result = await tool_choice_client.create(
+        messages=messages,
+        tools=[pass_tool, add_tool],
+        tool_choice="required",  # Force tool usage
+    )
+
+    # Verify the result
+    assert result.finish_reason == "function_calls"
+    assert isinstance(result.content, list)
+    assert len(result.content) == 1
+    assert isinstance(result.content[0], FunctionCall)
+    assert result.content[0].name == "process_text"
+    assert result.content[0].arguments == '{"input": "hello"}'
+
+
+@pytest.fixture
+def tool_choice_stream_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    """
+    Returns a client that supports function calling for streaming tool choice tests.
+    """
+
+    # Mock tool call for streaming
+    mock_tool_call = MagicMock()
+    mock_tool_call.id = "call_123"
+    mock_tool_call.function = MagicMock()
+    mock_tool_call.function.name = "process_text"
+    mock_tool_call.function.arguments = '{"input": "hello"}'
+
+    # First choice with content
+    first_choice = MagicMock()
+    first_choice.delta = MagicMock()
+    first_choice.delta.content = "Let me process this for you."
+    first_choice.finish_reason = None
+
+    # Tool call choice
+    tool_call_choice = MagicMock()
+    tool_call_choice.delta = MagicMock()
+    tool_call_choice.delta.content = None
+    tool_call_choice.delta.tool_calls = [mock_tool_call]
+    tool_call_choice.finish_reason = "function_calls"
+
+    async def _mock_tool_choice_stream(
+        *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        yield StreamingChatCompletionsUpdate(
+            id="id",
+            choices=[first_choice],
+            created=datetime.now(),
+            model="model",
+        )
+
+        await asyncio.sleep(0.01)
+
+        yield StreamingChatCompletionsUpdate(
+            id="id",
+            choices=[tool_call_choice],
+            created=datetime.now(),
+            model="model",
+            usage=CompletionsUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        )
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> Any:
+        if kwargs.get("stream", False):
+            return _mock_tool_choice_stream(*args, **kwargs)
+        return None
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": True,
+            "vision": False,
+            "family": "test",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_tool_choice_specific_tool_streaming(
+    tool_choice_stream_client: AzureAIChatCompletionClient,
+) -> None:
+    """Test tool_choice parameter with streaming and a specific tool using mocks."""
+    # Define tools
+    pass_tool = FunctionTool(_pass_function, description="Process input text", name="process_text")
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    messages = [
+        UserMessage(content="Process the text 'hello'.", source="user"),
+    ]
+
+    chunks: List[Union[str, CreateResult]] = []
+    async for chunk in tool_choice_stream_client.create_stream(
+        messages=messages,
+        tools=[pass_tool, add_tool],
+        tool_choice=pass_tool,  # Force use of specific tool
+    ):
+        chunks.append(chunk)
+
+    # Verify that we got some result
+    final_result = chunks[-1]
+    assert isinstance(final_result, CreateResult)
+    assert final_result.finish_reason == "function_calls"
+    assert isinstance(final_result.content, list)
+    assert len(final_result.content) == 1
+    assert isinstance(final_result.content[0], FunctionCall)
+    assert final_result.content[0].name == "process_text"
+    assert final_result.content[0].arguments == '{"input": "hello"}'
+    assert final_result.thought == "Let me process this for you."

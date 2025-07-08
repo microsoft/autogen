@@ -1,7 +1,7 @@
 import hashlib
 import json
 import warnings
-from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union, cast
+from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Sequence, Union, cast
 
 from autogen_core import CacheStore, CancellationToken, Component, ComponentModel, InMemoryStore
 from autogen_core.models import (
@@ -137,6 +137,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -158,6 +159,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
             messages,
             tools=tools,
             json_output=json_output,
+            tool_choice=tool_choice,
             extra_create_args=extra_create_args,
             cancellation_token=cancellation_token,
         )
@@ -169,6 +171,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -200,6 +203,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                 messages,
                 tools=tools,
                 json_output=json_output,
+                tool_choice=tool_choice,
                 extra_create_args=extra_create_args,
                 cancellation_token=cancellation_token,
             )
