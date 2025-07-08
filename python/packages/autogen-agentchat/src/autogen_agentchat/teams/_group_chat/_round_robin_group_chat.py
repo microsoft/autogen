@@ -127,59 +127,110 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
 
     Examples:
 
-    A team with one participant with tools:
+        A team with one participant with tools:
 
-        .. code-block:: python
+            .. code-block:: python
 
-            import asyncio
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_agentchat.conditions import TextMentionTermination
-            from autogen_agentchat.ui import Console
-
-
-            async def main() -> None:
-                model_client = OpenAIChatCompletionClient(model="gpt-4o")
-
-                async def get_weather(location: str) -> str:
-                    return f"The weather in {location} is sunny."
-
-                assistant = AssistantAgent(
-                    "Assistant",
-                    model_client=model_client,
-                    tools=[get_weather],
-                )
-                termination = TextMentionTermination("TERMINATE")
-                team = RoundRobinGroupChat([assistant], termination_condition=termination)
-                await Console(team.run_stream(task="What's the weather in New York?"))
+                import asyncio
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
+                from autogen_agentchat.agents import AssistantAgent
+                from autogen_agentchat.teams import RoundRobinGroupChat
+                from autogen_agentchat.conditions import TextMentionTermination
+                from autogen_agentchat.ui import Console
 
 
-            asyncio.run(main())
+                async def main() -> None:
+                    model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
-    A team with multiple participants:
+                    async def get_weather(location: str) -> str:
+                        return f"The weather in {location} is sunny."
 
-        .. code-block:: python
-
-            import asyncio
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_agentchat.conditions import TextMentionTermination
-            from autogen_agentchat.ui import Console
-
-
-            async def main() -> None:
-                model_client = OpenAIChatCompletionClient(model="gpt-4o")
-
-                agent1 = AssistantAgent("Assistant1", model_client=model_client)
-                agent2 = AssistantAgent("Assistant2", model_client=model_client)
-                termination = TextMentionTermination("TERMINATE")
-                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
-                await Console(team.run_stream(task="Tell me some jokes."))
+                    assistant = AssistantAgent(
+                        "Assistant",
+                        model_client=model_client,
+                        tools=[get_weather],
+                    )
+                    termination = TextMentionTermination("TERMINATE")
+                    team = RoundRobinGroupChat([assistant], termination_condition=termination)
+                    await Console(team.run_stream(task="What's the weather in New York?"))
 
 
-            asyncio.run(main())
+                asyncio.run(main())
+
+        A team with multiple participants:
+
+            .. code-block:: python
+
+                import asyncio
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
+                from autogen_agentchat.agents import AssistantAgent
+                from autogen_agentchat.teams import RoundRobinGroupChat
+                from autogen_agentchat.conditions import TextMentionTermination
+                from autogen_agentchat.ui import Console
+
+
+                async def main() -> None:
+                    model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                    agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                    agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                    termination = TextMentionTermination("TERMINATE")
+                    team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+                    await Console(team.run_stream(task="Tell me some jokes."))
+
+
+                asyncio.run(main())
+
+        A team of user proxy and a nested team of writer and reviewer agents:
+
+            .. code-block:: python
+
+                import asyncio
+
+                from autogen_agentchat.agents import UserProxyAgent, AssistantAgent
+                from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
+                from autogen_agentchat.teams import RoundRobinGroupChat
+                from autogen_agentchat.ui import Console
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+                async def main() -> None:
+                    model_client = OpenAIChatCompletionClient(model="gpt-4.1-nano")
+
+                    writer = AssistantAgent(
+                        "writer", model_client=model_client, system_message="You are a writer.", model_client_stream=True
+                    )
+
+                    reviewer = AssistantAgent(
+                        "reviewer",
+                        model_client=model_client,
+                        system_message="Provide feedback to the input and suggest improvements.",
+                        model_client_stream=True,
+                    )
+
+                    # NOTE: you can skip input by pressing Enter.
+                    user_proxy = UserProxyAgent("user_proxy")
+
+                    # Maximum 1 round of review and revision.
+                    inner_termination = MaxMessageTermination(max_messages=4)
+
+                    # The outter-loop termination condition that will terminate the team when the user types "exit".
+                    outter_termination = TextMentionTermination("exit", sources=["user_proxy"])
+
+                    team = RoundRobinGroupChat(
+                        [
+                            # For each turn, the writer writes a summary and the reviewer reviews it.
+                            RoundRobinGroupChat([writer, reviewer], termination_condition=inner_termination),
+                            # The user proxy gets user input once the writer and reviewer have finished their actions.
+                            user_proxy,
+                        ],
+                        termination_condition=outter_termination,
+                    )
+                    # Start the team and wait for it to terminate.
+                    await Console(team.run_stream(task="Write a short essay about the impact of AI on society."))
+
+
+                asyncio.run(main())
     """
 
     component_config_schema = RoundRobinGroupChatConfig

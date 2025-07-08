@@ -22,7 +22,6 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ... import TRACE_LOGGER_NAME
-from ...agents import BaseChatAgent
 from ...base import ChatAgent, Team, TerminationCondition
 from ...messages import (
     BaseAgentEvent,
@@ -700,8 +699,18 @@ Read the above conversation. Then select the next role from {participants} to pl
 
     @classmethod
     def _from_config(cls, config: SelectorGroupChatConfig) -> Self:
+        participants: List[ChatAgent | Team] = []
+        for participant in config.participants:
+            if participant.component_type == ChatAgent.component_type:
+                participants.append(ChatAgent.load_component(participant))
+            elif participant.component_type == Team.component_type:
+                participants.append(Team.load_component(participant))
+            else:
+                raise ValueError(
+                    f"Invalid participant component type: {participant.component_type}. " "Expected ChatAgent or Team."
+                )
         return cls(
-            participants=[BaseChatAgent.load_component(participant) for participant in config.participants],
+            participants=participants,
             model_client=ChatCompletionClient.load_component(config.model_client),
             name=config.name,
             description=config.description,
