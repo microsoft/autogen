@@ -35,8 +35,9 @@ import { useTeamBuilderStore } from "./store";
 import {
   isAssistantAgent,
   isSelectorTeam,
+  isSwarmTeam,
   isWebSurferAgent,
-  isStaticWorkbench,
+  isAnyStaticWorkbench,
   isMcpWorkbench,
 } from "../../../types/guards";
 
@@ -210,13 +211,23 @@ export const TeamNode = memo<NodeProps<CustomNode>>((props) => {
   const hasModel = isSelectorTeam(component) && !!component.config.model_client;
   const participantCount = component.config.participants?.length || 0;
 
+  // Get team type label
+  const teamType = isSwarmTeam(component)
+    ? "Swarm"
+    : isSelectorTeam(component)
+    ? "Selector"
+    : "RoundRobin";
+
   return (
     <BaseNode
       {...props}
       icon={iconMap.team}
       headerContent={
         <div className="flex gap-2 mt-2">
-          <ConnectionBadge connected={hasModel} label="Model" />
+          <ConnectionBadge connected={true} label={teamType} />
+          {isSelectorTeam(component) && (
+            <ConnectionBadge connected={hasModel} label="Model" />
+          )}
           <ConnectionBadge
             connected={participantCount > 0}
             label={`${participantCount} Agent${
@@ -242,6 +253,11 @@ export const TeamNode = memo<NodeProps<CustomNode>>((props) => {
                 textThreshold={150}
                 showFullscreen={false}
               />
+            </div>
+          )}
+          {isSwarmTeam(component) && (
+            <div className="mt-1 text-xs text-gray-600">
+              Handoff-based agent coordination
             </div>
           )}
         </div>
@@ -356,20 +372,19 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
       : [workbenchConfig];
 
     return workbenches.map((workbench) => {
-      if (!workbench) {
-        return {
-          hasWorkbench: false,
-          toolCount: 0,
-          workbenchType: null,
-          serverType: null,
-          workbench: null,
-        };
+      if (!workbench) {      return {
+        hasWorkbench: false,
+        toolCount: 0,
+        workbenchType: "unknown" as const,
+        serverType: null,
+        workbench,
+      };
       }
 
-      if (isStaticWorkbench(workbench)) {
+      if (isAnyStaticWorkbench(workbench)) {
         return {
           hasWorkbench: true,
-          toolCount: workbench.config.tools?.length || 0,
+          toolCount: (workbench as Component<StaticWorkbenchConfig>).config.tools?.length || 0,
           workbenchType: "static" as const,
           serverType: null,
           workbench,
@@ -386,11 +401,11 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
       }
 
       return {
-        hasWorkbench: false,
+        hasWorkbench: true,
         toolCount: 0,
-        workbenchType: null,
+        workbenchType: "unknown" as const,
         serverType: null,
-        workbench: null,
+        workbench,
       };
     });
   })();
@@ -479,7 +494,7 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
                               })`
                             : workbenchInfo.workbenchType === "mcp"
                             ? `MCP Workbench (${workbenchInfo.serverType})`
-                            : "Unknown Workbench"}
+                            : `Workbench (${(workbenchInfo.workbench as any)?.provider || "Unknown"})`}
                         </span>
                       </div>
                       {workbenchInfo.workbenchType === "static" &&
@@ -533,8 +548,8 @@ export const WorkbenchNode = memo<NodeProps<CustomNode>>((props) => {
   const component = props.data.component as Component<WorkbenchConfig>;
 
   const workbenchInfo = (() => {
-    if (isStaticWorkbench(component)) {
-      const toolCount = component.config.tools?.length || 0;
+    if (isAnyStaticWorkbench(component)) {
+      const toolCount = (component as Component<StaticWorkbenchConfig>).config.tools?.length || 0;
       return {
         type: "static" as const,
         toolCount,

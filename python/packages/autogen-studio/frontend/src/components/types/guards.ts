@@ -10,6 +10,7 @@ import type {
   ChatCompletionContextConfig,
   SelectorGroupChatConfig,
   RoundRobinGroupChatConfig,
+  SwarmConfig,
   MultimodalWebSurferConfig,
   AssistantAgentConfig,
   UserProxyAgentConfig,
@@ -40,6 +41,7 @@ const PROVIDERS = {
   // Teams
   ROUND_ROBIN_TEAM: "autogen_agentchat.teams.RoundRobinGroupChat",
   SELECTOR_TEAM: "autogen_agentchat.teams.SelectorGroupChat",
+  SWARM_TEAM: "autogen_agentchat.teams.Swarm",
 
   // Agents
   ASSISTANT_AGENT: "autogen_agentchat.agents.AssistantAgent",
@@ -62,6 +64,7 @@ const PROVIDERS = {
 
   // Workbenches
   STATIC_WORKBENCH: "autogen_core.tools.StaticWorkbench",
+  STATIC_STREAM_WORKBENCH: "autogen_core.tools.StaticStreamWorkbench",
   MCP_WORKBENCH: "autogen_ext.tools.mcp.McpWorkbench",
 
   // Termination
@@ -89,6 +92,7 @@ type ProviderToConfig = {
   // Teams
   [PROVIDERS.SELECTOR_TEAM]: SelectorGroupChatConfig;
   [PROVIDERS.ROUND_ROBIN_TEAM]: RoundRobinGroupChatConfig;
+  [PROVIDERS.SWARM_TEAM]: SwarmConfig;
   [PROVIDERS.ANTHROPIC]: AnthropicClientConfig;
 
   // Agents
@@ -109,6 +113,7 @@ type ProviderToConfig = {
 
   // Workbenches
   [PROVIDERS.STATIC_WORKBENCH]: StaticWorkbenchConfig;
+  [PROVIDERS.STATIC_STREAM_WORKBENCH]: StaticWorkbenchConfig;
   [PROVIDERS.MCP_WORKBENCH]: McpWorkbenchConfig;
 
   // Termination
@@ -202,6 +207,12 @@ export function isSelectorTeam(
   return isComponentOfType(component, PROVIDERS.SELECTOR_TEAM);
 }
 
+export function isSwarmTeam(
+  component: Component<ComponentConfig>
+): component is Component<SwarmConfig> {
+  return isComponentOfType(component, PROVIDERS.SWARM_TEAM);
+}
+
 // Agent provider guards with proper type narrowing
 export function isAssistantAgent(
   component: Component<ComponentConfig>
@@ -253,6 +264,21 @@ export function isStaticWorkbench(
   return (
     !!component && isComponentOfType(component, PROVIDERS.STATIC_WORKBENCH)
   );
+}
+
+export function isStaticStreamWorkbench(
+  component: Component<ComponentConfig> | null | undefined
+): component is Component<StaticWorkbenchConfig> {
+  return (
+    !!component && isComponentOfType(component, PROVIDERS.STATIC_STREAM_WORKBENCH)
+  );
+}
+
+// Combined guard for both static workbench types
+export function isAnyStaticWorkbench(
+  component: Component<ComponentConfig> | null | undefined
+): component is Component<StaticWorkbenchConfig> {
+  return isStaticWorkbench(component) || isStaticStreamWorkbench(component);
 }
 
 export function isMcpWorkbench(

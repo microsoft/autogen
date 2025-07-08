@@ -12,7 +12,7 @@ from autogen_agentchat.conditions import (
     TimeoutTermination,
     TokenUsageTermination,
 )
-from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat, Swarm
 from autogen_core import ComponentModel
 from autogen_core.models import ModelInfo
 from autogen_core.tools import StaticWorkbench
@@ -317,6 +317,34 @@ def create_default_gallery() -> GalleryConfig:
         selector_default_team.dump_component(),
         label="Selector Team",
         description="A team with 2 agents - an AssistantAgent (with a calculator tool) and a CriticAgent in a SelectorGroupChat team.",
+    )
+
+    # Create Swarm team - agents with handoff capabilities
+    # Alice agent with handoff to Bob
+    alice_agent = AssistantAgent(
+        name="Alice",
+        system_message="You are Alice, a helpful assistant. You specialize in general questions. If someone asks about technical topics or needs detailed analysis, hand off to Bob by saying 'Let me hand this over to Bob for a detailed analysis.'",
+        model_client=base_model,
+        handoffs=["Bob"],
+    )
+    
+    # Bob agent with handoff back to Alice
+    bob_agent = AssistantAgent(
+        name="Bob",
+        system_message="You are Bob, a technical specialist. You handle detailed technical analysis. If the conversation becomes general or the user needs basic assistance, hand off to Alice by saying 'Let me hand this back to Alice for general assistance.'",
+        model_client=base_model,
+        handoffs=["Alice"],
+    )
+    
+    # Create simple Swarm team with handoff-based conversation
+    swarm_team = Swarm(
+        participants=[alice_agent, bob_agent],
+        termination_condition=calc_or_term
+    )
+    builder.add_team(
+        swarm_team.dump_component(),
+        label="Swarm Team",
+        description="A team with 2 agents (Alice and Bob) that use handoff messages to transfer conversation control between agents based on expertise.",
     )
 
     # Create web surfer agent

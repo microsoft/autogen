@@ -220,6 +220,13 @@ export interface RoundRobinGroupChatConfig {
   max_turns?: number;
 }
 
+export interface SwarmConfig {
+  participants: Component<AgentConfig>[];
+  termination_condition?: Component<TerminationConfig>;
+  max_turns?: number;
+  emit_team_events?: boolean;
+}
+
 export interface MultimodalWebSurferConfig {
   name: string;
   model_client: Component<ModelConfig>;
@@ -374,7 +381,10 @@ export interface TextMessageTerminationConfig {
 }
 
 // Config type unions based on provider
-export type TeamConfig = SelectorGroupChatConfig | RoundRobinGroupChatConfig;
+export type TeamConfig =
+  | SelectorGroupChatConfig
+  | RoundRobinGroupChatConfig
+  | SwarmConfig;
 
 export type AgentConfig =
   | MultimodalWebSurferConfig

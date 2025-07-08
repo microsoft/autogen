@@ -7,8 +7,13 @@ import {
   ComponentConfig,
   RoundRobinGroupChatConfig,
   SelectorGroupChatConfig,
+  SwarmConfig,
 } from "../../../../../types/datamodel";
-import { isSelectorTeam, isRoundRobinTeam } from "../../../../../types/guards";
+import {
+  isSelectorTeam,
+  isRoundRobinTeam,
+  isSwarmTeam,
+} from "../../../../../types/guards";
 
 const { TextArea } = Input;
 
@@ -23,7 +28,12 @@ export const TeamFields: React.FC<TeamFieldsProps> = ({
   onChange,
   onNavigate,
 }) => {
-  if (!isSelectorTeam(component) && !isRoundRobinTeam(component)) return null;
+  if (
+    !isSelectorTeam(component) &&
+    !isRoundRobinTeam(component) &&
+    !isSwarmTeam(component)
+  )
+    return null;
 
   const handleComponentUpdate = useCallback(
     (updates: Partial<Component<ComponentConfig>>) => {
@@ -54,6 +64,13 @@ export const TeamFields: React.FC<TeamFieldsProps> = ({
             ...component.config,
             [field]: value,
           } as RoundRobinGroupChatConfig,
+        });
+      } else if (isSwarmTeam(component)) {
+        handleComponentUpdate({
+          config: {
+            ...(component as Component<SwarmConfig>).config,
+            [field]: value,
+          } as SwarmConfig,
         });
       }
     },
@@ -161,6 +178,45 @@ export const TeamFields: React.FC<TeamFieldsProps> = ({
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {isSwarmTeam(component) && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium text-primary">
+                      Team Type
+                    </h3>
+                    <div className="bg-secondary p-4 rounded-md">
+                      <div className="text-sm text-secondary">
+                        Swarm team uses handoff messages to transfer control
+                        between agents. Each agent specifies which agents they
+                        can hand off to.
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="block">
+                    <span className="text-sm font-medium text-primary">
+                      Emit Team Events
+                    </span>
+                    <div className="mt-1">
+                      <input
+                        type="checkbox"
+                        checked={component.config.emit_team_events || false}
+                        onChange={(e) =>
+                          handleConfigUpdate(
+                            "emit_team_events",
+                            e.target.checked
+                          )
+                        }
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-secondary">
+                        Enable team event emission for debugging and monitoring
+                      </span>
+                    </div>
+                  </label>
                 </div>
               )}
 

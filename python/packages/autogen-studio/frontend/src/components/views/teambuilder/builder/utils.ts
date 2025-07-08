@@ -88,16 +88,18 @@ const calculateNodeHeight = (component: Component<ComponentConfig>): number => {
         const workbenchConfig = component.config.workbench;
         if (workbenchConfig) {
           // Handle both single workbench object and array of workbenches
-          const workbenches = Array.isArray(workbenchConfig) ? workbenchConfig : [workbenchConfig];
-          
+          const workbenches = Array.isArray(workbenchConfig)
+            ? workbenchConfig
+            : [workbenchConfig];
+
           if (workbenches.length > 0) {
             // Add height for workbench section header
             height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_SECTION;
-            
+
             // Calculate total height for all workbenches
-            workbenches.forEach(workbench => {
+            workbenches.forEach((workbench) => {
               if (!workbench) return;
-              
+
               if (isStaticWorkbench(workbench)) {
                 // StaticWorkbench: count individual tools
                 const toolCount = workbench.config.tools?.length || 0;
