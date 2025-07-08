@@ -539,6 +539,8 @@ class GraphFlowManager(BaseGroupChatManager):
 class GraphFlowConfig(BaseModel):
     """The declarative configuration for GraphFlow."""
 
+    name: str | None = None
+    description: str | None = None
     participants: List[ComponentModel]
     termination_condition: ComponentModel | None = None
     max_turns: int | None = None
@@ -774,10 +776,16 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
     component_config_schema = GraphFlowConfig
     component_provider_override = "autogen_agentchat.teams.GraphFlow"
 
+    DEFAULT_NAME = "GraphFlow"
+    DEFAULT_DESCRIPTION = "A team of agents"
+
     def __init__(
         self,
         participants: List[ChatAgent],
         graph: DiGraph,
+        *,
+        name: str | None = None,
+        description: str | None = None,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
@@ -786,10 +794,16 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
         self._input_participants = participants
         self._input_termination_condition = termination_condition
 
+        for participant in participants:
+            if not isinstance(participant, ChatAgent):
+                raise TypeError(f"Participant {participant} must be a ChatAgent.")
+
         # No longer add _StopAgent or StopMessageTermination
         # Termination is now handled directly in GraphFlowManager._apply_termination_condition
         super().__init__(
-            participants,
+            name=name or self.DEFAULT_NAME,
+            description=description or self.DEFAULT_DESCRIPTION,
+            participants=list(participants),
             group_chat_manager_name="GraphManager",
             group_chat_manager_class=GraphFlowManager,
             termination_condition=termination_condition,
@@ -838,6 +852,8 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
             self._input_termination_condition.dump_component() if self._input_termination_condition else None
         )
         return GraphFlowConfig(
+            name=self._name,
+            description=self._description,
             participants=participants,
             termination_condition=termination_condition,
             max_turns=self._max_turns,
@@ -852,5 +868,10 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
             TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None
         )
         return cls(
-            participants, graph=config.graph, termination_condition=termination_condition, max_turns=config.max_turns
+            name=config.name,
+            description=config.description,
+            participants=participants,
+            graph=config.graph,
+            termination_condition=termination_condition,
+            max_turns=config.max_turns,
         )
