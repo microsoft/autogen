@@ -83,13 +83,13 @@ async def run_agent(task: str, instruction: str) -> str:
 
 
 # %%
-# Test the Wikipedia search function
-test_query = "Smyrnium plant"
-print("Testing Wikipedia search with query:", test_query)
-search_results = search_wikipedia(test_query)
-for i, result in enumerate(search_results, 1):
-    print(f"\n--- Result {i} ---")
-    print(result[:200] + "..." if len(result) > 200 else result)
+# # Test the Wikipedia search function
+# test_query = "Smyrnium plant"
+# print("Testing Wikipedia search with query:", test_query)
+# search_results = search_wikipedia(test_query)
+# for i, result in enumerate(search_results, 1):
+#     print(f"\n--- Result {i} ---")
+#     print(result[:200] + "..." if len(result) > 200 else result)
 
 # %%
 # Define lenient metric for debugging
@@ -126,10 +126,7 @@ def lenient_answer_match(example, pred, trace=None):
 
 # %%
 class Agent(dspy.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        # Store the instruction as a module parameter that can be optimized
-        self.instruction = ""
+    instruction = "1"
 
     def forward(self, question: str) -> dspy.Prediction:
         # Use the current instruction (which can be optimized by MIPROv2)
@@ -138,8 +135,9 @@ class Agent(dspy.Module):
 
 
 # %%
-trainset = [x.with_inputs("question") for x in HotPotQA(train_seed=2024, train_size=500).train]
+# trainset = [x.with_inputs("question") for x in HotPotQA(train_seed=2024, train_size=500).train]
 agent = Agent()
+print(agent.parameters())
 
 
 # %%
@@ -147,19 +145,19 @@ react_agent = dspy.ReAct("question -> answer", tools=[search_wikipedia])
 
 # %%
 # Try compilation with the lenient metric
-print("Starting compilation...")
-tp = dspy.MIPROv2(
-    metric=lenient_answer_match,
-    # metric=dspy.evaluate.answer_exact_match,  # Use exact match for initial compilation
-    auto="light",
-    num_threads=24,
-)
-optimized_react_agent = tp.compile(react_agent, trainset=trainset)
-# optimized_agent = tp.compile(agent, trainset=trainset)
+# print("Starting compilation...")
+# tp = dspy.MIPROv2(
+#     metric=lenient_answer_match,
+#     # metric=dspy.evaluate.answer_exact_match,  # Use exact match for initial compilation
+#     auto="light",
+#     num_threads=24,
+# )
+# optimized_react_agent = tp.compile(react_agent, trainset=trainset)
+# # optimized_agent = tp.compile(agent, trainset=trainset)
 
-# %%
-# print(f"Original instruction: {agent.instruction}")
-# print(f"Optimized instruction: {optimized_agent.instruction}")
+# # %%
+# # print(f"Original instruction: {agent.instruction}")
+# # print(f"Optimized instruction: {optimized_agent.instruction}")
 
 
 # %%
