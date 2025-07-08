@@ -270,7 +270,8 @@ export function isStaticStreamWorkbench(
   component: Component<ComponentConfig> | null | undefined
 ): component is Component<StaticWorkbenchConfig> {
   return (
-    !!component && isComponentOfType(component, PROVIDERS.STATIC_STREAM_WORKBENCH)
+    !!component &&
+    isComponentOfType(component, PROVIDERS.STATIC_STREAM_WORKBENCH)
   );
 }
 

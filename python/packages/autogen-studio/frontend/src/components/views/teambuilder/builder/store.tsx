@@ -20,8 +20,14 @@ import {
 import {
   convertTeamConfigToGraph,
   getLayoutedElements,
+  updateNodeDimensions,
   getUniqueName,
 } from "./utils";
+import {
+  markNodeAsUserPositioned,
+  clearUserPositionedFlags,
+  generateComponentKey,
+} from "./layout-storage";
 import {
   isTeamComponent,
   isAgentComponent,
@@ -55,6 +61,7 @@ export interface TeamBuilderState {
   history: Array<{ nodes: CustomNode[]; edges: CustomEdge[] }>;
   currentHistoryIndex: number;
   originalComponent: Component<TeamConfig> | null;
+  teamId: string | null;
 
   // Simplified actions
   addNode: (
@@ -70,6 +77,7 @@ export interface TeamBuilderState {
   removeEdge: (edgeId: string) => void;
 
   setSelectedNode: (nodeId: string | null) => void;
+  setNodeUserPositioned: (nodeId: string, position: Position) => void;
 
   undo: () => void;
   redo: () => void;
@@ -78,7 +86,8 @@ export interface TeamBuilderState {
   syncToJson: () => Component<TeamConfig> | null;
   loadFromJson: (
     config: Component<TeamConfig>,
-    isInitialLoad?: boolean
+    isInitialLoad?: boolean,
+    teamId?: string
   ) => GraphState;
   layoutNodes: () => void;
   resetHistory: () => void;
@@ -117,6 +126,17 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
   history: [],
   currentHistoryIndex: -1,
   originalComponent: null,
+  teamId: null,
+
+  setNodeUserPositioned: (nodeId: string, position: Position) => {
+    const state = get();
+    if (state.teamId) {
+      const node = state.nodes.find((n) => n.id === nodeId);
+      if (node) {
+        markNodeAsUserPositioned(state.teamId, node, position);
+      }
+    }
+  },
 
   addNode: (
     position: Position,
@@ -383,8 +403,25 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
         newNodes.push(newNode);
       }
 
+      // For adding components to existing nodes (tools, models, etc.),
+      // only update dimensions to preserve user positioning
+      if (targetNodeId) {
+        const { nodes: updatedNodes, edges: updatedEdges } =
+          updateNodeDimensions(newNodes, newEdges);
+        return {
+          nodes: updatedNodes,
+          edges: updatedEdges,
+          history: [
+            ...state.history.slice(0, state.currentHistoryIndex + 1),
+            { nodes: updatedNodes, edges: updatedEdges },
+          ].slice(-MAX_HISTORY),
+          currentHistoryIndex: state.currentHistoryIndex + 1,
+        };
+      }
+
+      // For new team/agent nodes, use full layout
       const { nodes: layoutedNodes, edges: layoutedEdges } =
-        getLayoutedElements(newNodes, newEdges);
+        getLayoutedElements(newNodes, newEdges, state.teamId || undefined);
 
       return {
         nodes: layoutedNodes,
@@ -606,32 +643,41 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
   },
 
   layoutNodes: () => {
-    const { nodes, edges } = get();
+    const state = get();
+    // Clear user-positioned flags for full layout
+    if (state.teamId) {
+      clearUserPositionedFlags(state.teamId);
+    }
+
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      nodes,
-      edges
+      state.nodes,
+      state.edges,
+      state.teamId || undefined,
+      false // Don't preserve user positions for manual layout
     );
 
     set({
       nodes: layoutedNodes,
       edges: layoutedEdges,
       history: [
-        ...get().history.slice(0, get().currentHistoryIndex + 1),
+        ...state.history.slice(0, state.currentHistoryIndex + 1),
         { nodes: layoutedNodes, edges: layoutedEdges },
       ].slice(-MAX_HISTORY),
-      currentHistoryIndex: get().currentHistoryIndex + 1,
+      currentHistoryIndex: state.currentHistoryIndex + 1,
     });
   },
 
   loadFromJson: (
     config: Component<TeamConfig>,
-    isInitialLoad: boolean = true
+    isInitialLoad: boolean = true,
+    teamId?: string
   ) => {
     // Get graph representation of team config
-    const { nodes, edges } = convertTeamConfigToGraph(config);
+    const { nodes, edges } = convertTeamConfigToGraph(config, teamId);
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       nodes,
-      edges
+      edges,
+      teamId
     );
 
     if (isInitialLoad) {
@@ -640,6 +686,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
         nodes: layoutedNodes,
         edges: layoutedEdges,
         originalComponent: config,
+        teamId: teamId || null,
         history: [{ nodes: layoutedNodes, edges: layoutedEdges }],
         currentHistoryIndex: 0,
         selectedNodeId: null,
@@ -654,6 +701,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
         set((state) => ({
           nodes: layoutedNodes,
           edges: layoutedEdges,
+          teamId: teamId || state.teamId,
           history: [
             ...state.history.slice(0, state.currentHistoryIndex + 1),
             { nodes: layoutedNodes, edges: layoutedEdges },

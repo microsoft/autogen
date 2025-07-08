@@ -372,19 +372,22 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
       : [workbenchConfig];
 
     return workbenches.map((workbench) => {
-      if (!workbench) {      return {
-        hasWorkbench: false,
-        toolCount: 0,
-        workbenchType: "unknown" as const,
-        serverType: null,
-        workbench,
-      };
+      if (!workbench) {
+        return {
+          hasWorkbench: false,
+          toolCount: 0,
+          workbenchType: "unknown" as const,
+          serverType: null,
+          workbench,
+        };
       }
 
       if (isAnyStaticWorkbench(workbench)) {
         return {
           hasWorkbench: true,
-          toolCount: (workbench as Component<StaticWorkbenchConfig>).config.tools?.length || 0,
+          toolCount:
+            (workbench as Component<StaticWorkbenchConfig>).config.tools
+              ?.length || 0,
           workbenchType: "static" as const,
           serverType: null,
           workbench,
@@ -494,7 +497,10 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
                               })`
                             : workbenchInfo.workbenchType === "mcp"
                             ? `MCP Workbench (${workbenchInfo.serverType})`
-                            : `Workbench (${(workbenchInfo.workbench as any)?.provider || "Unknown"})`}
+                            : `Workbench (${
+                                (workbenchInfo.workbench as any)?.provider ||
+                                "Unknown"
+                              })`}
                         </span>
                       </div>
                       {workbenchInfo.workbenchType === "static" &&
@@ -549,7 +555,9 @@ export const WorkbenchNode = memo<NodeProps<CustomNode>>((props) => {
 
   const workbenchInfo = (() => {
     if (isAnyStaticWorkbench(component)) {
-      const toolCount = (component as Component<StaticWorkbenchConfig>).config.tools?.length || 0;
+      const toolCount =
+        (component as Component<StaticWorkbenchConfig>).config.tools?.length ||
+        0;
       return {
         type: "static" as const,
         toolCount,
