@@ -6,7 +6,7 @@ These are the components that are currently instrumented:
 
 - Runtime ({py:class}`~autogen_core.SingleThreadedAgentRuntime` and {py:class}`~autogen_ext.runtimes.grpc.GrpcWorkerAgentRuntime`).
 - Tool ({py:class}`~autogen_core.tools.BaseTool`) with the `execute_tool` span in [GenAI semantic convention for tools](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#execute-tool-span).
-- AgentChat Agents ({py:class}`~autogen_core.agents.BaseChatAgent`) with the `create_agent` and `invoke_agent` spans in [GenAI semantic convention for agents](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-agent-spans/#create-agent-span).
+- AgentChat Agents ({py:class}`~autogen_agentchat.agents.BaseChatAgent`) with the `create_agent` and `invoke_agent` spans in [GenAI semantic convention for agents](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-agent-spans/#create-agent-span).
 
 ```{note}
 To disable the agent runtime telemetry, you can set the `trace_provider` to
