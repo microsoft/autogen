@@ -79,9 +79,9 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             names to override configurations for name and/or description. This allows
             customizing how server tools appear to consumers while maintaining the underlying
             tool functionality.
-        model_client: Optional chat completion client to handle sampling requests 
-            from MCP servers that support the sampling capability. This allows MCP 
-            servers to request text generation from a language model during tool 
+        model_client: Optional chat completion client to handle sampling requests
+            from MCP servers that support the sampling capability. This allows MCP
+            servers to request text generation from a language model during tool
             execution. If not provided, sampling requests will return an error.
 
     Raises:
