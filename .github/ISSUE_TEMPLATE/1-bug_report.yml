@@ -90,7 +90,7 @@ body:
       multiple: false
       options:
         - "Python dev (main branch)"
-        - "Python 0.6.3"
+        - "Python 0.6.4"
         - "Python 0.6.2"
         - "Python 0.6.1"
         - "Python 0.6.0"
