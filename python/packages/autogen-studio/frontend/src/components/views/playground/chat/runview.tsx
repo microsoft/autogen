@@ -11,6 +11,9 @@ import {
   Bot,
   PanelRightClose,
   PanelRightOpen,
+  Play,
+  Pause,
+  RotateCcw,
 } from "lucide-react";
 import { Run, Message, TeamConfig, Component } from "../../../types/datamodel";
 import AgentFlow from "./agentflow/agentflow";
@@ -106,12 +109,98 @@ const RunView: React.FC<RunViewProps> = ({
     uiSettings.show_agent_flow_by_default ?? true
   );
 
+  // Replay state
+  const [isReplaying, setIsReplaying] = useState(false);
+  const [replayMessageIndex, setReplayMessageIndex] = useState(0);
+  const [originalRun, setOriginalRun] = useState<Run | null>(null);
+  const replayIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Create a run object for display (either original or replaying version)
+  const displayRun = useMemo(() => {
+    if (!isReplaying || !originalRun) return run;
+
+    return {
+      ...originalRun,
+      messages: originalRun.messages.slice(0, replayMessageIndex + 1),
+      status:
+        replayMessageIndex < originalRun.messages.length - 1
+          ? ("active" as const)
+          : originalRun.status,
+    };
+  }, [run, isReplaying, originalRun, replayMessageIndex]);
+
   const visibleMessages = useMemo(() => {
     if (uiSettings.show_llm_call_events) {
-      return run.messages;
+      return displayRun.messages;
     }
-    return run.messages.filter((msg) => msg.config.source !== "llm_call_event");
-  }, [run.messages, uiSettings.show_llm_call_events]);
+    return displayRun.messages.filter(
+      (msg) => msg.config.source !== "llm_call_event"
+    );
+  }, [displayRun.messages, uiSettings.show_llm_call_events]);
+
+  // Replay functions
+  const startReplay = () => {
+    if (
+      run.status !== "complete" &&
+      run.status !== "error" &&
+      run.status !== "stopped"
+    )
+      return;
+
+    setOriginalRun(run);
+    setReplayMessageIndex(0);
+    setIsReplaying(true);
+    setIsExpanded(true); // Ensure the messages are visible
+
+    // Start the replay interval
+    replayIntervalRef.current = setInterval(() => {
+      setReplayMessageIndex((prev) => {
+        if (prev >= run.messages.length - 1) {
+          setIsReplaying(false);
+          if (replayIntervalRef.current) {
+            clearInterval(replayIntervalRef.current);
+            replayIntervalRef.current = null;
+          }
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 800); // Show new message every 800ms
+  };
+
+  const pauseReplay = () => {
+    if (replayIntervalRef.current) {
+      clearInterval(replayIntervalRef.current);
+      replayIntervalRef.current = null;
+    }
+    setIsReplaying(false);
+  };
+
+  const resetReplay = () => {
+    if (replayIntervalRef.current) {
+      clearInterval(replayIntervalRef.current);
+      replayIntervalRef.current = null;
+    }
+    setIsReplaying(false);
+    setReplayMessageIndex(0);
+    setOriginalRun(null);
+  };
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (replayIntervalRef.current) {
+        clearInterval(replayIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Determine if replay is available
+  const canReplay =
+    (run.status === "complete" ||
+      run.status === "error" ||
+      run.status === "stopped") &&
+    run.messages.length > 0;
 
   console.log("Run task", run.task);
 
@@ -125,7 +214,7 @@ const RunView: React.FC<RunViewProps> = ({
         });
       }
     }, 450);
-  }, [run.messages, streamingContent]);
+  }, [displayRun.messages, streamingContent]);
   const calculateThreadTokens = (messages: Message[]) => {
     // console.log("messages", messages);
     return messages.reduce((total, msg) => {
@@ -139,6 +228,17 @@ const RunView: React.FC<RunViewProps> = ({
   };
 
   const getStatusIcon = (status: Run["status"]) => {
+    // If we're replaying, show replay status instead
+    if (isReplaying && originalRun) {
+      return (
+        <div className="inline-block mr-1">
+          <Play size={20} className="inline-block mr-1 text-accent" />
+          <span className="inline-block mr-2 ml-1">Replaying</span>
+          <LoadingDots size={8} />
+        </div>
+      );
+    }
+
     switch (status) {
       case "active":
         return (
@@ -191,7 +291,8 @@ const RunView: React.FC<RunViewProps> = ({
     }
   };
 
-  const lastResultMessage = run.team_result?.task_result?.messages.slice(-1)[0];
+  const lastResultMessage =
+    displayRun.team_result?.task_result?.messages.slice(-1)[0];
   const lastMessage = getLastMeaningfulMessage(visibleMessages);
 
   return (
@@ -202,28 +303,84 @@ const RunView: React.FC<RunViewProps> = ({
           isFirstRun ? "mb-2" : "mt-4"
         } mb-4 pb-2 pt-2 border-b border-dashed border-secondary`}
       >
-        <div className="text-xs text-secondary">
-          <Tooltip
-            title={
-              <div className="text-xs">
-                <div>ID: {run.id}</div>
-                <div>Created: {new Date(run.created_at).toLocaleString()}</div>
-                <div>Status: {run.status}</div>
-              </div>
-            }
-          >
-            <span className="cursor-help">
-              Run ...{run.id} | {getRelativeTimeString(run?.created_at || "")}{" "}
-            </span>
-          </Tooltip>
-          {!isFirstRun && (
-            <>
-              {" "}
-              |{" "}
-              <TriangleAlertIcon className="w-4 h-4 -mt-1 inline-block mr-1 ml-1" />
-              Note: Each run does not share data with previous runs in the same
-              session yet.
-            </>
+        <div id="run-header" className="flex items-center justify-between">
+          <div className="text-xs text-secondary">
+            <Tooltip
+              title={
+                <div className="text-xs">
+                  <div>ID: {run.id}</div>
+                  <div>
+                    Created: {new Date(run.created_at).toLocaleString()}
+                  </div>
+                  <div>Status: {run.status}</div>
+                </div>
+              }
+            >
+              <span className="cursor-help">
+                Run ...{run.id} | {getRelativeTimeString(run?.created_at || "")}{" "}
+              </span>
+            </Tooltip>
+            {!isFirstRun && (
+              <>
+                {" "}
+                |{" "}
+                <TriangleAlertIcon className="w-4 h-4 -mt-1 inline-block mr-1 ml-1" />
+                Note: Each run does not share data with previous runs in the
+                same session yet.
+              </>
+            )}
+          </div>
+
+          {/* Replay Controls */}
+          {canReplay && (
+            <div className="flex items-center gap-2">
+              {!isReplaying && !originalRun && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={startReplay}
+                    className="p-1 px-2 rounded hover:bg-secondary transition-colors text-secondary hover:text-primary"
+                  >
+                    <Play className="inline-block" size={16} />{" "}
+                    <span className="inline-block text-xs text-secondary">
+                      Replay Run
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {isReplaying && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={pauseReplay}
+                    className="p-1 px-2 rounded hover:bg-secondary transition-colors text-accent hover:text-primary"
+                  >
+                    <Pause className="inline-block" size={16} />{" "}
+                    <span className="inline-block text-xs text-accent">
+                      Pause Replay
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {(isReplaying || originalRun) && (
+                <button
+                  onClick={resetReplay}
+                  className="p-1 px-2 rounded hover:bg-secondary transition-colors text-secondary hover:text-primary"
+                >
+                  <RotateCcw className="inline-block" size={16} />{" "}
+                  <span className="inline-block text-xs text-secondary">
+                    Reset Replay
+                  </span>
+                </button>
+              )}
+
+              {(isReplaying || originalRun) && (
+                <div className="text-xs text-secondary">
+                  {replayMessageIndex + 1}/
+                  {originalRun?.messages.length || run.messages.length}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -231,7 +388,7 @@ const RunView: React.FC<RunViewProps> = ({
       {/* User Message */}
       <div className="flex flex-col items-end w-full">
         <div className="w-full">
-          <RenderMessage message={run.task} isLast={false} />
+          <RenderMessage message={displayRun.task} isLast={false} />
         </div>
       </div>
 
@@ -248,10 +405,12 @@ const RunView: React.FC<RunViewProps> = ({
           {/* Main Response Container */}
           <div className="p-4 bg-secondary border border-secondary rounded">
             <div className="flex justify-between items-start mb-2">
-              <div className="text-primary">{getStatusIcon(run.status)}</div>
+              <div className="text-primary">
+                {getStatusIcon(displayRun.status)}
+              </div>
 
               {/* Cancel Button - More prominent placement */}
-              {isActive && onCancel && (
+              {isActive && onCancel && !isReplaying && (
                 <button
                   onClick={onCancel}
                   className="px-4 text-sm py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors flex items-center gap-2"
@@ -263,23 +422,25 @@ const RunView: React.FC<RunViewProps> = ({
             </div>
 
             {/* Final Response */}
-            {run.status !== "awaiting_input" && run.status !== "active" && (
-              <div className="text-sm break-all">
-                <div className="text-xs bg-tertiary mb-1 text-secondary border-secondary -mt-2 bdorder rounded p-2">
-                  Stop reason: {run.team_result?.task_result?.stop_reason}
-                </div>
+            {displayRun.status !== "awaiting_input" &&
+              displayRun.status !== "active" && (
+                <div className="text-sm break-all">
+                  <div className="text-xs bg-tertiary mb-1 text-secondary border-secondary -mt-2 bdorder rounded p-2">
+                    Stop reason:{" "}
+                    {displayRun.team_result?.task_result?.stop_reason}
+                  </div>
 
-                {lastMessage ? (
-                  <RenderMessage message={lastMessage.config} isLast={true} />
-                ) : (
-                  <>
-                    {lastResultMessage && (
-                      <RenderMessage message={lastResultMessage} />
-                    )}
-                  </>
-                )}
-              </div>
-            )}
+                  {lastMessage ? (
+                    <RenderMessage message={lastMessage.config} isLast={true} />
+                  ) : (
+                    <>
+                      {lastResultMessage && (
+                        <RenderMessage message={lastResultMessage} />
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
           </div>
 
           {/* Thread Section */}
@@ -358,7 +519,8 @@ const RunView: React.FC<RunViewProps> = ({
                         </div>
                       ))}
                       {streamingContent &&
-                        streamingContent.runId === run.id && (
+                        streamingContent.runId === run.id &&
+                        !isReplaying && (
                           <div className="mr-2 mb-10">
                             <StreamingMessage
                               content={streamingContent.content}
@@ -368,18 +530,20 @@ const RunView: React.FC<RunViewProps> = ({
                         )}
 
                       {/* Input Request UI */}
-                      {run.status === "awaiting_input" && onInputResponse && (
-                        <div className="mt-4 mr-2">
-                          <InputRequestView
-                            prompt="Type your response..."
-                            onSubmit={onInputResponse}
-                          />
-                        </div>
-                      )}
+                      {displayRun.status === "awaiting_input" &&
+                        onInputResponse &&
+                        !isReplaying && (
+                          <div className="mt-4 mr-2">
+                            <InputRequestView
+                              prompt="Type your response..."
+                              onSubmit={onInputResponse}
+                            />
+                          </div>
+                        )}
                       <div className="text-primary mt-2">
                         <div className="w-4 h-4 inline-block  border-secondary rounded-bl-lg border-l-2 border-b-2"></div>{" "}
                         <div className="inline-block ">
-                          {getStatusIcon(run.status)}
+                          {getStatusIcon(displayRun.status)}
                         </div>
                       </div>
                     </div>
@@ -401,7 +565,7 @@ const RunView: React.FC<RunViewProps> = ({
                           <AgentFlow
                             teamConfig={teamConfig}
                             run={{
-                              ...run,
+                              ...displayRun,
                               messages: getAgentMessages(visibleMessages),
                             }}
                           />
