@@ -292,7 +292,7 @@ public class RolePlayOrchestratorTests
     public async Task LLaMA_3_1_CoderReviewerRunnerTestAsync()
     {
         var apiKey = Environment.GetEnvironmentVariable("GH_API_KEY") ?? throw new InvalidOperationException("GH_API_KEY is not set.");
-        var endPoint = "https://models.inference.ai.azure.com";
+        var endPoint = "https://models.github.ai/inference";
 
         var chatCompletionClient = new ChatCompletionsClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
         var agent = new ChatCompletionsClientAgent(
