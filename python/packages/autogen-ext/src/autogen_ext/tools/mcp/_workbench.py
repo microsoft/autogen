@@ -51,6 +51,27 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     This workbench should be used as a context manager to ensure proper
     initialization and cleanup of the underlying MCP session.
 
+    .. list-table:: MCP Support
+       :header-rows: 1
+       :widths: 30 70
+
+       * - MCP Capability
+         - Supported Features
+       * - Tools
+         - list_tools, call_tool
+       * - Resources
+         - list_resources, read_resource
+       * - ResourceTemplates
+         - list_resource_templates, read_resource_template
+       * - Prompts
+         - list_prompts, get_prompt
+       * - Sampling
+         - Optional support via model_client
+       * - Roots
+         - not supported
+       * - Ellicitation
+         - not supported
+
     Args:
         server_params (McpServerParams): The parameters to connect to the MCP server.
             This can be either a :class:`StdioServerParams` or :class:`SseServerParams`.
@@ -58,6 +79,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             names to override configurations for name and/or description. This allows
             customizing how server tools appear to consumers while maintaining the underlying
             tool functionality.
+        model_client: Optional chat completion client to handle sampling requests 
+            from MCP servers that support the sampling capability. This allows MCP 
+            servers to request text generation from a language model during tool 
+            execution. If not provided, sampling requests will return an error.
 
     Raises:
         ValueError: If there are conflicts in tool override names.
