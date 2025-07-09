@@ -2,10 +2,10 @@ import asyncio
 import atexit
 import base64
 import io
-from typing import Any, Coroutine, Dict, Mapping, TypedDict
+from typing import Any, Coroutine, Dict, Mapping, Sequence, TypedDict
 
 from autogen_core import Component, ComponentBase, ComponentModel, Image
-from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from autogen_core.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
 from PIL import Image as PILImage
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -132,20 +132,28 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
                 llm_messages.append(SystemMessage(content=params.systemPrompt))
 
             for mcp_message in params.messages:
+                llm_content = []
+
+                if mcp_message.content.type == "text":
+                    llm_content.append(mcp_message.content.text)
+                elif mcp_message.content.type == "image":
+                    if mcp_message.role == "assistant":
+                        raise ValueError("Assistant messages can not contain images")
+
+                    if not self._model_client.model_info["vision"]:
+                        raise ValueError("Model does not support image messages.")
+
+                    # Decode base64 image data and create PIL Image
+                    image_data = base64.b64decode(mcp_message.content.data)
+                    pil_image = PILImage.open(io.BytesIO(image_data))
+                    llm_content.append(Image.from_pil(pil_image))
+
                 if mcp_message.role == "user":
-                    llm_content: list[str | Image] = []
-                    if mcp_message.content.type == "text":
-                        llm_content.append(mcp_message.content.text)
-                    elif mcp_message.content.type == "image":
-                        if not self._model_client.model_info["vision"]:
-                            raise ValueError("Model does not support image messages.")
-
-                        # Decode base64 image data and create PIL Image
-                        image_data = base64.b64decode(mcp_message.content.data)
-                        pil_image = PILImage.open(io.BytesIO(image_data))
-                        llm_content.append(Image.from_pil(pil_image))
-
                     llm_messages.append(UserMessage(source="user", content=llm_content))
+                elif mcp_message.role == "assistant":
+                    llm_messages.append(AssistantMessage(source="assistant", content=llm_content))
+                else:
+                    raise ValueError(f"Unrecognized SamplingMessage role: {mcp_message.role}")
         except Exception as e:
             return mcp_types.ErrorData(
                 code=mcp_types.INVALID_PARAMS,
