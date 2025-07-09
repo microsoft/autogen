@@ -190,7 +190,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         await self._reenter_outer_loop(ctx.cancellation_token)
 
     @event
-    async def handle_agent_response(
+    async def handle_agent_response(  # type: ignore
         self, message: GroupChatAgentResponse | GroupChatTeamResponse, ctx: MessageContext
     ) -> None:  # type: ignore
         try:
