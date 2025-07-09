@@ -17,7 +17,18 @@ from autogen_core.tools import (
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
-from mcp.types import CallToolResult, EmbeddedResource, ImageContent, ListToolsResult, TextContent
+from mcp.types import (
+    CallToolResult,
+    EmbeddedResource,
+    GetPromptResult,
+    ImageContent,
+    ListPromptsResult,
+    ListResourcesResult,
+    ListResourceTemplatesResult,
+    ListToolsResult,
+    ReadResourceResult,
+    TextContent,
+)
 
 from ._actor import McpSessionActor
 from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
@@ -319,6 +330,88 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                 is_error = True
                 result_parts = [TextResultContent(content=error_message)]
         return ToolResult(name=name, result=result_parts, is_error=is_error)  # Return the requested name
+
+    @property
+    def initialize_result(self):
+        if self._actor:
+            return self._actor.initialize_result
+
+        return None
+
+    async def list_prompts(self) -> ListPromptsResult:
+        """List available prompts from the MCP server."""
+        if not self._actor:
+            await self.start()
+        if self._actor is None:
+            raise RuntimeError("Actor is not initialized. Please check the server connection.")
+
+        result_future = await self._actor.call("list_prompts", None)
+        list_prompts_result = await result_future
+        assert isinstance(
+            list_prompts_result, ListPromptsResult
+        ), f"list_prompts must return a ListPromptsResult, instead of: {str(type(list_prompts_result))}"
+
+        return list_prompts_result
+
+    async def list_resources(self) -> ListResourcesResult:
+        """List available resources from the MCP server."""
+        if not self._actor:
+            await self.start()
+        if self._actor is None:
+            raise RuntimeError("Actor is not initialized. Please check the server connection.")
+
+        result_future = await self._actor.call("list_resources", None)
+        list_resources_result = await result_future
+        assert isinstance(
+            list_resources_result, ListResourcesResult
+        ), f"list_resources must return a ListResourcesResult, instead of: {str(type(list_resources_result))}"
+
+        return list_resources_result
+
+    async def list_resource_templates(self) -> ListResourceTemplatesResult:
+        """List available resource templates from the MCP server."""
+        if not self._actor:
+            await self.start()
+        if self._actor is None:
+            raise RuntimeError("Actor is not initialized. Please check the server connection.")
+
+        result_future = await self._actor.call("list_resource_templates", None)
+        list_templates_result = await result_future
+        assert isinstance(
+            list_templates_result, ListResourceTemplatesResult
+        ), f"list_resource_templates must return a ListResourceTemplatesResult, instead of: {str(type(list_templates_result))}"
+
+        return list_templates_result
+
+    async def read_resource(self, uri: str) -> ReadResourceResult:
+        """Read a resource from the MCP server."""
+        if not self._actor:
+            await self.start()
+        if self._actor is None:
+            raise RuntimeError("Actor is not initialized. Please check the server connection.")
+
+        result_future = await self._actor.call("read_resource", {"name": None, "kargs": {"uri": uri}})
+        read_resource_result = await result_future
+        assert isinstance(
+            read_resource_result, ReadResourceResult
+        ), f"read_resource must return a ReadResourceResult, instead of: {str(type(read_resource_result))}"
+
+        return read_resource_result
+
+    async def get_prompt(self, name: str, arguments: Optional[Dict[str, str]] = None) -> GetPromptResult:
+        """Get a prompt from the MCP server."""
+        if not self._actor:
+            await self.start()
+        if self._actor is None:
+            raise RuntimeError("Actor is not initialized. Please check the server connection.")
+
+        result_future = await self._actor.call("get_prompt", {"name": name, "kargs": {"arguments": arguments}})
+        get_prompt_result = await result_future
+        assert isinstance(
+            get_prompt_result, GetPromptResult
+        ), f"get_prompt must return a GetPromptResult, instead of: {str(type(get_prompt_result))}"
+
+        return get_prompt_result
 
     def _format_errors(self, error: Exception) -> str:
         """Recursively format errors into a string."""
