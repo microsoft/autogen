@@ -626,7 +626,6 @@ async def test_thought_field_with_tool_calls_streaming(
     assert final_result.thought == "Let me think about what function to call."
 
 
-
 @pytest.mark.asyncio
 async def test_azure_ai_chat_completion_client_api_version() -> None:
     """Test that api_version is correctly passed to the ChatCompletionsClient."""
@@ -655,7 +654,35 @@ async def test_azure_ai_chat_completion_client_api_version() -> None:
         config_arg = mock_create_client.call_args[0][0]
         assert "api_version" in config_arg
         assert config_arg["api_version"] == custom_api_version
-        
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_chat_completion_client_no_api_version() -> None:
+    """Test that when api_version is not provided, it's not passed to the ChatCompletionsClient."""
+    # Use a context manager to patch the _create_client method instead of the constructor
+    with patch.object(AzureAIChatCompletionClient, "_create_client") as mock_create_client:
+        mock_create_client.return_value = MagicMock()
+
+        _ = AzureAIChatCompletionClient(
+            endpoint="endpoint",
+            credential=AzureKeyCredential("api_key"),
+            model_info={
+                "json_output": False,
+                "function_calling": False,
+                "vision": False,
+                "family": "unknown",
+                "structured_output": False,
+            },
+            model="model",
+            # No api_version provided
+        )
+
+        # Verify the method was called with a config that doesn't contain api_version
+        mock_create_client.assert_called_once()
+        config_arg = mock_create_client.call_args[0][0]
+        assert "api_version" not in config_arg
+
+
 def _pass_function(input: str) -> str:
     """Simple passthrough function."""
     return f"Processed: {input}"
@@ -1003,4 +1030,3 @@ async def test_azure_ai_tool_choice_specific_tool_streaming(
     assert final_result.content[0].name == "process_text"
     assert final_result.content[0].arguments == '{"input": "hello"}'
     assert final_result.thought == "Let me process this for you."
-

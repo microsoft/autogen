@@ -312,8 +312,8 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
     @staticmethod
     def _create_client(config: AzureAIChatCompletionClientConfig) -> ChatCompletionsClient:
-
         from typing import Any, Dict, Optional, Union
+
         from azure.core.credentials import AzureKeyCredential
         from azure.core.credentials_async import AsyncTokenCredential
 
@@ -331,10 +331,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if credential is not None:
             client_args["credential"] = credential
 
-        # Extract API version
-        api_version = config.get("api_version")
-        if api_version is not None:
-            client_args["api_version"] = api_version
+        # Extract API version (only if explicitly provided)
+        if "api_version" in config:
+            client_args["api_version"] = config["api_version"]
 
         # Create the client with the extracted arguments
         return ChatCompletionsClient(**client_args)
