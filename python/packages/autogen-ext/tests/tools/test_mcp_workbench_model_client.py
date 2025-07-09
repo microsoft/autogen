@@ -30,13 +30,13 @@ class MockChatCompletionClient(ChatCompletionClient, Component[MockChatCompletio
     component_provider_override = f"{__module__}.MockChatCompletionClient"
 
     def __init__(self, model_info: ModelInfo | None = None):
-        self._model_info = model_info or ModelInfo(
-            vision=False,
-            function_calling=False,
-            json_output=False,
-            family="test-model",
-            structured_output=False,
-        )
+        self._model_info = model_info or {
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": "test-model",
+            "structured_output": False,
+        }
 
     @property
     def model_info(self) -> ModelInfo:
@@ -139,13 +139,13 @@ def mock_model_client() -> MockChatCompletionClient:
 def mock_model_client_with_vision() -> MockChatCompletionClient:
     """Mock model client with vision support for testing."""
     model_client = MockChatCompletionClient(
-        model_info=ModelInfo(
-            vision=True,
-            function_calling=False,
-            json_output=False,
-            family="test-vision-model",
-            structured_output=False,
-        )
+        model_info={
+            "vision": True,
+            "function_calling": False,
+            "json_output": False,
+            "family": "test-vision-model",
+            "structured_output": False,
+        }
     )
     # Set up the mock's create method
     mock_create = AsyncMock(
@@ -487,16 +487,16 @@ async def test_mcp_workbench_model_client_vision_support(
 
     # Verify model client has vision capabilities
     assert workbench._model_client is not None  # type: ignore[attr-defined]
-    assert workbench._model_client.model_info.vision is True  # type: ignore[attr-defined]
-    assert workbench._model_client.model_info.family == "test-vision-model"  # type: ignore[attr-defined]
+    assert workbench._model_client.model_info["vision"] is True  # type: ignore[attr-defined]
+    assert workbench._model_client.model_info["family"] == "test-vision-model"  # type: ignore[attr-defined]
 
     # Test serialization preserves vision capabilities
     config = workbench._to_config()  # type: ignore[attr-defined]
     loaded_workbench = McpWorkbench._from_config(config)  # type: ignore[attr-defined]
 
     assert loaded_workbench._model_client is not None  # type: ignore[attr-defined]
-    assert loaded_workbench._model_client.model_info.vision is True  # type: ignore[attr-defined]
-    assert loaded_workbench._model_client.model_info.family == "test-vision-model"  # type: ignore[attr-defined]
+    assert loaded_workbench._model_client.model_info["vision"] is True  # type: ignore[attr-defined]
+    assert loaded_workbench._model_client.model_info["family"] == "test-vision-model"  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
