@@ -484,7 +484,6 @@ source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
     { name = "opentelemetry-api" },
-    { name = "opentelemetry-semantic-conventions" },
     { name = "pillow" },
     { name = "protobuf" },
     { name = "pydantic" },
@@ -530,7 +529,6 @@ dev = [
 requires-dist = [
     { name = "jsonref", specifier = "~=1.1.0" },
     { name = "opentelemetry-api", specifier = ">=1.34.1" },
-    { name = "opentelemetry-semantic-conventions", specifier = "==0.55b1" },
     { name = "pillow", specifier = ">=11.0.0" },
     { name = "protobuf", specifier = "~=5.29.3" },
     { name = "pydantic", specifier = ">=2.10.0,<3.0.0" },
