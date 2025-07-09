@@ -609,12 +609,6 @@ docker-jupyter-executor = [
     { name = "requests" },
     { name = "websockets" },
 ]
-duckduckgo-search = [
-    { name = "autogen-agentchat" },
-    { name = "beautifulsoup4" },
-    { name = "html2text" },
-    { name = "httpx" },
-]
 file-surfer = [
     { name = "autogen-agentchat" },
     { name = "magika" },
@@ -742,7 +736,6 @@ requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.48" },
     { name = "asyncio-atexit", marker = "extra == 'docker'", specifier = ">=1.0.1" },
     { name = "asyncio-atexit", marker = "extra == 'docker-jupyter-executor'", specifier = ">=1.0.1" },
-    { name = "autogen-agentchat", marker = "extra == 'duckduckgo-search'", editable = "packages/autogen-agentchat" },
     { name = "autogen-agentchat", marker = "extra == 'file-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-agentchat", marker = "extra == 'magentic-one'", editable = "packages/autogen-agentchat" },
     { name = "autogen-agentchat", marker = "extra == 'video-surfer'", editable = "packages/autogen-agentchat" },
@@ -753,7 +746,6 @@ requires-dist = [
     { name = "azure-core", marker = "extra == 'azure'" },
     { name = "azure-identity", marker = "extra == 'azure'" },
     { name = "azure-search-documents", marker = "extra == 'azure'", specifier = ">=11.4.0" },
-    { name = "beautifulsoup4", marker = "extra == 'duckduckgo-search'", specifier = ">=4.12.0" },
     { name = "chromadb", marker = "extra == 'chromadb'", specifier = ">=1.0.0" },
     { name = "chromadb", marker = "extra == 'mem0-local'", specifier = ">=1.0.0" },
     { name = "chromadb", marker = "extra == 'task-centric-memory'", specifier = ">=1.0.0" },
@@ -764,8 +756,6 @@ requires-dist = [
     { name = "google-genai", marker = "extra == 'gemini'", specifier = ">=1.0.0" },
     { name = "graphrag", marker = "extra == 'graphrag'", specifier = ">=1.0.1" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = "~=1.70.0" },
-    { name = "html2text", marker = "extra == 'duckduckgo-search'", specifier = ">=2024.2.26" },
-    { name = "httpx", marker = "extra == 'duckduckgo-search'", specifier = ">=0.27.0" },
     { name = "httpx", marker = "extra == 'http-tool'", specifier = ">=0.27.0" },
     { name = "ipykernel", marker = "extra == 'jupyter-executor'", specifier = ">=6.29.5" },
     { name = "json-schema-to-pydantic", marker = "extra == 'http-tool'", specifier = ">=0.2.0" },
@@ -809,7 +799,7 @@ requires-dist = [
     { name = "unidiff", marker = "extra == 'canvas'", specifier = ">=0.7.5" },
     { name = "websockets", marker = "extra == 'docker-jupyter-executor'", specifier = ">=15.0.1" },
 ]
-provides-extras = ["anthropic", "langchain", "azure", "docker", "ollama", "openai", "file-surfer", "llama-cpp", "graphrag", "chromadb", "mem0", "mem0-local", "web-surfer", "magentic-one", "video-surfer", "diskcache", "redis", "grpc", "jupyter-executor", "docker-jupyter-executor", "task-centric-memory", "semantic-kernel-core", "gemini", "semantic-kernel-google", "semantic-kernel-hugging-face", "semantic-kernel-mistralai", "semantic-kernel-ollama", "semantic-kernel-onnx", "semantic-kernel-anthropic", "semantic-kernel-pandas", "semantic-kernel-aws", "semantic-kernel-dapr", "http-tool", "semantic-kernel-all", "rich", "mcp", "canvas", "duckduckgo-search"]
+provides-extras = ["anthropic", "langchain", "azure", "docker", "ollama", "openai", "file-surfer", "llama-cpp", "graphrag", "chromadb", "mem0", "mem0-local", "web-surfer", "magentic-one", "video-surfer", "diskcache", "redis", "grpc", "jupyter-executor", "docker-jupyter-executor", "task-centric-memory", "semantic-kernel-core", "gemini", "semantic-kernel-google", "semantic-kernel-hugging-face", "semantic-kernel-mistralai", "semantic-kernel-ollama", "semantic-kernel-onnx", "semantic-kernel-anthropic", "semantic-kernel-pandas", "semantic-kernel-aws", "semantic-kernel-dapr", "http-tool", "semantic-kernel-all", "rich", "mcp", "canvas"]
 
 [package.metadata.requires-dev]
 dev = [
