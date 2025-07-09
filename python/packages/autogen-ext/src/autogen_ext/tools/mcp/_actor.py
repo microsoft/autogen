@@ -1,12 +1,29 @@
 import asyncio
 import atexit
+import base64
+import io
 from typing import Any, Coroutine, Dict, Mapping, TypedDict
 
-from autogen_core import Component, ComponentBase
+from autogen_core import Component, ComponentBase, ComponentModel, Image
+from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from PIL import Image as PILImage
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from mcp.types import CallToolResult, ListToolsResult
+from mcp.client.session import ClientSession, _default_sampling_callback
+from mcp.shared.context import RequestContext
+from mcp.types import (
+    INTERNAL_ERROR,
+    INVALID_PARAMS,
+    CallToolResult,
+    CreateMessageRequestParams,
+    CreateMessageResult,
+    ErrorData,
+    ImageContent,
+    ListToolsResult,
+    SamplingMessage,
+    TextContent,
+)
 
 from ._config import McpServerParams
 from ._session import create_mcp_server_session
@@ -22,6 +39,7 @@ class McpActorArgs(TypedDict):
 
 class McpSessionActorConfig(BaseModel):
     server_params: McpServerParams
+    model_client: ComponentModel | Dict[str, Any] | None = None
 
 
 class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]):
@@ -33,8 +51,9 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
 
     # model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __init__(self, server_params: McpServerParams) -> None:
+    def __init__(self, server_params: McpServerParams, model_client: ChatCompletionClient | None = None) -> None:
         self.server_params: McpServerParams = server_params
+        self._model_client = model_client
         self.name = "mcp_session_actor"
         self.description = "MCP session actor"
         self._command_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
@@ -42,6 +61,9 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         self._shutdown_future: asyncio.Future[Any] | None = None
         self._active = False
         atexit.register(self._sync_shutdown)
+
+    def set_model_client(self, model_client: ChatCompletionClient):
+        self._model_client = model_client
 
     async def initialize(self) -> None:
         if not self._active:
@@ -79,10 +101,66 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         await self._actor_task
         self._active = False
 
+    async def _sampling_callback(
+        self,
+        context: RequestContext[ClientSession, Any],
+        params: CreateMessageRequestParams,
+    ) -> CreateMessageResult | ErrorData:
+        """Handle sampling requests using the provided model client."""
+        if self._model_client is None:
+            # Returns an ErrorData with INVALID_REQUEST code
+            return await _default_sampling_callback(context, params)
+
+        llm_messages: list[LLMMessage] = []
+
+        try:
+            if params.systemPrompt:
+                llm_messages.append(SystemMessage(content=params.systemPrompt))
+
+            for mcp_message in params.messages:
+                if mcp_message.role == "user":
+                    llm_content: list[str | Image] = []
+                    if mcp_message.content.type == "text":
+                        llm_content.append(mcp_message.content.text)
+                    elif mcp_message.content.type == "image":
+                        if not self._model_client.model_info["vision"]:
+                            raise ValueError("Model does not support image messages.")
+
+                        # Decode base64 image data and create PIL Image
+                        image_data = base64.b64decode(mcp_message.content.data)
+                        pil_image = PILImage.open(io.BytesIO(image_data))
+                        llm_content.append(Image.from_pil(pil_image))
+
+                    llm_messages.append(UserMessage(source="user", content=llm_content))
+        except Exception as e:
+            return ErrorData(
+                code=INVALID_PARAMS, message="Error processing sampling messages.", data=f"{type(e).__name__}: {e}"
+            )
+
+        try:
+            result = await self._model_client.create(messages=llm_messages)
+
+            content = result.content
+            if not isinstance(content, str):
+                content = str(content)
+
+            return CreateMessageResult(
+                role="assistant",
+                content=TextContent(type="text", text=content),
+                model=self._model_client.model_info["family"],
+                stopReason=result.finish_reason,
+            )
+        except Exception as e:
+            return ErrorData(
+                code=INTERNAL_ERROR, message="Error sampling from model client.", data=f"{type(e).__name__}: {e}"
+            )
+
     async def _run_actor(self) -> None:
         result: McpResult
         try:
-            async with create_mcp_server_session(self.server_params) as session:
+            async with create_mcp_server_session(
+                self.server_params, sampling_callback=self._sampling_callback
+            ) as session:
                 await session.initialize()
                 while True:
                     cmd = await self._command_queue.get()

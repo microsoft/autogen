@@ -3,7 +3,8 @@ import builtins
 import warnings
 from typing import Any, Dict, List, Literal, Mapping, Optional
 
-from autogen_core import CancellationToken, Component, Image, trace_tool_span
+from autogen_core import CancellationToken, Component, ComponentModel, Image, trace_tool_span
+from autogen_core.models import ChatCompletionClient
 from autogen_core.tools import (
     ImageResultContent,
     ParametersSchema,
@@ -25,6 +26,7 @@ from ._config import McpServerParams, SseServerParams, StdioServerParams, Stream
 class McpWorkbenchConfig(BaseModel):
     server_params: McpServerParams
     tool_overrides: Dict[str, ToolOverride] = Field(default_factory=dict)
+    model_client: ComponentModel | Dict[str, Any] | None = None
 
 
 class McpWorkbenchState(BaseModel):
@@ -194,10 +196,14 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     component_config_schema = McpWorkbenchConfig
 
     def __init__(
-        self, server_params: McpServerParams, tool_overrides: Optional[Dict[str, ToolOverride]] = None
+        self,
+        server_params: McpServerParams,
+        tool_overrides: Optional[Dict[str, ToolOverride]] = None,
+        model_client: ChatCompletionClient | None = None,
     ) -> None:
         self._server_params = server_params
         self._tool_overrides = tool_overrides or {}
+        self._model_client = model_client
 
         # Build reverse mapping from override names to original names for call_tool
         self._override_name_to_original: Dict[str, str] = {}
@@ -337,7 +343,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             return  # Already initialized, no need to start again
 
         if isinstance(self._server_params, (StdioServerParams, SseServerParams, StreamableHttpServerParams)):
-            self._actor = McpSessionActor(self._server_params)
+            self._actor = McpSessionActor(self._server_params, model_client=self._model_client)
             await self._actor.initialize()
             self._actor_loop = asyncio.get_event_loop()
         else:
@@ -361,11 +367,19 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         pass
 
     def _to_config(self) -> McpWorkbenchConfig:
-        return McpWorkbenchConfig(server_params=self._server_params, tool_overrides=self._tool_overrides)
+        model_client_config = None
+        if self._model_client is not None:
+            model_client_config = self._model_client.dump_component()
+        return McpWorkbenchConfig(
+            server_params=self._server_params, tool_overrides=self._tool_overrides, model_client=model_client_config
+        )
 
     @classmethod
     def _from_config(cls, config: McpWorkbenchConfig) -> Self:
-        return cls(server_params=config.server_params, tool_overrides=config.tool_overrides)
+        model_client = None
+        if config.model_client is not None:
+            model_client = ChatCompletionClient.load_component(config.model_client)
+        return cls(server_params=config.server_params, tool_overrides=config.tool_overrides, model_client=model_client)
 
     def __del__(self) -> None:
         # Ensure the actor is stopped when the workbench is deleted
