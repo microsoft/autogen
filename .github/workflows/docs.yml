@@ -39,7 +39,7 @@ jobs:
               poe-dir: ".",
             },
             {
-              ref: "python-v0.6.3",
+              ref: "python-v0.6.4",
               dest-dir: stable,
               uv-version: "0.7.13",
               sphinx-release-override: "stable",
@@ -179,8 +179,8 @@ jobs:
               poe-dir: "./packages/autogen-core",
             },
             {
-              ref: "python-v0.6.3",
-              dest-dir: "0.6.3",
+              ref: "python-v0.6.4",
+              dest-dir: "0.6.4",
               uv-version: "0.7.13",
               sphinx-release-override: "",
               poe-dir: ".",
