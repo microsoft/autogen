@@ -33,7 +33,6 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
-    ModelFamily,
     SystemMessage,
 )
 from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, ToolResult, Workbench
@@ -847,16 +846,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             self._reflect_on_tool_use = False
         else:
             self._reflect_on_tool_use = reflect_on_tool_use
-        if self._reflect_on_tool_use and ModelFamily.is_claude(model_client.model_info["family"]):
-            warnings.warn(
-                "Claude models may not work with reflection on tool use because Claude requires that any requests including a previous tool use or tool result must include the original tools definition."
-                "Consider setting reflect_on_tool_use to False. "
-                "As an alternative, consider calling the agent in a loop until it stops producing tool calls. "
-                "See [Single-Agent Team](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html#single-agent-team) "
-                "for more details.",
-                UserWarning,
-                stacklevel=2,
-            )
 
         # Tool call loop
         self._max_tool_iterations = max_tool_iterations
@@ -1443,6 +1432,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 llm_messages,
                 json_output=output_content_type,
                 cancellation_token=cancellation_token,
+                tool_choice="none",  # Do not use tools in reflection flow.
             ):
                 if isinstance(chunk, CreateResult):
                     reflection_result = chunk
@@ -1454,7 +1444,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
         else:
             reflection_result = await model_client.create(
-                llm_messages, json_output=output_content_type, cancellation_token=cancellation_token
+                llm_messages,
+                json_output=output_content_type,
+                cancellation_token=cancellation_token,
+                tool_choice="none",  # Do not use tools in reflection flow.
             )
 
         if not reflection_result or not isinstance(reflection_result.content, str):

@@ -21,7 +21,6 @@ dependencies = [
     "protobuf~=5.29.3",
     "opentelemetry-api>=1.34.1",
     "jsonref~=1.1.0",
-    "opentelemetry-semantic-conventions==0.55b1",
 ]
 
 
