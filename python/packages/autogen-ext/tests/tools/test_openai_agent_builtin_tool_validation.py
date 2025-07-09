@@ -743,7 +743,7 @@ async def test_openai_agent_live_simple() -> None:  # noqa: D103
     )
 
     response = await agent.on_messages(
-        [TextMessage(source="user", content="Say hello briefly.")],
+        [TextMessage(source="user", content="Say the word 'hello'.")],
         cancellation_token,
     )
 
@@ -804,7 +804,7 @@ async def test_openai_agent_live_streaming_response() -> None:
         description="Live streaming integration test agent",
         client=client,
         model=os.getenv("OPENAI_MODEL", "gpt-4o"),
-        instructions="Please say hello.",
+        instructions="Please say the word 'hello'.",
     )
     from typing import Any
 
