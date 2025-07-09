@@ -294,7 +294,7 @@ public partial class ChatCompletionClientAgentTests
     private ChatCompletionsClient CreateChatCompletionClient()
     {
         var apiKey = Environment.GetEnvironmentVariable("GH_API_KEY") ?? throw new Exception("Please set GH_API_KEY environment variable.");
-        var endpoint = "https://models.inference.ai.azure.com";
+        var endpoint = "https://models.github.ai/inference";
         return new ChatCompletionsClient(new Uri(endpoint), new Azure.AzureKeyCredential(apiKey));
     }
 

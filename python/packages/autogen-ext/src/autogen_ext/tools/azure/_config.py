@@ -13,9 +13,10 @@ from typing import (
     Union,
 )
 
+from pydantic import BaseModel, Field, field_validator, model_validator
+
 from azure.core.credentials import AzureKeyCredential
 from azure.core.credentials_async import AsyncTokenCredential
-from pydantic import BaseModel, Field, field_validator, model_validator
 
 T = TypeVar("T", bound="AzureAISearchConfig")
 

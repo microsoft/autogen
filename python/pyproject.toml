@@ -20,6 +20,21 @@ dev = [
     "tomli-w",
     "chainlit",
     "streamlit",
+    
+    # Documentation
+    "myst-nb==1.1.2",
+    "pydata-sphinx-theme==0.16.0",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "sphinx",
+    "sphinxcontrib-apidoc",
+    "autodoc_pydantic~=2.2",
+    "pygments",
+    "sphinxext-rediraffe",
+    "opentelemetry-instrumentation-openai",
+    "diskcache",
+    "redis",
+    "sphinx-autobuild",
 ]
 
 [tool.uv]
@@ -56,6 +71,9 @@ docstring-code-format = true
 select = ["E", "F", "W", "B", "Q", "I", "ASYNC", "T20"]
 ignore = ["F401", "E501"]
 
+[tool.ruff.lint.per-file-ignores]
+"docs/**.ipynb" = ["T20"]
+
 [tool.ruff.lint.flake8-tidy-imports]
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "unittest".msg = "Use `pytest` instead."
@@ -84,6 +102,11 @@ typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false
 
+[tool.nbqa.addopts]
+mypy = [
+    "--disable-error-code=top-level-await"
+]
+
 [tool.poe.tasks]
 fmt = "python run_task_in_pkgs_if_exist.py fmt"
 format.ref = "fmt"
@@ -91,10 +114,18 @@ lint = "python run_task_in_pkgs_if_exist.py lint"
 pyright = "python run_task_in_pkgs_if_exist.py pyright"
 mypy = "python run_task_in_pkgs_if_exist.py mypy"
 test = "python run_task_in_pkgs_if_exist.py test"
-markdown-code-lint = """python check_md_code_blocks.py ../README.md ./packages/autogen-core/docs/src/**/*.md ./packages/autogen-magentic-one/README.md"""
+markdown-code-lint = """python check_md_code_blocks.py ../README.md ./docs/src/**/*.md ./packages/autogen-magentic-one/README.md"""
 samples-code-check = """pyright ./samples"""
 
-check = ["fmt", "lint", "pyright", "mypy", "test", "markdown-code-lint", "samples-code-check"]
+check = ["fmt", "lint", "pyright", "mypy", "docs-mypy", "test", "markdown-code-lint", "samples-code-check"]
+
+# Docs
+docs-mypy = "nbqa mypy docs/src --config-file ./pyproject.toml"
+docs-clean = "rm -rf docs/build docs/src/reference"
+docs-build = "sphinx-build docs/src docs/build"
+docs-serve = "sphinx-autobuild docs/src docs/build --watch packages/ --port 8000 --jobs auto"
+docs-check = "sphinx-build --fail-on-warning docs/src docs/build"
+docs-check-examples = "sphinx-build -b code_lint docs/src docs/build"
 
 gen-proto = [
     { cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto" },
