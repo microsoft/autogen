@@ -332,7 +332,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         return ToolResult(name=name, result=result_parts, is_error=is_error)  # Return the requested name
 
     @property
-    def initialize_result(self):
+    def initialize_result(self) -> Any:
         if self._actor:
             return self._actor.initialize_result
 

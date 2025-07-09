@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from mcp import types as mcp_types
-from mcp.client.session import ClientSession, _default_sampling_callback
+from mcp.client.session import ClientSession
 from mcp.shared.context import RequestContext
 
 from ._config import McpServerParams
@@ -61,7 +61,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         atexit.register(self._sync_shutdown)
 
     @property
-    def initialize_result(self):
+    def initialize_result(self) -> mcp_types.InitializeResult | None:
         return self._initialize_result
 
     async def initialize(self) -> None:
@@ -118,8 +118,12 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
     ) -> mcp_types.CreateMessageResult | mcp_types.ErrorData:
         """Handle sampling requests using the provided model client."""
         if self._model_client is None:
-            # Returns an mcp_types.ErrorData with INVALID_REQUEST code
-            return await _default_sampling_callback(context, params)
+            # Return an error when no model client is available
+            return mcp_types.ErrorData(
+                code=mcp_types.INVALID_REQUEST,
+                message="No model client available for sampling.",
+                data=None,
+            )
 
         llm_messages: list[LLMMessage] = []
 
@@ -144,7 +148,9 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
                     llm_messages.append(UserMessage(source="user", content=llm_content))
         except Exception as e:
             return mcp_types.ErrorData(
-                code=mcp_types.INVALID_PARAMS, message="Error processing sampling messages.", data=f"{type(e).__name__}: {e}"
+                code=mcp_types.INVALID_PARAMS,
+                message="Error processing sampling messages.",
+                data=f"{type(e).__name__}: {e}",
             )
 
         try:
@@ -162,7 +168,9 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
             )
         except Exception as e:
             return mcp_types.ErrorData(
-                code=mcp_types.INTERNAL_ERROR, message="Error sampling from model client.", data=f"{type(e).__name__}: {e}"
+                code=mcp_types.INTERNAL_ERROR,
+                message="Error sampling from model client.",
+                data=f"{type(e).__name__}: {e}",
             )
 
     async def _run_actor(self) -> None:

@@ -42,7 +42,7 @@ class MockChatCompletionClient(ChatCompletionClient, Component[MockChatCompletio
     def model_info(self) -> ModelInfo:
         return self._model_info
 
-    async def create(self, *args, **kwargs) -> CreateResult:
+    async def create(self, *args: Any, **kwargs: Any) -> CreateResult:
         return CreateResult(
             content="Mock response",
             finish_reason="stop",
@@ -50,8 +50,8 @@ class MockChatCompletionClient(ChatCompletionClient, Component[MockChatCompletio
             cached=False,
         )
 
-    def create_stream(self, *args, **kwargs) -> AsyncGenerator[str | CreateResult, None]:
-        async def mock_stream():
+    def create_stream(self, *args: Any, **kwargs: Any) -> AsyncGenerator[str | CreateResult, None]:
+        async def mock_stream() -> AsyncGenerator[str | CreateResult, None]:
             yield "Mock streaming response"
             yield CreateResult(
                 content="Mock response",
@@ -85,7 +85,7 @@ class MockChatCompletionClient(ChatCompletionClient, Component[MockChatCompletio
         return MockChatCompletionClientConfig(model_info=self.model_info)
 
     @classmethod
-    def _from_config(cls, config: MockChatCompletionClientConfig):
+    def _from_config(cls, config: MockChatCompletionClientConfig) -> "MockChatCompletionClient":
         return cls(config.model_info)
 
 
@@ -119,10 +119,11 @@ def sample_server_params() -> StdioServerParams:
 
 
 @pytest.fixture
-def mock_model_client():
+def mock_model_client() -> MockChatCompletionClient:
     """Mock model client for testing."""
     model_client = MockChatCompletionClient()
-    model_client.create = AsyncMock(
+    # Set up the mock's create method
+    mock_create = AsyncMock(
         return_value=CreateResult(
             content="Mock response",
             finish_reason="stop",
@@ -130,6 +131,7 @@ def mock_model_client():
             cached=False,
         )
     )
+    model_client.create = mock_create  # type: ignore[method-assign]
     return model_client
 
 
@@ -137,15 +139,16 @@ def mock_model_client():
 def mock_model_client_with_vision() -> MockChatCompletionClient:
     """Mock model client with vision support for testing."""
     model_client = MockChatCompletionClient(
-        model_info={
-            "vision": True,
-            "function_calling": False,
-            "json_output": False,
-            "family": "test-vision-model",
-            "structured_output": False,
-        }
+        model_info=ModelInfo(
+            vision=True,
+            function_calling=False,
+            json_output=False,
+            family="test-vision-model",
+            structured_output=False,
+        )
     )
-    model_client.create = AsyncMock(
+    # Set up the mock's create method
+    mock_create = AsyncMock(
         return_value=CreateResult(
             content="Mock response",
             finish_reason="stop",
@@ -153,6 +156,7 @@ def mock_model_client_with_vision() -> MockChatCompletionClient:
             cached=False,
         )
     )
+    model_client.create = mock_create  # type: ignore[method-assign]
     return model_client
 
 
@@ -167,10 +171,10 @@ async def test_mcp_workbench_with_model_client_initialization(
         model_client=mock_model_client,
     )
 
-    assert workbench._model_client is mock_model_client
+    assert workbench._model_client is mock_model_client  # type: ignore[attr-defined]
 
     # Test that the workbench is properly configured
-    config = workbench._to_config()
+    config = workbench._to_config()  # type: ignore[attr-defined]
     assert config.model_client is not None
     assert config.server_params == sample_server_params
 
@@ -182,10 +186,10 @@ async def test_mcp_workbench_without_model_client_initialization(
     """Test McpWorkbench initialization without a model client."""
     workbench = McpWorkbench(server_params=sample_server_params)
 
-    assert workbench._model_client is None
+    assert workbench._model_client is None  # type: ignore[attr-defined]
 
     # Test that the workbench is properly configured
-    config = workbench._to_config()
+    config = workbench._to_config()  # type: ignore[attr-defined]
     assert config.model_client is None
     assert config.server_params == sample_server_params
 
@@ -203,16 +207,16 @@ async def test_mcp_workbench_serialization_with_model_client(
     )
 
     # Serialize to config
-    config = original_workbench._to_config()
+    config = original_workbench._to_config()  # type: ignore[attr-defined]
     assert config.model_client is not None
 
     # Deserialize from config
-    loaded_workbench = McpWorkbench._from_config(config)
+    loaded_workbench = McpWorkbench._from_config(config)  # type: ignore[attr-defined]
 
     # Verify the loaded workbench
     assert loaded_workbench.server_params == sample_server_params
-    assert loaded_workbench._model_client is not None
-    assert loaded_workbench._model_client.model_info == mock_model_client.model_info
+    assert loaded_workbench._model_client is not None  # type: ignore[attr-defined]
+    assert loaded_workbench._model_client.model_info == mock_model_client.model_info  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -224,15 +228,15 @@ async def test_mcp_workbench_serialization_without_model_client(
     original_workbench = McpWorkbench(server_params=sample_server_params)
 
     # Serialize to config
-    config = original_workbench._to_config()
+    config = original_workbench._to_config()  # type: ignore[attr-defined]
     assert config.model_client is None
 
     # Deserialize from config
-    loaded_workbench = McpWorkbench._from_config(config)
+    loaded_workbench = McpWorkbench._from_config(config)  # type: ignore[attr-defined]
 
     # Verify the loaded workbench
     assert loaded_workbench.server_params == sample_server_params
-    assert loaded_workbench._model_client is None
+    assert loaded_workbench._model_client is None  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -274,8 +278,8 @@ async def test_mcp_workbench_model_client_passed_to_actor(
         mock_mcp_actor.initialize.assert_called_once()
 
     finally:
-        if workbench._actor:
-            workbench._actor = None
+        if workbench._actor:  # type: ignore[attr-defined]
+            workbench._actor = None  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -313,8 +317,8 @@ async def test_mcp_workbench_start_without_explicit_model_client(
         mock_mcp_actor.initialize.assert_called_once()
 
     finally:
-        if workbench._actor:
-            workbench._actor = None
+        if workbench._actor:  # type: ignore[attr-defined]
+            workbench._actor = None  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -330,7 +334,7 @@ async def test_mcp_workbench_list_tools_with_model_client(
         server_params=sample_server_params,
         model_client=mock_model_client,
     )
-    workbench._actor = mock_mcp_actor
+    workbench._actor = mock_mcp_actor  # type: ignore[attr-defined]
 
     # Mock list_tools response
     list_tools_result = ListToolsResult(tools=sample_mcp_tools)
@@ -351,7 +355,7 @@ async def test_mcp_workbench_list_tools_with_model_client(
         mock_mcp_actor.call.assert_called_with("list_tools", None)
 
     finally:
-        workbench._actor = None
+        workbench._actor = None  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -366,7 +370,7 @@ async def test_mcp_workbench_call_tool_with_model_client(
         server_params=sample_server_params,
         model_client=mock_model_client,
     )
-    workbench._actor = mock_mcp_actor
+    workbench._actor = mock_mcp_actor  # type: ignore[attr-defined]
 
     # Mock call_tool response
     call_tool_result = CallToolResult(
@@ -393,7 +397,7 @@ async def test_mcp_workbench_call_tool_with_model_client(
         mock_mcp_actor.call.assert_called_with("call_tool", {"name": "test_tool", "kargs": {"param": "test_value"}})
 
     finally:
-        workbench._actor = None
+        workbench._actor = None  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -416,7 +420,7 @@ async def test_mcp_workbench_state_operations_with_model_client(
     await workbench.load_state(state)
 
     # Model client should still be there
-    assert workbench._model_client is mock_model_client
+    assert workbench._model_client is mock_model_client  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -442,7 +446,7 @@ async def test_mcp_workbench_fallback_start_behavior(
     )
 
     # Ensure actor is not initialized
-    assert workbench._actor is None
+    assert workbench._actor is None  # type: ignore[attr-defined]
 
     # Mock list_tools response
     list_tools_result = ListToolsResult(tools=sample_mcp_tools)
@@ -465,8 +469,8 @@ async def test_mcp_workbench_fallback_start_behavior(
         assert tools[0]["name"] == "test_tool"
 
     finally:
-        if workbench._actor:
-            workbench._actor = None
+        if workbench._actor:  # type: ignore[attr-defined]
+            workbench._actor = None  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -482,17 +486,17 @@ async def test_mcp_workbench_model_client_vision_support(
     )
 
     # Verify model client has vision capabilities
-    assert workbench._model_client is not None
-    assert workbench._model_client.model_info["vision"] is True
-    assert workbench._model_client.model_info["family"] == "test-vision-model"
+    assert workbench._model_client is not None  # type: ignore[attr-defined]
+    assert workbench._model_client.model_info.vision is True  # type: ignore[attr-defined]
+    assert workbench._model_client.model_info.family == "test-vision-model"  # type: ignore[attr-defined]
 
     # Test serialization preserves vision capabilities
-    config = workbench._to_config()
-    loaded_workbench = McpWorkbench._from_config(config)
+    config = workbench._to_config()  # type: ignore[attr-defined]
+    loaded_workbench = McpWorkbench._from_config(config)  # type: ignore[attr-defined]
 
-    assert loaded_workbench._model_client is not None
-    assert loaded_workbench._model_client.model_info["vision"] is True
-    assert loaded_workbench._model_client.model_info["family"] == "test-vision-model"
+    assert loaded_workbench._model_client is not None  # type: ignore[attr-defined]
+    assert loaded_workbench._model_client.model_info.vision is True  # type: ignore[attr-defined]
+    assert loaded_workbench._model_client.model_info.family == "test-vision-model"  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -515,15 +519,15 @@ async def test_mcp_workbench_component_interface(
     )
 
     # Test _to_config
-    config = workbench._to_config()
+    config = workbench._to_config()  # type: ignore[attr-defined]
     assert hasattr(config, "server_params")
     assert hasattr(config, "model_client")
     assert hasattr(config, "tool_overrides")
 
     # Test _from_config
-    loaded_workbench = McpWorkbench._from_config(config)
+    loaded_workbench = McpWorkbench._from_config(config)  # type: ignore[attr-defined]
     assert loaded_workbench.server_params == sample_server_params
-    assert loaded_workbench._model_client is not None
+    assert loaded_workbench._model_client is not None  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -535,7 +539,7 @@ async def test_sampling_callback_invocation(
 
     from autogen_ext.tools.mcp._actor import McpSessionActor
     from mcp.shared.context import RequestContext
-    from mcp.types import CreateMessageRequestParams, CreateMessageResult, ErrorData, SamplingMessage, TextContent
+    from mcp.types import CreateMessageRequestParams, CreateMessageResult, SamplingMessage, TextContent
 
     # Set up the mock for this specific test
     mock_create = AsyncMock(
@@ -546,7 +550,7 @@ async def test_sampling_callback_invocation(
             cached=False,
         )
     )
-    mock_model_client.create = mock_create
+    mock_model_client.create = mock_create  # type: ignore[method-assign]
 
     # Create an actor with a model client
     actor = McpSessionActor(sample_server_params, model_client=mock_model_client)
@@ -559,7 +563,7 @@ async def test_sampling_callback_invocation(
     )
 
     # Test the sampling callback directly
-    result = await actor._sampling_callback(mock_context, sample_params)
+    result = await actor._sampling_callback(mock_context, sample_params)  # type: ignore[attr-defined]
 
     # Verify the result is a CreateMessageResult (not an error)
     assert isinstance(result, CreateMessageResult)
@@ -599,7 +603,7 @@ async def test_sampling_callback_without_model_client(sample_server_params: Stdi
     )
 
     # Test the sampling callback
-    result = await actor._sampling_callback(mock_context, sample_params)
+    result = await actor._sampling_callback(mock_context, sample_params)  # type: ignore[attr-defined]
 
     # Verify the result is an ErrorData (indicating no model client)
     assert isinstance(result, ErrorData)
@@ -625,7 +629,7 @@ async def test_sampling_callback_with_system_prompt(
             cached=False,
         )
     )
-    mock_model_client.create = mock_create
+    mock_model_client.create = mock_create  # type: ignore[method-assign]
 
     # Create an actor with a model client
     actor = McpSessionActor(sample_server_params, model_client=mock_model_client)
@@ -639,7 +643,7 @@ async def test_sampling_callback_with_system_prompt(
     )
 
     # Test the sampling callback
-    result = await actor._sampling_callback(mock_context, sample_params)
+    result = await actor._sampling_callback(mock_context, sample_params)  # type: ignore[attr-defined]
 
     # Verify the result
     assert isinstance(result, CreateMessageResult)
@@ -666,7 +670,6 @@ async def test_sampling_callback_with_image_content(
     mock_model_client_with_vision: MockChatCompletionClient, sample_server_params: StdioServerParams
 ) -> None:
     """Test sampling_callback with image content when vision is supported."""
-    import base64
     from unittest.mock import MagicMock
 
     from autogen_ext.tools.mcp._actor import McpSessionActor
@@ -682,7 +685,7 @@ async def test_sampling_callback_with_image_content(
             cached=False,
         )
     )
-    mock_model_client_with_vision.create = mock_create
+    mock_model_client_with_vision.create = mock_create  # type: ignore[method-assign]
 
     # Create an actor with a vision-capable model client
     actor = McpSessionActor(sample_server_params, model_client=mock_model_client_with_vision)
@@ -701,7 +704,7 @@ async def test_sampling_callback_with_image_content(
     )
 
     # Test the sampling callback
-    result = await actor._sampling_callback(mock_context, sample_params)
+    result = await actor._sampling_callback(mock_context, sample_params)  # type: ignore[attr-defined]
 
     # Verify the result
     assert isinstance(result, CreateMessageResult)
@@ -717,7 +720,7 @@ async def test_sampling_callback_with_image_content(
     assert user_msg.source == "user"
     # The content should be a list containing an Image object
     assert isinstance(user_msg.content, list)
-    assert len(user_msg.content) == 1
+    assert len(user_msg.content) == 1  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio
@@ -725,7 +728,6 @@ async def test_sampling_callback_image_without_vision_support(
     mock_model_client: MockChatCompletionClient, sample_server_params: StdioServerParams
 ) -> None:
     """Test sampling_callback fails gracefully when image is sent to non-vision model."""
-    import base64
     from unittest.mock import MagicMock
 
     from autogen_ext.tools.mcp._actor import McpSessionActor
@@ -748,7 +750,7 @@ async def test_sampling_callback_image_without_vision_support(
     )
 
     # Test the sampling callback
-    result = await actor._sampling_callback(mock_context, sample_params)
+    result = await actor._sampling_callback(mock_context, sample_params)  # type: ignore[attr-defined]
 
     # Verify the result is an error due to vision not being supported
     assert isinstance(result, ErrorData)
@@ -768,7 +770,7 @@ async def test_sampling_callback_model_client_error(sample_server_params: StdioS
 
     # Create a model client that will fail
     failing_model_client = MockChatCompletionClient()
-    failing_model_client.create = AsyncMock(side_effect=Exception("Model API error"))
+    failing_model_client.create = AsyncMock(side_effect=Exception("Model API error"))  # type: ignore[method-assign]
 
     # Create an actor with the failing model client
     actor = McpSessionActor(sample_server_params, model_client=failing_model_client)
@@ -780,7 +782,7 @@ async def test_sampling_callback_model_client_error(sample_server_params: StdioS
     )
 
     # Test the sampling callback
-    result = await actor._sampling_callback(mock_context, sample_params)
+    result = await actor._sampling_callback(mock_context, sample_params)  # type: ignore[attr-defined]
 
     # Verify the result is an error
     assert isinstance(result, ErrorData)
@@ -808,6 +810,7 @@ async def test_sampling_callback_integration_through_session(sample_server_param
         mock_session_factory.return_value = mock_session
 
         from autogen_ext.tools.mcp._actor import McpSessionActor
+
         actor = McpSessionActor(sample_server_params, model_client=mock_model_client)
 
         # Initialize the actor (this will call create_mcp_server_session)
@@ -817,10 +820,10 @@ async def test_sampling_callback_integration_through_session(sample_server_param
         await asyncio.sleep(0.1)
 
         # Verify that the session was created with the sampling_callback
-        mock_session_factory.assert_called_once_with(sample_server_params, sampling_callback=actor._sampling_callback)
+        mock_session_factory.assert_called_once_with(sample_server_params, sampling_callback=actor._sampling_callback)  # type: ignore[attr-defined]
 
         # Clean up by trying to close the actor gracefully
-        if actor._active and actor._actor_task is not None:
+        if actor._active and actor._actor_task is not None:  # type: ignore[attr-defined]
             try:
                 await actor.close()
             except Exception:
