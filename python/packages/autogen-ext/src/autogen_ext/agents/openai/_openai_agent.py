@@ -220,7 +220,7 @@ ToolConfigUnion = Union[ComponentModel, BuiltinToolConfig, str]
 class OpenAIAgentConfig(BaseModel):
     """Configuration model for OpenAI agent that supports both custom tools and built-in tools.
 
-    .. versionchanged:: v0.6.2
+    .. versionchanged:: v0.7.0
        Added support for built-in tools in JSON configuration via _to_config and _from_config methods.
        The tools field now accepts ComponentModel (for custom tools), built-in tool configurations
        (dict format), and built-in tool names (string format).
@@ -263,6 +263,32 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
     * Custom function calling
     * Multi-turn conversations
     * Built-in tool support (file_search, code_interpreter, web_search_preview, etc.)
+
+    .. versionchanged:: v0.7.0
+
+       Added support for built-in tool types like file_search, web_search_preview,
+       code_interpreter, computer_use_preview, image_generation, and mcp.
+       Added support for tool configurations with required and optional parameters.
+
+       **BREAKING CHANGE:** Built-in tools are now split into two categories:
+
+       **Tools that can use string format** (no required parameters):
+
+       - web_search_preview: Can be used as "web_search_preview" or with optional config
+         (user_location, search_context_size)
+       - image_generation: Can be used as "image_generation" or with optional config (background, input_image_mask)
+       - local_shell: Can be used as "local_shell" (WARNING: Only works with codex-mini-latest model)
+
+       **Tools that REQUIRE dict configuration** (have required parameters):
+
+       - file_search: MUST use dict with vector_store_ids (List[str])
+       - computer_use_preview: MUST use dict with display_height (int), display_width (int), environment (str)
+       - code_interpreter: MUST use dict with container (str)
+       - mcp: MUST use dict with server_label (str), server_url (str)
+
+       Using required-parameter tools in string format will raise a ValueError with helpful error messages.
+       The tools parameter type annotation only accepts string values for tools that don't require parameters.
+
 
     Args:
         name (str): Name of the agent
@@ -433,31 +459,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
             asyncio.run(example_mixed_tools())
 
-
-    .. versionchanged:: v0.6.2
-
-       Added support for built-in tool types like file_search, web_search_preview,
-       code_interpreter, computer_use_preview, image_generation, and mcp.
-       Added support for tool configurations with required and optional parameters.
-
-       BREAKING CHANGE: Built-in tools are now split into two categories:
-
-       **Tools that can use string format** (no required parameters):
-
-       - web_search_preview: Can be used as "web_search_preview" or with optional config
-         (user_location, search_context_size)
-       - image_generation: Can be used as "image_generation" or with optional config (background, input_image_mask)
-       - local_shell: Can be used as "local_shell" (WARNING: Only works with codex-mini-latest model)
-
-       **Tools that REQUIRE dict configuration** (have required parameters):
-
-       - file_search: MUST use dict with vector_store_ids (List[str])
-       - computer_use_preview: MUST use dict with display_height (int), display_width (int), environment (str)
-       - code_interpreter: MUST use dict with container (str)
-       - mcp: MUST use dict with server_label (str), server_url (str)
-
-       Using required-parameter tools in string format will raise a ValueError with helpful error messages.
-       The tools parameter type annotation only accepts string values for tools that don't require parameters.
 
     """
 
