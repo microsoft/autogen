@@ -115,6 +115,8 @@ class SwarmGroupChatManager(BaseGroupChatManager):
 class SwarmConfig(BaseModel):
     """The declarative configuration for Swarm."""
 
+    name: str | None = None
+    description: str | None = None
     participants: List[ComponentModel]
     termination_condition: ComponentModel | None = None
     max_turns: int | None = None
@@ -129,8 +131,17 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
     sent by the current speaker. If no handoff message is sent, the current speaker
     continues to be the speaker.
 
+    .. note::
+
+        Unlike :class:`~autogen_agentchat.teams.RoundRobinGroupChat` and
+        :class:`~autogen_agentchat.teams.SelectorGroupChat`, this group chat
+        team does not support inner teams as participants.
+
     Args:
         participants (List[ChatAgent]): The agents participating in the group chat. The first agent in the list is the initial speaker.
+        name (str | None, optional): The name of the group chat, using :attr:`~autogen_agentchat.teams.Swarm.DEFAULT_NAME` if not provided.
+            The name is used by a parent team to identify this group chat so it must be unique within the parent team.
+        description (str | None, optional): The description of the group chat, using :attr:`~autogen_agentchat.teams.Swarm.DEFAULT_DESCRIPTION` if not provided.
         termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
             Without a termination condition, the group chat will run indefinitely.
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
@@ -216,19 +227,28 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
     component_config_schema = SwarmConfig
     component_provider_override = "autogen_agentchat.teams.Swarm"
 
-    # TODO: Add * to the constructor to separate the positional parameters from the kwargs.
-    # This may be a breaking change so let's wait until a good time to do it.
+    DEFAULT_NAME = "Swarm"
+    DEFAULT_DESCRIPTION = "A team of agents."
+
     def __init__(
         self,
         participants: List[ChatAgent],
+        *,
+        name: str | None = None,
+        description: str | None = None,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
     ) -> None:
+        for participant in participants:
+            if not isinstance(participant, ChatAgent):
+                raise TypeError(f"Participant {participant} must be a ChatAgent.")
         super().__init__(
-            participants,
+            name=name or self.DEFAULT_NAME,
+            description=description or self.DEFAULT_DESCRIPTION,
+            participants=[participant for participant in participants],
             group_chat_manager_name="SwarmGroupChatManager",
             group_chat_manager_class=SwarmGroupChatManager,
             termination_condition=termination_condition,
@@ -239,6 +259,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
+        assert isinstance(first_participant, ChatAgent)
         if HandoffMessage not in first_participant.produced_message_types:
             raise ValueError("The first participant must be able to produce a handoff messages.")
 
@@ -276,6 +297,8 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         participants = [participant.dump_component() for participant in self._participants]
         termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
         return SwarmConfig(
+            name=self._name,
+            description=self._description,
             participants=participants,
             termination_condition=termination_condition,
             max_turns=self._max_turns,
@@ -290,6 +313,8 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         )
         return cls(
             participants,
+            name=config.name,
+            description=config.description,
             termination_condition=termination_condition,
             max_turns=config.max_turns,
             emit_team_events=config.emit_team_events,
