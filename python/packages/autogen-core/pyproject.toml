@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-core"
-version = "0.6.2"
+version = "0.6.4"
 license = {file = "LICENSE-CODE"}
 description = "Foundational interfaces and agent runtime implementation for AutoGen"
 readme = "README.md"
@@ -21,7 +21,6 @@ dependencies = [
     "protobuf~=5.29.3",
     "opentelemetry-api>=1.34.1",
     "jsonref~=1.1.0",
-    "opentelemetry-semantic-conventions==0.55b1",
 ]
 
 

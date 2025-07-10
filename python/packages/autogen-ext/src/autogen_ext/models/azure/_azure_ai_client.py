@@ -220,7 +220,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         async def main():
             client = AzureAIChatCompletionClient(
                 model="Phi-4",
-                endpoint="https://models.inference.ai.azure.com",
+                endpoint="https://models.github.ai/inference",
                 # To authenticate with the model you will need to generate a personal access token (PAT) in your GitHub settings.
                 # Create your PAT token by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
                 credential=AzureKeyCredential(os.environ["GITHUB_TOKEN"]),
@@ -258,7 +258,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         async def main():
             client = AzureAIChatCompletionClient(
                 model="Phi-4",
-                endpoint="https://models.inference.ai.azure.com",
+                endpoint="https://models.github.ai/inference",
                 # To authenticate with the model you will need to generate a personal access token (PAT) in your GitHub settings.
                 # Create your PAT token by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
                 credential=AzureKeyCredential(os.environ["GITHUB_TOKEN"]),

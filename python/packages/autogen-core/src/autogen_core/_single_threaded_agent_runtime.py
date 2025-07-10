@@ -903,9 +903,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             else:
                 agent_instance = maybe_agent_instance
 
-            if expected_class is not None and type_func_alias(agent_instance) != expected_class:
-                raise ValueError("Factory registered using the wrong type.")
-
+            if expected_class is not None and not issubclass(type_func_alias(agent_instance), expected_class):
+                raise ValueError(
+                    f"Factory registered using the wrong type: expected {expected_class.__name__}, got {type_func_alias(agent_instance).__name__}"
+                )
             return agent_instance
 
         self._agent_factories[type.type] = factory_wrapper
