@@ -11,6 +11,7 @@ import {
   Maximize2,
   Minimize2,
   GripVertical,
+  Package,
 } from "lucide-react";
 import Sider from "antd/es/layout/Sider";
 import { ComponentTypes, Gallery } from "../../../types/datamodel";
@@ -100,7 +101,16 @@ export const ComponentLibrary: React.FC<LibraryProps> = ({
         icon: <Brain className="w-4 h-4" />,
       },
       {
-        title: "Tools",
+        title: "Workbenches",
+        type: "workbench" as ComponentTypes,
+        items: defaultGallery.config.components.workbenches?.map((workbench) => ({
+          label: workbench.label || workbench.provider.split('.').pop(),
+          config: workbench,
+        })) || [],
+        icon: <Package className="w-4 h-4" />,
+      },
+      {
+        title: "Tools (Deprecated)",
         type: "tool" as ComponentTypes,
         items: defaultGallery.config.components.tools.map((tool) => ({
           label: tool.config?.name || tool.label,

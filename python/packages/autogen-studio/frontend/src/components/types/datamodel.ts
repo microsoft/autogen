@@ -5,7 +5,8 @@ export type ComponentTypes =
   | "agent"
   | "model"
   | "tool"
-  | "termination";
+  | "termination"
+  | "workbench";
 export interface Component<T extends ComponentConfig> {
   provider: string;
   component_type: ComponentTypes;
@@ -128,11 +129,16 @@ export interface JupyterCodeExecutorConfig extends CodeExecutorBaseConfig {
 
 // Python Code Execution Tool Config
 export interface PythonCodeExecutionToolConfig {
-  executor: Component<
-    | LocalCommandLineCodeExecutorConfig
-    | DockerCommandLineCodeExecutorConfig
-    | JupyterCodeExecutorConfig
-  >;
+  executor: {
+    provider: string;
+    config:
+      | LocalCommandLineCodeExecutorConfig
+      | DockerCommandLineCodeExecutorConfig
+      | JupyterCodeExecutorConfig;
+    version?: number;
+    component_version?: number;
+    description?: string | null;
+  };
   description?: string;
   name?: string;
 }
@@ -144,6 +150,45 @@ export interface FunctionToolConfig {
   description: string;
   global_imports: Import[];
   has_cancellation_support: boolean;
+}
+
+// Workbench Configs
+export interface StaticWorkbenchConfig {
+  tools: Component<ToolConfig>[];
+}
+
+export interface StdioServerParams {
+  type: "StdioServerParams";
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  read_timeout_seconds?: number;
+}
+
+export interface SseServerParams {
+  type: "SseServerParams";
+  url: string;
+  headers?: Record<string, any>;
+  timeout?: number;
+  sse_read_timeout?: number;
+}
+
+export interface StreamableHttpServerParams {
+  type: "StreamableHttpServerParams";
+  url: string;
+  headers?: Record<string, any>;
+  timeout?: number;
+  sse_read_timeout?: number;
+  terminate_on_close?: boolean;
+}
+
+export type McpServerParams =
+  | StdioServerParams
+  | SseServerParams
+  | StreamableHttpServerParams;
+
+export interface McpWorkbenchConfig {
+  server_params: McpServerParams;
 }
 
 // Provider-based Configs
@@ -181,7 +226,7 @@ export interface MultimodalWebSurferConfig {
 export interface AssistantAgentConfig {
   name: string;
   model_client: Component<ModelConfig>;
-  tools?: Component<ToolConfig>[];
+  workbench?: Component<WorkbenchConfig>[] | Component<WorkbenchConfig>;
   handoffs?: any[]; // HandoffBase | str equivalent
   model_context?: Component<ChatCompletionContextConfig>;
   description: string;
@@ -298,6 +343,8 @@ export type ModelConfig =
 
 export type ToolConfig = FunctionToolConfig | PythonCodeExecutionToolConfig;
 
+export type WorkbenchConfig = StaticWorkbenchConfig | McpWorkbenchConfig;
+
 export type ChatCompletionContextConfig = UnboundedChatCompletionContextConfig;
 
 export type TerminationConfig =
@@ -311,6 +358,7 @@ export type ComponentConfig =
   | AgentConfig
   | ModelConfig
   | ToolConfig
+  | WorkbenchConfig
   | TerminationConfig
   | ChatCompletionContextConfig;
 
@@ -445,6 +493,7 @@ export interface GalleryConfig {
     agents: Component<AgentConfig>[];
     models: Component<ModelConfig>[];
     tools: Component<ToolConfig>[];
+    workbenches: Component<WorkbenchConfig>[];
     terminations: Component<TerminationConfig>[];
   };
 }

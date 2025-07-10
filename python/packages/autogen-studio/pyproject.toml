@@ -34,7 +34,7 @@ dependencies = [
     "html2text",
     "autogen-core>=0.4.9.2,<0.7",
     "autogen-agentchat>=0.4.9.2,<0.7",
-    "autogen-ext[magentic-one, openai, azure]>=0.4.2,<0.7",
+    "autogen-ext[magentic-one, openai, azure, mcp]>=0.4.2,<0.7",
     "anthropic",
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}

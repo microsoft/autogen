@@ -9,6 +9,8 @@ import {
   isAssistantAgent,
   isUserProxyAgent,
   isWebSurferAgent,
+  isStaticWorkbench,
+  isMcpWorkbench,
 } from "../../../types/guards";
 import { CustomNode, CustomEdge } from "./types";
 
@@ -82,12 +84,32 @@ const calculateNodeHeight = (component: Component<ComponentConfig>): number => {
       // Only AssistantAgent has model_client and tools
       if (isAssistantAgent(component)) {
         height += 200;
-        // Add height for tools section and items
-        if (component.config.tools?.length) {
-          height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_SECTION;
-          height +=
-            component.config.tools.length *
-            LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM;
+        // Add height for workbench section if present
+        const workbenchConfig = component.config.workbench;
+        if (workbenchConfig) {
+          // Handle both single workbench object and array of workbenches
+          const workbenches = Array.isArray(workbenchConfig) ? workbenchConfig : [workbenchConfig];
+          
+          if (workbenches.length > 0) {
+            // Add height for workbench section header
+            height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_SECTION;
+            
+            // Calculate total height for all workbenches
+            workbenches.forEach(workbench => {
+              if (!workbench) return;
+              
+              if (isStaticWorkbench(workbench)) {
+                // StaticWorkbench: count individual tools
+                const toolCount = workbench.config.tools?.length || 0;
+                if (toolCount > 0) {
+                  height += toolCount * LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM;
+                }
+              } else if (isMcpWorkbench(workbench)) {
+                // MCP workbench: add standard height for dynamic tools display
+                height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM;
+              }
+            });
+          }
         }
       }
       if (isWebSurferAgent(component)) {
@@ -98,6 +120,22 @@ const calculateNodeHeight = (component: Component<ComponentConfig>): number => {
         height += -100;
       }
 
+      break;
+
+    case "workbench":
+      // Add height for workbench content
+      if (isStaticWorkbench(component)) {
+        // StaticWorkbench: show tools
+        const toolCount = component.config.tools?.length || 0;
+        height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_SECTION;
+        if (toolCount > 0) {
+          height += toolCount * LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM;
+        }
+      } else if (isMcpWorkbench(component)) {
+        // MCP workbench: show server configuration
+        height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_SECTION;
+        height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM; // For server info display
+      }
       break;
   }
 
