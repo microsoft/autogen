@@ -270,7 +270,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
        code_interpreter, computer_use_preview, image_generation, and mcp.
        Added support for tool configurations with required and optional parameters.
 
-       **BREAKING CHANGE:** Built-in tools are now split into two categories:
+       Built-in tools are split into two categories:
 
        **Tools that can use string format** (no required parameters):
 
