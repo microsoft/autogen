@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { User, Bot, DraftingCompass, Bug } from "lucide-react";
+import { User, Bot, DraftingCompass, Bug, ChevronDown } from "lucide-react";
 import {
   AgentMessageConfig,
   FunctionCall,
@@ -92,50 +92,118 @@ const RenderMultiModal: React.FC<{
     </div>
   );
 };
-const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => (
-  <div className="space-y-2">
-    {content.map((call) => (
-      <div
-        key={call.id}
-        className="relative pl-3 border border-secondary rounded p-2"
-      >
-        <div className="absolute top-0 -left-0.5 w-1 bg-secondary h-full rounded"></div>
-        <div className="font-medium">
-          <DraftingCompass className="w-4 h-4 text-accent inline-block mr-1.5 -mt-0.5" />{" "}
-          Calling {call.name} tool with arguments
-        </div>
-        <TruncatableText
-          content={JSON.stringify(call.arguments, null, 2)}
-          isJson={true}
-          className="text-sm mt-1 bg-secondary p-2 rounded"
-        />
-      </div>
-    ))}
-  </div>
-);
+const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const toggleExpansion = (callId: string) => {
+    setExpandedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(callId)) {
+        newSet.delete(callId);
+      } else {
+        newSet.add(callId);
+      }
+      return newSet;
+    });
+  };
+
+  return (
+    <div className="space-y-1">
+      {content.map((call) => {
+        const isExpanded = expandedItems.has(call.id);
+        return (
+          <div
+            key={call.id}
+            className="border mt-1 border-secondary bg-secondary rounded hover:bg-tertiary transition-colors"
+          >
+            <button
+              onClick={() => toggleExpansion(call.id)}
+              className="w-full flex items-center gap-2 p-2 text-left hover:bg-secondary/50 transition-colors"
+            >
+              <DraftingCompass className="w-4 h-4 text-accent flex-shrink-0" />
+              <span className="font-base text-sm">
+                Calling {call.name} tool
+              </span>
+              <div
+                className={`ml-auto transition-transform duration-200 ${
+                  isExpanded ? "rotate-180" : "rotate-0"
+                }`}
+              >
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </button>
+            {isExpanded && (
+              <div className="border-t border-secondary p-2">
+                <TruncatableText
+                  content={JSON.stringify(call.arguments, null, 2)}
+                  isJson={true}
+                  className="text-sm bg-secondary p-2 rounded"
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 const RenderToolResult: React.FC<{ content: FunctionExecutionResult[] }> = ({
   content,
-}) => (
-  <div className="space-y-2">
-    {content.map((result) => (
-      <div
-        key={result.call_id}
-        className="rounded p-2 pl-3 relative border border-secondary"
-      >
-        <div className="absolute top-0 -left-0.5 w-1 bg-secondary h-full rounded"></div>
-        <div className="font-medium">
-          <DraftingCompass className="w-4 text-accent h-4 inline-block mr-1.5 -mt-0.5" />{" "}
-          Tool Result
-        </div>
-        <TruncatableText
-          content={result.content}
-          className="text-sm mt-1 bg-secondary p-2 border border-secondary rounded scroll overflow-x-scroll"
-        />
-      </div>
-    ))}
-  </div>
-);
+}) => {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const toggleExpansion = (callId: string) => {
+    setExpandedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(callId)) {
+        newSet.delete(callId);
+      } else {
+        newSet.add(callId);
+      }
+      return newSet;
+    });
+  };
+
+  return (
+    <div className="space-y-1">
+      {content.map((result) => {
+        const isExpanded = expandedItems.has(result.call_id);
+        return (
+          <div
+            key={result.call_id}
+            className="border mt-1 border-secondary bg-secondary rounded hover:bg-tertiary transition-colors"
+          >
+            <button
+              onClick={() => toggleExpansion(result.call_id)}
+              className="w-full flex items-center gap-2 p-2 text-left hover:bg-secondary/50 transition-colors"
+            >
+              <DraftingCompass className="w-4 h-4 text-accent flex-shrink-0" />
+              <span className="font-medium text-sm">
+                Tool result (ID: {result.call_id.slice(-8)})
+              </span>
+              <div
+                className={`ml-auto transition-transform duration-200 ${
+                  isExpanded ? "rotate-180" : "rotate-0"
+                }`}
+              >
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </button>
+            {isExpanded && (
+              <div className="border-t border-secondary p-2">
+                <TruncatableText
+                  content={result.content}
+                  className="text-sm bg-secondary p-2 border border-secondary rounded scroll overflow-x-scroll"
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export const messageUtils = {
   isToolCallContent(content: unknown): content is FunctionCall[] {
@@ -283,10 +351,17 @@ export const RenderMessage: React.FC<MessageProps> = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-primary">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-primary truncate flex-1 min-w-0">
               {message.source}
             </span>
+            {message.models_usage && (
+              <span className="text-xs text-secondary flex-shrink-0">
+                Tokens:{" "}
+                {(message.models_usage.prompt_tokens || 0) +
+                  (message.models_usage.completion_tokens || 0)}
+              </span>
+            )}
           </div>
 
           <div className="text-sm text-secondary">
@@ -307,13 +382,6 @@ export const RenderMessage: React.FC<MessageProps> = ({
               />
             )}
           </div>
-          {message.models_usage && (
-            <div className="text-xs text-secondary mt-1">
-              Tokens:{" "}
-              {(message.models_usage.prompt_tokens || 0) +
-                (message.models_usage.completion_tokens || 0)}
-            </div>
-          )}
         </div>
       </div>
     </div>
