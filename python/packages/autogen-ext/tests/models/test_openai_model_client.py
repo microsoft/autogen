@@ -3056,3 +3056,83 @@ async def test_openai_tool_choice_validation_error_integration() -> None:
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.
+
+
+@pytest.mark.asyncio
+async def test_assistant_message_tool_calls_content_field() -> None:
+    """Test that AssistantMessage with tool calls includes required content field.
+    
+    This test addresses the issue where AssistantMessage with tool calls but no thought
+    was missing the required 'content' field, causing OpenAI API UnprocessableEntityError(422).
+    """
+    # Test AssistantMessage with tool calls but no thought
+    tool_calls = [
+        FunctionCall(id="call_1", name="increment_number", arguments='{"number": 5}'),
+        FunctionCall(id="call_2", name="increment_number", arguments='{"number": 6}'),
+    ]
+    
+    assistant_message_no_thought = AssistantMessage(
+        content=tool_calls,
+        source="assistant",
+        thought=None  # No thought - this was causing the issue
+    )
+    
+    # Transform the message using the OpenAI transformer
+    oai_messages = to_oai_type(
+        assistant_message_no_thought,
+        prepend_name=False,
+        model="gpt-4o",
+        model_family=ModelFamily.OPENAI
+    )
+    
+    # Should return a list with one message
+    assert isinstance(oai_messages, list)
+    assert len(oai_messages) == 1
+    
+    transformed_message = oai_messages[0]
+    
+    # Verify all required fields are present
+    assert "role" in transformed_message
+    assert "tool_calls" in transformed_message
+    assert "content" in transformed_message  # This was missing before the fix
+    
+    # Verify field values
+    assert transformed_message["role"] == "assistant"
+    assert transformed_message["content"] is None  # Should be null for tools without thought
+    assert len(transformed_message["tool_calls"]) == 2
+    
+    # Verify tool_calls structure
+    for i, tool_call in enumerate(transformed_message["tool_calls"]):
+        assert "id" in tool_call
+        assert "type" in tool_call
+        assert "function" in tool_call
+        assert tool_call["type"] == "function"
+        assert tool_call["id"] == f"call_{i+1}"
+        assert tool_call["function"]["name"] == "increment_number"
+    
+    # Test AssistantMessage with tool calls AND thought
+    assistant_message_with_thought = AssistantMessage(
+        content=tool_calls,
+        source="assistant", 
+        thought="I need to increment these numbers."
+    )
+    
+    oai_messages_with_thought = to_oai_type(
+        assistant_message_with_thought,
+        prepend_name=False,
+        model="gpt-4o",
+        model_family=ModelFamily.OPENAI
+    )
+    
+    assert isinstance(oai_messages_with_thought, list)
+    assert len(oai_messages_with_thought) == 1
+    
+    transformed_with_thought = oai_messages_with_thought[0]
+    
+    # Should have both tool_calls and content with thought text
+    assert "role" in transformed_with_thought
+    assert "tool_calls" in transformed_with_thought
+    assert "content" in transformed_with_thought
+    assert transformed_with_thought["role"] == "assistant"
+    assert transformed_with_thought["content"] == "I need to increment these numbers."
+    assert len(transformed_with_thought["tool_calls"]) == 2
