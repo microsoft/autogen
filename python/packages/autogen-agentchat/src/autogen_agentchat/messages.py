@@ -604,17 +604,18 @@ class MessageFactory:
         self._message_types[CodeGenerationEvent.__name__] = CodeGenerationEvent
         self._message_types[CodeExecutionEvent.__name__] = CodeExecutionEvent
 
-    def is_registered(self, message_type: type[BaseAgentEvent | BaseChatMessage]) -> bool:
-        """Check if a message type is registered with the factory."""
-        # Get the class name of the message type.
-        class_name = message_type.__name__
+    def is_valid_message_type(self, message_type: type[BaseAgentEvent | BaseChatMessage]) -> bool:
+        """Check if a message type is valid (either registered or a StructuredMessage).
         
-        # Check if the class name is already registered.
-        if class_name in self._message_types:
+        This method is used for validation purposes and considers StructuredMessage types
+        as valid even if they're not explicitly registered.
+        """
+        # First check if it's explicitly registered
+        if self.is_registered(message_type):
             return True
             
         # Special handling for StructuredMessage types
-        # StructuredMessage[SomeType] should be considered registered if it's a StructuredMessage
+        # StructuredMessage[SomeType] should be considered valid even if not explicitly registered
         try:
             # Check if this is a StructuredMessage type (including parameterized versions)
             if hasattr(message_type, '__origin__') and message_type.__origin__ is StructuredMessage:
@@ -623,13 +624,20 @@ class MessageFactory:
             if issubclass(message_type, StructuredMessage):
                 return True
             # Check if the class name starts with "StructuredMessage" (for parameterized types)
-            if class_name.startswith("StructuredMessage"):
+            if message_type.__name__.startswith("StructuredMessage"):
                 return True
         except (TypeError, AttributeError):
             # Handle edge cases where issubclass might fail
             pass
             
         return False
+
+    def is_registered(self, message_type: type[BaseAgentEvent | BaseChatMessage]) -> bool:
+        """Check if a message type is registered with the factory."""
+        # Get the class name of the message type.
+        class_name = message_type.__name__
+        # Check if the class name is already registered.
+        return class_name in self._message_types
 
     def register(self, message_type: type[BaseAgentEvent | BaseChatMessage]) -> None:
         """Register a new message type with the factory."""
