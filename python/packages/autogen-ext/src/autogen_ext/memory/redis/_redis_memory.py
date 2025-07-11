@@ -69,6 +69,22 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
 
             pip install "autogen-ext[redis]"
 
+        Additionally, you will need access to a Redis instance.
+        To run a local instance of redis in docker:
+
+        .. code-block:: bash
+
+            docker run -d --name redis -p 6379:6379 redis:8
+
+        To download and run Redis locally:
+
+        .. code-block:: bash
+            curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+            sudo apt-get update  > /dev/null 2>&1
+            sudo apt-get install redis-server  > /dev/null 2>&1
+            redis-server --daemonize yes
+
     Args:
         config (RedisMemoryConfig | None): Configuration for the Redis memory.
             If None, defaults to a RedisMemoryConfig with recommended settings.
