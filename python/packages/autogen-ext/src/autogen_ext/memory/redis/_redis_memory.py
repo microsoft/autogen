@@ -1,25 +1,18 @@
 import logging
-import uuid
-from typing import Any, Dict, List, Literal
+from typing import Any, Literal
 
-from autogen_core import CancellationToken, Component, Image
+from autogen_core import CancellationToken, Component
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQueryResult, UpdateContextResult
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
 from pydantic import BaseModel, Field
-from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
 
 try:
     from redis import Redis
     from redisvl.extensions.message_history import SemanticMessageHistory
-    from redisvl.index import AsyncSearchIndex, SearchIndex
-    from redisvl.query import RangeQuery
-    from redisvl.query.filter import FilterExpression
-    from redisvl.schema import IndexSchema
-    from redisvl.utils.utils import current_timestamp, deserialize, serialize
-    from redisvl.utils.vectorize.text.huggingface import HFTextVectorizer
+    from redisvl.utils.utils import deserialize, serialize
 except ImportError as e:
     raise ImportError("To use Redis Memory RedisVL must be installed. Run `pip install autogen-ext[redisvl]`") from e
 
@@ -70,14 +63,106 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
     contextually relevant information during conversations by leveraging vector embeddings to find
     similar content.
 
-    .. note::
-
         This implementation requires the RedisVL extra to be installed. Install with:
-        `pip install autogen-ext[redisvl]`
+
+        .. code-block:: bash
+
+            pip install "autogen-ext[redis]"
 
     Args:
         config (RedisMemoryConfig | None): Configuration for the Redis memory.
             If None, defaults to a RedisMemoryConfig with recommended settings.
+
+    Example:
+
+        .. code-block:: python
+
+            from logging import WARNING, getLogger
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
+            from autogen_core.memory import MemoryContent, MemoryMimeType
+            from autogen_ext.memory.redis import RedisMemory, RedisMemoryConfig
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+            logger = getLogger()
+            logger.setLevel(WARNING)
+
+
+            # Define tool to use
+            async def get_weather(city: str, units: str = "imperial") -> str:
+                if units == "imperial":
+                    return f"The weather in {city} is 73 °F and Sunny."
+                elif units == "metric":
+                    return f"The weather in {city} is 23 °C and Sunny."
+                else:
+                    return f"Sorry, I don't know the weather in {city}."
+
+
+            async def main():
+                # Initailize Redis memory
+                redis_memory = RedisMemory(
+                    config=RedisMemoryConfig(
+                        redis_url="redis://localhost:6379",
+                        index_name="chat_history",
+                        prefix="memory",
+                    )
+                )
+
+                # Add user preferences to memory
+                await redis_memory.add(
+                    MemoryContent(
+                        content="The weather should be in metric units",
+                        mime_type=MemoryMimeType.TEXT,
+                        metadata={"category": "preferences", "type": "units"},
+                    )
+                )
+
+                await redis_memory.add(
+                    MemoryContent(
+                        content="Meal recipe must be vegan",
+                        mime_type=MemoryMimeType.TEXT,
+                        metadata={"category": "preferences", "type": "dietary"},
+                    )
+                )
+
+                model_client = OpenAIChatCompletionClient(
+                    model="gpt-4o",
+                )
+
+                # Create assistant agent with ChromaDB memory
+                assistant_agent = AssistantAgent(
+                    name="assistant_agent",
+                    model_client=model_client,
+                    tools=[get_weather],
+                    memory=[redis_memory],
+                )
+
+                stream = assistant_agent.run_stream(task="What is the weather in New York?")
+                await Console(stream)
+
+                await model_client.close()
+                await redis_memory.close()
+
+
+            asyncio.run(main())
+
+        Output:
+
+        .. code-block:: text
+
+            ---------- TextMessage (user) ----------
+            What is the weather in New York?
+            ---------- MemoryQueryEvent (assistant_agent) ----------
+            [MemoryContent(content='The weather should be in metric units', mime_type=<MemoryMimeType.TEXT: 'text/plain'>, metadata={'category': 'preferences', 'type': 'units'})]
+            ---------- ToolCallRequestEvent (assistant_agent) ----------
+            [FunctionCall(id='call_tyCPvPPAV4SHWhtfpM6UMemr', arguments='{"city":"New York","units":"metric"}', name='get_weather')]
+            ---------- ToolCallExecutionEvent (assistant_agent) ----------
+            [FunctionExecutionResult(content='The weather in New York is 23 °C and Sunny.', name='get_weather', call_id='call_tyCPvPPAV4SHWhtfpM6UMemr', is_error=False)]
+            ---------- ToolCallSummaryMessage (assistant_agent) ----------
+            The weather in New York is 23 °C and Sunny.
+
     """
 
     component_config_schema = RedisMemoryConfig
@@ -86,7 +171,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
     def __init__(self, config: RedisMemoryConfig | None = None) -> None:
         """Initialize RedisMemory."""
         self.config = config or RedisMemoryConfig()
-        client = Redis.from_url(url=self.config.redis_url)
+        client = Redis.from_url(url=self.config.redis_url)  # type: ignore[reportUknownMemberType]
 
         self.message_history = SemanticMessageHistory(name=self.config.index_name, redis_client=client)
 
@@ -143,7 +228,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
             )
 
         self.message_history.add_message(
-            {"role": "user", "content": content.content, "tool_call_id": serialize(content.metadata)}
+            {"role": "user", "content": content.content, "tool_call_id": serialize(content.metadata)}  # type: ignore[reportArgumentType]
         )
 
     async def query(
@@ -172,25 +257,36 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         Returns:
             memoryQueryResult: Object containing memories relevant to the provided query.
         """
-        query = query.content if isinstance(query, MemoryContent) else query
+        # query = query.content if isinstance(query, MemoryContent) else query
+
+        # get the query string, or raise an error for unsupported MemoryContent types
+        if isinstance(query, MemoryContent):
+            if query.mime_type != MemoryMimeType.TEXT:
+                raise NotImplementedError(
+                    f"Error: {query.mime_type} is not supported. Only MemoryMimeType.TEXT is currently supported."
+                )
+            query = query.content  # type: ignore[reportArgumentType]
 
         top_k = kwargs.pop("top_k", self.config.top_k)
         distance_threshold = kwargs.pop("distance_threshold", self.config.distance_threshold)
 
         results = self.message_history.get_relevant(
-            prompt=query,
+            prompt=query,  # type: ignore[reportArgumentType]
             top_k=top_k,
             distance_threshold=distance_threshold,
+            raw=False,
         )
 
         memories = []
         for result in results:
             memory = MemoryContent(
-                content=result["content"], mime_type=MemoryMimeType.TEXT, metadata=deserialize(result["tool_call_id"])
+                content=result["content"],  # type: ignore[reportArgumentType]
+                mime_type=MemoryMimeType.TEXT,
+                metadata=deserialize(result["tool_call_id"]),  # type: ignore[reportArgumentType]
             )
-            memories.append(memory)
+            memories.append(memory)  # type: ignore[reportUknownMemberType]
 
-        return MemoryQueryResult(results=memories)
+        return MemoryQueryResult(results=memories)  # type: ignore[reportUknownMemberType]
 
     async def clear(self) -> None:
         """Clear all entries from memory, preserving the RedisMemory resources."""

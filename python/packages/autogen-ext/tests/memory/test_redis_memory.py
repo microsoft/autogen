@@ -1,12 +1,11 @@
 from collections.abc import AsyncGenerator
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
 from autogen_core.memory import MemoryContent, MemoryMimeType
 from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_core.models import SystemMessage, UserMessage
-from autogen_ext.memory.redis_memory import RedisMemory, RedisMemoryConfig
+from autogen_core.models import UserMessage
+from autogen_ext.memory.redis import RedisMemory, RedisMemoryConfig
 from pydantic import ValidationError
 from redisvl.exceptions import RedisSearchError
 
@@ -132,7 +131,6 @@ async def test_update_context(semantic_memory: RedisMemory) -> None:
         buffer_size=5,
         initial_messages=[
             UserMessage(content="Can you tell me about the reign of Emperor Napoleon?", source="user"),
-            # SystemMessage(content="Napoleon was Emporor of France from 18 May 1804 to 6 April 1814, and again from 20 March 1815 to 22 June 1815.", source="llm")
         ],
     )
 
