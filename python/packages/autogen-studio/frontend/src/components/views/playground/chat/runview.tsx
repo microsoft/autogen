@@ -19,7 +19,7 @@ import { Run, Message, TeamConfig, Component } from "../../../types/datamodel";
 import AgentFlow from "./agentflow/agentflow";
 import { RenderMessage } from "./rendermessage";
 import InputRequestView from "./inputrequest";
-import { Tooltip } from "antd";
+import { Tooltip, Dropdown, MenuProps } from "antd";
 import { getRelativeTimeString, LoadingDots } from "../../atoms";
 import { useSettingsStore } from "../../settings/store";
 
@@ -114,6 +114,7 @@ const RunView: React.FC<RunViewProps> = ({
   const [replayMessageIndex, setReplayMessageIndex] = useState(0);
   const [originalRun, setOriginalRun] = useState<Run | null>(null);
   const replayIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [replaySpeed, setReplaySpeed] = useState(1); // 1x speed by default
 
   // Create a run object for display (either original or replaying version)
   const displayRun = useMemo(() => {
@@ -152,7 +153,8 @@ const RunView: React.FC<RunViewProps> = ({
     setIsReplaying(true);
     setIsExpanded(true); // Ensure the messages are visible
 
-    // Start the replay interval
+    // Start the replay interval with current speed
+    const intervalTime = 800 / replaySpeed; // Base time 800ms divided by speed multiplier
     replayIntervalRef.current = setInterval(() => {
       setReplayMessageIndex((prev) => {
         if (prev >= run.messages.length - 1) {
@@ -165,7 +167,7 @@ const RunView: React.FC<RunViewProps> = ({
         }
         return prev + 1;
       });
-    }, 800); // Show new message every 800ms
+    }, intervalTime);
   };
 
   const pauseReplay = () => {
@@ -184,6 +186,29 @@ const RunView: React.FC<RunViewProps> = ({
     setIsReplaying(false);
     setReplayMessageIndex(0);
     setOriginalRun(null);
+  };
+
+  const changeReplaySpeed = (newSpeed: number) => {
+    setReplaySpeed(newSpeed);
+    
+    // If currently replaying, restart with new speed
+    if (isReplaying && replayIntervalRef.current) {
+      clearInterval(replayIntervalRef.current);
+      const intervalTime = 800 / newSpeed;
+      replayIntervalRef.current = setInterval(() => {
+        setReplayMessageIndex((prev) => {
+          if (prev >= (originalRun?.messages.length || run.messages.length) - 1) {
+            setIsReplaying(false);
+            if (replayIntervalRef.current) {
+              clearInterval(replayIntervalRef.current);
+              replayIntervalRef.current = null;
+            }
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, intervalTime);
+    }
   };
 
   // Cleanup interval on unmount
@@ -335,30 +360,105 @@ const RunView: React.FC<RunViewProps> = ({
           {canReplay && (
             <div className="flex items-center gap-2">
               {!isReplaying && !originalRun && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0">
                   <button
                     onClick={startReplay}
-                    className="p-1 px-2 rounded hover:bg-secondary transition-colors text-secondary hover:text-primary"
+                    className="p-1 px-2 rounded-l hover:bg-secondary transition-colors text-secondary hover:text-primary"
                   >
-                    <Play className="inline-block" size={16} />{" "}
-                    <span className="inline-block text-xs text-secondary">
-                      Replay Run
+                    <Play className="inline-block" size={16} />
+                    <span className="inline-block text-xs text-secondary ml-1">
+                      Replay Run ({replaySpeed}x)
                     </span>
                   </button>
+                  <Dropdown
+                    menu={{
+                      items: [
+                        {
+                          key: "0.1",
+                          label: "0.1x",
+                          onClick: () => changeReplaySpeed(0.1),
+                        },
+                        {
+                          key: "0.5",
+                          label: "0.5x",
+                          onClick: () => changeReplaySpeed(0.5),
+                        },
+                        {
+                          key: "1",
+                          label: "1x",
+                          onClick: () => changeReplaySpeed(1),
+                        },
+                        {
+                          key: "2",
+                          label: "2x",
+                          onClick: () => changeReplaySpeed(2),
+                        },
+                        {
+                          key: "5",
+                          label: "5x",
+                          onClick: () => changeReplaySpeed(5),
+                        },
+                      ],
+                      selectedKeys: [replaySpeed.toString()],
+                    }}
+                    trigger={["click"]}
+                  >
+                    <button className="p-1 px-1 rounded-r hover:bg-secondary transition-colors text-secondary hover:text-primary border-l border-secondary">
+                      <ChevronDown className="inline-block" size={12} />
+                    </button>
+                  </Dropdown>
                 </div>
               )}
 
               {isReplaying && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0">
                   <button
                     onClick={pauseReplay}
-                    className="p-1 px-2 rounded hover:bg-secondary transition-colors text-accent hover:text-primary"
+                    className="p-1 px-2 rounded-l hover:bg-secondary transition-colors text-accent hover:text-primary"
                   >
-                    <Pause className="inline-block" size={16} />{" "}
-                    <span className="inline-block text-xs text-accent">
-                      Pause Replay
+                    <Pause className="inline-block" size={16} />
+                    <span className="inline-block text-xs text-accent ml-1">
+                      Pause Replay ({replaySpeed}x)
                     </span>
                   </button>
+                  
+                  <Dropdown
+                    menu={{
+                      items: [
+                        {
+                          key: "0.1",
+                          label: "0.1x",
+                          onClick: () => changeReplaySpeed(0.1),
+                        },
+                        {
+                          key: "0.5",
+                          label: "0.5x",
+                          onClick: () => changeReplaySpeed(0.5),
+                        },
+                        {
+                          key: "1",
+                          label: "1x",
+                          onClick: () => changeReplaySpeed(1),
+                        },
+                        {
+                          key: "2",
+                          label: "2x",
+                          onClick: () => changeReplaySpeed(2),
+                        },
+                        {
+                          key: "5",
+                          label: "5x",
+                          onClick: () => changeReplaySpeed(5),
+                        },
+                      ],
+                      selectedKeys: [replaySpeed.toString()],
+                    }}
+                    trigger={["click"]}
+                  >
+                    <button className="p-1 px-1 rounded-r hover:bg-secondary transition-colors text-secondary hover:text-primary border-l border-secondary">
+                      <ChevronDown className="inline-block" size={12} />
+                    </button>
+                  </Dropdown>
                 </div>
               )}
 
