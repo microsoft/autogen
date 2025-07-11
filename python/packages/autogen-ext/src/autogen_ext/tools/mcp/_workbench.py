@@ -1,9 +1,18 @@
 import asyncio
 import builtins
 import warnings
+from contextlib import nullcontext
 from typing import Any, Dict, List, Literal, Mapping, Optional
 
-from autogen_core import CancellationToken, Component, Image, trace_tool_span
+from autogen_core import CancellationToken, Component, Image
+
+# Import trace_tool_span conditionally for backward compatibility
+try:
+    from autogen_core import trace_tool_span
+except ImportError:
+    # If trace_tool_span is not available (older autogen-core versions),
+    # use a no-op context manager
+    trace_tool_span = None
 from autogen_core.tools import (
     ImageResultContent,
     ParametersSchema,
@@ -284,10 +293,17 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         # Check if the name is an override name and map it back to the original
         original_name = self._override_name_to_original.get(name, name)
 
-        with trace_tool_span(
-            tool_name=name,  # Use the requested name for tracing
-            tool_call_id=call_id,
-        ):
+        # Use trace_tool_span if available, otherwise use nullcontext for no-op
+        tracing_context = (
+            trace_tool_span(
+                tool_name=name,  # Use the requested name for tracing
+                tool_call_id=call_id,
+            )
+            if trace_tool_span is not None
+            else nullcontext()
+        )
+
+        with tracing_context:
             try:
                 result_future = await self._actor.call("call_tool", {"name": original_name, "kargs": arguments})
                 cancellation_token.link_future(result_future)
