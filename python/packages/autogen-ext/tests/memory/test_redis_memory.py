@@ -7,7 +7,16 @@ from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import UserMessage
 from autogen_ext.memory.redis import RedisMemory, RedisMemoryConfig
 from pydantic import ValidationError
+from redis import ConnectionError, Redis
 from redisvl.exceptions import RedisSearchError
+
+# Skip tests if Redis instance is not avalable locally
+try:
+    # Attempt to connect to Redis by initializing and pinging
+    client = Redis.from_url("redis://localhost:6379")  # type: ignore[reportUnkownMemberType]
+    client.ping()  # type: ignore[reportUnkownMemberType]
+except ConnectionError:
+    pytest.skip("Redis instance not available locally", allow_module_level=True)
 
 
 @pytest.fixture
@@ -16,7 +25,7 @@ def semantic_config() -> RedisMemoryConfig:
     return RedisMemoryConfig(top_k=5, distance_threshold=0.5, model_name="sentence-transformers/all-mpnet-base-v2")
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture  # type: ignore[reportUntypedFunctionDecorator]
 async def semantic_memory(semantic_config: RedisMemoryConfig) -> AsyncGenerator[RedisMemory]:
     memory = RedisMemory(semantic_config)
     yield memory
