@@ -1,6 +1,9 @@
 import importlib.metadata
 
-__version__ = importlib.metadata.version("autogen_core")
+try:
+    __version__ = importlib.metadata.version("autogen_core")
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "0.6.4"  # Fallback version for development
 
 from ._agent import Agent
 from ._agent_id import AgentId
