@@ -34,7 +34,7 @@ class RedisMemoryConfig(BaseModel):
         algorithm (Literal["flat", "hnsw"]): Vector search algorithm to use. flat is default. hnsw
             is an approximation using hierarchical navigable small world graph.
         top_k (int): Number of results to return in queries (default: 10).
-        datatype (Literal["int8", "float16", "float32", "float64", "bfloat16"]): The data type to
+        datatype (Literal["uint8", "int8", "float16", "float32", "float64", "bfloat16"]): The data type to
             store the vector as (default: "float32").
         distance_threshold (float): Minimum similarity threshold for results (default: 0.7).
         model_name (str | None): Name of the embedding model to use for semantic memory
@@ -47,7 +47,7 @@ class RedisMemoryConfig(BaseModel):
     distance_metric: Literal["cosine", "ip", "l2"] = "cosine"
     algorithm: Literal["flat", "hnsw"] = "flat"
     top_k: int = Field(default=10, description="Number of results to return in queries")
-    datatype: Literal["int8", "float16", "float32", "float64", "bfloat16"] = "float32"
+    datatype: Literal["uint8", "int8", "float16", "float32", "float64", "bfloat16"] = "float32"
     distance_threshold: float = Field(default=0.7, description="Minimum similarity score threshold")
     model_name: str | None = Field(
         default="sentence-transformers/all-mpnet-base-v2", description="Embedding model name"
