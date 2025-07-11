@@ -608,8 +608,28 @@ class MessageFactory:
         """Check if a message type is registered with the factory."""
         # Get the class name of the message type.
         class_name = message_type.__name__
+        
         # Check if the class name is already registered.
-        return class_name in self._message_types
+        if class_name in self._message_types:
+            return True
+            
+        # Special handling for StructuredMessage types
+        # StructuredMessage[SomeType] should be considered registered if it's a StructuredMessage
+        try:
+            # Check if this is a StructuredMessage type (including parameterized versions)
+            if hasattr(message_type, '__origin__') and message_type.__origin__ is StructuredMessage:
+                return True
+            # Check if this is the base StructuredMessage class or a subclass
+            if issubclass(message_type, StructuredMessage):
+                return True
+            # Check if the class name starts with "StructuredMessage" (for parameterized types)
+            if class_name.startswith("StructuredMessage"):
+                return True
+        except (TypeError, AttributeError):
+            # Handle edge cases where issubclass might fail
+            pass
+            
+        return False
 
     def register(self, message_type: type[BaseAgentEvent | BaseChatMessage]) -> None:
         """Register a new message type with the factory."""
