@@ -43,6 +43,13 @@ Understand the message types
 Work with AgentChat agents and get started with {py:class}`~autogen_agentchat.agents.AssistantAgent`
 :::
 
+:::{grid-item-card} {fas}`exclamation-triangle;pst-color-primary` Tools and Error Handling
+:link: ../../core-user-guide/components/tools.ipynb
+:link-alt: Tools and Error Handling: Best practices for using tools and handling errors
+
+Best practices for using tools, handling errors, and providing meaningful feedback
+:::
+
 :::{grid-item-card} {fas}`sitemap;pst-color-primary` Teams
 :link: ./teams.html
 :link-alt: Teams: Work with teams of agents and get started with autogen_agentchat.teams.RoundRobinGroupChat.
