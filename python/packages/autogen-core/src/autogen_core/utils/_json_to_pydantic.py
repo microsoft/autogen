@@ -100,6 +100,30 @@ def _make_field(
     return Field(default, **field_kwargs)
 
 
+def _safe_deduplicate_required(required_list: List[Any]) -> List[str]:
+    """
+    Safely deduplicate a required list by filtering out non-hashable items.
+    
+    Args:
+        required_list: List that may contain strings and non-hashable items like lists or dicts
+        
+    Returns:
+        List of unique string field names
+    """
+    hashable_items = []
+    for item in required_list:
+        # Only include hashable string items
+        if isinstance(item, str):
+            hashable_items.append(item)
+        elif isinstance(item, (int, float, bool)):
+            # Convert other hashable types to strings
+            hashable_items.append(str(item))
+        # Skip unhashable items like lists, dicts, etc.
+    
+    # Deduplicate using set() since all items are now hashable
+    return list(set(hashable_items))
+
+
 class _JSONSchemaToPydantic:
     def __init__(self) -> None:
         self._model_cache: Dict[str, Optional[Union[Type[BaseModel], ForwardRef]]] = {}
@@ -156,7 +180,7 @@ class _JSONSchemaToPydantic:
             for k, v in schema.items():
                 if k not in {"allOf", "properties", "required"}:
                     merged[k] = v
-            merged["required"] = list(set(merged["required"]))
+            merged["required"] = _safe_deduplicate_required(merged["required"])
             schema = merged
 
         return self._json_schema_to_model(schema, model_name, root_schema)
@@ -264,11 +288,13 @@ class _JSONSchemaToPydantic:
             for k, v in schema.items():
                 if k not in {"allOf", "properties", "required"}:
                     merged[k] = v
-            merged["required"] = list(set(merged["required"]))
+            merged["required"] = _safe_deduplicate_required(merged["required"])
             schema = merged
 
         fields: Dict[str, tuple[Any, FieldInfo]] = {}
-        required_fields = set(schema.get("required", []))
+        # Safe handling of required fields - filter out unhashable items
+        required_list = schema.get("required", [])
+        required_fields = set(_safe_deduplicate_required(required_list))
 
         for key, value in schema.get("properties", {}).items():
             if "$ref" in value:
@@ -294,7 +320,7 @@ class _JSONSchemaToPydantic:
                 for k, v in value.items():
                     if k not in {"allOf", "properties", "required"}:
                         merged[k] = v
-                merged["required"] = list(set(merged["required"]))
+                merged["required"] = _safe_deduplicate_required(merged["required"])
                 field_type = self._json_schema_to_model(merged, f"{model_name}_{key}", root_schema)
             elif value.get("type") == "object" and "properties" in value:
                 field_type = self._json_schema_to_model(value, f"{model_name}_{key}", root_schema)
