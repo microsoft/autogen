@@ -1,7 +1,0 @@
-recursive-include  autogenstudio/web/ui *
-recursive-include  autogenstudio/web/database.sqlite
-recursive-exclude  notebooks *
-
-recursive-exclude  frontend *
-recursive-exclude  docs *
-recursive-exclude  tests *

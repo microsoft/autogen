@@ -1,8 +1,0 @@
-# Similar to the 100 vampires task, for testing generalization from one to the other.
-
-task_description: 'You ask ten people ''How many of you are liars?''
-  They all answer ''At least one of us is not a liar.''
-  You happen to know that at least one of them IS a liar.
-  How many of them are liars in total?'
-
-expected_answer: All of them are liars.

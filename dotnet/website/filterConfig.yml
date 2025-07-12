@@ -1,3 +1,0 @@
-apiRules:
-- exclude:
-    uidRegex: ^AutoGen.SourceGenerator

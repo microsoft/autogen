@@ -1,1 +1,0 @@
-# {{cookiecutter.package_name}}
