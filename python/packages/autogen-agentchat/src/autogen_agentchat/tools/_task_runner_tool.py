@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Annotated, Any, AsyncGenerator, List, Mapping
+from typing import Annotated, Any, AsyncGenerator, List, Mapping, Sequence
 
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseStreamTool
@@ -14,7 +14,8 @@ from ..teams import BaseGroupChat
 class TaskRunnerToolArgs(BaseModel):
     """Input for the TaskRunnerTool."""
 
-    task: Annotated[str, "The task to be executed."]
+    task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None
+    """The task to be executed."""
 
 
 class TaskRunnerTool(BaseStreamTool[TaskRunnerToolArgs, BaseAgentEvent | BaseChatMessage, TaskResult], ABC):
