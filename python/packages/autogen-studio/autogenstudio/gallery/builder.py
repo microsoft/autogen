@@ -239,7 +239,7 @@ def create_default_gallery() -> GalleryConfig:
     )
 
     # Add examples of new termination conditions
-    
+
     # StopMessageTermination - terminates when a StopMessage is received
     stop_msg_term = StopMessageTermination()
     builder.add_termination(
@@ -327,7 +327,7 @@ def create_default_gallery() -> GalleryConfig:
         model_client=base_model,
         handoffs=["Bob"],
     )
-    
+
     # Bob agent with handoff back to Alice
     bob_agent = AssistantAgent(
         name="Bob",
@@ -335,12 +335,9 @@ def create_default_gallery() -> GalleryConfig:
         model_client=base_model,
         handoffs=["Alice"],
     )
-    
+
     # Create simple Swarm team with handoff-based conversation
-    swarm_team = Swarm(
-        participants=[alice_agent, bob_agent],
-        termination_condition=calc_or_term
-    )
+    swarm_team = Swarm(participants=[alice_agent, bob_agent], termination_condition=calc_or_term)
     builder.add_team(
         swarm_team.dump_component(),
         label="Swarm Team",
@@ -527,12 +524,11 @@ Read the above conversation. Then select the next role from {participants} to pl
 
     # Combine token usage limit with text termination for safety
     budget_termination = TokenUsageTermination(max_total_token=500) | TextMentionTermination(text="TERMINATE")
-    
+
     budget_team = RoundRobinGroupChat(
-        participants=[cost_controlled_assistant], 
-        termination_condition=budget_termination
+        participants=[cost_controlled_assistant], termination_condition=budget_termination
     )
-    
+
     builder.add_team(
         budget_team.dump_component(),
         label="Budget-Controlled Team",
@@ -548,15 +544,12 @@ Read the above conversation. Then select the next role from {participants} to pl
 
     # 30-second timeout with fallback termination
     quick_termination = TimeoutTermination(timeout_seconds=30) | MaxMessageTermination(max_messages=5)
-    
-    quick_team = RoundRobinGroupChat(
-        participants=[quick_assistant],
-        termination_condition=quick_termination
-    )
-    
+
+    quick_team = RoundRobinGroupChat(participants=[quick_assistant], termination_condition=quick_termination)
+
     builder.add_team(
         quick_team.dump_component(),
-        label="Quick Response Team", 
+        label="Quick Response Team",
         description="A time-limited team that provides quick responses within 30 seconds or 5 messages maximum.",
     )
 
@@ -633,35 +626,34 @@ Read the above conversation. Then select the next role from {participants} to pl
 
 def create_default_lite_team():
     """Create a simple default team for lite mode - a basic assistant with calculator tool."""
-    import os
     import json
+    import os
     import tempfile
-    
+
     # model clients require API keys to be set in the environment or passed in
     # as arguments. For testing purposes, we set them to "test" if not already set.
     for key in ["OPENAI_API_KEY", "AZURE_OPENAI_API_KEY", "ANTHROPIC_API_KEY"]:
         if not os.environ.get(key):
             os.environ[key] = "test"
-    
+
     # Create base model client
     base_model = OpenAIChatCompletionClient(model="gpt-4o-mini")
-    
+
     # Create assistant agent with calculator tool
     assistant = AssistantAgent(
         name="assistant",
         model_client=base_model,
         tools=[tools.calculator_tool],
     )
-    
+
     # Create termination condition
     termination = TextMentionTermination(text="TERMINATE") | MaxMessageTermination(max_messages=5)
-    
+
     # Create simple round robin team
     team = RoundRobinGroupChat(participants=[assistant], termination_condition=termination)
-     
-    
+
     # Create temporary file with team data
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         json.dump(team.dump_component().model_dump(), f, indent=2)
         return f.name
 

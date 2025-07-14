@@ -1,7 +1,7 @@
 # api/deps.py
+import json
 import logging
 import os
-import json
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
@@ -18,6 +18,7 @@ from .managers.connection import WebSocketManager
 logger = logging.getLogger(__name__)
 
 # Helper functions for environment detection
+
 
 def is_lite_mode() -> bool:
     """Check if lite mode is enabled via environment variable"""
@@ -96,7 +97,7 @@ def init_auth_manager(config_dir: Path) -> AuthManager:
         auth_manager = AuthManager(config)
         logger.info("Authentication disabled via environment variable")
         return auth_manager
-    
+
     auth_config_path = os.environ.get("AUTOGENSTUDIO_AUTH_CONFIG")
 
     if auth_config_path and os.path.exists(auth_config_path):
@@ -139,7 +140,7 @@ async def init_managers(database_uri: str, config_dir: str | Path, app_root: str
     try:
         # Initialize database manager
         _db_manager = DatabaseManager(engine_uri=database_uri, base_dir=app_root)
-        
+
         # Initialize database - use simplified approach for lite mode
         if is_lite_mode():
             logger.info("Initializing database for lite mode...")
@@ -261,9 +262,9 @@ async def init_lite_mode(db_manager: DatabaseManager) -> None:
     """Initialize lite mode specific setup: load team and create default session"""
     if not is_lite_mode():
         return
-        
+
     logger.info("Initializing lite mode...")
-    
+
     # Load team from file (required in lite mode)
     if settings.LITE_TEAM_FILE and os.path.exists(settings.LITE_TEAM_FILE):
         try:
@@ -272,17 +273,14 @@ async def init_lite_mode(db_manager: DatabaseManager) -> None:
             if result.status and result.data:
                 team_id = result.data.get("id")
                 logger.info(f"Loaded team from file {settings.LITE_TEAM_FILE} with ID: {team_id}")
-                
+
                 # Create a default session with this team
                 from ..datamodel.db import Session
+
                 session_name = settings.LITE_SESSION_NAME or "Lite Mode Session"
-                
-                session = Session(
-                    user_id=settings.DEFAULT_USER_ID,
-                    team_id=team_id,
-                    name=session_name
-                )
-                
+
+                session = Session(user_id=settings.DEFAULT_USER_ID, team_id=team_id, name=session_name)
+
                 session_result = db_manager.upsert(session)
                 if session_result.status and session_result.data:
                     session_id = session_result.data.get("id")
@@ -293,7 +291,7 @@ async def init_lite_mode(db_manager: DatabaseManager) -> None:
             else:
                 logger.error(f"Failed to import team from file: {result.message}")
                 raise Exception(f"Failed to import team: {result.message}")
-            
+
         except Exception as e:
             logger.error(f"Failed to load team from file {settings.LITE_TEAM_FILE}: {str(e)}")
             raise

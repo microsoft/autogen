@@ -150,16 +150,10 @@ def lite(
         session_name (str): Name for the auto-created session.
     """
     from autogenstudio.lite import LiteStudio
-    
+
     # Create and start studio instance
-    studio = LiteStudio(
-        team=team,
-        host=host,
-        port=port,
-        auto_open=auto_open,
-        session_name=session_name
-    )
-    
+    studio = LiteStudio(team=team, host=host, port=port, auto_open=auto_open, session_name=session_name)
+
     try:
         studio.start()  # Blocking call for CLI
     except KeyboardInterrupt:
