@@ -6,7 +6,7 @@ import time
 import webbrowser
 import subprocess
 from pathlib import Path
-from typing import Union, Optional, Dict, Any
+from typing import Union, Dict, Any
 import uvicorn
 from autogen_core import ComponentModel
 
@@ -231,7 +231,7 @@ class LiteStudio:
         self.start(background=True)
         return self
     
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb): # type: ignore
         """Context manager exit - stop server."""
         self.stop()
     
