@@ -1,16 +1,17 @@
 import os
 import json
 import pytest
-from unittest.mock import patch, Mock
-from typing import Dict, Any, cast
+from unittest.mock import patch, Mock, MagicMock
+from typing import Any, cast, Dict, List, Union
+from pathlib import Path
 
 from autogenstudio.lite import LiteStudio
 
 
 @pytest.fixture
-def sample_team_file(tmp_path):
+def sample_team_file(tmp_path: Path) -> str:
     """Fixture for creating a sample team JSON file"""
-    team_data = {
+    team_data: Dict[str, Union[str, List[Any]]] = {
         "type": "SampleTeam",
         "name": "Test Team",
         "description": "A test team for lite mode",
@@ -23,7 +24,7 @@ def sample_team_file(tmp_path):
 
 
 @pytest.fixture
-def sample_team_object():
+def sample_team_object() -> Dict[str, Union[str, List[Any]]]:
     """Fixture for sample team object"""
     return {
         "type": "TestTeam",
@@ -32,13 +33,13 @@ def sample_team_object():
     }
 
 
-def load_team_from_file(file_path):
+def load_team_from_file(file_path: str) -> Dict[str, Any]:
     """Helper function to load team data from file"""
     with open(file_path, 'r') as f:
         return json.load(f)
 
 
-def test_init_with_file_team(sample_team_file):
+def test_init_with_file_team(sample_team_file: str) -> None:
     """Test LiteStudio initialization with a team file"""
     studio = LiteStudio(
         team=sample_team_file,
@@ -55,7 +56,7 @@ def test_init_with_file_team(sample_team_file):
     assert studio.server_process is None
 
 
-def test_init_with_team_object(sample_team_object):
+def test_init_with_team_object(sample_team_object: Dict[str, Union[str, List[Any]]]) -> None:
     """Test LiteStudio initialization with a team object"""
     studio = LiteStudio(team=sample_team_object, port=9091)
     
@@ -70,7 +71,7 @@ def test_init_with_team_object(sample_team_object):
 
 
 @patch('autogenstudio.gallery.builder.create_default_lite_team')
-def test_init_with_no_team(mock_create_default):
+def test_init_with_no_team(mock_create_default: MagicMock) -> None:
     """Test LiteStudio initialization with no team (should create default)"""
     mock_create_default.return_value = "/tmp/default_team.json"
     
@@ -86,17 +87,17 @@ def test_init_with_no_team(mock_create_default):
         assert studio.session_name == "Lite Session"
 
 
-def test_init_with_invalid_file():
+def test_init_with_invalid_file() -> None:
     """Test LiteStudio initialization with invalid team file"""
     with pytest.raises(FileNotFoundError, match="Team file not found"):
         LiteStudio(team="/nonexistent/file.json")
 
 
-def test_setup_environment(sample_team_file):
+def test_setup_environment(sample_team_file: str) -> None:
     """Test environment variable setup"""
     studio = LiteStudio(team=sample_team_file, host="127.0.0.1", port=8080)
     
-    env_file_path = studio._setup_environment()
+    env_file_path = studio._setup_environment() # type: ignore
     
     # Read the environment file to verify contents
     env_vars = {}
@@ -123,7 +124,7 @@ def test_setup_environment(sample_team_file):
 @patch('uvicorn.run')
 @patch('threading.Thread')
 @patch('webbrowser.open')
-def test_start_foreground(mock_browser, mock_thread, mock_uvicorn, sample_team_file):
+def test_start_foreground(mock_browser: MagicMock, mock_thread: MagicMock, mock_uvicorn: MagicMock, sample_team_file: str) -> None:
     """Test starting studio in foreground mode"""
     studio = LiteStudio(team=sample_team_file, auto_open=True)
     
@@ -138,7 +139,7 @@ def test_start_foreground(mock_browser, mock_thread, mock_uvicorn, sample_team_f
 
 @patch('uvicorn.run')
 @patch('threading.Thread')
-def test_start_background(mock_thread_class, mock_uvicorn, sample_team_file):
+def test_start_background(mock_thread_class: MagicMock, mock_uvicorn: MagicMock, sample_team_file: str) -> None:
     """Test starting studio in background mode"""
     studio = LiteStudio(team=sample_team_file)
     
@@ -155,7 +156,7 @@ def test_start_background(mock_thread_class, mock_uvicorn, sample_team_file):
     assert studio.server_thread == mock_server_thread
 
 
-def test_context_manager(sample_team_file):
+def test_context_manager(sample_team_file: str) -> None:
     """Test LiteStudio as context manager"""
     with patch.object(LiteStudio, 'start') as mock_start:
         with patch.object(LiteStudio, 'stop') as mock_stop:
@@ -166,7 +167,7 @@ def test_context_manager(sample_team_file):
             mock_stop.assert_called_once()
 
 
-def test_stop_with_server_thread(sample_team_file):
+def test_stop_with_server_thread(sample_team_file: str) -> None:
     """Test stopping studio with active server thread"""
     studio = LiteStudio(team=sample_team_file)
     
@@ -181,7 +182,7 @@ def test_stop_with_server_thread(sample_team_file):
 
 
 @patch('subprocess.run')
-def test_shutdown_port(mock_subprocess):
+def test_shutdown_port(mock_subprocess: MagicMock) -> None:
     """Test shutting down a specific port"""
     # Mock subprocess return with stdout containing PIDs
     mock_result = Mock()
@@ -196,7 +197,7 @@ def test_shutdown_port(mock_subprocess):
 
 
 @patch('uvicorn.run')
-def test_start_twice_raises_error(mock_uvicorn, sample_team_file):
+def test_start_twice_raises_error(mock_uvicorn: MagicMock, sample_team_file: str) -> None:
     """Test that starting an already running studio raises an error"""
     studio = LiteStudio(team=sample_team_file)
     
@@ -208,14 +209,14 @@ def test_start_twice_raises_error(mock_uvicorn, sample_team_file):
         studio.start()
 
 
-def test_init_with_team_object_with_serialization_methods():
+def test_init_with_team_object_with_serialization_methods() -> None:
     """Test LiteStudio initialization with objects that have serialization methods"""
     
     # Mock object with dump_component method (like AutoGen teams)
     class MockTeamWithDumpComponent:
-        def dump_component(self):
+        def dump_component(self) -> Any:
             class MockComponent:
-                def model_dump(self):
+                def model_dump(self) -> Dict[str, Union[str, List[Any]]]:
                     return {"type": "MockTeam", "name": "Serialized Team", "participants": []}
             return MockComponent()
     
@@ -233,7 +234,7 @@ def test_init_with_team_object_with_serialization_methods():
     assert team_data["name"] == "Serialized Team"
 
 
-def test_init_with_team_object_model_dump():
+def test_init_with_team_object_model_dump() -> None:
     """Test LiteStudio initialization with Pydantic v2 style objects"""
     
     class MockPydanticTeam:
@@ -250,7 +251,7 @@ def test_init_with_team_object_model_dump():
     assert team_data["name"] == "Model Dump Team"
 
 
-def test_init_with_unsupported_team_object():
+def test_init_with_unsupported_team_object() -> None:
     """Test LiteStudio initialization with unsupported team object"""
     
     class UnsupportedTeam:
@@ -262,11 +263,10 @@ def test_init_with_unsupported_team_object():
         LiteStudio(team=cast(Any, UnsupportedTeam()))
 
 
-def test_init_with_path_object(tmp_path):
+def test_init_with_path_object(tmp_path: Path) -> None:
     """Test LiteStudio initialization with Path object"""
-    from pathlib import Path
     
-    team_data = {
+    team_data: Dict[str, Union[str, List[Any]]] = {
         "type": "PathTeam",
         "name": "Path Test Team",
         "agents": []
@@ -286,12 +286,12 @@ def test_init_with_path_object(tmp_path):
     assert team_data_loaded == team_data
 
 
-def test_init_with_component_model():
+def test_init_with_component_model() -> None:
     """Test LiteStudio initialization with ComponentModel"""
     
     # Since ComponentModel is more complex to create directly, 
     # we'll test this by mocking it in the _load_team method
-    team_dict = {
+    team_dict: Dict[str, Union[str, List[Any]]] = {
         "type": "ComponentTeam", 
         "name": "Component Model Team",
         "participants": []
