@@ -190,14 +190,17 @@ const RunView: React.FC<RunViewProps> = ({
 
   const changeReplaySpeed = (newSpeed: number) => {
     setReplaySpeed(newSpeed);
-    
+
     // If currently replaying, restart with new speed
     if (isReplaying && replayIntervalRef.current) {
       clearInterval(replayIntervalRef.current);
       const intervalTime = 800 / newSpeed;
       replayIntervalRef.current = setInterval(() => {
         setReplayMessageIndex((prev) => {
-          if (prev >= (originalRun?.messages.length || run.messages.length) - 1) {
+          if (
+            prev >=
+            (originalRun?.messages.length || run.messages.length) - 1
+          ) {
             setIsReplaying(false);
             if (replayIntervalRef.current) {
               clearInterval(replayIntervalRef.current);
@@ -421,7 +424,7 @@ const RunView: React.FC<RunViewProps> = ({
                       Pause Replay ({replaySpeed}x)
                     </span>
                   </button>
-                  
+
                   <Dropdown
                     menu={{
                       items: [
