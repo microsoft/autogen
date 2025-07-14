@@ -1,23 +1,45 @@
 from collections.abc import Generator
 from contextlib import contextmanager
+from enum import Enum
 from typing import Any, Optional
 
 from opentelemetry import trace
-from opentelemetry.semconv._incubating.attributes.gen_ai_attributes import (
-    GEN_AI_AGENT_DESCRIPTION,
-    GEN_AI_AGENT_ID,
-    GEN_AI_AGENT_NAME,
-    GEN_AI_OPERATION_NAME,
-    GEN_AI_SYSTEM,
-    GEN_AI_TOOL_CALL_ID,
-    GEN_AI_TOOL_DESCRIPTION,
-    GEN_AI_TOOL_NAME,
-    GenAiOperationNameValues,
-)
-from opentelemetry.semconv.attributes.error_attributes import ERROR_TYPE
 from opentelemetry.trace import Span, SpanKind
 
 from .._agent_instantiation import AgentInstantiationContext
+
+# OpenTelemetry semantic convention constants for GenAI operations
+# Copied from opentelemetry-semantic-conventions to avoid dependency
+
+# GenAI Agent attributes
+GEN_AI_AGENT_DESCRIPTION = "gen_ai.agent.description"
+GEN_AI_AGENT_ID = "gen_ai.agent.id"
+GEN_AI_AGENT_NAME = "gen_ai.agent.name"
+
+# GenAI Operation attributes
+GEN_AI_OPERATION_NAME = "gen_ai.operation.name"
+GEN_AI_SYSTEM = "gen_ai.system"
+
+# GenAI Tool attributes
+GEN_AI_TOOL_CALL_ID = "gen_ai.tool.call.id"
+GEN_AI_TOOL_DESCRIPTION = "gen_ai.tool.description"
+GEN_AI_TOOL_NAME = "gen_ai.tool.name"
+
+# Error attributes
+ERROR_TYPE = "error.type"
+
+
+class GenAiOperationNameValues(Enum):
+    """Enum for GenAI operation name values."""
+
+    CHAT = "chat"
+    CREATE_AGENT = "create_agent"
+    EMBEDDINGS = "embeddings"
+    EXECUTE_TOOL = "execute_tool"
+    GENERATE_CONTENT = "generate_content"
+    INVOKE_AGENT = "invoke_agent"
+    TEXT_COMPLETION = "text_completion"
+
 
 # Constant for system name
 GENAI_SYSTEM_AUTOGEN = "autogen"
