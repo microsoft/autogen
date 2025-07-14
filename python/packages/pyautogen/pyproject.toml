@@ -17,3 +17,9 @@ classifiers = [
 dependencies = [
     "autogen-agentchat>=0.6.4",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyautogen"]
+
+[tool.hatch.build.targets.sdist]
+include = ["pyproject.toml", "README.md", "LICENSE-CODE", "src/**"]
