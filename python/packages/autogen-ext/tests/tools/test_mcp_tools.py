@@ -27,6 +27,7 @@ from mcp.types import (
     Annotations,
     EmbeddedResource,
     ImageContent,
+    ResourceLink,
     TextContent,
     TextResourceContents,
 )
@@ -909,3 +910,20 @@ async def test_mcp_tool_adapter_run_cancelled_during_call(
         await adapter._run(args=args, cancellation_token=cancellation_token, session=mock_session)  # type: ignore[reportPrivateUsage]
 
     mock_session.call_tool.assert_called_once_with(name=sample_tool.name, arguments=args)
+
+
+def test_return_value_as_string_with_resource_link(sample_tool: Tool, sample_server_params: StdioServerParams) -> None:
+    """Test return_value_as_string handles ResourceLink objects correctly."""
+    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool)
+
+    # Test ResourceLink with meta field
+    resource_link = ResourceLink(
+        name="test_link",
+        type="resource_link",
+        uri=AnyUrl(url="http://example.com"),
+    )
+
+    result = adapter.return_value_as_string([resource_link])
+    assert "resource_link" in result
+    assert "test_link" in result
+    assert "http://example.com" in result

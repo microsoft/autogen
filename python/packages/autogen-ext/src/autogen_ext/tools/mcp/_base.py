@@ -180,6 +180,9 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 # Remove the 'meta' field if it exists and is None (for backward compatibility)
                 if dumped.get("meta") is None:
                     dumped.pop("meta", None)
+                # Convert AnyUrl to string for JSON serialization
+                if "uri" in dumped and isinstance(dumped["uri"], AnyUrl):
+                    dumped["uri"] = str(dumped["uri"])
                 return dumped
             else:
                 return {}
