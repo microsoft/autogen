@@ -47,10 +47,12 @@ class BaseMessage(BaseModel, ABC):
 
         The default implementation uses the Pydantic model's
         :meth:`model_dump` method to convert the message to a dictionary.
+        Datetime objects are automatically converted to ISO format strings
+        to ensure JSON serialization compatibility.
         Override this method if you want to customize the serialization
         process or add additional fields to the output.
         """
-        return self.model_dump()
+        return self.model_dump(mode="json")
 
     @classmethod
     def load(cls, data: Mapping[str, Any]) -> Self:
