@@ -52,7 +52,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
 
         .. code-block:: bash
 
-            pip install "autogen-ext[redis]"
+            pip install "autogen-ext[redisvl]"
 
         Additionally, you will need access to a Redis instance.
         To run a local instance of redis in docker:
