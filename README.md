@@ -17,7 +17,18 @@
 
 # AutoGen
 
-**AutoGen** is a framework for creating multi-agent AI applications that can act autonomously or work alongside humans.
+**AutoGen** is an open-source framework for building **multi-agent AI applications** that can operate **autonomously** or **collaboratively with humans**. It simplifies the orchestration of multiple AI agents—each with specialized roles—enabling them to interact, reason, and work together toward complex goals.
+
+With AutoGen, developers can easily design, customize, and deploy agent-based systems for a wide range of tasks, from automated workflows to human-in-the-loop AI solutions.
+
+## Key Features
+
+- **Multi-agent orchestration**: Define how agents communicate and collaborate.
+- **Human-AI collaboration**: Seamlessly integrate human input into agent workflows.
+- **Modular & extensible**: Customize agent behaviors, prompts, and interaction protocols.
+- **Interoperability**: Connect with various LLMs and external tools.
+
+AutoGen empowers you to move beyond single-agent prompts and toward dynamic, multi-agent ecosystems that unlock new levels of automation and intelligence.
 
 ## Installation
 
