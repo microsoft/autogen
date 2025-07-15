@@ -1,4 +1,5 @@
 import os
+import tempfile
 from typing import List, Optional
 
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
@@ -514,45 +515,6 @@ Read the above conversation. Then select the next role from {participants} to pl
         description="A team with 3 agents - a Research Assistant that performs web searches and analyzes information, a Verifier that ensures research quality and completeness, and a Summary Agent that provides a detailed markdown summary of the research as a report to the user.",
     )
 
-    # Create a cost-controlled team using token usage termination
-    cost_controlled_assistant = AssistantAgent(
-        name="budget_assistant",
-        system_message="You are a helpful assistant with a strict token budget. Be concise and efficient in your responses. When done, say TERMINATE.",
-        model_client=base_model,
-        tools=[tools.calculator_tool],
-    )
-
-    # Combine token usage limit with text termination for safety
-    budget_termination = TokenUsageTermination(max_total_token=500) | TextMentionTermination(text="TERMINATE")
-
-    budget_team = RoundRobinGroupChat(
-        participants=[cost_controlled_assistant], termination_condition=budget_termination
-    )
-
-    builder.add_team(
-        budget_team.dump_component(),
-        label="Budget-Controlled Team",
-        description="A cost-controlled team that terminates when token usage exceeds 500 tokens or when 'TERMINATE' is mentioned.",
-    )
-
-    # Create a time-limited team for quick responses
-    quick_assistant = AssistantAgent(
-        name="quick_assistant",
-        system_message="You are a quick response assistant. Provide fast, accurate answers within the time limit.",
-        model_client=base_model,
-    )
-
-    # 30-second timeout with fallback termination
-    quick_termination = TimeoutTermination(timeout_seconds=30) | MaxMessageTermination(max_messages=5)
-
-    quick_team = RoundRobinGroupChat(participants=[quick_assistant], termination_condition=quick_termination)
-
-    builder.add_team(
-        quick_team.dump_component(),
-        label="Quick Response Team",
-        description="A time-limited team that provides quick responses within 30 seconds or 5 messages maximum.",
-    )
-
     # Add workbenches to the gallery
 
     # Create a static workbench with basic tools
@@ -595,9 +557,14 @@ Read the above conversation. Then select the next role from {participants} to pl
 
     # Create an MCP workbench for filesystem operations
     # Note: This requires npx to be installed and allows access to specified directories
+
+    # Use cross-platform paths for filesystem access
+    user_home = os.path.expanduser("~")
+    temp_dir = tempfile.gettempdir()  # Cross-platform temp directory
+
     filesystem_server_params = StdioServerParams(
         command="npx",
-        args=["-y", "@modelcontextprotocol/server-filesystem", "/Users", "/tmp"],
+        args=["-y", "@modelcontextprotocol/server-filesystem", user_home, temp_dir],
         read_timeout_seconds=60,
     )
     filesystem_mcp_workbench = McpWorkbench(server_params=filesystem_server_params)
