@@ -924,10 +924,7 @@ def test_return_value_as_string_with_resource_link(sample_tool: Tool, sample_ser
     )
 
     result = adapter.return_value_as_string([resource_link])
-    assert "resource_link" in result
-    assert "test_link" in result
-    
-    from urllib.parse import urlparse
-    parsed_url = urlparse(resource_link.uri)
-    assert parsed_url.scheme == "http"
-    assert parsed_url.netloc == "example.com"
+    # Verify the JSON serialization contains expected fields
+    assert '"type": "resource_link"' in result
+    assert '"name": "test_link"' in result
+    assert '"uri": "http://example.com/"' in result  # AnyUrl normalizes with trailing slash
