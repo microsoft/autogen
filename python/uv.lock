@@ -23,6 +23,7 @@ members = [
     "autogenstudio",
     "component-schema-gen",
     "magentic-one-cli",
+    "pyautogen",
 ]
 overrides = [
     { name = "aiofiles", specifier = ">=24.1.0" },
@@ -6833,6 +6834,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/e9/e6/78ebbb10a8c8e4b61
 wheels = [
     { url = "https://files.pythonhosted.org/packages/47/8d/d529b5d697919ba8c11ad626e835d4039be708a35b0d22de83a269a6682c/pyasn1_modules-0.4.2-py3-none-any.whl", hash = "sha256:29253a9207ce32b64c3ac6600edc75368f98473906e8fd1043bd6b5b1de2c14a", size = 181259, upload-time = "2025-03-28T02:41:19.028Z" },
 ]
+
+[[package]]
+name = "pyautogen"
+version = "0.10.0"
+source = { editable = "packages/pyautogen" }
+dependencies = [
+    { name = "autogen-agentchat" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "autogen-agentchat", editable = "packages/autogen-agentchat" }]
 
 [[package]]
 name = "pybars4"
