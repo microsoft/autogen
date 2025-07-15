@@ -24,21 +24,6 @@ class RedisMemoryConfig(BaseModel):
     This class defines the configuration options for using Redis as a vector memory store,
     supporting semantic memory. It allows customization of the Redis connection, index settings,
     similarity search parameters, and embedding model.
-
-    Attributes:
-        redis_url (str): URL of the Redis instance (default: "redis://localhost:6379").
-        index_name (str): Name of the Redis collection or index (default: "chat_memory").
-        prefix (str): Prefix for keys in the Redis collection (default: "memory").
-        distance_metric (Literal["cosine", "ip", "l2"]): Distance metric for similarity search.
-            cosine is default. "ip" is inner product. "l2" is euclidean distance.
-        algorithm (Literal["flat", "hnsw"]): Vector search algorithm to use. flat is default. hnsw
-            is an approximation using hierarchical navigable small world graph.
-        top_k (int): Number of results to return in queries (default: 10).
-        datatype (Literal["uint8", "int8", "float16", "float32", "float64", "bfloat16"]): The data type to
-            store the vector as (default: "float32").
-        distance_threshold (float): Minimum similarity threshold for results (default: 0.7).
-        model_name (str | None): Name of the embedding model to use for semantic memory
-            (default: "sentence-transformers/all-mpnet-base-v2").
     """
 
     redis_url: str = Field(default="redis://localhost:6379", description="url of the Redis instance")
@@ -79,6 +64,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         To download and run Redis locally:
 
         .. code-block:: bash
+
             curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
             echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
             sudo apt-get update  > /dev/null 2>&1
@@ -230,9 +216,9 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
 
         .. note::
 
-        To perform semantic search over stored memories RedisMemory creates a vector embedding
-        from the content field of a MemoryContent object. This content is assumed to be text, and
-        is passed to the vector embedding model specified in RedisMemoryConfig.
+            To perform semantic search over stored memories RedisMemory creates a vector embedding
+            from the content field of a MemoryContent object. This content is assumed to be text, and
+            is passed to the vector embedding model specified in RedisMemoryConfig.
 
         Args:
             content (MemoryContent): The memory content to store within Redis.
@@ -255,12 +241,12 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
     ) -> MemoryQueryResult:
         """Query memory content based on semantic vector similarity.
 
-        ..note::
+        .. note::
 
-        RedisMemory.query() supports additional keyword arguments to improve query performance.
-        top_k (int): The maximum number of relevant memories to include. Defaults to 10.
-        distance_threshold (float): The maximum distance in vector space to consider a memory
-        semantically similar when performining cosine similarity search. Defaults to 0.7.
+            RedisMemory.query() supports additional keyword arguments to improve query performance.
+            top_k (int): The maximum number of relevant memories to include. Defaults to 10.
+            distance_threshold (float): The maximum distance in vector space to consider a memory
+            semantically similar when performining cosine similarity search. Defaults to 0.7.
 
         Args:
             query (str | MemoryContent): query to perform vector similarity search with. If a
@@ -273,21 +259,21 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         Returns:
             memoryQueryResult: Object containing memories relevant to the provided query.
         """
-        # query = query.content if isinstance(query, MemoryContent) else query
-
         # get the query string, or raise an error for unsupported MemoryContent types
         if isinstance(query, MemoryContent):
             if query.mime_type != MemoryMimeType.TEXT:
                 raise NotImplementedError(
                     f"Error: {query.mime_type} is not supported. Only MemoryMimeType.TEXT is currently supported."
                 )
-            query = query.content  # type: ignore[reportArgumentType]
+            prompt = query.content
+        else:
+            prompt = query
 
         top_k = kwargs.pop("top_k", self.config.top_k)
         distance_threshold = kwargs.pop("distance_threshold", self.config.distance_threshold)
 
         results = self.message_history.get_relevant(
-            prompt=query,  # type: ignore[reportArgumentType]
+            prompt=prompt,  # type: ignore[reportArgumentType]
             top_k=top_k,
             distance_threshold=distance_threshold,
             raw=False,
