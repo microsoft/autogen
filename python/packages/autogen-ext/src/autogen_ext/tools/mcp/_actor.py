@@ -2,10 +2,18 @@ import asyncio
 import atexit
 import base64
 import io
-from typing import Any, Coroutine, Dict, Mapping, Sequence, TypedDict
+import logging
+from typing import Any, Coroutine, Dict, Mapping, TypedDict
 
 from autogen_core import Component, ComponentBase, ComponentModel, Image
-from autogen_core.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from autogen_core.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    LLMMessage,
+    ModelInfo,
+    SystemMessage,
+    UserMessage,
+)
 from PIL import Image as PILImage
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -17,6 +25,8 @@ from mcp.shared.context import RequestContext
 from ._config import McpServerParams
 from ._session import create_mcp_server_session
 
+logger = logging.getLogger(__name__)
+
 McpResult = (
     Coroutine[Any, Any, mcp_types.ListToolsResult]
     | Coroutine[Any, Any, mcp_types.CallToolResult]
@@ -27,6 +37,41 @@ McpResult = (
     | Coroutine[Any, Any, mcp_types.GetPromptResult]
 )
 McpFuture = asyncio.Future[McpResult]
+
+
+def _parse_sampling_content(
+    content: mcp_types.TextContent | mcp_types.ImageContent, model_info: ModelInfo
+) -> str | Image:
+    """Convert MCP content types to Autogen content types."""
+    if content.type == "text":
+        return content.text
+    elif content.type == "image":
+        if not model_info["vision"]:
+            raise ValueError("Sampling model does not support image content.")
+        # Decode base64 image data and create PIL Image
+        image_data = base64.b64decode(content.data)
+        pil_image = PILImage.open(io.BytesIO(image_data))
+        return Image.from_pil(pil_image)
+    else:
+        raise ValueError(f"Unrecognized content type: {content.type}")
+
+
+def _parse_sampling_message(message: mcp_types.SamplingMessage, model_info: ModelInfo) -> LLMMessage:
+    """Convert MCP sampling messages to Autogen messages."""
+    content = _parse_sampling_content(message.content, model_info=model_info)
+    if message.role == "user":
+        return UserMessage(
+            source="user",
+            content=[content],
+        )
+    elif message.role == "assistant":
+        assert isinstance(content, str), "Assistant messages only support string content."
+        return AssistantMessage(
+            source="assistant",
+            content=content,
+        )
+    else:
+        raise ValueError(f"Unrecognized message role: {message.role}")
 
 
 class McpActorArgs(TypedDict):
@@ -132,28 +177,8 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
                 llm_messages.append(SystemMessage(content=params.systemPrompt))
 
             for mcp_message in params.messages:
-                llm_content = []
+                llm_messages.append(_parse_sampling_message(mcp_message, model_info=self._model_client.model_info))
 
-                if mcp_message.content.type == "text":
-                    llm_content.append(mcp_message.content.text)
-                elif mcp_message.content.type == "image":
-                    if mcp_message.role == "assistant":
-                        raise ValueError("Assistant messages can not contain images")
-
-                    if not self._model_client.model_info["vision"]:
-                        raise ValueError("Model does not support image messages.")
-
-                    # Decode base64 image data and create PIL Image
-                    image_data = base64.b64decode(mcp_message.content.data)
-                    pil_image = PILImage.open(io.BytesIO(image_data))
-                    llm_content.append(Image.from_pil(pil_image))
-
-                if mcp_message.role == "user":
-                    llm_messages.append(UserMessage(source="user", content=llm_content))
-                elif mcp_message.role == "assistant":
-                    llm_messages.append(AssistantMessage(source="assistant", content=llm_content))
-                else:
-                    raise ValueError(f"Unrecognized SamplingMessage role: {mcp_message.role}")
         except Exception as e:
             return mcp_types.ErrorData(
                 code=mcp_types.INVALID_PARAMS,
@@ -239,6 +264,8 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         except Exception as e:
             if self._shutdown_future and not self._shutdown_future.done():
                 self._shutdown_future.set_exception(e)
+            else:
+                logger.exception("Exception in MCP actor task")
         finally:
             self._active = False
             self._actor_task = None
