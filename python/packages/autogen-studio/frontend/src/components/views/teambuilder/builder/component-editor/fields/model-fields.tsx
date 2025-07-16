@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
-import { Input, InputNumber, Select, Tooltip } from "antd";
-import { HelpCircle } from "lucide-react";
+import { Input, InputNumber, Select, Tooltip, Collapse } from "antd";
+import TextArea from "antd/es/input/TextArea";
+import { HelpCircle, Settings, User, Wrench } from "lucide-react";
 import {
   Component,
   ComponentConfig,
@@ -11,8 +12,6 @@ import {
   isAzureOpenAIModel,
   isAnthropicModel,
 } from "../../../../../types/guards";
-import DetailGroup from "../detailgroup";
-import TextArea from "antd/es/input/TextArea";
 
 interface ModelFieldsProps {
   component: Component<ModelConfig>;
@@ -412,77 +411,113 @@ export const ModelFields: React.FC<ModelFieldsProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <DetailGroup title="Component Details">
-        <div className="space-y-4">
-          <label className="block">
-            <span className="text-sm font-medium text-primary">Name</span>
-            <Input
-              value={component.label || ""}
-              onChange={(e) => handleComponentUpdate({ label: e.target.value })}
-              placeholder="Model name"
-              className="mt-1"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-medium text-primary">
-              Description
-            </span>
-            <TextArea
-              value={component.description || ""}
-              onChange={(e) =>
-                handleComponentUpdate({ description: e.target.value })
-              }
-              placeholder="Model description"
-              rows={4}
-              className="mt-1"
-            />
-          </label>
-        </div>
-      </DetailGroup>
-
-      <DetailGroup
-        title={
-          providerType === "azure"
-            ? "Azure Configuration"
-            : "Model Configuration"
-        }
-      >
-        {renderFieldGroup(providerFields[providerType].modelConfig)}
-      </DetailGroup>
-
-      <DetailGroup title="Model Parameters">
-        {renderFieldGroup(providerFields[providerType].modelParams)}
-      </DetailGroup>
-
-      {/* Only render tool configuration if it's an Anthropic model and has tools */}
-      {providerType === "anthropic" &&
-        (component.config as any).tool_choice === "custom" && (
-          <DetailGroup title="Custom Tool Choice">
-            <div className="space-y-4">
-              <TextArea
-                value={JSON.stringify(
-                  (component.config as any).tool_choice,
-                  null,
-                  2
-                )}
-                onChange={(e) => {
-                  try {
-                    const value = JSON.parse(e.target.value);
-                    handleConfigUpdate("tool_choice" as FieldName, value);
-                  } catch (err) {
-                    // Handle invalid JSON
-                    console.error("Invalid JSON for tool_choice");
-                  }
-                }}
-                placeholder="Enter tool choice configuration as JSON"
-                rows={4}
-              />
+    <Collapse
+      defaultActiveKey={["details", "configuration", "parameters"]}
+      className="border-0"
+      expandIconPosition="end"
+      items={[
+        {
+          key: "details",
+          label: (
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4 text-blue-500" />
+              <span className="font-medium">Component Details</span>
             </div>
-          </DetailGroup>
-        )}
-    </div>
+          ),
+          children: (
+            <div className="space-y-4">
+              <label className="block">
+                <span className="text-sm font-medium text-primary">Name</span>
+                <Input
+                  value={component.label || ""}
+                  onChange={(e) =>
+                    handleComponentUpdate({ label: e.target.value })
+                  }
+                  placeholder="Model name"
+                  className="mt-1"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-primary">
+                  Description
+                </span>
+                <TextArea
+                  value={component.description || ""}
+                  onChange={(e) =>
+                    handleComponentUpdate({ description: e.target.value })
+                  }
+                  placeholder="Model description"
+                  rows={4}
+                  className="mt-1"
+                />
+              </label>
+            </div>
+          ),
+        },
+        {
+          key: "configuration",
+          label: (
+            <div className="flex items-center gap-2">
+              <Settings className="w-4 h-4 text-green-500" />
+              <span className="font-medium">
+                {providerType === "azure"
+                  ? "Azure Configuration"
+                  : "Model Configuration"}
+              </span>
+            </div>
+          ),
+          children: renderFieldGroup(providerFields[providerType].modelConfig),
+        },
+        {
+          key: "parameters",
+          label: (
+            <div className="flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-orange-500" />
+              <span className="font-medium">Model Parameters</span>
+            </div>
+          ),
+          children: renderFieldGroup(providerFields[providerType].modelParams),
+        },
+        // Only render tool configuration if it's an Anthropic model and has tools
+        ...(providerType === "anthropic" &&
+        (component.config as any).tool_choice === "custom"
+          ? [
+              {
+                key: "tools",
+                label: (
+                  <div className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-purple-500" />
+                    <span className="font-medium">Custom Tool Choice</span>
+                  </div>
+                ),
+                children: (
+                  <div className="space-y-4">
+                    <TextArea
+                      value={JSON.stringify(
+                        (component.config as any).tool_choice,
+                        null,
+                        2
+                      )}
+                      onChange={(e) => {
+                        try {
+                          const value = JSON.parse(e.target.value);
+                          handleConfigUpdate("tool_choice" as FieldName, value);
+                        } catch (err) {
+                          // Handle invalid JSON
+                          console.error("Invalid JSON for tool_choice");
+                        }
+                      }}
+                      placeholder="Enter tool choice configuration as JSON"
+                      rows={4}
+                    />
+                  </div>
+                ),
+              },
+            ]
+          : []),
+      ]}
+    />
   );
 };
 

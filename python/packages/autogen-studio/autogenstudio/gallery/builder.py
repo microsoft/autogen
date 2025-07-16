@@ -1,19 +1,29 @@
 import os
-from datetime import datetime
+import tempfile
 from typing import List, Optional
 
-import anthropic
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
-from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
-from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.conditions import (
+    HandoffTermination,
+    MaxMessageTermination,
+    SourceMatchTermination,
+    StopMessageTermination,
+    TextMentionTermination,
+    TextMessageTermination,
+    TimeoutTermination,
+    TokenUsageTermination,
+)
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat, Swarm
 from autogen_core import ComponentModel
 from autogen_core.models import ModelInfo
+from autogen_core.tools import StaticWorkbench
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai._openai_client import AzureOpenAIChatCompletionClient
 from autogen_ext.tools.code_execution import PythonCodeExecutionTool
+from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams, StreamableHttpServerParams
 
 from autogenstudio.datamodel import GalleryComponents, GalleryConfig, GalleryMetadata
 
@@ -32,6 +42,7 @@ class GalleryBuilder:
         self.models: List[ComponentModel] = []
         self.tools: List[ComponentModel] = []
         self.terminations: List[ComponentModel] = []
+        self.workbenches: List[ComponentModel] = []
 
         # Default metadata
         self.metadata = GalleryMetadata(
@@ -112,6 +123,13 @@ class GalleryBuilder:
         self.terminations.append(self._update_component_metadata(termination, label, description))
         return self
 
+    def add_workbench(
+        self, workbench: ComponentModel, label: Optional[str] = None, description: Optional[str] = None
+    ) -> "GalleryBuilder":
+        """Add a workbench component to the gallery with optional custom label and description."""
+        self.workbenches.append(self._update_component_metadata(workbench, label, description))
+        return self
+
     def build(self) -> GalleryConfig:
         """Build and return the complete gallery."""
         # Update timestamps
@@ -128,6 +146,7 @@ class GalleryBuilder:
                 models=self.models,
                 tools=self.tools,
                 terminations=self.terminations,
+                workbenches=self.workbenches,
             ),
         )
 
@@ -220,6 +239,64 @@ def create_default_gallery() -> GalleryConfig:
         description="Termination condition that ends the conversation when either a message contains 'TERMINATE' or the maximum number of messages is reached.",
     )
 
+    # Add examples of new termination conditions
+
+    # StopMessageTermination - terminates when a StopMessage is received
+    stop_msg_term = StopMessageTermination()
+    builder.add_termination(
+        stop_msg_term.dump_component(),
+        label="Stop Message Termination",
+        description="Terminates the conversation when a StopMessage is received from any agent.",
+    )
+
+    # TokenUsageTermination - terminates based on token usage limits
+    token_usage_term = TokenUsageTermination(max_total_token=1000, max_prompt_token=800, max_completion_token=200)
+    builder.add_termination(
+        token_usage_term.dump_component(),
+        label="Token Usage Termination",
+        description="Terminates the conversation when token usage limits are reached (1000 total, 800 prompt, 200 completion).",
+    )
+
+    # TimeoutTermination - terminates after a specified duration
+    timeout_term = TimeoutTermination(timeout_seconds=300)  # 5 minutes
+    builder.add_termination(
+        timeout_term.dump_component(),
+        label="Timeout Termination",
+        description="Terminates the conversation after 5 minutes (300 seconds) have elapsed.",
+    )
+
+    # HandoffTermination - terminates when handoff to specific target occurs
+    handoff_term = HandoffTermination(target="user_proxy")
+    builder.add_termination(
+        handoff_term.dump_component(),
+        label="Handoff Termination",
+        description="Terminates the conversation when a handoff to 'user_proxy' is detected.",
+    )
+
+    # SourceMatchTermination - terminates when specific sources respond
+    source_match_term = SourceMatchTermination(sources=["assistant_agent", "critic_agent"])
+    builder.add_termination(
+        source_match_term.dump_component(),
+        label="Source Match Termination",
+        description="Terminates the conversation when either 'assistant_agent' or 'critic_agent' responds.",
+    )
+
+    # TextMessageTermination - terminates on TextMessage from specific source
+    text_msg_term = TextMessageTermination(source="assistant_agent")
+    builder.add_termination(
+        text_msg_term.dump_component(),
+        label="Text Message Termination",
+        description="Terminates the conversation when a TextMessage is received from 'assistant_agent'.",
+    )
+
+    # Create a complex termination combining multiple conditions
+    complex_term = (token_usage_term | timeout_term) & (calc_text_term | stop_msg_term)
+    builder.add_termination(
+        complex_term.dump_component(),
+        label="Complex Termination",
+        description="Complex termination: (token usage OR timeout) AND (text mention 'TERMINATE' OR stop message).",
+    )
+
     # Create calculator team
     calc_team = RoundRobinGroupChat(participants=[calc_assistant], termination_condition=calc_or_term)
     builder.add_team(
@@ -241,6 +318,31 @@ def create_default_gallery() -> GalleryConfig:
         selector_default_team.dump_component(),
         label="Selector Team",
         description="A team with 2 agents - an AssistantAgent (with a calculator tool) and a CriticAgent in a SelectorGroupChat team.",
+    )
+
+    # Create Swarm team - agents with handoff capabilities
+    # Alice agent with handoff to Bob
+    alice_agent = AssistantAgent(
+        name="Alice",
+        system_message="You are Alice, a helpful assistant. You specialize in general questions. If someone asks about technical topics or needs detailed analysis, hand off to Bob by saying 'Let me hand this over to Bob for a detailed analysis.'",
+        model_client=base_model,
+        handoffs=["Bob"],
+    )
+
+    # Bob agent with handoff back to Alice
+    bob_agent = AssistantAgent(
+        name="Bob",
+        system_message="You are Bob, a technical specialist. You handle detailed technical analysis. If the conversation becomes general or the user needs basic assistance, hand off to Alice by saying 'Let me hand this back to Alice for general assistance.'",
+        model_client=base_model,
+        handoffs=["Alice"],
+    )
+
+    # Create simple Swarm team with handoff-based conversation
+    swarm_team = Swarm(participants=[alice_agent, bob_agent], termination_condition=calc_or_term)
+    builder.add_team(
+        swarm_team.dump_component(),
+        label="Swarm Team",
+        description="A team with 2 agents (Alice and Bob) that use handoff messages to transfer conversation control between agents based on expertise.",
     )
 
     # Create web surfer agent
@@ -413,7 +515,114 @@ Read the above conversation. Then select the next role from {participants} to pl
         description="A team with 3 agents - a Research Assistant that performs web searches and analyzes information, a Verifier that ensures research quality and completeness, and a Summary Agent that provides a detailed markdown summary of the research as a report to the user.",
     )
 
+    # Add workbenches to the gallery
+
+    # Create a static workbench with basic tools
+    static_workbench = StaticWorkbench(tools=[tools.calculator_tool, tools.fetch_webpage_tool])
+    builder.add_workbench(
+        static_workbench.dump_component(),
+        label="Basic Tools Workbench",
+        description="A static workbench containing basic tools like calculator and webpage fetcher for common tasks.",
+    )
+
+    # Create an MCP workbench for fetching web content using mcp-server-fetch
+    # Note: This requires uv to be installed (comes with uv package manager)
+    fetch_server_params = StdioServerParams(
+        command="uv",
+        args=["tool", "run", "mcp-server-fetch"],
+        read_timeout_seconds=60,
+    )
+    mcp_workbench = McpWorkbench(server_params=fetch_server_params)
+    builder.add_workbench(
+        mcp_workbench.dump_component(),
+        label="MCP Fetch Workbench",
+        description="An MCP workbench that provides web content fetching capabilities using the mcp-server-fetch MCP server. Allows agents to fetch and read content from web pages and APIs.",
+    )
+
+    # Create an MCP workbench with StreamableHttpServerParams for HTTP-based MCP servers
+    # Note: This is an example - adjust URL and authentication as needed
+    streamable_server_params = StreamableHttpServerParams(
+        url="http://localhost:8005/mcp",
+        headers={"Authorization": "Bearer your-api-key", "Content-Type": "application/json"},
+        timeout=30,
+        sse_read_timeout=60 * 5,
+        terminate_on_close=True,
+    )
+    streamable_mcp_workbench = McpWorkbench(server_params=streamable_server_params)
+    builder.add_workbench(
+        streamable_mcp_workbench.dump_component(),
+        label="MCP Streamable HTTP Workbench",
+        description="An MCP workbench that connects to HTTP-based MCP servers using Server-Sent Events (SSE). Suitable for cloud-hosted MCP services and custom HTTP MCP implementations.",
+    )
+
+    # Create an MCP workbench for filesystem operations
+    # Note: This requires npx to be installed and allows access to specified directories
+
+    # Use cross-platform paths for filesystem access
+    user_home = os.path.expanduser("~")
+    temp_dir = tempfile.gettempdir()  # Cross-platform temp directory
+
+    filesystem_server_params = StdioServerParams(
+        command="npx",
+        args=["-y", "@modelcontextprotocol/server-filesystem", user_home, temp_dir],
+        read_timeout_seconds=60,
+    )
+    filesystem_mcp_workbench = McpWorkbench(server_params=filesystem_server_params)
+    builder.add_workbench(
+        filesystem_mcp_workbench.dump_component(),
+        label="MCP Filesystem Workbench",
+        description="An MCP workbench that provides filesystem access capabilities using the @modelcontextprotocol/server-filesystem MCP server. Allows agents to read, write, and manage files and directories within specified allowed paths.",
+    )
+
+    # Create an MCP workbench for testing with everything server
+    # Note: This requires npx to be installed and provides comprehensive MCP testing tools
+    everything_server_params = StdioServerParams(
+        command="npx",
+        args=["-y", "@modelcontextprotocol/server-everything"],
+        read_timeout_seconds=60,
+    )
+    everything_mcp_workbench = McpWorkbench(server_params=everything_server_params)
+    builder.add_workbench(
+        everything_mcp_workbench.dump_component(),
+        label="MCP Test Server",
+        description="An MCP workbench that provides comprehensive testing tools using the @modelcontextprotocol/server-everything MCP server. Includes various tools for testing MCP functionality, protocol features, and capabilities.",
+    )
+
     return builder.build()
+
+
+def create_default_lite_team():
+    """Create a simple default team for lite mode - a basic assistant with calculator tool."""
+    import json
+    import os
+    import tempfile
+
+    # model clients require API keys to be set in the environment or passed in
+    # as arguments. For testing purposes, we set them to "test" if not already set.
+    for key in ["OPENAI_API_KEY", "AZURE_OPENAI_API_KEY", "ANTHROPIC_API_KEY"]:
+        if not os.environ.get(key):
+            os.environ[key] = "test"
+
+    # Create base model client
+    base_model = OpenAIChatCompletionClient(model="gpt-4o-mini")
+
+    # Create assistant agent with calculator tool
+    assistant = AssistantAgent(
+        name="assistant",
+        model_client=base_model,
+        tools=[tools.calculator_tool],
+    )
+
+    # Create termination condition
+    termination = TextMentionTermination(text="TERMINATE") | MaxMessageTermination(max_messages=5)
+
+    # Create simple round robin team
+    team = RoundRobinGroupChat(participants=[assistant], termination_condition=termination)
+
+    # Create temporary file with team data
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(team.dump_component().model_dump(), f, indent=2)
+        return f.name
 
 
 if __name__ == "__main__":
