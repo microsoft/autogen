@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import warnings
 from typing import (
     Any,
     AsyncGenerator,
@@ -22,17 +23,25 @@ from typing import (
 import aiofiles
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
+from autogen_agentchat.base import Handoff as HandoffBase
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
     BaseAgentEvent,
     BaseChatMessage,
+    HandoffMessage,
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
 )
 from autogen_core import CancellationToken, FunctionCall, Image
-from autogen_core.models import ChatCompletionClient, FunctionExecutionResult
-from autogen_core.tools import FunctionTool, Tool
+from autogen_core.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    LLMMessage,
+)
+from autogen_core.tools import BaseTool, FunctionTool, Tool
 from pydantic import BaseModel, Field
 
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI, NotGiven
@@ -223,6 +232,10 @@ class OpenAIAssistantAgent(BaseChatAgent):
         model (str): Model to use (e.g. "gpt-4")
         instructions (str): System instructions for the assistant
         tools (Optional[Iterable[Union[Literal["code_interpreter", "file_search"], Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]]]]): Tools the assistant can use
+        handoffs (List[HandoffBase | str] | None, optional): The handoff configurations for the agent,
+            allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
+            The transfer is only executed when the team is in :class:`~autogen_agentchat.teams.Swarm`.
+            If a handoff is a string, it should represent the target agent's name.
         assistant_id (Optional[str]): ID of existing assistant to use
         thread_id (Optional[str]): ID of existing thread to use
         metadata (Optional[Dict[str, str]]): Additional metadata for the assistant.
@@ -247,6 +260,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 ]
             ]
         ] = None,
+        handoffs: List[HandoffBase | str] | None = None,
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         metadata: Optional[Dict[str, str]] = None,
@@ -307,17 +321,43 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._initial_message_ids: Set[str] = set()
         self._initial_state_retrieved: bool = False
 
+        # Handoff tools.
+        self._handoff_tools: List[BaseTool[Any, Any]] = []
+        self._handoffs: Dict[str, HandoffBase] = {}
+        if handoffs is not None:
+            for handoff in handoffs:
+                if isinstance(handoff, str):
+                    handoff = HandoffBase(target=handoff)
+                if isinstance(handoff, HandoffBase):
+                    self._handoff_tools.append(handoff.handoff_tool)
+                    self._handoffs[handoff.name] = handoff
+                else:
+                    raise ValueError(f"Unsupported handoff type: {type(handoff)}")
+        # Check if handoff tool names are unique.
+        handoff_tool_names = [tool.name for tool in self._handoff_tools]
+        if len(handoff_tool_names) != len(set(handoff_tool_names)):
+            raise ValueError(f"Handoff names must be unique: {handoff_tool_names}")
+        # Check if handoff tool names not in tool names.
+        tool_names = [tool.name for tool in self._original_tools]
+        if any(name in tool_names for name in handoff_tool_names):
+            raise ValueError(
+                f"Handoff names must be unique from tool names. "
+                f"Handoff names: {handoff_tool_names}; tool names: {tool_names}"
+            )
+        self._converted_handoff_tools = [_convert_tool_to_function_param(tool) for tool in self._handoff_tools]
+
     async def _ensure_initialized(self) -> None:
         """Ensure assistant and thread are created."""
         if self._assistant is None:
             if self._assistant_id:
                 self._assistant = await self._client.beta.assistants.retrieve(assistant_id=self._assistant_id)
             else:
+                all_tools = self._api_tools + self._converted_handoff_tools
                 self._assistant = await self._client.beta.assistants.create(
                     model=self._model,
                     description=self.description,
                     instructions=self._instructions,
-                    tools=self._api_tools,
+                    tools=all_tools,
                     metadata=self._metadata,
                     response_format=self._response_format if self._response_format else NOT_GIVEN,  # type: ignore
                     temperature=self._temperature,
@@ -355,7 +395,10 @@ class OpenAIAssistantAgent(BaseChatAgent):
     @property
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         """The types of messages that the assistant agent produces."""
-        return (TextMessage,)
+        message_types: List[type[BaseChatMessage]] = [TextMessage]
+        if self._handoffs:
+            message_types.append(HandoffMessage)
+        return tuple(message_types)
 
     @property
     def threads(self) -> AsyncThreads:
@@ -383,9 +426,10 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def _execute_tool_call(self, tool_call: FunctionCall, cancellation_token: CancellationToken) -> str:
         """Execute a tool call and return the result."""
-        if not self._original_tools:
+        all_tools = self._original_tools + self._handoff_tools
+        if not all_tools:
             raise ValueError("No tools are available.")
-        tool = next((t for t in self._original_tools if t.name == tool_call.name), None)
+        tool = next((t for t in all_tools if t.name == tool_call.name), None)
         if tool is None:
             raise ValueError(f"The tool '{tool_call.name}' is not available.")
         arguments = json.loads(tool_call.arguments)
@@ -487,7 +531,62 @@ class OpenAIAssistantAgent(BaseChatAgent):
                         )
                     )
                 )
-                continue
+
+                # check and generate handoff message
+                handoff_calls = [call for call in tool_calls if call.name in self._handoffs]
+                if len(handoff_calls) > 0:
+                    if len(handoff_calls) > 1:
+                        warnings.warn(
+                            (
+                                f"Multiple handoffs detected. Only the first is executed: "
+                                f"{[self._handoffs[c.name].name for c in handoff_calls]}. "
+                                "Disable parallel tool calls in the model client to avoid this warning."
+                            ),
+                            stacklevel=2,
+                        )
+                    selected_handoff = self._handoffs[handoff_calls[0].name]
+
+                    # Collect normal tool calls (not handoff) into the handoff context
+                    normal_tool_calls: List[FunctionCall] = []
+                    normal_tool_results: List[FunctionExecutionResult] = []
+                    # Collect the results returned by handoff_tool. By default, the message attribute will returned.
+                    selected_handoff_message = selected_handoff.message
+                    for tool_call, tool_result in zip(tool_calls, tool_outputs, strict=False):
+                        if tool_call.name not in self._handoffs:
+                            normal_tool_calls.append(tool_call)
+                            normal_tool_results.append(tool_result)
+                        elif tool_call.name == selected_handoff.name:
+                            selected_handoff_message = tool_result.content
+
+                    handoff_context: List[LLMMessage] = []
+                    if len(normal_tool_calls) > 0:
+                        handoff_context.append(
+                            AssistantMessage(
+                                content=normal_tool_calls,
+                                source=self.name,
+                                # TODO: Include the thought in the AssistantMessage if model_result has it
+                            )
+                        )
+                        handoff_context.append(FunctionExecutionResultMessage(content=normal_tool_results))
+
+                    run = await cancellation_token.link_future(
+                        asyncio.ensure_future(
+                            self._client.beta.threads.runs.cancel(thread_id=self._thread_id, run_id=run.id)
+                        )
+                    )
+                    # Return response for the handoff
+                    yield Response(
+                        chat_message=HandoffMessage(
+                            content=selected_handoff_message,
+                            target=selected_handoff.target,
+                            source=self.name,
+                            context=handoff_context,
+                        ),
+                        inner_messages=inner_messages,
+                    )
+                    return
+                else:
+                    continue
 
             if run.status == "completed":
                 break
