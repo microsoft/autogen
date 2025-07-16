@@ -8,6 +8,7 @@ from json_schema_to_pydantic import create_model
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
+DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(timeout=5.0)
 
 class HttpToolConfig(BaseModel):
     name: str
@@ -52,6 +53,10 @@ class HttpToolConfig(BaseModel):
     return_type: Optional[Literal["text", "json"]] = "text"
     """
     The type of response to return from the tool.
+    """
+    timeout: Optional[httpx.Timeout] = DEFAULT_TIMEOUT_CONFIG
+    """
+    The timeout for the tool request.
     """
 
 
@@ -148,6 +153,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
         scheme: Literal["http", "https"] = "http",
         method: Literal["GET", "POST", "PUT", "DELETE", "PATCH"] = "POST",
         return_type: Literal["text", "json"] = "text",
+        timeout: httpx.Timeout = DEFAULT_TIMEOUT_CONFIG,
     ) -> None:
         self.server_params = HttpToolConfig(
             name=name,
@@ -160,6 +166,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
             headers=headers,
             json_schema=json_schema,
             return_type=return_type,
+            timeout=timeout,
         )
 
         # Use regex to find all path parameters, we will need those later to template the path
@@ -211,7 +218,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
             port=self.server_params.port,
             path=path,
         )
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=self.server_params.timeout) as client:
             match self.server_params.method:
                 case "GET":
                     response = await client.get(url, headers=self.server_params.headers, params=model_dump)
