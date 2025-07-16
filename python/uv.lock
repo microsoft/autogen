@@ -768,7 +768,7 @@ requires-dist = [
     { name = "markitdown", extras = ["all"], marker = "extra == 'file-surfer'", specifier = "~=0.1.0a3" },
     { name = "markitdown", extras = ["all"], marker = "extra == 'magentic-one'", specifier = "~=0.1.0a3" },
     { name = "markitdown", extras = ["all"], marker = "extra == 'web-surfer'", specifier = "~=0.1.0a3" },
-    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.8.1" },
+    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.11.0" },
     { name = "mem0ai", marker = "extra == 'mem0'", specifier = ">=0.1.98" },
     { name = "mem0ai", marker = "extra == 'mem0-local'", specifier = ">=0.1.98" },
     { name = "nbclient", marker = "extra == 'jupyter-executor'", specifier = ">=0.10.2" },
