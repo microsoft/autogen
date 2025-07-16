@@ -1450,7 +1450,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 tool_choice="none",  # Do not use tools in reflection flow.
             )
 
-        if not reflection_result or not isinstance(reflection_result.content, str):
+        if not reflection_result or not isinstance(reflection_result.content, str | list):
             raise RuntimeError("Reflect on tool use produced no valid text response.")
 
         # --- NEW: If the reflection produced a thought, yield it ---
@@ -1482,7 +1482,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         else:
             yield Response(
                 chat_message=TextMessage(
-                    content=reflection_result.content,
+                    content=reflection_result.content if isinstance(reflection_result.content, str) else "",
                     source=agent_name,
                     models_usage=reflection_result.usage,
                     id=reflection_message_id,
