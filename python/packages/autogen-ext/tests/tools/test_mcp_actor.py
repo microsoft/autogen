@@ -469,7 +469,7 @@ async def test_run_actor_exception_handling() -> None:
 
     # Create a mock session that will raise exceptions by modifying our mock session
     @asynccontextmanager
-    async def mock_failing_session(server_params: Any, sampling_callback: Any = None) -> AsyncGenerator[MagicMock]:
+    async def mock_failing_session(server_params: Any, sampling_callback: Any = None) -> AsyncGenerator[MagicMock, None]:
         mock_session = MagicMock()
         mock_session.initialize = AsyncMock(
             return_value=mcp_types.InitializeResult(
@@ -1022,7 +1022,7 @@ async def test_actor_unknown_tool(mcp_server_params: Any) -> None:
 
 
 @pytest.fixture
-def clean_actor() -> Generator[Callable[..., McpSessionActor]]:
+def clean_actor() -> Generator[Callable[..., McpSessionActor], None, None]:
     """Fixture to track and clean up actors created in tests."""
     actors: list[McpSessionActor] = []
 
@@ -1140,7 +1140,7 @@ async def test_run_actor_all_command_types_exception_handling() -> None:
 
     # Create a mock session that will raise exceptions for all command types
     @asynccontextmanager
-    async def mock_failing_session(server_params: Any, sampling_callback: Any = None) -> AsyncGenerator[MagicMock]:
+    async def mock_failing_session(server_params: Any, sampling_callback: Any = None) -> AsyncGenerator[MagicMock, None]:
         mock_session = MagicMock()
         mock_session.initialize = AsyncMock(
             return_value=mcp_types.InitializeResult(
