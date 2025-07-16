@@ -40,7 +40,7 @@ McpFuture = asyncio.Future[McpResult]
 
 
 def _parse_sampling_content(
-    content: mcp_types.TextContent | mcp_types.ImageContent, model_info: ModelInfo
+    content: mcp_types.TextContent | mcp_types.ImageContent | mcp_types.AudioContent, model_info: ModelInfo
 ) -> str | Image:
     """Convert MCP content types to Autogen content types."""
     if content.type == "text":
@@ -53,7 +53,7 @@ def _parse_sampling_content(
         pil_image = PILImage.open(io.BytesIO(image_data))
         return Image.from_pil(pil_image)
     else:
-        raise ValueError(f"Unrecognized content type: {content.type}")
+        raise ValueError(f"Unsupported content type: {content.type}")
 
 
 def _parse_sampling_message(message: mcp_types.SamplingMessage, model_info: ModelInfo) -> LLMMessage:
