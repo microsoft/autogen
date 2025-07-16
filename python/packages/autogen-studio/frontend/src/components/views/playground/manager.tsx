@@ -273,7 +273,7 @@ export const SessionManager: React.FC = () => {
         }`}
       >
         {session && sessions.length > 0 ? (
-          <div className="pl-4 flex gap-4">
+          <div className="flex gap-4 pl-4">
             {/* Primary ChatView */}
             <div className={`flex-1 ${isCompareMode ? "w-1/2" : "w-full"}`}>
               <ChatView
@@ -301,7 +301,7 @@ export const SessionManager: React.FC = () => {
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-secondary">
-            No session selected. Create or select a session from the sidebar.
+            "No session selected. Create or select a session from the sidebar."
           </div>
         )}
       </div>
