@@ -101,6 +101,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     updateNode,
     selectedNodeId,
     setSelectedNode,
+    setNodeUserPositioned,
   } = useTeamBuilderStore();
 
   const currentHistoryIndex = useTeamBuilderStore(
@@ -150,7 +151,9 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   React.useEffect(() => {
     if (team?.component) {
       const { nodes: initialNodes, edges: initialEdges } = loadFromJson(
-        team.component
+        team.component,
+        true,
+        team.id?.toString()
       );
       setNodes(initialNodes);
       setEdges(initialEdges);
@@ -169,14 +172,14 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
       try {
         const config = JSON.parse(value);
         // Always consider JSON edits as changes that should affect isDirty state
-        loadFromJson(config, false);
+        loadFromJson(config, false, team?.id?.toString());
         // Force history update even if nodes/edges appear same
         useTeamBuilderStore.getState().addToHistory();
       } catch (error) {
         console.error("Invalid JSON:", error);
       }
     }, 1000),
-    [loadFromJson]
+    [loadFromJson, team?.id]
   );
 
   // Cleanup debounced function
@@ -272,6 +275,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
       agent: ["team"],
       team: [],
       termination: ["team"],
+      workbench: ["agent"],
     };
     return validTargets[draggedType]?.includes(targetType) || false;
   };
@@ -495,6 +499,11 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
+                    onNodeDragStop={(_, node) => {
+                      // Mark node as user-positioned when dragged
+                      setNodeUserPositioned(node.id, node.position);
+                      console.log("Node dragged:", node.id);
+                    }}
                     // onNodeClick={(_, node) => setSelectedNode(node.id)}
                     nodeTypes={nodeTypes}
                     edgeTypes={edgeTypes}

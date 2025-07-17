@@ -2,7 +2,7 @@ import asyncio
 import builtins
 import json
 from abc import ABC
-from typing import Any, Dict, Generic, Type, TypeVar
+from typing import Any, Dict, Generic, Sequence, Type, TypeVar
 
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from pydantic.networks import AnyUrl
 
 from mcp import ClientSession, Tool
-from mcp.types import EmbeddedResource, ImageContent, TextContent
+from mcp.types import AudioContent, ContentBlock, EmbeddedResource, ImageContent, ResourceLink, TextContent
 
 from ._config import McpServerParams
 from ._session import create_mcp_server_session
@@ -75,21 +75,20 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
             await session.initialize()
             return await self._run(args=kwargs, cancellation_token=cancellation_token, session=session)
 
-    def _normalize_payload_to_content_list(
-        self, payload: list[TextContent | ImageContent | EmbeddedResource]
-    ) -> list[TextContent | ImageContent | EmbeddedResource]:
+    def _normalize_payload_to_content_list(self, payload: Sequence[ContentBlock]) -> list[ContentBlock]:
         """
         Normalizes a raw tool output payload into a list of content items.
-        - If payload is already a list of (TextContent, ImageContent, EmbeddedResource), it's returned as is.
-        - If payload is a single TextContent, ImageContent, or EmbeddedResource, it's wrapped in a list.
+        - If payload is already a sequence of ContentBlock items, it's converted to a list and returned.
+        - If payload is a single ContentBlock item, it's wrapped in a list.
         - If payload is a string, it's wrapped in [TextContent(text=payload)].
         - Otherwise, the payload is stringified and wrapped in [TextContent(text=str(payload))].
         """
-        if isinstance(payload, list) and all(
-            isinstance(item, (TextContent, ImageContent, EmbeddedResource)) for item in payload
+        if isinstance(payload, Sequence) and all(
+            isinstance(item, (TextContent, ImageContent, EmbeddedResource, AudioContent, ResourceLink))
+            for item in payload
         ):
-            return payload
-        elif isinstance(payload, (TextContent, ImageContent, EmbeddedResource)):
+            return list(payload)
+        elif isinstance(payload, (TextContent, ImageContent, EmbeddedResource, AudioContent, ResourceLink)):
             return [payload]
         elif isinstance(payload, str):
             return [TextContent(text=payload, type="text")]
@@ -154,18 +153,37 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         """Return a string representation of the result."""
 
         def serialize_item(item: Any) -> dict[str, Any]:
-            if isinstance(item, (TextContent, ImageContent)):
-                return item.model_dump()
+            if isinstance(item, (TextContent, ImageContent, AudioContent)):
+                dumped = item.model_dump()
+                # Remove the 'meta' field if it exists and is None (for backward compatibility)
+                if dumped.get("meta") is None:
+                    dumped.pop("meta", None)
+                return dumped
             elif isinstance(item, EmbeddedResource):
                 type = item.type
                 resource = {}
                 for key, val in item.resource.model_dump().items():
+                    # Skip 'meta' field if it's None (for backward compatibility)
+                    if key == "meta" and val is None:
+                        continue
                     if isinstance(val, AnyUrl):
                         resource[key] = str(val)
                     else:
                         resource[key] = val
-                annotations = item.annotations.model_dump() if item.annotations else None
-                return {"type": type, "resource": resource, "annotations": annotations}
+                dumped_annotations = item.annotations.model_dump() if item.annotations else None
+                # Remove 'meta' from annotations if it exists and is None
+                if dumped_annotations and dumped_annotations.get("meta") is None:
+                    dumped_annotations.pop("meta", None)
+                return {"type": type, "resource": resource, "annotations": dumped_annotations}
+            elif isinstance(item, ResourceLink):
+                dumped = item.model_dump()
+                # Remove the 'meta' field if it exists and is None (for backward compatibility)
+                if dumped.get("meta") is None:
+                    dumped.pop("meta", None)
+                # Convert AnyUrl to string for JSON serialization
+                if "uri" in dumped and isinstance(dumped["uri"], AnyUrl):
+                    dumped["uri"] = str(dumped["uri"])
+                return dumped
             else:
                 return {}
 

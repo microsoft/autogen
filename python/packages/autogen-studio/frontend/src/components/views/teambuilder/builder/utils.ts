@@ -9,8 +9,15 @@ import {
   isAssistantAgent,
   isUserProxyAgent,
   isWebSurferAgent,
+  isStaticWorkbench,
+  isMcpWorkbench,
 } from "../../../types/guards";
 import { CustomNode, CustomEdge } from "./types";
+import {
+  getStoredPosition,
+  generateComponentKey,
+  isComponentUserPositioned,
+} from "./layout-storage";
 
 interface Position {
   x: number;
@@ -82,12 +89,34 @@ const calculateNodeHeight = (component: Component<ComponentConfig>): number => {
       // Only AssistantAgent has model_client and tools
       if (isAssistantAgent(component)) {
         height += 200;
-        // Add height for tools section and items
-        if (component.config.tools?.length) {
-          height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_SECTION;
-          height +=
-            component.config.tools.length *
-            LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM;
+        // Add height for workbench section if present
+        const workbenchConfig = component.config.workbench;
+        if (workbenchConfig) {
+          // Handle both single workbench object and array of workbenches
+          const workbenches = Array.isArray(workbenchConfig)
+            ? workbenchConfig
+            : [workbenchConfig];
+
+          if (workbenches.length > 0) {
+            // Add height for workbench section header
+            height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_SECTION;
+
+            // Calculate total height for all workbenches
+            workbenches.forEach((workbench) => {
+              if (!workbench) return;
+
+              if (isStaticWorkbench(workbench)) {
+                // StaticWorkbench: count individual tools
+                const toolCount = workbench.config.tools?.length || 0;
+                if (toolCount > 0) {
+                  height += toolCount * LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM;
+                }
+              } else if (isMcpWorkbench(workbench)) {
+                // MCP workbench: add standard height for dynamic tools display
+                height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM;
+              }
+            });
+          }
         }
       }
       if (isWebSurferAgent(component)) {
@@ -98,6 +127,22 @@ const calculateNodeHeight = (component: Component<ComponentConfig>): number => {
         height += -100;
       }
 
+      break;
+
+    case "workbench":
+      // Add height for workbench content
+      if (isStaticWorkbench(component)) {
+        // StaticWorkbench: show tools
+        const toolCount = component.config.tools?.length || 0;
+        height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_SECTION;
+        if (toolCount > 0) {
+          height += toolCount * LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM;
+        }
+      } else if (isMcpWorkbench(component)) {
+        // MCP workbench: show server configuration
+        height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_SECTION;
+        height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM; // For server info display
+      }
       break;
   }
 
@@ -166,6 +211,16 @@ const createNode = (
   },
 });
 
+// Get position for a component, checking storage first
+const getPositionForComponent = (
+  teamId: string,
+  component: Component<ComponentConfig>,
+  fallbackPosition: Position
+): Position => {
+  const stored = getStoredPosition(teamId, component);
+  return stored?.position || fallbackPosition;
+};
+
 // Helper to create edges with consistent structure
 const createEdge = (
   source: string,
@@ -182,7 +237,8 @@ const createEdge = (
 
 // Convert team configuration to graph structure with dynamic layout
 export const convertTeamConfigToGraph = (
-  teamComponent: Component<TeamConfig>
+  teamComponent: Component<TeamConfig>,
+  teamId?: string
 ): { nodes: CustomNode[]; edges: CustomEdge[] } => {
   const nodes: CustomNode[] = [];
   const edges: CustomEdge[] = [];
@@ -190,13 +246,20 @@ export const convertTeamConfigToGraph = (
   // Create agent nodes first to calculate their positions
   const agentNodes: CustomNode[] = [];
   teamComponent.config.participants.forEach((participant, index) => {
-    const position = calculateAgentPosition(index, agentNodes);
+    const calculatedPosition = calculateAgentPosition(index, agentNodes);
+    const position = teamId
+      ? getPositionForComponent(teamId, participant, calculatedPosition)
+      : calculatedPosition;
     const agentNode = createNode(position, participant);
     agentNodes.push(agentNode);
   });
 
   // Create team node with position based on agent positions
-  const teamNode = createNode(calculateTeamPosition(agentNodes), teamComponent);
+  const calculatedTeamPosition = calculateTeamPosition(agentNodes);
+  const teamPosition = teamId
+    ? getPositionForComponent(teamId, teamComponent, calculatedTeamPosition)
+    : calculatedTeamPosition;
+  const teamNode = createNode(teamPosition, teamComponent);
 
   // Add all nodes and create edges
   nodes.push(teamNode, ...agentNodes);
@@ -210,7 +273,9 @@ export const convertTeamConfigToGraph = (
 // Layout existing nodes with dynamic heights
 export const getLayoutedElements = (
   nodes: CustomNode[],
-  edges: CustomEdge[]
+  edges: CustomEdge[],
+  teamId?: string,
+  preserveUserPositions: boolean = true
 ): { nodes: CustomNode[]; edges: CustomEdge[] } => {
   // Find team node and agent nodes
   const teamNode = nodes.find((n) => n.data.type === "team");
@@ -219,22 +284,57 @@ export const getLayoutedElements = (
   const agentNodes = nodes.filter((n) => n.data.type !== "team");
 
   // Calculate new positions for agent nodes
-  const layoutedAgentNodes = agentNodes.map((node, index) => ({
-    ...node,
-    position: calculateAgentPosition(index, agentNodes.slice(0, index)),
-    data: {
-      ...node.data,
-      dimensions: {
-        width: LAYOUT_CONFIG.NODE.WIDTH,
-        height: calculateNodeHeight(node.data.component),
+  const layoutedAgentNodes = agentNodes.map((node, index) => {
+    const calculatedPosition = calculateAgentPosition(
+      index,
+      agentNodes.slice(0, index)
+    );
+
+    // Check if we should preserve user position
+    const shouldPreservePosition =
+      preserveUserPositions &&
+      teamId &&
+      isComponentUserPositioned(teamId, node.data.component);
+
+    const position = shouldPreservePosition
+      ? node.position
+      : teamId
+      ? getPositionForComponent(teamId, node.data.component, calculatedPosition)
+      : calculatedPosition;
+
+    return {
+      ...node,
+      position,
+      data: {
+        ...node.data,
+        dimensions: {
+          width: LAYOUT_CONFIG.NODE.WIDTH,
+          height: calculateNodeHeight(node.data.component),
+        },
       },
-    },
-  }));
+    };
+  });
 
   // Update team node position
+  const calculatedTeamPosition = calculateTeamPosition(layoutedAgentNodes);
+  const shouldPreserveTeamPosition =
+    preserveUserPositions &&
+    teamId &&
+    isComponentUserPositioned(teamId, teamNode.data.component);
+
+  const teamPosition = shouldPreserveTeamPosition
+    ? teamNode.position
+    : teamId
+    ? getPositionForComponent(
+        teamId,
+        teamNode.data.component,
+        calculatedTeamPosition
+      )
+    : calculatedTeamPosition;
+
   const layoutedTeamNode = {
     ...teamNode,
-    position: calculateTeamPosition(layoutedAgentNodes),
+    position: teamPosition,
     data: {
       ...teamNode.data,
       dimensions: {
@@ -246,6 +346,28 @@ export const getLayoutedElements = (
 
   return {
     nodes: [layoutedTeamNode, ...layoutedAgentNodes],
+    edges,
+  };
+};
+
+// Update only node dimensions without changing positions
+export const updateNodeDimensions = (
+  nodes: CustomNode[],
+  edges: CustomEdge[]
+): { nodes: CustomNode[]; edges: CustomEdge[] } => {
+  const updatedNodes = nodes.map((node) => ({
+    ...node,
+    data: {
+      ...node.data,
+      dimensions: {
+        width: LAYOUT_CONFIG.NODE.WIDTH,
+        height: calculateNodeHeight(node.data.component),
+      },
+    },
+  }));
+
+  return {
+    nodes: updatedNodes,
     edges,
   };
 };
