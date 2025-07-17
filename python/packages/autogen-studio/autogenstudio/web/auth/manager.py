@@ -1,6 +1,6 @@
 import os
-from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict
 
 import jwt
 import yaml
@@ -47,7 +47,7 @@ class AuthManager:
             logger.warning("JWT secret not configured, using insecure token")
             return "dummy_token_" + user.id
 
-        expiry = datetime.utcnow() + timedelta(minutes=self.config.token_expiry_minutes)
+        expiry = datetime.now(timezone.utc) + timedelta(minutes=self.config.token_expiry_minutes)
         payload = {
             "sub": user.id,
             "name": user.name,
@@ -94,12 +94,12 @@ class AuthManager:
                 roles=payload.get("roles", ["user"]),
             )
 
-        except jwt.ExpiredSignatureError:
+        except jwt.ExpiredSignatureError as e:
             logger.warning(f"Expired token received: {token[:10]}...")
-            raise InvalidTokenException() from InvalidTokenException()
-        except jwt.InvalidTokenError:
+            raise InvalidTokenException() from e
+        except jwt.InvalidTokenError as e:
             logger.warning(f"Invalid token received: {token[:10]}...")
-            raise InvalidTokenException() from InvalidTokenException()
+            raise InvalidTokenException() from e
 
     def is_valid_token(self, token: str) -> bool:
         """Check if a JWT token is valid."""
@@ -123,14 +123,14 @@ class AuthManager:
             return cls(config)
         except Exception as e:
             logger.error(f"Failed to load auth config from {yaml_path}: {str(e)}")
-            raise ConfigurationException(f"Failed to load auth config: {str(e)}") from ConfigurationException()
+            raise ConfigurationException(f"Failed to load auth config: {str(e)}") from e
 
     @classmethod
     def from_env(cls) -> Self:
         """Create AuthManager from environment variables."""
         auth_type = os.environ.get("AUTOGENSTUDIO_AUTH_TYPE", "none")
 
-        config_dict = {
+        config_dict: Dict[str, Any] = {
             "type": auth_type,
             "jwt_secret": os.environ.get("AUTOGENSTUDIO_JWT_SECRET"),
             "token_expiry_minutes": int(os.environ.get("AUTOGENSTUDIO_TOKEN_EXPIRY", "60")),
