@@ -1,6 +1,5 @@
 import { Team, Component, ComponentConfig } from "../../types/datamodel";
 import { BaseAPI } from "../../utils/baseapi";
-import { getServerUrl } from "../../utils/utils";
 
 interface ValidationError {
   field: string;
@@ -119,6 +118,5 @@ export class ValidationAPI extends BaseAPI {
   }
 }
 
-export const validationAPI = new ValidationAPI();
-
 export const teamAPI = new TeamAPI();
+export const validationAPI = new ValidationAPI();
