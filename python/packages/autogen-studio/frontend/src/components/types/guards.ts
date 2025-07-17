@@ -5,19 +5,32 @@ import type {
   AgentConfig,
   ModelConfig,
   ToolConfig,
+  WorkbenchConfig,
   TerminationConfig,
   ChatCompletionContextConfig,
   SelectorGroupChatConfig,
   RoundRobinGroupChatConfig,
+  SwarmConfig,
   MultimodalWebSurferConfig,
   AssistantAgentConfig,
   UserProxyAgentConfig,
   OpenAIClientConfig,
   AzureOpenAIClientConfig,
   FunctionToolConfig,
+  PythonCodeExecutionToolConfig,
+  LocalCommandLineCodeExecutorConfig,
+  StaticWorkbenchConfig,
+  McpWorkbenchConfig,
   OrTerminationConfig,
   MaxMessageTerminationConfig,
   TextMentionTerminationConfig,
+  StopMessageTerminationConfig,
+  TokenUsageTerminationConfig,
+  HandoffTerminationConfig,
+  TimeoutTerminationConfig,
+  ExternalTerminationConfig,
+  SourceMatchTerminationConfig,
+  TextMessageTerminationConfig,
   UnboundedChatCompletionContextConfig,
   AnthropicClientConfig,
   AndTerminationConfig,
@@ -28,6 +41,7 @@ const PROVIDERS = {
   // Teams
   ROUND_ROBIN_TEAM: "autogen_agentchat.teams.RoundRobinGroupChat",
   SELECTOR_TEAM: "autogen_agentchat.teams.SelectorGroupChat",
+  SWARM_TEAM: "autogen_agentchat.teams.Swarm",
 
   // Agents
   ASSISTANT_AGENT: "autogen_agentchat.agents.AssistantAgent",
@@ -41,12 +55,30 @@ const PROVIDERS = {
 
   // Tools
   FUNCTION_TOOL: "autogen_core.tools.FunctionTool",
+  PYTHON_CODE_EXECUTION_TOOL:
+    "autogen_ext.tools.code_execution.PythonCodeExecutionTool",
+
+  // Code Executors
+  LOCAL_COMMAND_LINE_CODE_EXECUTOR:
+    "autogen_ext.code_executors.local.LocalCommandLineCodeExecutor",
+
+  // Workbenches
+  STATIC_WORKBENCH: "autogen_core.tools.StaticWorkbench",
+  STATIC_STREAM_WORKBENCH: "autogen_core.tools.StaticStreamWorkbench",
+  MCP_WORKBENCH: "autogen_ext.tools.mcp.McpWorkbench",
 
   // Termination
   OR_TERMINATION: "autogen_agentchat.base.OrTerminationCondition",
   AND_TERMINATION: "autogen_agentchat.base.AndTerminationCondition",
   MAX_MESSAGE: "autogen_agentchat.conditions.MaxMessageTermination",
   TEXT_MENTION: "autogen_agentchat.conditions.TextMentionTermination",
+  STOP_MESSAGE: "autogen_agentchat.conditions.StopMessageTermination",
+  TOKEN_USAGE: "autogen_agentchat.conditions.TokenUsageTermination",
+  HANDOFF: "autogen_agentchat.conditions.HandoffTermination",
+  TIMEOUT: "autogen_agentchat.conditions.TimeoutTermination",
+  EXTERNAL: "autogen_agentchat.conditions.ExternalTermination",
+  SOURCE_MATCH: "autogen_agentchat.conditions.SourceMatchTermination",
+  TEXT_MESSAGE: "autogen_agentchat.conditions.TextMessageTermination",
 
   // Contexts
   UNBOUNDED_CONTEXT:
@@ -60,6 +92,7 @@ type ProviderToConfig = {
   // Teams
   [PROVIDERS.SELECTOR_TEAM]: SelectorGroupChatConfig;
   [PROVIDERS.ROUND_ROBIN_TEAM]: RoundRobinGroupChatConfig;
+  [PROVIDERS.SWARM_TEAM]: SwarmConfig;
   [PROVIDERS.ANTHROPIC]: AnthropicClientConfig;
 
   // Agents
@@ -73,12 +106,28 @@ type ProviderToConfig = {
 
   // Tools
   [PROVIDERS.FUNCTION_TOOL]: FunctionToolConfig;
+  [PROVIDERS.PYTHON_CODE_EXECUTION_TOOL]: PythonCodeExecutionToolConfig;
+
+  // Code Executors
+  [PROVIDERS.LOCAL_COMMAND_LINE_CODE_EXECUTOR]: LocalCommandLineCodeExecutorConfig;
+
+  // Workbenches
+  [PROVIDERS.STATIC_WORKBENCH]: StaticWorkbenchConfig;
+  [PROVIDERS.STATIC_STREAM_WORKBENCH]: StaticWorkbenchConfig;
+  [PROVIDERS.MCP_WORKBENCH]: McpWorkbenchConfig;
 
   // Termination
   [PROVIDERS.OR_TERMINATION]: OrTerminationConfig;
   [PROVIDERS.AND_TERMINATION]: AndTerminationConfig;
   [PROVIDERS.MAX_MESSAGE]: MaxMessageTerminationConfig;
   [PROVIDERS.TEXT_MENTION]: TextMentionTerminationConfig;
+  [PROVIDERS.STOP_MESSAGE]: StopMessageTerminationConfig;
+  [PROVIDERS.TOKEN_USAGE]: TokenUsageTerminationConfig;
+  [PROVIDERS.HANDOFF]: HandoffTerminationConfig;
+  [PROVIDERS.TIMEOUT]: TimeoutTerminationConfig;
+  [PROVIDERS.EXTERNAL]: ExternalTerminationConfig;
+  [PROVIDERS.SOURCE_MATCH]: SourceMatchTerminationConfig;
+  [PROVIDERS.TEXT_MESSAGE]: TextMessageTerminationConfig;
 
   // Contexts
   [PROVIDERS.UNBOUNDED_CONTEXT]: UnboundedChatCompletionContextConfig;
@@ -125,6 +174,8 @@ export function isModelComponent(
   return component.component_type === "model";
 }
 
+// NOTE: Tools are now deprecated - use workbenches instead
+// This guard is kept for backward compatibility during migration
 export function isToolComponent(
   component: Component<ComponentConfig>
 ): component is Component<ToolConfig> {
@@ -154,6 +205,12 @@ export function isSelectorTeam(
   component: Component<ComponentConfig>
 ): component is Component<SelectorGroupChatConfig> {
   return isComponentOfType(component, PROVIDERS.SELECTOR_TEAM);
+}
+
+export function isSwarmTeam(
+  component: Component<ComponentConfig>
+): component is Component<SwarmConfig> {
+  return isComponentOfType(component, PROVIDERS.SWARM_TEAM);
 }
 
 // Agent provider guards with proper type narrowing
@@ -200,6 +257,37 @@ export function isFunctionTool(
   return isComponentOfType(component, PROVIDERS.FUNCTION_TOOL);
 }
 
+// Workbench provider guards with proper type narrowing
+export function isStaticWorkbench(
+  component: Component<ComponentConfig> | null | undefined
+): component is Component<StaticWorkbenchConfig> {
+  return (
+    !!component && isComponentOfType(component, PROVIDERS.STATIC_WORKBENCH)
+  );
+}
+
+export function isStaticStreamWorkbench(
+  component: Component<ComponentConfig> | null | undefined
+): component is Component<StaticWorkbenchConfig> {
+  return (
+    !!component &&
+    isComponentOfType(component, PROVIDERS.STATIC_STREAM_WORKBENCH)
+  );
+}
+
+// Combined guard for both static workbench types
+export function isAnyStaticWorkbench(
+  component: Component<ComponentConfig> | null | undefined
+): component is Component<StaticWorkbenchConfig> {
+  return isStaticWorkbench(component) || isStaticStreamWorkbench(component);
+}
+
+export function isMcpWorkbench(
+  component: Component<ComponentConfig> | null | undefined
+): component is Component<McpWorkbenchConfig> {
+  return !!component && isComponentOfType(component, PROVIDERS.MCP_WORKBENCH);
+}
+
 // Termination provider guards with proper type narrowing
 export function isOrTermination(
   component: Component<ComponentConfig>
@@ -235,11 +323,60 @@ export function isTextMentionTermination(
   return isComponentOfType(component, PROVIDERS.TEXT_MENTION);
 }
 
+export function isStopMessageTermination(
+  component: Component<ComponentConfig>
+): component is Component<StopMessageTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.STOP_MESSAGE);
+}
+
+export function isTokenUsageTermination(
+  component: Component<ComponentConfig>
+): component is Component<TokenUsageTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.TOKEN_USAGE);
+}
+
+export function isHandoffTermination(
+  component: Component<ComponentConfig>
+): component is Component<HandoffTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.HANDOFF);
+}
+
+export function isTimeoutTermination(
+  component: Component<ComponentConfig>
+): component is Component<TimeoutTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.TIMEOUT);
+}
+
+export function isExternalTermination(
+  component: Component<ComponentConfig>
+): component is Component<ExternalTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.EXTERNAL);
+}
+
+export function isSourceMatchTermination(
+  component: Component<ComponentConfig>
+): component is Component<SourceMatchTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.SOURCE_MATCH);
+}
+
+export function isTextMessageTermination(
+  component: Component<ComponentConfig>
+): component is Component<TextMessageTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.TEXT_MESSAGE);
+}
+
 // Context provider guards with proper type narrowing
 export function isUnboundedContext(
   component: Component<ComponentConfig>
 ): component is Component<UnboundedChatCompletionContextConfig> {
   return isComponentOfType(component, PROVIDERS.UNBOUNDED_CONTEXT);
+}
+
+// General category type guards
+export function isWorkbenchComponent(
+  component: Component<ComponentConfig>
+): component is Component<WorkbenchConfig> {
+  return component.component_type === "workbench";
 }
 
 // Runtime assertions

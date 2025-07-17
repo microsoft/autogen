@@ -13,6 +13,17 @@ interface SettingToggleProps {
   disabled?: boolean;
 }
 
+interface SettingNumberInputProps {
+  value: number;
+  onChange: (value: number) => void;
+  label: string;
+  description?: string;
+  disabled?: boolean;
+  min?: number;
+  max?: number;
+  suffix?: string;
+}
+
 const SettingToggle: React.FC<SettingToggleProps> = ({
   checked,
   onChange,
@@ -52,6 +63,43 @@ const SettingToggle: React.FC<SettingToggleProps> = ({
   </div>
 );
 
+const SettingNumberInput: React.FC<SettingNumberInputProps> = ({
+  value,
+  onChange,
+  label,
+  description,
+  disabled = false,
+  min = 1,
+  max = 30,
+  suffix = "",
+}) => (
+  <div className="flex justify-between items-start p-4 hover:bg-secondary rounded transition-colors">
+    <div className="flex flex-col gap-1">
+      <label className="font-medium">{label}</label>
+      {description && (
+        <span className="text-sm text-secondary">{description}</span>
+      )}
+    </div>
+    <div className="flex items-center gap-2">
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => {
+          const newValue = parseInt(e.target.value);
+          if (!isNaN(newValue) && newValue >= min && newValue <= max) {
+            onChange(newValue);
+          }
+        }}
+        disabled={disabled}
+        min={min}
+        max={max}
+        className="w-16 px-2 py-1 text-sm border border-secondary rounded focus:border-accent focus:ring-1 focus:ring-accent outline-none disabled:opacity-50 bg-primary"
+      />
+      {suffix && <span className="text-sm text-secondary">{suffix}</span>}
+    </div>
+  </div>
+);
+
 interface UISettingsPanelProps {
   userId: string;
 }
@@ -68,6 +116,7 @@ export const UISettingsPanel: React.FC<UISettingsPanelProps> = ({ userId }) => {
     show_llm_call_events: false,
     expanded_messages_by_default: false,
     show_agent_flow_by_default: false,
+    human_input_timeout_minutes: 3,
   });
 
   const [isDirty, setIsDirty] = useState(false);
@@ -80,7 +129,10 @@ export const UISettingsPanel: React.FC<UISettingsPanelProps> = ({ userId }) => {
   }, [storeUISettings]);
 
   // Update local state when a setting is changed
-  const handleSettingChange = (key: keyof UISettings, value: boolean) => {
+  const handleSettingChange = (
+    key: keyof UISettings,
+    value: boolean | number
+  ) => {
     setLocalUISettings((prev) => ({
       ...prev,
       [key]: value,
@@ -104,6 +156,7 @@ export const UISettingsPanel: React.FC<UISettingsPanelProps> = ({ userId }) => {
         show_llm_call_events: false,
         expanded_messages_by_default: false,
         show_agent_flow_by_default: false,
+        human_input_timeout_minutes: 3,
       };
 
       // Update local state
@@ -241,6 +294,19 @@ export const UISettingsPanel: React.FC<UISettingsPanelProps> = ({ userId }) => {
           label="Show Agent Flow by Default"
           description="Display the agent flow diagram automatically"
           disabled={isSaving}
+        />
+
+        <SettingNumberInput
+          value={localUISettings.human_input_timeout_minutes ?? 3}
+          onChange={(value) =>
+            handleSettingChange("human_input_timeout_minutes", value)
+          }
+          label="Human Input Timeout"
+          description="How long to wait for user input before timing out (1-30 minutes)"
+          disabled={isSaving}
+          min={1}
+          max={30}
+          suffix="minutes"
         />
       </div>
 
