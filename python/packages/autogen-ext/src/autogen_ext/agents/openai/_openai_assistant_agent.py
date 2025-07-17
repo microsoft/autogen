@@ -188,7 +188,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
                 # Create an assistant with code interpreter
                 assistant = OpenAIAssistantAgent(
-                    name="Python Helper",
+                    name="PythonHelper",
                     description="Helps with Python programming",
                     client=client,
                     model="gpt-4",
@@ -239,7 +239,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
                 # Create an assistant with code interpreter
                 assistant = OpenAIAssistantAgent(
-                    name="Python Helper",
+                    name="PythonHelper",
                     description="Helps with Python programming",
                     client=client,
                     model="gpt-4o",
