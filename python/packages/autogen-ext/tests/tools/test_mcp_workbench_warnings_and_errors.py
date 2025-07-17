@@ -271,6 +271,7 @@ async def test_async_context_manager(sample_server_params: StdioServerParams) ->
         mock_start.assert_called_once()
         mock_stop.assert_called_once()
 
+
 @pytest.mark.asyncio
 async def test_sampling_callback_functionality(sample_server_params: StdioServerParams) -> None:
     """Test sampling callback functionality for private method access."""
