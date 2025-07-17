@@ -122,7 +122,7 @@ class TestDatabaseOperations:
         test_db.upsert(Run(
             id=run1_id, 
             user_id=test_user, 
-            session_id=session1.id, 
+            session_id=session1.id or 1,  # Ensure session_id is not None
             status=RunStatus.COMPLETE, 
             task=MessageConfig(content="Task1", source="user").model_dump()
         ))
@@ -145,7 +145,7 @@ class TestDatabaseOperations:
         test_db.upsert(Run(
             id=run2_id, 
             user_id=test_user, 
-            session_id=session2.id, 
+            session_id=session2.id or 2,  # Ensure session_id is not None
             status=RunStatus.COMPLETE, 
             task=MessageConfig(content="Task2", source="user").model_dump()
         ))

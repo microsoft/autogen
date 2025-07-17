@@ -19,7 +19,7 @@ import ChatInput from "./chatinput";
 import { teamAPI } from "../../teambuilder/api";
 import { sessionAPI } from "../api";
 import RunView from "./runview";
-import { TIMEOUT_CONFIG } from "./types";
+import { createTimeoutConfig } from "./types";
 import {
   ChevronRight,
   MessagesSquare,
@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import SessionDropdown from "./sessiondropdown";
 import { RcFile } from "antd/es/upload";
+import { useSettingsStore } from "../../settings/store";
 const logo = require("../../../../images/landing/welcome.svg").default;
 
 interface ChatViewProps {
@@ -78,6 +79,13 @@ export default function ChatView({
   );
   const [teamConfig, setTeamConfig] =
     React.useState<Component<TeamConfig> | null>(null);
+
+  // Get settings for timeout configuration
+  const { uiSettings } = useSettingsStore();
+  const timeoutConfig = React.useMemo(
+    () => createTimeoutConfig(uiSettings.human_input_timeout_minutes || 3),
+    [uiSettings.human_input_timeout_minutes]
+  );
 
   const inputTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const activeSocketRef = React.useRef<WebSocket | null>(null);
@@ -235,8 +243,8 @@ export default function ChatView({
               socket.send(
                 JSON.stringify({
                   type: "stop",
-                  reason: TIMEOUT_CONFIG.DEFAULT_MESSAGE,
-                  code: TIMEOUT_CONFIG.WEBSOCKET_CODE,
+                  reason: timeoutConfig.DEFAULT_MESSAGE,
+                  code: timeoutConfig.WEBSOCKET_CODE,
                 })
               );
               setCurrentRun((prev) =>
@@ -244,12 +252,12 @@ export default function ChatView({
                   ? {
                       ...prev,
                       status: "stopped",
-                      error_message: TIMEOUT_CONFIG.DEFAULT_MESSAGE,
+                      error_message: timeoutConfig.DEFAULT_MESSAGE,
                     }
                   : null
               );
             }
-          }, TIMEOUT_CONFIG.DURATION_MS);
+          }, timeoutConfig.DURATION_MS);
 
           return {
             ...current,
@@ -429,10 +437,12 @@ export default function ChatView({
         created_at: new Date().toISOString(),
         status: "created", // Start with created status
         messages: [],
-        task: {
-          content: query,
-          source: "user",
-        },
+        task: [
+          {
+            content: query,
+            source: "user",
+          },
+        ],
         team_result: null,
         error_message: undefined,
       });
@@ -474,11 +484,13 @@ export default function ChatView({
       created_at: new Date().toISOString(),
       status: "active",
 
-      task: createMessage(
-        { content: query, source: "user" },
-        runId,
-        session.id || 0
-      ).config,
+      task: [
+        createMessage(
+          { content: query, source: "user" },
+          runId,
+          session.id || 0
+        ).config,
+      ],
       team_result: null,
       messages: [],
       error_message: undefined,
