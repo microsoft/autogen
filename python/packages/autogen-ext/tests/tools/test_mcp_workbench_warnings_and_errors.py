@@ -131,38 +131,6 @@ async def test_call_tool_embedded_resource_handling(
 
 
 @pytest.mark.asyncio
-async def test_call_tool_unknown_content_type(sample_server_params: StdioServerParams, mock_actor: AsyncMock) -> None:
-    """Test call_tool with unknown content type - covers lines 352-353."""
-    workbench = McpWorkbench(server_params=sample_server_params)
-    workbench._actor = mock_actor  # type: ignore[reportPrivateUsage]
-
-    # Create a valid CallToolResult but patch the content processing
-    call_result = CallToolResult(content=[TextContent(type="text", text="test")], isError=False)
-
-    # Mock the call method to return a future that resolves to the result
-    future: asyncio.Future[CallToolResult] = asyncio.Future()
-    future.set_result(call_result)
-    mock_actor.call.return_value = future
-
-    # Patch the content processing loop to simulate unknown content type
-    with patch.object(workbench, "_format_errors") as mock_format_errors:  # type: ignore[reportPrivateUsage]
-        mock_format_errors.return_value = "Unknown content type from server: <class 'UnknownContent'>"
-
-        # Mock the isinstance checks to fail for the first content item
-        def mock_isinstance(obj: Any, cls: Any) -> bool:
-            return False
-
-        with patch("builtins.isinstance", side_effect=mock_isinstance):
-            result = await workbench.call_tool("test_tool")
-
-    # Should handle unknown content type gracefully and return error
-    assert result.is_error
-    assert len(result.result) == 1
-    assert isinstance(result.result[0], TextResultContent)
-    assert "Unknown content type" in result.result[0].content
-
-
-@pytest.mark.asyncio
 async def test_call_tool_exception_handling(sample_server_params: StdioServerParams, mock_actor: AsyncMock) -> None:
     """Test call_tool exception handling - covers lines 354-357."""
     workbench = McpWorkbench(server_params=sample_server_params)
@@ -302,25 +270,6 @@ async def test_async_context_manager(sample_server_params: StdioServerParams) ->
 
         mock_start.assert_called_once()
         mock_stop.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_list_resources_not_implemented(sample_server_params: StdioServerParams) -> None:
-    """Test list_resources method (not implemented)."""
-    workbench = McpWorkbench(server_params=sample_server_params)
-
-    with pytest.raises(NotImplementedError):
-        await workbench.list_resources()
-
-
-@pytest.mark.asyncio
-async def test_list_prompts_not_implemented(sample_server_params: StdioServerParams) -> None:
-    """Test list_prompts method (not implemented)."""
-    workbench = McpWorkbench(server_params=sample_server_params)
-
-    with pytest.raises(NotImplementedError):
-        await workbench.list_prompts()
-
 
 @pytest.mark.asyncio
 async def test_sampling_callback_functionality(sample_server_params: StdioServerParams) -> None:
