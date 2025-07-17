@@ -161,7 +161,7 @@ def test_parse_sampling_content_unknown_type() -> None:
     unknown_content = MagicMock()
     unknown_content.type = "unknown"
 
-    with pytest.raises(ValueError, match="Unrecognized content type: unknown"):
+    with pytest.raises(ValueError, match="Unsupported content type"):
         _parse_sampling_content(unknown_content, model_info)
 
 
