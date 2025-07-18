@@ -1,6 +1,14 @@
 from abc import ABC, abstractmethod
 from types import TracebackType
-from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Type
+from typing import (
+    Any,
+    AsyncGenerator,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Type,
+)
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Self
@@ -8,7 +16,7 @@ from typing_extensions import Annotated, Self
 from .._cancellation_token import CancellationToken
 from .._component_config import ComponentBase
 from .._image import Image
-from ._base import ToolSchema
+from ._base import BaseWorkbenchRequest, BaseWorkbenchResponse, NoHostWorkbenchResponse, ToolSchema, WorkbenchHost
 
 
 class TextResultContent(BaseModel):
@@ -91,6 +99,12 @@ class Workbench(ABC, ComponentBase[BaseModel]):
     """
 
     component_type = "workbench"
+
+    def __init__(self):
+        """Initialize the workbench with optional host binding capability."""
+        super().__init__()
+        # Optional reference to host agent for making requests
+        self._host: Optional[WorkbenchHost] = None
 
     @abstractmethod
     async def list_tools(self) -> List[ToolSchema]:
@@ -189,6 +203,19 @@ class Workbench(ABC, ComponentBase[BaseModel]):
         It calls the :meth:`~autogen_core.tools.WorkBench.stop` method to stop the workbench.
         """
         await self.stop()
+
+    def bind_host(self, host: WorkbenchHost) -> None:
+        """Bind this workbench to a host agent that can handle requests."""
+        self._host = host
+
+    async def request_from_host(self, request: BaseWorkbenchRequest) -> BaseWorkbenchResponse:
+        """Send a request to the host agent."""
+        if self._host is None:
+            return NoHostWorkbenchResponse(
+                request_id=request.request_id,
+            )
+
+        return await self._host.handle_workbench_request(request)
 
 
 class StreamWorkbench(Workbench, ABC):

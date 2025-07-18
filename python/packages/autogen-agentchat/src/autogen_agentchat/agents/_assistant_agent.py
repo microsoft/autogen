@@ -35,7 +35,8 @@ from autogen_core.models import (
     LLMMessage,
     SystemMessage,
 )
-from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, ToolResult, Workbench
+from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, ToolResult, Workbench, WorkbenchHost
+from autogen_core.tools._base import BaseWorkbenchRequest, BaseWorkbenchResponse, ErrorWorkbenchResponse
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
@@ -87,7 +88,7 @@ class AssistantAgentConfig(BaseModel):
     structured_message_factory: ComponentModel | None = None
 
 
-class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
+class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig], WorkbenchHost):
     """An agent that provides assistance with tool use.
     The :meth:`on_messages` returns a :class:`~autogen_agentchat.base.Response`
     in which :attr:`~autogen_agentchat.base.Response.chat_message` is the final
@@ -834,6 +835,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         else:
             self._workbench = [StaticStreamWorkbench(self._tools)]
 
+        for wb in self._workbench:
+            wb.bind_host(self)
+
         if model_context is not None:
             self._model_context = model_context
         else:
@@ -1007,6 +1011,15 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             format_string=self._output_content_type_format,
         ):
             yield output_event
+
+    def handle_workbench_request(self, request: BaseWorkbenchRequest) -> Awaitable[BaseWorkbenchResponse]:
+        future = asyncio.Future()
+        future.set_result(
+            ErrorWorkbenchResponse(
+                request_id=request.request_id, error=f"WorkbenchHost does not support {type(request).__name__}."
+            )
+        )
+        return future
 
     @staticmethod
     async def _add_messages_to_context(
