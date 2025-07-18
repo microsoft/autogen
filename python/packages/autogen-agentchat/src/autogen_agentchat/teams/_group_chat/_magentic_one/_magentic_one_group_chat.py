@@ -22,6 +22,8 @@ event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 class MagenticOneGroupChatConfig(BaseModel):
     """The declarative configuration for a MagenticOneGroupChat."""
 
+    name: str | None = None
+    description: str | None = None
     participants: List[ComponentModel]
     model_client: ComponentModel
     termination_condition: ComponentModel | None = None
@@ -38,6 +40,9 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
     efficiently by managing the participants' interactions.
 
     The orchestrator is based on the Magentic-One architecture, which is a generalist multi-agent system for solving complex tasks (see references below).
+
+    Unlike :class:`~autogen_agentchat.teams.RoundRobinGroupChat` and :class:`~autogen_agentchat.teams.SelectorGroupChat`,
+    the MagenticOneGroupChat does not support using team as participant.
 
     Args:
         participants (List[ChatAgent]): The participants in the group chat.
@@ -98,11 +103,16 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
     component_config_schema = MagenticOneGroupChatConfig
     component_provider_override = "autogen_agentchat.teams.MagenticOneGroupChat"
 
+    DEFAULT_NAME = "MagenticOneGroupChat"
+    DEFAULT_DESCRIPTION = "A team of agents."
+
     def __init__(
         self,
         participants: List[ChatAgent],
         model_client: ChatCompletionClient,
         *,
+        name: str | None = None,
+        description: str | None = None,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = 20,
         runtime: AgentRuntime | None = None,
@@ -111,8 +121,13 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
     ):
+        for participant in participants:
+            if not isinstance(participant, ChatAgent):
+                raise TypeError(f"Participant {participant} must be a ChatAgent.")
         super().__init__(
-            participants,
+            name=name or self.DEFAULT_NAME,
+            description=description or self.DEFAULT_DESCRIPTION,
+            participants=list(participants),
             group_chat_manager_name="MagenticOneOrchestrator",
             group_chat_manager_class=MagenticOneOrchestrator,
             termination_condition=termination_condition,
@@ -163,6 +178,8 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         participants = [participant.dump_component() for participant in self._participants]
         termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
         return MagenticOneGroupChatConfig(
+            name=self.name,
+            description=self.description,
             participants=participants,
             model_client=self._model_client.dump_component(),
             termination_condition=termination_condition,
@@ -180,8 +197,10 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None
         )
         return cls(
-            participants,
-            model_client,
+            participants=participants,
+            name=config.name,
+            description=config.description,
+            model_client=model_client,
             termination_condition=termination_condition,
             max_turns=config.max_turns,
             max_stalls=config.max_stalls,
