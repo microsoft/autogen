@@ -124,6 +124,45 @@ AutoGen Studio also takes several parameters to customize the application:
 
 Now that you have AutoGen Studio installed and running, you are ready to explore its capabilities, including defining and modifying agent workflows, interacting with agents and sessions, and expanding agent skills.
 
+## AutoGen Studio Lite
+
+AutoGen Studio Lite provides a lightweight way to quickly prototype and experiment with AI agent teams. It's designed for rapid experimentation without the full database setup.
+
+### CLI Usage
+
+Launch Studio Lite from the command line:
+
+```bash
+# Quick start with default team
+autogenstudio lite
+
+# Use custom team file
+autogenstudio lite --team ./my_team.json --port 8080
+
+# Custom session name
+autogenstudio lite --session-name "My Experiment" --auto-open
+```
+
+### Programmatic Usage
+
+Use Studio Lite directly in your Python code:
+
+```python
+from autogenstudio.lite import LiteStudio
+
+# Quick start with default team
+studio = LiteStudio()
+# Use with AutoGen team objects
+from autogen_agentchat.teams import RoundRobinGroupChat
+team = RoundRobinGroupChat([agent1, agent2], termination_condition=...)
+
+# Context manager usage
+with LiteStudio(team=team) as studio:
+    # Studio runs in background
+    # Do other work here
+    pass
+```
+
 #### Local frontend development server
 
 See `./frontend/README.md`

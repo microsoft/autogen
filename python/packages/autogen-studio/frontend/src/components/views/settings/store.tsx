@@ -9,6 +9,7 @@ const DEFAULT_UI_SETTINGS: UISettings = {
   show_llm_call_events: false,
   expanded_messages_by_default: false,
   show_agent_flow_by_default: false,
+  human_input_timeout_minutes: 3,
 };
 
 interface SettingsState {
