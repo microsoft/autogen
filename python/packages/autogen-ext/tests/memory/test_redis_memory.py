@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from unittest.mock import MagicMock, patch
 
 import pytest
 import pytest_asyncio
@@ -7,16 +8,74 @@ from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import UserMessage
 from autogen_ext.memory.redis import RedisMemory, RedisMemoryConfig
 from pydantic import ValidationError
-from redis import ConnectionError, Redis
+from redis import Redis
 from redisvl.exceptions import RedisSearchError
 
-# Skip tests if Redis instance is not avalable locally
-try:
-    # Attempt to connect to Redis by initializing and pinging
-    client = Redis.from_url("redis://localhost:6379")  # type: ignore[reportUnkownMemberType]
-    client.ping()  # type: ignore[reportUnkownMemberType]
-except ConnectionError:
-    pytest.skip("Redis instance not available locally", allow_module_level=True)
+
+@pytest.mark.asyncio
+async def test_redis_memory_add_with_mock() -> None:
+    with patch("autogen_ext.memory.redis._redis_memory.SemanticMessageHistory") as MockHistory:
+        mock_history = MagicMock()
+        MockHistory.return_value = mock_history
+
+        config = RedisMemoryConfig()
+        memory = RedisMemory(config=config)
+
+        content = MemoryContent(content="test content", mime_type=MemoryMimeType.TEXT, metadata={"foo": "bar"})
+        await memory.add(content)
+        mock_history.add_message.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_redis_memory_query_with_mock() -> None:
+    with patch("autogen_ext.memory.redis._redis_memory.SemanticMessageHistory") as MockHistory:
+        mock_history = MagicMock()
+        MockHistory.return_value = mock_history
+
+        config = RedisMemoryConfig()
+        memory = RedisMemory(config=config)
+
+        mock_history.get_relevant.return_value = [{"content": "test content", "tool_call_id": '{"foo": "bar"}'}]
+        result = await memory.query("test")
+        assert len(result.results) == 1
+        assert result.results[0].content == "test content"
+        assert result.results[0].metadata == {"foo": "bar"}
+        mock_history.get_relevant.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_redis_memory_clear_with_mock() -> None:
+    with patch("autogen_ext.memory.redis._redis_memory.SemanticMessageHistory") as MockHistory:
+        mock_history = MagicMock()
+        MockHistory.return_value = mock_history
+
+        config = RedisMemoryConfig()
+        memory = RedisMemory(config=config)
+
+        await memory.clear()
+        mock_history.clear.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_redis_memory_close_with_mock() -> None:
+    with patch("autogen_ext.memory.redis._redis_memory.SemanticMessageHistory") as MockHistory:
+        mock_history = MagicMock()
+        MockHistory.return_value = mock_history
+
+        config = RedisMemoryConfig()
+        memory = RedisMemory(config=config)
+
+        await memory.close()
+        mock_history.delete.assert_called_once()
+
+
+def redis_available() -> bool:
+    try:
+        client = Redis.from_url("redis://localhost:6379")  # type: ignore[reportUnkownMemberType]
+        client.ping()  # type: ignore[reportUnkownMemberType]
+        return True
+    except Exception:
+        return False
 
 
 @pytest.fixture
@@ -82,6 +141,7 @@ def test_memory_config() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 async def test_create_semantic_memory() -> None:
     config = RedisMemoryConfig(index_name="semantic_agent")
     memory = RedisMemory(config=config)
@@ -91,6 +151,7 @@ async def test_create_semantic_memory() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 async def test_update_context(semantic_memory: RedisMemory) -> None:
     """Test updating model context with retrieved memories."""
     await semantic_memory.clear()
@@ -159,6 +220,7 @@ async def test_update_context(semantic_memory: RedisMemory) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 async def test_add_and_query(semantic_memory: RedisMemory) -> None:
     content_1 = MemoryContent(
         content="I enjoy fruits like apples, oranges, and bananas.", mime_type=MemoryMimeType.TEXT, metadata={}
@@ -188,6 +250,7 @@ async def test_add_and_query(semantic_memory: RedisMemory) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 async def test_clear(semantic_memory: RedisMemory) -> None:
     content = MemoryContent(content="I enjoy fruits like apples, oranges, and bananas.", mime_type=MemoryMimeType.TEXT)
     await semantic_memory.add(content)
@@ -203,6 +266,7 @@ async def test_clear(semantic_memory: RedisMemory) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 async def test_close(semantic_config: RedisMemoryConfig) -> None:
     semantic_memory = RedisMemory(semantic_config)
     content = MemoryContent(content="This sentence should be deleted.", mime_type=MemoryMimeType.TEXT)
@@ -216,6 +280,7 @@ async def test_close(semantic_config: RedisMemoryConfig) -> None:
 
 ## INTEGRATION TESTS ##
 @pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 async def test_basic_workflow(semantic_config: RedisMemoryConfig) -> None:
     """Test basic memory operations with semantic memory."""
     memory = RedisMemory(config=semantic_config)
@@ -238,6 +303,7 @@ async def test_basic_workflow(semantic_config: RedisMemoryConfig) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 async def test_content_types(semantic_memory: RedisMemory) -> None:
     """Test different content types with semantic memory."""
     await semantic_memory.clear()
