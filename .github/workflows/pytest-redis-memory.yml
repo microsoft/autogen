@@ -31,9 +31,8 @@ jobs:
         run: |
           # give Redis time to start
           sleep 5
-          # ping Redis
-          timeout 5s bash -c 'until redis-cli ping > /dev/null; do sleep 1; done'
-
+          # Wait for Redis to respond to curl (expecting empty reply, code 52)
+          timeout 5s bash -c 'until curl -s localhost:6379 || [ $? -eq 52 ]; do sleep 1; done'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
