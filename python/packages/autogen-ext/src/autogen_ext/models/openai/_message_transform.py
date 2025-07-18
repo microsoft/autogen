@@ -267,6 +267,12 @@ def _set_pass_message_when_whitespace(message: LLMMessage, context: Dict[str, An
     return {}
 
 
+def _set_null_content_for_tool_calls(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, None]:
+    """Set content to null for tool calls without thought. Required by OpenAI API."""
+    assert isinstance(message, AssistantMessage)
+    return {"content": None}
+
+
 # === Base Transformers list ===
 base_system_message_transformers: List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]] = [
     _set_content_direct,
@@ -316,6 +322,7 @@ tools_assistant_transformer_funcs: List[Callable[[LLMMessage, Dict[str, Any]], D
     base_assistant_transformer_funcs
     + [
         _set_tool_calls,
+        _set_null_content_for_tool_calls,
     ]
 )
 
