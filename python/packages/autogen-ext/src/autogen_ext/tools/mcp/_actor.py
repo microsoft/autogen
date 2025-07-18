@@ -1,20 +1,10 @@
 import asyncio
 import atexit
-import base64
-import io
 import logging
 from typing import Any, Coroutine, Dict, Mapping, TypedDict
 
-from autogen_core import Component, ComponentBase, ComponentModel, Image
-from autogen_core.models import (
-    AssistantMessage,
-    ChatCompletionClient,
-    LLMMessage,
-    ModelInfo,
-    SystemMessage,
-    UserMessage,
-)
-from PIL import Image as PILImage
+from autogen_core import Component, ComponentBase
+from autogen_core.tools import ErrorWorkbenchResponse, WorkbenchHost
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -22,6 +12,7 @@ from mcp import types as mcp_types
 from mcp.client.session import ClientSession
 from mcp.shared.context import RequestContext
 
+from ._base import ElicitWorkbenchRequest, ListRootsWorkbenchRequest, SamplingWorkbenchRequest
 from ._config import McpServerParams
 from ._session import create_mcp_server_session
 
@@ -39,41 +30,6 @@ McpResult = (
 McpFuture = asyncio.Future[McpResult]
 
 
-def _parse_sampling_content(
-    content: mcp_types.TextContent | mcp_types.ImageContent | mcp_types.AudioContent, model_info: ModelInfo
-) -> str | Image:
-    """Convert MCP content types to Autogen content types."""
-    if content.type == "text":
-        return content.text
-    elif content.type == "image":
-        if not model_info["vision"]:
-            raise ValueError("Sampling model does not support image content.")
-        # Decode base64 image data and create PIL Image
-        image_data = base64.b64decode(content.data)
-        pil_image = PILImage.open(io.BytesIO(image_data))
-        return Image.from_pil(pil_image)
-    else:
-        raise ValueError(f"Unsupported content type: {content.type}")
-
-
-def _parse_sampling_message(message: mcp_types.SamplingMessage, model_info: ModelInfo) -> LLMMessage:
-    """Convert MCP sampling messages to Autogen messages."""
-    content = _parse_sampling_content(message.content, model_info=model_info)
-    if message.role == "user":
-        return UserMessage(
-            source="user",
-            content=[content],
-        )
-    elif message.role == "assistant":
-        assert isinstance(content, str), "Assistant messages only support string content."
-        return AssistantMessage(
-            source="assistant",
-            content=content,
-        )
-    else:
-        raise ValueError(f"Unrecognized message role: {message.role}")
-
-
 class McpActorArgs(TypedDict):
     name: str | None
     kargs: Mapping[str, Any]
@@ -81,7 +37,6 @@ class McpActorArgs(TypedDict):
 
 class McpSessionActorConfig(BaseModel):
     server_params: McpServerParams
-    model_client: ComponentModel | Dict[str, Any] | None = None
 
 
 class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]):
@@ -93,9 +48,9 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
 
     # model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __init__(self, server_params: McpServerParams, model_client: ChatCompletionClient | None = None) -> None:
+    def __init__(self, server_params: McpServerParams, host: WorkbenchHost | None = None) -> None:
         self.server_params: McpServerParams = server_params
-        self._model_client = model_client
+        self._host = host
         self.name = "mcp_session_actor"
         self.description = "MCP session actor"
         self._command_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
@@ -162,47 +117,85 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         params: mcp_types.CreateMessageRequestParams,
     ) -> mcp_types.CreateMessageResult | mcp_types.ErrorData:
         """Handle sampling requests using the provided model client."""
-        if self._model_client is None:
+        if self._host is None:
             # Return an error when no model client is available
             return mcp_types.ErrorData(
                 code=mcp_types.INVALID_REQUEST,
-                message="No model client available for sampling.",
+                message="No host available for sampling.",
                 data=None,
             )
 
-        llm_messages: list[LLMMessage] = []
-
         try:
-            if params.systemPrompt:
-                llm_messages.append(SystemMessage(content=params.systemPrompt))
-
-            for mcp_message in params.messages:
-                llm_messages.append(_parse_sampling_message(mcp_message, model_info=self._model_client.model_info))
-
-        except Exception as e:
-            return mcp_types.ErrorData(
-                code=mcp_types.INVALID_PARAMS,
-                message="Error processing sampling messages.",
-                data=f"{type(e).__name__}: {e}",
-            )
-
-        try:
-            result = await self._model_client.create(messages=llm_messages)
-
-            content = result.content
-            if not isinstance(content, str):
-                content = str(content)
-
-            return mcp_types.CreateMessageResult(
-                role="assistant",
-                content=mcp_types.TextContent(type="text", text=content),
-                model=self._model_client.model_info["family"],
-                stopReason=result.finish_reason,
-            )
+            request = SamplingWorkbenchRequest.model_validate(params.model_dump())
+            result = await self._host.handle_workbench_request(request)
+            if isinstance(result, ErrorWorkbenchResponse):
+                return mcp_types.ErrorData(
+                    code=mcp_types.INTERNAL_ERROR,
+                    message=result.error or "Unknown error",
+                )
+            return mcp_types.CreateMessageResult.model_validate(result.model_dump())
         except Exception as e:
             return mcp_types.ErrorData(
                 code=mcp_types.INTERNAL_ERROR,
-                message="Error sampling from model client.",
+                message="Error sampling from host.",
+                data=f"{type(e).__name__}: {e}",
+            )
+
+    async def _elicitation_callback(
+        self,
+        context: RequestContext["ClientSession", Any],
+        params: mcp_types.ElicitRequestParams,
+    ) -> mcp_types.ElicitResult | mcp_types.ErrorData:
+        """Handle elicitation requests using the provided input_func."""
+        if self._host is None:
+            # Return an error when no model client is available
+            return mcp_types.ErrorData(
+                code=mcp_types.INVALID_REQUEST,
+                message="No host available for elicitation.",
+                data=None,
+            )
+
+        try:
+            request = ElicitWorkbenchRequest.model_validate(params.model_dump())
+            result = await self._host.handle_workbench_request(request)
+            if isinstance(result, ErrorWorkbenchResponse):
+                return mcp_types.ErrorData(
+                    code=mcp_types.INTERNAL_ERROR,
+                    message=result.error or "Unknown error",
+                )
+            return mcp_types.ElicitResult.model_validate(result.model_dump())
+        except Exception as e:
+            return mcp_types.ErrorData(
+                code=mcp_types.INTERNAL_ERROR,
+                message="Error eliciting result from host",
+                data=f"{type(e).__name__}: {e}",
+            )
+
+    async def _list_roots(
+        self, context: RequestContext["ClientSession", Any]
+    ) -> mcp_types.ListRootsResult | mcp_types.ErrorData:
+        """Handle list_roots requests"""
+        if self._host is None:
+            # Return an error when no model client is available
+            return mcp_types.ErrorData(
+                code=mcp_types.INVALID_REQUEST,
+                message="No host available for listing roots.",
+                data=None,
+            )
+
+        try:
+            request = ListRootsWorkbenchRequest(method="roots/list")
+            result = await self._host.handle_workbench_request(request)
+            if isinstance(result, ErrorWorkbenchResponse):
+                return mcp_types.ErrorData(
+                    code=mcp_types.INTERNAL_ERROR,
+                    message=result.error or "Unknown error",
+                )
+            return mcp_types.ListRootsResult.model_validate(result.model_dump())
+        except Exception as e:
+            return mcp_types.ErrorData(
+                code=mcp_types.INTERNAL_ERROR,
+                message="Error listing roots from host",
                 data=f"{type(e).__name__}: {e}",
             )
 
@@ -210,7 +203,9 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         result: McpResult
         try:
             async with create_mcp_server_session(
-                self.server_params, sampling_callback=self._sampling_callback
+                self.server_params,
+                sampling_callback=self._sampling_callback,
+                elicitation_callback=self._elicitation_callback,
             ) as session:
                 # Save the initialize result
                 self._initialize_result = await session.initialize()

@@ -66,11 +66,11 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
        * - Prompts
          - list_prompts, get_prompt
        * - Sampling
-         - Optional support via model_client
+         - Optional support via WorkbenchHost
        * - Roots
-         - not supported
+         - Optional support via WorkbenchHost
        * - Ellicitation
-         - not supported
+         - Optional support via WorkbenchHost
 
     Args:
         server_params (McpServerParams): The parameters to connect to the MCP server.
@@ -461,7 +461,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             return  # Already initialized, no need to start again
 
         if isinstance(self._server_params, (StdioServerParams, SseServerParams, StreamableHttpServerParams)):
-            self._actor = McpSessionActor(self._server_params, model_client=self._model_client)
+            self._actor = McpSessionActor(self._server_params, host=self._host)
             await self._actor.initialize()
             self._actor_loop = asyncio.get_event_loop()
         else:
