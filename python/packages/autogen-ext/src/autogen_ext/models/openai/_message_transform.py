@@ -327,15 +327,17 @@ tools_assistant_transformer_funcs: List[Callable[[LLMMessage, Dict[str, Any]], D
 )
 
 thought_assistant_transformer_funcs: List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]] = (
-    tools_assistant_transformer_funcs
+    base_assistant_transformer_funcs
     + [
+        _set_tool_calls,
         _set_thought_as_content,
     ]
 )
 
 thought_assistant_transformer_funcs_gemini: List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]] = (
-    tools_assistant_transformer_funcs
+    base_assistant_transformer_funcs
     + [
+        _set_tool_calls,
         _set_thought_as_content_gemini,
     ]
 )
