@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Input, Card, Tag, Tooltip, Spin } from "antd";
-import { ChevronsRight, ChevronsLeft, Search } from "lucide-react";
-import { Step } from "./types";
+import { Input, Tag, Tooltip, Spin } from "antd";
+import {
+  ChevronsRight,
+  ChevronsLeft,
+  Search,
+  Clock,
+  RefreshCw,
+  ArrowRight,
+} from "lucide-react";
+import { StepConfig } from "./types";
 import { workflowAPI } from "./api";
+import { Component } from "../../types/datamodel";
 
 interface StepLibraryProps {
-  onAddStep: (step: Step) => void;
+  onAddStep: (step: Component<StepConfig>) => void;
   isCompact: boolean;
   onToggleCompact: () => void;
 }
@@ -16,17 +24,15 @@ export const StepLibrary: React.FC<StepLibraryProps> = ({
   onToggleCompact,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [steps, setSteps] = useState<Step[]>([]);
+  const [steps, setSteps] = useState<Component<StepConfig>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchSteps = async () => {
       try {
         setIsLoading(true);
-        const response = await workflowAPI.getSteps();
-        if (response.success) {
-          setSteps(response.data);
-        }
+        const steps = await workflowAPI.getSteps();
+        setSteps(steps);
       } catch (error) {
         console.error("Failed to fetch steps", error);
       } finally {
@@ -37,8 +43,28 @@ export const StepLibrary: React.FC<StepLibraryProps> = ({
   }, []);
 
   const filteredSteps = steps.filter((step) =>
-    step.name.toLowerCase().includes(searchTerm.toLowerCase())
+    step.config.metadata.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getStepType = (step: Component<StepConfig>) => {
+    if (step.config.prefix || step.config.suffix) return "echo";
+    if (step.config.input_type_name.includes("Message")) return "message";
+    if (step.config.output_type_name.includes("Message")) return "message";
+    return "transform";
+  };
+
+  const getStepTypeColor = (type: string) => {
+    switch (type) {
+      case "echo":
+        return "bg-blue-100 text-blue-700";
+      case "message":
+        return "bg-green-100 text-green-700";
+      case "transform":
+        return "bg-purple-100 text-purple-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
 
   if (isCompact) {
     return (
@@ -53,12 +79,16 @@ export const StepLibrary: React.FC<StepLibraryProps> = ({
         </Tooltip>
         <div className="space-y-2">
           {steps?.slice(0, 5).map((step) => (
-            <Tooltip key={step.id} title={`Add ${step.name}`} placement="left">
+            <Tooltip
+              key={step.config.step_id}
+              title={`Add ${step.config.metadata.name}`}
+              placement="left"
+            >
               <button
                 onClick={() => onAddStep(step)}
                 className="w-8 h-8 bg-secondary rounded text-primary hover:bg-accent transition-colors flex items-center justify-center text-xs font-medium"
               >
-                {step.name.charAt(0).toUpperCase()}
+                {step.config.metadata.name.charAt(0).toUpperCase()}
               </button>
             </Tooltip>
           ))}
@@ -70,7 +100,7 @@ export const StepLibrary: React.FC<StepLibraryProps> = ({
   return (
     <div className="p-4 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-primary">Step Library</h3>
+        <h3 className="font-semibold text-primary">Step Library</h3>
         <Tooltip title="Collapse Library">
           <button
             onClick={onToggleCompact}
@@ -96,30 +126,66 @@ export const StepLibrary: React.FC<StepLibraryProps> = ({
           </div>
         ) : (
           <div className="space-y-2">
-            {filteredSteps.map((step) => (
-              <Card
-                key={step.id}
-                hoverable
-                className="bg-secondary border-secondary shadow-sm hover:shadow-md transition-shadow"
-                onClick={() => onAddStep(step)}
-                size="small"
-              >
-                <div className="font-semibold text-primary">{step.name}</div>
-                <p className="text-xs text-secondary mt-1 mb-2">
-                  {step.description}
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  <Tag color="blue" className="text-xs">
-                    {step.model || "Default Model"}
-                  </Tag>
-                  {step.tools && step.tools.length > 0 && (
-                    <Tag color="geekblue" className="text-xs">
-                      {step.tools.length} tools
-                    </Tag>
-                  )}
+            {filteredSteps.map((step) => {
+              const stepType = getStepType(step);
+              const hasTimeout = step.config.metadata.timeout_seconds;
+              const hasRetries =
+                step.config.metadata.max_retries &&
+                step.config.metadata.max_retries > 0;
+
+              return (
+                <div
+                  key={step.config.step_id}
+                  onClick={() => onAddStep(step)}
+                  className="bg-secondary border border-secondary rounded p-3 cursor-pointer hover:bg-tertiary hover:border-accent transition-colors"
+                >
+                  {/* Line 1: Name and Type Badge */}
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="font-semibold text-sm text-primary truncate">
+                        {step.config.metadata.name}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 text-xs rounded-full flex-shrink-0 ${getStepTypeColor(
+                          stepType
+                        )}`}
+                      >
+                        {stepType}
+                      </span>
+                    </div>
+                    <ArrowRight
+                      size={12}
+                      className="text-secondary flex-shrink-0"
+                    />
+                  </div>
+
+                  {/* Line 2: Description and Metadata */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      {step.config.metadata.description ? (
+                        <p className="text-xs text-secondary truncate">
+                          {step.config.metadata.description}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-secondary">
+                          {step.config.input_type_name} →{" "}
+                          {step.config.output_type_name}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 ml-2">
+                      {hasTimeout && (
+                        <Tooltip
+                          title={`Timeout: ${step.config.metadata.timeout_seconds}s`}
+                        >
+                          <Clock size={10} className="text-secondary" />
+                        </Tooltip>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

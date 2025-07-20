@@ -2,18 +2,20 @@ import React, { useState } from "react";
 import {
   Save,
   Play,
+  Square,
   Layout,
   Map,
   Grid,
-  MoreVertical,
-  Settings,
+  MoreHorizontal,
 } from "lucide-react";
-import { Button, Tooltip, Segmented, Popover } from "antd";
+import { Button, Tooltip, Segmented, Popover, Badge } from "antd";
+import { WorkflowStatus } from "./types";
 
 interface ToolbarProps {
   isDirty: boolean;
   onSave: () => void;
   onRun: () => void;
+  onStop?: () => void;
   onAutoLayout: () => void;
   onToggleMiniMap: () => void;
   onToggleGrid: () => void;
@@ -22,12 +24,15 @@ interface ToolbarProps {
   disabled: boolean;
   edgeType: string;
   onEdgeTypeChange: (type: string) => void;
+  workflowStatus?: WorkflowStatus;
+  isConnected?: boolean;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
   isDirty,
   onSave,
   onRun,
+  onStop,
   onAutoLayout,
   onToggleMiniMap,
   onToggleGrid,
@@ -36,6 +41,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   disabled,
   edgeType,
   onEdgeTypeChange,
+  workflowStatus,
+  isConnected,
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -74,7 +81,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           options={[
             { label: "Smooth", value: "smoothstep" },
             { label: "Straight", value: "straight" },
-            { label: "Step", value: "step" },
           ]}
           value={edgeType}
           onChange={(value) => onEdgeTypeChange(value as string)}
@@ -102,16 +108,38 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       {/* Main Toolbar - Vertical Layout */}
       <div className="flex flex-col gap-2">
         {/* Primary Actions */}
-        <div className="flex flex-col bg-primary rounded-md border border-secondary shadow-sm overflow-hidden">
-          <Tooltip title="Run Workflow" placement="left">
-            <Button
-              type="text"
-              icon={<Play size={18} />}
-              onClick={onRun}
-              disabled={disabled}
-              className="h-10 w-10 flex items-center justify-center"
-            />
-          </Tooltip>
+        <div className="flex flex-col bg-primary rounded-md border p-2 gap-2 border-secondary shadow-sm overflow-hidden">
+          {workflowStatus === WorkflowStatus.RUNNING ? (
+            <Tooltip title="Stop Workflow" placement="left">
+              <Badge
+                dot={isConnected}
+                status={isConnected ? "processing" : "error"}
+              >
+                <Button
+                  type="primary"
+                  danger
+                  icon={<Square size={18} />}
+                  onClick={onStop}
+                  className="h-10 w-10 flex items-center justify-center"
+                />
+              </Badge>
+            </Tooltip>
+          ) : (
+            <Tooltip title="Run Workflow" placement="left">
+              <Badge
+                dot={workflowStatus === WorkflowStatus.COMPLETED}
+                status="success"
+              >
+                <Button
+                  type="text"
+                  icon={<Play size={18} />}
+                  onClick={onRun}
+                  disabled={disabled}
+                  className="h-10 w-10 flex items-center justify-center"
+                />
+              </Badge>
+            </Tooltip>
+          )}
 
           <Tooltip title="Save Workflow" placement="left">
             <Button
@@ -126,18 +154,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Popover
             content={advancedContent}
             title="Workflow Settings"
-            trigger="click"
+            trigger="hover"
             placement="leftTop"
             open={showAdvanced}
             onOpenChange={setShowAdvanced}
           >
-            <Tooltip title="More Options" placement="left">
-              <Button
-                type={showAdvanced ? "primary" : "text"}
-                icon={<Settings size={18} />}
-                className="h-10 w-10 flex items-center justify-center"
-              />
-            </Tooltip>
+            <Button
+              type={showAdvanced ? "primary" : "text"}
+              icon={<MoreHorizontal size={18} />}
+              className="h-10 w-10 flex items-center justify-center"
+            />
           </Popover>
         </div>
       </div>

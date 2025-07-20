@@ -1,16 +1,87 @@
 import React from "react";
 import { Handle, Position, NodeProps, Node } from "@xyflow/react";
-import { Bot, X } from "lucide-react";
-import { NodeData } from "./types";
+import {
+  Bot,
+  X,
+  Play,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  AlertCircle,
+  Expand,
+} from "lucide-react";
+import { NodeData, StepStatus } from "./types";
 
 type StepNodeType = Node<NodeData>;
+
+// Helper function to get step status configuration
+const getStepStatusConfig = (status: StepStatus) => {
+  switch (status) {
+    case StepStatus.RUNNING:
+      return {
+        icon: Loader2,
+        text: "Running",
+        color: "text-blue-500",
+        bgColor: "bg-blue-50",
+        borderColor: "border-blue-200",
+        animate: "animate-spin",
+      };
+    case StepStatus.COMPLETED:
+      return {
+        icon: CheckCircle,
+        text: "Completed",
+        color: "text-green-500",
+        bgColor: "bg-green-50",
+        borderColor: "border-green-200",
+        animate: "",
+      };
+    case StepStatus.FAILED:
+      return {
+        icon: XCircle,
+        text: "Failed",
+        color: "text-red-500",
+        bgColor: "bg-red-50",
+        borderColor: "border-red-200",
+        animate: "",
+      };
+    case StepStatus.CANCELLED:
+      return {
+        icon: AlertCircle,
+        text: "Cancelled",
+        color: "text-orange-500",
+        bgColor: "bg-orange-50",
+        borderColor: "border-orange-200",
+        animate: "",
+      };
+    case StepStatus.SKIPPED:
+      return {
+        icon: AlertCircle,
+        text: "Skipped",
+        color: "text-orange-500",
+        bgColor: "bg-orange-50",
+        borderColor: "border-orange-200",
+        animate: "",
+      };
+    case StepStatus.PENDING:
+    default:
+      return {
+        icon: Clock,
+        text: "Pending",
+        color: "text-gray-500",
+        bgColor: "bg-gray-50",
+        borderColor: "border-gray-200",
+        animate: "",
+      };
+  }
+};
 
 export const StepNode: React.FC<NodeProps<StepNodeType>> = ({
   data,
   selected,
   id,
 }) => {
-  const { step, onDelete } = data;
+  const { step, onDelete, executionStatus, executionData, onStepClick } = data;
 
   if (!step) {
     return (
@@ -24,6 +95,17 @@ export const StepNode: React.FC<NodeProps<StepNodeType>> = ({
     e.stopPropagation();
     onDelete?.(id);
   };
+
+  const handleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onStepClick?.(step, executionData);
+  };
+
+  // Get status configuration - show no status if executionStatus is undefined (pre-run)
+  const statusConfig = executionStatus
+    ? getStepStatusConfig(executionStatus)
+    : null;
+  const IconComponent = statusConfig?.icon;
 
   return (
     <div
@@ -45,48 +127,66 @@ export const StepNode: React.FC<NodeProps<StepNodeType>> = ({
       />
 
       <div className="p-3">
+        {/* Header with step info and action buttons */}
         <div className="flex items-center gap-2 mb-2">
           <Bot className="w-4 h-4 text-accent flex-shrink-0" />
           <span
             className="font-medium text-sm truncate flex-1 text-primary"
-            title={step.name}
+            title={step.metadata.name}
           >
-            {step.name}
+            {step.metadata.name}
           </span>
-          <button
-            onClick={handleDelete}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-secondary hover:text-red-500"
-            aria-label="Delete step"
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={handleExpand}
+              className="text-secondary hover:text-accent"
+              aria-label="View step details"
+            >
+              <Expand size={14} />
+            </button>
+            <button
+              onClick={handleDelete}
+              className="text-secondary hover:text-red-500"
+              aria-label="Delete step"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Description */}
+        {step.metadata.description && (
+          <div
+            className="text-xs text-secondary mb-3 overflow-hidden"
+            style={{
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              height: "2rem",
+              lineHeight: "1rem",
+            }}
+            title={step.metadata.description}
           >
-            <X size={14} />
-          </button>
-        </div>
+            {step.metadata.description}
+          </div>
+        )}
 
-        <div
-          className="text-xs text-secondary mb-2 overflow-hidden"
-          style={{
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            height: "2rem",
-            lineHeight: "1rem",
-          }}
-          title={step.description}
-        >
-          {step.description}
-        </div>
-
-        <div className="flex items-center gap-2 text-xs">
-          <span className="px-1.5 py-0.5 bg-accent/10 text-accent rounded text-xs truncate flex-1">
-            {step.model || "Not specified"}
-          </span>
-
-          {step.tools && step.tools.length > 0 && (
-            <span className="px-1.5 py-0.5 bg-secondary/50 text-secondary rounded text-xs">
-              {step.tools.length} tools
-            </span>
-          )}
-        </div>
+        {/* Status Indicator Section - Only show if there's a status */}
+        {statusConfig && (
+          <div className="border-t border-secondary pt-2">
+            <div
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-md border text-xs font-medium ${statusConfig.bgColor} ${statusConfig.borderColor}`}
+            >
+              {IconComponent && (
+                <IconComponent
+                  size={12}
+                  className={`${statusConfig.color} ${statusConfig.animate}`}
+                />
+              )}
+              <span className={statusConfig.color}>{statusConfig.text}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ class StepStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     SKIPPED = "skipped"
+    CANCELLED = "cancelled"
 
 
 class WorkflowStatus(str, Enum):
@@ -60,8 +61,10 @@ class StepExecution(BaseModel):
     output_data: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     retry_count: int = 0
-    
-    model_config = ConfigDict(extra="forbid")
+
+    model_config = ConfigDict(extra="forbid", json_encoders={datetime: lambda v: v.isoformat()})
+
+
 
 
 class WorkflowExecution(BaseModel):
@@ -74,8 +77,8 @@ class WorkflowExecution(BaseModel):
     state: Dict[str, Any] = Field(default_factory=dict)
     step_executions: Dict[str, StepExecution] = Field(default_factory=dict)
     error: Optional[str] = None
-    
-    model_config = ConfigDict(extra="forbid")
+
+    model_config = ConfigDict(extra="forbid", json_encoders={datetime: lambda v: v.isoformat()})
 
 
 class StepMetadata(BaseModel):
@@ -97,8 +100,8 @@ class WorkflowMetadata(BaseModel):
     tags: List[str] = Field(default_factory=list)
     author: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now)
-    
-    model_config = ConfigDict(extra="forbid")
+
+    model_config = ConfigDict(extra="forbid", json_encoders={datetime: lambda v: v.isoformat()})
 
 
 class Context(BaseModel):
@@ -149,6 +152,7 @@ class WorkflowEventType(str, Enum):
     WORKFLOW_STARTED = "workflow_started"
     WORKFLOW_COMPLETED = "workflow_completed"
     WORKFLOW_FAILED = "workflow_failed"
+    WORKFLOW_CANCELLED = "workflow_cancelled"
     STEP_STARTED = "step_started"
     STEP_COMPLETED = "step_completed" 
     STEP_FAILED = "step_failed"
@@ -160,8 +164,8 @@ class WorkflowEvent(BaseModel):
     event_type: WorkflowEventType
     timestamp: datetime
     workflow_id: str
-    
-    model_config = ConfigDict(extra="forbid")
+
+    model_config = ConfigDict(extra="forbid", json_encoders={datetime: lambda v: v.isoformat()})
 
 
 class WorkflowStartedEvent(WorkflowEvent):
@@ -181,6 +185,13 @@ class WorkflowFailedEvent(WorkflowEvent):
     event_type: WorkflowEventType = WorkflowEventType.WORKFLOW_FAILED
     error: str
     execution: Optional[WorkflowExecution] = None
+
+
+class WorkflowCancelledEvent(WorkflowEvent):
+    """Workflow execution was cancelled."""
+    event_type: WorkflowEventType = WorkflowEventType.WORKFLOW_CANCELLED
+    execution: WorkflowExecution
+    reason: str
 
 
 class StepStartedEvent(WorkflowEvent):

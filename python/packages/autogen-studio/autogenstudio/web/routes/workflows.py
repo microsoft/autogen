@@ -1,20 +1,23 @@
-# /api/workflows routes
+# /workflows routes
 import asyncio
-import json
+import json  
 import uuid
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List
 
+from autogen_core import ComponentModel
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from loguru import logger
 from pydantic import BaseModel
 
 from ...datamodel import WorkflowDB
-from ...workflow.core import Workflow, WorkflowRunner, WorkflowExecution, WorkflowStatus
+from ...workflow.core import Workflow, WorkflowRunner
+from ...workflow.defaults import get_default_steps, get_default_workflows
 from ..auth.dependencies import get_ws_auth_manager, get_current_user
 from ..auth.models import User
 from ..auth.wsauth import WebSocketAuthHandler
 from ..deps import get_db
+from ...mcp.utils import serialize_for_json
 
 router = APIRouter()
 
@@ -22,7 +25,7 @@ router = APIRouter()
 class CreateWorkflowRequest(BaseModel):
     name: str
     description: str = ""
-    config: Dict[str, Any]
+    config: ComponentModel
     tags: list[str] = []
     user_id: str
 
@@ -30,9 +33,7 @@ class CreateWorkflowRequest(BaseModel):
 class UpdateWorkflowRequest(BaseModel):
     name: str | None = None
     description: str | None = None
-    config: Dict[str, Any] | None = None
-    tags: list[str] | None = None
-    is_active: bool | None = None
+    config: ComponentModel | None = None
 
 
 class CreateWorkflowRunRequest(BaseModel):
@@ -42,7 +43,7 @@ class CreateWorkflowRunRequest(BaseModel):
 
 # ==================== REST API Routes ====================
 
-@router.get("/api/workflows")
+@router.get("/workflows")
 async def list_workflows(
     user_id: str,
     current_user: User = Depends(get_current_user),
@@ -50,24 +51,47 @@ async def list_workflows(
 ) -> Dict[str, Any]:
     """List all workflows with optional filters"""
     try:
-        workflows = db.get(WorkflowDB, filters={"user_id": user_id, "is_active": True})
-        return {"status": True, "data": workflows.data or []}
+        workflows = db.get(WorkflowDB, filters={"user_id": user_id})
+        user_workflows = workflows.data or []
+        
+        # If user has no workflows, create default workflows in DB
+        if not user_workflows:
+            default_workflow_configs = get_default_workflows()
+            created_workflows = []
+            
+            for config in default_workflow_configs:
+                # Extract metadata for DB fields
+                
+                # Create WorkflowDB entry
+                workflow_db = WorkflowDB(
+                    config=config.model_dump(),
+                    user_id=user_id,
+                )
+                
+                # Insert into database
+                result = db.upsert(workflow_db, return_json=False)
+                if result.status and result.data:
+                    logger.info(f"Created default workflow: id={result.data.id}")
+                    created_workflows.append(result.data)
+                else:
+                    logger.error(f"Failed to create default workflow: {result}")
+            
+            return {"status": True, "data": created_workflows}
+        
+        return {"status": True, "data": user_workflows}
     except Exception as e:
+        # traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/api/workflows")
+@router.post("/workflows")
 async def create_workflow(request: CreateWorkflowRequest, db=Depends(get_db)) -> Dict:
     """Create a new workflow"""
     try:
         workflow = db.upsert(
-            WorkflowDB(
-                name=request.name,
-                description=request.description,
-                config=request.config,
-                tags=request.tags,
-                user_id=request.user_id,
-                is_active=True,
+            WorkflowDB( 
+                config=request.config, 
+                user_id=request.user_id, 
             ),
             return_json=False,
         )
@@ -76,21 +100,24 @@ async def create_workflow(request: CreateWorkflowRequest, db=Depends(get_db)) ->
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.get("/api/workflows/{workflow_id}")
+@router.get("/workflows/{workflow_id}")
 async def get_workflow(workflow_id: int, user_id: str, db=Depends(get_db)) -> Dict:
     """Get workflow details"""
     try:
+        logger.info(f"Getting workflow {workflow_id} for user {user_id}")
         workflow = db.get(WorkflowDB, filters={"id": workflow_id, "user_id": user_id}, return_json=False)
+        logger.info(f"Workflow query result: status={workflow.status}, data_count={len(workflow.data) if workflow.data else 0}")
         if not workflow.status or not workflow.data:
             raise HTTPException(status_code=404, detail="Workflow not found")
         return {"status": True, "data": workflow.data[0]}
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error getting workflow {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.put("/api/workflows/{workflow_id}")
+@router.put("/workflows/{workflow_id}")
 async def update_workflow(
     workflow_id: int, request: UpdateWorkflowRequest, user_id: str, db=Depends(get_db)
 ) -> Dict:
@@ -110,11 +137,6 @@ async def update_workflow(
             workflow.description = request.description
         if request.config is not None:
             workflow.config = request.config
-        if request.tags is not None:
-            workflow.tags = request.tags
-        if request.is_active is not None:
-            workflow.is_active = request.is_active
-        
         updated = db.upsert(workflow, return_json=False)
         return {"status": updated.status, "data": updated.data}
     except HTTPException:
@@ -123,20 +145,17 @@ async def update_workflow(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.delete("/api/workflows/{workflow_id}")
+@router.delete("/workflows/{workflow_id}")
 async def delete_workflow(workflow_id: int, user_id: str, db=Depends(get_db)) -> Dict:
-    """Delete workflow (soft delete by setting is_active=False)"""
+    """Delete workflow (hard delete)"""
     try:
         # Check if workflow exists and belongs to user
         workflow = db.get(WorkflowDB, filters={"id": workflow_id, "user_id": user_id}, return_json=False)
         if not workflow.status or not workflow.data:
             raise HTTPException(status_code=404, detail="Workflow not found")
         
-        # Soft delete by setting is_active=False
-        workflow_obj = workflow.data[0]
-        workflow_obj.is_active = False
-        
-        result = db.upsert(workflow_obj)
+        # Hard delete the workflow
+        result = db.delete(WorkflowDB, filters={"id": workflow_id, "user_id": user_id})
         return {"status": result.status, "message": "Workflow deleted successfully"}
     except HTTPException:
         raise
@@ -144,7 +163,7 @@ async def delete_workflow(workflow_id: int, user_id: str, db=Depends(get_db)) ->
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/api/workflows/run")
+@router.post("/workflows/run")
 async def create_workflow_run(request: CreateWorkflowRunRequest, db=Depends(get_db)) -> Dict:
     """Create an ephemeral workflow run - returns temporary run_id"""
     try:
@@ -178,6 +197,19 @@ async def create_workflow_run(request: CreateWorkflowRunRequest, db=Depends(get_
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
+
+@router.get("/workflows/library/steps")
+async def list_workflow_steps(
+    current_user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Get available workflow steps"""
+    try:
+        steps: List[ComponentModel] = get_default_steps()
+        return {"status": True, "data": steps}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+ 
 
 # ==================== WebSocket Routes ====================
 
@@ -213,9 +245,10 @@ class WorkflowWebSocketManager:
     async def send_message(self, run_id: str, message: Dict[str, Any]):
         """Send message to connected WebSocket"""
         if run_id in self.connections:
-            try:
-                await self.connections[run_id].send_json(message)
+            try: 
+                await self.connections[run_id].send_json(serialize_for_json(message))
             except Exception as e:
+                # traceback.print_exc()
                 logger.error(f"Failed to send message to run {run_id}: {e}")
     
     async def execute_workflow(self, run_id: str, workflow_config: Dict[str, Any], initial_input: Any = None):
@@ -258,7 +291,7 @@ class WorkflowWebSocketManager:
 workflow_manager = WorkflowWebSocketManager()
 
 
-@router.websocket("/api/workflow/ws/{run_id}")
+@router.websocket("/workflow/ws/{run_id}")
 async def workflow_websocket(
     websocket: WebSocket,
     run_id: str,
@@ -354,7 +387,7 @@ async def workflow_websocket(
         await workflow_manager.disconnect(run_id)
 
 
-@router.get("/api/workflow/ws/status/{run_id}")
+@router.get("/workflow/ws/status/{run_id}")
 async def get_workflow_run_status(run_id: str):
     """Get status of an active workflow run"""
     if run_id not in active_workflow_runs:

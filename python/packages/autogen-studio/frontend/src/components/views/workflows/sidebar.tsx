@@ -22,7 +22,7 @@ interface WorkflowSidebarProps {
   onToggle: () => void;
   onSelectWorkflow: (workflow: Workflow) => void;
   onCreateWorkflow: () => void;
-  onDeleteWorkflow: (workflowId: string) => void;
+  onDeleteWorkflow: (workflowId: number) => void;
   isLoading?: boolean;
 }
 
@@ -36,6 +36,7 @@ export const WorkflowSidebar: React.FC<WorkflowSidebarProps> = ({
   onDeleteWorkflow,
   isLoading = false,
 }) => {
+  console.log("workflows in sidebar:", workflows);
   if (!isOpen) {
     return (
       <div className="h-full border-r border-secondary">
@@ -161,10 +162,13 @@ export const WorkflowSidebar: React.FC<WorkflowSidebarProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm truncate text-primary">
-                      {workflow.name}
+                      {workflow.config.config.metadata?.name ||
+                        "Untitled Workflow"}
                     </div>
                     <div className="text-xs text-secondary truncate">
-                      {getRelativeTimeString(new Date(workflow.updated_at))}
+                      {getRelativeTimeString(
+                        new Date(workflow.updated_at || "")
+                      )}
                     </div>
                   </div>
                 </div>
@@ -173,7 +177,7 @@ export const WorkflowSidebar: React.FC<WorkflowSidebarProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeleteWorkflow(workflow.id);
+                        onDeleteWorkflow(workflow.id as number);
                       }}
                       className="p-1 rounded hover:bg-red-500/10 text-secondary hover:text-red-500"
                     >

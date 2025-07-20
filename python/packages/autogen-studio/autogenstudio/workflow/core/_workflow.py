@@ -307,6 +307,11 @@ class BaseWorkflow(ComponentBase[BaseModel]):
         if result.unreachable_steps:
             result.warnings.append(f"Unreachable steps found: {result.unreachable_steps}")
         
+        # Check conditional edge issues
+        conditional_issues = self._validate_conditional_edges()
+        result.errors.extend(conditional_issues["errors"])
+        result.warnings.extend(conditional_issues["warnings"])
+        
         # Check for type compatibility between connected steps
         for edge in self.edges:
             if edge.from_step in self.steps and edge.to_step in self.steps:
@@ -403,6 +408,146 @@ class BaseWorkflow(ComponentBase[BaseModel]):
             to_visit.extend(next_steps)
         
         return [step_id for step_id in self.steps if step_id not in reachable]
+    
+    def _validate_conditional_edges(self) -> Dict[str, List[str]]:
+        """Validate conditional edge logic for common issues.
+        
+        Returns:
+            Dictionary with 'errors' and 'warnings' lists
+        """
+        errors = []
+        warnings = []
+        
+        # Group edges by target step to check for condition conflicts
+        edges_by_target = {}
+        for edge in self.edges:
+            if edge.to_step not in edges_by_target:
+                edges_by_target[edge.to_step] = []
+            edges_by_target[edge.to_step].append(edge)
+        
+        # Check each step for conditional edge issues
+        for step_id, incoming_edges in edges_by_target.items():
+            if len(incoming_edges) > 1:
+                # Multiple incoming edges - check for logical issues
+                issues = self._check_multiple_conditional_edges(step_id, incoming_edges)
+                errors.extend(issues["errors"])
+                warnings.extend(issues["warnings"])
+        
+        # Check for steps with no outgoing paths
+        for step_id in self.steps:
+            if step_id not in self.end_step_ids:
+                outgoing_edges = [e for e in self.edges if e.from_step == step_id]
+                if not outgoing_edges:
+                    warnings.append(f"Step '{step_id}' has no outgoing edges but is not marked as an end step")
+                elif self._has_impossible_conditions(outgoing_edges):
+                    errors.append(f"Step '{step_id}' has outgoing edges with contradictory conditions - some paths may be unreachable")
+        
+        # Check end step reachability
+        unreachable_ends = self._find_unreachable_end_steps()
+        for end_step in unreachable_ends:
+            errors.append(f"End step '{end_step}' cannot be reached due to conditional edge constraints")
+        
+        return {"errors": errors, "warnings": warnings}
+    
+    def _check_multiple_conditional_edges(self, step_id: str, edges: List) -> Dict[str, List[str]]:
+        """Check multiple incoming edges for logical conflicts."""
+        errors = []
+        warnings = []
+        
+        # Check if any edges have conflicting conditions on the same field
+        field_conditions = {}
+        
+        for edge in edges:
+            condition = edge.condition
+            if condition.type in ["output_based", "state_based"] and condition.field:
+                field_key = f"{condition.type}:{condition.field}"
+                if field_key not in field_conditions:
+                    field_conditions[field_key] = []
+                field_conditions[field_key].append((edge.from_step, condition))
+        
+        # Look for contradictory conditions
+        for field_key, conditions in field_conditions.items():
+            if len(conditions) > 1:
+                # Check for obvious contradictions (e.g., success=true and success=false)
+                values_and_ops = [(c[1].value, c[1].operator) for c in conditions]
+                
+                # Check for boolean contradictions
+                true_conditions = [(v, op) for v, op in values_and_ops if v is True and op == "=="]
+                false_conditions = [(v, op) for v, op in values_and_ops if v is False and op == "=="]
+                
+                if true_conditions and false_conditions:
+                    from_steps = [c[0] for c in conditions]
+                    warnings.append(
+                        f"Step '{step_id}' has contradictory boolean conditions from steps {from_steps} - "
+                        f"only one path can execute"
+                    )
+        
+        return {"errors": errors, "warnings": warnings}
+    
+    def _has_impossible_conditions(self, edges: List) -> bool:
+        """Check if outgoing edges have impossible condition combinations."""
+        # Simple check: if all edges have conditions that could never be true simultaneously
+        # For now, just check if all conditions are on the same field with mutually exclusive values
+        
+        if len(edges) <= 1:
+            return False
+        
+        # Group by field
+        field_groups = {}
+        for edge in edges:
+            condition = edge.condition
+            if condition.type == "always":
+                continue  # Always conditions don't contribute to impossibility
+            
+            if condition.field and condition.operator and condition.value is not None:
+                field_key = f"{condition.type}:{condition.field}"
+                if field_key not in field_groups:
+                    field_groups[field_key] = []
+                field_groups[field_key].append(condition)
+        
+        # Check each field group for contradictions
+        for field_key, conditions in field_groups.items():
+            if len(conditions) == len(edges):  # All edges condition on same field
+                # Check if they're all equality conditions with different values
+                if all(c.operator == "==" for c in conditions):
+                    values = [c.value for c in conditions]
+                    if len(set(values)) == len(values):  # All different values
+                        return True  # Impossible - field can't have multiple values
+        
+        return False
+    
+    def _find_unreachable_end_steps(self) -> List[str]:
+        """Find end steps that cannot be reached due to conditional constraints."""
+        unreachable = []
+        
+        for end_step_id in self.end_step_ids:
+            if not self._can_reach_step_conditionally(end_step_id):
+                unreachable.append(end_step_id)
+        
+        return unreachable
+    
+    def _can_reach_step_conditionally(self, target_step: str) -> bool:
+        """Check if a step can be reached considering conditional edges."""
+        if target_step == self.start_step_id:
+            return True
+        
+        # Get all incoming edges to this step
+        incoming_edges = [e for e in self.edges if e.to_step == target_step]
+        if not incoming_edges:
+            return False
+        
+        # Check if at least one incoming edge could potentially be satisfied
+        for edge in incoming_edges:
+            # If source step is reachable and condition could be satisfied
+            if self._can_reach_step_conditionally(edge.from_step):
+                if edge.condition.type == "always":
+                    return True  # Always conditions can always be satisfied
+                elif edge.condition.type in ["output_based", "state_based"]:
+                    # For now, assume all conditional edges could potentially be satisfied
+                    # More sophisticated analysis would require understanding the step logic
+                    return True
+        
+        return False
     
     def get_execution_plan(self) -> Dict[str, Any]:
         """Get a visual representation of the workflow execution plan.

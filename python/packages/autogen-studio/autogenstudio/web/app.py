@@ -3,7 +3,25 @@ import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-# import logging
+import logging
+import sys
+
+# Configure logging to console
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
+# Set specific loggers
+logging.getLogger().setLevel(logging.INFO)
+logging.getLogger("uvicorn").setLevel(logging.INFO)
+logging.getLogger("uvicorn.access").setLevel(logging.INFO)
+
+# Enable uvicorn access logging
+import uvicorn.config
+uvicorn.config.LOGGING_CONFIG["loggers"]["uvicorn.access"]["handlers"] = ["default"]
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -180,6 +198,8 @@ async def get_version():
 @api.get("/health")
 async def health_check():
     """API health check endpoint"""
+    logger.info("Health check endpoint called")
+     
     return {
         "status": True,
         "message": "Service is healthy",

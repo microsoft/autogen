@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useContext } from "react";
-import { message, Modal } from "antd";
+import { Button, message, Modal } from "antd";
 import { ChevronRight } from "lucide-react";
 import { appContext } from "../../../hooks/provider";
 import { workflowAPI } from "./api";
@@ -31,14 +31,14 @@ export const WorkflowManager: React.FC = () => {
   }, [isSidebarOpen]);
 
   const fetchWorkflows = useCallback(async () => {
+    if (!user?.id) return;
+
     try {
       setIsLoading(true);
-      const response = await workflowAPI.getWorkflows();
-      if (response.success && response.data) {
-        setWorkflows(response.data);
-        if (!currentWorkflow && response.data.length > 0) {
-          setCurrentWorkflow(response.data[0]);
-        }
+      const workflows = await workflowAPI.getWorkflows(user.id);
+      setWorkflows(workflows);
+      if (!currentWorkflow && workflows.length > 0) {
+        setCurrentWorkflow(workflows[0]);
       }
     } catch (error) {
       console.error("Error fetching workflows:", error);
@@ -46,7 +46,7 @@ export const WorkflowManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkflow, messageApi]);
+  }, [user?.id, currentWorkflow, messageApi]);
 
   useEffect(() => {
     fetchWorkflows();
@@ -58,12 +58,24 @@ export const WorkflowManager: React.FC = () => {
     const workflowId = params.get("workflowId");
 
     if (workflowId && !currentWorkflow) {
-      handleSelectWorkflow({ id: workflowId } as Workflow);
+      const numericId = parseInt(workflowId, 10);
+      if (!isNaN(numericId)) {
+        handleSelectWorkflow({ id: numericId } as Workflow);
+      }
     }
   }, [currentWorkflow]);
 
   const handleSelectWorkflow = async (selectedWorkflow: Workflow) => {
     if (!selectedWorkflow.id) return;
+
+    // Convert string ID to number, if needed
+    const workflowId =
+      typeof selectedWorkflow.id === "string"
+        ? parseInt(selectedWorkflow.id, 10)
+        : selectedWorkflow.id;
+
+    // If ID is not valid, return
+    if (isNaN(workflowId)) return;
 
     if (hasUnsavedChanges) {
       Modal.confirm({
@@ -72,26 +84,22 @@ export const WorkflowManager: React.FC = () => {
         okText: "Discard",
         cancelText: "Go Back",
         onOk: () => {
-          switchToWorkflow(selectedWorkflow.id);
+          switchToWorkflow(workflowId);
         },
       });
     } else {
-      await switchToWorkflow(selectedWorkflow.id);
+      await switchToWorkflow(workflowId);
     }
   };
 
-  const switchToWorkflow = async (workflowId: string) => {
-    if (!workflowId) return;
+  const switchToWorkflow = async (workflowId: number) => {
+    if (!workflowId || !user?.id) return;
     setIsLoading(true);
     try {
-      const response = await workflowAPI.getWorkflow(workflowId);
-      if (response.success && response.data) {
-        setCurrentWorkflow(response.data);
-        window.history.pushState({}, "", `?workflowId=${workflowId}`);
-        setHasUnsavedChanges(false);
-      } else {
-        messageApi.error(response.message || "Failed to load workflow");
-      }
+      const workflow = await workflowAPI.getWorkflow(workflowId, user.id);
+      setCurrentWorkflow(workflow);
+      window.history.pushState({}, "", `?workflowId=${workflowId}`);
+      setHasUnsavedChanges(false);
     } catch (error) {
       console.error("Error loading workflow:", error);
       messageApi.error("Failed to load workflow");
@@ -100,20 +108,16 @@ export const WorkflowManager: React.FC = () => {
     }
   };
 
-  const handleDeleteWorkflow = async (workflowId: string) => {
+  const handleDeleteWorkflow = async (workflowId: number) => {
+    if (!user?.id) return;
+
     try {
-      const response = await workflowAPI.deleteWorkflow(workflowId);
-      if (response.success) {
-        setWorkflows(workflows.filter((w) => w.id !== workflowId));
-        if (currentWorkflow?.id === workflowId) {
-          setCurrentWorkflow(
-            workflows.find((w) => w.id !== workflowId) || null
-          );
-        }
-        messageApi.success("Workflow deleted");
-      } else {
-        messageApi.error(response.message || "Failed to delete workflow");
+      await workflowAPI.deleteWorkflow(workflowId, user.id);
+      setWorkflows(workflows.filter((w) => w.id !== workflowId));
+      if (currentWorkflow?.id === workflowId) {
+        setCurrentWorkflow(workflows.find((w) => w.id !== workflowId) || null);
       }
+      messageApi.success("Workflow deleted");
     } catch (error) {
       console.error("Error deleting workflow:", error);
       messageApi.error("Error deleting workflow");
@@ -121,28 +125,28 @@ export const WorkflowManager: React.FC = () => {
   };
 
   const handleCreateWorkflow = async () => {
+    if (!user?.id) return;
+
     try {
       const name = "New Workflow";
-      const response = await workflowAPI.createWorkflow({
-        name,
-        description: "A new workflow.",
-        config: {
-          id: `config-${Date.now()}`,
+      const newWorkflow = await workflowAPI.createWorkflow(
+        {
           name,
           description: "A new workflow.",
-          steps: [],
-          edges: [],
+          config: {
+            id: `config-${Date.now()}`,
+            name,
+            description: "A new workflow.",
+            steps: [],
+            edges: [],
+          },
         },
-      });
+        user.id
+      );
 
-      if (response.success && response.data) {
-        const newWorkflow = response.data;
-        setWorkflows([newWorkflow, ...workflows]);
-        setCurrentWorkflow(newWorkflow);
-        messageApi.success("Workflow created successfully");
-      } else {
-        messageApi.error(response.message || "Failed to create workflow");
-      }
+      setWorkflows([newWorkflow, ...workflows]);
+      setCurrentWorkflow(newWorkflow);
+      messageApi.success("Workflow created successfully");
     } catch (error) {
       console.error("Error creating workflow:", error);
       messageApi.error("Error creating workflow");
@@ -162,27 +166,33 @@ export const WorkflowManager: React.FC = () => {
   };
 
   const handleSaveWorkflow = async (workflowData: Partial<Workflow>) => {
-    if (!currentWorkflow?.id) return;
+    if (!currentWorkflow?.id || !user?.id) return;
 
     try {
-      const response = await workflowAPI.updateWorkflow(currentWorkflow.id, {
-        id: currentWorkflow.id,
-        name: workflowData.name,
-        description: workflowData.description,
-        config: workflowData.config,
-      });
+      // Extract properties from the workflow config
+      const workflowConfig = workflowData.config?.config;
 
-      if (response.success && response.data) {
-        const savedWorkflow = response.data;
-        setWorkflows(
-          workflows.map((w) => (w.id === savedWorkflow.id ? savedWorkflow : w))
-        );
-        setCurrentWorkflow(savedWorkflow);
-        setHasUnsavedChanges(false);
-        messageApi.success("Workflow saved successfully");
-      } else {
-        messageApi.error(response.message || "Failed to save workflow");
-      }
+      const savedWorkflow = await workflowAPI.updateWorkflow(
+        typeof currentWorkflow.id === "string"
+          ? parseInt(currentWorkflow.id, 10)
+          : currentWorkflow.id,
+        {
+          id: currentWorkflow.id.toString(), // Convert to string for UpdateWorkflowRequest
+          name: workflowConfig?.name || currentWorkflow.config.config.name,
+          description:
+            workflowConfig?.description ||
+            currentWorkflow.config.config.description,
+          config: workflowData.config?.config || currentWorkflow.config.config,
+        },
+        user.id
+      );
+
+      setWorkflows(
+        workflows.map((w) => (w.id === savedWorkflow.id ? savedWorkflow : w))
+      );
+      setCurrentWorkflow(savedWorkflow);
+      setHasUnsavedChanges(false);
+      messageApi.success("Workflow saved successfully");
     } catch (error) {
       console.error("Error saving workflow:", error);
       messageApi.error("Error saving workflow");
@@ -226,7 +236,7 @@ export const WorkflowManager: React.FC = () => {
               <>
                 <ChevronRight className="w-4 h-4 text-secondary" />
                 <span className="text-secondary">
-                  {currentWorkflow.name}
+                  {currentWorkflow.config.config.name || "Untitled Workflow"}
                   {!currentWorkflow.id && (
                     <span className="text-xs text-orange-500"> (New)</span>
                   )}
@@ -253,12 +263,9 @@ export const WorkflowManager: React.FC = () => {
                   Select a workflow from the sidebar or create a new one
                 </p>
                 <div className="flex gap-2 justify-center">
-                  <button
-                    onClick={() => handleCreateWorkflow()}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                  >
+                  <Button onClick={() => handleCreateWorkflow()} type="primary">
                     Create Workflow
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

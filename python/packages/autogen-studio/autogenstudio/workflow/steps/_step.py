@@ -81,23 +81,15 @@ class BaseStep(ComponentBase[BaseStepConfig], Generic[InputType, OutputType]):
         
         def schema_to_field_definitions(schema: Dict[str, Any]) -> Dict[str, Any]:
             """Convert JSON schema to create_model field definitions."""
+            from ..schema_utils import extract_primary_type_from_schema, get_python_type_from_json_schema_type
+            
             properties = schema.get('properties', {})
             required_fields = set(schema.get('required', []))
             field_definitions = {}
             
-            # Type mapping for JSON schema to Python types
-            type_map = {
-                'string': str,
-                'integer': int,
-                'number': float,
-                'boolean': bool,
-                'array': List[AnyType],  # Simplified
-                'object': Dict[str, AnyType]
-            }
-            
             for field_name, field_schema in properties.items():
-                json_type = field_schema.get('type', 'string')
-                python_type = type_map.get(json_type, str)
+                json_type = extract_primary_type_from_schema(field_schema)
+                python_type = get_python_type_from_json_schema_type(json_type)
                 
                 if field_name in required_fields:
                     # For required fields, use (type, ...) format
@@ -390,20 +382,22 @@ class FunctionStep(Component[FunctionStepConfig], BaseStep[InputType, OutputType
         )
 
 
+
 class EchoStepConfig(BaseStepConfig):
     """Configuration for EchoStep serialization."""
     # Base fields inherited: step_id, metadata, input_type_name, output_type_name, input_schema, output_schema
     prefix: str = "Echo: "
     suffix: str = ""
+    delay_seconds: float = 3  # Optional delay for testing/demo
 
 
 class EchoStep(Component[EchoStepConfig], BaseStep[InputType, OutputType]):
     """A simple step that echoes input with prefix/suffix - fully serializable."""
-    
+
     component_config_schema = EchoStepConfig
     component_type = "step"
     component_provider_override = "autogenstudio.workflow.steps.EchoStep"
-    
+
     def __init__(
         self,
         step_id: str,
@@ -411,7 +405,8 @@ class EchoStep(Component[EchoStepConfig], BaseStep[InputType, OutputType]):
         input_type: Type[InputType],
         output_type: Type[OutputType],
         prefix: str = "Echo: ",
-        suffix: str = ""
+        suffix: str = "",
+        delay_seconds: float = 0.0
     ):
         """Initialize the echo step.
         
@@ -422,30 +417,28 @@ class EchoStep(Component[EchoStepConfig], BaseStep[InputType, OutputType]):
             output_type: Pydantic model class for output validation
             prefix: String to prepend to input
             suffix: String to append to input
+            delay_seconds: Optional delay for testing/demo
         """
         super().__init__(step_id, metadata, input_type, output_type)
         self.prefix = prefix
         self.suffix = suffix
+        self.delay_seconds = delay_seconds
     
     async def execute(self, input_data: InputType, context: Context) -> OutputType:
-        """Execute the echo operation.
-        
-        Args:
-            input_data: Input data (must have a message, result, text, or other field)
-            context: Workflow context
-            
-        Returns:
-            Output with echoed message
-        """
+        """Execute the echo operation, with optional delay for testing/demo."""
+        # Optional delay for testing/demo
+        if self.delay_seconds and self.delay_seconds > 0:
+            await asyncio.sleep(self.delay_seconds)
+
         # Try to get the message from different possible field names
         message = None
-        
+
         # Try common field names
         for field_name in ['message', 'result', 'text', 'content', 'data']:
             if hasattr(input_data, field_name):
                 message = getattr(input_data, field_name)
                 break
-        
+
         # If no common field found, try the first field
         if message is None:
             field_names = list(input_data.model_fields.keys())
@@ -454,9 +447,9 @@ class EchoStep(Component[EchoStepConfig], BaseStep[InputType, OutputType]):
             else:
                 # Fall back to string representation
                 message = str(input_data)
-            
+
         result = f"{self.prefix}{message}{self.suffix}"
-        
+
         # Store echo operation in context
         context.set(f'{self.step_id}_echo_info', {
             'original': message,
@@ -464,7 +457,7 @@ class EchoStep(Component[EchoStepConfig], BaseStep[InputType, OutputType]):
             'suffix': self.suffix,
             'result': result
         })
-        
+
         # Create output - try different field names
         output_fields = list(self.output_type.model_fields.keys())
         if 'result' in output_fields:
@@ -486,33 +479,31 @@ class EchoStep(Component[EchoStepConfig], BaseStep[InputType, OutputType]):
         """Convert step to configuration for serialization."""
         # Get base type serialization data
         base_data = self._serialize_types()
-        
         return EchoStepConfig(
             **base_data,
             prefix=self.prefix,
-            suffix=self.suffix
+            suffix=self.suffix,
+            delay_seconds=self.delay_seconds
         )
     
-    @classmethod 
+    @classmethod
     def _from_config(cls, config: EchoStepConfig) -> "EchoStep":
         """Create step from configuration using shared schema-based deserialization.
-        
         Args:
             config: Step configuration with embedded schemas
-            
         Returns:
             Recreated EchoStep instance with dynamically created types
         """
         # Use shared type deserialization
         input_type, output_type = cls._deserialize_types(config)
-        
         return cls(
             step_id=config.step_id,
             metadata=config.metadata,
             input_type=input_type,
             output_type=output_type,
             prefix=config.prefix,
-            suffix=config.suffix
+            suffix=config.suffix,
+            delay_seconds=getattr(config, 'delay_seconds', 0.0)
         )
 
 

@@ -73,6 +73,13 @@ A **Workflow** is a container for a set of **Steps** (units of computation) and 
 - **Serialization**: All steps and workflows are defined with JSON schemas, enabling UI-based authoring, validation, and modification.
 - **UI Integration**: The UI allows users to build, edit, and visualize workflows. Real-time status and progress are streamed via WebSocket events. ([API code](../web/routes/workflows.py))
 
+## Agents as Steps (Anything as Steps)
+
+- **Custom Steps**: Any agent or logic can be added as a step by implementing the [`BaseStep`](./steps/_step.py) interface. Steps must define input/output types as Pydantic models for validation and UI compatibility.
+- **Examples**: See [`AgentStep`](./steps/_agent.py) for LLM agents, [`FunctionStep`](./steps/_step.py) for arbitrary functions, and [`HttpStep`](./steps/_http.py) for HTTP calls.
+- **State Access**: Steps read/update workflow state via the provided `Context` object (`context.get()` / `context.set()`).
+- **Requirement**: All steps must specify input/output schemas and implement the `execute(input_data, context)` method.
+
 ## Example Workflows
 
 - [Simple Sequential](./examples/simple_sequential.py)

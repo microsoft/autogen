@@ -10,7 +10,7 @@ from datetime import datetime
 from ._models import (
     WorkflowExecution, StepExecution, WorkflowStatus, StepStatus,
     WorkflowEvent, WorkflowStartedEvent, WorkflowCompletedEvent, WorkflowFailedEvent,
-    StepStartedEvent, StepCompletedEvent, StepFailedEvent, EdgeActivatedEvent
+    WorkflowCancelledEvent, StepStartedEvent, StepCompletedEvent, StepFailedEvent, EdgeActivatedEvent
 )
 from ._workflow import Workflow
 
@@ -28,11 +28,14 @@ class WorkflowRunner:
         """
         self.max_concurrent_steps = max_concurrent_steps
         self._execution_semaphore = asyncio.Semaphore(max_concurrent_steps)
+        # Add cancellation token support
+        self._cancellation_tokens: Dict[str, "CancellationToken"] = {}
     
     async def run(
         self, 
         workflow: Workflow, 
-        initial_input: Optional[Dict[str, Any]] = None
+        initial_input: Optional[Dict[str, Any]] = None,
+        cancellation_token: Optional["CancellationToken"] = None
     ) -> WorkflowExecution:
         """Run a complete workflow and return the final result.
         
@@ -42,12 +45,13 @@ class WorkflowRunner:
         Args:
             workflow: Workflow to execute
             initial_input: Initial input data for the start step
+            cancellation_token: Optional cancellation token for stopping execution
             
         Returns:
             Final workflow execution result
         """
         final_execution = None
-        async for event in self.run_stream(workflow, initial_input):
+        async for event in self.run_stream(workflow, initial_input, cancellation_token):
             if event.event_type == "workflow_completed":
                 final_execution = getattr(event, 'execution', None)
             elif event.event_type == "workflow_failed":
@@ -57,6 +61,13 @@ class WorkflowRunner:
                 # Re-raise the error for backward compatibility
                 error = getattr(event, 'error', 'Unknown workflow error')
                 raise RuntimeError(error)
+            elif event.event_type == "workflow_cancelled":
+                execution = getattr(event, 'execution', None)
+                if execution:
+                    final_execution = execution
+                # Re-raise cancellation for backward compatibility
+                reason = getattr(event, 'reason', 'Workflow cancelled')
+                raise RuntimeError(reason)
         
         if final_execution is None:
             raise RuntimeError("Workflow completed but no final execution received")
@@ -66,13 +77,15 @@ class WorkflowRunner:
     async def run_stream(
         self, 
         workflow: Workflow, 
-        initial_input: Optional[Dict[str, Any]] = None
+        initial_input: Optional[Dict[str, Any]] = None,
+        cancellation_token: Optional["CancellationToken"] = None
     ) -> AsyncGenerator[WorkflowEvent, None]:
         """Run a workflow and yield real-time events.
         
         Args:
             workflow: Workflow to execute
             initial_input: Initial input data for the start step
+            cancellation_token: Optional cancellation token for stopping execution
             
         Yields:
             WorkflowEvent: Real-time workflow events
@@ -81,6 +94,10 @@ class WorkflowRunner:
             Exception: If workflow validation fails or execution encounters errors
         """
         logger.info(f"Starting workflow execution: {workflow.id}")
+        
+        # Store cancellation token for this execution
+        if cancellation_token:
+            self._cancellation_tokens[workflow.id] = cancellation_token
         
         # Emit workflow started event
         yield WorkflowStartedEvent(
@@ -177,6 +194,9 @@ class WorkflowRunner:
                 error=str(e),
                 execution=execution
             )
+        finally:
+            # Clean up cancellation token
+            self._cancellation_tokens.pop(workflow.id, None)
     
     async def _execute_workflow_stream(
         self, 
@@ -198,6 +218,34 @@ class WorkflowRunner:
         running_tasks = {}
         
         while len(completed_steps) < len(workflow.steps):
+            # Check for cancellation before starting any new steps
+            cancellation_token = self._cancellation_tokens.get(workflow.id)
+            if cancellation_token and cancellation_token.is_cancelled():
+                # Mark all running steps as cancelled (graceful)
+                for step_id, task in running_tasks.items():
+                    step_execution = execution.step_executions.get(step_id)
+                    if step_execution and step_execution.status == StepStatus.RUNNING:
+                        step_execution.status = StepStatus.CANCELLED
+                        step_execution.end_time = datetime.now()
+                        step_execution.error = "Step cancelled due to workflow cancellation"
+                        yield StepFailedEvent(
+                            timestamp=datetime.now(),
+                            workflow_id=workflow.id,
+                            step_id=step_id,
+                            error="Step cancelled due to workflow cancellation",
+                            duration_seconds=0.0
+                        )
+                if not running_tasks:
+                    execution.status = WorkflowStatus.CANCELLED
+                    execution.end_time = datetime.now()
+                    yield WorkflowCancelledEvent(
+                        timestamp=datetime.now(),
+                        workflow_id=workflow.id,
+                        execution=execution,
+                        reason="Cancelled by user"
+                    )
+                    return
+
             # Get steps ready to run
             ready_steps = workflow.get_ready_steps(execution)
             ready_steps = [s for s in ready_steps if s not in completed_steps and s not in running_tasks]
@@ -211,36 +259,37 @@ class WorkflowRunner:
                     raise RuntimeError(error_msg)
                 break
             
-            # Start new tasks for ready steps
-            for step_id in ready_steps:
-                if len(running_tasks) >= self.max_concurrent_steps:
-                    break
-                
-                step = workflow.steps[step_id]
-                input_data = self._prepare_step_input(step_id, workflow, execution, initial_input)
-                
-                # Create step execution record
-                step_execution = StepExecution(
-                    step_id=step_id,
-                    status=StepStatus.RUNNING,
-                    start_time=datetime.now(),
-                    input_data=input_data
-                )
-                execution.step_executions[step_id] = step_execution
-                
-                # Emit step started event
-                yield StepStartedEvent(
-                    timestamp=datetime.now(),
-                    workflow_id=workflow.id,
-                    step_id=step_id,
-                    input_data=input_data
-                )
-                
-                # Start the step task
-                task = asyncio.create_task(self._run_step_with_semaphore(step, input_data, execution.state))
-                running_tasks[step_id] = task
-                
-                logger.info(f"Started step {step_id} in workflow {workflow.id}")
+            # Start new tasks for ready steps (only if not cancelled)
+            if not (cancellation_token and cancellation_token.is_cancelled()):
+                for step_id in ready_steps:
+                    if len(running_tasks) >= self.max_concurrent_steps:
+                        break
+                    
+                    step = workflow.steps[step_id]
+                    input_data = self._prepare_step_input(step_id, workflow, execution, initial_input)
+                    
+                    # Create step execution record
+                    step_execution = StepExecution(
+                        step_id=step_id,
+                        status=StepStatus.RUNNING,
+                        start_time=datetime.now(),
+                        input_data=input_data
+                    )
+                    execution.step_executions[step_id] = step_execution
+                    
+                    # Emit step started event
+                    yield StepStartedEvent(
+                        timestamp=datetime.now(),
+                        workflow_id=workflow.id,
+                        step_id=step_id,
+                        input_data=input_data
+                    )
+                    
+                    # Start the step task
+                    task = asyncio.create_task(self._run_step_with_semaphore(step, input_data, execution.state))
+                    running_tasks[step_id] = task
+                    
+                    logger.info(f"Started step {step_id} in workflow {workflow.id}")
             
             # Wait for at least one task to complete
             if running_tasks:
@@ -297,13 +346,38 @@ class WorkflowRunner:
                                         data=result
                                     )
                             
+                        except asyncio.CancelledError:
+                            step_execution.status = StepStatus.FAILED
+                            step_execution.error = "Step was cancelled"
+                            step_execution.end_time = datetime.now()
+                            
+                            # Calculate duration
+                            duration = 0.0
+                            if step_execution.end_time and step_execution.start_time:
+                                duration = (step_execution.end_time - step_execution.start_time).total_seconds()
+                            
+                            logger.info(f"Step {step_id} was cancelled")
+                            
+                            # Emit step failed event for cancellation
+                            yield StepFailedEvent(
+                                timestamp=datetime.now(),
+                                workflow_id=workflow.id,
+                                step_id=step_id,
+                                error="Step was cancelled",
+                                duration_seconds=duration
+                            )
+                            
+                            # Don't re-raise CancelledError, just continue
+                            
                         except Exception as e:
                             step_execution.status = StepStatus.FAILED
                             step_execution.error = str(e)
                             step_execution.end_time = datetime.now()
                             
                             # Calculate duration
-                            duration = (step_execution.end_time - step_execution.start_time).total_seconds()
+                            duration = 0.0
+                            if step_execution.end_time and step_execution.start_time:
+                                duration = (step_execution.end_time - step_execution.start_time).total_seconds()
                             
                             logger.error(f"Step {step_id} failed: {e}")
                             
@@ -462,3 +536,22 @@ class WorkflowRunner:
             },
             "error": execution.error
         }
+    
+    async def cancel_workflow(self, workflow_id: str, reason: str = "Cancelled by user") -> bool:
+        """Cancel a running workflow.
+        
+        Args:
+            workflow_id: ID of the workflow to cancel
+            reason: Reason for cancellation
+            
+        Returns:
+            True if workflow was cancelled, False if not found or already completed
+        """
+        cancellation_token = self._cancellation_tokens.get(workflow_id)
+        if cancellation_token:
+            cancellation_token.cancel()
+            logger.info(f"Workflow {workflow_id} cancellation requested: {reason}")
+            return True
+        else:
+            logger.warning(f"Workflow {workflow_id} not found or already completed")
+            return False

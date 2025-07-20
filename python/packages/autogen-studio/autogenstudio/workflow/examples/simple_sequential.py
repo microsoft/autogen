@@ -138,15 +138,48 @@ async def main():
     workflow.set_start_step("double")
     workflow.add_end_step("add_ten")
     
-    # Run workflow
+    # Run workflow with streaming events
     runner = WorkflowRunner()
     initial_input = {"value": 3}
     
     print(f"\nRunning workflow with input: {initial_input}")
-    execution = await runner.run(workflow, initial_input)
+    print("\n=== Streaming Events ===")
+    
+    execution = None
+    async for event in runner.run_stream(workflow, initial_input):
+        print(f"🎯 {event.event_type}: ", end="")
+        
+        if event.event_type == "workflow_started":
+            print(f"Started with input: {event.initial_input}")
+            
+        elif event.event_type == "step_started":
+            print(f"Step '{event.step_id}' started with input: {event.input_data}")
+            
+        elif event.event_type == "step_completed":
+            print(f"Step '{event.step_id}' completed in {event.duration_seconds:.2f}s")
+            print(f"    Output: {event.output_data}")
+            
+        elif event.event_type == "step_failed":
+            print(f"Step '{event.step_id}' failed in {event.duration_seconds:.2f}s: {event.error}")
+            
+        elif event.event_type == "edge_activated":
+            print(f"Edge '{event.from_step}' → '{event.to_step}' activated")
+            print(f"    Data flowing: {event.data}")
+            
+        elif event.event_type == "workflow_completed":
+            print(f"Workflow completed successfully!")
+            execution = event.execution
+            
+        elif event.event_type == "workflow_failed":
+            print(f"Workflow failed: {event.error}")
+            execution = event.execution
+    
+    if execution is None:
+        print("❌ No final execution received!")
+        return
     
     # Print results
-    print("\n=== Results ===")
+    print("\n=== Final Results ===")
     for step_id, step_exec in execution.step_executions.items():
         print(f"{step_id}: {step_exec.output_data}")
     

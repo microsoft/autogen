@@ -1,3 +1,5 @@
+import datetime
+from enum import Enum
 from typing import Any, List
 
 from fastapi import WebSocketDisconnect
@@ -43,6 +45,10 @@ def serialize_for_json(obj: Any) -> Any:
     """Convert objects to JSON-serializable format"""
     if isinstance(obj, AnyUrl):
         return str(obj)
+    elif isinstance(obj, datetime.datetime):  # Fixed: use datetime.datetime class
+        return obj.isoformat()
+    elif isinstance(obj, Enum):
+        return obj.value
     elif isinstance(obj, dict):
         return {str(k): serialize_for_json(v) for k, v in obj.items()}
     elif isinstance(obj, list):
