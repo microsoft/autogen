@@ -152,17 +152,8 @@ class WorkflowDB(BaseDBModel, table=True):
 
     __table_args__ = {"sqlite_autoincrement": True}
 
-    name: str = "Unnamed Workflow"
-    description: str = ""
-
-    # Store the serialized WorkflowConfig
+  
     config: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
-
-    # Optional metadata for organization
-    tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
-    
-    # Workflow status (for future use if needed)
-    is_active: bool = Field(default=True)
 
     model_config = ConfigDict(
         json_encoders={
