@@ -54,15 +54,36 @@ class TransformStep(Component[TransformStepConfig], BaseStep[Any, Any]):
         """
         Execute the transform: map fields from input to output according to config.
         """
+        from ..schema_utils import coerce_value_to_schema_type
+        
         output_kwargs = {}
+        output_schema = self.output_type.model_json_schema()
+        
         for out_field, in_field in self.mappings.items():
+            # Get the raw value
             if isinstance(in_field, str):
                 if in_field.startswith("static:"):
-                    output_kwargs[out_field] = in_field[len("static:"):]
+                    raw_value = in_field[len("static:"):]
                 else:
-                    output_kwargs[out_field] = getattr(input_data, in_field, None)
+                    raw_value = getattr(input_data, in_field, None)
+            elif isinstance(in_field, dict):
+                # Handle dict mappings with nested field resolution
+                raw_value = {}
+                for dict_key, dict_field in in_field.items():
+                    if isinstance(dict_field, str):
+                        if dict_field.startswith("static:"):
+                            raw_value[dict_key] = dict_field[len("static:"):]
+                        else:
+                            raw_value[dict_key] = getattr(input_data, dict_field, None)
+                    else:
+                        raw_value[dict_key] = dict_field
             else:
-                output_kwargs[out_field] = in_field
+                raw_value = in_field
+            
+            # Apply defensive type coercion using shared utility
+            coerced_value = coerce_value_to_schema_type(raw_value, out_field, output_schema)
+            output_kwargs[out_field] = coerced_value
+            
         return self.output_type(**output_kwargs)
 
     def _to_config(self) -> TransformStepConfig:

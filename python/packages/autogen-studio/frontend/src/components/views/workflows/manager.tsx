@@ -5,7 +5,7 @@ import { appContext } from "../../../hooks/provider";
 import { workflowAPI } from "./api";
 import { WorkflowSidebar } from "./sidebar";
 import { Workflow } from "./types";
-import WorkflowBuilder from "./builder";
+import WorkflowBuilder, { WorkflowBuilderHandle } from "./builder";
 
 export const WorkflowManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,6 +22,7 @@ export const WorkflowManager: React.FC = () => {
   const { user } = useContext(appContext);
   const [messageApi, contextHolder] = message.useMessage();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const workflowBuilderRef = React.useRef<WorkflowBuilderHandle>(null);
 
   // Persist sidebar state
   useEffect(() => {
@@ -98,6 +99,10 @@ export const WorkflowManager: React.FC = () => {
     try {
       const workflow = await workflowAPI.getWorkflow(workflowId, user.id);
       setCurrentWorkflow(workflow);
+      // Reset all UI state in builder
+      if (workflowBuilderRef.current) {
+        workflowBuilderRef.current.resetUIState();
+      }
       window.history.pushState({}, "", `?workflowId=${workflowId}`);
       setHasUnsavedChanges(false);
     } catch (error) {
@@ -134,11 +139,23 @@ export const WorkflowManager: React.FC = () => {
           name,
           description: "A new workflow.",
           config: {
-            id: `config-${Date.now()}`,
-            name,
+            provider: "autogenstudio.workflow.core.Workflow",
+            component_type: "workflow",
+            version: 1,
+            component_version: 1,
             description: "A new workflow.",
-            steps: [],
-            edges: [],
+            label: "New Workflow",
+            config: {
+              metadata: {
+                name,
+                description: "A new workflow.",
+                version: "1.0.0",
+                tags: [],
+              },
+              steps: [],
+              edges: [],
+              initial_state: {},
+            },
           },
         },
         user.id
@@ -146,6 +163,10 @@ export const WorkflowManager: React.FC = () => {
 
       setWorkflows([newWorkflow, ...workflows]);
       setCurrentWorkflow(newWorkflow);
+      // Reset all UI state in builder
+      if (workflowBuilderRef.current) {
+        workflowBuilderRef.current.resetUIState();
+      }
       messageApi.success("Workflow created successfully");
     } catch (error) {
       console.error("Error creating workflow:", error);
@@ -177,12 +198,11 @@ export const WorkflowManager: React.FC = () => {
           ? parseInt(currentWorkflow.id, 10)
           : currentWorkflow.id,
         {
-          id: currentWorkflow.id.toString(), // Convert to string for UpdateWorkflowRequest
           name: workflowConfig?.name || currentWorkflow.config.config.name,
           description:
             workflowConfig?.description ||
             currentWorkflow.config.config.description,
-          config: workflowData.config?.config || currentWorkflow.config.config,
+          config: workflowData.config || currentWorkflow.config,
         },
         user.id
       );
@@ -249,6 +269,7 @@ export const WorkflowManager: React.FC = () => {
           {currentWorkflow ? (
             <div className="h-[calc(100vh-120px)]">
               <WorkflowBuilder
+                ref={workflowBuilderRef}
                 workflow={currentWorkflow}
                 onChange={handleWorkflowChange}
                 onSave={handleSaveWorkflow}

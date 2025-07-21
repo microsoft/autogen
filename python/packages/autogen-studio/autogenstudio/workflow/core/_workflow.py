@@ -170,21 +170,37 @@ class BaseWorkflow(ComponentBase[BaseModel]):
                 if step_id == self.start_step_id:
                     ready_steps.append(step_id)
             elif dependencies:
-                # Check if all dependencies are completed
-                all_deps_complete = True
-                for dep_id in dependencies:
-                    dep_exec = execution.step_executions.get(dep_id)
-                    if not dep_exec or dep_exec.status.value != "completed":
-                        all_deps_complete = False
-                        break
+                # Determine if this is a fan-in (AND) or conditional (OR) pattern
+                incoming_edges = [edge for edge in self.edges if edge.to_step == step_id]
                 
-                if all_deps_complete:
-                    # Also check edge conditions
-                    for edge in self.edges:
-                        if edge.to_step == step_id:
+                # Fan-in pattern: all edges have "always" conditions
+                is_fan_in = all(edge.condition.type == "always" for edge in incoming_edges)
+                
+                if is_fan_in:
+                    # Fan-in (AND logic): all dependencies must be complete
+                    all_deps_complete = True
+                    for dep_id in dependencies:
+                        dep_exec = execution.step_executions.get(dep_id)
+                        if not dep_exec or dep_exec.status.value != "completed":
+                            all_deps_complete = False
+                            break
+                    
+                    if all_deps_complete:
+                        ready_steps.append(step_id)
+                else:
+                    # Conditional (OR logic): any valid path makes step ready
+                    step_ready = False
+                    for edge in incoming_edges:
+                        # Check if this specific dependency is complete
+                        dep_exec = execution.step_executions.get(edge.from_step)
+                        if dep_exec and dep_exec.status.value == "completed":
+                            # Check if the edge condition passes
                             if self._evaluate_edge_condition(edge, execution):
-                                ready_steps.append(step_id)
+                                step_ready = True
                                 break
+                    
+                    if step_ready:
+                        ready_steps.append(step_id)
         
         return ready_steps
     

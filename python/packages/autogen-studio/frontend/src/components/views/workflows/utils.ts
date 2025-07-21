@@ -1,6 +1,7 @@
 import { Component } from "../../types/datamodel";
 import { WorkflowConfig, NodeData, StepConfig, StepExecution } from "./types";
 import { Node, Edge } from "@xyflow/react";
+import dagre from "@dagrejs/dagre";
 
 // Workflow utilities
 export const createEmptyWorkflow = (
@@ -110,3 +111,36 @@ export const addStepToWorkflow = (
     steps: [...config.steps, { ...step, config: step.config }],
   };
 };
+
+// Layout nodes using dagre (left-to-right)
+export function getDagreLayoutedNodes(
+  nodes: Node<NodeData>[],
+  edges: Edge[],
+  direction: "LR" | "TB" = "LR"
+): Node<NodeData>[] {
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({ rankdir: direction });
+
+  // Set nodes with width/height (adjust as needed for your node size)
+  nodes.forEach((node) => {
+    g.setNode(node.id, { width: 220, height: 80 });
+  });
+
+  // Set edges
+  edges.forEach((edge) => {
+    g.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(g);
+
+  // Update node positions
+  return nodes.map((node) => {
+    const pos = g.node(node.id);
+    if (!pos) return node;
+    return {
+      ...node,
+      position: { x: pos.x - 110, y: pos.y - 40 }, // Center node
+    };
+  });
+}

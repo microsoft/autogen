@@ -14,6 +14,7 @@ import {
   Beaker,
   LucideBeaker,
   FlaskConical,
+  GitBranch,
 } from "lucide-react";
 import Icon from "./icons";
 import { BeakerIcon } from "@heroicons/react/24/outline";
@@ -35,6 +36,14 @@ const navigation: INavItem[] = [
     href: "/build",
     icon: Bot,
     breadcrumbs: [{ name: "Team Builder", href: "/build", current: true }],
+  },
+  {
+    name: "Workflows",
+    href: "/workflow",
+    icon: GitBranch,
+    breadcrumbs: [
+      { name: "Workflows (Experimental)", href: "/workflow", current: true },
+    ],
   },
   {
     name: "Playground",

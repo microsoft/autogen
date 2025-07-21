@@ -459,17 +459,28 @@ class WorkflowRunner:
             # No dependencies, use initial input
             return initial_input.copy()
         
-        # For sequential workflows: use the most recent dependency's output directly
-        # For parallel/fan-in: this logic would need to be more sophisticated
-        latest_dependency = dependencies[-1]  # Most recent dependency
-        dep_execution = execution.step_executions.get(latest_dependency)
+        # For conditional workflows: find the dependency that actually executed and has output
+        # Check all dependencies and find the one that completed successfully
+        completed_dependency = None
+        for dep_id in dependencies:
+            dep_execution = execution.step_executions.get(dep_id)
+            if dep_execution and dep_execution.output_data and dep_execution.status.value == "completed":
+                # Also verify that the edge condition for this dependency is satisfied
+                for edge in workflow.edges:
+                    if edge.from_step == dep_id and edge.to_step == step_id:
+                        if workflow._evaluate_edge_condition(edge, execution):
+                            completed_dependency = dep_id
+                            break
+                if completed_dependency:
+                    break
         
-        if dep_execution and dep_execution.output_data:
-            # Direct forwarding: previous step's output becomes this step's input
+        if completed_dependency:
+            dep_execution = execution.step_executions.get(completed_dependency)
+            logger.info(f"Using output from completed dependency {completed_dependency} for step {step_id}")
             return dep_execution.output_data.copy()
         else:
-            # Fallback to initial input if dependency output not available
-            logger.warning(f"No output available from dependency {latest_dependency} for step {step_id}, using initial input")
+            # Fallback to initial input if no valid dependency output is available
+            logger.warning(f"No valid completed dependency found for step {step_id}, using initial input")
             return initial_input.copy()
     
     async def run_step(

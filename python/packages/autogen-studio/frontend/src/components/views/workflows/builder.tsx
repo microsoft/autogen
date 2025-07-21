@@ -4,6 +4,8 @@ import React, {
   useState,
   useContext,
   useRef,
+  forwardRef,
+  useImperativeHandle,
 } from "react";
 import {
   ReactFlow,
@@ -45,6 +47,7 @@ import { StepNode } from "./nodes";
 import { Toolbar } from "./toolbar";
 import { StepDetails } from "./step-details";
 import { useWorkflowWebSocket } from "./useWorkflowWebSocket";
+import WorkflowInputForm from "./WorkflowInputForm";
 import { workflowAPI } from "./api";
 import { appContext } from "../../../hooks/provider";
 import {
@@ -54,6 +57,7 @@ import {
   saveNodePosition,
   removeNodePosition,
   calculateNodePosition,
+  getDagreLayoutedNodes, // <-- import dagre layout util
 } from "./utils";
 import { Component } from "../../types/datamodel";
 import { MonacoEditor } from "../monaco";
@@ -71,27 +75,33 @@ interface WorkflowBuilderProps {
   onDirtyStateChange?: (isDirty: boolean) => void;
 }
 
-export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
-  workflow,
-  onChange,
-  onSave,
-  onDirtyStateChange,
-}) => {
+export interface WorkflowBuilderHandle {
+  resetUIState: () => void;
+}
+
+export const WorkflowBuilder = forwardRef<
+  WorkflowBuilderHandle,
+  WorkflowBuilderProps
+>(({ workflow, onChange, onSave, onDirtyStateChange }, ref) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NodeData>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isLibraryCompact, setIsLibraryCompact] = useState(false);
   const [showMiniMap, setShowMiniMap] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
+  // Add state for error details expand/collapse
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
   const [selectedStep, setSelectedStep] = useState<StepConfig | null>(null);
   const [selectedStepExecution, setSelectedStepExecution] = useState<
     StepExecution | undefined
   >(undefined);
   const [stepDetailsOpen, setStepDetailsOpen] = useState(false);
-  const [edgeType, setEdgeType] = useState<string>("smoothstep");
+  const [edgeType, setEdgeType] = useState<string>("default");
   const [isJsonMode, setIsJsonMode] = useState(false);
   const [workingCopy, setWorkingCopy] = useState<Workflow>(workflow);
   const editorRef = useRef(null);
+  const [showInputForm, setShowInputForm] = useState(false);
+  const [isStartingWorkflow, setIsStartingWorkflow] = useState(false);
 
   const [messageApi, contextHolder] = message.useMessage();
   const { user } = useContext(appContext);
@@ -321,7 +331,7 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
         addEdge(
           {
             ...params,
-            type: edgeType,
+            type: edgeType, // will be 'bezier' or 'step'
           },
           eds
         )
@@ -482,15 +492,67 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
         ? parseInt(workflow.id, 10)
         : workflow.id || 0;
 
-    const flowNodes = convertToReactFlowNodes(
+    let flowNodes = convertToReactFlowNodes(
       workflow.config.config,
       workflowId,
       handleDeleteStep,
       handleStepClick
     );
     const flowEdges = convertToReactFlowEdges(workflow.config.config, edgeType);
-    setNodes(flowNodes);
-    setEdges(flowEdges);
+
+    // Only apply dagre to nodes that do NOT have a saved position
+    const positions = JSON.parse(
+      localStorage.getItem(`workflow-${workflowId}-positions`) || "{}"
+    );
+    const nodesWithoutSavedPos = flowNodes.filter((n) => !positions[n.id]);
+    if (nodesWithoutSavedPos.length > 1 && flowEdges.length > 0) {
+      const dagreLayouted = getDagreLayoutedNodes(
+        nodesWithoutSavedPos,
+        flowEdges,
+        "LR"
+      );
+      // Merge dagre positions into flowNodes
+      flowNodes = flowNodes.map((n) => {
+        const dagreNode = dagreLayouted.find((dn) => dn.id === n.id);
+        return dagreNode ? { ...n, position: dagreNode.position } : n;
+      });
+    }
+
+    // Preserve existing execution state when recreating nodes
+    setNodes((currentNodes) => {
+      const nodeMap = new Map(currentNodes.map((node) => [node.id, node]));
+      return flowNodes.map((newNode) => {
+        const existingNode = nodeMap.get(newNode.id);
+        if (existingNode) {
+          // Preserve execution state but update other data
+          return {
+            ...newNode,
+            data: {
+              ...newNode.data,
+              executionStatus: existingNode.data.executionStatus,
+              executionData: existingNode.data.executionData,
+            },
+          };
+        }
+        return newNode;
+      });
+    });
+
+    setEdges((currentEdges) => {
+      const edgeMap = new Map(currentEdges.map((edge) => [edge.id, edge]));
+      return flowEdges.map((newEdge) => {
+        const existingEdge = edgeMap.get(newEdge.id);
+        if (existingEdge) {
+          // Preserve existing style and animation state
+          return {
+            ...newEdge,
+            style: existingEdge.style,
+            animated: existingEdge.animated,
+          };
+        }
+        return newEdge;
+      });
+    });
   }, [
     workflow.config,
     workflow.id,
@@ -511,7 +573,7 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
     }
   }, [workflow, onSave, messageApi]);
 
-  const handleRunWorkflow = useCallback(async () => {
+  const handleRunWorkflow = useCallback(() => {
     if (!user?.id) {
       messageApi.error("User not authenticated");
       return;
@@ -522,61 +584,66 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
       return;
     }
 
-    try {
-      messageApi.loading("Starting workflow execution...", 0);
+    // Show the input form modal
+    setShowInputForm(true);
+  }, [user?.id, workflow.config.config.steps, messageApi]);
 
-      // Reset WebSocket state first
-      resetState();
+  const handleWorkflowInputSubmit = useCallback(
+    async (input: Record<string, any>) => {
+      try {
+        setIsStartingWorkflow(true);
+        messageApi.loading("Starting workflow execution...", 0);
 
-      // Reset all node and edge states to initial state
-      setNodes((currentNodes) =>
-        currentNodes.map((node) => ({
-          ...node,
-          data: {
-            ...node.data,
-            executionStatus: undefined, // Reset to no status
-          },
-        }))
-      );
+        // Reset WebSocket state first
+        resetState();
 
-      setEdges((currentEdges) =>
-        currentEdges.map((edge) => ({
-          ...edge,
-          style: { stroke: "#6b7280", strokeWidth: 2 }, // Reset to default style
-          animated: false,
-        }))
-      );
+        // Reset all node and edge states to initial state
+        setNodes((currentNodes) =>
+          currentNodes.map((node) => ({
+            ...node,
+            data: {
+              ...node.data,
+              executionStatus: undefined, // Reset to no status
+            },
+          }))
+        );
 
-      // Create a workflow run
-      const runResponse = await workflowAPI.createWorkflowRun(
-        undefined, // workflowId - use config instead for real-time execution
-        workflow.config
-      );
+        setEdges((currentEdges) =>
+          currentEdges.map((edge) => ({
+            ...edge,
+            style: { stroke: "#6b7280", strokeWidth: 2 }, // Reset to default style
+            animated: false,
+          }))
+        );
 
-      const { run_id, workflow_config } = runResponse.data;
+        // Create a workflow run
+        const runResponse = await workflowAPI.createWorkflowRun(
+          undefined, // workflowId - use config instead for real-time execution
+          workflow.config
+        );
 
-      // Start WebSocket-based execution
-      startWorkflow(run_id, workflow_config, {
-        // Optional initial input - could be made configurable
-        message: "Starting workflow execution",
-      });
+        const { run_id, workflow_config } = runResponse.data;
 
-      messageApi.destroy(); // Clear loading message
-      messageApi.success("Workflow execution started!");
-    } catch (error) {
-      messageApi.destroy();
-      console.error("Error starting workflow:", error);
-      messageApi.error("Failed to start workflow execution");
-    }
-  }, [
-    user?.id,
-    workflow.config,
-    startWorkflow,
-    resetState,
-    messageApi,
-    setNodes,
-    setEdges,
-  ]);
+        // Start WebSocket-based execution with user input
+        startWorkflow(run_id, workflow_config, input);
+
+        messageApi.destroy(); // Clear loading message
+        messageApi.success("Workflow execution started!");
+        setShowInputForm(false);
+      } catch (error) {
+        messageApi.destroy();
+        console.error("Error starting workflow:", error);
+        messageApi.error("Failed to start workflow execution");
+      } finally {
+        setIsStartingWorkflow(false);
+      }
+    },
+    [workflow.config, startWorkflow, resetState, messageApi, setNodes, setEdges]
+  );
+
+  const handleWorkflowInputCancel = useCallback(() => {
+    setShowInputForm(false);
+  }, []);
 
   const handleStopWorkflow = useCallback(() => {
     stopWorkflow();
@@ -592,25 +659,23 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
 
       if (isNaN(workflowId)) return;
 
-      workflow.config.config.steps?.forEach((step, index) => {
-        const position = calculateNodePosition(
-          index,
-          workflow.config.config.steps?.length || 0
+      // Use dagre to layout nodes
+      setNodes((currentNodes) => {
+        const flowEdges = convertToReactFlowEdges(
+          workflow.config.config,
+          edgeType
         );
-        saveNodePosition(workflowId, step.config.step_id, position);
+        const layouted = getDagreLayoutedNodes(currentNodes, flowEdges, "LR");
+        // Persist new positions
+        layouted.forEach((node) => {
+          saveNodePosition(workflowId, node.id, node.position);
+        });
+        return layouted;
       });
-
-      const flowNodes = convertToReactFlowNodes(
-        workflow.config.config,
-        workflowId,
-        handleDeleteStep,
-        handleStepClick
-      );
-      setNodes(flowNodes);
 
       messageApi.success("Nodes arranged automatically");
     }
-  }, [workflow, messageApi, handleDeleteStep, setNodes]);
+  }, [workflow, messageApi, setNodes, edgeType]);
 
   const handleStepClick = useCallback(
     (step: StepConfig, executionData?: StepExecution) => {
@@ -680,21 +745,47 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
     };
   }, [nodes, handleDeleteStep]);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      resetUIState: () => {
+        setNodes([]);
+        setEdges([]);
+        setIsLibraryCompact(false);
+        setShowMiniMap(false);
+        setShowGrid(true);
+        setIsDirty(false);
+        setSelectedStep(null);
+        setSelectedStepExecution(undefined);
+        setStepDetailsOpen(false);
+        setEdgeType("default");
+        setIsJsonMode(false);
+        setWorkingCopy(workflow);
+        setShowInputForm(false);
+        setIsStartingWorkflow(false);
+        // Reset execution state and disconnect WebSocket
+        disconnect();
+        resetState();
+      },
+    }),
+    [workflow, disconnect, resetState]
+  );
+
   return (
     <div className="h-full flex">
       {contextHolder}
 
       {/* CSS for edge animations */}
       <style>{`
-        @keyframes dash {
-          to {
-            stroke-dashoffset: -10;
+          @keyframes dash {
+            to {
+              stroke-dashoffset: -10;
+            }
           }
-        }
-        .react-flow__edge-path {
-          animation: dash 1s linear infinite;
-        }
-      `}</style>
+          .react-flow__edge-path {
+            animation: dash 1s linear infinite;
+          }
+        `}</style>
 
       {/* Main Canvas */}
       <div className="flex-1 relative">
@@ -756,6 +847,69 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
                 {workflow.config.config.steps?.length || 0} steps,{" "}
                 {workflow.config.config.edges?.length || 0} connections
               </div>
+
+              {/* Error Details for Failed Steps (Collapsible) */}
+              {executionState.status === WorkflowStatus.FAILED &&
+                (() => {
+                  // Find failed steps with error details
+                  const failedSteps = (
+                    workflow.config.config.steps || []
+                  ).filter((step) => {
+                    const exec =
+                      executionState.execution?.step_executions?.[
+                        step.config.step_id
+                      ];
+                    return (
+                      exec && exec.status === StepStatus.FAILED && exec.error
+                    );
+                  });
+                  if (!failedSteps.length) return null;
+                  return (
+                    <div className="mt-2">
+                      <button
+                        className="text-xs text-red-600 underline hover:text-red-800 focus:outline-none"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                        onClick={() => setShowErrorDetails((v) => !v)}
+                        type="button"
+                      >
+                        {showErrorDetails ? "Hide" : "Show"} error details (
+                        {failedSteps.length} failed step
+                        {failedSteps.length > 1 ? "s" : ""})
+                        <span style={{ fontSize: 10 }}>
+                          {showErrorDetails ? "▲" : "▼"}
+                        </span>
+                      </button>
+                      {showErrorDetails && (
+                        <div className="mt-1 bg-red-50 border border-red-200 rounded p-2 max-h-40 overflow-y-auto">
+                          {failedSteps.map((step) => {
+                            const exec =
+                              executionState.execution?.step_executions?.[
+                                step.config.step_id
+                              ];
+                            return (
+                              <div
+                                key={step.config.step_id}
+                                className="mb-2 last:mb-0"
+                              >
+                                <div className="font-semibold text-xs text-red-700">
+                                  {step.config.metadata.name ||
+                                    step.config.step_id}
+                                </div>
+                                <div className="text-xs text-red-800 whitespace-pre-wrap break-all">
+                                  {exec?.error}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
               {/* Results Panel: Compact, live-updating step outputs */}
               {executionState.execution &&
@@ -1017,8 +1171,17 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
           onClose={() => setStepDetailsOpen(false)}
         />
       )}
+
+      {/* Workflow Input Form Modal */}
+      <WorkflowInputForm
+        workflow={workflow}
+        visible={showInputForm}
+        onSubmit={handleWorkflowInputSubmit}
+        onCancel={handleWorkflowInputCancel}
+        loading={isStartingWorkflow}
+      />
     </div>
   );
-};
+});
 
 export default WorkflowBuilder;

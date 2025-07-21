@@ -13,7 +13,6 @@ import {
 import { Workflow } from "./types";
 import { getRelativeTimeString } from "../atoms";
 import { getWorkflowTypeColor } from "./utils";
-import NewWorkflowControls from "./newworkflow";
 
 interface WorkflowSidebarProps {
   isOpen: boolean;
@@ -93,10 +92,17 @@ export const WorkflowSidebar: React.FC<WorkflowSidebarProps> = ({
       <div className="my-4 flex text-sm">
         <div className="mr-2 w-full pr-2">
           {isOpen && (
-            <NewWorkflowControls
-              isLoading={isLoading}
-              onCreateWorkflow={onCreateWorkflow}
-            />
+            <div className="space-y-2 w-full">
+              <Button
+                type="primary"
+                className="w-full"
+                onClick={onCreateWorkflow}
+                disabled={isLoading}
+                icon={<Plus className="w-4 h-4" />}
+              >
+                New Workflow
+              </Button>
+            </div>
           )}
         </div>
       </div>

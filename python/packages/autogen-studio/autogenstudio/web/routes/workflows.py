@@ -90,7 +90,7 @@ async def create_workflow(request: CreateWorkflowRequest, db=Depends(get_db)) ->
     try:
         workflow = db.upsert(
             WorkflowDB( 
-                config=request.config, 
+                config=request.config.model_dump(), 
                 user_id=request.user_id, 
             ),
             return_json=False,
@@ -136,7 +136,7 @@ async def update_workflow(
         if request.description is not None:
             workflow.description = request.description
         if request.config is not None:
-            workflow.config = request.config
+            workflow.config = request.config.model_dump()
         updated = db.upsert(workflow, return_json=False)
         return {"status": updated.status, "data": updated.data}
     except HTTPException:

@@ -79,8 +79,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <div className="font-semibold text-sm mb-2">Edge Style</div>
         <Segmented
           options={[
-            { label: "Smooth", value: "smoothstep" },
-            { label: "Straight", value: "straight" },
+            { label: "Bezier", value: "default" },
+            { label: "Step", value: "step" },
           ]}
           value={edgeType}
           onChange={(value) => onEdgeTypeChange(value as string)}
@@ -135,7 +135,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   icon={<Play size={18} />}
                   onClick={onRun}
                   disabled={disabled}
-                  className="h-10 w-10 flex items-center justify-center"
+                  className="h-10  w-10 flex items-center justify-center"
                 />
               </Badge>
             </Tooltip>
