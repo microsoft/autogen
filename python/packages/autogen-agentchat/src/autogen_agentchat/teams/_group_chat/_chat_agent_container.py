@@ -130,7 +130,6 @@ class ChatAgentContainer(SequentialRoutedAgent):
                 # Publish the error to the group chat.
                 error_message = SerializableException.from_exception(e)
                 return GroupChatError(error=error_message)
-                raise
 
     def _buffer_message(self, message: BaseChatMessage) -> None:
         if not self._message_factory.is_registered(message.__class__):
