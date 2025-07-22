@@ -35,7 +35,6 @@ class McpSessionHostConfig(BaseModel):
     # TODO: How to support callable serialization?
     roots: list[mcp_types.Root] | None
 
-
 class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
     """Host component that provides MCP server capabilities.
 
@@ -60,8 +59,7 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
             from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_ext.tools.mcp.host import GroupChatAgentElicitor, McpSessionHost
-            from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+            from autogen_ext.tools.mcp import GroupChatAgentElicitor, McpSessionHost, McpWorkbench, StdioServerParams
 
             # Setup model client for sampling and elicitation formatting
             model_client = OpenAIChatCompletionClient(model="gpt-4o")
