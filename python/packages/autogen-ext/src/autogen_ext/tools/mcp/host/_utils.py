@@ -39,7 +39,8 @@ def parse_sampling_content(
         return content.text
     elif content.type == "image":
         if model_info and not model_info.get("vision", False):
-            raise RuntimeError(f"model {model_info.get("family", "unknown")} does not support vision.")
+            model_family = model_info.get("family", "unknown")
+            raise RuntimeError(f"model {model_family} does not support vision.")
 
         # Decode base64 image data and create PIL Image
         image_data = base64.b64decode(content.data)
