@@ -58,7 +58,6 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
         Complete setup with MCP capabilities including sampling and elicitation::
 
             from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
-            from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_ext.tools.mcp.host import GroupChatAgentElicitor, McpSessionHost
@@ -74,11 +73,11 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
             elicitor = GroupChatAgentElicitor("user_proxy", model_client=model_client)
 
             # Create MCP session host with sampling, elicitation, and list_roots capabilities
+            # If you want to support roots, import or define Root and FileUrl, then uncomment the roots line below
             host = McpSessionHost(
-                model_client=model_client,  # Support sampling via model clicent
+                model_client=model_client,  # Support sampling via model client
                 elicitor=elicitor,  # Support elicitation via user_proxy
-                # support roots in /home and /tmp
-                roots=[Root(uri=FileUrl("file:///home"), name="Home"), Root(uri=FileUrl("file:///tmp"), name="Tmp")],
+                # roots=[Root(uri=FileUrl("file:///home"), name="Home"), Root(uri=FileUrl("file:///tmp"), name="Tmp")],
             )
 
             # Setup MCP workbench with your server
@@ -95,7 +94,7 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
             )
 
             # Create team and link elicitor
-            team = RoundRobinGroupChat([mcp_assistant, assistant, user_proxy])
+            team = RoundRobinGroupChat([mcp_assistant, user_proxy])
             elicitor.set_group_chat(team)  # Required for elicitation to work
 
             # Now the MCP server can request sampling and elicitation from the host
