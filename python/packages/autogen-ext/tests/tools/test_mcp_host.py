@@ -258,7 +258,7 @@ def test_agent_elicitor_from_config() -> None:
     from autogen_ext.tools.mcp.host._elicitors import GroupChatAgentElicitorConfig
 
     recipient = "test_agent"
-    model_config = MagicMock()
+    model_config: dict[str, object] = {"type": "mock_model", "config": {}}
     config = GroupChatAgentElicitorConfig(recipient=recipient, model_client=model_config)
 
     # Mock the ChatCompletionClient.load_component method
@@ -381,7 +381,7 @@ def test_model_elicitor_from_config() -> None:
     from autogen_core.models import ChatCompletionClient
     from autogen_ext.tools.mcp.host._elicitors import ChatCompletionClientElicitorConfig
 
-    model_config = MagicMock()
+    model_config: dict[str, object] = {"type": "mock_model", "config": {}}
     system_prompt = "Test system prompt"
     config = ChatCompletionClientElicitorConfig(model_client=model_config, system_prompt=system_prompt)
 
@@ -669,8 +669,8 @@ def test_mcp_session_host_from_config() -> None:
     mock_model_client = MagicMock()
     mock_elicitor = MagicMock()
 
-    model_config = MagicMock()
-    elicitor_config = MagicMock()
+    model_config: dict[str, object] = {"type": "mock_model", "config": {}}
+    elicitor_config: dict[str, object] = {"type": "mock_elicitor", "config": {}}
     test_roots = [mcp_types.Root(uri=FileUrl("file:///config_test"), name="Config Test Root")]
 
     config = McpSessionHostConfig(model_client=model_config, elicitor=elicitor_config, roots=test_roots)
