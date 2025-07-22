@@ -21,7 +21,7 @@ from autogen_ext.tools.mcp import StdioServerParams
 from autogen_ext.tools.mcp._actor import (
     McpSessionActor,
 )
-from autogen_ext.tools.mcp.host._utils import (
+from autogen_ext.tools.mcp._host._utils import (
     parse_sampling_content,  # pyright: ignore[reportPrivateUsage]
     parse_sampling_message,  # pyright: ignore[reportPrivateUsage]
 )

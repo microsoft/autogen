@@ -12,12 +12,13 @@ from autogen_core.models import (
     RequestUsage,
     UserMessage,
 )
-from autogen_ext.tools.mcp.host import (
+from autogen_ext.tools.mcp._config import StdioServerParams
+from autogen_ext.tools.mcp._host import (
     ChatCompletionClientElicitor,
     GroupChatAgentElicitor,
     McpSessionHost,
 )
-from autogen_ext.tools.mcp.host._utils import (
+from autogen_ext.tools.mcp._host._utils import (
     finish_reason_to_stop_reason,
     parse_sampling_message,
 )
@@ -245,7 +246,7 @@ def test_agent_elicitor_to_config() -> None:
 
     config = elicitor._to_config()  # type: ignore[reportPrivateUsage]
 
-    from autogen_ext.tools.mcp.host._elicitors import GroupChatAgentElicitorConfig
+    from autogen_ext.tools.mcp._host._elicitors import GroupChatAgentElicitorConfig
 
     assert isinstance(config, GroupChatAgentElicitorConfig)
     assert config.recipient == recipient
@@ -255,7 +256,7 @@ def test_agent_elicitor_to_config() -> None:
 def test_agent_elicitor_from_config() -> None:
     """Test GroupChatAgentElicitor _from_config method."""
     from autogen_core.models import ChatCompletionClient
-    from autogen_ext.tools.mcp.host._elicitors import GroupChatAgentElicitorConfig
+    from autogen_ext.tools.mcp._host._elicitors import GroupChatAgentElicitorConfig
 
     recipient = "test_agent"
     model_config: dict[str, object] = {"type": "mock_model", "config": {}}
@@ -369,7 +370,7 @@ def test_model_elicitor_to_config() -> None:
 
     config = elicitor._to_config()  # type: ignore[reportPrivateUsage]
 
-    from autogen_ext.tools.mcp.host._elicitors import ChatCompletionClientElicitorConfig
+    from autogen_ext.tools.mcp._host._elicitors import ChatCompletionClientElicitorConfig
 
     assert isinstance(config, ChatCompletionClientElicitorConfig)
     assert config.model_client == {"type": "mock_model", "config": {}}
@@ -379,7 +380,7 @@ def test_model_elicitor_to_config() -> None:
 def test_model_elicitor_from_config() -> None:
     """Test ChatCompletionClientElicitor _from_config method (line 154)."""
     from autogen_core.models import ChatCompletionClient
-    from autogen_ext.tools.mcp.host._elicitors import ChatCompletionClientElicitorConfig
+    from autogen_ext.tools.mcp._host._elicitors import ChatCompletionClientElicitorConfig
 
     model_config: dict[str, object] = {"type": "mock_model", "config": {}}
     system_prompt = "Test system prompt"
@@ -648,7 +649,7 @@ def test_mcp_session_host_config_serialization(mock_model_client: Any) -> None:
 
     # Test config serialization
     config = host._to_config()  # type: ignore[reportPrivateUsage]
-    from autogen_ext.tools.mcp.host._session_host import McpSessionHostConfig
+    from autogen_ext.tools.mcp._host._session_host import McpSessionHostConfig
 
     assert isinstance(config, McpSessionHostConfig)
     assert config.model_client is not None
@@ -661,9 +662,8 @@ def test_mcp_session_host_config_serialization(mock_model_client: Any) -> None:
 def test_mcp_session_host_from_config() -> None:
     """Test McpSessionHost _from_config method (line 309)."""
     from autogen_core.models import ChatCompletionClient
-    from autogen_ext.tools.mcp.host._elicitors import Elicitor
-    from autogen_ext.tools.mcp.host._session_host import McpSessionHostConfig
-    from pydantic import FileUrl
+    from autogen_ext.tools.mcp._host._elicitors import Elicitor
+    from autogen_ext.tools.mcp._host._session_host import McpSessionHostConfig
 
     # Create mock components
     mock_model_client = MagicMock()

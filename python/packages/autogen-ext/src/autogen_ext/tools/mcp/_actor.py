@@ -12,8 +12,8 @@ from mcp.client.session import ClientSession
 from mcp.shared.context import RequestContext
 
 from ._config import McpServerParams
+from ._host import McpSessionHost
 from ._session import create_mcp_server_session
-from .host import McpSessionHost
 
 logger = logging.getLogger(__name__)
 

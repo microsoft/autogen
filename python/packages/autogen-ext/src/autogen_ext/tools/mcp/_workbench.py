@@ -31,7 +31,7 @@ from mcp.types import (
 
 from ._actor import McpSessionActor
 from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
-from .host import McpSessionHost
+from ._host import McpSessionHost
 
 
 class McpWorkbenchConfig(BaseModel):
