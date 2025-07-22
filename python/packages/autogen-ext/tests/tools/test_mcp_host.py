@@ -2,14 +2,12 @@
 
 import atexit
 import json
-import sys
 from pathlib import Path
 from typing import Any, Callable
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from autogen_agentchat.agents._assistant_agent import AssistantAgent
-from autogen_agentchat.agents._user_proxy_agent import UserProxyAgent
 from autogen_agentchat.conditions._terminations import MaxMessageTermination
 from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRobinGroupChat
 from autogen_core import FunctionCall
@@ -32,7 +30,6 @@ from autogen_ext.tools.mcp._host._utils import (
 from autogen_ext.tools.mcp._workbench import McpWorkbench
 from mcp import types as mcp_types
 from pydantic import FileUrl
-from pydantic_core import to_json
 
 # Monkey patch to prevent atexit handlers from being registered during tests
 # This prevents the test suite from hanging during shutdown
@@ -803,10 +800,10 @@ def mcp_server_params() -> StdioServerParams:
 
 
 @pytest.mark.asyncio
-async def test_group_chat_agent_elicitor_real_server(mcp_server_params):
+async def test_group_chat_agent_elicitor_real_server(mcp_server_params: StdioServerParams) -> None:
     """Integration test: GroupChatAgentElicitor invokes handle_direct_text_message path using real MCP server."""
 
-    def create_mock_client(response: str | list[FunctionCall]):
+    def create_mock_client(response: str | list[FunctionCall]) -> MagicMock:
         model_client = MagicMock()
         model_client.model_info = {
             "vision": True,
