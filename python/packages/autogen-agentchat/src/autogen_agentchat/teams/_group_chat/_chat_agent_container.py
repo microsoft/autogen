@@ -2,7 +2,7 @@ from typing import Any, List, Mapping
 
 from autogen_core import DefaultTopicId, MessageContext, event, rpc, trace_invoke_agent_span
 
-from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, MessageFactory
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, MessageFactory, TextMessage
 
 from ...base import ChatAgent, Response
 from ...state import ChatAgentContainerState
@@ -107,6 +107,29 @@ class ChatAgentContainer(SequentialRoutedAgent):
                     cancellation_token=ctx.cancellation_token,
                 )
                 # Raise the error to the runtime.
+                raise
+
+    @rpc
+    async def handle_direct_text_message(self, message: TextMessage, ctx: MessageContext) -> Response | GroupChatError:
+        with trace_invoke_agent_span(
+            agent_name=self._agent.name,
+            agent_description=self._agent.description,
+            agent_id=str(self.id),
+        ):
+            try:
+                response: Response | None = None
+                async for msg in self._agent.on_messages_stream([message], ctx.cancellation_token):
+                    if isinstance(msg, Response):
+                        response = msg
+                if response is None:
+                    raise ValueError(
+                        "The agent did not produce a final response. Check the agent's on_messages_stream method."
+                    )
+                return response
+            except Exception as e:
+                # Publish the error to the group chat.
+                error_message = SerializableException.from_exception(e)
+                return GroupChatError(error=error_message)
                 raise
 
     def _buffer_message(self, message: BaseChatMessage) -> None:

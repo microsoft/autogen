@@ -1,11 +1,11 @@
 import asyncio
 import builtins
 import json
-from abc import ABC, abstractmethod
-from typing import Any, Awaitable, Callable, Dict, Generic, Literal, Optional, Sequence, Type, TypeVar, Union
+from abc import ABC
+from typing import Any, Dict, Generic, Sequence, Type, TypeVar
 
-from autogen_core import AgentId, CancellationToken
-from autogen_core.tools import BaseTool, BaseWorkbenchRequest, BaseWorkbenchResponse
+from autogen_core import CancellationToken
+from autogen_core.tools import BaseTool
 from autogen_core.utils import schema_to_pydantic_model
 from pydantic import BaseModel
 from pydantic.networks import AnyUrl
@@ -14,14 +14,8 @@ from mcp import ClientSession, Tool
 from mcp.types import (
     AudioContent,
     ContentBlock,
-    CreateMessageRequestParams,
-    CreateMessageResult,
-    ElicitRequest,
-    ElicitResult,
     EmbeddedResource,
     ImageContent,
-    ListRootsRequest,
-    ListRootsResult,
     ResourceLink,
     TextContent,
 )
@@ -201,41 +195,3 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 return {}
 
         return json.dumps([serialize_item(item) for item in value])
-
-
-class SamplingWorkbenchRequest(BaseWorkbenchRequest, CreateMessageRequestParams):
-    type: Literal["SamplingWorkbenchRequest"] = "SamplingWorkbenchRequest"
-
-
-class SamplingWorkbenchResponse(BaseWorkbenchResponse, CreateMessageResult):
-    type: Literal["SamplingWorkbenchResponse"] = "SamplingWorkbenchResponse"
-
-
-class ElicitWorkbenchRequest(BaseWorkbenchRequest, ElicitRequest):
-    type: Literal["ElicitWorkbenchRequest"] = "ElicitWorkbenchRequest"
-    timeout: float | None = None
-
-
-class ElicitWorkbenchResponse(BaseWorkbenchResponse, ElicitResult):
-    type: Literal["ElicitWorkbenchResponse"] = "ElicitWorkbenchResponse"
-
-
-class ListRootsWorkbenchRequest(BaseWorkbenchRequest, ListRootsRequest):
-    type: Literal["ListRootsWorkbenchRequest"] = "ListRootsWorkbenchRequest"
-    timeout: float | None = None
-
-
-class ListRootsWorkbenchResult(BaseWorkbenchResponse, ListRootsResult):
-    type: Literal["ListRootsWorkbenchResult"] = "ListRootsWorkbenchResult"
-
-
-class Elicitor(ABC):
-    @abstractmethod
-    async def elicit(self, request: ElicitRequest) -> ElicitResult: ...
-
-
-SyncInputFunc = Callable[[str], str]
-AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
-InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
-
-ElicitorTypes = Elicitor | InputFuncType | AgentId

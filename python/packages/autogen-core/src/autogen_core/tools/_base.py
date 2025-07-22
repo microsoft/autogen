@@ -1,12 +1,10 @@
 import json
 import logging
-import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import (
     Any,
     AsyncGenerator,
-    Awaitable,
     Dict,
     Generic,
     Mapping,
@@ -19,7 +17,7 @@ from typing import (
 )
 
 import jsonref
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
 from typing_extensions import NotRequired, TypedDict
 
 from .. import EVENT_LOGGER_NAME, CancellationToken
@@ -294,35 +292,3 @@ class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, S
 
     async def load_state_json(self, state: Mapping[str, Any]) -> None:
         self.load_state(self._state_type.model_validate(state))
-
-
-# Workbench host request/response interfaces
-class BaseWorkbenchRequest(BaseModel):
-    """Base class for all workbench requests to host agents."""
-
-    model_config = ConfigDict(extra="allow")
-    request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-
-
-class BaseWorkbenchResponse(BaseModel):
-    """Base class for all responses from host agents."""
-
-    model_config = ConfigDict(extra="allow")
-    request_id: str
-    error: str | None = None
-
-
-class NoHostWorkbenchResponse(BaseWorkbenchResponse):
-    error: str | None = "Workbench has no host bound to handle requests."
-
-
-class ErrorWorkbenchResponse(BaseWorkbenchResponse): ...
-
-
-@runtime_checkable
-class WorkbenchHost(Protocol):
-    """Protocol for objects that can handle workbench requests."""
-
-    def handle_workbench_request(self, request: BaseWorkbenchRequest) -> Awaitable[BaseWorkbenchResponse]:
-        """Handle a request from a workbench."""
-        ...

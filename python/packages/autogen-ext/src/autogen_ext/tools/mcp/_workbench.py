@@ -4,7 +4,6 @@ import warnings
 from typing import Any, Dict, List, Literal, Mapping, Optional
 
 from autogen_core import CancellationToken, Component, ComponentModel, Image, trace_tool_span
-from autogen_core.models import ChatCompletionClient
 from autogen_core.tools import (
     ImageResultContent,
     ParametersSchema,
@@ -32,12 +31,13 @@ from mcp.types import (
 
 from ._actor import McpSessionActor
 from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
+from .host import McpSessionHost
 
 
 class McpWorkbenchConfig(BaseModel):
     server_params: McpServerParams
     tool_overrides: Dict[str, ToolOverride] = Field(default_factory=dict)
-    model_client: ComponentModel | Dict[str, Any] | None = None
+    host: ComponentModel | Dict[str, Any] | None = None
 
 
 class McpWorkbenchState(BaseModel):
@@ -66,11 +66,11 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
        * - Prompts
          - list_prompts, get_prompt
        * - Sampling
-         - Optional support via WorkbenchHost
+         - Optional support via McpSessionHost
        * - Roots
-         - Optional support via WorkbenchHost
+         - Optional support via McpSessionHost
        * - Ellicitation
-         - Optional support via WorkbenchHost
+         - Optional support via McpSessionHost
 
     Args:
         server_params (McpServerParams): The parameters to connect to the MCP server.
@@ -235,11 +235,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         self,
         server_params: McpServerParams,
         tool_overrides: Optional[Dict[str, ToolOverride]] = None,
-        model_client: ChatCompletionClient | None = None,
+        host: McpSessionHost | None = None,
     ) -> None:
         self._server_params = server_params
         self._tool_overrides = tool_overrides or {}
-        self._model_client = model_client
 
         # Build reverse mapping from override names to original names for call_tool
         self._override_name_to_original: Dict[str, str] = {}
@@ -254,6 +253,8 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                         f"'{existing_original}' and '{original_name}'. Override names must be unique."
                     )
                 self._override_name_to_original[override_name] = original_name
+
+        self._host = host
 
         # self._session: ClientSession | None = None
         self._actor: McpSessionActor | None = None
@@ -485,19 +486,17 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         pass
 
     def _to_config(self) -> McpWorkbenchConfig:
-        model_client_config = None
-        if self._model_client is not None:
-            model_client_config = self._model_client.dump_component()
+        host_config = self._host.dump_component() if self._host else None
         return McpWorkbenchConfig(
-            server_params=self._server_params, tool_overrides=self._tool_overrides, model_client=model_client_config
+            server_params=self._server_params, tool_overrides=self._tool_overrides, host=host_config
         )
 
     @classmethod
     def _from_config(cls, config: McpWorkbenchConfig) -> Self:
-        model_client = None
-        if config.model_client is not None:
-            model_client = ChatCompletionClient.load_component(config.model_client)
-        return cls(server_params=config.server_params, tool_overrides=config.tool_overrides, model_client=model_client)
+        host = None
+        if config.host is not None:
+            host = McpSessionHost.load_component(config.host)
+        return cls(server_params=config.server_params, tool_overrides=config.tool_overrides, host=host)
 
     def __del__(self) -> None:
         # Ensure the actor is stopped when the workbench is deleted

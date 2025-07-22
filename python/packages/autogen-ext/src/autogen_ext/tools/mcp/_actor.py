@@ -4,7 +4,6 @@ import logging
 from typing import Any, Coroutine, Dict, Mapping, TypedDict
 
 from autogen_core import Component, ComponentBase
-from autogen_core.tools import ErrorWorkbenchResponse, WorkbenchHost
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -12,9 +11,9 @@ from mcp import types as mcp_types
 from mcp.client.session import ClientSession
 from mcp.shared.context import RequestContext
 
-from ._base import ElicitWorkbenchRequest, ListRootsWorkbenchRequest, SamplingWorkbenchRequest
 from ._config import McpServerParams
 from ._session import create_mcp_server_session
+from .host import McpSessionHost
 
 logger = logging.getLogger(__name__)
 
@@ -31,15 +30,42 @@ McpFuture = asyncio.Future[McpResult]
 
 
 class McpActorArgs(TypedDict):
+    """Arguments structure for MCP actor command calls.
+
+    Args:
+        name: Optional name parameter for operations that require it (e.g., tool calls)
+        kargs: Additional keyword arguments for the operation
+    """
+
     name: str | None
     kargs: Mapping[str, Any]
 
 
 class McpSessionActorConfig(BaseModel):
+    """Configuration model for MCP session actor components.
+
+    Args:
+        server_params: Parameters for connecting to the MCP server
+    """
+
     server_params: McpServerParams
 
 
 class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]):
+    """Actor that manages an MCP session and handles asynchronous MCP operations.
+
+    This actor runs in a separate asyncio task and processes MCP commands through
+    a queue-based system. It handles initialization, tool calls, resource operations,
+    prompt operations, and proper cleanup of the MCP session.
+
+    The actor supports callbacks for sampling and elicitation requests from MCP
+    servers, delegating these to an optional host component.
+
+    Args:
+        server_params: Configuration parameters for the MCP server connection
+        host: Optional host component for handling sampling and elicitation requests
+    """
+
     component_type = "mcp_session_actor"
     component_config_schema = McpSessionActorConfig
     component_provider_override = "autogen_ext.tools.mcp.McpSessionActor"
@@ -48,7 +74,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
 
     # model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __init__(self, server_params: McpServerParams, host: WorkbenchHost | None = None) -> None:
+    def __init__(self, server_params: McpServerParams, host: McpSessionHost | None = None) -> None:
         self.server_params: McpServerParams = server_params
         self._host = host
         self.name = "mcp_session_actor"
@@ -125,21 +151,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
                 data=None,
             )
 
-        try:
-            request = SamplingWorkbenchRequest.model_validate(params.model_dump())
-            result = await self._host.handle_workbench_request(request)
-            if isinstance(result, ErrorWorkbenchResponse):
-                return mcp_types.ErrorData(
-                    code=mcp_types.INTERNAL_ERROR,
-                    message=result.error or "Unknown error",
-                )
-            return mcp_types.CreateMessageResult.model_validate(result.model_dump())
-        except Exception as e:
-            return mcp_types.ErrorData(
-                code=mcp_types.INTERNAL_ERROR,
-                message="Error sampling from host.",
-                data=f"{type(e).__name__}: {e}",
-            )
+        return await self._host.handle_sampling_request(params)
 
     async def _elicitation_callback(
         self,
@@ -155,21 +167,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
                 data=None,
             )
 
-        try:
-            request = ElicitWorkbenchRequest.model_validate(params.model_dump())
-            result = await self._host.handle_workbench_request(request)
-            if isinstance(result, ErrorWorkbenchResponse):
-                return mcp_types.ErrorData(
-                    code=mcp_types.INTERNAL_ERROR,
-                    message=result.error or "Unknown error",
-                )
-            return mcp_types.ElicitResult.model_validate(result.model_dump())
-        except Exception as e:
-            return mcp_types.ErrorData(
-                code=mcp_types.INTERNAL_ERROR,
-                message="Error eliciting result from host",
-                data=f"{type(e).__name__}: {e}",
-            )
+        return await self._host.handle_elicit_request(params)
 
     async def _list_roots(
         self, context: RequestContext["ClientSession", Any]
@@ -182,22 +180,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
                 message="No host available for listing roots.",
                 data=None,
             )
-
-        try:
-            request = ListRootsWorkbenchRequest(method="roots/list")
-            result = await self._host.handle_workbench_request(request)
-            if isinstance(result, ErrorWorkbenchResponse):
-                return mcp_types.ErrorData(
-                    code=mcp_types.INTERNAL_ERROR,
-                    message=result.error or "Unknown error",
-                )
-            return mcp_types.ListRootsResult.model_validate(result.model_dump())
-        except Exception as e:
-            return mcp_types.ErrorData(
-                code=mcp_types.INTERNAL_ERROR,
-                message="Error listing roots from host",
-                data=f"{type(e).__name__}: {e}",
-            )
+        return await self._host.handle_list_roots_request()
 
     async def _run_actor(self) -> None:
         result: McpResult
@@ -206,6 +189,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
                 self.server_params,
                 sampling_callback=self._sampling_callback,
                 elicitation_callback=self._elicitation_callback,
+                list_roots_callback=self._list_roots,
             ) as session:
                 # Save the initialize result
                 self._initialize_result = await session.initialize()
