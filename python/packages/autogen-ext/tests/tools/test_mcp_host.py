@@ -1,10 +1,17 @@
 """Tests for McpSessionHost to cover MCP host functionality."""
 
 import atexit
+import json
+import sys
+from pathlib import Path
 from typing import Any, Callable
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from autogen_agentchat.agents._assistant_agent import AssistantAgent
+from autogen_agentchat.agents._user_proxy_agent import UserProxyAgent
+from autogen_agentchat.conditions._terminations import MaxMessageTermination
+from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRobinGroupChat
 from autogen_core import FunctionCall
 from autogen_core.models import (
     CreateResult,
@@ -22,7 +29,10 @@ from autogen_ext.tools.mcp._host._utils import (
     finish_reason_to_stop_reason,
     parse_sampling_message,
 )
+from autogen_ext.tools.mcp._workbench import McpWorkbench
 from mcp import types as mcp_types
+from pydantic import FileUrl
+from pydantic_core import to_json
 
 # Monkey patch to prevent atexit handlers from being registered during tests
 # This prevents the test suite from hanging during shutdown
@@ -778,3 +788,80 @@ async def test_mcp_session_host_sampling_with_complex_response(mock_model_client
     assert isinstance(result.content, mcp_types.TextContent)
     # Should be JSON serialized version of complex content
     assert "test_func" in result.content.text
+
+
+@pytest.fixture
+def mcp_server_params() -> StdioServerParams:
+    """Create server parameters that will launch the real MCP server subprocess."""
+    # Get the path to the simple MCP server
+    server_path = Path(__file__).parent.parent / "mcp_server_comprehensive.py"
+    return StdioServerParams(
+        command="uv",
+        args=["run", "python", str(server_path)],
+        read_timeout_seconds=10,
+    )
+
+
+@pytest.mark.asyncio
+async def test_group_chat_agent_elicitor_real_server(mcp_server_params):
+    """Integration test: GroupChatAgentElicitor invokes handle_direct_text_message path using real MCP server."""
+
+    def create_mock_client(response: str | list[FunctionCall]):
+        model_client = MagicMock()
+        model_client.model_info = {
+            "vision": True,
+            "function_calling": True,
+            "json_output": True,
+            "family": "unknown",
+            "structured_output": True,
+        }
+        model_client.create = AsyncMock(
+            return_value=CreateResult(
+                content=response,
+                finish_reason="stop",
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            )
+        )
+        return model_client
+
+    target_agent = AssistantAgent("target_agent", model_client=create_mock_client("test response"))
+    elicitor = GroupChatAgentElicitor(
+        "target_agent",
+        model_client=create_mock_client(mcp_types.ElicitResult(action="accept", content={"a": 1}).model_dump_json()),
+    )
+
+    # Create host with all capabilities including elicitation
+    host = McpSessionHost(
+        elicitor=elicitor,  # Support elicitation via booking_assistant
+    )
+
+    mcp_workbench = McpWorkbench(
+        server_params=mcp_server_params,
+        host=host,
+    )
+
+    # Create assistant with MCP capabilities
+    source_agent = AssistantAgent(
+        "source_agent",
+        model_client=create_mock_client(
+            [
+                FunctionCall(
+                    id="123",
+                    name="order_dish",
+                    arguments=json.dumps({"dish": "pizza"}),
+                )
+            ]
+        ),
+        workbench=mcp_workbench,
+    )
+
+    team = RoundRobinGroupChat(
+        [source_agent, target_agent], termination_condition=MaxMessageTermination(max_messages=2)
+    )
+
+    elicitor.set_group_chat(team)
+
+    result = await team.run(task="task")
+
+    assert any(msg.source == target_agent.name for msg in result.messages)
