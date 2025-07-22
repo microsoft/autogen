@@ -35,6 +35,7 @@ class McpSessionHostConfig(BaseModel):
     # TODO: How to support callable serialization?
     roots: list[mcp_types.Root] | None
 
+
 class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
     """Host component that provides MCP server capabilities.
 
