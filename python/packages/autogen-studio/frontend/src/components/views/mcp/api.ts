@@ -331,11 +331,24 @@ export interface McpWebSocketMessage {
   requestedSchema?: any;
 }
 
+// MCP Notification Types based on MCP specification
+export interface McpNotificationParams {
+  method?: string;
+  progress?: number;
+  progressToken?: string;
+  level?: "debug" | "info" | "notice" | "warning" | "error" | "critical" | "alert" | "emergency";
+  data?: any;
+  logger?: string;
+  uri?: string;
+  reason?: string;
+  message_type?: string;
+}
+
 export interface McpActivityMessage {
   id: string;
   activity_type: "protocol" | "error" | "sampling" | "elicitation";
   message: string;
-  details?: any;
+  details?: any; // Keep flexible for nested content structure
   session_id?: string;
   timestamp: Date;
 }

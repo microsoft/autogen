@@ -21,6 +21,7 @@ import {
   BackgroundVariant,
   NodeProps,
   NodeTypes,
+  EdgeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { message, Drawer, Button, Switch } from "antd";
@@ -44,6 +45,8 @@ import {
 } from "./types";
 import { StepLibrary } from "./library";
 import { StepNode } from "./nodes";
+import { ConditionalEdge } from "./conditional-edge";
+import { StateInspector } from "./state-inspector";
 import { Toolbar } from "./toolbar";
 import { StepDetails } from "./step-details";
 import { useWorkflowWebSocket } from "./useWorkflowWebSocket";
@@ -63,9 +66,13 @@ import { Component } from "../../types/datamodel";
 import { MonacoEditor } from "../monaco";
 import debounce from "lodash.debounce";
 
-// Custom node types
+// Custom node and edge types
 const nodeTypes: NodeTypes = {
   step: StepNode,
+};
+
+const edgeTypes: EdgeTypes = {
+  conditional: ConditionalEdge,
 };
 
 interface WorkflowBuilderProps {
@@ -88,6 +95,7 @@ export const WorkflowBuilder = forwardRef<
   const [isLibraryCompact, setIsLibraryCompact] = useState(false);
   const [showMiniMap, setShowMiniMap] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
+  const [isStateInspectorCompact, setIsStateInspectorCompact] = useState(true); // Collapsed by default
   const [isDirty, setIsDirty] = useState(false);
   // Add state for error details expand/collapse
   const [showErrorDetails, setShowErrorDetails] = useState(false);
@@ -96,7 +104,7 @@ export const WorkflowBuilder = forwardRef<
     StepExecution | undefined
   >(undefined);
   const [stepDetailsOpen, setStepDetailsOpen] = useState(false);
-  const [edgeType, setEdgeType] = useState<string>("default");
+  const [edgeType, setEdgeType] = useState<string>("conditional");
   const [isJsonMode, setIsJsonMode] = useState(false);
   const [workingCopy, setWorkingCopy] = useState<Workflow>(workflow);
   const editorRef = useRef(null);
@@ -341,6 +349,7 @@ export const WorkflowBuilder = forwardRef<
         id: `edge-${params.source}-${params.target}-${Date.now()}`,
         from_step: params.source!,
         to_step: params.target!,
+        condition: { type: "always" as const }, // Default to always condition
       };
 
       const updatedConfig = {
@@ -498,7 +507,8 @@ export const WorkflowBuilder = forwardRef<
       handleDeleteStep,
       handleStepClick
     );
-    const flowEdges = convertToReactFlowEdges(workflow.config.config, edgeType);
+    const isExecuting = executionState.status === WorkflowStatus.RUNNING;
+    const flowEdges = convertToReactFlowEdges(workflow.config.config, edgeType, isExecuting);
 
     // Only apply dagre to nodes that do NOT have a saved position
     const positions = JSON.parse(
@@ -661,9 +671,11 @@ export const WorkflowBuilder = forwardRef<
 
       // Use dagre to layout nodes
       setNodes((currentNodes) => {
+        const isExecuting = executionState.status === WorkflowStatus.RUNNING;
         const flowEdges = convertToReactFlowEdges(
           workflow.config.config,
-          edgeType
+          edgeType,
+          isExecuting
         );
         const layouted = getDagreLayoutedNodes(currentNodes, flowEdges, "LR");
         // Persist new positions
@@ -754,11 +766,12 @@ export const WorkflowBuilder = forwardRef<
         setIsLibraryCompact(false);
         setShowMiniMap(false);
         setShowGrid(true);
+        setIsStateInspectorCompact(true);
         setIsDirty(false);
         setSelectedStep(null);
         setSelectedStepExecution(undefined);
         setStepDetailsOpen(false);
-        setEdgeType("default");
+        setEdgeType("conditional");
         setIsJsonMode(false);
         setWorkingCopy(workflow);
         setShowInputForm(false);
@@ -1081,10 +1094,12 @@ export const WorkflowBuilder = forwardRef<
             onNodeDragStop={onNodeDragStop}
             onEdgesDelete={onEdgesDelete}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             minZoom={0.1}
             maxZoom={2}
             defaultEdgeOptions={{
+              type: "conditional",
               animated: false,
               style: { stroke: "#6b7280", strokeWidth: 2 },
             }}
@@ -1160,6 +1175,15 @@ export const WorkflowBuilder = forwardRef<
             onToggleCompact={() => setIsLibraryCompact(!isLibraryCompact)}
           />
         </div>
+      )}
+
+      {/* State Inspector Sidebar */}
+      {!isJsonMode && (
+        <StateInspector
+          execution={executionState.execution}
+          isCompact={isStateInspectorCompact}
+          onToggleCompact={() => setIsStateInspectorCompact(!isStateInspectorCompact)}
+        />
       )}
 
       {/* Step Details Modal */}

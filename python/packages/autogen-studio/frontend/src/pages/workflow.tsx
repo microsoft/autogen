@@ -6,7 +6,7 @@ import { FoundryManager } from "../components/views/workflows";
 // markup
 const WorkflowPage = ({ data }: any) => {
   return (
-    <Layout meta={data.site.siteMetadata} title="Home" link={"/labs"}>
+    <Layout meta={data.site.siteMetadata} title="Home" link={"/workflow"}>
       <main style={{ height: "100%" }} className=" h-full ">
         <FoundryManager />
       </main>

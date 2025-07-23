@@ -10,6 +10,8 @@ import {
   Loader2,
   AlertCircle,
   Expand,
+  PlayCircle,
+  StopCircle,
 } from "lucide-react";
 import { NodeData, StepStatus } from "./types";
 
@@ -81,7 +83,7 @@ export const StepNode: React.FC<NodeProps<StepNodeType>> = ({
   selected,
   id,
 }) => {
-  const { step, onDelete, executionStatus, executionData, onStepClick } = data;
+  const { step, onDelete, executionStatus, executionData, onStepClick, workflowConfig } = data;
 
   if (!step) {
     return (
@@ -107,6 +109,19 @@ export const StepNode: React.FC<NodeProps<StepNodeType>> = ({
     : null;
   const IconComponent = statusConfig?.icon;
 
+  // Determine if this is a start or end node
+  const isStartNode = workflowConfig?.start_step_id === step.step_id;
+  const isEndNode = workflowConfig?.end_step_ids?.includes(step.step_id);
+
+  // Get appropriate node icon based on node type
+  const getNodeIcon = () => {
+    if (isStartNode) return PlayCircle;
+    if (isEndNode) return StopCircle;
+    return Bot;
+  };
+  
+  const NodeIcon = getNodeIcon();
+
   return (
     <div
       className={`
@@ -115,26 +130,35 @@ export const StepNode: React.FC<NodeProps<StepNodeType>> = ({
       cursor-pointer
     `}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!bg-accent !w-2 !h-5 !rounded-r-sm !-ml-1 !border-0 hover:!bg-accent/80 transition-colors"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!bg-accent !w-2 !h-5 !rounded-l-sm !-mr-1 !border-0 hover:!bg-accent/80 transition-colors"
-      />
+      {/* Only show target handle if not a start node */}
+      {!isStartNode && (
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!bg-accent !w-2 !h-5 !rounded-r-sm !-ml-1 !border-0 hover:!bg-accent/80 transition-colors"
+        />
+      )}
+      
+      {/* Only show source handle if not an end node */}
+      {!isEndNode && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!bg-accent !w-2 !h-5 !rounded-l-sm !-mr-1 !border-0 hover:!bg-accent/80 transition-colors"
+        />
+      )}
 
       <div className="p-3">
         {/* Header with step info and action buttons */}
         <div className="flex items-center gap-2 mb-2">
-          <Bot className="w-4 h-4 text-accent flex-shrink-0" />
+          <NodeIcon className={`w-4 h-4 flex-shrink-0 ${
+            isStartNode ? "text-green-500" : isEndNode ? "text-red-500" : "text-accent"
+          }`} />
           <span
             className="font-medium text-sm truncate flex-1 text-primary"
             title={step.metadata.name}
           >
-            {step.metadata.name}
+            {isStartNode && "[START] "}{isEndNode && "[END] "}{step.metadata.name}
           </span>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button

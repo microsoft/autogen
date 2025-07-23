@@ -190,12 +190,21 @@ export interface StepConfig {
   suffix?: string;
 }
 
+// Edge condition matching backend EdgeCondition model
+export interface EdgeCondition {
+  type: "always" | "output_based" | "state_based";
+  expression?: string;
+  field?: string;
+  value?: any;
+  operator?: "==" | "!=" | ">" | "<" | ">=" | "<=" | "in" | "not_in";
+}
+
 // An Edge in the workflow graph, connecting two steps.
 export interface WorkflowEdge {
   id: string;
   from_step: string; // Source step id
   to_step: string; // Target step id
-  condition?: string; // Optional condition for the edge
+  condition?: EdgeCondition; // Enhanced condition object
 }
 
 // The configuration for a workflow, mirroring the backend spec.
@@ -233,6 +242,7 @@ export interface NodeData extends Record<string, unknown> {
   executionStatus?: StepStatus;
   executionData?: StepExecution;
   onStepClick?: (step: StepConfig, executionData?: StepExecution) => void;
+  workflowConfig?: WorkflowConfig; // Added to determine start/end nodes
   // any other node-specific data
 }
 

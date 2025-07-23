@@ -37,19 +37,19 @@ const navigation: INavItem[] = [
     icon: Bot,
     breadcrumbs: [{ name: "Team Builder", href: "/build", current: true }],
   },
-  {
-    name: "Workflows",
-    href: "/workflow",
-    icon: GitBranch,
-    breadcrumbs: [
-      { name: "Workflows (Experimental)", href: "/workflow", current: true },
-    ],
-  },
+
   {
     name: "Playground",
     href: "/",
     icon: MessagesSquare,
     breadcrumbs: [{ name: "Playground", href: "/", current: true }],
+  },
+
+  {
+    name: "Gallery",
+    href: "/gallery",
+    icon: GalleryHorizontalEnd,
+    breadcrumbs: [{ name: "Gallery", href: "/gallery", current: true }],
   },
   {
     name: "MCP (Experimental)",
@@ -60,10 +60,12 @@ const navigation: INavItem[] = [
     breadcrumbs: [{ name: "MCP (Experimental)", href: "/mcp", current: true }],
   },
   {
-    name: "Gallery",
-    href: "/gallery",
-    icon: GalleryHorizontalEnd,
-    breadcrumbs: [{ name: "Gallery", href: "/gallery", current: true }],
+    name: "Workflows (Experimental)",
+    href: "/workflow",
+    icon: GitBranch,
+    breadcrumbs: [
+      { name: "Workflows (Experimental)", href: "/workflow", current: true },
+    ],
   },
   // {
   //   name: "Labs",

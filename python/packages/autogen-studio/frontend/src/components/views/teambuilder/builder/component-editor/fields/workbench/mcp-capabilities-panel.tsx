@@ -39,6 +39,7 @@ import {
   McpActivityMessage,
   ElicitationRequest,
   ElicitationResponse,
+  McpNotificationParams,
 } from "../../../../../../views/mcp/api";
 import { McpToolsTab } from "./mcp-tools-tab";
 import { McpResourcesTab } from "./mcp-resources-tab";
@@ -50,6 +51,98 @@ const { Text, Title } = Typography;
 interface McpCapabilitiesPanelProps {
   serverParams: McpServerParams;
 }
+
+// Utility function to generate meaningful notification messages
+const getNotificationMessage = (msg: McpActivityMessage): string => {
+  const details = msg.details;
+  
+  // Check if this is a ServerNotification with nested content structure
+  const content = details?.content;
+  const method = content?.method || details?.method;
+  const params = content?.params;
+
+  switch (msg.activity_type) {
+    case "protocol":
+      if (method && params) {
+        switch (method) {
+          case "notifications/progress":
+            const progress = params.progress ?? 0;
+            const total = params.total;
+            const progressMsg = params.message;
+            const token = params.progressToken;
+            
+            let result = "Progress:";
+            if (total) {
+              result += ` ${Math.round(progress)}/${total}`;
+            } else {
+              result += ` ${Math.round(progress * 100)}%`;
+            }
+            if (progressMsg) {
+              result += ` - ${progressMsg}`;
+            } else if (token) {
+              result += ` (${token})`;
+            }
+            return result;
+          
+          case "notifications/message":
+            const level = params.level || "info";
+            const data = params.data || "";
+            const logger = params.logger;
+            const levelIcon = level === "error" ? "🔴" : level === "warning" ? "🟡" : "ℹ️";
+            
+            let logMsg = `${levelIcon} ${level.toUpperCase()}`;
+            if (logger) {
+              logMsg += ` [${logger}]`;
+            }
+            logMsg += `: ${typeof data === "string" ? data : JSON.stringify(data)}`;
+            return logMsg;
+          
+          case "notifications/tools/list_changed":
+            return "Tools list updated";
+          
+          case "notifications/resources/list_changed":
+            return "Resources list updated";
+          
+          case "notifications/resources/updated":
+            const uri = params.uri || "";
+            return uri ? `Resource updated: ${uri}` : "Resource updated";
+          
+          case "notifications/prompts/list_changed":
+            return "Prompts list updated";
+          
+          case "notifications/cancelled":
+            const reason = params.reason || "";
+            return reason ? `Cancelled: ${reason}` : "Operation cancelled";
+          
+          case "notifications/initialized":
+            return "Server initialized";
+          
+          case "notifications/roots/list_changed":
+            return "Workspace roots updated";
+          
+          default:
+            // Extract meaningful part from method name
+            const cleanMethod = method.replace("notifications/", "").replace(/[/_]/g, " ");
+            return cleanMethod.charAt(0).toUpperCase() + cleanMethod.slice(1);
+        }
+      }
+      
+      // Fallback: if no proper content structure, use the original message
+      return msg.message && msg.message !== "ServerNotification" ? msg.message : "Unknown notification";
+    
+    case "sampling":
+      return "Tool requested AI assistance";
+    
+    case "elicitation":
+      return "Tool requesting user input";
+    
+    case "error":
+      return msg.message;
+    
+    default:
+      return msg.message;
+  }
+};
 
 export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
   serverParams,
@@ -496,56 +589,59 @@ export const McpCapabilitiesPanel: React.FC<McpCapabilitiesPanelProps> = ({
           ref={activityStreamRef}
           className="flex-1 overflow-y-auto p-2 space-y-1"
         >
-          {activityMessages.map((msg: McpActivityMessage) => (
-            <div
-              key={msg.id}
-              className="border bg-secondary rounded p-2 hover:bg-primary transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="text-gray-500 flex-shrink-0">
-                    {msg.activity_type === "protocol" && <Activity size={14} />}
-                    {msg.activity_type === "error" && <XCircle size={14} />}
-                    {msg.activity_type === "sampling" && (
-                      <CheckCircle size={14} />
-                    )}
-                    {msg.activity_type === "elicitation" && (
-                      <MessageSquare size={14} />
-                    )}
-                  </span>
-                  <Text className="text-sm truncate flex-1">{msg.message}</Text>
+          {activityMessages.map((msg: McpActivityMessage) => {
+            const message = getNotificationMessage(msg);
+            return (
+              <div
+                key={msg.id}
+                className="border bg-secondary rounded p-2 hover:bg-primary transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-gray-500 flex-shrink-0">
+                      {msg.activity_type === "protocol" && <Activity size={14} />}
+                      {msg.activity_type === "error" && <XCircle size={14} />}
+                      {msg.activity_type === "sampling" && (
+                        <CheckCircle size={14} />
+                      )}
+                      {msg.activity_type === "elicitation" && (
+                        <MessageSquare size={14} />
+                      )}
+                    </span>
+                    <Text className="text-sm truncate flex-1">{message}</Text>
+                  </div>
+                  <Text
+                    type="secondary"
+                    className="text-xs whitespace-nowrap ml-2 flex-shrink-0"
+                  >
+                    {msg.timestamp.toLocaleTimeString()}
+                  </Text>
                 </div>
-                <Text
-                  type="secondary"
-                  className="text-xs whitespace-nowrap ml-2 flex-shrink-0"
-                >
-                  {msg.timestamp.toLocaleTimeString()}
-                </Text>
+                {msg.details && (
+                  <Collapse
+                    ghost
+                    size="small"
+                    className="mt-1"
+                    items={[
+                      {
+                        key: "1",
+                        label: (
+                          <Text type="secondary" className="text-xs">
+                            Raw Data
+                          </Text>
+                        ),
+                        children: (
+                          <pre className="bg-gray-50 p-2 rounded text-xs overflow-x-auto mt-1">
+                            {JSON.stringify(msg.details, null, 2)}
+                          </pre>
+                        ),
+                      },
+                    ]}
+                  />
+                )}
               </div>
-              {msg.details && (
-                <Collapse
-                  ghost
-                  size="small"
-                  className="mt-1"
-                  items={[
-                    {
-                      key: "1",
-                      label: (
-                        <Text type="secondary" className="text-xs">
-                          View Details
-                        </Text>
-                      ),
-                      children: (
-                        <pre className="bg-gray-50 p-2 rounded text-xs overflow-x-auto mt-1">
-                          {JSON.stringify(msg.details, null, 2)}
-                        </pre>
-                      ),
-                    },
-                  ]}
-                />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );

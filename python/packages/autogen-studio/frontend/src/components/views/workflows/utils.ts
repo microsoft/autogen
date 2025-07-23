@@ -1,5 +1,5 @@
 import { Component } from "../../types/datamodel";
-import { WorkflowConfig, NodeData, StepConfig, StepExecution } from "./types";
+import { WorkflowConfig, NodeData, StepConfig, StepExecution, EdgeCondition } from "./types";
 import { Node, Edge } from "@xyflow/react";
 import dagre from "@dagrejs/dagre";
 
@@ -74,27 +74,108 @@ export const convertToReactFlowNodes = (
         onDelete,
         onStepClick,
         executionStatus: undefined, // Will be set by execution state
+        workflowConfig: config, // Pass workflow config to determine start/end nodes
       },
     };
   });
 };
 
+// Format condition for display on edge label
+export const formatConditionLabel = (condition?: EdgeCondition): string => {
+  if (!condition || condition.type === "always") return "";
+  
+  if (condition.expression) {
+    return `[${condition.expression}]`;
+  }
+  
+  if (condition.field && condition.operator && condition.value !== undefined) {
+    const valueStr = typeof condition.value === 'string' ? `"${condition.value}"` : String(condition.value);
+    return `[${condition.field} ${condition.operator} ${valueStr}]`;
+  }
+  
+  return `[${condition.type}]`;
+};
+
+// Get edge styling based on condition type (only style during execution)
+export const getConditionalEdgeStyle = (condition?: EdgeCondition, isExecuting?: boolean) => {
+  const baseStyle = {
+    stroke: "#6b7280",
+    strokeWidth: 2,
+  };
+
+  // Only apply conditional styling during execution
+  if (!isExecuting || !condition || condition.type === "always") {
+    return baseStyle;
+  }
+  
+  // Conditional edges get dashed lines and different colors during execution
+  const conditionalStyle = {
+    strokeWidth: 2,
+    strokeDasharray: "5,5",
+  };
+  
+  switch (condition.type) {
+    case "output_based":
+      return {
+        ...conditionalStyle,
+        stroke: "#3b82f6", // Blue for output-based
+      };
+    case "state_based":
+      return {
+        ...conditionalStyle,
+        stroke: "#8b5cf6", // Purple for state-based
+      };
+    default:
+      return {
+        ...conditionalStyle,
+        stroke: "#6b7280",
+      };
+  }
+};
+
 // Convert workflow config to React Flow edges
 export const convertToReactFlowEdges = (
   config: WorkflowConfig,
-  edgeType: string
+  edgeType: string,
+  isExecuting?: boolean
 ): Edge[] => {
-  return (config.edges || []).map((edge) => ({
-    id: edge.id,
-    source: edge.from_step,
-    target: edge.to_step,
-    type: edgeType,
-  }));
+  return (config.edges || []).map((edge) => {
+    const label = formatConditionLabel(edge.condition);
+    const style = getConditionalEdgeStyle(edge.condition, isExecuting);
+    
+    return {
+      id: edge.id,
+      source: edge.from_step,
+      target: edge.to_step,
+      type: edgeType,
+      label: label || undefined,
+      style,
+      data: {
+        condition: edge.condition,
+      },
+    };
+  });
 };
 
 // UI layout and color utilities
 export const getWorkflowTypeColor = (type: "workflow") => {
   return "bg-blue-500/10 text-blue-500";
+};
+
+// Get condition type color for UI elements
+export const getConditionTypeColor = (condition?: EdgeCondition) => {
+  if (!condition || condition.type === "always") {
+    return "text-gray-600";
+  }
+  
+  switch (condition.type) {
+    case "output_based":
+      return "text-blue-600";
+    case "state_based":
+      return "text-purple-600";
+    default:
+      return "text-gray-600";
+  }
 };
 
 // Add a new step to the workflow config

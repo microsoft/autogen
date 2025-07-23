@@ -6,6 +6,7 @@ import {
   Layout,
   Map,
   Grid,
+  Database,
   MoreHorizontal,
 } from "lucide-react";
 import { Button, Tooltip, Segmented, Popover, Badge } from "antd";
@@ -19,8 +20,10 @@ interface ToolbarProps {
   onAutoLayout: () => void;
   onToggleMiniMap: () => void;
   onToggleGrid: () => void;
+  onToggleStateInspector?: () => void;
   showMiniMap: boolean;
   showGrid: boolean;
+  showStateInspector?: boolean;
   disabled: boolean;
   edgeType: string;
   onEdgeTypeChange: (type: string) => void;
@@ -36,8 +39,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onAutoLayout,
   onToggleMiniMap,
   onToggleGrid,
+  onToggleStateInspector,
   showMiniMap,
   showGrid,
+  showStateInspector,
   disabled,
   edgeType,
   onEdgeTypeChange,
