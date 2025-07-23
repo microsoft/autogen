@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Form, Input } from "antd";
+import { Button, Form, Input, InputNumber } from "antd";
 
 import {
   Component,
@@ -12,6 +12,7 @@ import {
   isModelComponent,
   isToolComponent,
   isTerminationComponent,
+  isWorkbenchComponent,
 } from "../../../../../types/guards";
 import DetailGroup from "../detailgroup";
 import { TeamFields } from "./team-fields";
@@ -19,8 +20,9 @@ import { AgentFields } from "./agent-fields";
 import { ModelFields } from "./model-fields";
 import { ToolFields } from "./tool-fields";
 import { TerminationFields } from "./termination-fields";
+import { WorkbenchFields } from "./workbench";
 import { Edit, MinusCircle, PlusCircle } from "lucide-react";
-import { EditPath } from "../node-editor";
+import { EditPath } from "../component-editor";
 
 const { TextArea } = Input;
 
@@ -57,11 +59,27 @@ const NodeEditorFields: React.FC<NodeEditorFieldsProps> = ({
         <TeamFields
           component={component}
           onNavigate={onNavigate}
-          workingCopy={workingCopy}
-          setWorkingCopy={setWorkingCopy}
-          editPath={editPath}
-          updateComponentAtPath={updateComponentAtPath}
-          getCurrentComponent={getCurrentComponent}
+          onChange={(updates) => {
+            if (
+              workingCopy &&
+              setWorkingCopy &&
+              editPath &&
+              updateComponentAtPath
+            ) {
+              const updatedCopy = updateComponentAtPath(
+                workingCopy,
+                editPath,
+                updates
+              );
+              setWorkingCopy(updatedCopy);
+            }
+          }}
+          // onChange={onChange}
+          // workingCopy={workingCopy}
+          // setWorkingCopy={setWorkingCopy}
+          // editPath={editPath}
+          // updateComponentAtPath={updateComponentAtPath}
+          // getCurrentComponent={getCurrentComponent}
         />
       </DetailGroup>
     );
@@ -70,6 +88,21 @@ const NodeEditorFields: React.FC<NodeEditorFieldsProps> = ({
       <DetailGroup title="Configuration">
         <AgentFields
           component={component}
+          onChange={(updates) => {
+            if (
+              workingCopy &&
+              setWorkingCopy &&
+              editPath &&
+              updateComponentAtPath
+            ) {
+              const updatedCopy = updateComponentAtPath(
+                workingCopy,
+                editPath,
+                updates
+              );
+              setWorkingCopy(updatedCopy);
+            }
+          }}
           onNavigate={onNavigate}
           workingCopy={workingCopy}
           setWorkingCopy={setWorkingCopy}
@@ -82,33 +115,120 @@ const NodeEditorFields: React.FC<NodeEditorFieldsProps> = ({
   } else if (isModelComponent(component)) {
     specificFields = (
       <DetailGroup title="Configuration">
-        <ModelFields component={component} />
-      </DetailGroup>
-    );
-  } else if (isToolComponent(component)) {
-    specificFields = (
-      <DetailGroup title="Configuration">
-        <ToolFields
+        <ModelFields
           component={component}
-          workingCopy={workingCopy}
-          setWorkingCopy={setWorkingCopy}
-          editPath={editPath}
-          updateComponentAtPath={updateComponentAtPath}
-          getCurrentComponent={getCurrentComponent}
+          onChange={(updates) => {
+            if (
+              workingCopy &&
+              setWorkingCopy &&
+              editPath &&
+              updateComponentAtPath
+            ) {
+              const updatedCopy = updateComponentAtPath(
+                workingCopy,
+                editPath,
+                updates
+              );
+              setWorkingCopy(updatedCopy);
+            }
+          }}
         />
       </DetailGroup>
     );
-  } else if (isTerminationComponent(component)) {
+  } else if (isWorkbenchComponent(component)) {
+    specificFields = (
+      <DetailGroup title="Workbench Configuration">
+        <WorkbenchFields
+          component={component}
+          onChange={(updates) => {
+            if (
+              workingCopy &&
+              setWorkingCopy &&
+              editPath &&
+              updateComponentAtPath
+            ) {
+              const updatedCopy = updateComponentAtPath(
+                workingCopy,
+                editPath,
+                updates
+              );
+              setWorkingCopy(updatedCopy);
+            }
+          }}
+        />
+      </DetailGroup>
+    );
+  }
+  //  NOTE: Individual tools are deprecated - use workbenches instead
+  //  This is kept for backward compatibility during migration
+  //  else if (isToolComponent(component)) {
+  //   specificFields = (
+  //     <DetailGroup title="Configuration">
+  //       <ToolFields
+  //         component={component}
+  //         onChange={(updates) => {
+  //           if (
+  //             workingCopy &&
+  //             setWorkingCopy &&
+  //             editPath &&
+  //             updateComponentAtPath
+  //           ) {
+  //             const updatedCopy = updateComponentAtPath(
+  //               workingCopy,
+  //               editPath,
+  //               updates
+  //             );
+  //             setWorkingCopy(updatedCopy);
+  //           }
+  //         }}
+  //       />
+  //     </DetailGroup>
+  //   );
+  // }
+  else if (isTerminationComponent(component)) {
     specificFields = (
       <DetailGroup title="Configuration">
         <TerminationFields
           component={component}
+          onChange={(updates) => {
+            if (
+              workingCopy &&
+              setWorkingCopy &&
+              editPath &&
+              updateComponentAtPath
+            ) {
+              const updatedCopy = updateComponentAtPath(
+                workingCopy,
+                editPath,
+                updates
+              );
+              setWorkingCopy(updatedCopy);
+            }
+          }}
           onNavigate={onNavigate}
-          workingCopy={workingCopy}
-          setWorkingCopy={setWorkingCopy}
-          editPath={editPath}
-          updateComponentAtPath={updateComponentAtPath}
-          getCurrentComponent={getCurrentComponent}
+        />
+      </DetailGroup>
+    );
+  } else if (isWorkbenchComponent(component)) {
+    specificFields = (
+      <DetailGroup title="Configuration">
+        <WorkbenchFields
+          component={component}
+          onChange={(updates) => {
+            if (
+              workingCopy &&
+              setWorkingCopy &&
+              editPath &&
+              updateComponentAtPath
+            ) {
+              const updatedCopy = updateComponentAtPath(
+                workingCopy,
+                editPath,
+                updates
+              );
+              setWorkingCopy(updatedCopy);
+            }
+          }}
         />
       </DetailGroup>
     );
@@ -137,6 +257,24 @@ export const CommonFields: React.FC = () => {
       <Form.Item label="Description" name="description">
         <TextArea rows={4} />
       </Form.Item>
+      <div className="grid grid-cols-2 gap-4">
+        <Form.Item label="Version" name="version">
+          <InputNumber
+            min={1}
+            precision={0}
+            className="w-full"
+            placeholder="e.g., 1"
+          />
+        </Form.Item>
+        <Form.Item label="Component Version" name="component_version">
+          <InputNumber
+            min={1}
+            precision={0}
+            className="w-full"
+            placeholder="e.g., 1"
+          />
+        </Form.Item>
+      </div>
     </>
   );
 };

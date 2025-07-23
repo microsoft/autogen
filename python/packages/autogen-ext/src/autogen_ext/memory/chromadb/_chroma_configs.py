@@ -33,7 +33,9 @@ class SentenceTransformerEmbeddingFunctionConfig(BaseModel):
     Example:
         .. code-block:: python
 
-            config = SentenceTransformerEmbeddingFunctionConfig(model_name="paraphrase-multilingual-mpnet-base-v2")
+            from autogen_ext.memory.chromadb import SentenceTransformerEmbeddingFunctionConfig
+
+            _ = SentenceTransformerEmbeddingFunctionConfig(model_name="paraphrase-multilingual-mpnet-base-v2")
     """
 
     function_type: Literal["sentence_transformer"] = "sentence_transformer"
@@ -55,7 +57,9 @@ class OpenAIEmbeddingFunctionConfig(BaseModel):
     Example:
         .. code-block:: python
 
-            config = OpenAIEmbeddingFunctionConfig(api_key="sk-...", model_name="text-embedding-3-small")
+            from autogen_ext.memory.chromadb import OpenAIEmbeddingFunctionConfig
+
+            _ = OpenAIEmbeddingFunctionConfig(api_key="sk-...", model_name="text-embedding-3-small")
     """
 
     function_type: Literal["openai"] = "openai"
@@ -77,21 +81,6 @@ class CustomEmbeddingFunctionConfig(BaseModel):
     Args:
         function (Callable): Function that returns a ChromaDB-compatible embedding function.
         params (Dict[str, Any]): Parameters to pass to the function.
-
-    Example:
-        .. code-block:: python
-
-            def create_my_embedder(param1="default"):
-                # Return a ChromaDB-compatible embedding function
-                class MyCustomEmbeddingFunction(EmbeddingFunction):
-                    def __call__(self, input: Documents) -> Embeddings:
-                        # Custom embedding logic here
-                        return embeddings
-
-                return MyCustomEmbeddingFunction(param1)
-
-
-            config = CustomEmbeddingFunctionConfig(function=create_my_embedder, params={"param1": "custom_value"})
     """
 
     function_type: Literal["custom"] = "custom"

@@ -126,20 +126,17 @@ export const TruncatableText = memo(
 
         {shouldTruncate && (
           <div className="mt-2 flex items-center justify-end gap-2">
-            <Tooltip title={isExpanded ? "Show less" : "Show more"}>
-              <button
-                type="button"
-                onClick={toggleExpand}
-                className="inline-flex items-center justify-center p-2 rounded bg-secondary text-primary hover:text-accent hover:scale-105 transition-all duration-300 z-10"
-                aria-label={isExpanded ? "Show less" : "Show more"}
-              >
-                {isExpanded ? (
-                  <ChevronUp size={18} />
-                ) : (
-                  <ChevronDown size={18} />
-                )}
-              </button>
-            </Tooltip>
+            {/* <Tooltip title={isExpanded ? "Show less" : "Show more"}> */}
+            <button
+              title={isExpanded ? "Show less" : "Show more"}
+              type="button"
+              onClick={toggleExpand}
+              className="inline-flex items-center justify-center p-2 rounded bg-secondary text-primary hover:text-accent hover:scale-105 transition-all duration-300 z-10"
+              aria-label={isExpanded ? "Show less" : "Show more"}
+            >
+              {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+            {/* </Tooltip> */}
 
             {showFullscreen && (
               <Tooltip title="Fullscreen">
