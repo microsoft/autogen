@@ -369,7 +369,8 @@ class EvalOrchestrator:
             # Execute runner
             logger.info(f"Starting runner for run {run_id}")
             start_time = datetime.now()
-            run_result = await runner.run(task)
+            run_results = await runner.run([task])
+            run_result = run_results[0]
 
             # Update run result
             await self._update_run_result(run_id, run_result)

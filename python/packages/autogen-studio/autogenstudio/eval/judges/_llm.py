@@ -1,48 +1,13 @@
 import asyncio
-from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
-from autogen_core import CancellationToken, Component, ComponentBase
+from autogen_core import CancellationToken, Component
 from autogen_core.models import ChatCompletionClient, UserMessage
 from loguru import logger
-from pydantic import BaseModel
 from typing_extensions import Self
 
-from ..datamodel.eval import EvalDimensionScore, EvalJudgeCriteria, EvalRunResult, EvalScore, EvalTask
-
-
-class BaseEvalJudgeConfig(BaseModel):
-    """Base configuration for evaluation judges."""
-
-    name: str = "Base Judge"
-    description: str = ""
-    metadata: Dict[str, Any] = {}
-
-
-class BaseEvalJudge(ABC, ComponentBase[BaseEvalJudgeConfig]):
-    """Abstract base class for evaluation judges."""
-
-    component_type = "eval_judge"
-
-    def __init__(self, name: str = "Base Judge", description: str = "", metadata: Optional[Dict[str, Any]] = None):
-        self.name = name
-        self.description = description
-        self.metadata = metadata or {}
-
-    @abstractmethod
-    async def judge(
-        self,
-        task: EvalTask,
-        result: EvalRunResult,
-        criteria: List[EvalJudgeCriteria],
-        cancellation_token: Optional[CancellationToken] = None,
-    ) -> EvalScore:
-        """Judge the result of an evaluation run."""
-        pass
-
-    def _to_config(self) -> BaseEvalJudgeConfig:
-        """Convert the judge configuration to a configuration object for serialization."""
-        return BaseEvalJudgeConfig(name=self.name, description=self.description, metadata=self.metadata)
+from ...datamodel.eval import EvalDimensionScore, EvalJudgeCriteria, EvalRunResult, EvalScore, EvalTask
+from . import BaseEvalJudge, BaseEvalJudgeConfig
 
 
 class LLMEvalJudgeConfig(BaseEvalJudgeConfig):
@@ -56,7 +21,7 @@ class LLMEvalJudge(BaseEvalJudge, Component[LLMEvalJudgeConfig]):
 
     component_config_schema = LLMEvalJudgeConfig
     component_type = "eval_judge"
-    component_provider_override = "autogenstudio.eval.judges.LLMEvalJudge"
+    component_provider_override = "autogenstudio.eval.judges._llm.LLMEvalJudge"
 
     def __init__(
         self,
@@ -209,59 +174,3 @@ class LLMEvalJudge(BaseEvalJudge, Component[LLMEvalJudgeConfig]):
         return cls(
             model_client=model_client, name=config.name, description=config.description, metadata=config.metadata
         )
-
-
-# # Usage example
-# async def example_usage():
-#     # Create a model client
-#     from autogen_ext.models import OpenAIChatCompletionClient
-
-#     model_client = OpenAIChatCompletionClient(
-#         model="gpt-4",
-#         api_key="your-api-key"
-#     )
-
-#     # Create a judge
-#     llm_judge = LLMEvalJudge(model_client=model_client)
-
-#     # Serialize the judge to a ComponentModel
-#     judge_config = llm_judge.dump_component()
-#     print(f"Serialized judge: {judge_config}")
-
-#     # Deserialize back to a LLMEvalJudge
-#     deserialized_judge = LLMEvalJudge.load_component(judge_config)
-
-#     # Create criteria for evaluation
-#     criteria = [
-#         EvalJudgeCriteria(
-#             dimension="relevance",
-#             prompt="Evaluate how relevant the response is to the query.",
-#             min_value=0,
-#             max_value=10
-#         ),
-#         EvalJudgeCriteria(
-#             dimension="accuracy",
-#             prompt="Evaluate the factual accuracy of the response.",
-#             min_value=0,
-#             max_value=10
-#         )
-#     ]
-
-#     # Create a mock task and result
-#     task = EvalTask(
-#         id="task-123",
-#         name="Sample Task",
-#         description="A sample task for evaluation",
-#         input="What is the capital of France?"
-#     )
-
-#     result = EvalRunResult(
-#         status=True,
-#         result={
-#             "messages": [{"content": "The capital of France is Paris.", "source": "model"}]
-#         }
-#     )
-
-#     # Run the evaluation
-#     score = await deserialized_judge.judge(task, result, criteria)
-#     print(f"Evaluation score: {score}")

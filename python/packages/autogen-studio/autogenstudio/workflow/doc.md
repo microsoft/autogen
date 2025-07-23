@@ -80,6 +80,82 @@ A **Workflow** is a container for a set of **Steps** (units of computation) and 
 - **State Access**: Steps read/update workflow state via the provided `Context` object (`context.get()` / `context.set()`).
 - **Requirement**: All steps must specify input/output schemas and implement the `execute(input_data, context)` method.
 
+## Programming Model: Simple Example
+
+Here's a minimal workflow with two echo steps showing the core programming model:
+
+```python
+from pydantic import BaseModel
+from autogenstudio.workflow.core import Workflow, WorkflowRunner, StepMetadata, WorkflowMetadata
+from autogenstudio.workflow.steps import EchoStep
+
+class MessageInput(BaseModel):
+    message: str
+
+class MessageOutput(BaseModel):
+    result: str
+
+# Create workflow
+workflow = Workflow(
+    metadata=WorkflowMetadata(
+        name="Simple Echo Chain",
+        description="Two echo steps with conditional edge",
+        version="1.0.0"
+    )
+)
+
+# Step 1: First echo
+step1 = EchoStep(
+    step_id="echo1",
+    metadata=StepMetadata(name="First Echo"),
+    input_type=MessageInput,
+    output_type=MessageOutput,
+    prefix="Step 1: "
+)
+
+# Step 2: Second echo
+step2 = EchoStep(
+    step_id="echo2", 
+    metadata=StepMetadata(name="Second Echo"),
+    input_type=MessageOutput,
+    output_type=MessageOutput,
+    prefix="Step 2: "
+)
+
+# Add to workflow
+workflow.add_step(step1)
+workflow.add_step(step2)
+workflow.add_edge("echo1", "echo2")  # Can add conditions here
+workflow.set_start_step("echo1")
+workflow.add_end_step("echo2")
+
+# Execute
+runner = WorkflowRunner()
+result = await runner.run(workflow, {"message": "Hello"})
+```
+
+### DSL Serialization & Deserialization
+
+The workflow can be dumped to JSON configuration and reinstantiated:
+
+```python
+# Serialize to DSL/config
+config = workflow.dump_component()
+json_config = config.model_dump_json(indent=2)
+
+# Save to file
+with open("workflow.json", "w") as f:
+    f.write(json_config)
+
+# Load from config
+loaded_workflow = Workflow.load_component(config)
+
+# Both workflows produce identical results
+original_result = await runner.run(workflow, {"message": "Test"})
+loaded_result = await runner.run(loaded_workflow, {"message": "Test"})
+# original_result == loaded_result
+```
+
 ## Example Workflows
 
 - [Simple Sequential](./examples/simple_sequential.py)

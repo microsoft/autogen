@@ -139,12 +139,12 @@ export const WorkflowManager: React.FC = () => {
           name,
           description: "A new workflow.",
           config: {
-            provider: "autogenstudio.workflow.core.Workflow",
             component_type: "workflow",
             version: 1,
             component_version: 1,
             description: "A new workflow.",
             label: "New Workflow",
+            provider: "autogenstudio.workflow.core.Workflow",
             config: {
               metadata: {
                 name,
@@ -201,7 +201,7 @@ export const WorkflowManager: React.FC = () => {
           name: workflowConfig?.name || currentWorkflow.config.config.name,
           description:
             workflowConfig?.description ||
-            currentWorkflow.config.config.description,
+            currentWorkflow.config.config.description || "",
           config: workflowData.config || currentWorkflow.config,
         },
         user.id
