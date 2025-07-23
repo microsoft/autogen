@@ -41,6 +41,8 @@ from openai.resources.beta.chat.completions import (  # type: ignore
 from openai.resources.beta.chat.completions import (
     AsyncCompletions as BetaAsyncCompletions,
 )
+from openai.resources.beta.chat.completions import Completions
+
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import (

@@ -649,9 +649,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output,
             extra_create_args,
         )
+
         future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
         if create_params.response_format is not None:
-            # Use beta client if response_format is not None
             future = asyncio.ensure_future(
                 self._client.beta.chat.completions.parse(
                     messages=create_params.messages,
@@ -661,7 +661,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
             )
         else:
-            # Use the regular client
             future = asyncio.ensure_future(
                 self._client.chat.completions.create(
                     messages=create_params.messages,
@@ -673,14 +672,20 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if cancellation_token is not None:
             cancellation_token.link_future(future)
+
         result: Union[ParsedChatCompletion[BaseModel], ChatCompletion] = await future
         if create_params.response_format is not None:
             result = cast(ParsedChatCompletion[Any], result)
+        import sys 
+        import os 
+        sys.path.append(os.path.abspath("python/packages/autogen-core/src"))
+        # Sanitize malformed tool call responses here
+        from autogen_core.utils.sanitizer import sanitize_tool_calls
+        result_dict = result.model_dump()
+        sanitized_result_dict = sanitize_tool_calls(result_dict)
+        result = result.__class__(**sanitized_result_dict)  # Rebuild the same class
 
-        # Handle the case where OpenAI API might return None for token counts
-        # even when result.usage is not None
         usage = RequestUsage(
-            # TODO backup token counting
             prompt_tokens=getattr(result.usage, "prompt_tokens", 0) if result.usage is not None else 0,
             completion_tokens=getattr(result.usage, "completion_tokens", 0) if result.usage is not None else 0,
         )
@@ -695,20 +700,16 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             )
         )
 
-        if self._resolved_model is not None:
-            if self._resolved_model != result.model:
-                warnings.warn(
-                    f"Resolved model mismatch: {self._resolved_model} != {result.model}. "
-                    "Model mapping in autogen_ext.models.openai may be incorrect. "
-                    f"Set the model to {result.model} to enhance token/cost estimation and suppress this warning.",
-                    stacklevel=2,
-                )
+        if self._resolved_model is not None and self._resolved_model != result.model:
+            warnings.warn(
+                f"Resolved model mismatch: {self._resolved_model} != {result.model}. "
+                "Model mapping in autogen_ext.models.openai may be incorrect. "
+                f"Set the model to {result.model} to enhance token/cost estimation and suppress this warning.",
+                stacklevel=2,
+            )
 
-        # Limited to a single choice currently.
         choice: Union[ParsedChoice[Any], ParsedChoice[BaseModel], Choice] = result.choices[0]
 
-        # Detect whether it is a function call or not.
-        # We don't rely on choice.finish_reason as it is not always accurate, depending on the API used.
         content: Union[str, List[FunctionCall]]
         thought: str | None = None
         if choice.message.function_call is not None:
@@ -717,20 +718,16 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             if choice.finish_reason != "tool_calls":
                 warnings.warn(
                     f"Finish reason mismatch: {choice.finish_reason} != tool_calls "
-                    "when tool_calls are present. Finish reason may not be accurate. "
-                    "This may be due to the API used that is not returning the correct finish reason.",
+                    "when tool_calls are present. Finish reason may not be accurate.",
                     stacklevel=2,
                 )
-            if choice.message.content is not None and choice.message.content != "":
-                # Put the content in the thought field.
+            if choice.message.content:
                 thought = choice.message.content
-            # NOTE: If OAI response type changes, this will need to be updated
             content = []
             for tool_call in choice.message.tool_calls:
                 if not isinstance(tool_call.function.arguments, str):
                     warnings.warn(
-                        f"Tool call function arguments field is not a string: {tool_call.function.arguments}."
-                        "This is unexpected and may due to the API used not returning the correct type. "
+                        f"Tool call function arguments field is not a string: {tool_call.function.arguments}. "
                         "Attempting to convert it to string.",
                         stacklevel=2,
                     )
@@ -745,11 +742,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
             finish_reason = "tool_calls"
         else:
-            # if not tool_calls, then it is a text response and we populate the content and thought fields.
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
-            # if there is a reasoning_content field, then we populate the thought field. This is for models such as R1 - direct from deepseek api.
-            if choice.message.model_extra is not None:
+            if choice.message.model_extra:
                 reasoning_content = choice.message.model_extra.get("reasoning_content")
                 if reasoning_content is not None:
                     thought = reasoning_content
@@ -766,7 +761,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 for x in choice.logprobs.content
             ]
 
-        #   This is for local R1 models.
         if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1 and thought is None:
             thought, content = parse_r1_content(content)
 
@@ -782,9 +776,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         self._total_usage = _add_usage(self._total_usage, usage)
         self._actual_usage = _add_usage(self._actual_usage, usage)
 
-        # TODO - why is this cast needed?
         return response
 
+          
+                   
+                    
+        
+          
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
