@@ -3,12 +3,13 @@ import logging
 import uuid
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Optional, TypedDict, cast
 
-from autogen_core import CancellationToken, Component, ComponentBase
+from autogen_core import CancellationToken, Component, ComponentBase, FunctionCall
 from autogen_core.memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
 from autogen_core.model_context import ChatCompletionContext
-from autogen_core.models import SystemMessage
+from autogen_core.models import AssistantMessage, FunctionExecutionResult, FunctionExecutionResultMessage, SystemMessage
 from mem0 import Memory as Memory0
 from mem0 import MemoryClient
 from pydantic import BaseModel, Field
@@ -16,6 +17,13 @@ from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
 logging.getLogger("chromadb").setLevel(logging.ERROR)
+
+
+class ContextInjectionMode(Enum):
+    """Enum for context injection modes."""
+
+    SYSTEM_MESSAGE = "system_message"
+    FUNCTION_CALL = "function_call"
 
 
 class Mem0MemoryConfig(BaseModel):
@@ -31,6 +39,10 @@ class Mem0MemoryConfig(BaseModel):
     )
     config: Optional[Dict[str, Any]] = Field(
         default=None, description="Configuration dictionary for local Mem0 client. Required if is_cloud=False."
+    )
+    context_injection_mode: ContextInjectionMode = Field(
+        default=ContextInjectionMode.SYSTEM_MESSAGE,
+        description="Mode for injecting memories into context: 'system_message' or 'function_call'.",
     )
 
 
@@ -68,15 +80,16 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.memory.mem0 import Mem0Memory
+            from autogen_ext.memory.mem0 import Mem0Memory, ContextInjectionMode
             from autogen_core.memory import MemoryContent
 
 
             async def main() -> None:
-                # Create a local Mem0Memory (no API key required)
+                # Create a local Mem0Memory with function call injection mode
                 memory = Mem0Memory(
                     is_cloud=False,
                     config={"path": ":memory:"},  # Use in-memory storage for testing
+                    context_injection_mode=ContextInjectionMode.FUNCTION_CALL,
                 )
                 print("Memory initialized successfully!")
 
@@ -111,7 +124,7 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
             from autogen_core.memory import MemoryContent
-            from autogen_ext.memory.mem0 import Mem0Memory
+            from autogen_ext.memory.mem0 import Mem0Memory, ContextInjectionMode
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
@@ -119,11 +132,12 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
                 # Create a model client
                 model_client = OpenAIChatCompletionClient(model="gpt-4.1")
 
-                # Create a Mem0 memory instance
+                # Create a Mem0 memory instance with system message injection (default)
                 memory = Mem0Memory(
                     user_id="user123",
                     is_cloud=False,
                     config={"path": ":memory:"},  # Use in-memory storage for testing
+                    context_injection_mode=ContextInjectionMode.SYSTEM_MESSAGE,
                 )
 
                 # Add something to memory
@@ -157,6 +171,7 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
         is_cloud: Whether to use cloud Mem0 client (True) or local client (False).
         api_key: API key for cloud Mem0 client. It will read from the environment MEM0_API_KEY if not provided.
         config: Configuration dictionary for local Mem0 client. Required if is_cloud=False.
+        context_injection_mode: Mode for injecting memories into context ('system_message' or 'function_call').
     """
 
     component_type = "memory"
@@ -170,6 +185,7 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
         is_cloud: bool = True,
         api_key: Optional[str] = None,
         config: Optional[Dict[str, Any]] = None,
+        context_injection_mode: ContextInjectionMode = ContextInjectionMode.SYSTEM_MESSAGE,
     ) -> None:
         # Validate parameters
         if not is_cloud and config is None:
@@ -181,6 +197,7 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
         self._is_cloud = is_cloud
         self._api_key = api_key
         self._config = config
+        self._context_injection_mode = context_injection_mode
 
         # Initialize client
         if self._is_cloud:
@@ -209,6 +226,11 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
     def config(self) -> Optional[Dict[str, Any]]:
         """Get the configuration for the Mem0 client."""
         return self._config
+
+    @property
+    def context_injection_mode(self) -> ContextInjectionMode:
+        """Get the context injection mode."""
+        return self._context_injection_mode
 
     async def add(
         self,
@@ -366,7 +388,8 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
 
         This method retrieves the conversation history from the model context,
         uses the last message as a query to find relevant memories, and then
-        adds those memories to the context as a system message.
+        adds those memories to the context either as a system message or as
+        function call messages based on the configured injection mode.
 
         Args:
             model_context: The model context to update.
@@ -392,8 +415,40 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             memory_strings = [f"{i}. {str(memory.content)}" for i, memory in enumerate(query_results.results, 1)]
             memory_context = "\nRelevant memories:\n" + "\n".join(memory_strings)
 
-            # Add as system message
-            await model_context.add_message(SystemMessage(content=memory_context))
+            if self._context_injection_mode == ContextInjectionMode.SYSTEM_MESSAGE:
+                # Add as system message (original behavior)
+                await model_context.add_message(SystemMessage(content=memory_context))
+
+            elif self._context_injection_mode == ContextInjectionMode.FUNCTION_CALL:
+                # Add as function call result messages
+                # Generate a unique call ID
+                call_id = f"call_{uuid.uuid4().hex[:20]}"
+
+                # Create the function call
+                function_call = FunctionCall(
+                    id=call_id,
+                    name="retrieve_mem0memory",
+                    arguments="{}",  # No parameters as specified
+                )
+
+                # Create AssistantMessage with the function call
+                assistant_message = AssistantMessage(
+                    content=[function_call], source="memory_system", type="AssistantMessage"
+                )
+
+                # Create the function execution result
+                function_result = FunctionExecutionResult(
+                    content=memory_context, name="retrieve_mem0memory", call_id=call_id, is_error=False
+                )
+
+                # Create FunctionExecutionResultMessage
+                result_message = FunctionExecutionResultMessage(
+                    content=[function_result], type="FunctionExecutionResultMessage"
+                )
+
+                # Add both messages to the context
+                await model_context.add_message(assistant_message)
+                await model_context.add_message(result_message)
 
         return UpdateContextResult(memories=query_results)
 
@@ -432,6 +487,7 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             is_cloud=config.is_cloud,
             api_key=config.api_key,
             config=config.config,
+            context_injection_mode=config.context_injection_mode,
         )
 
     def _to_config(self) -> Mem0MemoryConfig:
@@ -446,4 +502,5 @@ class Mem0Memory(Memory, Component[Mem0MemoryConfig], ComponentBase[Mem0MemoryCo
             is_cloud=self._is_cloud,
             api_key=self._api_key,
             config=self._config,
+            context_injection_mode=self._context_injection_mode,
         )
