@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import os
+import sys
 import re
 import warnings
 from asyncio import Task
@@ -676,9 +677,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         result: Union[ParsedChatCompletion[BaseModel], ChatCompletion] = await future
         if create_params.response_format is not None:
             result = cast(ParsedChatCompletion[Any], result)
-        import sys 
-        import os 
-        sys.path.append(os.path.abspath("python/packages/autogen-core/src"))
+         
+        
         # Sanitize malformed tool call responses here
         from autogen_core.utils.sanitizer import sanitize_tool_calls
         result_dict = result.model_dump()
