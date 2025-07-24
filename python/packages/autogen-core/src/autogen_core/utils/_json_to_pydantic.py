@@ -11,6 +11,7 @@ from pydantic import (
     BaseModel,
     EmailStr,
     Field,
+    Json,
     conbytes,
     confloat,
     conint,
@@ -82,6 +83,7 @@ FORMAT_MAPPING: Dict[str, Any] = {
     "binary": conbytes(strict=True),
     "password": str,
     "path": str,
+    "json": Json,
 }
 
 
