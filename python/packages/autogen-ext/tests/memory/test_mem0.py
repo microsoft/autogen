@@ -7,8 +7,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from autogen_core.memory import MemoryContent, MemoryMimeType
 from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_core.models import SystemMessage, UserMessage
-from autogen_ext.memory.mem0 import Mem0Memory, Mem0MemoryConfig
+from autogen_core.models import AssistantMessage, FunctionExecutionResultMessage, SystemMessage, UserMessage
+from autogen_core import FunctionCall
+from autogen_ext.memory.mem0 import ContextInjectionMode, Mem0Memory, Mem0MemoryConfig
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -66,6 +67,18 @@ def local_config() -> Mem0MemoryConfig:
     return Mem0MemoryConfig(user_id="test-user", limit=3, is_cloud=False, config={"path": ":memory:"})
 
 
+@pytest.fixture
+def local_config_with_function_call_mode() -> Mem0MemoryConfig:
+    """Create local configuration with function call injection mode."""
+    return Mem0MemoryConfig(
+        user_id="test-user",
+        limit=3,
+        is_cloud=False,
+        config={"path": ":memory:"},
+        context_injection_mode=ContextInjectionMode.FUNCTION_CALL,
+    )
+
+
 @pytest.mark.asyncio
 @patch("autogen_ext.memory.mem0._mem0.Memory0")
 async def test_basic_workflow(mock_mem0_class: MagicMock, local_config: Mem0MemoryConfig) -> None:
@@ -89,6 +102,7 @@ async def test_basic_workflow(mock_mem0_class: MagicMock, local_config: Mem0Memo
         is_cloud=local_config.is_cloud,
         api_key=local_config.api_key,
         config=local_config.config,
+        context_injection_mode=local_config.context_injection_mode,
     )
 
     # Add content to memory
@@ -160,6 +174,7 @@ async def test_basic_workflow_with_cloud(mock_memory_client_class: MagicMock, cl
         is_cloud=cloud_config.is_cloud,
         api_key=cloud_config.api_key,
         config=cloud_config.config,
+        context_injection_mode=cloud_config.context_injection_mode,
     )
 
     # Generate a unique test content string
@@ -234,6 +249,7 @@ async def test_metadata_handling(mock_mem0_class: MagicMock, local_config: Mem0M
         is_cloud=local_config.is_cloud,
         api_key=local_config.api_key,
         config=local_config.config,
+        context_injection_mode=local_config.context_injection_mode,
     )
 
     # Add content with metadata
@@ -272,8 +288,8 @@ async def test_metadata_handling(mock_mem0_class: MagicMock, local_config: Mem0M
 
 @pytest.mark.asyncio
 @patch("autogen_ext.memory.mem0._mem0.Memory0")
-async def test_update_context(mock_mem0_class: MagicMock, local_config: Mem0MemoryConfig) -> None:
-    """Test updating model context with retrieved memories."""
+async def test_update_context_system_message_mode(mock_mem0_class: MagicMock, local_config: Mem0MemoryConfig) -> None:
+    """Test updating model context with retrieved memories using system message mode (default)."""
     # Setup mock
     mock_mem0 = MagicMock()
     mock_mem0_class.from_config.return_value = mock_mem0
@@ -290,6 +306,7 @@ async def test_update_context(mock_mem0_class: MagicMock, local_config: Mem0Memo
         is_cloud=local_config.is_cloud,
         api_key=local_config.api_key,
         config=local_config.config,
+        context_injection_mode=ContextInjectionMode.SYSTEM_MESSAGE,  # Explicit system message mode
     )
 
     # Create a model context with a message
@@ -323,19 +340,130 @@ async def test_update_context(mock_mem0_class: MagicMock, local_config: Mem0Memo
 
 
 @pytest.mark.asyncio
-@patch("autogen_ext.memory.mem0._mem0.MemoryClient")  # Patch for cloud mode
-async def test_component_serialization(mock_memory_client_class: MagicMock) -> None:
-    """Test serialization and deserialization of the component."""
+@patch("autogen_ext.memory.mem0._mem0.Memory0")
+async def test_update_context_function_call_mode(
+    mock_mem0_class: MagicMock, local_config_with_function_call_mode: Mem0MemoryConfig
+) -> None:
+    """Test updating model context with retrieved memories using function call mode."""
+    # Setup mock
+    mock_mem0 = MagicMock()
+    mock_mem0_class.from_config.return_value = mock_mem0
+
+    # Setup mock search results
+    mock_mem0.search.return_value = [
+        {"memory": "Mars is known as the red planet.", "score": 0.9},
+        {"memory": "Mars has two small moons: Phobos and Deimos.", "score": 0.8},
+    ]
+
+    memory = Mem0Memory(
+        user_id=local_config_with_function_call_mode.user_id,
+        limit=local_config_with_function_call_mode.limit,
+        is_cloud=local_config_with_function_call_mode.is_cloud,
+        api_key=local_config_with_function_call_mode.api_key,
+        config=local_config_with_function_call_mode.config,
+        context_injection_mode=local_config_with_function_call_mode.context_injection_mode,
+    )
+
+    # Verify the mode is set correctly
+    assert memory.context_injection_mode == ContextInjectionMode.FUNCTION_CALL
+
+    # Create a model context with a message
+    context = BufferedChatCompletionContext(buffer_size=10)
+    await context.add_message(UserMessage(content="Tell me about Mars", source="user"))
+
+    # Update context with memory
+    result = await memory.update_context(context)
+
+    # Verify results
+    assert len(result.memories.results) == 2
+    assert "Mars" in str(result.memories.results[0].content)
+
+    # Verify search was called with correct query
+    mock_mem0.search.assert_called_once()
+    search_args = mock_mem0.search.call_args
+    assert "Mars" in search_args[0][0]
+
+    # Verify context was updated with function call messages
+    messages = await context.get_messages()
+    assert len(messages) == 3  # Original message + assistant message + function result message
+
+    # Verify assistant message with function call
+    assistant_message = messages[1]
+    assert isinstance(assistant_message, AssistantMessage)
+    assert len(assistant_message.content) == 1
+    function_call = assistant_message.content[0]
+    # Add type check to ensure we have a FunctionCall object
+    assert isinstance(function_call, FunctionCall)
+    assert function_call.name == "retrieve_mem0memory"
+    assert function_call.arguments == "{}"
+    assert assistant_message.source == "memory_system"
+
+    # Verify function execution result message
+    result_message = messages[2]
+    assert isinstance(result_message, FunctionExecutionResultMessage)
+    assert len(result_message.content) == 1
+    function_result = result_message.content[0]
+    assert function_result.name == "retrieve_mem0memory"
+    assert function_result.call_id == function_call.id
+    assert function_result.is_error is False
+    assert "Mars is known as the red planet" in function_result.content
+    assert "Mars has two small moons" in function_result.content
+
+    # Cleanup
+    await memory.close()
+
+
+@pytest.mark.asyncio
+@patch("autogen_ext.memory.mem0._mem0.Memory0")
+async def test_context_injection_mode_property(mock_mem0_class: MagicMock) -> None:
+    """Test that context injection mode property works correctly."""
+    # Setup mock
+    mock_mem0 = MagicMock()
+    mock_mem0_class.from_config.return_value = mock_mem0
+
+    # Test default mode (system message)
+    memory_default = Mem0Memory(user_id="test-user", is_cloud=False, config={"path": ":memory:"})
+    assert memory_default.context_injection_mode == ContextInjectionMode.SYSTEM_MESSAGE
+
+    # Test explicit system message mode
+    memory_system = Mem0Memory(
+        user_id="test-user",
+        is_cloud=False,
+        config={"path": ":memory:"},
+        context_injection_mode=ContextInjectionMode.SYSTEM_MESSAGE,
+    )
+    assert memory_system.context_injection_mode == ContextInjectionMode.SYSTEM_MESSAGE
+
+    # Test function call mode
+    memory_function = Mem0Memory(
+        user_id="test-user",
+        is_cloud=False,
+        config={"path": ":memory:"},
+        context_injection_mode=ContextInjectionMode.FUNCTION_CALL,
+    )
+    assert memory_function.context_injection_mode == ContextInjectionMode.FUNCTION_CALL
+
+    # Cleanup
+    await memory_default.close()
+    await memory_system.close()
+    await memory_function.close()
+
+
+@pytest.mark.asyncio
+@patch("autogen_ext.memory.mem0._mem0.MemoryClient")
+async def test_component_serialization_with_context_injection_mode(mock_memory_client_class: MagicMock) -> None:
+    """Test serialization and deserialization of the component with context injection mode."""
     # Setup mock
     mock_client = MagicMock()
     mock_memory_client_class.return_value = mock_client
 
-    # Create configuration
+    # Create configuration with function call mode
     user_id = str(uuid.uuid4())
     config = Mem0MemoryConfig(
         user_id=user_id,
         limit=5,
         is_cloud=True,
+        context_injection_mode=ContextInjectionMode.FUNCTION_CALL,
     )
 
     # Create memory instance
@@ -345,23 +473,26 @@ async def test_component_serialization(mock_memory_client_class: MagicMock) -> N
         is_cloud=config.is_cloud,
         api_key=config.api_key,
         config=config.config,
+        context_injection_mode=config.context_injection_mode,
     )
 
     # Dump config
     memory_config = memory.dump_component()
 
-    # Verify dumped config
+    # Verify dumped config includes context injection mode
     assert memory_config.config["user_id"] == user_id
     assert memory_config.config["limit"] == 5
     assert memory_config.config["is_cloud"] is True
+    assert memory_config.config["context_injection_mode"] == ContextInjectionMode.FUNCTION_CALL
 
-    # Load from config
+    # Load from config using the public constructor
     loaded_memory = Mem0Memory(
         user_id=config.user_id,
         limit=config.limit,
         is_cloud=config.is_cloud,
         api_key=config.api_key,
         config=config.config,
+        context_injection_mode=config.context_injection_mode,
     )
 
     # Verify loaded instance
@@ -369,6 +500,7 @@ async def test_component_serialization(mock_memory_client_class: MagicMock) -> N
     assert loaded_memory.user_id == user_id
     assert loaded_memory.limit == 5
     assert loaded_memory.is_cloud is True
+    assert loaded_memory.context_injection_mode == ContextInjectionMode.FUNCTION_CALL
     assert loaded_memory.config is None
 
     # Cleanup
@@ -398,6 +530,7 @@ async def test_result_format_handling(mock_mem0_class: MagicMock, local_config: 
         is_cloud=local_config.is_cloud,
         api_key=local_config.api_key,
         config=local_config.config,
+        context_injection_mode=local_config.context_injection_mode,
     )
 
     # Query with dictionary format
@@ -432,8 +565,14 @@ async def test_init_with_local_config(mock_mem0_class: MagicMock, full_local_con
     mock_mem0 = MagicMock()
     mock_mem0_class.from_config.return_value = mock_mem0
 
-    # Initialize memory with local config
-    memory = Mem0Memory(user_id="test-local-config-user", limit=10, is_cloud=False, config=full_local_config)
+    # Initialize memory with local config and function call mode
+    memory = Mem0Memory(
+        user_id="test-local-config-user",
+        limit=10,
+        is_cloud=False,
+        config=full_local_config,
+        context_injection_mode=ContextInjectionMode.FUNCTION_CALL,
+    )
 
     # Verify configuration was passed correctly
     mock_mem0_class.from_config.assert_called_once()
@@ -443,6 +582,7 @@ async def test_init_with_local_config(mock_mem0_class: MagicMock, full_local_con
     assert memory._limit == 10  # type: ignore
     assert memory._is_cloud is False  # type: ignore
     assert memory._config == full_local_config  # type: ignore
+    assert memory._context_injection_mode == ContextInjectionMode.FUNCTION_CALL  # type: ignore
 
     # Test serialization with local config
     memory_config = memory.dump_component()
@@ -450,6 +590,7 @@ async def test_init_with_local_config(mock_mem0_class: MagicMock, full_local_con
     # Verify serialized config
     assert memory_config.config["user_id"] == "test-local-config-user"
     assert memory_config.config["is_cloud"] is False
+    assert memory_config.config["context_injection_mode"] == ContextInjectionMode.FUNCTION_CALL
 
     # Cleanup
     await memory.close()
@@ -476,7 +617,13 @@ async def test_local_config_with_memory_operations(
     ]
 
     # Initialize Mem0Memory with is_cloud=False and the full_local_config
-    memory = Mem0Memory(user_id="test-local-config-user", limit=10, is_cloud=False, config=full_local_config)
+    memory = Mem0Memory(
+        user_id="test-local-config-user",
+        limit=10,
+        is_cloud=False,
+        config=full_local_config,
+        context_injection_mode=ContextInjectionMode.SYSTEM_MESSAGE,  # Test with explicit system message mode
+    )
 
     # Verify that mem0.Memory.from_config was called with the provided config
     mock_mem0_class.from_config.assert_called_once_with(config_dict=full_local_config)
@@ -515,6 +662,7 @@ async def test_local_config_with_memory_operations(
     # Verify serialized config
     assert memory_config.config["user_id"] == "test-local-config-user"
     assert memory_config.config["is_cloud"] is False
+    assert memory_config.config["context_injection_mode"] == ContextInjectionMode.SYSTEM_MESSAGE
     assert "config" in memory_config.config
     assert memory_config.config["config"]["history_db_path"] == ":memory:"
 
