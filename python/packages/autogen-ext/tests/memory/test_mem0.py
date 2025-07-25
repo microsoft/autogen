@@ -103,7 +103,11 @@ async def test_basic_workflow(mock_mem0_class: MagicMock, local_config: Mem0Memo
     # Verify add was called correctly
     mock_mem0.add.assert_called_once()
     call_args = mock_mem0.add.call_args[0]
-    assert call_args[0] == "Paris is known for the Eiffel Tower and amazing cuisine."
+
+    # Extract content from the list of dict structure: [{'content': '...', 'role': 'user'}]
+    actual_content = call_args[0][0]["content"]
+    assert actual_content == "Paris is known for the Eiffel Tower and amazing cuisine."
+
     call_kwargs = mock_mem0.add.call_args[1]
     assert call_kwargs["metadata"] == {"category": "city", "country": "France"}
 
@@ -173,7 +177,11 @@ async def test_basic_workflow_with_cloud(mock_memory_client_class: MagicMock, cl
     # Verify add was called correctly
     mock_client.add.assert_called_once()
     call_args = mock_client.add.call_args
-    assert test_content in str(call_args[0][0])  # Check that content was passed
+
+    # Extract content from list of dict structure: [{'content': '...', 'role': 'user'}]
+    actual_content = call_args[0][0][0]["content"]  # call_args[0][0] gets the first positional arg (the list)
+    assert test_content in actual_content
+
     assert call_args[1]["user_id"] == cloud_config.user_id
     assert call_args[1]["metadata"]["test"] is True
 
