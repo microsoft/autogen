@@ -33,5 +33,7 @@ async def test_component(request: ComponentTestRequest) -> ComponentTestResult:
 
     # If validation passed, run the functional test
     return await ComponentTestService.test_component(
-        component=request.component, timeout=request.timeout if request.timeout else 60
+        component=request.component,
+        timeout=request.timeout if request.timeout else 60,
+        model_client=request.model_client,
     )
