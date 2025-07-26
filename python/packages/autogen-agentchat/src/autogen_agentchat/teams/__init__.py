@@ -15,6 +15,14 @@ from ._group_chat._magentic_one import MagenticOneGroupChat
 from ._group_chat._round_robin_group_chat import RoundRobinGroupChat
 from ._group_chat._selector_group_chat import SelectorGroupChat
 from ._group_chat._swarm_group_chat import Swarm
+from ._group_chat._voting_group_chat import (
+    ProposalMessage,
+    VoteMessage,
+    VoteType,
+    VotingGroupChat,
+    VotingMethod,
+    VotingResultMessage,
+)
 
 __all__ = [
     "BaseGroupChat",
@@ -22,6 +30,12 @@ __all__ = [
     "SelectorGroupChat",
     "Swarm",
     "MagenticOneGroupChat",
+    "VotingGroupChat",
+    "VotingMethod",
+    "VoteMessage",
+    "ProposalMessage",
+    "VotingResultMessage",
+    "VoteType",
     "DiGraphBuilder",
     "DiGraph",
     "DiGraphNode",
