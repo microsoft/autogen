@@ -195,6 +195,136 @@ class VotingGroupChatManager(BaseGroupChatManager):
         message_factory.register(ProposalMessage)
         message_factory.register(VotingResultMessage)
 
+    # Public properties for testing and inspection
+    @property
+    def voting_method(self) -> VotingMethod:
+        """Get the current voting method."""
+        return self._voting_method
+
+    @property
+    def qualified_majority_threshold(self) -> float:
+        """Get the qualified majority threshold."""
+        return self._qualified_majority_threshold
+
+    @property
+    def allow_abstentions(self) -> bool:
+        """Get whether abstentions are allowed."""
+        return self._allow_abstentions
+
+    @property
+    def require_reasoning(self) -> bool:
+        """Get whether reasoning is required for votes."""
+        return self._require_reasoning
+
+    @property
+    def max_discussion_rounds(self) -> int:
+        """Get the maximum number of discussion rounds."""
+        return self._max_discussion_rounds
+
+    @property
+    def auto_propose_speaker(self) -> Optional[str]:
+        """Get the auto-propose speaker setting."""
+        return self._auto_propose_speaker
+
+    @property
+    def current_phase(self) -> VotingPhase:
+        """Get the current voting phase."""
+        return self._current_phase
+
+    @property
+    def current_proposal(self) -> Optional[Dict[str, Any]]:
+        """Get the current proposal."""
+        return self._current_proposal
+
+    @property
+    def votes_cast(self) -> Dict[str, Dict[str, Any]]:
+        """Get the votes that have been cast."""
+        return self._votes_cast.copy()  # Return a copy to prevent external modification
+
+    @property
+    def discussion_rounds(self) -> int:
+        """Get the current number of discussion rounds."""
+        return self._discussion_rounds
+
+    @property
+    def eligible_voters(self) -> List[str]:
+        """Get the list of eligible voters."""
+        return self._eligible_voters.copy()  # Return a copy to prevent external modification
+
+    # Test-specific methods for state manipulation
+    def set_phase_for_testing(self, phase: VotingPhase) -> None:
+        """Set the current phase for testing purposes only."""
+        self._current_phase = phase
+
+    def set_proposal_for_testing(self, proposal: Optional[Dict[str, Any]]) -> None:
+        """Set the current proposal for testing purposes only."""
+        self._current_proposal = proposal
+
+    def set_votes_for_testing(self, votes: Dict[str, Dict[str, Any]]) -> None:
+        """Set the votes cast for testing purposes only."""
+        self._votes_cast = votes.copy()
+
+    def set_discussion_rounds_for_testing(self, rounds: int) -> None:
+        """Set the discussion rounds for testing purposes only."""
+        self._discussion_rounds = rounds
+
+    def set_participant_names_for_testing(self, names: List[str]) -> None:
+        """Set participant names for testing purposes only."""
+        self._participant_names = names
+
+    def clear_votes_for_testing(self) -> None:
+        """Clear all votes for testing purposes only."""
+        self._votes_cast = {}
+
+    # Public test interfaces for internal methods
+    def select_proposer_for_testing(self) -> str:
+        """Public interface for testing _select_proposer method."""
+        return self._select_proposer()
+
+    async def handle_proposal_phase_for_testing(self, last_message: BaseAgentEvent | BaseChatMessage) -> List[str]:
+        """Public interface for testing _handle_proposal_phase method."""
+        return await self._handle_proposal_phase(last_message)
+
+    async def handle_voting_phase_for_testing(self, last_message: BaseAgentEvent | BaseChatMessage) -> List[str]:
+        """Public interface for testing _handle_voting_phase method."""
+        return await self._handle_voting_phase(last_message)
+
+    async def handle_discussion_phase_for_testing(self, last_message: BaseAgentEvent | BaseChatMessage) -> List[str]:
+        """Public interface for testing _handle_discussion_phase method."""
+        return await self._handle_discussion_phase(last_message)
+
+    async def handle_consensus_phase_for_testing(self, last_message: BaseAgentEvent | BaseChatMessage) -> List[str]:
+        """Public interface for testing _handle_consensus_phase method."""
+        return await self._handle_consensus_phase(last_message)
+
+    def is_voting_complete_for_testing(self) -> bool:
+        """Public interface for testing _is_voting_complete method."""
+        return self._is_voting_complete()
+
+    async def process_voting_results_for_testing(self) -> List[str]:
+        """Public interface for testing _process_voting_results method."""
+        return await self._process_voting_results()
+
+    def calculate_voting_result_for_testing(self) -> Dict[str, Any]:
+        """Public interface for testing _calculate_voting_result method."""
+        return self._calculate_voting_result()
+
+    async def announce_voting_phase_for_testing(self) -> None:
+        """Public interface for testing _announce_voting_phase method."""
+        await self._announce_voting_phase()
+
+    def set_auto_propose_speaker_for_testing(self, speaker: Optional[str]) -> None:
+        """Set auto propose speaker for testing purposes only."""
+        self._auto_propose_speaker = speaker
+
+    def set_voting_method_for_testing(self, method: VotingMethod) -> None:
+        """Set voting method for testing purposes only."""
+        self._voting_method = method
+
+    def set_qualified_majority_threshold_for_testing(self, threshold: float) -> None:
+        """Set qualified majority threshold for testing purposes only."""
+        self._qualified_majority_threshold = threshold
+
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         """Validate the group state for voting."""
         if len(self._participant_names) < 2:

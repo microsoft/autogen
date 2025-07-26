@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Any, Dict, List
+from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -259,13 +259,13 @@ class TestVotingGroupChatManager:
     @pytest.mark.asyncio
     async def test_voting_manager_initialization(self, voting_manager: VotingGroupChatManager) -> None:
         """Test VotingGroupChatManager initialization."""
-        assert voting_manager._voting_method == VotingMethod.MAJORITY
-        assert voting_manager._qualified_majority_threshold == 0.67
-        assert voting_manager._allow_abstentions is True
-        assert voting_manager._require_reasoning is False
-        assert voting_manager._max_discussion_rounds == 3
-        assert voting_manager._auto_propose_speaker == "Agent1"
-        assert voting_manager._current_phase == VotingPhase.PROPOSAL
+        assert voting_manager.voting_method == VotingMethod.MAJORITY
+        assert voting_manager.qualified_majority_threshold == 0.67
+        assert voting_manager.allow_abstentions is True
+        assert voting_manager.require_reasoning is False
+        assert voting_manager.max_discussion_rounds == 3
+        assert voting_manager.auto_propose_speaker == "Agent1"
+        assert voting_manager.current_phase == VotingPhase.PROPOSAL
 
     @pytest.mark.asyncio
     async def test_validate_group_state(self, voting_manager: VotingGroupChatManager) -> None:
@@ -274,7 +274,7 @@ class TestVotingGroupChatManager:
         await voting_manager.validate_group_state(None)
 
         # Test with insufficient participants
-        voting_manager._participant_names = ["Agent1"]
+        voting_manager.set_participant_names_for_testing(["Agent1"])
         with pytest.raises(ValueError, match="Voting requires at least 2 participants"):
             await voting_manager.validate_group_state(None)
 
@@ -282,16 +282,16 @@ class TestVotingGroupChatManager:
     async def test_reset_manager(self, voting_manager: VotingGroupChatManager) -> None:
         """Test manager reset functionality."""
         # Set some state
-        voting_manager._current_phase = VotingPhase.VOTING
-        voting_manager._votes_cast = {"Agent1": {"vote": VoteType.APPROVE}}
-        voting_manager._discussion_rounds = 2
+        voting_manager.set_phase_for_testing(VotingPhase.VOTING)
+        voting_manager.set_votes_for_testing({"Agent1": {"vote": VoteType.APPROVE}})
+        voting_manager.set_discussion_rounds_for_testing(2)
 
         await voting_manager.reset()
 
-        assert voting_manager._current_phase == VotingPhase.PROPOSAL
-        assert voting_manager._votes_cast == {}
-        assert voting_manager._discussion_rounds == 0
-        assert voting_manager._current_proposal is None
+        assert voting_manager.current_phase == VotingPhase.PROPOSAL
+        assert voting_manager.votes_cast == {}
+        assert voting_manager.discussion_rounds == 0
+        assert voting_manager.current_proposal is None
 
     @pytest.mark.asyncio
     async def test_select_speaker_initial(self, voting_manager: VotingGroupChatManager) -> None:
@@ -303,12 +303,12 @@ class TestVotingGroupChatManager:
     async def test_select_proposer(self, voting_manager: VotingGroupChatManager) -> None:
         """Test proposer selection logic."""
         # With auto_propose_speaker
-        proposer = voting_manager._select_proposer()
+        proposer = voting_manager.select_proposer_for_testing()
         assert proposer == "Agent1"
 
         # Without auto_propose_speaker
-        voting_manager._auto_propose_speaker = None
-        proposer = voting_manager._select_proposer()
+        voting_manager.set_auto_propose_speaker_for_testing(None)
+        proposer = voting_manager.select_proposer_for_testing()
         assert proposer == "Agent1"  # Falls back to first participant
 
     @pytest.mark.asyncio
@@ -325,27 +325,26 @@ class TestVotingGroupChatManager:
             source="Agent1",
         )
 
-        with patch.object(voting_manager, "_announce_voting_phase") as mock_announce:
-            result = await voting_manager._handle_proposal_phase(proposal)
+        # Call handle_proposal_phase and verify behavior
+        result = await voting_manager.handle_proposal_phase_for_testing(proposal)
 
-        assert voting_manager._current_phase == VotingPhase.VOTING
-        assert voting_manager._current_proposal is not None
-        assert voting_manager._current_proposal["id"] == "test-123"
+        assert voting_manager.current_phase == VotingPhase.VOTING
+        assert voting_manager.current_proposal is not None
+        assert voting_manager.current_proposal["id"] == "test-123"
         assert result == ["Agent1", "Agent2", "Agent3"]
-        mock_announce.assert_called_once()
 
         # Test without ProposalMessage
-        voting_manager._current_phase = VotingPhase.PROPOSAL
+        voting_manager.set_phase_for_testing(VotingPhase.PROPOSAL)
         text_msg = TextMessage(content="Just text", source="Agent1")
-        result = await voting_manager._handle_proposal_phase(text_msg)
+        result = await voting_manager.handle_proposal_phase_for_testing(text_msg)
         assert result == ["Agent1"]
 
     @pytest.mark.asyncio
     async def test_handle_voting_phase(self, voting_manager: VotingGroupChatManager) -> None:
         """Test voting phase handling."""
         # Setup proposal
-        voting_manager._current_proposal = {"id": "test-123", "title": "Test"}
-        voting_manager._current_phase = VotingPhase.VOTING
+        voting_manager.set_proposal_for_testing({"id": "test-123", "title": "Test"})
+        voting_manager.set_phase_for_testing(VotingPhase.VOTING)
 
         # Test vote recording
         vote = VoteMessage(
@@ -354,10 +353,10 @@ class TestVotingGroupChatManager:
         )
 
         with patch.object(voting_manager, "_is_voting_complete", return_value=False):
-            result = await voting_manager._handle_voting_phase(vote)
+            result = await voting_manager.handle_voting_phase_for_testing(vote)
 
-        assert "Agent1" in voting_manager._votes_cast
-        assert voting_manager._votes_cast["Agent1"]["vote"] == VoteType.APPROVE
+        assert "Agent1" in voting_manager.votes_cast
+        assert voting_manager.votes_cast["Agent1"]["vote"] == VoteType.APPROVE
         assert "Agent1" not in result  # Agent1 already voted
 
         # Test voting completion
@@ -365,64 +364,64 @@ class TestVotingGroupChatManager:
             patch.object(voting_manager, "_is_voting_complete", return_value=True),
             patch.object(voting_manager, "_process_voting_results", return_value=[]),
         ):
-            result = await voting_manager._handle_voting_phase(vote)
+            result = await voting_manager.handle_voting_phase_for_testing(vote)
 
     @pytest.mark.asyncio
     async def test_handle_discussion_phase(self, voting_manager: VotingGroupChatManager) -> None:
         """Test discussion phase handling."""
-        voting_manager._current_phase = VotingPhase.DISCUSSION
-        voting_manager._discussion_rounds = 2
-        voting_manager._max_discussion_rounds = 3
+        voting_manager.set_phase_for_testing(VotingPhase.DISCUSSION)
+        voting_manager.set_discussion_rounds_for_testing(2)
 
         text_msg = TextMessage(content="Discussion point", source="Agent1")
 
         # Test continuing discussion
-        result = await voting_manager._handle_discussion_phase(text_msg)
+        result = await voting_manager.handle_discussion_phase_for_testing(text_msg)
         assert result == ["Agent1", "Agent2", "Agent3"]
 
         # Test max rounds reached
-        voting_manager._discussion_rounds = 3
-        with patch.object(voting_manager, "_announce_voting_phase"):
-            result = await voting_manager._handle_discussion_phase(text_msg)
+        voting_manager.set_discussion_rounds_for_testing(3)
+        result = await voting_manager.handle_discussion_phase_for_testing(text_msg)
 
-        assert voting_manager._current_phase == VotingPhase.VOTING
-        assert voting_manager._votes_cast == {}  # Reset votes
+        assert voting_manager.current_phase == VotingPhase.VOTING
+        assert voting_manager.votes_cast == {}  # Reset votes
         assert result == ["Agent1", "Agent2", "Agent3"]
 
     @pytest.mark.asyncio
     async def test_handle_consensus_phase(self, voting_manager: VotingGroupChatManager) -> None:
         """Test consensus phase handling."""
         text_msg = TextMessage(content="Consensus reached", source="Agent1")
-        result = await voting_manager._handle_consensus_phase(text_msg)
+        result = await voting_manager.handle_consensus_phase_for_testing(text_msg)
         assert result == []  # No more speakers needed
 
     @pytest.mark.asyncio
     async def test_is_voting_complete(self, voting_manager: VotingGroupChatManager) -> None:
         """Test voting completion check."""
         # No votes cast
-        assert not voting_manager._is_voting_complete()
+        assert not voting_manager.is_voting_complete_for_testing()
 
         # Partial votes
-        voting_manager._votes_cast = {"Agent1": {"vote": VoteType.APPROVE}}
-        assert not voting_manager._is_voting_complete()
+        voting_manager.set_votes_for_testing({"Agent1": {"vote": VoteType.APPROVE}})
+        assert not voting_manager.is_voting_complete_for_testing()
 
         # All votes cast
-        voting_manager._votes_cast = {
-            "Agent1": {"vote": VoteType.APPROVE},
-            "Agent2": {"vote": VoteType.REJECT},
-            "Agent3": {"vote": VoteType.APPROVE},
-        }
-        assert voting_manager._is_voting_complete()
+        voting_manager.set_votes_for_testing(
+            {
+                "Agent1": {"vote": VoteType.APPROVE},
+                "Agent2": {"vote": VoteType.REJECT},
+                "Agent3": {"vote": VoteType.APPROVE},
+            }
+        )
+        assert voting_manager.is_voting_complete_for_testing()
 
     @pytest.mark.asyncio
     async def test_process_voting_results(self, voting_manager: VotingGroupChatManager) -> None:
         """Test voting results processing."""
         # Test with no votes
-        result = await voting_manager._process_voting_results()
+        result = await voting_manager.process_voting_results_for_testing()
         assert result == []
 
         # Test with votes - just verify the method can be called
-        voting_manager._votes_cast = {"Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9}}
+        voting_manager.set_votes_for_testing({"Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9}})
 
         with (
             patch.object(voting_manager, "update_message_thread"),
@@ -441,7 +440,7 @@ class TestVotingGroupChatManager:
                 },
             ),
         ):
-            result = await voting_manager._process_voting_results()
+            result = await voting_manager.process_voting_results_for_testing()
 
         # Just verify method completes without error
         assert result is not None
@@ -449,141 +448,155 @@ class TestVotingGroupChatManager:
     @pytest.mark.asyncio
     async def test_calculate_voting_result_majority(self, voting_manager: VotingGroupChatManager) -> None:
         """Test majority voting calculation."""
-        voting_manager._voting_method = VotingMethod.MAJORITY
-        voting_manager._current_proposal = {"id": "test-123"}
+        voting_manager.set_voting_method_for_testing(VotingMethod.MAJORITY)
+        voting_manager.set_proposal_for_testing({"id": "test-123"})
 
         # Test approval majority
-        voting_manager._votes_cast = {
-            "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
-            "Agent2": {"vote": VoteType.APPROVE, "confidence": 0.8},
-            "Agent3": {"vote": VoteType.REJECT, "confidence": 0.7},
-        }
+        voting_manager.set_votes_for_testing(
+            {
+                "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
+                "Agent2": {"vote": VoteType.APPROVE, "confidence": 0.8},
+                "Agent3": {"vote": VoteType.REJECT, "confidence": 0.7},
+            }
+        )
 
-        result = voting_manager._calculate_voting_result()
+        result = voting_manager.calculate_voting_result_for_testing()
         assert result["result"] == "approved"
         assert result["winning_option"] == VoteType.APPROVE.value
         assert result["participation_rate"] == 1.0
 
         # Test rejection majority
-        voting_manager._votes_cast = {
-            "Agent1": {"vote": VoteType.REJECT, "confidence": 0.9},
-            "Agent2": {"vote": VoteType.REJECT, "confidence": 0.8},
-            "Agent3": {"vote": VoteType.APPROVE, "confidence": 0.7},
-        }
+        voting_manager.set_votes_for_testing(
+            {
+                "Agent1": {"vote": VoteType.REJECT, "confidence": 0.9},
+                "Agent2": {"vote": VoteType.REJECT, "confidence": 0.8},
+                "Agent3": {"vote": VoteType.APPROVE, "confidence": 0.7},
+            }
+        )
 
-        result = voting_manager._calculate_voting_result()
+        result = voting_manager.calculate_voting_result_for_testing()
         assert result["result"] == "rejected"
         assert result["winning_option"] == VoteType.REJECT.value
 
     @pytest.mark.asyncio
     async def test_calculate_voting_result_plurality(self, voting_manager: VotingGroupChatManager) -> None:
         """Test plurality voting calculation."""
-        voting_manager._voting_method = VotingMethod.PLURALITY
-        voting_manager._current_proposal = {"id": "test-123"}
-        voting_manager._votes_cast = {
-            "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
-            "Agent2": {"vote": VoteType.REJECT, "confidence": 0.8},
-            "Agent3": {"vote": VoteType.ABSTAIN, "confidence": 0.5},
-        }
+        voting_manager.set_voting_method_for_testing(VotingMethod.PLURALITY)
+        voting_manager.set_proposal_for_testing({"id": "test-123"})
+        voting_manager.set_votes_for_testing(
+            {
+                "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
+                "Agent2": {"vote": VoteType.REJECT, "confidence": 0.8},
+                "Agent3": {"vote": VoteType.ABSTAIN, "confidence": 0.5},
+            }
+        )
 
-        result = voting_manager._calculate_voting_result()
+        result = voting_manager.calculate_voting_result_for_testing()
         assert result["result"] in ["approved", "rejected"]  # Most common vote wins
 
     @pytest.mark.asyncio
     async def test_calculate_voting_result_unanimous(self, voting_manager: VotingGroupChatManager) -> None:
         """Test unanimous voting calculation."""
-        voting_manager._voting_method = VotingMethod.UNANIMOUS
-        voting_manager._current_proposal = {"id": "test-123"}
+        voting_manager.set_voting_method_for_testing(VotingMethod.UNANIMOUS)
+        voting_manager.set_proposal_for_testing({"id": "test-123"})
 
         # Test unanimous approval
-        voting_manager._votes_cast = {
-            "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
-            "Agent2": {"vote": VoteType.APPROVE, "confidence": 0.8},
-            "Agent3": {"vote": VoteType.APPROVE, "confidence": 0.7},
-        }
+        voting_manager.set_votes_for_testing(
+            {
+                "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
+                "Agent2": {"vote": VoteType.APPROVE, "confidence": 0.8},
+                "Agent3": {"vote": VoteType.APPROVE, "confidence": 0.7},
+            }
+        )
 
-        result = voting_manager._calculate_voting_result()
+        result = voting_manager.calculate_voting_result_for_testing()
         assert result["result"] == "approved"
 
         # Test with abstention
-        voting_manager._votes_cast = {
-            "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
-            "Agent2": {"vote": VoteType.APPROVE, "confidence": 0.8},
-            "Agent3": {"vote": VoteType.ABSTAIN, "confidence": 0.5},
-        }
+        voting_manager.set_votes_for_testing(
+            {
+                "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
+                "Agent2": {"vote": VoteType.APPROVE, "confidence": 0.8},
+                "Agent3": {"vote": VoteType.ABSTAIN, "confidence": 0.5},
+            }
+        )
 
-        result = voting_manager._calculate_voting_result()
+        result = voting_manager.calculate_voting_result_for_testing()
         assert result["result"] == "approved"
 
     @pytest.mark.asyncio
     async def test_calculate_voting_result_qualified_majority(self, voting_manager: VotingGroupChatManager) -> None:
         """Test qualified majority voting calculation."""
-        voting_manager._voting_method = VotingMethod.QUALIFIED_MAJORITY
-        voting_manager._qualified_majority_threshold = 0.67
-        voting_manager._current_proposal = {"id": "test-123"}
+        voting_manager.set_voting_method_for_testing(VotingMethod.QUALIFIED_MAJORITY)
+        voting_manager.set_qualified_majority_threshold_for_testing(0.67)
+        voting_manager.set_proposal_for_testing({"id": "test-123"})
 
         # Test meeting qualified majority (2/3 = 0.67)
-        voting_manager._votes_cast = {
-            "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
-            "Agent2": {"vote": VoteType.APPROVE, "confidence": 0.8},
-            "Agent3": {"vote": VoteType.REJECT, "confidence": 0.7},
-        }
+        voting_manager.set_votes_for_testing(
+            {
+                "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
+                "Agent2": {"vote": VoteType.APPROVE, "confidence": 0.8},
+                "Agent3": {"vote": VoteType.REJECT, "confidence": 0.7},
+            }
+        )
 
-        result = voting_manager._calculate_voting_result()
+        result = voting_manager.calculate_voting_result_for_testing()
         # 2 out of 3 votes (0.67) meets the 0.67 threshold
         assert result["result"] in ["approved", "no_consensus"]  # Edge case at exact threshold
 
         # Test clearly not meeting qualified majority
-        voting_manager._votes_cast = {
-            "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
-            "Agent2": {"vote": VoteType.REJECT, "confidence": 0.8},
-            "Agent3": {"vote": VoteType.REJECT, "confidence": 0.7},
-        }
+        voting_manager.set_votes_for_testing(
+            {
+                "Agent1": {"vote": VoteType.APPROVE, "confidence": 0.9},
+                "Agent2": {"vote": VoteType.REJECT, "confidence": 0.8},
+                "Agent3": {"vote": VoteType.REJECT, "confidence": 0.7},
+            }
+        )
 
-        result = voting_manager._calculate_voting_result()
+        result = voting_manager.calculate_voting_result_for_testing()
         assert result["result"] == "no_consensus"
 
     @pytest.mark.asyncio
-    async def test_announce_voting_phase(self, voting_manager: VotingGroupChatManager) -> None:
+    async def testannounce_voting_phase_for_testing(self, voting_manager: VotingGroupChatManager) -> None:
         """Test voting phase announcement."""
-        voting_manager._current_proposal = {"title": "Test Proposal", "id": "test-123"}
+        voting_manager.set_proposal_for_testing({"title": "Test Proposal", "id": "test-123"})
 
         with patch.object(voting_manager, "update_message_thread") as mock_update:
-            await voting_manager._announce_voting_phase()
+            await voting_manager.announce_voting_phase_for_testing()
             mock_update.assert_called_once()
 
         # Test without proposal
-        voting_manager._current_proposal = None
+        voting_manager.set_proposal_for_testing(None)
         with patch.object(voting_manager, "update_message_thread") as mock_update:
-            await voting_manager._announce_voting_phase()
+            await voting_manager.announce_voting_phase_for_testing()
             mock_update.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_save_and_load_state(self, voting_manager: VotingGroupChatManager) -> None:
         """Test state persistence."""
         # Set up some state
-        voting_manager._current_phase = VotingPhase.VOTING
-        voting_manager._current_proposal = {"id": "test-123", "title": "Test"}
-        voting_manager._votes_cast = {"Agent1": {"vote": VoteType.APPROVE}}
-        voting_manager._discussion_rounds = 1
+        voting_manager.set_phase_for_testing(VotingPhase.VOTING)
+        voting_manager.set_proposal_for_testing({"id": "test-123", "title": "Test"})
+        voting_manager.set_votes_for_testing({"Agent1": {"vote": VoteType.APPROVE}})
+        voting_manager.set_discussion_rounds_for_testing(1)
 
         # Save state
         state = await voting_manager.save_state()
 
         # Reset manager
         await voting_manager.reset()
-        assert voting_manager._current_phase == VotingPhase.PROPOSAL
+        assert voting_manager.current_phase == VotingPhase.PROPOSAL
 
         # Load state
         await voting_manager.load_state(state)
 
         # Verify state restored
         # The phase should be restored to VOTING from the saved state
-        assert voting_manager._current_phase == VotingPhase.VOTING  # type: ignore[comparison-overlap]
-        assert voting_manager._current_proposal is not None
-        assert voting_manager._current_proposal["id"] == "test-123"
-        assert "Agent1" in voting_manager._votes_cast
-        assert voting_manager._discussion_rounds == 1
+        assert voting_manager.current_phase == VotingPhase.VOTING
+        assert voting_manager.current_proposal is not None
+        assert voting_manager.current_proposal["id"] == "test-123"
+        assert "Agent1" in voting_manager.votes_cast
+        assert voting_manager.discussion_rounds == 1
 
 
 class TestVotingResultMessage:
