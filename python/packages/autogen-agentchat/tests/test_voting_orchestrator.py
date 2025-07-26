@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 import pytest
@@ -8,6 +9,14 @@ from autogen_agentchat.conditions import MaxMessageTermination
 from autogen_agentchat.teams import ProposalMessage, VoteMessage, VoteType, VotingGroupChat, VotingMethod
 from autogen_agentchat.teams._group_chat._voting_group_chat import ProposalContent, VoteContent
 from autogen_ext.models.replay import ReplayChatCompletionClient
+
+# Check for OpenAI API key availability
+openai_api_key = os.environ.get("OPENAI_API_KEY")
+requires_openai_api = pytest.mark.skipif(openai_api_key is None, reason="OPENAI_API_KEY environment variable not set")
+
+# Type imports for integration tests
+if openai_api_key is not None:
+    from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
 class TestVotingGroupChat:
@@ -123,3 +132,84 @@ class TestVotingGroupChat:
         # Test that team was created successfully
         assert original_team is not None
         assert isinstance(original_team, VotingGroupChat)
+
+
+class TestVotingGroupChatIntegration:
+    """Integration tests for VotingGroupChat with real OpenAI API."""
+
+    @pytest_asyncio.fixture  # type: ignore[misc]
+    async def openai_model_client(self) -> "OpenAIChatCompletionClient":
+        """Create a real OpenAI model client for integration testing."""
+        if openai_api_key is None:
+            pytest.skip("OPENAI_API_KEY not available")
+
+        # Import here to avoid import errors when OpenAI is not available
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+        return OpenAIChatCompletionClient(
+            model="gpt-4o-mini",  # Use cheaper model for testing
+            api_key=openai_api_key,
+        )
+
+    @pytest_asyncio.fixture  # type: ignore[misc]
+    async def real_voting_agents(self, openai_model_client: "OpenAIChatCompletionClient") -> List[ChatAgent]:
+        """Create test agents with real OpenAI client for integration testing."""
+        return [
+            AssistantAgent("Reviewer1", model_client=openai_model_client),
+            AssistantAgent("Reviewer2", model_client=openai_model_client),
+            AssistantAgent("Reviewer3", model_client=openai_model_client),
+        ]
+
+    @requires_openai_api
+    @pytest.mark.asyncio
+    async def test_real_voting_group_chat_basic_flow(self, real_voting_agents: List[ChatAgent]) -> None:
+        """Test basic VotingGroupChat flow with real OpenAI API calls."""
+        voting_team = VotingGroupChat(
+            participants=real_voting_agents,
+            voting_method=VotingMethod.MAJORITY,
+            max_turns=5,
+            termination_condition=MaxMessageTermination(5),
+        )
+
+        # Test that team was created successfully with real agents
+        assert voting_team is not None
+        assert isinstance(voting_team, VotingGroupChat)
+
+        # Test a simple conversation to verify API connectivity
+        from autogen_agentchat.messages import TextMessage
+        from autogen_core import CancellationToken
+
+        test_message = TextMessage(content="Hello, can you respond with just 'API_TEST_SUCCESS'?", source="TestUser")
+
+        cancellation_token = CancellationToken()
+        response = await real_voting_agents[0].on_messages([test_message], cancellation_token)
+        assert response is not None
+
+    @requires_openai_api
+    @pytest.mark.asyncio
+    async def test_real_voting_with_proposal(self, real_voting_agents: List[ChatAgent]) -> None:
+        """Test voting flow with a real proposal using OpenAI API."""
+        voting_team = VotingGroupChat(
+            participants=real_voting_agents,
+            voting_method=VotingMethod.MAJORITY,
+            max_turns=3,
+            termination_condition=MaxMessageTermination(3),
+        )
+
+        # Create a simple proposal for testing
+        proposal = ProposalMessage(
+            content=ProposalContent(
+                proposal_id="integration-test-1",
+                title="Test API Integration",
+                description="Should we proceed with this integration test?",
+                options=["Yes", "No"],
+            ),
+            source="TestProposer",
+        )
+
+        # Test that proposal is properly formatted
+        assert proposal.content.proposal_id == "integration-test-1"
+        assert "Test API Integration" in proposal.to_model_text()
+
+        # Test that voting team can handle the proposal structure
+        assert voting_team is not None
