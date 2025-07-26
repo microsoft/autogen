@@ -155,6 +155,8 @@ canvas = [
     "unidiff>=0.7.5",
 ]
 
+redisvl = ["redisvl>=0.6.0"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
 
