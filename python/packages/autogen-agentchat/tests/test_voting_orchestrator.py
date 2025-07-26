@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import List
+from typing import List, cast
 from unittest.mock import patch
 
 import pytest
@@ -592,7 +592,7 @@ class TestVotingGroupChatManager:
 
         # Verify state restored
         # The phase should be restored to VOTING from the saved state
-        assert voting_manager.current_phase == VotingPhase.VOTING
+        assert cast(VotingPhase, voting_manager.current_phase) == VotingPhase.VOTING
         assert voting_manager.current_proposal is not None
         assert voting_manager.current_proposal["id"] == "test-123"
         assert "Agent1" in voting_manager.votes_cast
