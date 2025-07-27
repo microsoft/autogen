@@ -1,20 +1,21 @@
 # mypy: disable-error-code="no-any-unimported,misc"
 from pathlib import Path
 
-import graphrag.config.defaults as defs
 import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
+from pydantic import BaseModel, Field
+
+import graphrag.config.defaults as defs
 from graphrag.config.load_config import load_config
 from graphrag.language_model.manager import ModelManager
-from pydantic import BaseModel, Field
+from graphrag.language_model.protocol import ChatModel, EmbeddingModel
 from graphrag.query.indexer_adapters import (
     read_indexer_entities,
     read_indexer_relationships,
     read_indexer_text_units,
 )
-from graphrag.language_model.protocol import ChatModel, EmbeddingModel
 from graphrag.query.structured_search.local_search.mixed_context import LocalSearchMixedContext
 from graphrag.query.structured_search.local_search.search import LocalSearch
 from graphrag.vector_stores.lancedb import LanceDBVectorStore

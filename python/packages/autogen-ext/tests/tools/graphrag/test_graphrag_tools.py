@@ -16,14 +16,14 @@ from graphrag.vector_stores.base import BaseVectorStore, VectorStoreDocument, Ve
 
 class MockModelOutput:
     """Mock ModelOutput implementation."""
-    
+
     def __init__(self, content: str = "Mock response") -> None:
         self._content = content
-    
+
     @property
     def content(self) -> str:
         return self._content
-    
+
     @property
     def full_response(self) -> dict[str, Any] | None:
         return {"content": self._content}
@@ -31,19 +31,19 @@ class MockModelOutput:
 
 class MockModelResponse:
     """Mock ModelResponse implementation."""
-    
+
     def __init__(self, content: str = "Mock response") -> None:
         self._output = MockModelOutput(content)
         self._history: list[Any] = []
-    
+
     @property
     def output(self) -> MockModelOutput:
         return self._output
-    
+
     @property
     def parsed_response(self) -> Any | None:
         return None
-    
+
     @property
     def history(self) -> list[Any]:
         return self._history
@@ -51,13 +51,11 @@ class MockModelResponse:
 
 class MockChatModel:  # type: ignore
     """Mock ChatModel implementation for testing."""
-    
+
     def __init__(self) -> None:
         # Create a proper LanguageModelConfig instance
         self.config: LanguageModelConfig = LanguageModelConfig(
-            model="mock-model",
-            type="openai_chat",
-            api_key="mock-key"
+            model="mock-model", type="openai_chat", api_key="mock-key"
         )
 
     async def achat(
@@ -95,13 +93,11 @@ class MockChatModel:  # type: ignore
 
 class MockEmbeddingModel:  # type: ignore
     """Mock EmbeddingModel implementation for testing."""
-    
+
     def __init__(self) -> None:
         # Create a proper LanguageModelConfig instance
         self.config: LanguageModelConfig = LanguageModelConfig(
-            model="mock-embedding-model",
-            type="openai_embedding",
-            api_key="mock-key"
+            model="mock-embedding-model", type="openai_embedding", api_key="mock-key"
         )
 
     async def aembed_batch(self, text_list: list[str], **kwargs: Any) -> list[list[float]]:
