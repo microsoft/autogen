@@ -2681,6 +2681,96 @@ async def test_mistral_remove_name() -> None:
 
 
 @pytest.mark.asyncio
+async def test_include_name_in_message() -> None:
+    """Test that include_name_in_message parameter controls the name field."""
+
+    # Test with UserMessage
+    user_message = UserMessage(content="Hello, I am from Seattle.", source="Adam")
+
+    # Test with include_name_in_message=True (default)
+    result_with_name = to_oai_type(user_message, include_name_in_message=True)[0]
+    assert "name" in result_with_name
+    assert result_with_name["name"] == "Adam"  # type: ignore[typeddict-item]
+    assert result_with_name["role"] == "user"
+    assert result_with_name["content"] == "Hello, I am from Seattle."
+
+    # Test with include_name_in_message=False
+    result_without_name = to_oai_type(user_message, include_name_in_message=False)[0]
+    assert "name" not in result_without_name
+    assert result_without_name["role"] == "user"
+    assert result_without_name["content"] == "Hello, I am from Seattle."
+
+    # Test with AssistantMessage (should not have name field regardless)
+    assistant_message = AssistantMessage(content="Hello, how can I help you?", source="Assistant")
+
+    # Test with include_name_in_message=True
+    result_assistant_with_name = to_oai_type(assistant_message, include_name_in_message=True)[0]
+    assert "name" not in result_assistant_with_name
+    assert result_assistant_with_name["role"] == "assistant"
+
+    # Test with include_name_in_message=False
+    result_assistant_without_name = to_oai_type(assistant_message, include_name_in_message=False)[0]
+    assert "name" not in result_assistant_without_name
+    assert result_assistant_without_name["role"] == "assistant"
+
+    # Test with SystemMessage (should not have name field regardless)
+    system_message = SystemMessage(content="You are a helpful assistant.")
+    result_system_with_name = to_oai_type(system_message, include_name_in_message=True)[0]
+    result_system_without_name = to_oai_type(system_message, include_name_in_message=False)[0]
+    assert "name" not in result_system_with_name
+    assert "name" not in result_system_without_name
+    assert result_system_with_name["role"] == "system"
+    assert result_system_without_name["role"] == "system"
+
+    # Test default behavior (should include name when parameter not specified)
+    result_default = to_oai_type(user_message)[0]  # include_name_in_message defaults to True
+    assert "name" in result_default
+    assert result_default["name"] == "Adam"  # type: ignore[typeddict-item]
+
+
+@pytest.mark.asyncio
+async def test_include_name_with_different_models() -> None:
+    """Test that include_name_in_message works with different model families."""
+
+    user_message = UserMessage(content="Hello", source="User")
+
+    # Test with GPT-4o model (normally includes name)
+    result_gpt4o_with_name = to_oai_type(
+        user_message, model="gpt-4o", model_family=ModelFamily.GPT_4O, include_name_in_message=True
+    )[0]
+    result_gpt4o_without_name = to_oai_type(
+        user_message, model="gpt-4o", model_family=ModelFamily.GPT_4O, include_name_in_message=False
+    )[0]
+
+    assert "name" in result_gpt4o_with_name
+    assert "name" not in result_gpt4o_without_name
+
+    # Test with Mistral model (normally excludes name, but should still respect the parameter)
+    result_mistral_with_name = to_oai_type(
+        user_message, model="mistral-7b", model_family=ModelFamily.MISTRAL, include_name_in_message=True
+    )[0]
+    result_mistral_without_name = to_oai_type(
+        user_message, model="mistral-7b", model_family=ModelFamily.MISTRAL, include_name_in_message=False
+    )[0]
+
+    # Note: Mistral transformers are specifically built without _set_name, so they won't have name regardless
+    # But our parameter still controls the behavior consistently
+    assert "name" not in result_mistral_with_name  # Mistral design excludes names
+    assert "name" not in result_mistral_without_name
+
+    # Test with unknown model (uses default transformer)
+    result_unknown_with_name = to_oai_type(
+        user_message, model="some-custom-model", model_family=ModelFamily.UNKNOWN, include_name_in_message=True
+    )[0]
+    result_unknown_without_name = to_oai_type(
+        user_message, model="some-custom-model", model_family=ModelFamily.UNKNOWN, include_name_in_message=False
+    )[0]
+
+    assert "name" in result_unknown_with_name
+    assert "name" not in result_unknown_without_name
+
+
+@pytest.mark.asyncio
 async def test_mock_tool_choice_specific_tool(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test tool_choice parameter with a specific tool using mocks."""
 
