@@ -33,14 +33,7 @@ from autogen_ext.models.openai._openai_client import (
 )
 from autogen_ext.models.openai._transformation import TransformerMap, get_transformer
 from autogen_ext.models.openai._transformation.registry import _find_model_family  # pyright: ignore[reportPrivateUsage]
-from openai.resources.beta.chat.completions import (  # type: ignore
-    AsyncChatCompletionStreamManager as BetaAsyncChatCompletionStreamManager,  # type: ignore
-)
-
-# type: ignore
-from openai.resources.beta.chat.completions import (
-    AsyncCompletions as BetaAsyncCompletions,
-)
+from openai.lib.streaming.chat import AsyncChatCompletionStreamManager
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import (
@@ -745,7 +738,7 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         )
 
-    monkeypatch.setattr(BetaAsyncCompletions, "parse", _mock_parse)
+    monkeypatch.setattr(AsyncCompletions, "parse", _mock_parse)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -838,7 +831,7 @@ async def test_structured_output_with_tool_calls(monkeypatch: pytest.MonkeyPatch
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         )
 
-    monkeypatch.setattr(BetaAsyncCompletions, "parse", _mock_parse)
+    monkeypatch.setattr(AsyncCompletions, "parse", _mock_parse)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -912,7 +905,7 @@ async def test_structured_output_with_streaming(monkeypatch: pytest.MonkeyPatch)
         return _stream()
 
     # Mock the context manager __aenter__ method which returns the stream.
-    monkeypatch.setattr(BetaAsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
+    monkeypatch.setattr(AsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -1022,7 +1015,7 @@ async def test_structured_output_with_streaming_tool_calls(monkeypatch: pytest.M
         return _stream()
 
     # Mock the context manager __aenter__ method which returns the stream.
-    monkeypatch.setattr(BetaAsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
+    monkeypatch.setattr(AsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
