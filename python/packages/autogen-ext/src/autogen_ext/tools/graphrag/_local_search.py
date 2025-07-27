@@ -64,6 +64,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
     .. code-block:: python
 
         import asyncio
+        from pathlib import Path
         from autogen_ext.models.openai import OpenAIChatCompletionClient
         from autogen_agentchat.ui import Console
         from autogen_ext.tools.graphrag import LocalSearchTool
@@ -176,9 +177,9 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
             model=self._model,
             context_builder=context_builder,
             token_encoder=token_encoder,
-            model_params=llm_params,
-            context_builder_params=context_builder_params,
             response_type=search_config.response_type,
+            context_builder_params=context_builder_params,
+            model_params=llm_params,
         )
 
     async def run(self, args: LocalSearchToolArgs, cancellation_token: CancellationToken) -> LocalSearchToolReturn:
@@ -200,9 +201,14 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
         # Load GraphRAG config
         config = load_config(root_dir=root_dir, config_filepath=config_filepath)
 
-        # Get the language model configurations
-        chat_model_config = config.get_language_model_config(defs.DEFAULT_CHAT_MODEL_ID)
-        embedding_model_config = config.get_language_model_config(defs.DEFAULT_EMBEDDING_MODEL_ID)
+        # Get the language model configurations from the models section
+        chat_model_config = config.models.get(defs.DEFAULT_CHAT_MODEL_ID)
+        embedding_model_config = config.models.get(defs.DEFAULT_EMBEDDING_MODEL_ID)
+
+        if chat_model_config is None:
+            raise ValueError("default_chat_model not found in config.models")
+        if embedding_model_config is None:
+            raise ValueError("default_embedding_model not found in config.models")
 
         # Initialize token encoder based on the model being used
         try:
@@ -226,7 +232,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
 
         # Create data config from storage paths
         data_config = DataConfig(
-            input_dir=str(Path(config.output.base_dir)),
+            input_dir=str(config.output.base_dir),
         )
 
         return cls(

@@ -55,7 +55,7 @@ class MockChatModel:  # type: ignore
     def __init__(self) -> None:
         # Create a proper LanguageModelConfig instance
         self.config: LanguageModelConfig = LanguageModelConfig(
-            model="mock-model", type="openai_chat", api_key="mock-key"
+            model="gpt-3.5-turbo", type="openai_chat", api_key="mock-key"
         )
 
     async def achat(
@@ -97,7 +97,7 @@ class MockEmbeddingModel:  # type: ignore
     def __init__(self) -> None:
         # Create a proper LanguageModelConfig instance
         self.config: LanguageModelConfig = LanguageModelConfig(
-            model="mock-embedding-model", type="openai_embedding", api_key="mock-key"
+            model="text-embedding-ada-002", type="openai_embedding", api_key="mock-key"
         )
 
     async def aembed_batch(self, text_list: list[str], **kwargs: Any) -> list[list[float]]:
