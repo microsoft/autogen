@@ -34,8 +34,9 @@ dependencies = [
     "html2text",
     "autogen-core>=0.4.9.2,<0.7",
     "autogen-agentchat>=0.4.9.2,<0.7",
-    "autogen-ext[magentic-one, openai, azure]>=0.4.2,<0.7",
+    "autogen-ext[magentic-one, openai, azure, mcp]>=0.4.2,<0.7",
     "anthropic",
+    "mcp>=1.11.0"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
@@ -62,6 +63,8 @@ filterwarnings = [
     "ignore:Deprecated call to `pkg_resources\\.declare_namespace\\('.*'\\):DeprecationWarning",
     "ignore::DeprecationWarning:google.rpc",
 ]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 
 [project.urls]

@@ -7,6 +7,7 @@ from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 from graphrag.config.load_config import load_config
 from graphrag.language_model.manager import ModelManager
+from pydantic import BaseModel, Field
 from graphrag.query.indexer_adapters import (
     read_indexer_communities,
     read_indexer_entities,
@@ -15,7 +16,6 @@ from graphrag.query.indexer_adapters import (
 from graphrag.language_model.protocol import ChatModel
 from graphrag.query.structured_search.global_search.community_context import GlobalCommunityContext
 from graphrag.query.structured_search.global_search.search import GlobalSearch
-from pydantic import BaseModel, Field
 
 from ._config import GlobalContextConfig as ContextConfig
 from ._config import GlobalDataConfig as DataConfig

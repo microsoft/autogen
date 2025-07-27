@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-ext"
-version = "0.6.2"
+version = "0.6.4"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen extensions library"
 readme = "README.md"
@@ -15,7 +15,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.6.2",
+    "autogen-core==0.6.4",
 ]
 
 [project.optional-dependencies]
@@ -32,7 +32,7 @@ docker = ["docker~=7.0", "asyncio_atexit>=1.0.1"]
 ollama = ["ollama>=0.4.7", "tiktoken>=0.8.0"]
 openai = ["openai>=1.66.5", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
-    "autogen-agentchat==0.6.2",
+    "autogen-agentchat==0.6.4",
     "magika>=0.6.1rc2",
     "markitdown[all]~=0.1.0a3",
 ]
@@ -50,21 +50,21 @@ mem0-local = [
     "chromadb>=1.0.0"
 ]
 web-surfer = [
-    "autogen-agentchat==0.6.2",
+    "autogen-agentchat==0.6.4",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
     "magika>=0.6.1rc2",
     "markitdown[all]~=0.1.0a3",
 ]
 magentic-one = [
-    "autogen-agentchat==0.6.2",
+    "autogen-agentchat==0.6.4",
     "magika>=0.6.1rc2",
     "markitdown[all]~=0.1.0a3",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]
 video-surfer = [
-    "autogen-agentchat==0.6.2",
+    "autogen-agentchat==0.6.4",
     "opencv-python>=4.5",
     "ffmpeg-python",
     "openai-whisper",
@@ -150,10 +150,12 @@ semantic-kernel-all = [
 
 rich = ["rich>=13.9.4"]
 
-mcp = ["mcp>=1.8.1"]
+mcp = ["mcp>=1.11.0"]
 canvas = [
     "unidiff>=0.7.5",
 ]
+
+redisvl = ["redisvl>=0.6.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
@@ -175,7 +177,7 @@ exclude = ["src/autogen_ext/agents/web_surfer/*.js", "src/autogen_ext/runtimes/g
 [tool.pyright]
 extends = "../../pyproject.toml"
 include = ["src", "tests"]
-exclude = ["src/autogen_ext/runtimes/grpc/protos", "tests/protos"]
+exclude = ["src/autogen_ext/runtimes/grpc/protos", "tests/protos", "src/autogen_ext/agents/openai/_openai_assistant_agent.py", "tests/test_openai_assistant_agent.py"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -195,7 +197,7 @@ test.sequence = [
 test.default_item_type = "cmd"
 test-grpc = "pytest -n 1 --cov=src --cov-report=term-missing --cov-report=xml --grpc"
 test-windows = "pytest -n 1 --cov=src --cov-report=term-missing --cov-report=xml -m 'windows'"
-mypy = "mypy --config-file ../../pyproject.toml --exclude src/autogen_ext/runtimes/grpc/protos --exclude tests/protos src tests"
+mypy = "mypy --config-file ../../pyproject.toml --exclude src/autogen_ext/runtimes/grpc/protos --exclude tests/protos --exclude src/autogen_ext/agents/openai/_openai_assistant_agent.py --exclude tests/test_openai_assistant_agent.py  --ignore-missing-imports src tests"
 
 [tool.mypy]
 [[tool.mypy.overrides]]

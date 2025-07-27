@@ -8,6 +8,7 @@ from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 from graphrag.config.load_config import load_config
 from graphrag.language_model.manager import ModelManager
+from pydantic import BaseModel, Field
 from graphrag.query.indexer_adapters import (
     read_indexer_entities,
     read_indexer_relationships,
@@ -17,7 +18,6 @@ from graphrag.language_model.protocol import ChatModel, EmbeddingModel
 from graphrag.query.structured_search.local_search.mixed_context import LocalSearchMixedContext
 from graphrag.query.structured_search.local_search.search import LocalSearch
 from graphrag.vector_stores.lancedb import LanceDBVectorStore
-from pydantic import BaseModel, Field
 
 from ._config import LocalContextConfig, SearchConfig
 from ._config import LocalDataConfig as DataConfig
