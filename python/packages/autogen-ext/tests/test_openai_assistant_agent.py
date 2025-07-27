@@ -25,6 +25,7 @@ except ImportError:
         allow_module_level=True,
     )
 
+
 class QuestionType(str, Enum):
     MULTIPLE_CHOICE = "MULTIPLE_CHOICE"
     FREE_RESPONSE = "FREE_RESPONSE"
