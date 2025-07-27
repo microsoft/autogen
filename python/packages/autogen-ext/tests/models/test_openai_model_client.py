@@ -2690,7 +2690,7 @@ async def test_include_name_in_message() -> None:
     # Test with include_name_in_message=True (default)
     result_with_name = to_oai_type(user_message, include_name_in_message=True)[0]
     assert "name" in result_with_name
-    assert result_with_name["name"] == "Adam"
+    assert result_with_name["name"] == "Adam"  # type: ignore[typeddict-item]
     assert result_with_name["role"] == "user"
     assert result_with_name["content"] == "Hello, I am from Seattle."
 
@@ -2706,7 +2706,7 @@ async def test_include_name_in_message() -> None:
     # Test with include_name_in_message=True
     result_assistant_with_name = to_oai_type(assistant_message, include_name_in_message=True)[0]
     assert "name" in result_assistant_with_name
-    assert result_assistant_with_name["name"] == "Assistant"
+    assert result_assistant_with_name["name"] == "Assistant"  # type: ignore[typeddict-item]
     assert result_assistant_with_name["role"] == "assistant"
 
     # Test with include_name_in_message=False
@@ -2726,7 +2726,7 @@ async def test_include_name_in_message() -> None:
     # Test default behavior (should include name when parameter not specified)
     result_default = to_oai_type(user_message)[0]  # include_name_in_message defaults to True
     assert "name" in result_default
-    assert result_default["name"] == "Adam"
+    assert result_default["name"] == "Adam"  # type: ignore[typeddict-item]
 
 
 @pytest.mark.asyncio
