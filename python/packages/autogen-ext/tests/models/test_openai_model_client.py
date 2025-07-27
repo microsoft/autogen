@@ -2700,13 +2700,12 @@ async def test_include_name_in_message() -> None:
     assert result_without_name["role"] == "user"
     assert result_without_name["content"] == "Hello, I am from Seattle."
 
-    # Test with AssistantMessage
+    # Test with AssistantMessage (should not have name field regardless)
     assistant_message = AssistantMessage(content="Hello, how can I help you?", source="Assistant")
 
     # Test with include_name_in_message=True
     result_assistant_with_name = to_oai_type(assistant_message, include_name_in_message=True)[0]
-    assert "name" in result_assistant_with_name
-    assert result_assistant_with_name["name"] == "Assistant"  # type: ignore[typeddict-item]
+    assert "name" not in result_assistant_with_name
     assert result_assistant_with_name["role"] == "assistant"
 
     # Test with include_name_in_message=False
