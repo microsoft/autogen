@@ -1244,7 +1244,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             This can be useful for models that do not support the `name` field in
             message. Defaults to False.
         include_name_in_message (optional, bool): Whether to include the `name` field
-            in message parameters sent to the OpenAI API. Defaults to True. Set to False
+            in user message parameters sent to the OpenAI API. Defaults to True. Set to False
             for model providers that don't support the `name` field (e.g., Groq).
         stream_options (optional, dict): Additional options for streaming. Currently only `include_usage` is supported.
 
@@ -1578,6 +1578,15 @@ class AzureOpenAIChatCompletionClient(
         top_p (optional, float):
         user (optional, str):
         default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
+        add_name_prefixes (optional, bool): Whether to prepend the `source` value
+            to each :class:`~autogen_core.models.UserMessage` content. E.g.,
+            "this is content" becomes "Reviewer said: this is content."
+            This can be useful for models that do not support the `name` field in
+            message. Defaults to False.
+        include_name_in_message (optional, bool): Whether to include the `name` field
+            in user message parameters sent to the OpenAI API. Defaults to True. Set to False
+            for model providers that don't support the `name` field (e.g., Groq).
+        stream_options (optional, dict): Additional options for streaming. Currently only `include_usage` is supported.
 
 
     To use the client, you need to provide your deployment name, Azure Cognitive Services endpoint, and api version.
