@@ -163,7 +163,11 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
 
 
 def to_oai_type(
-    message: LLMMessage, prepend_name: bool = False, model: str = "unknown", model_family: str = ModelFamily.UNKNOWN, include_name_in_message: bool = True
+    message: LLMMessage,
+    prepend_name: bool = False,
+    model: str = "unknown",
+    model_family: str = ModelFamily.UNKNOWN,
+    include_name_in_message: bool = True,
 ) -> Sequence[ChatCompletionMessageParam]:
     context = {
         "prepend_name": prepend_name,
@@ -322,7 +326,13 @@ def count_tokens_openai(
     # Message tokens.
     for message in messages:
         num_tokens += tokens_per_message
-        oai_message = to_oai_type(message, prepend_name=add_name_prefixes, model=model, model_family=model_family, include_name_in_message=include_name_in_message)
+        oai_message = to_oai_type(
+            message,
+            prepend_name=add_name_prefixes,
+            model=model,
+            model_family=model_family,
+            include_name_in_message=include_name_in_message,
+        )
         for oai_message_part in oai_message:
             for key, value in oai_message_part.items():
                 if value is None:
