@@ -977,7 +977,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             for handoff in self._handoffs.values():
                 target_name = handoff.target.lower()
                 if target_name in last_line.lower():
-                    from ..messages import HandoffMessage
 
                     yield Response(
                         chat_message=HandoffMessage(
