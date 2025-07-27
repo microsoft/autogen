@@ -970,6 +970,24 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         assert model_result is not None, "No model result was produced."
 
+        # Check assistant's output for handoff trigger (general: target name in last non-empty line)
+        if isinstance(model_result.content, str):
+            lines = [line.strip() for line in model_result.content.splitlines() if line.strip()]
+            last_line = lines[-1] if lines else ""
+            for handoff in self._handoffs.values():
+                target_name = handoff.target.lower()
+                if target_name in last_line.lower():
+                    from ..messages import HandoffMessage
+
+                    yield Response(
+                        chat_message=HandoffMessage(
+                            source=self.name,
+                            target=handoff.target,
+                            content=model_result.content,
+                        )
+                    )
+                    return
+
         # --- NEW: If the model produced a hidden "thought," yield it as an event ---
         if model_result.thought:
             thought_event = ThoughtEvent(content=model_result.thought, source=agent_name)
