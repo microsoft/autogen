@@ -183,7 +183,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
         )
 
     async def run(self, args: LocalSearchToolArgs, cancellation_token: CancellationToken) -> LocalSearchToolReturn:
-        search_result = await self._search_engine.search(args.query)
+        search_result = await self._search_engine.search(args.query)  # type: ignore[reportUnknownMemberType]
         assert isinstance(search_result.response, str), "Expected response to be a string"
         return LocalSearchToolReturn(answer=search_result.response)
 
