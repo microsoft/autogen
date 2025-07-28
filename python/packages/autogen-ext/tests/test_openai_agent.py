@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import BaseChatMessage, MultiModalMessage, TextMessage
-from autogen_core import CancellationToken, FunctionCall, Image
+from autogen_core import CancellationToken, Image
 from autogen_core.models import UserMessage
 from autogen_core.tools import Tool, ToolSchema
 from autogen_ext.agents.openai import OpenAIAgent
