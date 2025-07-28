@@ -777,7 +777,7 @@ requires-dist = [
     { name = "nbclient", marker = "extra == 'jupyter-executor'", specifier = ">=0.10.2" },
     { name = "neo4j", marker = "extra == 'mem0-local'", specifier = ">=5.25.0" },
     { name = "ollama", marker = "extra == 'ollama'", specifier = ">=0.4.7" },
-    { name = "openai", marker = "extra == 'openai'", specifier = ">=1.66.5" },
+    { name = "openai", marker = "extra == 'openai'", specifier = ">=1.93" },
     { name = "openai-whisper", marker = "extra == 'video-surfer'" },
     { name = "opencv-python", marker = "extra == 'video-surfer'", specifier = ">=4.5" },
     { name = "pillow", marker = "extra == 'magentic-one'", specifier = ">=11.0.0" },
