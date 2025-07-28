@@ -93,17 +93,12 @@ class OpenAIAssistantAgentState(BaseModel):
 class OpenAIAssistantAgent(BaseChatAgent):
     """An agent implementation that uses the Assistant API to generate responses.
 
-    .. warning::
-
-        This module is deprecated starting v0.7.0 and will be removed in a future version.
-        Please use :class:`~autogen_ext.agents.openai.OpenAIAgent` instead.
-
     Installation:
 
     .. code-block:: bash
 
-        pip install "autogen-ext[openai<1.83]"  # For OpenAI Assistant
-        # pip install "autogen-ext[openai<1.83,azure]"  # For Azure OpenAI Assistant
+        pip install "autogen-ext[openai]"  # For OpenAI Assistant
+        # pip install "autogen-ext[openai,azure]"  # For Azure OpenAI Assistant
 
 
     This agent leverages the Assistant API to create AI assistants with capabilities like:
