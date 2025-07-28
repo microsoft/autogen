@@ -33,14 +33,7 @@ from autogen_ext.models.openai._openai_client import (
 )
 from autogen_ext.models.openai._transformation import TransformerMap, get_transformer
 from autogen_ext.models.openai._transformation.registry import _find_model_family  # pyright: ignore[reportPrivateUsage]
-from openai.resources.beta.chat.completions import (  # type: ignore
-    AsyncChatCompletionStreamManager as BetaAsyncChatCompletionStreamManager,  # type: ignore
-)
-
-# type: ignore
-from openai.resources.beta.chat.completions import (
-    AsyncCompletions as BetaAsyncCompletions,
-)
+from openai.lib.streaming.chat import AsyncChatCompletionStreamManager
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import (
@@ -745,7 +738,7 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         )
 
-    monkeypatch.setattr(BetaAsyncCompletions, "parse", _mock_parse)
+    monkeypatch.setattr(AsyncCompletions, "parse", _mock_parse)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -838,7 +831,7 @@ async def test_structured_output_with_tool_calls(monkeypatch: pytest.MonkeyPatch
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         )
 
-    monkeypatch.setattr(BetaAsyncCompletions, "parse", _mock_parse)
+    monkeypatch.setattr(AsyncCompletions, "parse", _mock_parse)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -912,7 +905,7 @@ async def test_structured_output_with_streaming(monkeypatch: pytest.MonkeyPatch)
         return _stream()
 
     # Mock the context manager __aenter__ method which returns the stream.
-    monkeypatch.setattr(BetaAsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
+    monkeypatch.setattr(AsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -1022,7 +1015,7 @@ async def test_structured_output_with_streaming_tool_calls(monkeypatch: pytest.M
         return _stream()
 
     # Mock the context manager __aenter__ method which returns the stream.
-    monkeypatch.setattr(BetaAsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
+    monkeypatch.setattr(AsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -1661,6 +1654,120 @@ async def test_tool_calling_with_stream(monkeypatch: pytest.MonkeyPatch) -> None
     assert chunks[-1].thought == "Hello Another Hello Yet Another Hello"
 
 
+@pytest.mark.asyncio
+async def test_tool_calls_assistant_message_content_field(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that AssistantMessage with tool calls includes required content field.
+
+    This test addresses the issue where AssistantMessage with tool calls but no thought
+    was missing the required 'content' field, causing OpenAI API UnprocessableEntityError(422).
+    """
+    # Create a tool call for testing
+    tool_calls = [
+        FunctionCall(id="call_1", name="increment_number", arguments='{"number": 5}'),
+        FunctionCall(id="call_2", name="increment_number", arguments='{"number": 6}'),
+    ]
+
+    # Mock response for tool calls
+    chat_completion = ChatCompletion(
+        id="id1",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content="Done",
+                ),
+            )
+        ],
+        created=1234567890,
+        model="gpt-4o",
+        object="chat.completion",
+        usage=CompletionUsage(completion_tokens=10, prompt_tokens=5, total_tokens=15),
+    )
+
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="test")
+    mock_create = AsyncMock(return_value=chat_completion)
+
+    # Test AssistantMessage with tool calls but no thought
+    assistant_message_no_thought = AssistantMessage(
+        content=tool_calls,
+        source="assistant",
+        thought=None,  # No thought - this was causing the issue
+    )
+
+    with monkeypatch.context() as mp:
+        mp.setattr(client._client.chat.completions, "create", mock_create)  # type: ignore[reportPrivateUsage]
+
+        await client.create(
+            messages=[
+                UserMessage(content="Please increment these numbers", source="user"),
+                assistant_message_no_thought,
+            ]
+        )
+
+    # Verify the API was called and check the messages sent
+    mock_create.assert_called_once()
+    call_args = mock_create.call_args
+
+    # Extract the messages from the API call
+    messages = call_args.kwargs["messages"]
+
+    # Find the assistant message in the API call
+    assistant_messages = [msg for msg in messages if msg["role"] == "assistant"]
+    assert len(assistant_messages) == 1
+
+    assistant_msg = assistant_messages[0]
+
+    # Verify all required fields are present
+    assert "role" in assistant_msg
+    assert "tool_calls" in assistant_msg
+    assert "content" in assistant_msg  # This was missing before the fix
+
+    # Verify field values
+    assert assistant_msg["role"] == "assistant"
+    assert assistant_msg["content"] is None  # Should be null for tools without thought
+    assert len(assistant_msg["tool_calls"]) == 2
+
+    # Test AssistantMessage with tool calls AND thought
+    assistant_message_with_thought = AssistantMessage(
+        content=tool_calls, source="assistant", thought="I need to increment these numbers."
+    )
+
+    mock_create.reset_mock()  # Reset for second test
+
+    with monkeypatch.context() as mp:
+        mp.setattr(client._client.chat.completions, "create", mock_create)  # type: ignore[reportPrivateUsage]
+
+        await client.create(
+            messages=[
+                UserMessage(content="Please increment these numbers", source="user"),
+                assistant_message_with_thought,
+            ]
+        )
+
+    # Verify the API was called for the second test
+    mock_create.assert_called_once()
+    call_args = mock_create.call_args
+
+    # Extract the messages from the API call
+    messages = call_args.kwargs["messages"]
+
+    # Find the assistant message in the API call
+    assistant_messages = [msg for msg in messages if msg["role"] == "assistant"]
+    assert len(assistant_messages) == 1
+
+    assistant_msg_with_thought = assistant_messages[0]
+
+    # Should have both tool_calls and content with thought text
+    assert "role" in assistant_msg_with_thought
+    assert "tool_calls" in assistant_msg_with_thought
+    assert "content" in assistant_msg_with_thought
+    assert assistant_msg_with_thought["role"] == "assistant"
+    assert assistant_msg_with_thought["content"] == "I need to increment these numbers."
+    assert len(assistant_msg_with_thought["tool_calls"]) == 2
+
+
 @pytest.fixture()
 def openai_client(request: pytest.FixtureRequest) -> OpenAIChatCompletionClient:
     model = request.node.callspec.params["model"]  # type: ignore
@@ -1711,7 +1818,7 @@ async def test_model_client_with_function_calling(model: str, openai_client: Ope
     pass_tool = FunctionTool(_pass_function, name="pass_tool", description="pass session.")
     fail_tool = FunctionTool(_fail_function, name="fail_tool", description="fail session.")
     messages: List[LLMMessage] = [
-        UserMessage(content="Call the pass tool with input 'task' and talk result", source="user")
+        UserMessage(content="Call the pass tool with input 'task' summarize the result.", source="user")
     ]
     create_result = await openai_client.create(messages=messages, tools=[pass_tool, fail_tool])
     assert isinstance(create_result.content, list)
@@ -1743,7 +1850,7 @@ async def test_model_client_with_function_calling(model: str, openai_client: Ope
     # Test parallel tool calling
     messages = [
         UserMessage(
-            content="Call both the pass tool with input 'task' and the fail tool also with input 'task' and talk result",
+            content="Call both the pass tool with input 'task' and the fail tool also with input 'task' and summarize the result",
             source="user",
         )
     ]
@@ -2564,6 +2671,96 @@ async def test_mistral_remove_name() -> None:
     # when the model is gpt-4o, the name parameter is not removed
     params = to_oai_type(message, prepend_name=False, model="gpt-4o", model_family=ModelFamily.GPT_4O)
     assert ("name" in params[0]) is True
+
+
+@pytest.mark.asyncio
+async def test_include_name_in_message() -> None:
+    """Test that include_name_in_message parameter controls the name field."""
+
+    # Test with UserMessage
+    user_message = UserMessage(content="Hello, I am from Seattle.", source="Adam")
+
+    # Test with include_name_in_message=True (default)
+    result_with_name = to_oai_type(user_message, include_name_in_message=True)[0]
+    assert "name" in result_with_name
+    assert result_with_name["name"] == "Adam"  # type: ignore[typeddict-item]
+    assert result_with_name["role"] == "user"
+    assert result_with_name["content"] == "Hello, I am from Seattle."
+
+    # Test with include_name_in_message=False
+    result_without_name = to_oai_type(user_message, include_name_in_message=False)[0]
+    assert "name" not in result_without_name
+    assert result_without_name["role"] == "user"
+    assert result_without_name["content"] == "Hello, I am from Seattle."
+
+    # Test with AssistantMessage (should not have name field regardless)
+    assistant_message = AssistantMessage(content="Hello, how can I help you?", source="Assistant")
+
+    # Test with include_name_in_message=True
+    result_assistant_with_name = to_oai_type(assistant_message, include_name_in_message=True)[0]
+    assert "name" not in result_assistant_with_name
+    assert result_assistant_with_name["role"] == "assistant"
+
+    # Test with include_name_in_message=False
+    result_assistant_without_name = to_oai_type(assistant_message, include_name_in_message=False)[0]
+    assert "name" not in result_assistant_without_name
+    assert result_assistant_without_name["role"] == "assistant"
+
+    # Test with SystemMessage (should not have name field regardless)
+    system_message = SystemMessage(content="You are a helpful assistant.")
+    result_system_with_name = to_oai_type(system_message, include_name_in_message=True)[0]
+    result_system_without_name = to_oai_type(system_message, include_name_in_message=False)[0]
+    assert "name" not in result_system_with_name
+    assert "name" not in result_system_without_name
+    assert result_system_with_name["role"] == "system"
+    assert result_system_without_name["role"] == "system"
+
+    # Test default behavior (should include name when parameter not specified)
+    result_default = to_oai_type(user_message)[0]  # include_name_in_message defaults to True
+    assert "name" in result_default
+    assert result_default["name"] == "Adam"  # type: ignore[typeddict-item]
+
+
+@pytest.mark.asyncio
+async def test_include_name_with_different_models() -> None:
+    """Test that include_name_in_message works with different model families."""
+
+    user_message = UserMessage(content="Hello", source="User")
+
+    # Test with GPT-4o model (normally includes name)
+    result_gpt4o_with_name = to_oai_type(
+        user_message, model="gpt-4o", model_family=ModelFamily.GPT_4O, include_name_in_message=True
+    )[0]
+    result_gpt4o_without_name = to_oai_type(
+        user_message, model="gpt-4o", model_family=ModelFamily.GPT_4O, include_name_in_message=False
+    )[0]
+
+    assert "name" in result_gpt4o_with_name
+    assert "name" not in result_gpt4o_without_name
+
+    # Test with Mistral model (normally excludes name, but should still respect the parameter)
+    result_mistral_with_name = to_oai_type(
+        user_message, model="mistral-7b", model_family=ModelFamily.MISTRAL, include_name_in_message=True
+    )[0]
+    result_mistral_without_name = to_oai_type(
+        user_message, model="mistral-7b", model_family=ModelFamily.MISTRAL, include_name_in_message=False
+    )[0]
+
+    # Note: Mistral transformers are specifically built without _set_name, so they won't have name regardless
+    # But our parameter still controls the behavior consistently
+    assert "name" not in result_mistral_with_name  # Mistral design excludes names
+    assert "name" not in result_mistral_without_name
+
+    # Test with unknown model (uses default transformer)
+    result_unknown_with_name = to_oai_type(
+        user_message, model="some-custom-model", model_family=ModelFamily.UNKNOWN, include_name_in_message=True
+    )[0]
+    result_unknown_without_name = to_oai_type(
+        user_message, model="some-custom-model", model_family=ModelFamily.UNKNOWN, include_name_in_message=False
+    )[0]
+
+    assert "name" in result_unknown_with_name
+    assert "name" not in result_unknown_without_name
 
 
 @pytest.mark.asyncio

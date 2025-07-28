@@ -11,10 +11,19 @@ import pytest
 from autogen_agentchat.messages import BaseChatMessage, TextMessage, ToolCallRequestEvent
 from autogen_core import CancellationToken
 from autogen_core.tools._base import BaseTool, Tool
-from autogen_ext.agents.openai import OpenAIAssistantAgent
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AsyncAzureOpenAI, AsyncOpenAI
+from openai import __version__ as openai_version
 from pydantic import BaseModel
+
+# Only import the OpenAIAssistantAgent if the version is compatible.
+try:
+    from autogen_ext.agents.openai import OpenAIAssistantAgent
+except ImportError:
+    pytest.skip(
+        "OpenAIAssistantAgent not available. Skipping all tests in this module.",
+        allow_module_level=True,
+    )
 
 
 class QuestionType(str, Enum):

@@ -1,7 +1,17 @@
+"""
+OpenAI Assistant Agent implementation.
+
+This module is deprecated starting v0.7.0 and will be removed in a future version.
+"""
+# pyright: ignore
+# mypy: ignore-errors
+
 import asyncio
 import json
 import logging
 import os
+import warnings
+from functools import wraps
 from typing import (
     Any,
     AsyncGenerator,
@@ -57,7 +67,31 @@ from openai.types.beta.threads.text_content_block_param import TextContentBlockP
 from openai.types.shared_params.function_definition import FunctionDefinition
 from openai.types.vector_store import VectorStore
 
+# Deprecation warning
+warnings.warn(
+    "The OpenAIAssistantAgent module is deprecated and will be removed in a future version, use OpenAIAgent instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
+
+
+def deprecated_class(reason: str) -> Callable[[type], type]:
+    """Decorator to mark a class as deprecated."""
+
+    def decorator(cls: type) -> type:
+        original_init = cls.__init__
+
+        @wraps(original_init)
+        def new_init(self, *args, **kwargs) -> None:
+            warnings.warn(f"{cls.__name__} is deprecated: {reason}", DeprecationWarning, stacklevel=2)
+            original_init(self, *args, **kwargs)
+
+        cls.__init__ = new_init
+        return cls
+
+    return decorator
 
 
 def _convert_tool_to_function_param(tool: Tool) -> "FunctionToolParam":
@@ -90,14 +124,22 @@ class OpenAIAssistantAgentState(BaseModel):
     uploaded_file_ids: List[str] = Field(default_factory=list)
 
 
+@deprecated_class(
+    "This class is deprecated starting v0.7.0 and will be removed in a future version. Use OpenAIAgent instead."
+)
 class OpenAIAssistantAgent(BaseChatAgent):
     """An agent implementation that uses the Assistant API to generate responses.
+
+    .. warning::
+
+        This module is deprecated starting v0.7.0 and will be removed in a future version.
+        Please use :class:`~autogen_ext.agents.openai.OpenAIAgent` instead.
 
     Installation:
 
     .. code-block:: bash
 
-        pip install "autogen-ext[openai]"
+        pip install "autogen-ext[openai]"  # For OpenAI Assistant
         # pip install "autogen-ext[openai,azure]"  # For Azure OpenAI Assistant
 
 
@@ -146,7 +188,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
                 # Create an assistant with code interpreter
                 assistant = OpenAIAssistantAgent(
-                    name="Python Helper",
+                    name="PythonHelper",
                     description="Helps with Python programming",
                     client=client,
                     model="gpt-4",
@@ -197,7 +239,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
                 # Create an assistant with code interpreter
                 assistant = OpenAIAssistantAgent(
-                    name="Python Helper",
+                    name="PythonHelper",
                     description="Helps with Python programming",
                     client=client,
                     model="gpt-4o",

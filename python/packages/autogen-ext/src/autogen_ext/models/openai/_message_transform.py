@@ -197,10 +197,14 @@ def _set_role(role: str) -> Callable[[LLMMessage, Dict[str, Any]], Dict[str, str
     return inner
 
 
-def _set_name(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, str]:
+def _set_name(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, Any]:
     assert isinstance(message, (UserMessage, AssistantMessage))
     assert_valid_name(message.source)
-    return {"name": message.source}
+    # Check if name should be included in message
+    if context.get("include_name_in_message", True):
+        return {"name": message.source}
+    else:
+        return EMPTY
 
 
 def _set_content_direct(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, LLMMessageContent]:
@@ -267,6 +271,12 @@ def _set_pass_message_when_whitespace(message: LLMMessage, context: Dict[str, An
     return {}
 
 
+def _set_null_content_for_tool_calls(message: LLMMessage, context: Dict[str, Any]) -> Dict[str, None]:
+    """Set content to null for tool calls without thought. Required by OpenAI API."""
+    assert isinstance(message, AssistantMessage)
+    return {"content": None}
+
+
 # === Base Transformers list ===
 base_system_message_transformers: List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]] = [
     _set_content_direct,
@@ -316,19 +326,22 @@ tools_assistant_transformer_funcs: List[Callable[[LLMMessage, Dict[str, Any]], D
     base_assistant_transformer_funcs
     + [
         _set_tool_calls,
+        _set_null_content_for_tool_calls,
     ]
 )
 
 thought_assistant_transformer_funcs: List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]] = (
-    tools_assistant_transformer_funcs
+    base_assistant_transformer_funcs
     + [
+        _set_tool_calls,
         _set_thought_as_content,
     ]
 )
 
 thought_assistant_transformer_funcs_gemini: List[Callable[[LLMMessage, Dict[str, Any]], Dict[str, Any]]] = (
-    tools_assistant_transformer_funcs
+    base_assistant_transformer_funcs
     + [
+        _set_tool_calls,
         _set_thought_as_content_gemini,
     ]
 )
