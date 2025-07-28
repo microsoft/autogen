@@ -139,8 +139,8 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     .. code-block:: bash
 
-        pip install "autogen-ext[openai]"  # For OpenAI Assistant
-        # pip install "autogen-ext[openai,azure]"  # For Azure OpenAI Assistant
+        pip install "autogen-ext[openai<1.83]"  # For OpenAI Assistant
+        # pip install "autogen-ext[openai<1.83,azure]"  # For Azure OpenAI Assistant
 
 
     This agent leverages the Assistant API to create AI assistants with capabilities like:
