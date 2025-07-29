@@ -51,9 +51,9 @@ def test_magentic_one_uses_docker_by_default(mock_chat_client):
         
         m1 = MagenticOne(client=mock_chat_client)
         
-        # Find the CodeExecutorAgent in the agents list
+        # Find the CodeExecutorAgent in the participants list
         code_executor_agent = None
-        for agent in m1._agents:
+        for agent in m1._participants:
             if hasattr(agent, '_code_executor'):
                 code_executor_agent = agent
                 break
@@ -80,9 +80,9 @@ def test_magentic_one_falls_back_to_local_when_docker_unavailable(mock_docker_ch
         
         m1 = MagenticOne(client=mock_chat_client)
         
-        # Find the CodeExecutorAgent in the agents list
+        # Find the CodeExecutorAgent in the participants list
         code_executor_agent = None
-        for agent in m1._agents:
+        for agent in m1._participants:
             if hasattr(agent, '_code_executor'):
                 code_executor_agent = agent
                 break
@@ -109,9 +109,9 @@ def test_magentic_one_with_explicit_code_executor(mock_chat_client):
         
         m1 = MagenticOne(client=mock_chat_client, code_executor=explicit_executor)
         
-        # Find the CodeExecutorAgent in the agents list
+        # Find the CodeExecutorAgent in the participants list
         code_executor_agent = None
-        for agent in m1._agents:
+        for agent in m1._participants:
             if hasattr(agent, '_code_executor'):
                 code_executor_agent = agent
                 break
