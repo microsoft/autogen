@@ -16,12 +16,17 @@ from autogen_ext.models.openai._openai_client import BaseOpenAIChatCompletionCli
 
 # Docker imports for default code executor
 try:
-    from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
     import docker
     from docker.errors import DockerException
-    DOCKER_AVAILABLE = True
+
+    from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+
+    _docker_available = True
 except ImportError:
-    DOCKER_AVAILABLE = False
+    docker = None  # type: ignore
+    DockerException = Exception  # type: ignore
+    DockerCommandLineCodeExecutor = None  # type: ignore
+    _docker_available = False
 
 SyncInputFunc = Callable[[str], str]
 AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
@@ -30,26 +35,29 @@ InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 
 def _is_docker_available() -> bool:
     """Check if Docker is available and running."""
-    if not DOCKER_AVAILABLE:
+    if not _docker_available:
         return False
-    
+
     try:
-        client = docker.from_env()
-        client.ping()  # type: ignore
-        return True
+        if docker is not None:
+            client = docker.from_env()
+            client.ping()  # type: ignore
+            return True
     except DockerException:
         return False
+
+    return False
 
 
 def _create_default_code_executor() -> CodeExecutor:
     """Create the default code executor, preferring Docker if available."""
-    if _is_docker_available():
+    if _is_docker_available() and DockerCommandLineCodeExecutor is not None:
         try:
             return DockerCommandLineCodeExecutor()
         except Exception:
             # Fallback to local if Docker fails to initialize
             pass
-    
+
     # Issue warning and use local executor if Docker is not available
     warnings.warn(
         "Docker is not available or not running. Using LocalCommandLineCodeExecutor instead of the recommended DockerCommandLineCodeExecutor. "
