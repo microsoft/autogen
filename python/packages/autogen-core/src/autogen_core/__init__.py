@@ -1,6 +1,10 @@
 import importlib.metadata
 
-__version__ = importlib.metadata.version("autogen_core")
+__version__ = "0.0.0"  # Default version
+try:
+    __version__ = importlib.metadata.version("autogen_core")
+except importlib.metadata.PackageNotFoundError:
+    pass  # Use default version when package is not installed
 
 from ._agent import Agent
 from ._agent_id import AgentId

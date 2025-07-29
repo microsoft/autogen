@@ -9,7 +9,7 @@ from autogen_core.code_executor import CodeExecutor
 from autogen_core.models import ChatCompletionClient
 
 from autogen_ext.agents.file_surfer import FileSurfer
-from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
+from autogen_ext.agents.magentic_one import MagenticOneCoderAgent, MagenticOneComputerTerminalAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.openai._openai_client import BaseOpenAIChatCompletionClient
@@ -195,7 +195,7 @@ class MagenticOne(MagenticOneGroupChat):
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)
         coder = MagenticOneCoderAgent("Coder", model_client=client)
-        executor = CodeExecutorAgent("ComputerTerminal", code_executor=code_executor)
+        executor = MagenticOneComputerTerminalAgent("ComputerTerminal", model_client=client, code_executor=code_executor)
 
         agents: List[ChatAgent] = [fs, ws, coder, executor]
         if hil_mode:
