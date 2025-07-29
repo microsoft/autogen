@@ -1,17 +1,7 @@
-"""
-OpenAI Assistant Agent implementation.
-
-This module is deprecated starting v0.7.0 and will be removed in a future version.
-"""
-# pyright: ignore
-# mypy: ignore-errors
-
 import asyncio
 import json
 import logging
 import os
-import warnings
-from functools import wraps
 from typing import (
     Any,
     AsyncGenerator,
@@ -67,31 +57,7 @@ from openai.types.beta.threads.text_content_block_param import TextContentBlockP
 from openai.types.shared_params.function_definition import FunctionDefinition
 from openai.types.vector_store import VectorStore
 
-# Deprecation warning
-warnings.warn(
-    "The OpenAIAssistantAgent module is deprecated and will be removed in a future version, use OpenAIAgent instead.",
-    DeprecationWarning,
-    stacklevel=2,
-)
-
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
-
-
-def deprecated_class(reason: str) -> Callable[[type], type]:
-    """Decorator to mark a class as deprecated."""
-
-    def decorator(cls: type) -> type:
-        original_init = cls.__init__
-
-        @wraps(original_init)
-        def new_init(self, *args, **kwargs) -> None:
-            warnings.warn(f"{cls.__name__} is deprecated: {reason}", DeprecationWarning, stacklevel=2)
-            original_init(self, *args, **kwargs)
-
-        cls.__init__ = new_init
-        return cls
-
-    return decorator
 
 
 def _convert_tool_to_function_param(tool: Tool) -> "FunctionToolParam":
@@ -124,23 +90,15 @@ class OpenAIAssistantAgentState(BaseModel):
     uploaded_file_ids: List[str] = Field(default_factory=list)
 
 
-@deprecated_class(
-    "This class is deprecated starting v0.7.0 and will be removed in a future version. Use OpenAIAgent instead."
-)
 class OpenAIAssistantAgent(BaseChatAgent):
     """An agent implementation that uses the Assistant API to generate responses.
-
-    .. warning::
-
-        This module is deprecated starting v0.7.0 and will be removed in a future version.
-        Please use :class:`~autogen_ext.agents.openai.OpenAIAgent` instead.
 
     Installation:
 
     .. code-block:: bash
 
-        pip install "autogen-ext[openai<1.83]"  # For OpenAI Assistant
-        # pip install "autogen-ext[openai<1.83,azure]"  # For Azure OpenAI Assistant
+        pip install "autogen-ext[openai]"  # For OpenAI Assistant
+        # pip install "autogen-ext[openai,azure]"  # For Azure OpenAI Assistant
 
 
     This agent leverages the Assistant API to create AI assistants with capabilities like:
@@ -353,9 +311,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
         """Ensure assistant and thread are created."""
         if self._assistant is None:
             if self._assistant_id:
-                self._assistant = await self._client.beta.assistants.retrieve(assistant_id=self._assistant_id)
+                self._assistant = await self._client.beta.assistants.retrieve(assistant_id=self._assistant_id)  # type: ignore[reportDeprecated]
             else:
-                self._assistant = await self._client.beta.assistants.create(
+                self._assistant = await self._client.beta.assistants.create(  # type: ignore[reportDeprecated]
                     model=self._model,
                     description=self.description,
                     instructions=self._instructions,
@@ -369,9 +327,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
         if self._thread is None:
             if self._init_thread_id:
-                self._thread = await self._client.beta.threads.retrieve(thread_id=self._init_thread_id)
+                self._thread = await self._client.beta.threads.retrieve(thread_id=self._init_thread_id)  # type: ignore[reportDeprecated]
             else:
-                self._thread = await self._client.beta.threads.create()
+                self._thread = await self._client.beta.threads.create()  # type: ignore[reportDeprecated]
 
         # Retrieve initial state only once
         if not self._initial_state_retrieved:
@@ -384,7 +342,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         initial_message_ids: Set[str] = set()
         after: str | NotGiven = NOT_GIVEN
         while True:
-            msgs: AsyncCursorPage[Message] = await self._client.beta.threads.messages.list(
+            msgs: AsyncCursorPage[Message] = await self._client.beta.threads.messages.list(  # type: ignore[reportDeprecated]
                 self._thread_id, after=after, order="asc", limit=100
             )
             for msg in msgs.data:
@@ -458,7 +416,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         # Create and start a run
         run: Run = await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._client.beta.threads.runs.create(
+                self._client.beta.threads.runs.create(  # type: ignore[reportDeprecated]
                     thread_id=self._thread_id,
                     assistant_id=self._get_assistant_id,
                 )
@@ -469,7 +427,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         while True:
             run = await cancellation_token.link_future(
                 asyncio.ensure_future(
-                    self._client.beta.threads.runs.retrieve(
+                    self._client.beta.threads.runs.retrieve(  # type: ignore[reportDeprecated]
                         thread_id=self._thread_id,
                         run_id=run.id,
                     )
@@ -522,7 +480,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 # Submit tool outputs back to the run
                 run = await cancellation_token.link_future(
                     asyncio.ensure_future(
-                        self._client.beta.threads.runs.submit_tool_outputs(
+                        self._client.beta.threads.runs.submit_tool_outputs(  # type: ignore[reportDeprecated]
                             thread_id=self._thread_id,
                             run_id=run.id,
                             tool_outputs=[{"tool_call_id": t.call_id, "output": t.content} for t in tool_outputs],
@@ -539,7 +497,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         # Get messages after run completion
         assistant_messages: AsyncCursorPage[Message] = await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._client.beta.threads.messages.list(thread_id=self._thread_id, order="desc", limit=1)
+                self._client.beta.threads.messages.list(thread_id=self._thread_id, order="desc", limit=1)  # type: ignore[reportDeprecated]
             )
         )
 
@@ -577,7 +535,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                     raise ValueError(f"Unsupported content type: {type(c)} in {message}")
         await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._client.beta.threads.messages.create(
+                self._client.beta.threads.messages.create(  # type: ignore[reportDeprecated]
                     thread_id=self._thread_id,
                     content=content,
                     role="user",
@@ -595,7 +553,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         while True:
             msgs: AsyncCursorPage[Message] = await cancellation_token.link_future(
                 asyncio.ensure_future(
-                    self._client.beta.threads.messages.list(self._thread_id, after=after, order="asc", limit=100)
+                    self._client.beta.threads.messages.list(self._thread_id, after=after, order="asc", limit=100)  # type: ignore[reportDeprecated]
                 )
             )
             for msg in msgs.data:
@@ -609,7 +567,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         for msg_id in new_message_ids:
             status: MessageDeleted = await cancellation_token.link_future(
                 asyncio.ensure_future(
-                    self._client.beta.threads.messages.delete(message_id=msg_id, thread_id=self._thread_id)
+                    self._client.beta.threads.messages.delete(message_id=msg_id, thread_id=self._thread_id)  # type: ignore[reportDeprecated]
                 )
             )
             assert status.deleted is True
@@ -645,7 +603,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
         # Update thread with the new files
         thread = await cancellation_token.link_future(
-            asyncio.ensure_future(self._client.beta.threads.retrieve(thread_id=self._thread_id))
+            asyncio.ensure_future(self._client.beta.threads.retrieve(thread_id=self._thread_id))  # type: ignore[reportDeprecated]
         )
         tool_resources: ToolResources = thread.tool_resources or ToolResources()
         code_interpreter: ToolResourcesCodeInterpreter = (
@@ -657,7 +615,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
         await cancellation_token.link_future(
             asyncio.ensure_future(
-                self._client.beta.threads.update(
+                self._client.beta.threads.update(  # type: ignore[reportDeprecated]
                     thread_id=self._thread_id,
                     tool_resources=cast(thread_update_params.ToolResources, tool_resources.model_dump()),
                 )
@@ -720,7 +678,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         if self._assistant is not None and not self._assistant_id:
             try:
                 await cancellation_token.link_future(
-                    asyncio.ensure_future(self._client.beta.assistants.delete(assistant_id=self._get_assistant_id))
+                    asyncio.ensure_future(self._client.beta.assistants.delete(assistant_id=self._get_assistant_id))  # type: ignore[reportDeprecated]
                 )
                 self._assistant = None
             except Exception as e:
