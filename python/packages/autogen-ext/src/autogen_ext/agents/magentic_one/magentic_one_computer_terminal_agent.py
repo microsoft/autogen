@@ -1,48 +1,45 @@
 """MagenticOne Computer Terminal Agent that can write and execute code with approval guard integration."""
 
 import asyncio
-from pathlib import Path
+import re
 import shutil
 import tempfile
-from typing import AsyncGenerator, List, Sequence, Optional
-import re
-from typing import Any, Mapping
 import uuid
-from loguru import logger
 from datetime import datetime
-from pydantic import Field
-from autogen_core import CancellationToken, ComponentModel, Component
-from autogen_core.models import (
-    ChatCompletionClient,
-    UserMessage,
-    SystemMessage,
-)
-from pydantic import BaseModel
-from typing_extensions import Self
+from pathlib import Path
+from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence
 
 from autogen_agentchat.agents import BaseChatAgent
-from autogen_core.code_executor import CodeBlock, CodeExecutor
+from autogen_agentchat.approval_guard import BaseApprovalGuard
+from autogen_agentchat.base import Response
+from autogen_agentchat.guarded_action import ApprovalDeniedError, TrivialGuardedAction
+from autogen_agentchat.messages import (
+    BaseAgentEvent,
+    BaseChatMessage,
+    MessageFactory,
+    TextMessage,
+)
+from autogen_agentchat.state import BaseState
+from autogen_agentchat.thread_utils import thread_to_context
+from autogen_core import CancellationToken, Component, ComponentModel
+from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
 from autogen_core.model_context import (
     ChatCompletionContext,
     TokenLimitedChatCompletionContext,
 )
-from autogen_agentchat.base import Response
-from autogen_agentchat.state import BaseState
-from autogen_agentchat.messages import (
-    BaseAgentEvent,
-    BaseChatMessage,
-    TextMessage,
-    MessageFactory,
+from autogen_core.models import (
+    ChatCompletionClient,
+    SystemMessage,
+    UserMessage,
 )
-from autogen_core.code_executor import CodeResult
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from loguru import logger
+from pydantic import BaseModel, Field
+from typing_extensions import Self
+
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
-from autogen_agentchat.thread_utils import thread_to_context
 from ._utils import exec_command_umask_patched
-
-from autogen_agentchat.approval_guard import BaseApprovalGuard
-from autogen_agentchat.guarded_action import ApprovalDeniedError, TrivialGuardedAction
 
 DockerCommandLineCodeExecutor._execute_command = exec_command_umask_patched  # type: ignore
 
@@ -112,7 +109,7 @@ async def _coding_and_debug(
     executes successfully.
 
     When the cancellation token is set, the execution will stop.
-    
+
     Args:
         system_prompt: The system prompt to guide the model.
         thread: The thread of messages to use as context.

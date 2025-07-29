@@ -1,9 +1,25 @@
 """Approval guard for checking if actions require user approval."""
 
-from .input_func import InputFuncType, AsyncInputFunc, SyncInputFunc
-from autogen_agentchat.messages import TextMessage, MultiModalMessage
+import asyncio
+import json
+import logging
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
+from inspect import iscoroutinefunction
+from typing import (
+    Any,
+    ClassVar,
+    Generator,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    TypedDict,
+    cast,
+)
 
-from autogen_core import CancellationToken, Image, EVENT_LOGGER_NAME
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Image
 from autogen_core.models import (
     ChatCompletionClient,
     LLMMessage,
@@ -11,29 +27,9 @@ from autogen_core.models import (
     UserMessage,
 )
 
-from inspect import iscoroutinefunction
+from autogen_agentchat.messages import MultiModalMessage, TextMessage
 
-import json
-
-from contextlib import contextmanager
-from contextvars import ContextVar
-
-import asyncio
-from typing import (
-    Any,
-    Optional,
-    TypedDict,
-    cast,
-    ClassVar,
-    Generator,
-    List,
-    Literal,
-    Protocol,
-)
-
-from dataclasses import dataclass
-import logging
-
+from .input_func import AsyncInputFunc, InputFuncType, SyncInputFunc
 
 """
 The ActionGuard protocol is used to check if an action is irreversible.
@@ -123,8 +119,8 @@ class ApprovalGuardContext:
 
 
 ACTION_GUARD_SYSTEM_MESSAGE = """
-The Approval Guard oversees every proposed action before execution.  
-It detects actions that are irreversible, potentially harmful, or likely to cause real-world impact that the user would not want to happen.  
+The Approval Guard oversees every proposed action before execution.
+It detects actions that are irreversible, potentially harmful, or likely to cause real-world impact that the user would not want to happen.
 
 Please evaluate this action carefully considering the following criteria:
 - Does the action have potential real-world consequences affecting user safety or security?
@@ -173,7 +169,7 @@ class ApprovalGuard(BaseApprovalGuard):
         config: Optional[ApprovalConfig] = None,
     ):
         """Initialize the approval guard.
-        
+
         Args:
             input_func: Function to get user input for approval decisions
             default_approval: Default approval decision when input_func is None

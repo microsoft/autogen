@@ -5,6 +5,11 @@ It includes logger names for trace and event logs, and retrieves the package ver
 
 import importlib.metadata
 
+# Export approval guard components
+from .approval_guard import ApprovalConfig, ApprovalGuard, BaseApprovalGuard
+from .guarded_action import ApprovalDeniedError, TrivialGuardedAction
+from .input_func import AsyncInputFunc, InputFuncType, SyncInputFunc
+
 TRACE_LOGGER_NAME = "autogen_agentchat"
 """Logger name for trace logs."""
 
@@ -17,19 +22,14 @@ try:
 except importlib.metadata.PackageNotFoundError:
     pass  # Use default version when package is not installed
 
-# Export approval guard components
-from .approval_guard import ApprovalGuard, BaseApprovalGuard, ApprovalConfig
-from .guarded_action import ApprovalDeniedError, TrivialGuardedAction
-from .input_func import InputFuncType, AsyncInputFunc, SyncInputFunc
-
 __all__ = [
-    "ApprovalGuard", 
-    "BaseApprovalGuard", 
+    "ApprovalGuard",
+    "BaseApprovalGuard",
     "ApprovalConfig",
-    "ApprovalDeniedError", 
+    "ApprovalDeniedError",
     "TrivialGuardedAction",
-    "InputFuncType", 
-    "AsyncInputFunc", 
+    "InputFuncType",
+    "AsyncInputFunc",
     "SyncInputFunc",
     "TRACE_LOGGER_NAME",
     "EVENT_LOGGER_NAME",

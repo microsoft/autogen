@@ -3,23 +3,23 @@
 from typing import List
 
 from autogen_core.models import (
+    AssistantMessage,
     LLMMessage,
     UserMessage,
-    AssistantMessage,
 )
 
-from autogen_agentchat.utils import remove_images
 from autogen_agentchat.messages import (
+    BaseAgentEvent,
     BaseChatMessage,
     BaseTextChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallRequestEvent,
     ToolCallExecutionEvent,
-    BaseAgentEvent,
+    ToolCallRequestEvent,
 )
+from autogen_agentchat.utils import remove_images
 
 
 def thread_to_context(
@@ -28,12 +28,12 @@ def thread_to_context(
     is_multimodal: bool = False,
 ) -> List[LLMMessage]:
     """Convert the message thread to a context for the model.
-    
+
     Args:
         messages: List of messages and events from the chat thread
         agent_name: Name of the agent converting the context
         is_multimodal: Whether to preserve images in multimodal messages
-        
+
     Returns:
         List of LLM messages suitable for model consumption
     """
@@ -60,7 +60,7 @@ def thread_to_context(
                 m, MultiModalMessage
             ), f"{type(m)}"
             context.append(UserMessage(content=m.content, source=m.source))
-    
+
     if is_multimodal:
         return context
     else:

@@ -1,9 +1,10 @@
 """Input function protocols for various input types."""
 
-from typing import Protocol, Literal, Optional, cast
+from inspect import iscoroutinefunction
+from typing import Literal, Optional, Protocol, cast
+
 from autogen_core import CancellationToken
 
-from inspect import iscoroutinefunction
 from autogen_agentchat.agents._user_proxy_agent import InputFuncType as AGInputFuncType
 
 # This module provides input function protocols that extend the basic AgentChat

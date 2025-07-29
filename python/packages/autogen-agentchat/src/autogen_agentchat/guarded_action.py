@@ -1,16 +1,7 @@
 """Guarded actions that can require approval before execution."""
 
-from .approval_guard import (
-    BaseApprovalGuard,
-    MaybeRequiresApproval,
-    DEFAULT_REQUIRES_APPROVAL,
-)
-from autogen_core.models import LLMMessage
-from autogen_agentchat.messages import (
-    MultiModalMessage,
-    TextMessage,
-)
-
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import (
     Any,
     Dict,
@@ -18,8 +9,19 @@ from typing import (
     Optional,
     Union,
 )
-from dataclasses import dataclass
-from abc import ABC, abstractmethod
+
+from autogen_core.models import LLMMessage
+
+from autogen_agentchat.messages import (
+    MultiModalMessage,
+    TextMessage,
+)
+
+from .approval_guard import (
+    DEFAULT_REQUIRES_APPROVAL,
+    BaseApprovalGuard,
+    MaybeRequiresApproval,
+)
 
 
 class ApprovalDeniedError(Exception):
@@ -31,7 +33,7 @@ class ApprovalDeniedError(Exception):
 @dataclass
 class BaseGuardedAction(ABC):
     """Base class for guarded actions that may require approval."""
-    
+
     name: str
 
     @abstractmethod
@@ -51,14 +53,14 @@ class BaseGuardedAction(ABC):
     ) -> None:
         """
         Invokes the action with approval if the action guard is provided.
-        
+
         Args:
             call_arguments: The arguments to pass to the action.
             action_description: The description of the action to be approved in its raw form.
             action_context: The context of the action to be approved.
             action_guard: The action guard to use to approve the action.
             action_description_for_user: The description of the action for the user.
-            
+
         Raises:
             ApprovalDeniedError: If the action is denied by the approval guard.
         """
@@ -93,7 +95,7 @@ class BaseGuardedAction(ABC):
 
 class TrivialGuardedAction(BaseGuardedAction):
     """A simple guarded action that doesn't perform any actual work but can be used for approval checks."""
-    
+
     def __init__(
         self, name: str, baseline_override: Optional[MaybeRequiresApproval] = None
     ) -> None:

@@ -5,6 +5,7 @@ import shlex
 from typing import List, Tuple
 
 from autogen_core import CancellationToken
+
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 
 
@@ -14,7 +15,7 @@ async def exec_command_umask_patched(
     cancellation_token: CancellationToken,
 ) -> Tuple[str, int]:
     """Execute command with umask 000 to ensure proper file permissions.
-    
+
     This is a patched version of the execute command that sets umask 000
     before running the command to ensure files are created with proper permissions.
     """
