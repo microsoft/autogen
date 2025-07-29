@@ -11,7 +11,7 @@ from autogen_core.utils._json_to_pydantic import (
     UnsupportedKeywordError,
     _JSONSchemaToPydantic,  # pyright: ignore[reportPrivateUsage]
 )
-from pydantic import BaseModel, EmailStr, Field, ValidationError
+from pydantic import BaseModel, EmailStr, Field, Json, ValidationError
 
 
 # ✅ Define Pydantic models for testing
@@ -44,6 +44,7 @@ class ComplexModel(BaseModel):
     user: User
     extra_info: Optional[Dict[str, Any]] = None  # Optional dictionary
     sub_items: List[Employee]  # List of Employees
+    json_string: Optional[Json[Any]] = None  # Optional JSON string
 
 
 @pytest.fixture
@@ -82,7 +83,7 @@ def sample_json_schema_complex() -> Dict[str, Any]:
         (sample_json_schema, "User", ["id", "name", "email", "age", "address"]),
         (sample_json_schema_recursive, "Employee", ["id", "name", "manager"]),
         (sample_json_schema_nested, "Department", ["name", "employees"]),
-        (sample_json_schema_complex, "ComplexModel", ["user", "extra_info", "sub_items"]),
+        (sample_json_schema_complex, "ComplexModel", ["user", "extra_info", "sub_items", "json_string"]),
     ],
 )
 def test_json_schema_to_pydantic(
@@ -160,6 +161,7 @@ def test_json_schema_to_pydantic(
                     {"id": str(uuid4()), "name": "Eve"},
                     {"id": str(uuid4()), "name": "David", "manager": {"id": str(uuid4()), "name": "Frank"}},
                 ],
+                "json_string": '{"foo": "bar"}',
             },
         ),
     ],
@@ -241,6 +243,7 @@ def test_valid_data_model(
                     {"id": "invalid-uuid", "name": "Eve"},  # Invalid UUID
                     {"id": str(uuid4()), "name": 123},  # Invalid name type
                 ],
+                "json_string": '{"foo": "bar"',  # Invalid JSON
             },
         ),
     ],

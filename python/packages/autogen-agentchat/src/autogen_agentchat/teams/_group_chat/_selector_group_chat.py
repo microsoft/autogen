@@ -22,8 +22,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ... import TRACE_LOGGER_NAME
-from ...agents import BaseChatAgent
-from ...base import ChatAgent, TerminationCondition
+from ...base import ChatAgent, Team, TerminationCondition
 from ...messages import (
     BaseAgentEvent,
     BaseChatMessage,
@@ -345,6 +344,8 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 class SelectorGroupChatConfig(BaseModel):
     """The declarative configuration for SelectorGroupChat."""
 
+    name: str | None = None
+    description: str | None = None
     participants: List[ComponentModel]
     model_client: ComponentModel
     termination_condition: ComponentModel | None = None
@@ -362,11 +363,27 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
     """A group chat team that have participants takes turn to publish a message
     to all, using a ChatCompletion model to select the next speaker after each message.
 
+    If an :class:`~autogen_agentchat.base.ChatAgent` is a participant,
+    the :class:`~autogen_agentchat.messages.BaseChatMessage` from the agent response's
+    :attr:`~autogen_agentchat.base.Response.chat_message` will be published
+    to other participants in the group chat.
+
+    If a :class:`~autogen_agentchat.base.Team` is a participant,
+    the :class:`~autogen_agentchat.messages.BaseChatMessage`
+    from the team result' :attr:`~autogen_agentchat.base.TaskResult.messages` will be published
+    to other participants in the group chat.
+
     Args:
-        participants (List[ChatAgent]): The participants in the group chat,
+        participants (List[ChatAgent | Team]): The participants in the group chat,
             must have unique names and at least two participants.
         model_client (ChatCompletionClient): The ChatCompletion model client used
             to select the next speaker.
+        name (str | None, optional): The name of the group chat, using
+            :attr:`~autogen_agentchat.teams.SelectorGroupChat.DEFAULT_NAME` if not provided.
+            The name is used by a parent team to identify this group chat so it must
+            be unique within the parent team.
+        description (str | None, optional): The description of the group chat, using
+            :attr:`~autogen_agentchat.teams.SelectorGroupChat.DEFAULT_DESCRIPTION` if not provided.
         termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
             Without a termination condition, the group chat will run indefinitely.
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
@@ -574,11 +591,16 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
     component_config_schema = SelectorGroupChatConfig
     component_provider_override = "autogen_agentchat.teams.SelectorGroupChat"
 
+    DEFAULT_NAME = "SelectorGroupChat"
+    DEFAULT_DESCRIPTION = "A team of agents."
+
     def __init__(
         self,
-        participants: List[ChatAgent],
+        participants: List[ChatAgent | Team],
         model_client: ChatCompletionClient,
         *,
+        name: str | None = None,
+        description: str | None = None,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
@@ -600,7 +622,9 @@ Read the above conversation. Then select the next role from {participants} to pl
         model_context: ChatCompletionContext | None = None,
     ):
         super().__init__(
-            participants,
+            name=name or self.DEFAULT_NAME,
+            description=description or self.DEFAULT_DESCRIPTION,
+            participants=participants,
             group_chat_manager_name="SelectorGroupChatManager",
             group_chat_manager_class=SelectorGroupChatManager,
             termination_condition=termination_condition,
@@ -658,6 +682,8 @@ Read the above conversation. Then select the next role from {participants} to pl
 
     def _to_config(self) -> SelectorGroupChatConfig:
         return SelectorGroupChatConfig(
+            name=self._name,
+            description=self._description,
             participants=[participant.dump_component() for participant in self._participants],
             model_client=self._model_client.dump_component(),
             termination_condition=self._termination_condition.dump_component() if self._termination_condition else None,
@@ -673,9 +699,21 @@ Read the above conversation. Then select the next role from {participants} to pl
 
     @classmethod
     def _from_config(cls, config: SelectorGroupChatConfig) -> Self:
+        participants: List[ChatAgent | Team] = []
+        for participant in config.participants:
+            if participant.component_type == ChatAgent.component_type:
+                participants.append(ChatAgent.load_component(participant))
+            elif participant.component_type == Team.component_type:
+                participants.append(Team.load_component(participant))
+            else:
+                raise ValueError(
+                    f"Invalid participant component type: {participant.component_type}. " "Expected ChatAgent or Team."
+                )
         return cls(
-            participants=[BaseChatAgent.load_component(participant) for participant in config.participants],
+            participants=participants,
             model_client=ChatCompletionClient.load_component(config.model_client),
+            name=config.name,
+            description=config.description,
             termination_condition=TerminationCondition.load_component(config.termination_condition)
             if config.termination_condition
             else None,
