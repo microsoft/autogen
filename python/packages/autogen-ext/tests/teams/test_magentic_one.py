@@ -62,7 +62,7 @@ def test_magentic_one_uses_docker_by_default(mock_chat_client: Mock) -> None:
 
         assert code_executor_agent is not None, "CodeExecutorAgent not found"
         assert isinstance(
-            code_executor_agent._code_executor,
+            code_executor_agent._code_executor,  # type: ignore[reportPrivateUsage]
             DockerCommandLineCodeExecutor,  # type: ignore[reportPrivateUsage]
         ), f"Expected DockerCommandLineCodeExecutor, got {type(code_executor_agent._code_executor)}"  # type: ignore[reportPrivateUsage]
 
@@ -95,7 +95,7 @@ def test_magentic_one_falls_back_to_local_when_docker_unavailable(
 
         assert code_executor_agent is not None, "CodeExecutorAgent not found"
         assert isinstance(
-            code_executor_agent._code_executor,
+            code_executor_agent._code_executor,  # type: ignore[reportPrivateUsage]
             LocalCommandLineCodeExecutor,  # type: ignore[reportPrivateUsage]
         ), f"Expected LocalCommandLineCodeExecutor, got {type(code_executor_agent._code_executor)}"  # type: ignore[reportPrivateUsage]
 
