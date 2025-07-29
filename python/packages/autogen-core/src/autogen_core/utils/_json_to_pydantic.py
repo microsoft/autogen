@@ -11,6 +11,7 @@ from pydantic import (
     BaseModel,
     EmailStr,
     Field,
+    Json,
     conbytes,
     confloat,
     conint,
@@ -82,6 +83,7 @@ FORMAT_MAPPING: Dict[str, Any] = {
     "binary": conbytes(strict=True),
     "password": str,
     "path": str,
+    "json": Json,
 }
 
 
@@ -366,7 +368,7 @@ def schema_to_pydantic_model(schema: Dict[str, Any], model_name: str = "Generate
 
     .. code-block:: python
 
-        from json_schema_to_pydantic import schema_to_pydantic_model
+        from autogen_core.utils import schema_to_pydantic_model
 
         # Example 1: Simple user model
         schema = {
@@ -384,6 +386,8 @@ def schema_to_pydantic_model(schema: Dict[str, Any], model_name: str = "Generate
         user = UserModel(name="Alice", email="alice@example.com", age=30)
 
     .. code-block:: python
+
+        from autogen_core.utils import schema_to_pydantic_model
 
         # Example 2: Nested model
         schema = {
@@ -403,7 +407,10 @@ def schema_to_pydantic_model(schema: Dict[str, Any], model_name: str = "Generate
 
         BlogPost = schema_to_pydantic_model(schema)
 
+
     .. code-block:: python
+
+        from autogen_core.utils import schema_to_pydantic_model
 
         # Example 3: allOf merging with $refs
         schema = {
@@ -426,6 +433,8 @@ def schema_to_pydantic_model(schema: Dict[str, Any], model_name: str = "Generate
         Model = schema_to_pydantic_model(schema)
 
     .. code-block:: python
+
+        from autogen_core.utils import schema_to_pydantic_model
 
         # Example 4: Self-referencing (recursive) model
         schema = {
