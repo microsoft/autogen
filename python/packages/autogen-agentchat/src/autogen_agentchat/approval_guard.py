@@ -137,13 +137,20 @@ class ApprovalGuard(BaseApprovalGuard, Component[ApprovalGuardConfig]):
     It supports multiple approval policies including always/never approval, and intelligent
     LLM-based approval decisions.
 
+    Args:
+        input_func (InputFuncType): Function to get user input for approval decisions. If None, uses default approval
+        default_approval (bool): Default approval decision when input_func is None
+        model_client (ChatCompletionClient, optional): Model client for intelligent approval decisions
+        approval_policy (ApprovalPolicy): Policy for determining when approval is required.
+
     Examples:
+
         Basic usage with always requiring approval:
 
         .. code-block:: python
 
             import asyncio
-            from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig
+            from autogen_agentchat.approval_guard import ApprovalGuard
             from autogen_agentchat.agents import CodeExecutorAgent
             from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
             from autogen_ext.models.openai import OpenAIChatCompletionClient
