@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock
 from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig, ApprovalResponse
 from autogen_agentchat.messages import TextMessage
-from autogen_core.models import SystemMessage, UserMessage, CreateResult, RequestUsage
+from autogen_core.models import SystemMessage, UserMessage, CreateResult, RequestUsage, ModelFamily
 from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
@@ -101,7 +101,13 @@ async def test_approval_guard_structured_output_approval():
                 cached=False,
             )
         ],
-        model_info={"structured_output": True}
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": True
+        }
     )
     
     approval_guard = ApprovalGuard(
@@ -135,7 +141,13 @@ async def test_approval_guard_structured_output_no_approval():
                 cached=False,
             )
         ],
-        model_info={"structured_output": True}
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": True
+        }
     )
     
     approval_guard = ApprovalGuard(
@@ -169,7 +181,13 @@ async def test_approval_guard_json_mode_approval():
                 cached=False,
             )
         ],
-        model_info={"json_output": True}
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": True,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False
+        }
     )
     
     approval_guard = ApprovalGuard(
@@ -203,7 +221,13 @@ async def test_approval_guard_json_mode_no_approval():
                 cached=False,
             )
         ],
-        model_info={"json_output": True}
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": True,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False
+        }
     )
     
     approval_guard = ApprovalGuard(
@@ -237,7 +261,13 @@ async def test_approval_guard_text_fallback_approval():
                 cached=False,
             )
         ],
-        model_info={}
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False
+        }
     )
     
     approval_guard = ApprovalGuard(
@@ -271,7 +301,13 @@ async def test_approval_guard_text_fallback_no_approval():
                 cached=False,
             )
         ],
-        model_info={}
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False
+        }
     )
     
     approval_guard = ApprovalGuard(
@@ -305,7 +341,13 @@ async def test_approval_guard_json_extraction_with_backticks():
                 cached=False,
             )
         ],
-        model_info={"json_output": True}
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": True,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": False
+        }
     )
     
     approval_guard = ApprovalGuard(
@@ -332,7 +374,13 @@ async def test_approval_guard_error_handling_fallback():
     # Mock model client that raises an exception
     mock_client = ReplayChatCompletionClient(
         [],  # Empty responses to trigger error
-        model_info={"structured_output": True}
+        model_info={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": True
+        }
     )
     
     approval_guard = ApprovalGuard(
