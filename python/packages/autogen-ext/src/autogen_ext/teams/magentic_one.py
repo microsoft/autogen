@@ -167,6 +167,7 @@ class MagenticOne(MagenticOneGroupChat):
 
             # Using ApprovalGuard for secure code execution
             import asyncio
+            from autogen_core import CancellationToken
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_ext.teams.magentic_one import MagenticOne
             from autogen_agentchat.approval_guard import ApprovalGuard
@@ -174,12 +175,12 @@ class MagenticOne(MagenticOneGroupChat):
             from autogen_agentchat.ui import Console
 
 
-            async def user_input_func(prompt: str, cancellation_token=None) -> str:
+            async def user_input_func(prompt: str, cancellation_token: CancellationToken | None = None) -> str:
                 \"\"\"Custom input function for approval decisions.\"\"\"
                 return input(f"{prompt}\nApprove this action? (yes/no): ")
 
 
-            async def example_usage_with_approval():
+            async def example_with_approval_guard():
                 client = OpenAIChatCompletionClient(model="gpt-4o")
 
                 # Create approval guard with conservative auto-approval
@@ -191,18 +192,14 @@ class MagenticOne(MagenticOneGroupChat):
 
                 # Use with MagenticOne for controlled code execution
                 async with DockerCommandLineCodeExecutor() as code_executor:
-                    m1 = MagenticOne(
-                        client=client,
-                        code_executor=code_executor,
-                        approval_guard=approval_guard
-                    )
-                    task = "Analyze system files and create a report."
+                    m1 = MagenticOne(client=client, code_executor=code_executor, approval_guard=approval_guard)
+                    task = "Write a Python script that prints 'Hello, World!' and executes it."
                     result = await Console(m1.run_stream(task=task))
                     print(result)
 
 
             if __name__ == "__main__":
-                asyncio.run(example_usage_with_approval())
+                asyncio.run(example_with_approval_guard())
 
     References:
         .. code-block:: bibtex
