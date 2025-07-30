@@ -594,7 +594,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         # Check for approval before executing code if approval guard is configured
         if self._approval_guard is not None:
             await self._request_code_execution_approval(code_blocks)
-        
+
         # Execute the code blocks.
         result = await self._code_executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
 
@@ -611,24 +611,24 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         """Request approval for code execution using the approval guard."""
         if not code_blocks:
             return
-            
+
         # Create a summary of code to be executed
         code_summary = "Code to be executed:\n"
-        for i, block in enumerate(code_blocks):
+        for _i, block in enumerate(code_blocks):
             code_summary += f"\n```{block.language}\n{block.code}\n```\n"
-        
+
         # Create the action for approval
         guarded_action = TrivialGuardedAction("code_execution", baseline_override="maybe")
-        
+
         # Create context - for now use empty list since we need LLMMessage format
         action_context: List[LLMMessage] = []
-        
+
         # Create action description for user
         action_description = TextMessage(
             content=f"Do you approve executing this code?\n{code_summary}",
             source=self.name,
         )
-        
+
         # Request approval
         try:
             await guarded_action.invoke_with_approval(
@@ -638,8 +638,8 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 approval_guard=self._approval_guard,
                 action_description_for_user=action_description,
             )
-        except ApprovalDeniedError:
-            raise ApprovalDeniedError("Code execution was denied by the user")
+        except ApprovalDeniedError as e:
+            raise ApprovalDeniedError("Code execution was denied by the user") from e
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Its a no-op as the code executor agent has no mutable state."""

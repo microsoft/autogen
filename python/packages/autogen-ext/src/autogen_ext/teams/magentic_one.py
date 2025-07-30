@@ -169,7 +169,7 @@ class MagenticOne(MagenticOneGroupChat):
             import asyncio
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_ext.teams.magentic_one import MagenticOne
-            from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig
+            from autogen_agentchat.approval_guard import ApprovalGuard
             from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
             from autogen_agentchat.ui import Console
 
@@ -181,18 +181,18 @@ class MagenticOne(MagenticOneGroupChat):
 
             async def example_usage_with_approval():
                 client = OpenAIChatCompletionClient(model="gpt-4o")
-                
+
                 # Create approval guard with conservative auto-approval
                 approval_guard = ApprovalGuard(
                     input_func=user_input_func,
                     model_client=client,
-                    config=ApprovalConfig(approval_policy="auto-conservative")
+                    approval_policy="auto-conservative",
                 )
-                
+
                 # Use with MagenticOne for controlled code execution
                 async with DockerCommandLineCodeExecutor() as code_executor:
                     m1 = MagenticOne(
-                        client=client, 
+                        client=client,
                         code_executor=code_executor,
                         approval_guard=approval_guard
                     )
