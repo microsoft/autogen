@@ -26,7 +26,9 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from .. import EVENT_LOGGER_NAME
+from ..approval_guard import BaseApprovalGuard
 from ..base import Response
+from ..guarded_action import ApprovalDeniedError, TrivialGuardedAction
 from ..messages import (
     BaseAgentEvent,
     BaseChatMessage,
@@ -55,6 +57,7 @@ class CodeExecutorAgentConfig(BaseModel):
     model_client_stream: bool = False
     model_context: ComponentModel | None = None
     supported_languages: List[str] | None = None
+    approval_guard: ComponentModel | None = None
 
 
 class RetryDecision(BaseModel):
@@ -113,6 +116,8 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             If the code execution fails after this number of retries, the agent will yield a reflection result.
         supported_languages (List[str], optional): List of programming languages that will be parsed and executed from agent response;
             others will be ignored. Defaults to DEFAULT_SUPPORTED_LANGUAGES.
+        approval_guard (BaseApprovalGuard, optional): The approval guard to use for code execution approval.
+            If provided, the agent will request approval before executing code.
 
 
     .. note::
@@ -350,6 +355,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         system_message: str | None = DEFAULT_SYSTEM_MESSAGE,
         sources: Sequence[str] | None = None,
         supported_languages: List[str] | None = None,
+        approval_guard: BaseApprovalGuard | None = None,
     ) -> None:
         if description is None:
             if model_client is None:
@@ -362,6 +368,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         self._sources = sources
         self._model_client_stream = model_client_stream
         self._max_retries_on_error = max_retries_on_error
+        self._approval_guard = approval_guard
 
         if supported_languages is not None:
             self._supported_languages = supported_languages
@@ -584,6 +591,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     async def execute_code_block(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
     ) -> CodeResult:
+        # Check for approval before executing code if approval guard is configured
+        if self._approval_guard is not None:
+            await self._request_code_execution_approval(code_blocks)
+        
         # Execute the code blocks.
         result = await self._code_executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
 
@@ -595,6 +606,40 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             result.output = f"The script ran, then exited with an error (POSIX exit code: {result.exit_code})\nIts output was:\n{result.output}"
 
         return result
+
+    async def _request_code_execution_approval(self, code_blocks: List[CodeBlock]) -> None:
+        """Request approval for code execution using the approval guard."""
+        if not code_blocks:
+            return
+            
+        # Create a summary of code to be executed
+        code_summary = "Code to be executed:\n"
+        for i, block in enumerate(code_blocks):
+            code_summary += f"\n```{block.language}\n{block.code}\n```\n"
+        
+        # Create the action for approval
+        guarded_action = TrivialGuardedAction("code_execution", baseline_override="maybe")
+        
+        # Create context - for now use empty list since we need LLMMessage format
+        action_context: List[LLMMessage] = []
+        
+        # Create action description for user
+        action_description = TextMessage(
+            content=f"Do you approve executing this code?\n{code_summary}",
+            source=self.name,
+        )
+        
+        # Request approval
+        try:
+            await guarded_action.invoke_with_approval(
+                action_args={},
+                action_message=TextMessage(content=code_summary, source=self.name),
+                action_context=action_context,
+                approval_guard=self._approval_guard,
+                action_description_for_user=action_description,
+            )
+        except ApprovalDeniedError:
+            raise ApprovalDeniedError("Code execution was denied by the user")
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Its a no-op as the code executor agent has no mutable state."""
@@ -625,6 +670,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             model_client_stream=self._model_client_stream,
             model_context=self._model_context.dump_component(),
             supported_languages=self._supported_languages,
+            approval_guard=(self._approval_guard.dump_component() if self._approval_guard is not None else None),
         )
 
     @classmethod
@@ -641,6 +687,9 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             model_client_stream=config.model_client_stream,
             model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
             supported_languages=config.supported_languages,
+            approval_guard=(
+                BaseApprovalGuard.load_component(config.approval_guard) if config.approval_guard is not None else None
+            ),
         )
 
     @staticmethod

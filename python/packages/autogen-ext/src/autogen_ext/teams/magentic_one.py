@@ -2,6 +2,7 @@ import warnings
 from typing import Awaitable, Callable, List, Optional, Union
 
 from autogen_agentchat.agents import CodeExecutorAgent, UserProxyAgent
+from autogen_agentchat.approval_guard import BaseApprovalGuard
 from autogen_agentchat.base import ChatAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_core import CancellationToken
@@ -85,6 +86,7 @@ class MagenticOne(MagenticOneGroupChat):
     Args:
         client (ChatCompletionClient): The client used for model interactions.
         hil_mode (bool): Optional; If set to True, adds the UserProxyAgent to the list of agents.
+        approval_guard (BaseApprovalGuard): Optional; If provided, the approval guard will be used for code execution approval.
 
     .. warning::
         Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
@@ -180,6 +182,7 @@ class MagenticOne(MagenticOneGroupChat):
         hil_mode: bool = False,
         input_func: InputFuncType | None = None,
         code_executor: CodeExecutor | None = None,
+        approval_guard: BaseApprovalGuard | None = None,
     ):
         self.client = client
         self._validate_client_capabilities(client)
@@ -195,7 +198,7 @@ class MagenticOne(MagenticOneGroupChat):
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)
         coder = MagenticOneCoderAgent("Coder", model_client=client)
-        executor = CodeExecutorAgent("ComputerTerminal", code_executor=code_executor)
+        executor = CodeExecutorAgent("ComputerTerminal", code_executor=code_executor, approval_guard=approval_guard)
 
         agents: List[ChatAgent] = [fs, ws, coder, executor]
         if hil_mode:
