@@ -16,6 +16,8 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_core.utils import extract_json_from_str
+from pydantic import BaseModel
 
 from .guarded_action import BaseApprovalGuard, MaybeRequiresApproval
 from .input_func import AsyncInputFunc, InputFuncType, SyncInputFunc
@@ -23,6 +25,12 @@ from .messages import MultiModalMessage, TextMessage
 
 
 DEFAULT_REQUIRES_APPROVAL: MaybeRequiresApproval = "always"
+
+
+class ApprovalResponse(BaseModel):
+    """Structured response for approval decisions."""
+    requires_approval: bool
+    reason: str
 
 
 class UserInputResponse(TypedDict):
@@ -112,9 +120,79 @@ The action proposed by the agent is:
 Please respond with "YES" (requires human approval) or "NO" (does not require human approval) ONLY to indicate your decision.
 """
 
+IRREVERSIBLE_CHECK_PROMPT_TEMPLATE_STRUCTURED = """
+The action proposed by the agent is:
+
+{action_description}
+
+Please provide your decision with reasoning in the following JSON format:
+{{
+    "requires_approval": true/false,
+    "reason": "Brief explanation for your decision"
+}}
+"""
+
 
 class ApprovalGuard(BaseApprovalGuard):
-    """Approval guard implementation for controlling action execution."""
+    """Approval guard implementation for controlling action execution.
+    
+    The ApprovalGuard provides approval-based control over code execution in AutoGen agents.
+    It supports multiple approval policies including always/never approval, and intelligent
+    LLM-based approval decisions.
+    
+    Examples:
+        Basic usage with always requiring approval:
+        
+        .. code-block:: python
+        
+            import asyncio
+            from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig
+            from autogen_agentchat.agents import CodeExecutorAgent
+            from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            
+            async def my_input_func(prompt: str) -> str:
+                return input(f"{prompt}\\nApprove? (yes/no): ")
+            
+            # Create approval guard with always approval policy
+            approval_guard = ApprovalGuard(
+                input_func=my_input_func,
+                config=ApprovalConfig(approval_policy="always")
+            )
+            
+            # Use with CodeExecutorAgent
+            code_executor = LocalCommandLineCodeExecutor()
+            agent = CodeExecutorAgent(
+                name="code_executor",
+                code_executor=code_executor,
+                approval_guard=approval_guard
+            )
+            
+            # Agent will now require approval for all code execution
+            
+        Intelligent approval with LLM:
+        
+        .. code-block:: python
+        
+            import asyncio
+            from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            
+            async def my_input_func(prompt: str) -> str:
+                return input(f"{prompt}\\nApprove? (yes/no): ")
+            
+            # Create model client for intelligent decisions
+            model_client = OpenAIChatCompletionClient(model="gpt-4o")
+            
+            # Create approval guard with conservative auto-approval
+            approval_guard = ApprovalGuard(
+                input_func=my_input_func,
+                model_client=model_client,
+                config=ApprovalConfig(approval_policy="auto-conservative")
+            )
+            
+            # Guard will use LLM to determine if approval is needed
+    """
 
     def __init__(
         self,
@@ -198,38 +276,107 @@ class ApprovalGuard(BaseApprovalGuard):
 
         action_content = self._extract_content_string(action_proposal)
 
-        request_messages = [
-            system_message,
-            UserMessage(
-                content=IRREVERSIBLE_CHECK_PROMPT_TEMPLATE.format(
-                    action_description=action_content
-                ),
-                source="user",
-            ),
-        ]
+        # Try structured output first, then JSON mode, then fallback to text
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                if self.model_client.model_info.get("structured_output", False):
+                    # Use structured output with Pydantic model
+                    request_messages = [
+                        system_message,
+                        UserMessage(
+                            content=IRREVERSIBLE_CHECK_PROMPT_TEMPLATE_STRUCTURED.format(
+                                action_description=action_content
+                            ),
+                            source="user",
+                        ),
+                    ]
+                    result = await self.model_client.create(
+                        request_messages, json_output=ApprovalResponse
+                    )
+                    
+                    if isinstance(result.content, ApprovalResponse):
+                        self.logger.info(
+                            f"Structured approval check for {action_content}: {result.content.requires_approval} - {result.content.reason}"
+                        )
+                        return result.content.requires_approval
+                    
+                elif self.model_client.model_info.get("json_output", False):
+                    # Use JSON mode
+                    request_messages = [
+                        system_message,
+                        UserMessage(
+                            content=IRREVERSIBLE_CHECK_PROMPT_TEMPLATE_STRUCTURED.format(
+                                action_description=action_content
+                            ),
+                            source="user",
+                        ),
+                    ]
+                    result = await self.model_client.create(request_messages, json_output=True)
+                    
+                    if isinstance(result.content, str):
+                        try:
+                            # Try to extract JSON from the response
+                            json_objects = extract_json_from_str(result.content)
+                            if json_objects:
+                                json_response = json_objects[0]
+                                if "requires_approval" in json_response:
+                                    requires_approval = bool(json_response["requires_approval"])
+                                    reason = json_response.get("reason", "No reason provided")
+                                    self.logger.info(
+                                        f"JSON approval check for {action_content}: {requires_approval} - {reason}"
+                                    )
+                                    return requires_approval
+                        except (json.JSONDecodeError, ValueError, KeyError) as e:
+                            self.logger.warning(f"Failed to parse JSON response on attempt {attempt + 1}: {e}")
+                            if attempt == max_retries - 1:
+                                # Fall through to text-based approach
+                                break
+                            continue
+                
+                # Fallback to text-based approach
+                request_messages = [
+                    system_message,
+                    UserMessage(
+                        content=IRREVERSIBLE_CHECK_PROMPT_TEMPLATE.format(
+                            action_description=action_content
+                        ),
+                        source="user",
+                    ),
+                ]
+                
+                result = await self.model_client.create(request_messages)
+
+                if not isinstance(result.content, str):
+                    self.logger.warning(
+                        "Model did not return a string response. Defaulting to True."
+                    )
+                    return True
+
+                self.logger.info(
+                    f"Text-based approval check for {action_content}: {result.content}"
+                )
+
+                response = result.content.strip().lower()
+                if response in ["yes", "y"]:
+                    return True
+                elif response in ["no", "n"]:
+                    return False
+                else:
+                    self.logger.warning(
+                        f"Model returned invalid response: {result.content}. Defaulting to True."
+                    )
+                    return True
+                    
+            except Exception as e:
+                self.logger.warning(f"Error on approval attempt {attempt + 1}: {e}")
+                if attempt == max_retries - 1:
+                    self.logger.warning("All attempts failed. Defaulting to True.")
+                    return True
+                continue
         
-        result = await self.model_client.create(request_messages)
-
-        if not isinstance(result.content, str):
-            self.logger.warning(
-                "Model did not return a string response. Defaulting to True."
-            )
-            return True
-
-        self.logger.info(
-            f"Checking action approval for {action_content}:\n\t--- {result.content}"
-        )
-
-        response = result.content.strip().lower()
-        if response in ["yes", "y"]:
-            return True
-        elif response in ["no", "n"]:
-            return False
-        else:
-            self.logger.warning(
-                f"Model returned invalid response: {result.content}. Defaulting to True."
-            )
-            return True
+        # Should not reach here, but return default if all attempts fail
+        return True
 
     async def get_approval(
         self, action_description: TextMessage | MultiModalMessage

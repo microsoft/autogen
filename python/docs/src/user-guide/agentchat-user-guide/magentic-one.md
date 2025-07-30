@@ -135,6 +135,112 @@ if __name__ == "__main__":
     asyncio.run(example_usage())
 ```
 
+### Using ApprovalGuard with MagenticOne
+
+For enhanced security and user control over code execution, you can integrate ApprovalGuard with MagenticOne:
+
+```python
+import asyncio
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.teams.magentic_one import MagenticOne
+from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig
+from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+from autogen_agentchat.ui import Console
+
+
+async def user_input_func(prompt: str) -> str:
+    \"\"\"Custom input function for approval decisions.\"\"\"
+    return input(f"{prompt}\\nApprove this action? (yes/no): ")
+
+
+async def example_with_approval_guard():
+    client = OpenAIChatCompletionClient(model="gpt-4o")
+    
+    # Create approval guard with conservative auto-approval
+    approval_guard = ApprovalGuard(
+        input_func=user_input_func,
+        model_client=client,
+        config=ApprovalConfig(approval_policy="auto-conservative")
+    )
+    
+    # Use with MagenticOne for controlled code execution
+    async with DockerCommandLineCodeExecutor() as code_executor:
+        m1 = MagenticOne(
+            client=client, 
+            code_executor=code_executor,
+            approval_guard=approval_guard
+        )
+        task = "Analyze system files and create a report."
+        result = await Console(m1.run_stream(task=task))
+        print(result)
+
+
+if __name__ == "__main__":
+    asyncio.run(example_with_approval_guard())
+```
+
+You can also configure different approval policies:
+
+```python
+# Always require approval for code execution
+approval_guard_always = ApprovalGuard(
+    input_func=user_input_func,
+    config=ApprovalConfig(approval_policy="always")
+)
+
+# Never require approval (bypass approval system)
+approval_guard_never = ApprovalGuard(
+    config=ApprovalConfig(approval_policy="never")
+)
+
+# Use LLM with permissive bias for approval decisions
+approval_guard_permissive = ApprovalGuard(
+    input_func=user_input_func,
+    model_client=client,
+    config=ApprovalConfig(approval_policy="auto-permissive")
+)
+```
+
+### Using ApprovalGuard with Individual Agents
+
+You can also apply ApprovalGuard to individual CodeExecutorAgent instances:
+
+```python
+import asyncio
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_agentchat.teams import MagenticOneGroupChat
+from autogen_agentchat.agents import CodeExecutorAgent
+from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig
+from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+from autogen_agentchat.ui import Console
+
+
+async def example_with_individual_agent_approval():
+    client = OpenAIChatCompletionClient(model="gpt-4o")
+    
+    # Create approval guard
+    approval_guard = ApprovalGuard(
+        input_func=user_input_func,
+        config=ApprovalConfig(approval_policy="always")
+    )
+    
+    # Create code executor agent with approval guard
+    async with DockerCommandLineCodeExecutor() as code_executor:
+        terminal = CodeExecutorAgent(
+            "ComputerTerminal",
+            code_executor=code_executor,
+            approval_guard=approval_guard
+        )
+        
+        team = MagenticOneGroupChat([terminal], model_client=client)
+        result = await Console(team.run_stream(task="Execute basic system commands"))
+        print(result)
+
+
+if __name__ == "__main__":
+    asyncio.run(example_with_individual_agent_approval())
+```
+
 ## Architecture
 
 ![Autogen Magentic-One architecture](../../images/autogen-magentic-one-agents.png)

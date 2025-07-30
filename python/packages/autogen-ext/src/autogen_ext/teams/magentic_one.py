@@ -162,6 +162,48 @@ class MagenticOne(MagenticOneGroupChat):
             if __name__ == "__main__":
                 asyncio.run(example_usage_hil())
 
+
+        .. code-block:: python
+
+            # Using ApprovalGuard for secure code execution
+            import asyncio
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.teams.magentic_one import MagenticOne
+            from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig
+            from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+            from autogen_agentchat.ui import Console
+
+
+            async def user_input_func(prompt: str) -> str:
+                \"\"\"Custom input function for approval decisions.\"\"\"
+                return input(f"{prompt}\\nApprove this action? (yes/no): ")
+
+
+            async def example_usage_with_approval():
+                client = OpenAIChatCompletionClient(model="gpt-4o")
+                
+                # Create approval guard with conservative auto-approval
+                approval_guard = ApprovalGuard(
+                    input_func=user_input_func,
+                    model_client=client,
+                    config=ApprovalConfig(approval_policy="auto-conservative")
+                )
+                
+                # Use with MagenticOne for controlled code execution
+                async with DockerCommandLineCodeExecutor() as code_executor:
+                    m1 = MagenticOne(
+                        client=client, 
+                        code_executor=code_executor,
+                        approval_guard=approval_guard
+                    )
+                    task = "Analyze system files and create a report."
+                    result = await Console(m1.run_stream(task=task))
+                    print(result)
+
+
+            if __name__ == "__main__":
+                asyncio.run(example_usage_with_approval())
+
     References:
         .. code-block:: bibtex
 
