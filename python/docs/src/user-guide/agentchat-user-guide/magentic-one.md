@@ -148,9 +148,9 @@ from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_agentchat.ui import Console
 
 
-async def user_input_func(prompt: str) -> str:
-    \"\"\"Custom input function for approval decisions.\"\"\"
-    return input(f"{prompt}\\nApprove this action? (yes/no): ")
+async def user_input_func(prompt: str, cancellation_token=None) -> str:
+    """Custom input function for approval decisions."""
+    return input(f"{prompt}\nApprove this action? (yes/no): ")
 
 
 async def example_with_approval_guard():
@@ -182,6 +182,15 @@ if __name__ == "__main__":
 You can also configure different approval policies:
 
 ```python
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig
+
+async def user_input_func(prompt: str, cancellation_token=None) -> str:
+    """Custom input function for approval decisions."""
+    return input(f"{prompt}\nApprove this action? (yes/no): ")
+
+client = OpenAIChatCompletionClient(model="gpt-4o")
+
 # Always require approval for code execution
 approval_guard_always = ApprovalGuard(
     input_func=user_input_func,
@@ -213,6 +222,11 @@ from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_agentchat.ui import Console
+
+
+async def user_input_func(prompt: str, cancellation_token=None) -> str:
+    """Custom input function for approval decisions."""
+    return input(f"{prompt}\nApprove this action? (yes/no): ")
 
 
 async def example_with_individual_agent_approval():

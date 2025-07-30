@@ -151,8 +151,8 @@ class ApprovalGuard(BaseApprovalGuard):
             from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             
-            async def my_input_func(prompt: str) -> str:
-                return input(f"{prompt}\\nApprove? (yes/no): ")
+            async def my_input_func(prompt: str, cancellation_token=None) -> str:
+                return input(f"{prompt}\nApprove? (yes/no): ")
             
             # Create approval guard with always approval policy
             approval_guard = ApprovalGuard(
@@ -178,8 +178,8 @@ class ApprovalGuard(BaseApprovalGuard):
             from autogen_agentchat.approval_guard import ApprovalGuard, ApprovalConfig
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             
-            async def my_input_func(prompt: str) -> str:
-                return input(f"{prompt}\\nApprove? (yes/no): ")
+            async def my_input_func(prompt: str, cancellation_token=None) -> str:
+                return input(f"{prompt}\nApprove? (yes/no): ")
             
             # Create model client for intelligent decisions
             model_client = OpenAIChatCompletionClient(model="gpt-4o")

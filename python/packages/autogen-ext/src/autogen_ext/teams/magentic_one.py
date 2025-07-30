@@ -174,9 +174,9 @@ class MagenticOne(MagenticOneGroupChat):
             from autogen_agentchat.ui import Console
 
 
-            async def user_input_func(prompt: str) -> str:
+            async def user_input_func(prompt: str, cancellation_token=None) -> str:
                 \"\"\"Custom input function for approval decisions.\"\"\"
-                return input(f"{prompt}\\nApprove this action? (yes/no): ")
+                return input(f"{prompt}\nApprove this action? (yes/no): ")
 
 
             async def example_usage_with_approval():
