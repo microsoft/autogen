@@ -431,7 +431,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             raise RuntimeError("Actor is not initialized. Please check the server connection.")
 
         result_future = await self._actor.call("get_prompt", {"name": name, "kargs": {"arguments": arguments}})
-        get_prompt_result = await result_future
+        get_prompt_result = result_future
         assert isinstance(
             get_prompt_result, GetPromptResult
         ), f"get_prompt must return a GetPromptResult, instead of: {str(type(get_prompt_result))}"
