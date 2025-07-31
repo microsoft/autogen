@@ -6,7 +6,8 @@ from typing_extensions import Self
 
 
 class CodeExecutionInput(BaseModel):
-    code: str = Field(description="The contents of the Python code block that should be executed")
+    language: str = Field(description="The programming language used by the code block")
+    code: str = Field(description="The contents of the code block that should be executed")
 
 
 class CodeExecutionResult(BaseModel):
@@ -18,17 +19,17 @@ class CodeExecutionResult(BaseModel):
         return self.output
 
 
-class PythonCodeExecutionToolConfig(BaseModel):
-    """Configuration for PythonCodeExecutionTool"""
+class CodeExecutionToolConfig(BaseModel):
+    """Configuration for CodeExecutionTool"""
 
     executor: ComponentModel
-    description: str = "Execute Python code blocks."
+    description: str = "Execute code blocks."
 
 
-class PythonCodeExecutionTool(
-    BaseTool[CodeExecutionInput, CodeExecutionResult], Component[PythonCodeExecutionToolConfig]
+class CodeExecutionTool(
+    BaseTool[CodeExecutionInput, CodeExecutionResult], Component[CodeExecutionToolConfig]
 ):
-    """A tool that executes Python code in a code executor and returns output.
+    """A tool that executes code in a code executor and returns output.
 
     Example executors:
 
@@ -49,11 +50,11 @@ class PythonCodeExecutionTool(
         from autogen_agentchat.ui import Console
         from autogen_ext.models.openai import OpenAIChatCompletionClient
         from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-        from autogen_ext.tools.code_execution import PythonCodeExecutionTool
+        from autogen_ext.tools.code_execution import CodeExecutionTool
 
 
         async def main() -> None:
-            tool = PythonCodeExecutionTool(LocalCommandLineCodeExecutor(work_dir="coding"))
+            tool = CodeExecutionTool(LocalCommandLineCodeExecutor(work_dir="coding"))
             agent = AssistantAgent(
                 "assistant", OpenAIChatCompletionClient(model="gpt-4o"), tools=[tool], reflect_on_tool_use=True
             )
@@ -71,26 +72,26 @@ class PythonCodeExecutionTool(
         executor (CodeExecutor): The code executor that will be used to execute the code blocks.
     """
 
-    component_config_schema = PythonCodeExecutionToolConfig
-    component_provider_override = "autogen_ext.tools.code_execution.PythonCodeExecutionTool"
+    component_config_schema = CodeExecutionToolConfig
+    component_provider_override = "autogen_ext.tools.code_execution.CodeExecutionTool"
 
     def __init__(self, executor: CodeExecutor):
-        super().__init__(CodeExecutionInput, CodeExecutionResult, "CodeExecutor", "Execute Python code blocks.")
+        super().__init__(CodeExecutionInput, CodeExecutionResult, "CodeExecutor", "Execute code blocks.")
         self._executor = executor
 
     async def run(self, args: CodeExecutionInput, cancellation_token: CancellationToken) -> CodeExecutionResult:
-        code_blocks = [CodeBlock(code=args.code, language="python")]
+        code_blocks = [CodeBlock(code=args.code, language=args.language)]
         result = await self._executor.execute_code_blocks(
             code_blocks=code_blocks, cancellation_token=cancellation_token
         )
         return CodeExecutionResult(success=result.exit_code == 0, output=result.output)
 
-    def _to_config(self) -> PythonCodeExecutionToolConfig:
+    def _to_config(self) -> CodeExecutionToolConfig:
         """Convert current instance to config object"""
-        return PythonCodeExecutionToolConfig(executor=self._executor.dump_component())
+        return CodeExecutionToolConfig(executor=self._executor.dump_component())
 
     @classmethod
-    def _from_config(cls, config: PythonCodeExecutionToolConfig) -> Self:
+    def _from_config(cls, config: CodeExecutionToolConfig) -> Self:
         """Create instance from config object"""
         executor = CodeExecutor.load_component(config.executor)
         return cls(executor=executor)
