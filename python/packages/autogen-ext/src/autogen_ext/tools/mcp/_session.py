@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import AsyncGenerator
 
 from mcp import ClientSession
+from mcp.client.session import SamplingFnT
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
@@ -12,7 +13,7 @@ from ._config import McpServerParams, SseServerParams, StdioServerParams, Stream
 
 @asynccontextmanager
 async def create_mcp_server_session(
-    server_params: McpServerParams,
+    server_params: McpServerParams, sampling_callback: SamplingFnT | None = None
 ) -> AsyncGenerator[ClientSession, None]:
     """Create an MCP client session for the given server parameters."""
     if isinstance(server_params, StdioServerParams):
@@ -21,6 +22,7 @@ async def create_mcp_server_session(
                 read_stream=read,
                 write_stream=write,
                 read_timeout_seconds=timedelta(seconds=server_params.read_timeout_seconds),
+                sampling_callback=sampling_callback,
             ) as session:
                 yield session
     elif isinstance(server_params, SseServerParams):
@@ -29,6 +31,7 @@ async def create_mcp_server_session(
                 read_stream=read,
                 write_stream=write,
                 read_timeout_seconds=timedelta(seconds=server_params.sse_read_timeout),
+                sampling_callback=sampling_callback,
             ) as session:
                 yield session
     elif isinstance(server_params, StreamableHttpServerParams):
@@ -47,5 +50,6 @@ async def create_mcp_server_session(
                 read_stream=read,
                 write_stream=write,
                 read_timeout_seconds=timedelta(seconds=server_params.sse_read_timeout),
+                sampling_callback=sampling_callback,
             ) as session:
                 yield session

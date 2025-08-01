@@ -336,8 +336,8 @@ async def test_quiz_creation(
 @pytest.mark.asyncio
 async def test_on_reset_behavior(client: AsyncOpenAI, cancellation_token: CancellationToken) -> None:
     # Arrange: Use the default behavior for reset.
-    thread = await client.beta.threads.create()
-    await client.beta.threads.messages.create(
+    thread = await client.beta.threads.create()  # type: ignore[reportDeprecated]
+    await client.beta.threads.messages.create(  # type: ignore[reportDeprecated]
         thread_id=thread.id,
         content="Hi, my name is John and I'm a software engineer. Use this information to help me.",
         role="user",

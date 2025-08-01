@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       package:
-        description: 'Select the package to deploy'
+        description: "Select the package to deploy"
         required: true
         type: choice
         options:
@@ -14,8 +14,9 @@ on:
           - agbench
           - autogen-studio
           - magentic-one-cli
+          - pyautogen
       ref:
-        description: 'Tag to deploy'
+        description: "Tag to deploy"
         required: true
 
 jobs:

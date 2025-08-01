@@ -7,6 +7,7 @@ import { useGalleryStore } from "../gallery/store";
 import { TeamSidebar } from "./sidebar";
 import { Gallery, type Team } from "../../types/datamodel";
 import { TeamBuilder } from "./builder/builder";
+import { clearTeamLayoutStorage } from "./builder/layout-storage";
 
 export const TeamManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -101,6 +102,10 @@ export const TeamManager: React.FC = () => {
 
     try {
       await teamAPI.deleteTeam(teamId, user.id);
+
+      // Clear layout storage for this team
+      clearTeamLayoutStorage(teamId.toString());
+
       setTeams(teams.filter((t) => t.id !== teamId));
       if (currentTeam?.id === teamId) {
         setCurrentTeam(null);
