@@ -26,9 +26,7 @@ class CodeExecutionToolConfig(BaseModel):
     description: str = "Execute code blocks."
 
 
-class CodeExecutionTool(
-    BaseTool[CodeExecutionInput, CodeExecutionResult], Component[CodeExecutionToolConfig]
-):
+class CodeExecutionTool(BaseTool[CodeExecutionInput, CodeExecutionResult], Component[CodeExecutionToolConfig]):
     """A tool that executes code in a code executor and returns output.
 
     Example executors:

@@ -97,7 +97,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
 
         asyncio.run(main())
 
-    Example of using it with :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`:
+    Example of using it with :class:`~autogen_ext.tools.code_execution.CodeExecutionTool`:
 
     .. code-block:: python
 
@@ -105,13 +105,13 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         from autogen_agentchat.agents import AssistantAgent
         from autogen_ext.code_executors.docker_jupyter import DockerJupyterCodeExecutor, DockerJupyterServer
         from autogen_ext.models.openai import OpenAIChatCompletionClient
-        from autogen_ext.tools.code_execution import PythonCodeExecutionTool
+        from autogen_ext.tools.code_execution import CodeExecutionTool
 
 
         async def main() -> None:
             async with DockerJupyterServer() as jupyter_server:
                 async with DockerJupyterCodeExecutor(jupyter_server=jupyter_server) as executor:
-                    tool = PythonCodeExecutionTool(executor)
+                    tool = CodeExecutionTool(executor)
                     model_client = OpenAIChatCompletionClient(model="gpt-4o")
                     agent = AssistantAgent("assistant", model_client=model_client, tools=[tool])
                     result = await agent.run(task="What is the 10th Fibonacci number? Use Python to calculate it.")

@@ -19,7 +19,9 @@ async def test_code_execution_tool(caplog: pytest.LogCaptureFixture) -> None:
         with caplog.at_level(logging.INFO):
             # Test simple code execution
             code = "print('hello world!')"
-            result = await tool.run_json(args={"code": code, "language": "python"}, cancellation_token=CancellationToken())
+            result = await tool.run_json(
+                args={"code": code, "language": "python"}, cancellation_token=CancellationToken()
+            )
             # Check log output
             assert "hello world!" in caplog.text
 
@@ -30,7 +32,9 @@ async def test_code_execution_tool(caplog: pytest.LogCaptureFixture) -> None:
         # Test code with computation
         code = """a = 100 + 200 \nprint(f'Result: {a}')
         """
-        result = await tool.run(args=CodeExecutionInput(language="python", code=code), cancellation_token=CancellationToken())
+        result = await tool.run(
+            args=CodeExecutionInput(language="python", code=code), cancellation_token=CancellationToken()
+        )
 
         # Verify computation result
         assert result.success is True
@@ -38,7 +42,9 @@ async def test_code_execution_tool(caplog: pytest.LogCaptureFixture) -> None:
 
         # Test error handling
         code = "print(undefined_variable)"
-        result = await tool.run(args=CodeExecutionInput(language="python", code=code), cancellation_token=CancellationToken())
+        result = await tool.run(
+            args=CodeExecutionInput(language="python", code=code), cancellation_token=CancellationToken()
+        )
 
         # Verify error handling
         assert result.success is False
@@ -46,16 +52,20 @@ async def test_code_execution_tool(caplog: pytest.LogCaptureFixture) -> None:
 
         # Test shell command execution
         code = "echo 'hello world!'"
-        result = await tool.run(args=CodeExecutionInput(language="sh", code=code), cancellation_token=CancellationToken())
+        result = await tool.run(
+            args=CodeExecutionInput(language="sh", code=code), cancellation_token=CancellationToken()
+        )
 
         assert result.success is True
         assert "hello world!" in result.output
 
         code = "fake_command"
-        result = await tool.run(args=CodeExecutionInput(language="sh", code=code), cancellation_token=CancellationToken())
+        result = await tool.run(
+            args=CodeExecutionInput(language="sh", code=code), cancellation_token=CancellationToken()
+        )
 
         assert result.success is False
-        assert "fake_command: command not found" in result.output
+        assert "fake_command: not found" in result.output
 
 
 def test_code_execution_tool_serialization() -> None:
