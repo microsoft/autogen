@@ -58,9 +58,7 @@ class TeamTool(TaskRunnerTool, Component[TeamToolConfig]):
                 # Disable parallel tool calls when using TeamTool
                 model_client = OllamaChatCompletionClient(model="llama3.2")
 
-                writer = AssistantAgent(
-                    name="writer", model_client=model_client, system_message="You are a helpful assistant."
-                )
+                writer = AssistantAgent(name="writer", model_client=model_client, system_message="You are a helpful assistant.")
                 reviewer = AssistantAgent(
                     name="reviewer", model_client=model_client, system_message="You are a critical reviewer."
                 )
