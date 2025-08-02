@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from autogen_agentchat.agents import CodeExecutorAgent
+from autogen_agentchat.agents._code_executor_agent import ApprovalRequest, ApprovalResponse
 from autogen_core.models import ChatCompletionClient
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.teams.magentic_one import MagenticOne
@@ -43,6 +44,16 @@ def mock_chat_client() -> Mock:
     return mock_client
 
 
+def approval_function_allow_all(request: ApprovalRequest) -> ApprovalResponse:
+    """Test approval function that allows all code execution."""
+    return ApprovalResponse(approved=True, reason="Test approval - all code allowed")
+
+
+def approval_function_deny_all(request: ApprovalRequest) -> ApprovalResponse:
+    """Test approval function that denies all code execution."""
+    return ApprovalResponse(approved=False, reason="Test approval - all code denied")
+
+
 @pytest.mark.skipif(not docker_tests_enabled(), reason="Docker is not available")
 def test_magentic_one_uses_docker_by_default(mock_chat_client: Mock) -> None:
     """Test that MagenticOne uses Docker code executor by default when Docker is available."""
@@ -65,6 +76,36 @@ def test_magentic_one_uses_docker_by_default(mock_chat_client: Mock) -> None:
             code_executor_agent._code_executor,  # type: ignore[reportPrivateUsage]
             DockerCommandLineCodeExecutor,  # type: ignore[reportPrivateUsage]
         ), f"Expected DockerCommandLineCodeExecutor, got {type(code_executor_agent._code_executor)}"  # type: ignore[reportPrivateUsage]
+
+        # Test that no approval function is set by default
+        assert code_executor_agent._approval_func is None, "Expected no approval function by default"  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.skipif(not docker_tests_enabled(), reason="Docker is not available")
+def test_magentic_one_uses_docker_with_approval_function(mock_chat_client: Mock) -> None:
+    """Test that MagenticOne uses Docker code executor with approval function when provided."""
+    from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+
+        m1 = MagenticOne(client=mock_chat_client, approval_func=approval_function_allow_all)
+
+        # Find the CodeExecutorAgent in the participants list
+        code_executor_agent = None
+        for agent in m1._participants:  # type: ignore[reportPrivateUsage]
+            if isinstance(agent, CodeExecutorAgent):
+                code_executor_agent = agent
+                break
+
+        assert code_executor_agent is not None, "CodeExecutorAgent not found"
+        assert isinstance(
+            code_executor_agent._code_executor,  # type: ignore[reportPrivateUsage]
+            DockerCommandLineCodeExecutor,  # type: ignore[reportPrivateUsage]
+        ), f"Expected DockerCommandLineCodeExecutor, got {type(code_executor_agent._code_executor)}"  # type: ignore[reportPrivateUsage]
+
+        # Test that approval function is set correctly
+        assert code_executor_agent._approval_func is approval_function_allow_all, "Expected approval function to be set"  # type: ignore[reportPrivateUsage]
 
 
 def test_docker_availability_check() -> None:
@@ -99,6 +140,48 @@ def test_magentic_one_falls_back_to_local_when_docker_unavailable(
             LocalCommandLineCodeExecutor,  # type: ignore[reportPrivateUsage]
         ), f"Expected LocalCommandLineCodeExecutor, got {type(code_executor_agent._code_executor)}"  # type: ignore[reportPrivateUsage]
 
+        # Test that no approval function is set by default
+        assert code_executor_agent._approval_func is None, "Expected no approval function by default"  # type: ignore[reportPrivateUsage]
+
+        # Check that appropriate warnings were issued
+        warning_messages = [str(warning.message) for warning in w]
+        docker_warning_found = any("Docker is not available" in msg for msg in warning_messages)
+        deprecated_warning_found = any(
+            "Instantiating MagenticOne without a code_executor is deprecated" in msg for msg in warning_messages
+        )
+
+        assert docker_warning_found, f"Docker unavailable warning not found in: {warning_messages}"
+        assert deprecated_warning_found, f"Deprecation warning not found in: {warning_messages}"
+
+
+@patch("autogen_ext.teams.magentic_one._is_docker_available")
+def test_magentic_one_falls_back_to_local_with_approval_function(
+    mock_docker_check: Mock, mock_chat_client: Mock
+) -> None:
+    """Test that MagenticOne falls back to local executor with approval function when Docker is not available."""
+    mock_docker_check.return_value = False
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+
+        m1 = MagenticOne(client=mock_chat_client, approval_func=approval_function_deny_all)
+
+        # Find the CodeExecutorAgent in the participants list
+        code_executor_agent = None
+        for agent in m1._participants:  # type: ignore[reportPrivateUsage]
+            if isinstance(agent, CodeExecutorAgent):
+                code_executor_agent = agent
+                break
+
+        assert code_executor_agent is not None, "CodeExecutorAgent not found"
+        assert isinstance(
+            code_executor_agent._code_executor,  # type: ignore[reportPrivateUsage]
+            LocalCommandLineCodeExecutor,  # type: ignore[reportPrivateUsage]
+        ), f"Expected LocalCommandLineCodeExecutor, got {type(code_executor_agent._code_executor)}"  # type: ignore[reportPrivateUsage]
+
+        # Test that approval function is set correctly
+        assert code_executor_agent._approval_func is approval_function_deny_all, "Expected approval function to be set"  # type: ignore[reportPrivateUsage]
+
         # Check that appropriate warnings were issued
         warning_messages = [str(warning.message) for warning in w]
         docker_warning_found = any("Docker is not available" in msg for msg in warning_messages)
@@ -128,6 +211,42 @@ def test_magentic_one_with_explicit_code_executor(mock_chat_client: Mock) -> Non
 
         assert code_executor_agent is not None, "CodeExecutorAgent not found"
         assert code_executor_agent._code_executor is explicit_executor, "Expected the explicitly provided code executor"  # type: ignore[reportPrivateUsage]
+
+        # Test that no approval function is set by default
+        assert code_executor_agent._approval_func is None, "Expected no approval function by default"  # type: ignore[reportPrivateUsage]
+
+        # No deprecation warning should be issued when explicitly providing a code executor
+        warning_messages = [str(warning.message) for warning in w]
+        deprecated_warning_found = any(
+            "Instantiating MagenticOne without a code_executor is deprecated" in msg for msg in warning_messages
+        )
+
+        assert not deprecated_warning_found, f"Unexpected deprecation warning found: {warning_messages}"
+
+
+def test_magentic_one_with_explicit_code_executor_and_approval_function(mock_chat_client: Mock) -> None:
+    """Test that MagenticOne uses the provided code executor and approval function when explicitly given."""
+    explicit_executor = LocalCommandLineCodeExecutor()
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+
+        m1 = MagenticOne(
+            client=mock_chat_client, code_executor=explicit_executor, approval_func=approval_function_allow_all
+        )
+
+        # Find the CodeExecutorAgent in the participants list
+        code_executor_agent = None
+        for agent in m1._participants:  # type: ignore[reportPrivateUsage]
+            if isinstance(agent, CodeExecutorAgent):
+                code_executor_agent = agent
+                break
+
+        assert code_executor_agent is not None, "CodeExecutorAgent not found"
+        assert code_executor_agent._code_executor is explicit_executor, "Expected the explicitly provided code executor"  # type: ignore[reportPrivateUsage]
+
+        # Test that approval function is set correctly
+        assert code_executor_agent._approval_func is approval_function_allow_all, "Expected approval function to be set"  # type: ignore[reportPrivateUsage]
 
         # No deprecation warning should be issued when explicitly providing a code executor
         warning_messages = [str(warning.message) for warning in w]
