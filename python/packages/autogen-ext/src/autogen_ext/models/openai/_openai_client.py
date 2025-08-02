@@ -1236,6 +1236,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         stop (optional, str | List[str]):
         temperature (optional, float):
         top_p (optional, float):
+        parallel_tool_calls (optional, bool): Whether to allow parallel tool calls. When not set, defaults to server behavior.
         user (optional, str):
         default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
         add_name_prefixes (optional, bool): Whether to prepend the `source` value
@@ -1576,6 +1577,7 @@ class AzureOpenAIChatCompletionClient(
         stop (optional, str | List[str]):
         temperature (optional, float):
         top_p (optional, float):
+        parallel_tool_calls (optional, bool): Whether to allow parallel tool calls. When not set, defaults to server behavior.
         user (optional, str):
         default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
         add_name_prefixes (optional, bool): Whether to prepend the `source` value
