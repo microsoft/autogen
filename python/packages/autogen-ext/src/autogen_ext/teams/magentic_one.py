@@ -148,16 +148,16 @@ class MagenticOne(MagenticOneGroupChat):
             from autogen_ext.teams.magentic_one import MagenticOne
             from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
             from autogen_agentchat.ui import Console
-            from autogen_agentchat.agents._code_executor_agent import ApprovalRequest, ApprovalResponse
+            from autogen_agentchat.agents import ApprovalRequest, ApprovalResponse
 
 
             def user_input_func(prompt: str) -> str:
-                \"\"\"\"Custom input function for user interaction.\"\"\"\"
+                \"\"\"Custom input function for user interaction.\"\"\"
                 return input(prompt)
 
 
             def approval_func(request: ApprovalRequest) -> ApprovalResponse:
-                \"\"\"\"Simple approval function that requests user input.\"\"\"\"
+                \"\"\"Simple approval function that requests user input.\"\"\"
                 print(f\"Code to execute:\\n{request.code}\")
                 user_input = input("Do you approve this code execution? (y/n): ").strip().lower()
                 if user_input == 'y':
@@ -194,11 +194,11 @@ class MagenticOne(MagenticOneGroupChat):
             from autogen_ext.teams.magentic_one import MagenticOne
             from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
             from autogen_agentchat.ui import Console
-            from autogen_agentchat.agents._code_executor_agent import ApprovalRequest, ApprovalResponse
+            from autogen_agentchat.agents import ApprovalRequest, ApprovalResponse
 
 
             def approval_func(request: ApprovalRequest) -> ApprovalResponse:
-                \"\"\"\"Simple approval function that requests user input.\"\"\"\"
+                \"\"\"Simple approval function that requests user input.\"\"\"
                 print(f\"Code to execute:\\n{request.code}\")
                 user_input = input("Do you approve this code execution? (y/n): ").strip().lower()
                 if user_input == 'y':
