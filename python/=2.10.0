@@ -1,0 +1,28 @@
+Defaulting to user installation because normal site-packages is not writeable
+Collecting pydantic
+  Downloading pydantic-2.11.7-py3-none-any.whl.metadata
+     - 68.0 kB 250.7 MB/s 0:00:00
+Collecting annotated-types>=0.6.0 (from pydantic)
+  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata
+     - 15.0 kB 145.5 MB/s 0:00:00
+Collecting pydantic-core==2.33.2 (from pydantic)
+  Downloading pydantic_core-2.33.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata
+     - 6.8 kB ? 0:00:00
+Collecting typing-extensions>=4.12.2 (from pydantic)
+  Downloading typing_extensions-4.14.1-py3-none-any.whl.metadata
+     - 3.0 kB ? 0:00:00
+Collecting typing-inspection>=0.4.0 (from pydantic)
+  Downloading typing_inspection-0.4.1-py3-none-any.whl.metadata
+     - 2.6 kB ? 0:00:00
+Downloading pydantic-2.11.7-py3-none-any.whl
+   - 444.8 kB 29.1 MB/s 0:00:00
+Downloading pydantic_core-2.33.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+   - 2.0 MB 179.4 MB/s 0:00:00
+Downloading annotated_types-0.7.0-py3-none-any.whl
+   - 13.6 kB 98.0 MB/s 0:00:00
+Downloading typing_extensions-4.14.1-py3-none-any.whl
+   - 43.9 kB 220.9 MB/s 0:00:00
+Downloading typing_inspection-0.4.1-py3-none-any.whl
+   - 14.6 kB 130.8 MB/s 0:00:00
+Installing collected packages: typing-extensions, annotated-types, typing-inspection, pydantic-core, pydantic
+Successfully installed annotated-types-0.7.0 pydantic-2.11.7 pydantic-core-2.33.2 typing-extensions-4.14.1 typing-inspection-0.4.1
