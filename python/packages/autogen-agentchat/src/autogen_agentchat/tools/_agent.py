@@ -50,7 +50,7 @@ class AgentTool(TaskRunnerTool, Component[AgentToolConfig]):
 
 
             async def main() -> None:
-                model_client = OpenAIChatCompletionClient(model="gpt-4")
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1")
                 writer = AssistantAgent(
                     name="writer",
                     description="A writer agent for generating text.",
@@ -60,7 +60,7 @@ class AgentTool(TaskRunnerTool, Component[AgentToolConfig]):
                 writer_tool = AgentTool(agent=writer)
 
                 # Create model client with parallel tool calls disabled for the main agent
-                main_model_client = OpenAIChatCompletionClient(model="gpt-4", parallel_tool_calls=False)
+                main_model_client = OpenAIChatCompletionClient(model="gpt-4.1", parallel_tool_calls=False)
                 assistant = AssistantAgent(
                     name="assistant",
                     model_client=main_model_client,
