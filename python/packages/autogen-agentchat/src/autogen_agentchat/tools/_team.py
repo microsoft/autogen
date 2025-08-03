@@ -51,12 +51,12 @@ class TeamTool(TaskRunnerTool, Component[TeamToolConfig]):
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_agentchat.tools import TeamTool
             from autogen_agentchat.ui import Console
-            from autogen_ext.models.ollama import OllamaChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
                 # Disable parallel tool calls when using TeamTool
-                model_client = OllamaChatCompletionClient(model="llama3.2")
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1")
 
                 writer = AssistantAgent(name="writer", model_client=model_client, system_message="You are a helpful assistant.")
                 reviewer = AssistantAgent(
@@ -80,7 +80,7 @@ class TeamTool(TaskRunnerTool, Component[TeamToolConfig]):
                 )
 
                 # Create model client with parallel tool calls disabled for the main agent
-                main_model_client = OllamaChatCompletionClient(model="llama3.2", parallel_tool_calls=False)
+                main_model_client = OpenAIChatCompletionClient(model="gpt-4.1", parallel_tool_calls=False)
                 main_agent = AssistantAgent(
                     name="main_agent",
                     model_client=main_model_client,
