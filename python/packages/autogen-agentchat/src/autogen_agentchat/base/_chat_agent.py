@@ -13,10 +13,10 @@ from ._task import TaskRunner
 class Response:
     """A response from calling :meth:`ChatAgent.on_messages`."""
 
-    chat_message: BaseChatMessage
+    chat_message: SerializeAsAny[BaseChatMessage]
     """A chat message produced by the agent as the response."""
 
-    inner_messages: Sequence[BaseAgentEvent | BaseChatMessage] | None = None
+    inner_messages: Sequence[SerializeAsAny[BaseAgentEvent | BaseChatMessage]] | None = None
     """Inner messages produced by the agent, they can be :class:`BaseAgentEvent`
     or :class:`BaseChatMessage`."""
 

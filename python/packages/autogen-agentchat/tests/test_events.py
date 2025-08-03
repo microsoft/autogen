@@ -1,7 +1,7 @@
 import json
 
 from autogen_agentchat.base import Response, TaskResult
-from autogen_agentchat.messages import CodeGenerationEvent, TextMessage
+from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.teams._group_chat._events import (
     GroupChatAgentResponse,
     GroupChatMessage,
