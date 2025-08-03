@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any, AsyncGenerator, Mapping, Sequence
 
 from autogen_core import CancellationToken, ComponentBase
-from pydantic import BaseModel
+from pydantic import BaseModel, SerializeAsAny
 
 from ..messages import BaseAgentEvent, BaseChatMessage
 from ._task import TaskRunner
