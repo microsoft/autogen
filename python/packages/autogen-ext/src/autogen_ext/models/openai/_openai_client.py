@@ -163,10 +163,15 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
 
 
 def to_oai_type(
-    message: LLMMessage, prepend_name: bool = False, model: str = "unknown", model_family: str = ModelFamily.UNKNOWN
+    message: LLMMessage,
+    prepend_name: bool = False,
+    model: str = "unknown",
+    model_family: str = ModelFamily.UNKNOWN,
+    include_name_in_message: bool = True,
 ) -> Sequence[ChatCompletionMessageParam]:
     context = {
         "prepend_name": prepend_name,
+        "include_name_in_message": include_name_in_message,
     }
     transformers = get_transformer("openai", model, model_family)
 
@@ -307,6 +312,7 @@ def count_tokens_openai(
     add_name_prefixes: bool = False,
     tools: Sequence[Tool | ToolSchema] = [],
     model_family: str = ModelFamily.UNKNOWN,
+    include_name_in_message: bool = True,
 ) -> int:
     try:
         encoding = tiktoken.encoding_for_model(model)
@@ -320,7 +326,13 @@ def count_tokens_openai(
     # Message tokens.
     for message in messages:
         num_tokens += tokens_per_message
-        oai_message = to_oai_type(message, prepend_name=add_name_prefixes, model=model, model_family=model_family)
+        oai_message = to_oai_type(
+            message,
+            prepend_name=add_name_prefixes,
+            model=model,
+            model_family=model_family,
+            include_name_in_message=include_name_in_message,
+        )
         for oai_message_part in oai_message:
             for key, value in oai_message_part.items():
                 if value is None:
@@ -413,9 +425,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model_capabilities: Optional[ModelCapabilities] = None,  # type: ignore
         model_info: Optional[ModelInfo] = None,
         add_name_prefixes: bool = False,
+        include_name_in_message: bool = True,
     ):
         self._client = client
         self._add_name_prefixes = add_name_prefixes
+        self._include_name_in_message = include_name_in_message
         if model_capabilities is None and model_info is None:
             try:
                 self._model_info = _model_info.get_info(create_args["model"])
@@ -591,6 +605,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 prepend_name=self._add_name_prefixes,
                 model=create_args.get("model", "unknown"),
                 model_family=self._model_info["family"],
+                include_name_in_message=self._include_name_in_message,
             )
             for m in messages
         ]
@@ -1127,6 +1142,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             add_name_prefixes=self._add_name_prefixes,
             tools=tools,
             model_family=self._model_info["family"],
+            include_name_in_message=self._include_name_in_message,
         )
 
     def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
@@ -1220,6 +1236,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         stop (optional, str | List[str]):
         temperature (optional, float):
         top_p (optional, float):
+        parallel_tool_calls (optional, bool): Whether to allow parallel tool calls. When not set, defaults to server behavior.
         user (optional, str):
         default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
         add_name_prefixes (optional, bool): Whether to prepend the `source` value
@@ -1227,6 +1244,9 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             "this is content" becomes "Reviewer said: this is content."
             This can be useful for models that do not support the `name` field in
             message. Defaults to False.
+        include_name_in_message (optional, bool): Whether to include the `name` field
+            in user message parameters sent to the OpenAI API. Defaults to True. Set to False
+            for model providers that don't support the `name` field (e.g., Groq).
         stream_options (optional, dict): Additional options for streaming. Currently only `include_usage` is supported.
 
     Examples:
@@ -1426,6 +1446,10 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         if "add_name_prefixes" in kwargs:
             add_name_prefixes = kwargs["add_name_prefixes"]
 
+        include_name_in_message: bool = True
+        if "include_name_in_message" in kwargs:
+            include_name_in_message = kwargs["include_name_in_message"]
+
         # Special handling for Gemini model.
         assert "model" in copied_args and isinstance(copied_args["model"], str)
         if copied_args["model"].startswith("gemini-"):
@@ -1453,6 +1477,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             model_capabilities=model_capabilities,
             model_info=model_info,
             add_name_prefixes=add_name_prefixes,
+            include_name_in_message=include_name_in_message,
         )
 
     def __getstate__(self) -> Dict[str, Any]:
@@ -1552,8 +1577,18 @@ class AzureOpenAIChatCompletionClient(
         stop (optional, str | List[str]):
         temperature (optional, float):
         top_p (optional, float):
+        parallel_tool_calls (optional, bool): Whether to allow parallel tool calls. When not set, defaults to server behavior.
         user (optional, str):
         default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
+        add_name_prefixes (optional, bool): Whether to prepend the `source` value
+            to each :class:`~autogen_core.models.UserMessage` content. E.g.,
+            "this is content" becomes "Reviewer said: this is content."
+            This can be useful for models that do not support the `name` field in
+            message. Defaults to False.
+        include_name_in_message (optional, bool): Whether to include the `name` field
+            in user message parameters sent to the OpenAI API. Defaults to True. Set to False
+            for model providers that don't support the `name` field (e.g., Groq).
+        stream_options (optional, dict): Additional options for streaming. Currently only `include_usage` is supported.
 
 
     To use the client, you need to provide your deployment name, Azure Cognitive Services endpoint, and api version.
@@ -1645,6 +1680,10 @@ class AzureOpenAIChatCompletionClient(
         if "add_name_prefixes" in kwargs:
             add_name_prefixes = kwargs["add_name_prefixes"]
 
+        include_name_in_message: bool = True
+        if "include_name_in_message" in kwargs:
+            include_name_in_message = kwargs["include_name_in_message"]
+
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
@@ -1654,6 +1693,7 @@ class AzureOpenAIChatCompletionClient(
             model_capabilities=model_capabilities,
             model_info=model_info,
             add_name_prefixes=add_name_prefixes,
+            include_name_in_message=include_name_in_message,
         )
 
     def __getstate__(self) -> Dict[str, Any]:

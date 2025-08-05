@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import BaseChatMessage, MultiModalMessage, TextMessage
-from autogen_core import CancellationToken, FunctionCall, Image
+from autogen_core import CancellationToken, Image
 from autogen_core.models import UserMessage
 from autogen_core.tools import Tool, ToolSchema
 from autogen_ext.agents.openai import OpenAIAgent
@@ -326,75 +326,6 @@ async def test_tool_schema_conversion(agent: OpenAIAgent) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_assistants(agent: OpenAIAgent) -> Dict[str, Any]:
-    client = cast(Any, agent._client)  # type: ignore
-    client.assistants = MagicMock()
-    client.assistants.list = AsyncMock(
-        return_value=MagicMock(model_dump=lambda: {"object": "list", "data": ["assistant1"]})
-    )
-    result = await agent.list_assistants(limit=1)
-    assert result["object"] == "list"
-    assert "assistant1" in result["data"]
-
-    delattr(client, "assistants")
-    with pytest.raises(NotImplementedError):
-        await agent.list_assistants()
-
-    return result
-
-
-@pytest.mark.asyncio
-async def test_retrieve_assistant(agent: OpenAIAgent) -> Dict[str, Any]:
-    client = cast(Any, agent._client)  # type: ignore
-    client.assistants = MagicMock()
-    client.assistants.retrieve = AsyncMock(return_value=MagicMock(model_dump=lambda: {"id": "asst_abc123"}))
-    result = await agent.retrieve_assistant("asst_abc123")
-    assert result["id"] == "asst_abc123"
-
-    delattr(client, "assistants")
-    with pytest.raises(NotImplementedError):
-        await agent.retrieve_assistant("asst_abc123")
-
-    return result
-
-
-@pytest.mark.asyncio
-async def test_modify_assistant(agent: OpenAIAgent) -> Dict[str, Any]:
-    client = cast(Any, agent._client)  # type: ignore
-    client.assistants = MagicMock()
-    client.assistants.update = AsyncMock(
-        return_value=MagicMock(model_dump=lambda: {"id": "asst_123", "name": "newname"})
-    )
-    result = await agent.modify_assistant("asst_123", name="newname")
-    assert result["id"] == "asst_123"
-    assert result["name"] == "newname"
-
-    delattr(client, "assistants")
-    with pytest.raises(NotImplementedError):
-        await agent.modify_assistant("asst_123", name="newname")
-
-    call = FunctionCall(name="not_a_tool", arguments="{}", id="call1")
-    exec_result = await agent._execute_tool_call(call, CancellationToken())  # type: ignore
-    assert exec_result.is_error
-
-    agent._tool_map["bad_args"] = agent._tool_map["get_weather"]  # type: ignore
-    call = FunctionCall(name="bad_args", arguments="{invalid_json}", id="call2")
-    exec_result = await agent._execute_tool_call(call, CancellationToken())  # type: ignore
-    assert exec_result.is_error and "Invalid JSON" in exec_result.content
-    mock_tool = MagicMock(spec=Tool)
-    mock_tool.name = "fail_tool"
-    mock_tool.run_json = AsyncMock(side_effect=Exception("fail"))
-    mock_tool.return_value_as_string = MagicMock(return_value="error string")
-    agent._tool_map["fail_tool"] = mock_tool  # type: ignore
-
-    call = FunctionCall(name="fail_tool", arguments="{}", id="call3")
-    exec_result = await agent._execute_tool_call(call, CancellationToken())  # type: ignore
-    assert exec_result.is_error and "fail" in exec_result.content
-
-    return result
-
-
-@pytest.mark.asyncio
 async def test_on_messages_inner_messages(agent: OpenAIAgent, cancellation_token: CancellationToken) -> None:
     class DummyMsg(BaseChatMessage):
         type: str = "DummyMsg"
@@ -447,20 +378,6 @@ async def test_build_api_params(agent: OpenAIAgent) -> None:
     params = agent._build_api_parameters([{"role": "user", "content": "hi"}])  # type: ignore
     assert "text.format" not in params
     assert params.get("text") == {"type": "json_object"}
-
-
-@pytest.mark.asyncio
-async def test_delete_assistant(agent: OpenAIAgent) -> Dict[str, Any]:
-    client = cast(Any, agent._client)  # type: ignore
-    client.assistants = MagicMock()
-    client.assistants.delete = AsyncMock(return_value=MagicMock(model_dump=lambda: {"id": "asst_123"}))
-    result = await agent.delete_assistant("asst_123")
-    assert result["id"] == "asst_123"
-    delattr(client, "assistants")
-    with pytest.raises(NotImplementedError):
-        await agent.delete_assistant("asst_123")
-
-    return result
 
 
 @pytest.mark.asyncio

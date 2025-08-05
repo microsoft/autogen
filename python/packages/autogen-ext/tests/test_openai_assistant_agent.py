@@ -14,31 +14,7 @@ from autogen_core.tools._base import BaseTool, Tool
 from autogen_ext.agents.openai import OpenAIAssistantAgent
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AsyncAzureOpenAI, AsyncOpenAI
-from openai import __version__ as openai_version
 from pydantic import BaseModel
-
-
-def _parse_openai_version(version_str: str) -> tuple[int, int, int]:
-    """Parse a semantic version string into a tuple of integers."""
-    try:
-        parts = version_str.split(".")
-        major = int(parts[0])
-        minor = int(parts[1]) if len(parts) > 1 else 0
-        patch = int(parts[2].split("-")[0]) if len(parts) > 2 else 0  # Handle pre-release versions
-        return (major, minor, patch)
-    except (ValueError, IndexError):
-        # If version parsing fails, assume it's a newer version
-        return (999, 999, 999)
-
-
-# Skip all tests if OpenAI version is less than 1.83
-_current_version = _parse_openai_version(openai_version)
-_target_version = (1, 83, 0)
-if _current_version < _target_version:
-    pytest.skip(
-        f"OpenAI version {openai_version} is less than 1.83. OpenAIAssistantAgent tests are skipped for older versions.",
-        allow_module_level=True,
-    )
 
 
 class QuestionType(str, Enum):
@@ -360,8 +336,8 @@ async def test_quiz_creation(
 @pytest.mark.asyncio
 async def test_on_reset_behavior(client: AsyncOpenAI, cancellation_token: CancellationToken) -> None:
     # Arrange: Use the default behavior for reset.
-    thread = await client.beta.threads.create()
-    await client.beta.threads.messages.create(
+    thread = await client.beta.threads.create()  # type: ignore[reportDeprecated]
+    await client.beta.threads.messages.create(  # type: ignore[reportDeprecated]
         thread_id=thread.id,
         content="Hi, my name is John and I'm a software engineer. Use this information to help me.",
         role="user",

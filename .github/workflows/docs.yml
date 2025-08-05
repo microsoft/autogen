@@ -39,7 +39,7 @@ jobs:
               poe-dir: ".",
             },
             {
-              ref: "python-v0.6.4",
+              ref: "python-v0.7.1.post1",
               dest-dir: stable,
               uv-version: "0.7.13",
               sphinx-release-override: "stable",
@@ -181,6 +181,13 @@ jobs:
             {
               ref: "python-v0.6.4",
               dest-dir: "0.6.4",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
+            {
+              ref: "python-v0.7.1.post1",
+              dest-dir: "0.7.1",
               uv-version: "0.7.13",
               sphinx-release-override: "",
               poe-dir: ".",
