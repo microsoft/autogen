@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { Input, InputNumber, Select, Tooltip, Collapse } from "antd";
+import { Input, InputNumber, Select, Tooltip, Collapse, Switch } from "antd";
 import TextArea from "antd/es/input/TextArea";
 import { HelpCircle, Settings, User, Wrench } from "lucide-react";
 import {
@@ -56,7 +56,8 @@ type FieldName =
   | "azure_ad_token"
   | "tools"
   | "tool_choice"
-  | "metadata";
+  | "metadata"
+  | "model_info";
 
 // Define the field specification type
 interface FieldSpec {
@@ -70,7 +71,127 @@ interface FieldSpec {
   };
 }
 
-// Field specifications for all possible model parameters
+const ModelInfoEditor: React.FC<{
+  value: any;
+  onChange: (value: any) => void;
+}> = ({ value, onChange }) => {
+  const modelInfo = value || {
+    vision: false,
+    function_calling: false,
+    json_output: false,
+    structured_output: false,
+    family: "unknown",
+    multiple_system_messages: false,
+  };
+
+  const updateField = (field: string, newValue: any) => {
+    onChange({
+      ...modelInfo,
+      [field]: newValue,
+    });
+  };
+
+  return (
+    <div className="space-y-4 p-4 border rounded-lg">
+      <div className="grid grid-cols-2 gap-4">
+        <label className="flex items-center gap-2">
+          <Switch
+            checked={modelInfo.vision}
+            onChange={(checked) => updateField("vision", checked)}
+          />
+          <span>Vision Support</span>
+        </label>
+
+        <label className="flex items-center gap-2">
+          <Switch
+            checked={modelInfo.function_calling}
+            onChange={(checked) => updateField("function_calling", checked)}
+          />
+          <span>Function Calling</span>
+        </label>
+
+        <label className="flex items-center gap-2">
+          <Switch
+            checked={modelInfo.json_output}
+            onChange={(checked) => updateField("json_output", checked)}
+          />
+          <span>JSON Output</span>
+        </label>
+
+        <label className="flex items-center gap-2">
+          <Switch
+            checked={modelInfo.structured_output}
+            onChange={(checked) => updateField("structured_output", checked)}
+          />
+          <span>Structured Output</span>
+        </label>
+
+        <label className="flex items-center gap-2">
+          <Switch
+            checked={modelInfo.multiple_system_messages}
+            onChange={(checked) => updateField("multiple_system_messages", checked)}
+          />
+          <span>Multiple System Messages</span>
+        </label>
+      </div>
+
+      <label className="block">
+        <span className="text-sm font-medium">Model Family</span>
+        <Select
+          value={modelInfo.family}
+          onChange={(value) => updateField("family", value)}
+          className="w-full mt-1"
+          options={[
+            { label: "GPT-4.1", value: "gpt-41" },
+            { label: "GPT-4.5", value: "gpt-45" },
+            { label: "GPT-4o", value: "gpt-4o" },
+            { label: "GPT-4", value: "gpt-4" },
+            { label: "GPT-3.5", value: "gpt-35" },
+            { label: "o1", value: "o1" },
+            { label: "o3", value: "o3" },
+            { label: "o4", value: "o4" },
+            { label: "r1", value: "r1" },
+            
+            { label: "Gemini 1.5 Flash", value: "gemini-1.5-flash" },
+            { label: "Gemini 1.5 Pro", value: "gemini-1.5-pro" },
+            { label: "Gemini 2.0 Flash", value: "gemini-2.0-flash" },
+            { label: "Gemini 2.5 Pro", value: "gemini-2.5-pro" },
+            { label: "Gemini 2.5 Flash", value: "gemini-2.5-flash" },
+            
+            { label: "Claude 3 Haiku", value: "claude-3-haiku" },
+            { label: "Claude 3 Sonnet", value: "claude-3-sonnet" },
+            { label: "Claude 3 Opus", value: "claude-3-opus" },
+            { label: "Claude 3.5 Haiku", value: "claude-3-5-haiku" },
+            { label: "Claude 3.5 Sonnet", value: "claude-3-5-sonnet" },
+            { label: "Claude 3.7 Sonnet", value: "claude-3-7-sonnet" },
+            { label: "Claude 4 Opus", value: "claude-4-opus" },
+            { label: "Claude 4 Sonnet", value: "claude-4-sonnet" },
+            
+            { label: "Llama 3.3 8B", value: "llama-3.3-8b" },
+            { label: "Llama 3.3 70B", value: "llama-3.3-70b" },
+            { label: "Llama 4 Scout", value: "llama-4-scout" },
+            { label: "Llama 4 Maverick", value: "llama-4-maverick" },
+            
+            { label: "Codestral", value: "codestral" },
+            { label: "Open Codestral Mamba", value: "open-codestral-mamba" },
+            { label: "Mistral", value: "mistral" },
+            { label: "Ministral", value: "ministral" },
+            { label: "Pixtral", value: "pixtral" },
+            
+            { label: "Unknown", value: "unknown" },
+          ]}
+          showSearch
+          filterOption={(input, option) =>
+            (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+          }
+          placeholder="Select model family"
+        />
+      </label>
+    </div>
+  );
+};
+
+// Field specifications for each possible model parameters
 const fieldSpecs: Record<FieldName, FieldSpec> = {
   // Common fields
   temperature: {
@@ -258,6 +379,38 @@ const fieldSpecs: Record<FieldName, FieldSpec> = {
       },
     },
   },
+  model_info: {
+    label: "Model Information",
+    tooltip: "Model capabilities and features",
+    component: ModelInfoEditor,
+    props: {},
+    transform: {
+      fromConfig: (value: any) => {
+        const defaultModelInfo = {
+          vision: false,
+          function_calling: true,
+          json_output: false,
+          structured_output: false,
+          family: "unknown",
+          multiple_system_messages: false,
+        };
+        
+        return value ? { ...defaultModelInfo, ...value } : defaultModelInfo;
+      },
+      toConfig: (value: any) => {
+        const defaultModelInfo = {
+          vision: false,
+          function_calling: true,
+          json_output: false,
+          structured_output: false,
+          family: "unknown",
+          multiple_system_messages: false,
+        };
+        
+        return { ...defaultModelInfo, ...value };
+      },
+    },
+  },
 };
 
 // Define provider field mapping type
@@ -266,6 +419,7 @@ type ProviderType = "openai" | "azure" | "anthropic";
 interface ProviderFields {
   modelConfig: FieldName[];
   modelParams: FieldName[];
+  modelInfo: FieldName[];
 }
 
 // Define which fields each provider uses
@@ -287,6 +441,7 @@ const providerFields: Record<ProviderType, ProviderFields> = {
       "presence_penalty",
       "stop",
     ],
+    modelInfo: ["model_info"],
   },
   azure: {
     modelConfig: [
@@ -307,6 +462,7 @@ const providerFields: Record<ProviderType, ProviderFields> = {
       "presence_penalty",
       "stop",
     ],
+    modelInfo: ["model_info"],
   },
   anthropic: {
     modelConfig: ["model", "api_key", "base_url", "timeout", "max_retries"],
@@ -320,6 +476,7 @@ const providerFields: Record<ProviderType, ProviderFields> = {
       "tool_choice",
       "metadata",
     ],
+    modelInfo: ["model_info"],
   },
 };
 
@@ -412,7 +569,7 @@ export const ModelFields: React.FC<ModelFieldsProps> = ({
 
   return (
     <Collapse
-      defaultActiveKey={["details", "configuration", "parameters"]}
+      defaultActiveKey={["details", "configuration", "parameters", "model_info"]}
       className="border-0"
       expandIconPosition="end"
       items={[
@@ -478,6 +635,16 @@ export const ModelFields: React.FC<ModelFieldsProps> = ({
             </div>
           ),
           children: renderFieldGroup(providerFields[providerType].modelParams),
+        },
+        {
+          key: "model_info",
+          label: (
+            <div className="flex items-center gap-2">
+              <HelpCircle className="w-4 h-4 text-purple-500" />
+              <span className="font-medium">Model Information</span>
+            </div>
+          ),
+          children: renderFieldGroup(providerFields[providerType].modelInfo),
         },
         // Only render tool configuration if it's an Anthropic model and has tools
         ...(providerType === "anthropic" &&
