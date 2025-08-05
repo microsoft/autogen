@@ -352,11 +352,70 @@ async def test_json_memory_type(semantic_memory: RedisMemory) -> None:
 @pytest.mark.asyncio
 @pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 async def test_markdown_memory_type(semantic_memory: RedisMemory) -> None:
-    pass
+    await semantic_memory.clear()
+
+    markdown_data = """
+                    This is an H1 header
+                    ============
+
+                    Paragraphs are separated by a blank line.
+
+                    *Italics are within asteriks*, **bold text is within two asterisks**,
+                    while `monospace is within back tics`.
+
+                    Itemized lists are made with indented asterisks:
+
+                      * this one
+                      * that one
+                      * the next one
+
+                    > Block quotes are make with arrows
+                    > like this.
+                    >
+                    > They can span multiple paragraphs,
+                    > if you like.
+
+                    Unicode is supported. ☺
+                    """
+
+    await semantic_memory.add(
+        MemoryContent(content=markdown_data, mime_type=MemoryMimeType.MARKDOWN, metadata={"type": "markdown example"})
+    )
+
+    results = await semantic_memory.query("how can I make itemized lists, or italicize text with asterisks?")
+    assert results.results[0].content == markdown_data
+
+    # test we can query with markdown interpreted as a text string also
+    results = await semantic_memory.query("")
+
+    # we can also if the markdown is within a MemoryContent container
+    results = await semantic_memory.query(
+        MemoryContent(
+            content="**bold text is within 2 asterisks**, and *italics are within 1 asterisk*",
+            mime_type=MemoryMimeType.MARKDOWN,
+        )
+    )
+    assert results.results[0].content == markdown_data
 
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 async def test_query_arguments(semantic_memory: RedisMemory) -> None:
     # test that we can utilize the optional query arguments top_k and distance_threshold
-    pass
+    await semantic_memory.clear()
+
+    await semantic_memory.add(MemoryContent(content="my favorite fruit are apples", mime_type=MemoryMimeType.TEXT))
+    await semantic_memory.add(MemoryContent(content="I also like cherries", mime_type=MemoryMimeType.TEXT))
+    await semantic_memory.add(MemoryContent(content="I like plums as well", mime_type=MemoryMimeType.TEXT))
+
+    # default search
+    results = await semantic_memory.query("what fruits do I like?")
+    assert len(results.results) == 3
+
+    # limit search to 2 results
+    results = await semantic_memory.query("what fruits do I like?", top_k=2)
+    assert len(results.results) == 2
+
+    # limit search to only close matches
+    results = await semantic_memory.query("my favorite fruit are what?", distance_threshold=0.2)
+    assert len(results.results) == 1
