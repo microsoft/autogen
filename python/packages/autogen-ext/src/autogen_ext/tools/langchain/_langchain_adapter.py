@@ -169,7 +169,9 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
             fields = {
                 k: (v.annotation, Field(...))
                 for k, v in sig.parameters.items()
-                if k != "self" and v.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+                if k != "self"
+                and v.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+                and k != "run_manager"  # Exclude LangChain callback manager parameters
             }
             args_type = create_model(f"{name}Args", **fields)  # type: ignore
             # Note: type ignore is used due to a LangChain typing limitation
