@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Literal
+from typing import Any, List, Literal
 
 from autogen_core import CancellationToken, Component
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQueryResult, UpdateContextResult
@@ -217,20 +217,27 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         .. note::
 
             To perform semantic search over stored memories RedisMemory creates a vector embedding
-            from the content field of a MemoryContent object. This content is assumed to be text, and
-            is passed to the vector embedding model specified in RedisMemoryConfig.
+            from the content field of a MemoryContent object. This content is assumed to be text or
+            JSON, and is passed to the vector embedding model specified in RedisMemoryConfig.
 
         Args:
             content (MemoryContent): The memory content to store within Redis.
             cancellation_token (CancellationToken): Token passed to cease operation. Not used.
         """
-        if content.mime_type != MemoryMimeType.TEXT:
+        if content.mime_type == MemoryMimeType.TEXT:
+            memory_content = content.content
+            mime_type = "text/plain"
+        elif content.mime_type == MemoryMimeType.JSON:
+            memory_content = serialize(content.content)
+            mime_type = "application/json"
+        else:
             raise NotImplementedError(
-                f"Error: {content.mime_type} is not supported. Only MemoryMimeType.TEXT is currently supported."
+                f"Error: {content.mime_type} is not supported. Only MemoryMimeType.TEXT and MemoryMimeType.JSON are currently supported."
             )
-
+        metadata = {"mime_type": mime_type}
+        metadata.update(content.metadata if content.metadata else {})
         self.message_history.add_message(
-            {"role": "user", "content": content.content, "tool_call_id": serialize(content.metadata)}  # type: ignore[reportArgumentType]
+            {"role": "user", "content": memory_content, "tool_call_id": serialize(metadata)}  # type: ignore[reportArgumentType]
         )
 
     async def query(
@@ -260,14 +267,19 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
             memoryQueryResult: Object containing memories relevant to the provided query.
         """
         # get the query string, or raise an error for unsupported MemoryContent types
-        if isinstance(query, MemoryContent):
-            if query.mime_type != MemoryMimeType.TEXT:
-                raise NotImplementedError(
-                    f"Error: {query.mime_type} is not supported. Only MemoryMimeType.TEXT is currently supported."
-                )
-            prompt = query.content
-        else:
+        if isinstance(query, str):
             prompt = query
+        elif isinstance(query, MemoryContent):
+            if query.mime_type == MemoryMimeType.TEXT:
+                prompt = str(query.content)
+            elif query.mime_type == MemoryMimeType.JSON:
+                prompt = serialize(query.content)
+            else:
+                raise NotImplementedError(
+                    f"Error: {query.mime_type} is not supported. Only MemoryMimeType.TEXT and MemoryMimeType.JSON are currently supported."
+                )
+        else:
+            raise TypeError("'query' must be either a string or MemoryContent")
 
         top_k = kwargs.pop("top_k", self.config.top_k)
         distance_threshold = kwargs.pop("distance_threshold", self.config.distance_threshold)
@@ -279,12 +291,22 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
             raw=False,
         )
 
-        memories = []
+        memories: List[MemoryContent] = []
         for result in results:
+            metadata = deserialize(result["tool_call_id"])  # type: ignore[reportArgumentType]
+            mime_type = MemoryMimeType(metadata.pop("mime_type"))
+            if mime_type == MemoryMimeType.TEXT:
+                memory_content = result["content"]  # type: ignore[reportArgumentType]
+            elif mime_type == MemoryMimeType.JSON:
+                memory_content = deserialize(result["content"])  # type: ignore[reportArgumentType]
+            else:
+                raise NotImplementedError(
+                    f"Error: {mime_type} is not supported. Only MemoryMimeType.TEXT and MemoryMimeType.JSON are currently supported."
+                )
             memory = MemoryContent(
-                content=result["content"],  # type: ignore[reportArgumentType]
-                mime_type=MemoryMimeType.TEXT,
-                metadata=deserialize(result["tool_call_id"]),  # type: ignore[reportArgumentType]
+                content=memory_content,  # type: ignore[reportArgumentType]
+                mime_type=mime_type,
+                metadata=metadata,
             )
             memories.append(memory)  # type: ignore[reportUknownMemberType]
 

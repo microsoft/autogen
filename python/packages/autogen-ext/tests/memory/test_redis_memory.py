@@ -35,7 +35,9 @@ async def test_redis_memory_query_with_mock() -> None:
         config = RedisMemoryConfig()
         memory = RedisMemory(config=config)
 
-        mock_history.get_relevant.return_value = [{"content": "test content", "tool_call_id": '{"foo": "bar"}'}]
+        mock_history.get_relevant.return_value = [
+            {"content": "test content", "tool_call_id": '{"foo": "bar", "mime_type": "text/plain"}'}
+        ]
         result = await memory.query("test")
         assert len(result.results) == 1
         assert result.results[0].content == "test content"
@@ -304,8 +306,7 @@ async def test_basic_workflow(semantic_config: RedisMemoryConfig) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
-async def test_content_types(semantic_memory: RedisMemory) -> None:
-    """Test different content types with semantic memory."""
+async def test_text_memory_type(semantic_memory: RedisMemory) -> None:
     await semantic_memory.clear()
 
     # Test text content
@@ -317,8 +318,45 @@ async def test_content_types(semantic_memory: RedisMemory) -> None:
     assert len(results.results) > 0
     assert any("Simple text content" in str(r.content) for r in results.results)
 
-    # Test JSON content
-    json_data = {"key": "value", "number": 42}
-    json_content = MemoryContent(content=json_data, mime_type=MemoryMimeType.JSON)
-    with pytest.raises(NotImplementedError):
-        await semantic_memory.add(json_content)
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
+async def test_json_memory_type(semantic_memory: RedisMemory) -> None:
+    await semantic_memory.clear()
+
+    json_data = {"title": "Hitchhiker's Guide to the Galaxy", "The answer to life, the universe and everything.": 42}
+    await semantic_memory.add(
+        MemoryContent(content=json_data, mime_type=MemoryMimeType.JSON, metadata={"author": "Douglas Adams"})
+    )
+
+    results = await semantic_memory.query("what is the ultimate question of the universe?")
+    assert results.results[0].content == json_data
+
+    # meta data should not be searched
+    results = await semantic_memory.query("who is Douglas Adams?")
+    assert len(results.results) == 0
+
+    # test we can't query with JSON also
+    with pytest.raises(TypeError):
+        results = await semantic_memory.query({"question": "what is the ultimate question of the universe?"})  # type: ignore[arg-type]
+
+    # but we can if the JSON is within a MemoryContent container
+    results = await semantic_memory.query(
+        MemoryContent(
+            content={"question": "what is the ultimate question of the universe?"}, mime_type=MemoryMimeType.JSON
+        )
+    )
+    assert results.results[0].content == json_data
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
+async def test_markdown_memory_type(semantic_memory: RedisMemory) -> None:
+    pass
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
+async def test_query_arguments(semantic_memory: RedisMemory) -> None:
+    # test that we can utilize the optional query arguments top_k and distance_threshold
+    pass
