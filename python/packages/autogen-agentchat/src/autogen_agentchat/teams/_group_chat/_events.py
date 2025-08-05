@@ -1,7 +1,7 @@
 import traceback
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, SerializeAsAny
 
 from ...base import Response, TaskResult
 from ...messages import BaseAgentEvent, BaseChatMessage, StopMessage
@@ -38,7 +38,7 @@ class SerializableException(BaseModel):
 class GroupChatStart(BaseModel):
     """A request to start a group chat."""
 
-    messages: List[BaseChatMessage] | None = None
+    messages: List[SerializeAsAny[BaseChatMessage]] | None = None
     """An optional list of messages to start the group chat."""
 
     output_task_messages: bool = True
@@ -48,7 +48,7 @@ class GroupChatStart(BaseModel):
 class GroupChatAgentResponse(BaseModel):
     """A response published to a group chat."""
 
-    response: Response
+    response: SerializeAsAny[Response]
     """The response from an agent."""
 
     name: str
@@ -58,7 +58,7 @@ class GroupChatAgentResponse(BaseModel):
 class GroupChatTeamResponse(BaseModel):
     """A response published to a group chat from a team."""
 
-    result: TaskResult
+    result: SerializeAsAny[TaskResult]
     """The result from a team."""
 
     name: str
@@ -74,7 +74,7 @@ class GroupChatRequestPublish(BaseModel):
 class GroupChatMessage(BaseModel):
     """A message from a group chat."""
 
-    message: BaseAgentEvent | BaseChatMessage
+    message: SerializeAsAny[BaseAgentEvent | BaseChatMessage]
     """The message that was published."""
 
 
