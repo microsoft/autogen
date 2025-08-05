@@ -42,6 +42,7 @@ optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 dynamic = ["version"]
 
 [tool.setuptools_scm]
+version_file = "autogenstudio/version.py"
 
 [tool.setuptools]
 include-package-data = true
