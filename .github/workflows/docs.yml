@@ -207,6 +207,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: |
+          uv venv --python=3.11
           source .venv/bin/activate
           uv pip install -U 'setuptools-scm==0.8.1'
           uv sync --locked --all-extras
