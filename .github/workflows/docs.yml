@@ -211,7 +211,7 @@ jobs:
           source .venv/bin/activate
           # Only pin version if ref is prior to python-v0.7.2.
           if [[ "${{ matrix.version.ref }}" < "python-v0.7.2" && "${{ matrix.version.ref }}" =~ ^python-v ]]; then
-            uv pip install -U 'setuptools<80' 'setuptools-scm<8'
+            uv pip install -U 'setuptools-scm>=8.1'
           fi
           uv sync --locked --all-extras
           poe --directory ${{ matrix.version.poe-dir }} docs-build
