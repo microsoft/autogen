@@ -5,7 +5,8 @@ export type ComponentTypes =
   | "agent"
   | "model"
   | "tool"
-  | "termination";
+  | "termination"
+  | "workbench";
 export interface Component<T extends ComponentConfig> {
   provider: string;
   component_type: ComponentTypes;
@@ -17,7 +18,20 @@ export interface Component<T extends ComponentConfig> {
 }
 
 // Message Types
-export interface RequestUsage {
+export type TerminationConfig =
+  | OrTerminationConfig
+  | AndTerminationConfig
+  | MaxMessageTerminationConfig
+  | TextMentionTerminationConfig
+  | StopMessageTerminationConfig
+  | TokenUsageTerminationConfig
+  | HandoffTerminationConfig
+  | TimeoutTerminationConfig
+  | ExternalTerminationConfig
+  | SourceMatchTerminationConfig
+  | TextMessageTerminationConfig;
+
+interface RequestUsage {
   prompt_tokens: number;
   completion_tokens: number;
 }
@@ -42,6 +56,7 @@ export interface FunctionExecutionResult {
 export interface BaseMessageConfig {
   source: string;
   models_usage?: RequestUsage;
+  metadata?: Record<string, string>;
 }
 
 export interface TextMessageConfig extends BaseMessageConfig {
@@ -127,11 +142,16 @@ export interface JupyterCodeExecutorConfig extends CodeExecutorBaseConfig {
 
 // Python Code Execution Tool Config
 export interface PythonCodeExecutionToolConfig {
-  executor: Component<
-    | LocalCommandLineCodeExecutorConfig
-    | DockerCommandLineCodeExecutorConfig
-    | JupyterCodeExecutorConfig
-  >;
+  executor: {
+    provider: string;
+    config:
+      | LocalCommandLineCodeExecutorConfig
+      | DockerCommandLineCodeExecutorConfig
+      | JupyterCodeExecutorConfig;
+    version?: number;
+    component_version?: number;
+    description?: string | null;
+  };
   description?: string;
   name?: string;
 }
@@ -143,6 +163,45 @@ export interface FunctionToolConfig {
   description: string;
   global_imports: Import[];
   has_cancellation_support: boolean;
+}
+
+// Workbench Configs
+export interface StaticWorkbenchConfig {
+  tools: Component<ToolConfig>[];
+}
+
+export interface StdioServerParams {
+  type: "StdioServerParams";
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  read_timeout_seconds?: number;
+}
+
+export interface SseServerParams {
+  type: "SseServerParams";
+  url: string;
+  headers?: Record<string, any>;
+  timeout?: number;
+  sse_read_timeout?: number;
+}
+
+export interface StreamableHttpServerParams {
+  type: "StreamableHttpServerParams";
+  url: string;
+  headers?: Record<string, any>;
+  timeout?: number;
+  sse_read_timeout?: number;
+  terminate_on_close?: boolean;
+}
+
+export type McpServerParams =
+  | StdioServerParams
+  | SseServerParams
+  | StreamableHttpServerParams;
+
+export interface McpWorkbenchConfig {
+  server_params: McpServerParams;
 }
 
 // Provider-based Configs
@@ -159,6 +218,13 @@ export interface RoundRobinGroupChatConfig {
   participants: Component<AgentConfig>[];
   termination_condition?: Component<TerminationConfig>;
   max_turns?: number;
+}
+
+export interface SwarmConfig {
+  participants: Component<AgentConfig>[];
+  termination_condition?: Component<TerminationConfig>;
+  max_turns?: number;
+  emit_team_events?: boolean;
 }
 
 export interface MultimodalWebSurferConfig {
@@ -180,7 +246,7 @@ export interface MultimodalWebSurferConfig {
 export interface AssistantAgentConfig {
   name: string;
   model_client: Component<ModelConfig>;
-  tools?: Component<ToolConfig>[];
+  workbench?: Component<WorkbenchConfig>[] | Component<WorkbenchConfig>;
   handoffs?: any[]; // HandoffBase | str equivalent
   model_context?: Component<ChatCompletionContextConfig>;
   description: string;
@@ -276,14 +342,49 @@ export interface AndTerminationConfig {
 
 export interface MaxMessageTerminationConfig {
   max_messages: number;
+  include_agent_event?: boolean;
 }
 
 export interface TextMentionTerminationConfig {
   text: string;
 }
 
+// Additional termination configs
+export interface StopMessageTerminationConfig {
+  // No additional config needed
+}
+
+export interface TokenUsageTerminationConfig {
+  max_total_token?: number;
+  max_prompt_token?: number;
+  max_completion_token?: number;
+}
+
+export interface HandoffTerminationConfig {
+  target: string;
+}
+
+export interface TimeoutTerminationConfig {
+  timeout_seconds: number;
+}
+
+export interface ExternalTerminationConfig {
+  // No additional config needed
+}
+
+export interface SourceMatchTerminationConfig {
+  sources: string[];
+}
+
+export interface TextMessageTerminationConfig {
+  source?: string;
+}
+
 // Config type unions based on provider
-export type TeamConfig = SelectorGroupChatConfig | RoundRobinGroupChatConfig;
+export type TeamConfig =
+  | SelectorGroupChatConfig
+  | RoundRobinGroupChatConfig
+  | SwarmConfig;
 
 export type AgentConfig =
   | MultimodalWebSurferConfig
@@ -297,19 +398,16 @@ export type ModelConfig =
 
 export type ToolConfig = FunctionToolConfig | PythonCodeExecutionToolConfig;
 
-export type ChatCompletionContextConfig = UnboundedChatCompletionContextConfig;
+export type WorkbenchConfig = StaticWorkbenchConfig | McpWorkbenchConfig;
 
-export type TerminationConfig =
-  | OrTerminationConfig
-  | AndTerminationConfig
-  | MaxMessageTerminationConfig
-  | TextMentionTerminationConfig;
+export type ChatCompletionContextConfig = UnboundedChatCompletionContextConfig;
 
 export type ComponentConfig =
   | TeamConfig
   | AgentConfig
   | ModelConfig
   | ToolConfig
+  | WorkbenchConfig
   | TerminationConfig
   | ChatCompletionContextConfig;
 
@@ -373,7 +471,7 @@ export interface Run {
   created_at: string;
   updated_at?: string;
   status: RunStatus;
-  task: AgentMessageConfig;
+  task: AgentMessageConfig[];
   team_result: TeamResult | null;
   messages: Message[];
   error_message?: string;
@@ -408,6 +506,7 @@ export interface UISettings {
   show_llm_call_events: boolean;
   expanded_messages_by_default?: boolean;
   show_agent_flow_by_default?: boolean;
+  human_input_timeout_minutes?: number; // 1-30 minutes, defaults to 3
   // You can add more UI settings here as needed
 }
 
@@ -444,6 +543,7 @@ export interface GalleryConfig {
     agents: Component<AgentConfig>[];
     models: Component<ModelConfig>[];
     tools: Component<ToolConfig>[];
+    workbenches: Component<WorkbenchConfig>[];
     terminations: Component<TerminationConfig>[];
   };
 }

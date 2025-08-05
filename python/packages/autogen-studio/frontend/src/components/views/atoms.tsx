@@ -126,20 +126,17 @@ export const TruncatableText = memo(
 
         {shouldTruncate && (
           <div className="mt-2 flex items-center justify-end gap-2">
-            <Tooltip title={isExpanded ? "Show less" : "Show more"}>
-              <button
-                type="button"
-                onClick={toggleExpand}
-                className="inline-flex items-center justify-center p-2 rounded bg-secondary text-primary hover:text-accent hover:scale-105 transition-all duration-300 z-10"
-                aria-label={isExpanded ? "Show less" : "Show more"}
-              >
-                {isExpanded ? (
-                  <ChevronUp size={18} />
-                ) : (
-                  <ChevronDown size={18} />
-                )}
-              </button>
-            </Tooltip>
+            {/* <Tooltip title={isExpanded ? "Show less" : "Show more"}> */}
+            <button
+              title={isExpanded ? "Show less" : "Show more"}
+              type="button"
+              onClick={toggleExpand}
+              className="inline-flex items-center justify-center p-2 rounded bg-secondary text-primary hover:text-accent hover:scale-105 transition-all duration-300 z-10"
+              aria-label={isExpanded ? "Show less" : "Show more"}
+            >
+              {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+            {/* </Tooltip> */}
 
             {showFullscreen && (
               <Tooltip title="Fullscreen">
@@ -158,11 +155,11 @@ export const TruncatableText = memo(
 
         {isFullscreen && (
           <div
-            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+            className="fixed inset-0 dark:bg-black/80 bg-black/10 z-50 flex items-center justify-center"
             onClick={() => setIsFullscreen(false)}
           >
             <div
-              className="relative bg-secondary scroll w-full h-full md:w-4/5 md:h-4/5 md:rounded-lg p-8 overflow-auto"
+              className="relative bg-primary scroll w-full h-full md:w-4/5 md:h-4/5 md:rounded-lg p-8 overflow-auto"
               style={{ opacity: 0.95 }}
               onClick={(e) => e.stopPropagation()}
             >

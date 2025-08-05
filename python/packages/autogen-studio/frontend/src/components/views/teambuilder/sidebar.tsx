@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Button, Tooltip, Select, message } from "antd";
 import {
   Bot,
@@ -12,9 +12,12 @@ import {
   RefreshCcw,
   History,
 } from "lucide-react";
-import type { Team } from "../../types/datamodel";
+import type { Gallery, Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
-import { useGalleryStore } from "../gallery/store";
+import { GalleryAPI } from "../gallery/api";
+import { appContext } from "../../../hooks/provider";
+import { Link } from "gatsby";
+import { getLocalStorage, setLocalStorage } from "../../utils/utils";
 
 interface TeamSidebarProps {
   isOpen: boolean;
@@ -26,6 +29,8 @@ interface TeamSidebarProps {
   onEditTeam: (team: Team) => void;
   onDeleteTeam: (teamId: number) => void;
   isLoading?: boolean;
+  selectedGallery: Gallery | null;
+  setSelectedGallery: (gallery: Gallery) => void;
 }
 
 export const TeamSidebar: React.FC<TeamSidebarProps> = ({
@@ -38,18 +43,64 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
   onEditTeam,
   onDeleteTeam,
   isLoading = false,
+  selectedGallery,
+  setSelectedGallery,
 }) => {
   // Tab state - "recent" or "gallery"
   const [activeTab, setActiveTab] = useState<"recent" | "gallery">("recent");
   const [messageApi, contextHolder] = message.useMessage();
 
-  // Gallery store
-  const {
-    galleries,
-    selectedGallery,
-    selectGallery,
-    isLoading: isLoadingGalleries,
-  } = useGalleryStore();
+  const [isLoadingGalleries, setIsLoadingGalleries] = useState(false);
+  const [galleries, setGalleries] = useState<Gallery[]>([]);
+  const { user } = useContext(appContext);
+
+  // Fetch galleries
+  const fetchGalleries = async () => {
+    if (!user?.id) return;
+    setIsLoadingGalleries(true);
+    try {
+      const galleryAPI = new GalleryAPI();
+      const data = await galleryAPI.listGalleries(user.id);
+      setGalleries(data);
+
+      // Check localStorage for a previously saved gallery ID
+      const savedGalleryId = getLocalStorage(`selectedGalleryId_${user.id}`);
+
+      if (savedGalleryId && data.length > 0) {
+        const savedGallery = data.find((g) => g.id === savedGalleryId);
+        if (savedGallery) {
+          setSelectedGallery(savedGallery);
+        } else if (!selectedGallery && data.length > 0) {
+          setSelectedGallery(data[0]);
+        }
+      } else if (!selectedGallery && data.length > 0) {
+        setSelectedGallery(data[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching galleries:", error);
+    } finally {
+      setIsLoadingGalleries(false);
+    }
+  };
+  // Fetch galleries on mount
+  React.useEffect(() => {
+    fetchGalleries();
+  }, [user?.id]);
+
+  const createTeam = () => {
+    if (!selectedGallery?.config.components?.teams?.length) {
+      return;
+    }
+    const newTeam = Object.assign(
+      {},
+      { component: selectedGallery.config.components.teams[0] }
+    );
+    newTeam.component.label =
+      "default_team" + new Date().getTime().toString().slice(0, 2);
+    onCreateTeam(newTeam);
+    setActiveTab("recent");
+    messageApi.success(`"${newTeam.component.label}" added to Recents`);
+  };
 
   // Render collapsed state
   if (!isOpen) {
@@ -79,21 +130,6 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       </div>
     );
   }
-
-  const createTeam = () => {
-    if (!selectedGallery?.config.components?.teams?.length) {
-      return;
-    }
-    const newTeam = Object.assign(
-      {},
-      { component: selectedGallery.config.components.teams[0] }
-    );
-    newTeam.component.label =
-      "default_team" + new Date().getTime().toString().slice(0, 2);
-    onCreateTeam(newTeam);
-    setActiveTab("recent");
-    messageApi.success(`"${newTeam.component.label}" added to Recents`);
-  };
 
   // Render expanded state
   return (
@@ -208,7 +244,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                     >
                       {/* Team Name and Actions Row */}
                       <div className="flex items-center justify-between">
-                        <span className="font-medium truncate">
+                        <span className="font-medium truncate text-sm">
                           {team.component?.label}
                         </span>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -236,8 +272,9 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                         <div className="flex items-center gap-1">
                           <Bot className="w-3 h-3" />
                           <span>
-                            {team.component.config.participants.length}{" "}
-                            {team.component.config.participants.length === 1
+                            {team.component.config?.participants?.length || 0}{" "}
+                            {(team.component.config?.participants?.length ||
+                              0) === 1
                               ? "agent"
                               : "agents"}
                           </span>
@@ -262,13 +299,28 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
         {activeTab === "gallery" && (
           <div className="p-2">
             {/* Gallery Selector */}
+            <div className="my-2 mb-3 text-xs">
+              {" "}
+              Select a{" "}
+              <Link to="/gallery" className="text-accent">
+                <span className="font-medium">gallery</span>
+              </Link>{" "}
+              to view its components as templates
+            </div>
             <Select
               className="w-full mb-4"
               placeholder="Select gallery"
               value={selectedGallery?.id}
               onChange={(value) => {
                 const gallery = galleries.find((g) => g.id === value);
-                if (gallery) selectGallery(gallery);
+                if (gallery) {
+                  setSelectedGallery(gallery);
+
+                  // Save the selected gallery ID to localStorage
+                  if (user?.id) {
+                    setLocalStorage(`selectedGalleryId_${user.id}`, value);
+                  }
+                }
               }}
               options={galleries.map((gallery) => ({
                 value: gallery.id,
@@ -281,16 +333,16 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
             {selectedGallery?.config.components?.teams.map((galleryTeam) => (
               <div
                 key={galleryTeam.label + galleryTeam.component_type}
-                className="relative border-secondary"
+                className="relative border-secondary -ml-2 group"
               >
                 <div
                   className={`absolute top-1 left-0.5 z-50 h-[calc(100%-8px)]
-                  w-1 bg-opacity-80 rounded bg-tertiary`}
+                  w-1 bg-opacity-80 rounded bg-tertiary group-hover:bg-accent`}
                 />
                 <div className="group ml-1 flex flex-col p-3 rounded-l cursor-pointer hover:bg-secondary">
                   {/* Team Name and Use Template Action */}
                   <div className="flex items-center justify-between">
-                    <span className="font-medium truncate">
+                    <span className="font-medium truncate text-sm">
                       {galleryTeam.label}
                     </span>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -329,8 +381,8 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                     <div className="flex items-center gap-1">
                       <Bot className="w-3 h-3" />
                       <span>
-                        {galleryTeam.config.participants.length}{" "}
-                        {galleryTeam.config.participants.length === 1
+                        {galleryTeam.config?.participants?.length || 0}{" "}
+                        {(galleryTeam.config?.participants?.length || 0) === 1
                           ? "agent"
                           : "agents"}
                       </span>

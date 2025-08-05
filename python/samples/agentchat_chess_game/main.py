@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+from autogen_agentchat.messages import TextMessage
 import yaml
 import random
 
@@ -65,11 +66,14 @@ def get_user_prompt(board: chess.Board) -> str:
 
 
 def extract_move(response: str) -> str:
-    start = response.find("<move>") + len("<move>")
+    start = response.find("<move>") 
     end = response.find("</move>")
+    
     if start == -1 or end == -1:
         raise ValueError("Invalid response format.")
-    return response[start:end]
+    if end < start:
+        raise ValueError("Invalid response format.")
+    return response[start+ len("<move>"):end].strip()
 
 
 async def get_ai_move(board: chess.Board, player: AssistantAgent, max_tries: int) -> str:
@@ -78,11 +82,10 @@ async def get_ai_move(board: chess.Board, player: AssistantAgent, max_tries: int
     while count < max_tries:
         result = await Console(player.run_stream(task=task))
         count += 1
-        response = result.messages[-1].content
-        assert isinstance(response, str)
+        assert isinstance(result.messages[-1], TextMessage)
         # Check if the response is a valid UC move.
         try:
-            move = chess.Move.from_uci(extract_move(response))
+            move = chess.Move.from_uci(extract_move(result.messages[-1].content))
         except (ValueError, IndexError):
             task = "Invalid format. Please read instruction.\n" + get_ai_prompt(board)
             continue

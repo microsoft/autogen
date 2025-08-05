@@ -4,7 +4,7 @@ from typing import Dict
 from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 
-from ...datamodel import Message, Run, Session
+from ...datamodel import Message, Response, Run, Session
 from ..deps import get_db
 
 router = APIRouter()
@@ -27,12 +27,16 @@ async def get_session(session_id: int, user_id: str, db=Depends(get_db)) -> Dict
 
 
 @router.post("/")
-async def create_session(session: Session, db=Depends(get_db)) -> Dict:
+async def create_session(session: Session, db=Depends(get_db)) -> Response:
     """Create a new session"""
-    response = db.upsert(session)
-    if not response.status:
-        raise HTTPException(status_code=400, detail=response.message)
-    return {"status": True, "data": response.data}
+    try:
+        response = db.upsert(session)
+        if not response.status:
+            return Response(status=False, message=f"Failed to create session: {response.message}")
+        return Response(status=True, data=response.data, message="Session created successfully")
+    except Exception as e:
+        logger.error(f"Error creating session: {str(e)}")
+        return Response(status=False, message=f"Failed to create session: {str(e)}")
 
 
 @router.put("/{session_id}")

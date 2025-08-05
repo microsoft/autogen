@@ -1,17 +1,18 @@
 # from dataclasses import Field
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Sequence
 
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import BaseChatMessage
+from autogen_agentchat.messages import ChatMessage, TextMessage
 from autogen_core import ComponentModel
+from autogen_core.models import UserMessage
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from pydantic import BaseModel, ConfigDict, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 
 class MessageConfig(BaseModel):
     source: str
-    content: str
+    content: str | ChatMessage | Sequence[ChatMessage] | None
     message_type: Optional[str] = "text"
 
 
@@ -21,9 +22,17 @@ class TeamResult(BaseModel):
     duration: float
 
 
-class LLMCallEventMessage(BaseChatMessage):
+class LLMCallEventMessage(TextMessage):
     source: str = "llm_call_event"
-    content: str
+
+    def to_text(self) -> str:
+        return self.content
+
+    def to_model_text(self) -> str:
+        return self.content
+
+    def to_model_message(self) -> UserMessage:
+        raise NotImplementedError("This message type is not supported.")
 
 
 class MessageMeta(BaseModel):
@@ -61,6 +70,7 @@ class GalleryComponents(BaseModel):
     tools: List[ComponentModel]
     terminations: List[ComponentModel]
     teams: List[ComponentModel]
+    workbenches: List[ComponentModel]
 
 
 class GalleryConfig(BaseModel):
@@ -87,6 +97,9 @@ class UISettings(BaseModel):
     show_llm_call_events: bool = False
     expanded_messages_by_default: bool = True
     show_agent_flow_by_default: bool = True
+    human_input_timeout_minutes: int = Field(
+        default=3, ge=1, le=30, description="Human input timeout in minutes (1-30)"
+    )
 
 
 class SettingsConfig(BaseModel):

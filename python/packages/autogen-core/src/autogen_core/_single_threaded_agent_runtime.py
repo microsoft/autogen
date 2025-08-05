@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import json
 import logging
 import sys
 import uuid
@@ -159,6 +160,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         intervention_handlers (List[InterventionHandler], optional): A list of intervention
             handlers that can intercept messages before they are sent or published. Defaults to None.
         tracer_provider (TracerProvider, optional): The tracer provider to use for tracing. Defaults to None.
+            Additionally, you can set environment variable `AUTOGEN_DISABLE_RUNTIME_TRACING` to `true` to disable the agent runtime telemetry if you don't have access to the runtime constructor. For example, if you are using `ComponentConfig`.
         ignore_unhandled_exceptions (bool, optional): Whether to ignore unhandled exceptions in that occur in agent event handlers. Any background exceptions will be raised on the next call to `process_next` or from an awaited `stop`, `stop_when_idle` or `stop_when`. Note, this does not apply to RPC handlers. Defaults to True.
 
     Examples:
@@ -265,6 +267,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._serialization_registry = SerializationRegistry()
         self._ignore_unhandled_handler_exceptions = ignore_unhandled_exceptions
         self._background_exception: BaseException | None = None
+        self._agent_instance_types: Dict[str, Type[Agent]] = {}
 
     @property
     def unprocessed_messages_count(
@@ -275,6 +278,55 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     @property
     def _known_agent_names(self) -> Set[str]:
         return set(self._agent_factories.keys())
+
+    async def _create_otel_attributes(
+        self,
+        sender_agent_id: AgentId | None = None,
+        recipient_agent_id: AgentId | None = None,
+        message_context: MessageContext | None = None,
+        message: Any = None,
+    ) -> Mapping[str, str]:
+        """Create OpenTelemetry attributes for the given agent and message.
+
+        Args:
+            sender_agent (Agent, optional): The sender agent instance.
+            recipient_agent (Agent, optional): The recipient agent instance.
+            message (Any): The message instance.
+
+        Returns:
+            Attributes: A dictionary of OpenTelemetry attributes.
+        """
+        if not sender_agent_id and not recipient_agent_id and not message:
+            return {}
+        attributes: Dict[str, str] = {}
+        if sender_agent_id:
+            sender_agent = await self._get_agent(sender_agent_id)
+            attributes["sender_agent_type"] = sender_agent.id.type
+            attributes["sender_agent_class"] = sender_agent.__class__.__name__
+        if recipient_agent_id:
+            recipient_agent = await self._get_agent(recipient_agent_id)
+            attributes["recipient_agent_type"] = recipient_agent.id.type
+            attributes["recipient_agent_class"] = recipient_agent.__class__.__name__
+
+        if message_context:
+            serialized_message_context = {
+                "sender": str(message_context.sender),
+                "topic_id": str(message_context.topic_id),
+                "is_rpc": message_context.is_rpc,
+                "message_id": message_context.message_id,
+            }
+            attributes["message_context"] = json.dumps(serialized_message_context)
+
+        if message:
+            try:
+                serialized_message = self._try_serialize(message)
+            except Exception as e:
+                serialized_message = str(e)
+        else:
+            serialized_message = "No Message"
+        attributes["message"] = serialized_message
+
+        return attributes
 
     # Returns the response of the message
     async def send_message(
@@ -311,6 +363,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             future = asyncio.get_event_loop().create_future()
             if recipient.type not in self._known_agent_names:
                 future.set_exception(Exception("Recipient not found"))
+                return await future
 
             content = message.__dict__ if hasattr(message, "__dict__") else message
             logger.info(f"Sending message of type {type(message).__name__} to {recipient.type}: {content}")
@@ -440,7 +493,17 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     cancellation_token=message_envelope.cancellation_token,
                     message_id=message_envelope.message_id,
                 )
-                with self._tracer_helper.trace_block("process", recipient_agent.id, parent=message_envelope.metadata):
+                with self._tracer_helper.trace_block(
+                    "process",
+                    recipient_agent.id,
+                    parent=message_envelope.metadata,
+                    attributes=await self._create_otel_attributes(
+                        sender_agent_id=message_envelope.sender,
+                        recipient_agent_id=recipient,
+                        message_context=message_context,
+                        message=message_envelope.message,
+                    ),
+                ):
                     with MessageHandlerContext.populate_context(recipient_agent.id):
                         response = await recipient_agent.on_message(
                             message_envelope.message,
@@ -527,7 +590,17 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     agent = await self._get_agent(agent_id)
 
                     async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
-                        with self._tracer_helper.trace_block("process", agent.id, parent=message_envelope.metadata):
+                        with self._tracer_helper.trace_block(
+                            "process",
+                            agent.id,
+                            parent=message_envelope.metadata,
+                            attributes=await self._create_otel_attributes(
+                                sender_agent_id=message_envelope.sender,
+                                recipient_agent_id=agent.id,
+                                message_context=message_context,
+                                message=message_envelope.message,
+                            ),
+                        ):
                             with MessageHandlerContext.populate_context(agent.id):
                                 try:
                                     return await agent.on_message(
@@ -557,7 +630,16 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             # TODO if responses are given for a publish
 
     async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
-        with self._tracer_helper.trace_block("ack", message_envelope.recipient, parent=message_envelope.metadata):
+        with self._tracer_helper.trace_block(
+            "ack",
+            message_envelope.recipient,
+            parent=message_envelope.metadata,
+            attributes=await self._create_otel_attributes(
+                sender_agent_id=message_envelope.sender,
+                recipient_agent_id=message_envelope.recipient,
+                message=message_envelope.message,
+            ),
+        ):
             content = (
                 message_envelope.message.__dict__
                 if hasattr(message_envelope.message, "__dict__")
@@ -821,14 +903,41 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             else:
                 agent_instance = maybe_agent_instance
 
-            if expected_class is not None and type_func_alias(agent_instance) != expected_class:
-                raise ValueError("Factory registered using the wrong type.")
-
+            if expected_class is not None and not issubclass(type_func_alias(agent_instance), expected_class):
+                raise ValueError(
+                    f"Factory registered using the wrong type: expected {expected_class.__name__}, got {type_func_alias(agent_instance).__name__}"
+                )
             return agent_instance
 
         self._agent_factories[type.type] = factory_wrapper
 
         return type
+
+    async def register_agent_instance(
+        self,
+        agent_instance: Agent,
+        agent_id: AgentId,
+    ) -> AgentId:
+        def agent_factory() -> Agent:
+            raise RuntimeError(
+                "Agent factory was invoked for an agent instance that was not registered. This is likely due to the agent type being incorrectly subscribed to a topic. If this exception occurs when publishing a message to the DefaultTopicId, then it is likely that `skip_class_subscriptions` needs to be turned off when registering the agent."
+            )
+
+        if agent_id in self._instantiated_agents:
+            raise ValueError(f"Agent with id {agent_id} already exists.")
+
+        if agent_id.type not in self._agent_factories:
+            self._agent_factories[agent_id.type] = agent_factory
+            self._agent_instance_types[agent_id.type] = type_func_alias(agent_instance)
+        else:
+            if self._agent_factories[agent_id.type].__code__ != agent_factory.__code__:
+                raise ValueError("Agent factories and agent instances cannot be registered to the same type.")
+            if self._agent_instance_types[agent_id.type] != type_func_alias(agent_instance):
+                raise ValueError("Agent instances must be the same object type.")
+
+        await agent_instance.bind_id_and_runtime(id=agent_id, runtime=self)
+        self._instantiated_agents[agent_id] = agent_instance
+        return agent_id
 
     async def _invoke_agent_factory(
         self,
@@ -851,8 +960,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     raise ValueError("Agent factory must take 0 or 2 arguments.")
 
                 if inspect.isawaitable(agent):
-                    return cast(T, await agent)
-
+                    agent = cast(T, await agent)
                 return agent
 
             except BaseException as e:

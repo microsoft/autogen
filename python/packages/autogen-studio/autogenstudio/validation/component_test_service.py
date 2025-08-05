@@ -31,16 +31,13 @@ class ComponentTestService:
             from autogen_agentchat.messages import TextMessage
             from autogen_core import CancellationToken
 
-            # If model_client is provided, use it; otherwise, use the component's model (if applicable)
-            agent_config = component.config or {}
-
             # Try to load the agent
             try:
                 # Construct the agent with the model client if provided
                 if model_client:
-                    agent_config["model_client"] = model_client
+                    component.config["model_client"] = model_client
 
-                agent = AssistantAgent(name=agent_config.get("name", "assistant"), **agent_config)
+                agent = AssistantAgent.load_component(component)
 
                 logs = ["Agent component loaded successfully"]
             except Exception as e:
@@ -63,7 +60,7 @@ class ComponentTestService:
 
                 if status:
                     logs.append(
-                        f"Agent responded with: {response.chat_message.content} to the question : {test_question}"
+                        f"Agent responded with: {response.chat_message.to_text()} to the question : {test_question}"
                     )
                 else:
                     logs.append("Agent did not return a valid response")

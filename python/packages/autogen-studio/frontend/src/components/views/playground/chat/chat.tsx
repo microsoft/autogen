@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Button, message, Tooltip } from "antd";
-import { getServerUrl } from "../../../utils/utils";
+import { convertFilesToBase64, getServerUrl } from "../../../utils/utils";
 import { IStatus } from "../../../types/app";
 import {
   Run,
@@ -19,7 +19,7 @@ import ChatInput from "./chatinput";
 import { teamAPI } from "../../teambuilder/api";
 import { sessionAPI } from "../api";
 import RunView from "./runview";
-import { TIMEOUT_CONFIG } from "./types";
+import { createTimeoutConfig } from "./types";
 import {
   ChevronRight,
   MessagesSquare,
@@ -27,6 +27,8 @@ import {
   X,
 } from "lucide-react";
 import SessionDropdown from "./sessiondropdown";
+import { RcFile } from "antd/es/upload";
+import { useSettingsStore } from "../../settings/store";
 const logo = require("../../../../images/landing/welcome.svg").default;
 
 interface ChatViewProps {
@@ -77,6 +79,13 @@ export default function ChatView({
   );
   const [teamConfig, setTeamConfig] =
     React.useState<Component<TeamConfig> | null>(null);
+
+  // Get settings for timeout configuration
+  const { uiSettings } = useSettingsStore();
+  const timeoutConfig = React.useMemo(
+    () => createTimeoutConfig(uiSettings.human_input_timeout_minutes || 3),
+    [uiSettings.human_input_timeout_minutes]
+  );
 
   const inputTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const activeSocketRef = React.useRef<WebSocket | null>(null);
@@ -234,8 +243,8 @@ export default function ChatView({
               socket.send(
                 JSON.stringify({
                   type: "stop",
-                  reason: TIMEOUT_CONFIG.DEFAULT_MESSAGE,
-                  code: TIMEOUT_CONFIG.WEBSOCKET_CODE,
+                  reason: timeoutConfig.DEFAULT_MESSAGE,
+                  code: timeoutConfig.WEBSOCKET_CODE,
                 })
               );
               setCurrentRun((prev) =>
@@ -243,12 +252,12 @@ export default function ChatView({
                   ? {
                       ...prev,
                       status: "stopped",
-                      error_message: TIMEOUT_CONFIG.DEFAULT_MESSAGE,
+                      error_message: timeoutConfig.DEFAULT_MESSAGE,
                     }
                   : null
               );
             }
-          }, TIMEOUT_CONFIG.DURATION_MS);
+          }, timeoutConfig.DURATION_MS);
 
           return {
             ...current,
@@ -395,7 +404,7 @@ export default function ChatView({
     }
   };
 
-  const runTask = async (query: string) => {
+  const runTask = async (query: string, files: RcFile[] = []) => {
     setError(null);
     setLoading(true);
 
@@ -405,13 +414,13 @@ export default function ChatView({
       setActiveSocket(null);
       activeSocketRef.current = null;
     }
+
     if (inputTimeoutRef.current) {
       clearTimeout(inputTimeoutRef.current);
       inputTimeoutRef.current = null;
     }
 
     if (!session?.id || !teamConfig) {
-      // Add teamConfig check
       setLoading(false);
       return;
     }
@@ -419,22 +428,27 @@ export default function ChatView({
     try {
       const runId = await createRun(session.id);
 
+      // Process files using the extracted function
+      const processedFiles = await convertFilesToBase64(files);
+
       // Initialize run state BEFORE websocket connection
       setCurrentRun({
         id: runId,
         created_at: new Date().toISOString(),
         status: "created", // Start with created status
         messages: [],
-        task: {
-          content: query,
-          source: "user",
-        },
+        task: [
+          {
+            content: query,
+            source: "user",
+          },
+        ],
         team_result: null,
         error_message: undefined,
       });
 
-      // Setup WebSocket
-      const socket = setupWebSocket(runId, query);
+      // Setup WebSocket with files
+      const socket = setupWebSocket(runId, query, processedFiles);
       setActiveSocket(socket);
       activeSocketRef.current = socket;
     } catch (error) {
@@ -444,7 +458,11 @@ export default function ChatView({
     }
   };
 
-  const setupWebSocket = (runId: number, query: string): WebSocket => {
+  const setupWebSocket = (
+    runId: number,
+    query: string,
+    files: { name: string; type: string; content: string }[]
+  ): WebSocket => {
     if (!session || !session.id) {
       throw new Error("Invalid session configuration");
     }
@@ -465,11 +483,14 @@ export default function ChatView({
       id: runId,
       created_at: new Date().toISOString(),
       status: "active",
-      task: createMessage(
-        { content: query, source: "user" },
-        runId,
-        session.id || 0
-      ).config,
+
+      task: [
+        createMessage(
+          { content: query, source: "user" },
+          runId,
+          session.id || 0
+        ).config,
+      ],
       team_result: null,
       messages: [],
       error_message: undefined,
@@ -481,6 +502,7 @@ export default function ChatView({
         JSON.stringify({
           type: "start",
           task: query,
+          files: files,
           team_config: teamConfig,
         })
       );
@@ -657,7 +679,10 @@ export default function ChatView({
               onSubmit={runTask}
               loading={loading}
               error={error}
-              disabled={currentRun?.status === "awaiting_input"}
+              disabled={
+                currentRun?.status === "awaiting_input" ||
+                currentRun?.status === "active"
+              }
             />
           </div>
         )}
