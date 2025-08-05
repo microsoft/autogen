@@ -49,6 +49,7 @@ class CreateArguments(TypedDict, total=False):
     top_p: Optional[float]
     user: str
     stream_options: Optional[StreamOptions]
+    parallel_tool_calls: Optional[bool]
 
 
 AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
@@ -97,6 +98,7 @@ class CreateArgumentsConfigModel(BaseModel):
     top_p: float | None = None
     user: str | None = None
     stream_options: StreamOptions | None = None
+    parallel_tool_calls: bool | None = None
 
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):

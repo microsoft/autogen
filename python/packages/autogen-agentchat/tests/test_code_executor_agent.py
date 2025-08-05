@@ -1,5 +1,9 @@
+import asyncio
+from typing import List
+
 import pytest
 from autogen_agentchat.agents import CodeExecutorAgent
+from autogen_agentchat.agents._code_executor_agent import ApprovalFuncType, ApprovalRequest, ApprovalResponse
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
     CodeExecutionEvent,
@@ -7,6 +11,7 @@ from autogen_agentchat.messages import (
     TextMessage,
 )
 from autogen_core import CancellationToken
+from autogen_core.code_executor import CodeBlock
 from autogen_core.models import ModelFamily, ModelInfo
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.replay import ReplayChatCompletionClient
@@ -430,3 +435,200 @@ async def test_code_execution_agent_serialization_with_model_client() -> None:
     assert isinstance(deserialized_agent, CodeExecutorAgent)
     assert deserialized_agent.name == "code_executor_agent"
     assert deserialized_agent._model_client is not None  # type: ignore
+
+
+# Approval function test helpers
+def approval_function_allow_all(request: ApprovalRequest) -> ApprovalResponse:
+    """Approval function that allows all code execution."""
+    return ApprovalResponse(approved=True, reason="All code is approved")
+
+
+def approval_function_deny_dangerous(request: ApprovalRequest) -> ApprovalResponse:
+    """Approval function that denies potentially dangerous code."""
+    dangerous_keywords = ["rm ", "del ", "format", "delete", "DROP TABLE"]
+
+    for keyword in dangerous_keywords:
+        if keyword in request.code:
+            return ApprovalResponse(approved=False, reason=f"Code contains potentially dangerous keyword: {keyword}")
+
+    return ApprovalResponse(approved=True, reason="Code appears safe")
+
+
+def approval_function_deny_all(request: ApprovalRequest) -> ApprovalResponse:
+    """Approval function that denies all code execution."""
+    return ApprovalResponse(approved=False, reason="All code execution is denied")
+
+
+# Async approval function test helpers
+async def async_approval_function_allow_all(request: ApprovalRequest) -> ApprovalResponse:
+    """Async approval function that allows all code execution."""
+    await asyncio.sleep(0.01)  # Simulate async operation
+    return ApprovalResponse(approved=True, reason="All code is approved (async)")
+
+
+async def async_approval_function_deny_dangerous(request: ApprovalRequest) -> ApprovalResponse:
+    """Async approval function that denies potentially dangerous code."""
+    await asyncio.sleep(0.01)  # Simulate async operation
+    dangerous_keywords = ["rm ", "del ", "format", "delete", "DROP TABLE"]
+
+    for keyword in dangerous_keywords:
+        if keyword in request.code:
+            return ApprovalResponse(
+                approved=False, reason=f"Code contains potentially dangerous keyword: {keyword} (async)"
+            )
+
+    return ApprovalResponse(approved=True, reason="Code appears safe (async)")
+
+
+async def async_approval_function_deny_all(request: ApprovalRequest) -> ApprovalResponse:
+    """Async approval function that denies all code execution."""
+    await asyncio.sleep(0.01)  # Simulate async operation
+    return ApprovalResponse(approved=False, reason="All code execution is denied (async)")
+
+
+@pytest.mark.asyncio
+async def test_approval_functionality_no_approval() -> None:
+    """Test that CodeExecutorAgent works without approval function (default behavior)."""
+    agent = CodeExecutorAgent("test_agent", LocalCommandLineCodeExecutor())
+
+    code_blocks = [CodeBlock(code="print('Hello World!')", language="python")]
+    result = await agent.execute_code_block(code_blocks, CancellationToken())
+
+    # Should execute successfully
+    assert result.exit_code == 0
+    assert "Hello World!" in result.output
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "approval_func,code,language,expected_exit_code,expected_in_output",
+    [
+        (approval_function_allow_all, "print('Approved code')", "python", 0, "Approved code"),
+        (approval_function_deny_dangerous, "print('Safe code')", "python", 0, "Safe code"),
+        (approval_function_deny_dangerous, "rm somefile.txt", "sh", 1, "dangerous keyword"),
+        (approval_function_deny_all, "print('This should be denied')", "python", 1, "All code execution is denied"),
+    ],
+)
+async def test_approval_functionality_sync(
+    approval_func: ApprovalFuncType, code: str, language: str, expected_exit_code: int, expected_in_output: str
+) -> None:
+    """Test sync approval functionality with various approval functions and code samples."""
+    agent = CodeExecutorAgent("test_agent", LocalCommandLineCodeExecutor(), approval_func=approval_func)
+
+    code_blocks = [CodeBlock(code=code, language=language)]
+    result = await agent.execute_code_block(code_blocks, CancellationToken())
+
+    assert result.exit_code == expected_exit_code
+    assert expected_in_output in result.output
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("is_async", [False, True])
+async def test_approval_functionality_context_passed(is_async: bool) -> None:
+    """Test that approval functions receive the correct context."""
+    received_requests: List[ApprovalRequest] = []
+
+    if is_async:
+
+        async def capture_context_async(request: ApprovalRequest) -> ApprovalResponse:
+            await asyncio.sleep(0.01)
+            received_requests.append(request)
+            return ApprovalResponse(approved=True, reason="Captured for testing (async)")
+
+        agent = CodeExecutorAgent("test_agent", LocalCommandLineCodeExecutor(), approval_func=capture_context_async)
+    else:
+
+        def capture_context_sync(request: ApprovalRequest) -> ApprovalResponse:
+            received_requests.append(request)
+            return ApprovalResponse(approved=True, reason="Captured for testing")
+
+        agent = CodeExecutorAgent("test_agent", LocalCommandLineCodeExecutor(), approval_func=capture_context_sync)
+
+    code_blocks = [CodeBlock(code="print('Test context')", language="python")]
+    await agent.execute_code_block(code_blocks, CancellationToken())
+
+    # Verify the approval function was called and received the correct data
+    assert len(received_requests) == 1
+    request = received_requests[0]
+    assert isinstance(request, ApprovalRequest)
+    assert "print('Test context')" in request.code
+    assert "```python" in request.code
+    assert isinstance(request.context, list)
+
+
+@pytest.mark.parametrize(
+    "approval_func",
+    [approval_function_allow_all, async_approval_function_allow_all],
+)
+def test_approval_functionality_serialization_fails(approval_func: ApprovalFuncType) -> None:
+    """Test that serialization fails when approval function is set."""
+    agent = CodeExecutorAgent("test_agent", LocalCommandLineCodeExecutor(), approval_func=approval_func)
+
+    # Should raise ValueError when trying to serialize
+    with pytest.raises(ValueError, match="Cannot serialize CodeExecutorAgent with approval_func set"):
+        agent.dump_component()
+
+
+def test_approval_functionality_serialization_succeeds() -> None:
+    """Test that serialization succeeds when no approval function is set."""
+    agent = CodeExecutorAgent("test_agent", LocalCommandLineCodeExecutor())
+
+    # Should serialize successfully
+    config = agent.dump_component()
+    assert config.config["name"] == "test_agent"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "approval_func,async_marker",
+    [
+        (approval_function_deny_dangerous, ""),
+        (async_approval_function_deny_dangerous, "(async)"),
+    ],
+)
+async def test_approval_functionality_with_on_messages(approval_func: ApprovalFuncType, async_marker: str) -> None:
+    """Test approval functionality works with the on_messages interface."""
+    agent = CodeExecutorAgent("test_agent", LocalCommandLineCodeExecutor(), approval_func=approval_func)
+
+    # Test with safe code
+    safe_message = TextMessage(content="```python\nprint('Safe message')\n```", source="user")
+    response = await agent.on_messages([safe_message], CancellationToken())
+    assert isinstance(response.chat_message, TextMessage)
+    assert "Safe message" in response.chat_message.content
+
+    # Test with dangerous code
+    dangerous_message = TextMessage(content="```sh\nrm -rf /\n```", source="user")
+    response = await agent.on_messages([dangerous_message], CancellationToken())
+    assert isinstance(response.chat_message, TextMessage)
+    assert "Code execution was not approved" in response.chat_message.content
+    if async_marker:
+        assert async_marker in response.chat_message.content
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "approval_func,code,language,expected_exit_code,expected_in_output",
+    [
+        (async_approval_function_allow_all, "print('Approved async code')", "python", 0, "Approved async code"),
+        (async_approval_function_deny_dangerous, "print('Safe async code')", "python", 0, "Safe async code"),
+        (async_approval_function_deny_dangerous, "rm somefile.txt", "sh", 1, "dangerous keyword"),
+        (
+            async_approval_function_deny_all,
+            "print('This should be denied async')",
+            "python",
+            1,
+            "All code execution is denied (async)",
+        ),
+    ],
+)
+async def test_approval_functionality_async(
+    approval_func: ApprovalFuncType, code: str, language: str, expected_exit_code: int, expected_in_output: str
+) -> None:
+    """Test async approval functionality with various approval functions and code samples."""
+    agent = CodeExecutorAgent("test_agent", LocalCommandLineCodeExecutor(), approval_func=approval_func)
+
+    code_blocks = [CodeBlock(code=code, language=language)]
+    result = await agent.execute_code_block(code_blocks, CancellationToken())
+
+    assert result.exit_code == expected_exit_code
+    assert expected_in_output in result.output

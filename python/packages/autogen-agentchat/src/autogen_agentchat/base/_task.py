@@ -1,7 +1,7 @@
 from typing import AsyncGenerator, Protocol, Sequence
 
 from autogen_core import CancellationToken
-from pydantic import BaseModel
+from pydantic import BaseModel, SerializeAsAny
 
 from ..messages import BaseAgentEvent, BaseChatMessage
 
@@ -9,7 +9,7 @@ from ..messages import BaseAgentEvent, BaseChatMessage
 class TaskResult(BaseModel):
     """Result of running a task."""
 
-    messages: Sequence[BaseAgentEvent | BaseChatMessage]
+    messages: Sequence[SerializeAsAny[BaseAgentEvent | BaseChatMessage]]
     """Messages produced by the task."""
 
     stop_reason: str | None = None
