@@ -217,8 +217,9 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         .. note::
 
             To perform semantic search over stored memories RedisMemory creates a vector embedding
-            from the content field of a MemoryContent object. This content is assumed to be text or
-            JSON, and is passed to the vector embedding model specified in RedisMemoryConfig.
+            from the content field of a MemoryContent object. This content is assumed to be text,
+            JSON, or Markdown, and is passed to the vector embedding model specified in
+            RedisMemoryConfig.
 
         Args:
             content (MemoryContent): The memory content to store within Redis.
@@ -230,9 +231,12 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         elif content.mime_type == MemoryMimeType.JSON:
             memory_content = serialize(content.content)
             mime_type = "application/json"
+        elif content.mime_type == MemoryMimeType.MARKDOWN:
+            memory_content = content.content
+            mime_type = "text/markdown"
         else:
             raise NotImplementedError(
-                f"Error: {content.mime_type} is not supported. Only MemoryMimeType.TEXT and MemoryMimeType.JSON are currently supported."
+                f"Error: {content.mime_type} is not supported. Only MemoryMimeType.TEXT, MemoryMimeType.JSON, and MemoryMimeType.MARKDOWN are currently supported."
             )
         metadata = {"mime_type": mime_type}
         metadata.update(content.metadata if content.metadata else {})
@@ -270,13 +274,13 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         if isinstance(query, str):
             prompt = query
         elif isinstance(query, MemoryContent):
-            if query.mime_type == MemoryMimeType.TEXT:
+            if query.mime_type in (MemoryMimeType.TEXT, MemoryMimeType.MARKDOWN):
                 prompt = str(query.content)
             elif query.mime_type == MemoryMimeType.JSON:
                 prompt = serialize(query.content)
             else:
                 raise NotImplementedError(
-                    f"Error: {query.mime_type} is not supported. Only MemoryMimeType.TEXT and MemoryMimeType.JSON are currently supported."
+                    f"Error: {query.mime_type} is not supported. Only MemoryMimeType.TEXT, MemoryMimeType.JSON, MemoryMimeType.MARKDOWN are currently supported."
                 )
         else:
             raise TypeError("'query' must be either a string or MemoryContent")
@@ -295,13 +299,13 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         for result in results:
             metadata = deserialize(result["tool_call_id"])  # type: ignore[reportArgumentType]
             mime_type = MemoryMimeType(metadata.pop("mime_type"))
-            if mime_type == MemoryMimeType.TEXT:
+            if mime_type in (MemoryMimeType.TEXT, MemoryMimeType.MARKDOWN):
                 memory_content = result["content"]  # type: ignore[reportArgumentType]
             elif mime_type == MemoryMimeType.JSON:
                 memory_content = deserialize(result["content"])  # type: ignore[reportArgumentType]
             else:
                 raise NotImplementedError(
-                    f"Error: {mime_type} is not supported. Only MemoryMimeType.TEXT and MemoryMimeType.JSON are currently supported."
+                    f"Error: {mime_type} is not supported. Only MemoryMimeType.TEXT, MemoryMimeType.JSON, and MemoryMimeType.MARKDOWN are currently supported."
                 )
             memory = MemoryContent(
                 content=memory_content,  # type: ignore[reportArgumentType]
