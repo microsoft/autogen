@@ -121,11 +121,23 @@ import asyncio
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
 from autogen_agentchat.ui import Console
+from autogen_agentchat.agents import ApprovalRequest, ApprovalResponse
+
+
+def approval_func(request: ApprovalRequest) -> ApprovalResponse:
+    """Simple approval function that requests user input before code execution."""
+    print(f"Code to execute:\n{request.code}")
+    user_input = input("Do you approve this code execution? (y/n): ").strip().lower()
+    if user_input == 'y':
+        return ApprovalResponse(approved=True, reason="User approved the code execution")
+    else:
+        return ApprovalResponse(approved=False, reason="User denied the code execution")
 
 
 async def example_usage():
     client = OpenAIChatCompletionClient(model="gpt-4o")
-    m1 = MagenticOne(client=client)
+    # Enable code execution approval for security
+    m1 = MagenticOne(client=client, approval_func=approval_func)
     task = "Write a Python script to fetch data from an API."
     result = await Console(m1.run_stream(task=task))
     print(result)
