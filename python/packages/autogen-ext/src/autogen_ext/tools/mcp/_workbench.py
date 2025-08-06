@@ -48,6 +48,11 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     """A workbench that wraps an MCP server and provides an interface
     to list and call tools provided by the server.
 
+    .. warning::
+
+        Only connect to trusted MCP servers, especially when using
+        `StdioServerParams` as it executes commands in the local environment.
+
     This workbench should be used as a context manager to ensure proper
     initialization and cleanup of the underlying MCP session.
 
