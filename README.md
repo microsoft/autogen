@@ -77,7 +77,7 @@ async def main() -> None:
         agent = AssistantAgent(
             "web_browsing_assistant",
             model_client=model_client,
-            workbench=mcp,
+            workbench=mcp, # For multiple MCP servers, put them in a list.
             model_client_stream=True,
             max_tool_iterations=10,
         )
