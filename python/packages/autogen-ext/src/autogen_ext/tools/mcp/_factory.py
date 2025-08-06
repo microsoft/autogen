@@ -13,6 +13,11 @@ async def mcp_server_tools(
 ) -> list[StdioMcpToolAdapter | SseMcpToolAdapter | StreamableHttpMcpToolAdapter]:
     """Creates a list of MCP tool adapters that can be used with AutoGen agents.
 
+    .. warning::
+
+        Only connect to trusted MCP servers, especially when using
+        `StdioServerParams` as it executes commands in the local environment.
+
     This factory function connects to an MCP server and returns adapters for all available tools.
     The adapters can be directly assigned to an AutoGen agent's tools list.
 
