@@ -53,6 +53,8 @@ asyncio.run(main())
 
 ### MCP Server
 
+Create a web browsing assistant agent that uses the Playwright MCP server.
+
 ```python
 # First run `npm install -g @playwright/mcp@latest` to install the MCP server.
 import asyncio
