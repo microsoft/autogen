@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { Input, InputNumber, Select, Tooltip, Collapse, Switch } from "antd";
+import { Input, InputNumber, Select, Tooltip, Collapse, Switch, AutoComplete } from "antd";
 import TextArea from "antd/es/input/TextArea";
 import { HelpCircle, Settings, User, Wrench } from "lucide-react";
 import {
@@ -23,7 +23,7 @@ const InputWithTooltip: React.FC<{
   tooltip: string;
   children: React.ReactNode;
 }> = ({ label, tooltip, children }) => (
-  <label className="block">
+  <div className="block">
     <div className="flex items-center gap-2 mb-1">
       <span className="text-sm font-medium text-primary">{label}</span>
       <Tooltip title={tooltip}>
@@ -31,7 +31,7 @@ const InputWithTooltip: React.FC<{
       </Tooltip>
     </div>
     {children}
-  </label>
+  </div>
 );
 
 // Define possible field names to ensure type safety
@@ -71,18 +71,20 @@ interface FieldSpec {
   };
 }
 
+const defaultModelInfo = {
+  vision: false,
+  function_calling: false,
+  json_output: false,
+  structured_output: false,
+  family: "",
+  multiple_system_messages: false,
+};
+
 const ModelInfoEditor: React.FC<{
   value: any;
   onChange: (value: any) => void;
 }> = ({ value, onChange }) => {
-  const modelInfo = value || {
-    vision: false,
-    function_calling: false,
-    json_output: false,
-    structured_output: false,
-    family: "unknown",
-    multiple_system_messages: false,
-  };
+  const modelInfo = value || defaultModelInfo;
 
   const updateField = (field: string, newValue: any) => {
     onChange({
@@ -94,53 +96,81 @@ const ModelInfoEditor: React.FC<{
   return (
     <div className="space-y-4 p-4 border rounded-lg">
       <div className="grid grid-cols-2 gap-4">
-        <label className="flex items-center gap-2">
-          <Switch
-            checked={modelInfo.vision}
-            onChange={(checked) => updateField("vision", checked)}
-          />
-          <span>Vision Support</span>
-        </label>
+        <InputWithTooltip
+          label="Vision Support"
+          tooltip="Enable vision support (image input capability)."
+        >
+          <div className="w-16 pointer-events-none">
+            <Switch
+              checked={modelInfo.vision}
+              onChange={(checked) => updateField("vision", checked)}
+              className="pointer-events-auto"
+            />
+          </div>
+        </InputWithTooltip>
 
-        <label className="flex items-center gap-2">
-          <Switch
-            checked={modelInfo.function_calling}
-            onChange={(checked) => updateField("function_calling", checked)}
-          />
-          <span>Function Calling</span>
-        </label>
+        <InputWithTooltip
+          label="Function Calling"
+          tooltip="Enable function calling feature for external integrations."
+        >
+          <div className="w-16 pointer-events-none">
+            <Switch
+              checked={modelInfo.function_calling}
+              onChange={(checked) => updateField("function_calling", checked)}
+              className="pointer-events-auto"
+            />
+          </div>
+        </InputWithTooltip>
 
-        <label className="flex items-center gap-2">
-          <Switch
-            checked={modelInfo.json_output}
-            onChange={(checked) => updateField("json_output", checked)}
-          />
-          <span>JSON Output</span>
-        </label>
+        <InputWithTooltip
+          label="JSON Output"
+          tooltip="Enable JSON output mode (distinct from structured output)."
+        >
+          <div className="w-16 pointer-events-none">
+            <Switch
+              checked={modelInfo.json_output}
+              onChange={(checked) => updateField("json_output", checked)}
+              className="pointer-events-auto"
+            />
+          </div>
+        </InputWithTooltip>
 
-        <label className="flex items-center gap-2">
-          <Switch
-            checked={modelInfo.structured_output}
-            onChange={(checked) => updateField("structured_output", checked)}
-          />
-          <span>Structured Output</span>
-        </label>
+        <InputWithTooltip
+          label="Structured Output"
+          tooltip="Enable structured output mode (distinct from JSON output)."
+        >
+          <div className="w-16 pointer-events-none">
+            <Switch
+              checked={modelInfo.structured_output}
+              onChange={(checked) => updateField("structured_output", checked)}
+              className="pointer-events-auto"
+            />
+          </div>
+        </InputWithTooltip>
 
-        <label className="flex items-center gap-2">
-          <Switch
-            checked={modelInfo.multiple_system_messages}
-            onChange={(checked) => updateField("multiple_system_messages", checked)}
-          />
-          <span>Multiple System Messages</span>
-        </label>
+        <InputWithTooltip
+          label="Multiple System Messages"
+          tooltip="Enable support for multiple, non-consecutive system messages."
+        >
+          <div className="w-16 pointer-events-none">
+            <Switch
+              checked={modelInfo.multiple_system_messages}
+              onChange={(checked) => updateField("multiple_system_messages", checked)}
+              className="pointer-events-auto"
+            />
+          </div>
+        </InputWithTooltip>
       </div>
 
-      <label className="block">
-        <span className="text-sm font-medium">Model Family</span>
-        <Select
+      <InputWithTooltip
+        label="Model Family"
+        tooltip="Model family should be one of the constants from ModelFamily or a string for unknown families."
+      >
+        <AutoComplete
           value={modelInfo.family}
           onChange={(value) => updateField("family", value)}
           className="w-full mt-1"
+          placeholder="Select or enter model family"
           options={[
             { label: "GPT-4.1", value: "gpt-41" },
             { label: "GPT-4.5", value: "gpt-45" },
@@ -180,13 +210,12 @@ const ModelInfoEditor: React.FC<{
             
             { label: "Unknown", value: "unknown" },
           ]}
-          showSearch
           filterOption={(input, option) =>
-            (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
           }
-          placeholder="Select model family"
+          allowClear
         />
-      </label>
+      </InputWithTooltip>
     </div>
   );
 };
@@ -385,30 +414,9 @@ const fieldSpecs: Record<FieldName, FieldSpec> = {
     component: ModelInfoEditor,
     props: {},
     transform: {
-      fromConfig: (value: any) => {
-        const defaultModelInfo = {
-          vision: false,
-          function_calling: true,
-          json_output: false,
-          structured_output: false,
-          family: "unknown",
-          multiple_system_messages: false,
-        };
-        
-        return value ? { ...defaultModelInfo, ...value } : defaultModelInfo;
-      },
-      toConfig: (value: any) => {
-        const defaultModelInfo = {
-          vision: false,
-          function_calling: true,
-          json_output: false,
-          structured_output: false,
-          family: "unknown",
-          multiple_system_messages: false,
-        };
-        
-        return { ...defaultModelInfo, ...value };
-      },
+      fromConfig: (value: any) => 
+        value ? { ...defaultModelInfo, ...value } : defaultModelInfo,
+      toConfig: (value: any) => ({ ...defaultModelInfo, ...value }),
     },
   },
 };
