@@ -5,7 +5,8 @@ from typing import List, Optional, Set
 from openai import OpenAI
 from pydantic import BaseModel
 
-from .._base import BaseQualitativeCoder, Code, CodedDocument, Document
+from .._base import BaseQualitativeCoder, Code, CodedDocument, CodeExample, Document
+from ._prompt import MAIN_PROMPT
 
 
 class CodeList(BaseModel):
@@ -21,6 +22,7 @@ def remove_control_characters(text: str) -> str:
 
 class OAIQualitativeCoder(BaseQualitativeCoder):
     DEFAULT_MODEL = "gpt-4o"
+    MAIN_PROMPT = MAIN_PROMPT
 
     def __init__(self, cache_dir: str = ".cache", model: str = DEFAULT_MODEL, cache_enabled: bool = False) -> None:
         self.client = OpenAI()
@@ -28,11 +30,72 @@ class OAIQualitativeCoder(BaseQualitativeCoder):
         self.model = model
         self.cache_enabled = cache_enabled
 
-    def code_document(
-        self,
-        doc: Document,
-        code_set: Optional[Set[Code]] = None,
-    ) -> Optional[CodedDocument]:
+    def code_document(self, doc: Document, code_set: Optional[Set[Code]] = None) -> Optional[CodedDocument]:
+        coded_doc = self._code_document(doc)
+        if coded_doc is None:
+            raise ValueError("Error in coding document with OpenAI")
+
+        feedback = self._reflect_on_codes(coded_doc)
+
+        coded_doc = self._code_document_with_feedback(coded_doc, feedback)
+
+        if coded_doc is None:
+            raise ValueError("Error in coding document with OpenAI")
+
+        feedback = self._reflect_on_codes(coded_doc)
+
+        coded_doc = self._code_document_with_feedback(coded_doc, feedback)
+
+        return coded_doc
+
+    def _code_document_with_feedback(self, coded_doc: CodedDocument, feedback: str) -> Optional[CodedDocument]:
+        """
+        Given a coded document and feedback, update the codes in the document.
+
+        Again uses completion to generate new code lists
+        based on the doc, original codes, and feedback.
+        """
+
+        prompt = self.MAIN_PROMPT
+
+        prompt += "\nDocument:\n"
+        for line in coded_doc.doc.lines:
+            prompt += f"{line}"
+        prompt += "Notice that the document contains the following number of lines: "
+        prompt += str(len(coded_doc.doc.lines))
+
+        prompt += "\n\n"
+
+        prompt += "A previous attempt to code the document resulted in the following codes:\n"
+        for code in coded_doc.codes:
+            prompt += code.model_dump_json(indent=4)
+            prompt += "\n"
+        prompt += "\n\n"
+
+        prompt += "A human expert has provided the following feedback on the codes:\n"
+        prompt += f"{feedback}\n\n"
+
+        prompt += "Now revise the codes based on the feedback. "
+
+        # save coding with feedback prompt to a file
+        # with open("coding_with_feedback_prompt.txt", "w") as f:
+        #     f.write(prompt)
+
+        completion = self.client.beta.chat.completions.parse(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            response_format=CodeList,
+        )
+        message = completion.choices[0].message
+        if message.parsed and len(message.parsed.code_list) > 0:
+            coded_doc.codes = set(message.parsed.code_list)
+        else:
+            print(message.refusal)
+            raise ValueError("Error in coding document with OpenAI")
+
+        return coded_doc
+
+    def _code_document(self, doc: Document) -> Optional[CodedDocument]:
         # get hash of the document
         doc_hash = hash(doc)
         cache_file = os.path.join(self.cache_dir, f"{doc_hash}.json") if self.cache_enabled else None
@@ -50,15 +113,12 @@ class OAIQualitativeCoder(BaseQualitativeCoder):
 
         coded_document: Optional[CodedDocument] = None
 
-        if code_set is None:
-            completion = self.client.beta.chat.completions.parse(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are an expert qualitative researcher.
+        prompt = """You are an expert qualitative researcher.
 
-Given a list of dcocuments containing errors below, generate a list of (error) codes.
+Given a document containing errors below, generate a list of (error) codes.
+The document shows a log of interaction between multiple agents collaborating
+to solve a complex task.
+
 Each code should contains:
 - at least 3 words, max 4 word, hyphenated.
 
@@ -75,7 +135,7 @@ understand, descriptive, and reflective of the content they categorize.
 - suggest codes that are similar to good code names. avoid code names that are
 similar to bad code names.
 - The definition should be simple worded and practical. At least 2 sentences,
- max 3. It should be written in past tense.
+max 3. It should be written in past tense.
 
 It should convey how a labeller could apply this code to future logs, without
 mentioning the word "labeller". The definition should be specific enough to be
@@ -128,81 +188,134 @@ error, issue, gap that has been identified.
 * muddled-task-execution -- unclear what kind of tasks were muddled
 * task-completion-gaps -- too high level
 The above names are too high level and unclear. Please DO NOT use such names.
-    """,
-                    },
-                    {
-                        "role": "user",
-                        "content": doc.text,
-                    },
-                ],
-                response_format=CodeList,
-            )
 
-            message = completion.choices[0].message
-            if message.parsed and len(message.parsed.code_list) > 0:
-                coded_document = CodedDocument(doc=doc, codes=set(message.parsed.code_list))
-            else:
-                print(message.refusal)
-                raise ValueError("Error in coding document with OpenAI")
+Document:
+
+"""
+
+        for line in doc.lines:
+            prompt += f"{line}"
+        prompt += "\n\n"
+        prompt += "Notice that the document contains the following number of lines: "
+        prompt += str(len(doc.lines))
+        prompt += "\n\n"
+
+        prompt += (
+            "Now generate a list of codes for the document."
+            " Especially codes that detect errors/inefficiencies in the document."
+        )
+
+        # save the coding prompt to a file
+        # with open("coding_prompt.txt", "w") as f:
+        #     f.write(prompt)
+
+        completion = self.client.beta.chat.completions.parse(
+            model=self.model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            response_format=CodeList,
+        )
+
+        message = completion.choices[0].message
+        if message.parsed and len(message.parsed.code_list) > 0:
+            coded_document = CodedDocument(doc=doc, codes=set(message.parsed.code_list))
         else:
-            code_to_str = "\n".join(
-                [
-                    (
-                        f"\n---\nCode Name: {code.name}\n"
-                        f"Definition: {code.definition}\n"
-                        f"Examples: {code.examples}\n---\n"
-                    )
-                    for code in code_set
-                ]
-            )
-
-            completion = self.client.beta.chat.completions.parse(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are an expert qualitative researcher.
-                        You can answer any questions about coding logs.""",
-                    },
-                    {
-                        "role": "user",
-                        "content": f"""
-## Context
-The text below shows a log containing errors. Your task is to code the log with
-the following codes. Generate a list of codes for the log below.
-
-Only use the codes from the list below. Do not create new codes.
-Modify the examples of the codes to fit the context of the log.
-
-Your example should be informative to narrow down the details of the error in
-the context of the example.
-
-## Codes
-
-{code_to_str}
-
-## Log
-
-{doc.text}
-""",
-                    },
-                ],
-                response_format=CodeList,
-            )
-
-            message = completion.choices[0].message
-            if message.parsed and len(message.parsed.code_list) > 0:
-                code_list = message.parsed.code_list
-                # filter out codes whose names are not in the code_set
-                code_set_names = {code.name for code in code_set}
-                code_list = [code for code in code_list if code.name in code_set_names]
-
-                coded_document = CodedDocument(doc=doc, codes=set(code_list))
-
-        if coded_document is None:
+            print(message.refusal)
             raise ValueError("Error in coding document with OpenAI")
 
         if self.cache_enabled and cache_file:
             with open(cache_file, "w") as f:
                 f.write(coded_document.model_dump_json(indent=4))
+
         return coded_document
+
+    def _codes_to_string(self, codes: Set[Code]) -> str:
+        """
+        Convert a set of codes to a string representation.
+        Include name, definition, examples, line number, and severity.
+        """
+        code_list: List[str] = []
+        for code in codes:
+            code_list.append(f"[{code.severity}]: {code.name}: {code.definition}")
+            for example in code.examples:
+                code_list.append(f"\t{example.line}:{example.line_end}\t{example.reason}")
+        return "\n".join(code_list)
+
+    def _extract_lines(self, doc: Document, start: int, end: int, buffer: int = 1) -> str:
+        """
+        Extract a line from the document.
+        """
+        start_line = max(0, start - buffer)
+        end_line = min(len(doc.lines), end + buffer)
+        lines = doc.lines[start_line:end_line]
+        return "".join(lines)
+
+    def _extract_code_lines(self, doc: Document, example: CodeExample) -> str:
+        """
+        Extract lines from the document based on the code.
+        """
+        start = example.line
+        end = example.line_end
+        lines = self._extract_lines(doc, start, end)
+        return lines
+
+    def _reflect_on_codes(self, coded_doc: CodedDocument) -> str:
+        """
+        Given a coded document generate feedback.
+        E.g., whether the code used seem appropriate or not.
+        """
+
+        prompt = (
+            "You are an expert qualitative researcher. "
+            "You are given a list of codes. "
+            "Pay attention the codes and the lines mentioned in the examples of the codes. "
+            "Which examples fail to spot meaningful errors? "
+            "Be direct and critical. "
+            "If a code identifies a BS error, say it. "
+            "There is no need to figure out how to fix the actual error. "
+            "The goal is to double check the validity of detected errors.\n\n"
+        )
+
+        # for line in coded_doc.doc.lines:
+        #     prompt += f"{line}"
+        # prompt += "\n\n"
+
+        # prompt += "Notice that the document contains the following number of lines: "
+        # prompt += str(len(coded_doc.doc.lines))
+
+        # prompt += "\n\n"
+        prompt += "A qualitative coding of a document claims to spot the following errors:\n\n"
+        for code in coded_doc.codes:
+            prompt += f"Code: {code.name}\n"
+            prompt += f"Definition: {code.definition}\n"
+            prompt += "Examples:\n"
+            for example in code.examples:
+                extracted_lines = self._extract_code_lines(coded_doc.doc, example)
+                prompt += f"- Does the text in the lines {example.line}:{example.line_end} shown below have enough information to justify the {code.name} error? "
+                prompt += f"Especially does the line {example.line} contain the error?\n\n"
+                prompt += f"{extracted_lines}\n"
+                prompt += "\n\n"
+            prompt += "\n"
+
+        prompt += (
+            "Now carefully analyze the examples. And provide feedback on the codes."
+            "If the examples lines do not align with the code name or definition, provide feedback."
+        )
+
+        # save the reflection_prompt to a file
+        # with open("reflection_prompt.txt", "w") as f:
+        #     f.write(prompt)
+
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        feedback = completion.choices[0].message.content
+        if feedback is None:
+            raise ValueError("Error in generating feedback with OpenAI")
+        return feedback
