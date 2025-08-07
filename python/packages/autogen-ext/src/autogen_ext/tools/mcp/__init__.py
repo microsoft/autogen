@@ -1,6 +1,7 @@
 from ._actor import McpSessionActor
 from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
 from ._factory import mcp_server_tools
+from ._host import ChatCompletionClientElicitor, Elicitor, GroupChatAgentElicitor, McpSessionHost
 from ._session import create_mcp_server_session
 from ._sse import SseMcpToolAdapter
 from ._stdio import StdioMcpToolAdapter
@@ -19,4 +20,8 @@ __all__ = [
     "McpServerParams",
     "mcp_server_tools",
     "McpWorkbench",
+    "McpSessionHost",
+    "Elicitor",
+    "GroupChatAgentElicitor",
+    "ChatCompletionClientElicitor",
 ]
