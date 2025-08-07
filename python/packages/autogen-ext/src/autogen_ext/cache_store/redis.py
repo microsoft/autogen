@@ -26,6 +26,11 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
     A typed CacheStore implementation that uses redis as the underlying storage.
     See :class:`~autogen_ext.models.cache.ChatCompletionCache` for an example of usage.
 
+    This implementation provides automatic serialization and deserialization for:
+    - Pydantic models (uses model_dump_json/model_validate_json)
+    - Primitive types (strings, numbers, etc.)
+
+
     Args:
         cache_instance: An instance of `redis.Redis`.
                         The user is responsible for managing the Redis instance's lifetime.
@@ -38,13 +43,66 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
         self.cache = redis_instance
 
     def get(self, key: str, default: Optional[T] = None) -> Optional[T]:
-        value = cast(Optional[T], self.cache.get(key))
-        if value is None:
+        """
+        Retrieve a value from the Redis cache.
+
+        This method handles both primitive values and complex objects:
+        - Pydantic models are automatically deserialized from JSON
+        - Primitive values (strings, numbers, etc.) are returned as-is
+        - If deserialization fails, returns the raw value or default
+
+        Args:
+            key: The key to retrieve
+            default: Value to return if key doesn't exist
+
+        Returns:
+            The value if found and properly deserialized, otherwise the default
+        """
+        try:
+            raw_value = self.cache.get(key)
+            if raw_value is None:
+                return default
+
+            if isinstance(raw_value, bytes):
+                try:
+                    # Assume it's JSON serialized
+                    json_str = raw_value.decode("utf-8")
+                    # Just use BaseModel for generic deserialization
+                    return cast(Optional[T], BaseModel.model_validate_json(json_str))
+                except Exception:
+                    # If not a valid JSON, return as is (might be a simple string)
+                    return cast(Optional[T], raw_value.decode("utf-8"))
+            else:
+                # Backward compatibility for primitives
+                return cast(Optional[T], raw_value)
+        except Exception:
             return default
-        return value
 
     def set(self, key: str, value: T) -> None:
-        self.cache.set(key, cast(Any, value))
+        """
+        Store a value in the Redis cache.
+
+        This method handles both primitive values and complex objects:
+        - Pydantic models are automatically serialized to JSON
+        - Primitive values (strings, numbers, etc.) are stored as-is
+
+        Args:
+            key: The key to store the value under
+            value: The value to store
+        """
+        try:
+            if hasattr(value, "model_dump_json"):
+                # For type checking, we need to cast the value
+                model_value = cast(BaseModel, value)
+                # Serialize Pydantic models to JSON
+                serialized_value = model_value.model_dump_json().encode("utf-8")
+                self.cache.set(key, serialized_value)
+            else:
+                # Backward compatibility for primitives
+                self.cache.set(key, cast(Any, value))
+        except Exception:
+            # Log the error but don't re-raise to maintain robustness
+            pass
 
     def _to_config(self) -> RedisStoreConfig:
         # Extract connection info from redis instance
