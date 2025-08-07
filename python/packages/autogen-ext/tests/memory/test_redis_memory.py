@@ -35,7 +35,9 @@ async def test_redis_memory_query_with_mock() -> None:
         config = RedisMemoryConfig()
         memory = RedisMemory(config=config)
 
-        mock_history.get_relevant.return_value = [{"content": "test content", "tool_call_id": '{"foo": "bar"}'}]
+        mock_history.get_relevant.return_value = [
+            {"content": "test content", "tool_call_id": '{"foo": "bar", "mime_type": "text/plain"}'}
+        ]
         result = await memory.query("test")
         assert len(result.results) == 1
         assert result.results[0].content == "test content"
@@ -304,8 +306,7 @@ async def test_basic_workflow(semantic_config: RedisMemoryConfig) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
-async def test_content_types(semantic_memory: RedisMemory) -> None:
-    """Test different content types with semantic memory."""
+async def test_text_memory_type(semantic_memory: RedisMemory) -> None:
     await semantic_memory.clear()
 
     # Test text content
@@ -317,8 +318,104 @@ async def test_content_types(semantic_memory: RedisMemory) -> None:
     assert len(results.results) > 0
     assert any("Simple text content" in str(r.content) for r in results.results)
 
-    # Test JSON content
-    json_data = {"key": "value", "number": 42}
-    json_content = MemoryContent(content=json_data, mime_type=MemoryMimeType.JSON)
-    with pytest.raises(NotImplementedError):
-        await semantic_memory.add(json_content)
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
+async def test_json_memory_type(semantic_memory: RedisMemory) -> None:
+    await semantic_memory.clear()
+
+    json_data = {"title": "Hitchhiker's Guide to the Galaxy", "The answer to life, the universe and everything.": 42}
+    await semantic_memory.add(
+        MemoryContent(content=json_data, mime_type=MemoryMimeType.JSON, metadata={"author": "Douglas Adams"})
+    )
+
+    results = await semantic_memory.query("what is the ultimate question of the universe?")
+    assert results.results[0].content == json_data
+
+    # meta data should not be searched
+    results = await semantic_memory.query("who is Douglas Adams?")
+    assert len(results.results) == 0
+
+    # test we can't query with JSON also
+    with pytest.raises(TypeError):
+        results = await semantic_memory.query({"question": "what is the ultimate question of the universe?"})  # type: ignore[arg-type]
+
+    # but we can if the JSON is within a MemoryContent container
+    results = await semantic_memory.query(
+        MemoryContent(
+            content={"question": "what is the ultimate question of the universe?"}, mime_type=MemoryMimeType.JSON
+        )
+    )
+    assert results.results[0].content == json_data
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
+async def test_markdown_memory_type(semantic_memory: RedisMemory) -> None:
+    await semantic_memory.clear()
+
+    markdown_data = """
+                    This is an H1 header
+                    ============
+
+                    Paragraphs are separated by a blank line.
+
+                    *Italics are within asteriks*, **bold text is within two asterisks**,
+                    while `monospace is within back tics`.
+
+                    Itemized lists are made with indented asterisks:
+
+                      * this one
+                      * that one
+                      * the next one
+
+                    > Block quotes are make with arrows
+                    > like this.
+                    >
+                    > They can span multiple paragraphs,
+                    > if you like.
+
+                    Unicode is supported. ☺
+                    """
+
+    await semantic_memory.add(
+        MemoryContent(content=markdown_data, mime_type=MemoryMimeType.MARKDOWN, metadata={"type": "markdown example"})
+    )
+
+    results = await semantic_memory.query("how can I make itemized lists, or italicize text with asterisks?")
+    assert results.results[0].content == markdown_data
+
+    # test we can query with markdown interpreted as a text string also
+    results = await semantic_memory.query("")
+
+    # we can also if the markdown is within a MemoryContent container
+    results = await semantic_memory.query(
+        MemoryContent(
+            content="**bold text is within 2 asterisks**, and *italics are within 1 asterisk*",
+            mime_type=MemoryMimeType.MARKDOWN,
+        )
+    )
+    assert results.results[0].content == markdown_data
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
+async def test_query_arguments(semantic_memory: RedisMemory) -> None:
+    # test that we can utilize the optional query arguments top_k and distance_threshold
+    await semantic_memory.clear()
+
+    await semantic_memory.add(MemoryContent(content="my favorite fruit are apples", mime_type=MemoryMimeType.TEXT))
+    await semantic_memory.add(MemoryContent(content="I also like cherries", mime_type=MemoryMimeType.TEXT))
+    await semantic_memory.add(MemoryContent(content="I like plums as well", mime_type=MemoryMimeType.TEXT))
+
+    # default search
+    results = await semantic_memory.query("what fruits do I like?")
+    assert len(results.results) == 3
+
+    # limit search to 2 results
+    results = await semantic_memory.query("what fruits do I like?", top_k=2)
+    assert len(results.results) == 2
+
+    # limit search to only close matches
+    results = await semantic_memory.query("my favorite fruit are what?", distance_threshold=0.2)
+    assert len(results.results) == 1
