@@ -164,7 +164,7 @@ def message_handler(
 
         return wrapper_handler
 
-    if func is None and not callable(func):
+    if func is None and not callable(func) or getattr(func, "__isabstractmethod__", False):
         return decorator
     elif callable(func):
         return decorator(func)
@@ -284,7 +284,7 @@ def event(
 
         return wrapper_handler
 
-    if func is None and not callable(func):
+    if func is None and not callable(func) or getattr(func, "__isabstractmethod__", False):
         return decorator
     elif callable(func):
         return decorator(func)
@@ -404,7 +404,7 @@ def rpc(
 
         return wrapper_handler
 
-    if func is None and not callable(func):
+    if func is None and not callable(func) or getattr(func, "__isabstractmethod__", False):
         return decorator
     elif callable(func):
         return decorator(func)
