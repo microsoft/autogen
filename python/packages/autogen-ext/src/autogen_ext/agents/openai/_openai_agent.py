@@ -536,7 +536,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     f"Tool 'local_shell' is only supported with model 'codex-mini-latest', "
                     f"but current model is '{self._model}'. "
                     f"This tool is available exclusively through the Responses API and has severe limitations. "
-                    f"Consider using autogen_ext.tools.code_execution.PythonCodeExecutionTool with "
+                    f"Consider using autogen_ext.tools.code_execution.CodeExecutionTool with "
                     f"autogen_ext.code_executors.local.LocalCommandLineCodeExecutor for shell execution instead."
                 )
             self._tools.append({"type": "local_shell"})
@@ -580,7 +580,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     f"Tool 'local_shell' is only supported with model 'codex-mini-latest', "
                     f"but current model is '{self._model}'. "
                     f"This tool is available exclusively through the Responses API and has severe limitations. "
-                    f"Consider using autogen_ext.tools.code_execution.PythonCodeExecutionTool with "
+                    f"Consider using autogen_ext.tools.code_execution.CodeExecutionTool with "
                     f"autogen_ext.code_executors.local.LocalCommandLineCodeExecutor for shell execution instead."
                 )
             tool_def = {"type": "local_shell"}
