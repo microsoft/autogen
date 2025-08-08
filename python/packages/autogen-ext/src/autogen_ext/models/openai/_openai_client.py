@@ -94,7 +94,7 @@ openai_init_kwargs = set(inspect.getfullargspec(AsyncOpenAI.__init__).kwonlyargs
 aopenai_init_kwargs = set(inspect.getfullargspec(AsyncAzureOpenAI.__init__).kwonlyargs)
 
 create_kwargs = set(completion_create_params.CompletionCreateParamsBase.__annotations__.keys()) | set(
-    ("timeout", "stream")
+    ("timeout", "stream", "reasoning_effort", "verbosity")
 )
 # Only single choice allowed
 disallowed_create_args = set(["stream", "messages", "function_call", "functions", "n"])
@@ -492,6 +492,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         tool_choice: Tool | Literal["auto", "required", "none"],
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
+        reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = None,
+        verbosity: Optional[Literal["low", "medium", "high"]] = None,
     ) -> CreateParams:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
@@ -501,6 +503,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         # Copy the create args and overwrite anything in extra_create_args
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
+
+        # Add GPT-5 specific parameters
+        if reasoning_effort is not None:
+            create_args["reasoning_effort"] = reasoning_effort
+        if verbosity is not None:
+            create_args["verbosity"] = verbosity
 
         # The response format value to use for the beta client.
         response_format_value: Optional[Type[BaseModel]] = None
@@ -656,6 +664,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
+        reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = None,
+        verbosity: Optional[Literal["low", "medium", "high"]] = None,
     ) -> CreateResult:
         create_params = self._process_create_args(
             messages,
@@ -663,6 +673,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             tool_choice,
             json_output,
             extra_create_args,
+            reasoning_effort,
+            verbosity,
         )
         future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
         if create_params.response_format is not None:
@@ -811,6 +823,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
         include_usage: Optional[bool] = None,
+        reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = None,
+        verbosity: Optional[Literal["low", "medium", "high"]] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """Create a stream of string chunks from the model ending with a :class:`~autogen_core.models.CreateResult`.
 
@@ -840,6 +854,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             tool_choice,
             json_output,
             extra_create_args,
+            reasoning_effort,
+            verbosity,
         )
 
         if include_usage is not None:

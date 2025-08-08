@@ -11,6 +11,9 @@ trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``
 _MODEL_POINTERS = {
     # OpenAI models
+    "gpt-5": "gpt-5-2025-08-07",
+    "gpt-5-mini": "gpt-5-mini-2025-08-07",
+    "gpt-5-nano": "gpt-5-nano-2025-08-07",
     "o4-mini": "o4-mini-2025-04-16",
     "o3": "o3-2025-04-16",
     "o3-mini": "o3-mini-2025-01-31",
@@ -46,6 +49,30 @@ _MODEL_POINTERS = {
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
+    "gpt-5-2025-08-07": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_5,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "gpt-5-mini-2025-08-07": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_5_MINI,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "gpt-5-nano-2025-08-07": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_5_NANO,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
     "gpt-4o-mini-search-preview-2025-03-11": {
         "vision": False,
         "function_calling": True,
@@ -417,6 +444,9 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
+    "gpt-5-2025-08-07": 400000,
+    "gpt-5-mini-2025-08-07": 400000,
+    "gpt-5-nano-2025-08-07": 400000,
     "o4-mini-2025-04-16": 200000,
     "o3-2025-04-16": 200000,
     "o3-mini-2025-01-31": 200000,

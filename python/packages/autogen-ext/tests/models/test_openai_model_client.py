@@ -3252,4 +3252,97 @@ async def test_openai_tool_choice_validation_error_integration() -> None:
         )
 
 
+# GPT-5 model tests
+def test_gpt5_model_resolution():
+    """Test that GPT-5 models resolve correctly."""
+    assert resolve_model("gpt-5") == "gpt-5-2025-08-07"
+    assert resolve_model("gpt-5-mini") == "gpt-5-mini-2025-08-07"
+    assert resolve_model("gpt-5-nano") == "gpt-5-nano-2025-08-07"
+
+
+def test_gpt5_model_info():
+    """Test that GPT-5 models have correct capabilities."""
+    from autogen_ext.models.openai._model_info import get_info
+
+    gpt5_info = get_info("gpt-5")
+    assert gpt5_info["vision"] is True
+    assert gpt5_info["function_calling"] is True
+    assert gpt5_info["json_output"] is True
+    assert gpt5_info["family"] == ModelFamily.GPT_5
+    assert gpt5_info["structured_output"] is True
+    assert gpt5_info["multiple_system_messages"] is True
+
+    gpt5_mini_info = get_info("gpt-5-mini")
+    assert gpt5_mini_info["family"] == ModelFamily.GPT_5_MINI
+
+    gpt5_nano_info = get_info("gpt-5-nano")
+    assert gpt5_nano_info["family"] == ModelFamily.GPT_5_NANO
+
+
+def test_gpt5_client_creation():
+    """Test that GPT-5 client can be created with new parameters."""
+    client = OpenAIChatCompletionClient(
+        model="gpt-5",
+        api_key="test-key",
+    )
+    assert client.model_info["family"] == ModelFamily.GPT_5
+
+
+@pytest.mark.asyncio
+async def test_gpt5_reasoning_effort_parameter():
+    """Test that reasoning_effort parameter is properly handled."""
+    # Mock the OpenAI client to avoid actual API calls
+    import unittest.mock
+
+    with unittest.mock.patch(
+        "autogen_ext.models.openai._openai_client._openai_client_from_config"
+    ) as mock_client_factory:
+        mock_client = unittest.mock.AsyncMock()
+        mock_client_factory.return_value = mock_client
+
+        # Mock the completion response
+        mock_response = unittest.mock.MagicMock()
+        mock_response.choices = [unittest.mock.MagicMock()]
+        mock_response.choices[0].message.content = "Test response"
+        mock_response.choices[0].message.tool_calls = None
+        mock_response.choices[0].message.function_call = None
+        mock_response.choices[0].message.model_extra = None  # Add this to fix the validation error
+        mock_response.choices[0].finish_reason = "stop"
+        mock_response.choices[0].logprobs = None  # Add this to avoid potential issues
+        mock_response.usage.prompt_tokens = 10
+        mock_response.usage.completion_tokens = 5
+        mock_response.model = "gpt-5-2025-08-07"
+
+        mock_client.chat.completions.create.return_value = mock_response
+
+        client = OpenAIChatCompletionClient(
+            model="gpt-5",
+            api_key="test-key",
+        )
+
+        messages = [UserMessage(content="Test message", source="user")]
+
+        # Test with reasoning_effort parameter
+        await client.create(messages, reasoning_effort="minimal", verbosity="low")
+
+        # Verify the client was called with the correct parameters
+        call_args = mock_client.chat.completions.create.call_args
+        assert "reasoning_effort" in call_args.kwargs
+        assert call_args.kwargs["reasoning_effort"] == "minimal"
+        assert "verbosity" in call_args.kwargs
+        assert call_args.kwargs["verbosity"] == "low"
+
+
+def test_gpt5_model_families():
+    """Test that GPT-5 model families are properly defined."""
+    assert ModelFamily.GPT_5 == "gpt-5"
+    assert ModelFamily.GPT_5_MINI == "gpt-5-mini"
+    assert ModelFamily.GPT_5_NANO == "gpt-5-nano"
+
+    # Check that they're included in the ANY type
+    assert "gpt-5" in ModelFamily.ANY.__args__
+    assert "gpt-5-mini" in ModelFamily.ANY.__args__
+    assert "gpt-5-nano" in ModelFamily.ANY.__args__
+
+
 # TODO: add integration tests for Azure OpenAI using AAD token.
