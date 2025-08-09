@@ -31,7 +31,7 @@ __all__ = [
     "BaseStreamTool",
     "FunctionTool",
     "CodeExecutorTool",
-    "SQLQueryTool", 
+    "SQLQueryTool",
     "TimestampTool",
     "Workbench",
     "ToolResult",

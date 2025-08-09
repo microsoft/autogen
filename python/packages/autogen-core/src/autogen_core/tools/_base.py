@@ -333,16 +333,17 @@ class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, S
 
 class BaseCustomTool(ABC, CustomTool, Generic[ReturnT], ComponentBase[BaseModel]):
     """Base implementation for GPT-5 custom tools with freeform text input.
-    
+
     GPT-5 custom tools accept freeform text input instead of structured JSON parameters,
     making them ideal for code execution, natural language queries, and grammar-constrained input.
-    
+
     Examples:
         Basic custom tool for code execution::
-        
+
             from autogen_core.tools import BaseCustomTool
             from autogen_core import CancellationToken
-            
+
+
             class CodeExecutorTool(BaseCustomTool[str]):
                 def __init__(self) -> None:
                     super().__init__(
@@ -355,9 +356,9 @@ class BaseCustomTool(ABC, CustomTool, Generic[ReturnT], ComponentBase[BaseModel]
                     # Execute Python code from freeform text input
                     # In production, use secure sandbox
                     return f"Executed: {input_text}"
-        
+
         Custom tool with Context-Free Grammar constraints::
-        
+
             sql_grammar = CustomToolFormat(
                 type="grammar",
                 syntax="lark",
@@ -366,49 +367,51 @@ class BaseCustomTool(ABC, CustomTool, Generic[ReturnT], ComponentBase[BaseModel]
                     select_statement: "SELECT" column_list "FROM" table_name "WHERE" condition ";"
                     column_list: column ("," column)*
                     column: IDENTIFIER
-                    table_name: IDENTIFIER  
+                    table_name: IDENTIFIER
                     condition: column ">" NUMBER
                     IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
                     NUMBER: /[0-9]+/
                     %import common.WS
                     %ignore WS
-                '''
+                ''',
             )
-            
+
+
             class SQLQueryTool(BaseCustomTool[str]):
                 def __init__(self) -> None:
                     super().__init__(
                         return_type=str,
                         name="sql_query",
                         description="Executes SQL queries with grammar constraints",
-                        format=sql_grammar
+                        format=sql_grammar,
                     )
 
                 async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
                     return f"SQL Result: {input_text}"
-        
+
         Using with OpenAI GPT-5 client::
-        
+
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_core.models import UserMessage
-            
+
+
             async def example():
                 client = OpenAIChatCompletionClient(model="gpt-5")
                 code_tool = CodeExecutorTool()
-                
+
                 response = await client.create(
                     messages=[UserMessage(content="Use code_exec to calculate 2+2", source="user")],
                     tools=[code_tool],
                     reasoning_effort="medium",  # GPT-5 feature
-                    verbosity="high"           # GPT-5 feature
+                    verbosity="high",  # GPT-5 feature
                 )
-                
+
                 # Custom tool calls return freeform text in arguments
                 if isinstance(response.content, list):
                     tool_call = response.content[0]
                     print(f"Tool: {tool_call.name}, Input: {tool_call.arguments}")
     """
-    
+
     component_type = "tool"
 
     def __init__(
