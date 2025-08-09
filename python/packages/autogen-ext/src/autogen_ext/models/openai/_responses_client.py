@@ -104,7 +104,7 @@ from typing import (
     cast,
 )
 
-from autogen_core import CancellationToken, FunctionCall
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     CreateResult,
@@ -123,7 +123,6 @@ from typing_extensions import Unpack
 
 from .._utils.normalize_stop_reason import normalize_stop_reason
 from . import _model_info
-from autogen_core import EVENT_LOGGER_NAME
 from ._openai_client import (
     convert_tools,
     normalize_name,
@@ -474,6 +473,8 @@ class BaseOpenAIResponsesAPIClient:
 
             # Handle tool calls
             message_dict = cast(Dict[str, Any], choice.get("message", {}))
+            is_tool_calls: bool = False
+            finish_reason: Optional[str] = None
             if message_dict.get("tool_calls"):
                 tool_calls = cast(
                     Sequence[ChatCompletionMessageToolCall], message_dict["tool_calls"]
@@ -502,11 +503,11 @@ class BaseOpenAIResponsesAPIClient:
                 if message_dict.get("content"):
                     thought = cast(str, message_dict["content"])
 
-                finish_reason_tools: Optional[str] = "tool_calls"
+                is_tool_calls = True
             else:
                 # Text response
                 content = cast(str, message_dict.get("content", ""))
-                finish_reason: Optional[str] = cast(Optional[str], choice.get("finish_reason", "stop"))
+                finish_reason = cast(Optional[str], choice.get("finish_reason", "stop"))
 
             # Extract reasoning if available
             reasoning_items_data: Optional[List[Dict[str, Any]]] = result.get("reasoning_items")  # type: ignore[assignment]
@@ -520,7 +521,7 @@ class BaseOpenAIResponsesAPIClient:
                     thought = "\n".join(reasoning_texts)
 
             # Build CreateResult
-            if (locals().get("finish_reason_tools") or "") == "tool_calls":
+            if is_tool_calls:
                 # The model requested tool calls
                 create_result = CreateResult(
                     finish_reason=normalize_stop_reason("tool_calls"),
@@ -532,7 +533,7 @@ class BaseOpenAIResponsesAPIClient:
             else:
                 # Plain text response
                 create_result = CreateResult(
-                    finish_reason=normalize_stop_reason(finish_reason),
+                    finish_reason=normalize_stop_reason(finish_reason or "stop"),
                     content=str(content),
                     usage=usage,
                     cached=False,

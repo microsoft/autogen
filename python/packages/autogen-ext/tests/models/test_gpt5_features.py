@@ -155,12 +155,20 @@ class TestCustomToolsIntegration:
         assert len(converted) == 2
 
         # Check code tool conversion
-        code_tool_param = next(cast(Dict[str, Any], t) for t in converted if cast(Dict[str, Any], t).get("custom", {}).get("name") == "code_exec")
+        code_tool_param = next(
+            cast(Dict[str, Any], t)
+            for t in converted
+            if cast(Dict[str, Any], t).get("custom", {}).get("name") == "code_exec"
+        )
         assert str(code_tool_param.get("type")) == "custom"
         assert "format" not in code_tool_param.get("custom", {})
 
         # Check SQL tool conversion with grammar
-        sql_tool_param = next(cast(Dict[str, Any], t) for t in converted if cast(Dict[str, Any], t).get("custom", {}).get("name") == "sql_query")
+        sql_tool_param = next(
+            cast(Dict[str, Any], t)
+            for t in converted
+            if cast(Dict[str, Any], t).get("custom", {}).get("name") == "sql_query"
+        )
         assert str(sql_tool_param.get("type")) == "custom"
         assert "format" in sql_tool_param.get("custom", {})
         assert sql_tool_param.get("custom", {}).get("format", {}).get("type") == "grammar"
@@ -337,8 +345,10 @@ class TestAllowedToolsFeature:
         exec_tool = FunctionTool(dangerous_exec, description="Code executor")
         code_tool = TestCodeExecutorTool()
 
-        from autogen_core.tools import Tool as _Tool, ToolSchema as _ToolSchema
-        from autogen_core.tools import CustomTool as _CustomTool, CustomToolSchema as _CustomToolSchema
+        from autogen_core.tools import CustomTool as _CustomTool
+        from autogen_core.tools import CustomToolSchema as _CustomToolSchema
+        from autogen_core.tools import Tool as _Tool
+        from autogen_core.tools import ToolSchema as _ToolSchema
 
         all_tools: List[_Tool | _ToolSchema | _CustomTool | _CustomToolSchema] = [
             cast(_Tool, calc_tool),
