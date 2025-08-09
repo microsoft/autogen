@@ -12,47 +12,64 @@ The Responses API differs from Chat Completions API in several key ways:
 - Lower latency due to CoT caching and fewer regenerated reasoning tokens
 
 Examples:
-    Basic GPT-5 Responses API usage::
+    Basic GPT-5 Responses API usage:
 
+    .. code-block:: python
+
+        import asyncio
         from autogen_ext.models.openai import OpenAIResponsesAPIClient
-        from autogen_core.models import UserMessage
 
-        client = OpenAIResponsesAPIClient(model="gpt-5")
 
-        response = await client.create(
-            input="Solve this complex math problem: What is the derivative of x^3 + 2x^2 - 5x + 3?",
-            reasoning_effort="high",
-            verbosity="medium",
-            preambles=True,
-        )
+        async def main() -> None:
+            client = OpenAIResponsesAPIClient(model="gpt-5")
+            response = await client.create(
+                input="Solve this complex math problem: What is the derivative of x^3 + 2x^2 - 5x + 3?",
+                reasoning_effort="high",
+                verbosity="medium",
+                preambles=True,
+            )
+            print(f"Reasoning: {response.thought}")
+            print(f"Response: {response.content}")
 
-        # Access reasoning and response
-        print(f"Reasoning: {response.thought}")
-        print(f"Response: {response.content}")
+            follow_up = await client.create(
+                input="Now integrate that result",
+                previous_response_id=response.response_id,
+                reasoning_effort="medium",
+            )
+            print(f"Follow-up: {follow_up.content}")
 
-        # Use the response for follow-up with preserved CoT
-        follow_up = await client.create(
-            input="Now integrate that result",
-            previous_response_id=response.response_id,  # Preserve CoT context
-            reasoning_effort="medium",
-        )
 
-    Multi-turn conversation with CoT preservation::
+        asyncio.run(main())
 
-        # First turn
-        response1 = await client.create(input="Plan a Python function to find prime numbers", reasoning_effort="medium")
+    Multi-turn conversation with CoT preservation:
 
-        # Second turn with preserved reasoning context
-        response2 = await client.create(
-            input="Now implement that plan with error handling",
-            previous_response_id=response1.response_id,  # CoT context preserved
-            tools=[code_tool],
-            reasoning_effort="low",  # Can use lower effort due to preserved context
-        )
+    .. code-block:: python
 
-    Using with custom tools and grammar constraints::
+        import asyncio
+        from autogen_ext.models.openai import OpenAIResponsesAPIClient
 
+
+        async def main() -> None:
+            client = OpenAIResponsesAPIClient(model="gpt-5")
+            response1 = await client.create(input="Plan a Python function to find prime numbers", reasoning_effort="medium")
+            response2 = await client.create(
+                input="Now implement that plan with error handling",
+                previous_response_id=response1.response_id,
+                reasoning_effort="low",
+            )
+            print(response2.content)
+
+
+        asyncio.run(main())
+
+    Using with custom tools and grammar constraints:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_core import CancellationToken
         from autogen_core.tools import BaseCustomTool, CustomToolFormat
+        from autogen_ext.models.openai import OpenAIResponsesAPIClient
 
         sql_grammar = CustomToolFormat(
             type="grammar",
@@ -69,7 +86,7 @@ Examples:
 
 
         class SQLTool(BaseCustomTool[str]):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__(
                     return_type=str,
                     name="sql_query",
@@ -77,15 +94,24 @@ Examples:
                     format=sql_grammar,
                 )
 
-            async def run(self, input_text: str, cancellation_token) -> str:
+            async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
                 return f"SQL Result: {input_text}"
 
 
-        sql_tool = SQLTool()
+        async def main() -> None:
+            client = OpenAIResponsesAPIClient(model="gpt-5")
+            sql_tool = SQLTool()
+            response = await client.create(
+                input="Find all users in the database",
+                tools=[sql_tool],
+                reasoning_effort="medium",
+                verbosity="low",
+                preambles=True,
+            )
+            print(response.content)
 
-        response = await client.create(
-            input="Find all users in the database", tools=[sql_tool], reasoning_effort="medium", verbosity="low", preambles=True
-        )
+
+        asyncio.run(main())
 """
 
 import asyncio
@@ -416,41 +442,73 @@ class BaseOpenAIResponsesAPIClient:
             CreateResult with response content, reasoning, and usage information
 
         Examples:
-            Basic usage with reasoning control::
+            Basic usage with reasoning control:
 
-                client = OpenAIResponsesAPIClient(model="gpt-5")
+            .. code-block:: python
 
-                response = await client.create(
-                    input="Explain quantum computing to a 10-year-old",
-                    reasoning_effort="medium",
-                    verbosity="high",
-                    preambles=True,
-                )
+                import asyncio
+                from autogen_ext.models.openai import OpenAIResponsesAPIClient
 
-            Multi-turn with CoT preservation::
 
-                # First turn - reasoning is generated and cached
-                response1 = await client.create(input="What are the pros and cons of solar energy?", reasoning_effort="high")
+                async def main() -> None:
+                    client = OpenAIResponsesAPIClient(model="gpt-5")
+                    response = await client.create(
+                        input="Explain quantum computing to a 10-year-old",
+                        reasoning_effort="medium",
+                        verbosity="high",
+                        preambles=True,
+                    )
+                    print(response.content)
 
-                # Second turn - reuses cached reasoning context
-                response2 = await client.create(
-                    input="How does this compare to wind energy?",
-                    previous_response_id=response1.response_id,
-                    reasoning_effort="low",  # Less reasoning needed due to context
-                )
 
-            Using with custom tools::
+                asyncio.run(main())
 
+            Multi-turn with CoT preservation:
+
+            .. code-block:: python
+
+                import asyncio
+                from autogen_ext.models.openai import OpenAIResponsesAPIClient
+
+
+                async def main() -> None:
+                    client = OpenAIResponsesAPIClient(model="gpt-5")
+                    response1 = await client.create(
+                        input="What are the pros and cons of solar energy?",
+                        reasoning_effort="high",
+                    )
+                    response2 = await client.create(
+                        input="How does this compare to wind energy?",
+                        previous_response_id=response1.response_id,
+                        reasoning_effort="low",
+                    )
+                    print(response2.content)
+
+
+                asyncio.run(main())
+
+            Using with custom tools:
+
+            .. code-block:: python
+
+                import asyncio
                 from autogen_core.tools import CodeExecutorTool
+                from autogen_ext.models.openai import OpenAIResponsesAPIClient
 
-                code_tool = CodeExecutorTool()
 
-                response = await client.create(
-                    input="Calculate the factorial of 15 using Python",
-                    tools=[code_tool],
-                    reasoning_effort="minimal",
-                    preambles=True,  # Explain tool usage
-                )
+                async def main() -> None:
+                    client = OpenAIResponsesAPIClient(model="gpt-5")
+                    code_tool = CodeExecutorTool()
+                    response = await client.create(
+                        input="Calculate the factorial of 15 using Python",
+                        tools=[code_tool],
+                        reasoning_effort="minimal",
+                        preambles=True,
+                    )
+                    print(response.content)
+
+
+                asyncio.run(main())
         """
         create_params = self._process_create_args(
             input,
@@ -589,7 +647,9 @@ class OpenAIResponsesAPIClient(BaseOpenAIResponsesAPIClient):
     - Optimized for reasoning-heavy multi-turn conversations
 
     Examples:
-        Basic client setup::
+        Basic client setup:
+
+        .. code-block:: python
 
             from autogen_ext.models.openai import OpenAIResponsesAPIClient
 
@@ -598,39 +658,54 @@ class OpenAIResponsesAPIClient(BaseOpenAIResponsesAPIClient):
                 api_key="sk-...",  # Optional if OPENAI_API_KEY env var set
             )
 
-        Single turn with reasoning control::
+        Single turn with reasoning control:
 
-            response = await client.create(
-                input="Solve this differential equation: dy/dx = 2x + 3", reasoning_effort="high", verbosity="medium"
-            )
+        .. code-block:: python
 
-            print(f"Reasoning: {response.thought}")
-            print(f"Solution: {response.content}")
+            import asyncio
+            from autogen_ext.models.openai import OpenAIResponsesAPIClient
 
-        Multi-turn conversation with CoT preservation::
 
-            # Turn 1: Initial problem solving with high reasoning
-            response1 = await client.create(
-                input="Design an algorithm to find the shortest path in a graph", reasoning_effort="high"
-            )
+            async def main() -> None:
+                client = OpenAIResponsesAPIClient(model="gpt-5")
+                response = await client.create(
+                    input="Solve this differential equation: dy/dx = 2x + 3",
+                    reasoning_effort="high",
+                    verbosity="medium",
+                )
+                print(f"Reasoning: {response.thought}")
+                print(f"Solution: {response.content}")
 
-            # Turn 2: Follow up uses cached reasoning context
-            response2 = await client.create(
-                input="How would you optimize this for very large graphs?",
-                previous_response_id=response1.response_id,
-                reasoning_effort="medium",  # Can use lower effort due to context
-            )
 
-            # Turn 3: Implementation request with tool usage
-            response3 = await client.create(
-                input="Implement the optimized version in Python",
-                previous_response_id=response2.response_id,
-                tools=[code_tool],
-                reasoning_effort="low",  # Minimal reasoning needed
-                preambles=True,  # Explain why code tool is being used
-            )
+            asyncio.run(main())
 
-        Configuration loading::
+        Multi-turn conversation with CoT preservation:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_ext.models.openai import OpenAIResponsesAPIClient
+
+
+            async def main() -> None:
+                client = OpenAIResponsesAPIClient(model="gpt-5")
+                response1 = await client.create(
+                    input="Design an algorithm to find the shortest path in a graph",
+                    reasoning_effort="high",
+                )
+                response2 = await client.create(
+                    input="How would you optimize this for very large graphs?",
+                    previous_response_id=response1.response_id,
+                    reasoning_effort="medium",
+                )
+                print(response2.content)
+
+
+            asyncio.run(main())
+
+        Configuration loading:
+
+        .. code-block:: python
 
             from autogen_core.models import ChatCompletionClient
 
