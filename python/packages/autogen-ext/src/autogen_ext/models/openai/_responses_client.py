@@ -123,14 +123,18 @@ from typing_extensions import Unpack
 
 from .._utils.normalize_stop_reason import normalize_stop_reason
 from . import _model_info
-from ._openai_client import azure_openai_client_from_config as _azure_openai_client_from_config  # noqa: F401
+from ._openai_client import (
+    azure_openai_client_from_config as _azure_openai_client_from_config,  # noqa: F401  # pyright: ignore[reportUnusedImport]
+)
 from ._openai_client import (
     convert_tools,
     normalize_name,
 )
 
 # Backward-compatible private aliases for tests that patch private symbols
-from ._openai_client import openai_client_from_config as _openai_client_from_config  # noqa: F401
+from ._openai_client import (
+    openai_client_from_config as _openai_client_from_config,  # noqa: F401  # pyright: ignore[reportUnusedImport]
+)
 from .config import (
     AzureOpenAIClientConfiguration,
     OpenAIClientConfiguration,

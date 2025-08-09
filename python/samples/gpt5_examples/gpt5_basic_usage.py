@@ -17,45 +17,76 @@ Run this script to see GPT-5 features in action.
 
 import asyncio
 import os
-from typing import List
+from typing import Literal
 
 from autogen_core import CancellationToken
 from autogen_core.models import UserMessage
 from autogen_core.tools import BaseCustomTool, CustomToolFormat
 from autogen_ext.models.openai import OpenAIChatCompletionClient, OpenAIResponsesAPIClient
+from pydantic import BaseModel
+import json
 
 
-class CodeExecutorTool(BaseCustomTool[str]):
+class TextResult(BaseModel):
+    text: str
+
+
+def _coerce_content_to_text(content: object) -> str:
+    if isinstance(content, str):
+        return content
+    try:
+        return json.dumps(content, ensure_ascii=False, default=str)
+    except Exception:
+        return str(content)
+
+
+ReasoningEffort = Literal["minimal", "low", "medium", "high"]
+
+
+class CodeExecutorTool(BaseCustomTool[TextResult]):
     """GPT-5 custom tool for executing Python code with freeform text input."""
     
     def __init__(self):
         super().__init__(
-            return_type=str,
+            return_type=TextResult,
             name="code_exec",
             description="Executes Python code and returns the output. Input should be valid Python code.",
         )
     
-    async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> TextResult:
         """Execute Python code safely (in a real implementation, use proper sandboxing)."""
         try:
             # In production, use proper sandboxing like RestrictedPython or containers
             # This is a simplified example
             import io
-            import sys
             from contextlib import redirect_stdout
             
             output = io.StringIO()
             with redirect_stdout(output):
-                exec(input_text, {"__builtins__": {"print": print, "len": len, "str": str, "int": int, "float": float}})
+                exec(
+                    input_text,
+                    {
+                        "__builtins__": {
+                            "print": print,
+                            "len": len,
+                            "str": str,
+                            "int": int,
+                            "float": float,
+                        }
+                    },
+                )
             
             result = output.getvalue()
-            return f"Code executed successfully:\n{result}" if result else "Code executed successfully (no output)"
+            text = (
+                f"Code executed successfully:\n{result}" if result else "Code executed successfully (no output)"
+            )
+            return TextResult(text=text)
             
-        except Exception as e:
-            return f"Error executing code: {str(e)}"
+        except Exception as e:  # noqa: BLE001
+            return TextResult(text=f"Error executing code: {e}")
 
 
-class SQLQueryTool(BaseCustomTool[str]):
+class SQLQueryTool(BaseCustomTool[TextResult]):
     """GPT-5 custom tool with grammar constraints for SQL queries."""
     
     def __init__(self):
@@ -63,7 +94,7 @@ class SQLQueryTool(BaseCustomTool[str]):
         sql_grammar = CustomToolFormat(
             type="grammar",
             syntax="lark",
-            definition="""
+            definition=r"""
                 start: select_statement
                 
                 select_statement: "SELECT" column_list "FROM" table_name where_clause?
@@ -89,43 +120,46 @@ class SQLQueryTool(BaseCustomTool[str]):
                 
                 %import common.WS
                 %ignore WS
-            """
+            """,
         )
         
         super().__init__(
-            return_type=str,
+            return_type=TextResult,
             name="sql_query",
             description="Execute SQL SELECT queries with grammar validation. Only SELECT statements are allowed.",
             format=sql_grammar,
         )
     
-    async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> TextResult:
         """Simulate SQL query execution."""
         # In a real implementation, this would connect to a database
         # This is a mock response for demonstration
-        return f"SQL Query Results:\nExecuted: {input_text}\nResult: [Mock data returned - 3 rows affected]"
+        return TextResult(
+            text=(
+                f"SQL Query Results:\nExecuted: {input_text}\nResult: [Mock data returned - 3 rows affected]"
+            )
+        )
 
 
-class CalculatorTool(BaseCustomTool[str]):
+class CalculatorTool(BaseCustomTool[TextResult]):
     """Simple calculator tool for safe mathematical operations."""
     
     def __init__(self):
         super().__init__(
-            return_type=str,
+            return_type=TextResult,
             name="calculator",
-            description="Perform basic mathematical calculations safely. Input should be a mathematical expression.",
+            description=(
+                "Perform basic mathematical calculations safely. Input should be a mathematical expression."
+            ),
         )
     
-    async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> TextResult:
         """Safely evaluate mathematical expressions."""
         try:
-            # Simple safe evaluation for basic math
-            import re
             import ast
             import operator
             
-            # Only allow safe mathematical operations
-            allowed_ops = {
+            allowed_ops: dict[type[ast.AST], object] = {
                 ast.Add: operator.add,
                 ast.Sub: operator.sub,
                 ast.Mult: operator.mul,
@@ -135,33 +169,32 @@ class CalculatorTool(BaseCustomTool[str]):
                 ast.USub: operator.neg,
             }
             
-            def safe_eval(node):
+            def safe_eval(node: ast.AST) -> float | int:
                 if isinstance(node, ast.Expression):
-                    return safe_eval(node.body)
-                elif isinstance(node, ast.Num):
-                    return node.n
-                elif isinstance(node, ast.Constant):
-                    return node.value
-                elif isinstance(node, ast.BinOp):
+                    return safe_eval(node.body)  # type: ignore[arg-type]
+                if isinstance(node, ast.Constant):
+                    if isinstance(node.value, (int, float)):
+                        return node.value
+                    raise ValueError("Only numeric constants are allowed")
+                if isinstance(node, ast.BinOp):
                     left = safe_eval(node.left)
                     right = safe_eval(node.right)
                     op = allowed_ops.get(type(node.op))
                     if op:
-                        return op(left, right)
-                elif isinstance(node, ast.UnaryOp):
+                        return op(left, right)  # type: ignore[call-arg]
+                if isinstance(node, ast.UnaryOp):
                     operand = safe_eval(node.operand)
                     op = allowed_ops.get(type(node.op))
                     if op:
-                        return op(operand)
-                
+                        return op(operand)  # type: ignore[call-arg]
                 raise ValueError(f"Unsupported operation: {type(node)}")
             
-            tree = ast.parse(input_text, mode='eval')
+            tree = ast.parse(input_text, mode="eval")
             result = safe_eval(tree)
-            return f"Calculation result: {result}"
+            return TextResult(text=f"Calculation result: {result}")
             
-        except Exception as e:
-            return f"Error in calculation: {str(e)}"
+        except Exception as e:  # noqa: BLE001
+            return TextResult(text=f"Error in calculation: {e}")
 
 
 async def demonstrate_gpt5_basic_usage():
@@ -173,7 +206,7 @@ async def demonstrate_gpt5_basic_usage():
     # Initialize GPT-5 client
     client = OpenAIChatCompletionClient(
         model="gpt-5",
-        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here")
+        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here"),
     )
     
     # Example 1: Basic reasoning with different effort levels
@@ -184,14 +217,14 @@ async def demonstrate_gpt5_basic_usage():
     response = await client.create(
         messages=[UserMessage(
             content="Explain the concept of quantum entanglement and its implications for quantum computing",
-            source="user"
+            source="user",
         )],
         reasoning_effort="high",
         verbosity="medium",
-        preambles=True
+        preambles=True,
     )
     
-    print(f"High reasoning response: {response.content}")
+    print(f"High reasoning response: {_coerce_content_to_text(response.content)}")
     if response.thought:
         print(f"Reasoning process: {response.thought}")
     
@@ -199,13 +232,13 @@ async def demonstrate_gpt5_basic_usage():
     response = await client.create(
         messages=[UserMessage(
             content="What's 2 + 2?",
-            source="user"
+            source="user",
         )],
         reasoning_effort="minimal",
-        verbosity="low"
+        verbosity="low",
     )
     
-    print(f"Minimal reasoning response: {response.content}")
+    print(f"Minimal reasoning response: {_coerce_content_to_text(response.content)}")
     
     await client.close()
 
@@ -218,13 +251,12 @@ async def demonstrate_gpt5_custom_tools():
     
     client = OpenAIChatCompletionClient(
         model="gpt-5",
-        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here")
+        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here"),
     )
     
     # Initialize custom tools
     code_tool = CodeExecutorTool()
     sql_tool = SQLQueryTool()
-    calc_tool = CalculatorTool()
     
     print("\n2. Custom Tool with Freeform Input:")
     print("-" * 40)
@@ -233,15 +265,15 @@ async def demonstrate_gpt5_custom_tools():
     response = await client.create(
         messages=[UserMessage(
             content="Calculate the factorial of 8 using Python code",
-            source="user"
+            source="user",
         )],
         tools=[code_tool],
         reasoning_effort="medium",
         verbosity="low",
-        preambles=True  # Explain why tools are used
+        preambles=True,  # Explain why tools are used
     )
     
-    print(f"Tool response: {response.content}")
+    print(f"Tool response: {_coerce_content_to_text(response.content)}")
     if response.thought:
         print(f"Tool explanation: {response.thought}")
     
@@ -252,14 +284,14 @@ async def demonstrate_gpt5_custom_tools():
     response = await client.create(
         messages=[UserMessage(
             content="Query all users from the users table where age is greater than 25",
-            source="user"
+            source="user",
         )],
         tools=[sql_tool],
         reasoning_effort="low",
-        preambles=True
+        preambles=True,
     )
     
-    print(f"SQL response: {response.content}")
+    print(f"SQL response: {_coerce_content_to_text(response.content)}")
     
     await client.close()
 
@@ -272,7 +304,7 @@ async def demonstrate_allowed_tools():
     
     client = OpenAIChatCompletionClient(
         model="gpt-5",
-        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here")
+        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here"),
     )
     
     # Create multiple tools
@@ -289,16 +321,16 @@ async def demonstrate_allowed_tools():
     response = await client.create(
         messages=[UserMessage(
             content="I need help with calculations, database queries, and code execution",
-            source="user"
+            source="user",
         )],
         tools=all_tools,
         allowed_tools=safe_tools,  # Restrict to only calculator
         tool_choice="auto",
         reasoning_effort="medium",
-        preambles=True
+        preambles=True,
     )
     
-    print(f"Restricted response: {response.content}")
+    print(f"Restricted response: {_coerce_content_to_text(response.content)}")
     if response.thought:
         print(f"Tool restriction explanation: {response.thought}")
     
@@ -314,7 +346,7 @@ async def demonstrate_responses_api():
     # Use the Responses API for better performance in multi-turn conversations
     client = OpenAIResponsesAPIClient(
         model="gpt-5",
-        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here")
+        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here"),
     )
     
     print("\n5. Multi-Turn Conversation with CoT Preservation:")
@@ -326,10 +358,10 @@ async def demonstrate_responses_api():
         input="Design a distributed system architecture for a real-time chat application that can handle millions of users",
         reasoning_effort="high",
         verbosity="medium",
-        preambles=True
+        preambles=True,
     )
     
-    print(f"Response 1: {response1.content}")
+    print(f"Response 1: {_coerce_content_to_text(response1.content)}")
     if response1.thought:
         print(f"Reasoning 1: {response1.thought[:200]}...")
     
@@ -339,10 +371,10 @@ async def demonstrate_responses_api():
         input="How would you handle data consistency in this distributed system?",
         previous_response_id=getattr(response1, 'response_id', None),  # Preserve CoT context
         reasoning_effort="medium",  # Can use lower effort due to context
-        verbosity="medium"
+        verbosity="medium",
     )
     
-    print(f"Response 2: {response2.content}")
+    print(f"Response 2: {_coerce_content_to_text(response2.content)}")
     
     # Turn 3: Implementation request with tools
     print("\nTurn 3: Implementation with custom tools")
@@ -353,10 +385,10 @@ async def demonstrate_responses_api():
         previous_response_id=getattr(response2, 'response_id', None),
         tools=[code_tool],
         reasoning_effort="low",  # Minimal reasoning needed due to established context
-        preambles=True
+        preambles=True,
     )
     
-    print(f"Response 3: {response3.content}")
+    print(f"Response 3: {_coerce_content_to_text(response3.content)}")
     if response3.thought:
         print(f"Implementation explanation: {response3.thought}")
     
@@ -375,19 +407,19 @@ async def demonstrate_model_variants():
     # GPT-5 (full model)
     gpt5_client = OpenAIChatCompletionClient(
         model="gpt-5",
-        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here")
+        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here"),
     )
     
     # GPT-5 Mini (cost-optimized)
     gpt5_mini_client = OpenAIChatCompletionClient(
         model="gpt-5-mini", 
-        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here")
+        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here"),
     )
     
     # GPT-5 Nano (high-throughput)
     gpt5_nano_client = OpenAIChatCompletionClient(
         model="gpt-5-nano",
-        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here")
+        api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here"),
     )
     
     question = "Briefly explain machine learning"
@@ -397,27 +429,27 @@ async def demonstrate_model_variants():
     response = await gpt5_client.create(
         messages=[UserMessage(content=question, source="user")],
         reasoning_effort="medium",
-        verbosity="medium"
+        verbosity="medium",
     )
-    print(f"  {response.content[:100]}...")
+    print(f"  {_coerce_content_to_text(response.content)[:100]}...")
     print(f"  Token usage: {response.usage.prompt_tokens + response.usage.completion_tokens}")
     
     print("\nGPT-5 Mini (cost-optimized):")
     response = await gpt5_mini_client.create(
         messages=[UserMessage(content=question, source="user")],
         reasoning_effort="medium",
-        verbosity="medium"
+        verbosity="medium",
     )
-    print(f"  {response.content[:100]}...")
+    print(f"  {_coerce_content_to_text(response.content)[:100]}...")
     print(f"  Token usage: {response.usage.prompt_tokens + response.usage.completion_tokens}")
     
     print("\nGPT-5 Nano (high-throughput):")
     response = await gpt5_nano_client.create(
         messages=[UserMessage(content=question, source="user")],
         reasoning_effort="minimal",
-        verbosity="low"
+        verbosity="low",
     )
-    print(f"  {response.content[:100]}...")
+    print(f"  {_coerce_content_to_text(response.content)[:100]}...")
     print(f"  Token usage: {response.usage.prompt_tokens + response.usage.completion_tokens}")
     
     await gpt5_client.close()
@@ -451,7 +483,7 @@ async def main():
         print("• Responses API optimizes multi-turn conversations with CoT preservation")
         print("• Different model variants (gpt-5, gpt-5-mini, gpt-5-nano) balance performance and cost")
         
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"\n❌ Error running examples: {e}")
         print("Make sure you have:")
         print("1. Set OPENAI_API_KEY environment variable")

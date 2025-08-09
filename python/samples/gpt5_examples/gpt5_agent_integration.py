@@ -16,27 +16,40 @@ This showcases enterprise-grade patterns for GPT-5 integration.
 
 import asyncio
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, Literal, Optional
 
-from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.teams import SelectorGroupChat
 from autogen_core import CancellationToken
 from autogen_core.models import UserMessage
 from autogen_core.tools import BaseCustomTool, CustomToolFormat
 from autogen_ext.models.openai import OpenAIChatCompletionClient, OpenAIResponsesAPIClient
+from pydantic import BaseModel
+import json
 
 
-class DataAnalysisTool(BaseCustomTool[str]):
+class TextResult(BaseModel):
+    text: str
+
+
+def _coerce_content_to_text(content: object) -> str:
+    if isinstance(content, str):
+        return content
+    try:
+        return json.dumps(content, ensure_ascii=False, default=str)
+    except Exception:
+        return str(content)
+
+
+class DataAnalysisTool(BaseCustomTool[TextResult]):
     """GPT-5 custom tool for data analysis with freeform input."""
     
     def __init__(self):
         super().__init__(
-            return_type=str,
+            return_type=TextResult,
             name="data_analysis",
             description="Analyze data and generate insights. Input should be data description or analysis request.",
         )
     
-    async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> TextResult:
         """Simulate data analysis."""
         # In production, this would connect to data analysis tools
         analysis_types = {
@@ -52,29 +65,33 @@ class DataAnalysisTool(BaseCustomTool[str]):
                 analysis_type = key
                 break
                 
-        return f"Data Analysis Results:\n{analysis_types[analysis_type]}\n\nDetailed analysis: {input_text}"
+        return TextResult(text=f"Data Analysis Results:\n{analysis_types[analysis_type]}\n\nDetailed analysis: {input_text}")
 
 
-class ResearchTool(BaseCustomTool[str]):
+class ResearchTool(BaseCustomTool[TextResult]):
     """GPT-5 custom tool for research tasks."""
     
     def __init__(self):
         super().__init__(
-            return_type=str,
+            return_type=TextResult,
             name="research",
             description="Conduct research and gather information on specified topics.",
         )
     
-    async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> TextResult:
         """Simulate research functionality."""
-        return f"🔍 Research Results for: {input_text}\n" \
-               f"• Found 15 relevant academic papers\n" \
-               f"• Identified 3 key trends\n" \
-               f"• Generated comprehensive summary with citations\n" \
-               f"• Confidence level: High"
+        return TextResult(
+            text=(
+                f"🔍 Research Results for: {input_text}\n"
+                f"• Found 15 relevant academic papers\n"
+                f"• Identified 3 key trends\n"
+                f"• Generated comprehensive summary with citations\n"
+                f"• Confidence level: High"
+            )
+        )
 
 
-class CodeReviewTool(BaseCustomTool[str]):
+class CodeReviewTool(BaseCustomTool[TextResult]):
     """GPT-5 custom tool with grammar constraints for code review."""
     
     def __init__(self):
@@ -105,33 +122,40 @@ class CodeReviewTool(BaseCustomTool[str]):
         )
         
         super().__init__(
-            return_type=str,
+            return_type=TextResult,
             name="code_review",
             description="Review code with structured input. Format: REVIEW LANG:python CODE:your_code TYPE:security",
             format=code_review_grammar,
         )
     
-    async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> TextResult:
         """Perform structured code review."""
-        return f"📝 Code Review Complete:\n" \
-               f"Input: {input_text}\n" \
-               f"✅ No security vulnerabilities found\n" \
-               f"⚡ Performance suggestions: Use list comprehension\n" \
-               f"🎨 Style: Follows PEP 8 guidelines\n" \
-               f"🐛 No bugs detected\n" \
-               f"Overall: Production ready"
+        return TextResult(
+            text=(
+                f"📝 Code Review Complete:\n"
+                f"Input: {input_text}\n"
+                f"✅ No security vulnerabilities found\n"
+                f"⚡ Performance suggestions: Use list comprehension\n"
+                f"🎨 Style: Follows PEP 8 guidelines\n"
+                f"🐛 No bugs detected\n"
+                f"Overall: Production ready"
+            )
+        )
+
+
+ReasoningEffort = Literal["minimal", "low", "medium", "high"]
 
 
 class GPT5ReasoningAgent:
     """Assistant agent optimized for GPT-5 reasoning tasks."""
     
-    def __init__(self, name: str, reasoning_effort: str = "high"):
+    def __init__(self, name: str, reasoning_effort: ReasoningEffort = "high"):
         self.name = name
         self.client = OpenAIChatCompletionClient(
             model="gpt-5",
             api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here")
         )
-        self.reasoning_effort = reasoning_effort
+        self.reasoning_effort: ReasoningEffort = reasoning_effort
         
         # Configure for reasoning tasks
         self.system_message = """
@@ -156,7 +180,7 @@ class GPT5ReasoningAgent:
             preambles=True
         )
         
-        return response.content
+        return _coerce_content_to_text(response.content)
 
 
 class GPT5CodeAgent:
@@ -195,7 +219,7 @@ class GPT5CodeAgent:
             preambles=True  # Explain code choices
         )
         
-        return response.content
+        return _coerce_content_to_text(response.content)
 
 
 class GPT5AnalysisAgent:
@@ -235,7 +259,7 @@ class GPT5AnalysisAgent:
             preambles=True
         )
         
-        return response.content
+        return _coerce_content_to_text(response.content)
 
 
 class GPT5ConversationManager:
@@ -246,10 +270,10 @@ class GPT5ConversationManager:
             model="gpt-5",
             api_key=os.getenv("OPENAI_API_KEY", "your-api-key-here")
         )
-        self.conversation_history = []
-        self.last_response_id = None
+        self.conversation_history: list[dict[str, Any]] = []
+        self.last_response_id: Optional[str] = None
     
-    async def continue_conversation(self, user_input: str, reasoning_effort: str = "medium") -> Dict[str, Any]:
+    async def continue_conversation(self, user_input: str, reasoning_effort: ReasoningEffort = "medium") -> Dict[str, Any]:
         """Continue conversation with CoT preservation."""
         response = await self.client.create(
             input=user_input,
@@ -262,7 +286,7 @@ class GPT5ConversationManager:
         # Update conversation state
         self.conversation_history.append({
             "user_input": user_input,
-            "response": response.content,
+            "response": _coerce_content_to_text(response.content),
             "reasoning": response.thought,
             "response_id": getattr(response, 'response_id', None)
         })
@@ -270,7 +294,7 @@ class GPT5ConversationManager:
         self.last_response_id = getattr(response, 'response_id', None)
         
         return {
-            "content": response.content,
+            "content": _coerce_content_to_text(response.content),
             "reasoning": response.thought,
             "usage": response.usage,
             "turn_number": len(self.conversation_history)
@@ -479,7 +503,7 @@ async def demonstrate_tool_specialization():
         preambles=True  # Explain tool restrictions
     )
     
-    print(f"Agent Response: {response.content}")
+    print(f"Agent Response: {_coerce_content_to_text(response.content)}")
     if response.thought:
         print(f"Tool Usage Explanation: {response.thought}")
     
