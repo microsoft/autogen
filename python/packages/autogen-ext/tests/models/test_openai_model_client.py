@@ -62,12 +62,8 @@ from pydantic import BaseModel, Field
 # Provide a constructible alias for tests compatible with OpenAI 1.99 types
 ChatCompletionMessageToolCall = _FuncToolCall  # type: ignore[assignment]
 
-# Helper to satisfy type checker with OpenAI 1.99 types
-# Construct the function payload using the typed helper
-
-
-def Function(*, name: str, arguments: str) -> _TypedFunction:  # type: ignore[override]
-    return _TypedFunction(name=name, arguments=arguments)
+# Use the typed Pydantic model directly so .construct and call both work
+Function = _TypedFunction  # type: ignore[assignment]
 
 
 ResponseFormatT = TypeVar("ResponseFormatT", bound=BaseModel)

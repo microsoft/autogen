@@ -986,6 +986,15 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
 
         # Limited to a single choice currently.
+        if not result.choices:
+            # Gracefully handle empty choices by returning an empty text response
+            empty_result = CreateResult(
+                finish_reason="stop",
+                content="",
+                usage=usage,
+                cached=False,
+            )
+            return empty_result
         choice: Union[ParsedChoice[Any], ParsedChoice[BaseModel], Choice] = result.choices[0]
 
         # Detect whether it is a function call or not.

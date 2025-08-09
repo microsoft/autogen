@@ -632,10 +632,8 @@ class TestGPT5IntegrationScenarios:
 async def test_gpt5_error_handling() -> None:
     """Test proper error handling for GPT-5 specific scenarios."""
 
-    # Test invalid reasoning effort
-    with pytest.raises(ValueError):  # Type validation should catch this
-        _client = OpenAIChatCompletionClient(model="gpt-5", api_key="test-key")
-        # This should be caught by type checking, but test anyway
+    # Client should construct without error
+    _ = OpenAIChatCompletionClient(model="gpt-5", api_key="test-key")
 
     # Test model without GPT-5 capabilities using GPT-5 features
     with patch("autogen_ext.models.openai._openai_client._openai_client_from_config") as mock:

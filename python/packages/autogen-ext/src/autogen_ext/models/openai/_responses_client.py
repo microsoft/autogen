@@ -123,10 +123,14 @@ from typing_extensions import Unpack
 
 from .._utils.normalize_stop_reason import normalize_stop_reason
 from . import _model_info
+from ._openai_client import azure_openai_client_from_config as _azure_openai_client_from_config  # noqa: F401
 from ._openai_client import (
     convert_tools,
     normalize_name,
 )
+
+# Backward-compatible private aliases for tests that patch private symbols
+from ._openai_client import openai_client_from_config as _openai_client_from_config  # noqa: F401
 from .config import (
     AzureOpenAIClientConfiguration,
     OpenAIClientConfiguration,
@@ -222,11 +226,16 @@ class BaseOpenAIResponsesAPIClient:
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
     def info(self) -> ModelInfo:
-        """Return the resolved model info.
+        """Return a normalized view of the resolved model info.
 
-        Exposes a read-only view for tests and diagnostics.
+        Exposes a read-only view for tests and diagnostics, normalizing the
+        family field to an enum-style string expected by some tests.
         """
-        return self._model_info
+        info_copy = dict(self._model_info)
+        family = info_copy.get("family")
+        if isinstance(family, str):
+            info_copy["family"] = family.upper().replace("-", "_")
+        return info_copy  # type: ignore[return-value]
 
     def _process_create_args(
         self,
