@@ -182,6 +182,8 @@ exclude = ["src/autogen_ext/runtimes/grpc/protos", "tests/protos"]
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 markers = [
     "grpc",
 ]

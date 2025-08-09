@@ -15,8 +15,7 @@ from autogen_ext.code_executors.docker_jupyter import (
 
 
 def docker_tests_enabled() -> bool:
-    # Skip by default unless explicitly enabled
-    if os.environ.get("SKIP_DOCKER", "true").lower() == "true":
+    if os.environ.get("SKIP_DOCKER", "unset").lower() == "true":
         return False
 
     try:
