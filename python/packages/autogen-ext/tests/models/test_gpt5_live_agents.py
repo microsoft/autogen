@@ -1,27 +1,31 @@
 from __future__ import annotations
 
 import os
-from typing import Final, Optional
+from typing import Final
 
 import pytest
-
-from autogen_core.models import CreateResult, UserMessage
+from pydantic import BaseModel
+from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import TextMessage
+from autogen_core import CancellationToken
+from autogen_core.models import CreateResult, UserMessage
 from autogen_core.tools import BaseCustomTool, CustomToolFormat
 from autogen_ext.models.openai import OpenAIChatCompletionClient, OpenAIResponsesAPIClient
-from autogen_agentchat.agents import AssistantAgent
-
 
 _REQUIRE_KEY: Final[bool] = bool(os.getenv("OPENAI_API_KEY"))
 pytestmark = pytest.mark.skipif(not _REQUIRE_KEY, reason="OPENAI_API_KEY not set; skipping live GPT-5 agent tests")
 
 
-class CodeExecTool(BaseCustomTool[str]):
-    def __init__(self) -> None:
-        super().__init__(return_type=str, name="code_exec", description="Execute code from freeform text input")
+class CodeExecResult(BaseModel):
+    output: str
 
-    async def run(self, input_text: str, cancellation_token) -> str:  # type: ignore[override]
-        return f"echo:{input_text.strip()}"
+
+class CodeExecTool(BaseCustomTool[CodeExecResult]):
+    def __init__(self) -> None:
+        super().__init__(return_type=CodeExecResult, name="code_exec", description="Execute code from freeform text input")
+
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> CodeExecResult:  # type: ignore[override]
+        return CodeExecResult(output=f"echo:{input_text.strip()}")
 
 
 def _sql_grammar() -> CustomToolFormat:
@@ -31,7 +35,7 @@ def _sql_grammar() -> CustomToolFormat:
         "syntax": "lark",
         "definition": (
             "start: select\n"
-            "select: \"SELECT\" NAME \"FROM\" NAME \";\"\n"
+            'select: "SELECT" NAME "FROM" NAME ";"\n'
             "%import common.CNAME -> NAME\n"
             "%import common.WS\n"
             "%ignore WS\n"
@@ -39,12 +43,16 @@ def _sql_grammar() -> CustomToolFormat:
     }
 
 
-class SQLTool(BaseCustomTool[str]):
-    def __init__(self) -> None:
-        super().__init__(return_type=str, name="sql_query", description="Run limited SQL", format=_sql_grammar())
+class SQLResult(BaseModel):
+    output: str
 
-    async def run(self, input_text: str, cancellation_token) -> str:  # type: ignore[override]
-        return f"sql:{input_text.strip()}"
+
+class SQLTool(BaseCustomTool[SQLResult]):
+    def __init__(self) -> None:
+        super().__init__(return_type=SQLResult, name="sql_query", description="Run limited SQL", format=_sql_grammar())
+
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> SQLResult:  # type: ignore[override]
+        return SQLResult(output=f"sql:{input_text.strip()}")
 
 
 @pytest.mark.asyncio
@@ -118,9 +126,10 @@ async def test_gpt5_assistant_agent_flow(model: str) -> None:
         )
         # Send one turn
         from autogen_core import CancellationToken
+
         result = await agent.on_messages([TextMessage(content="Say OK.", source="user")], CancellationToken())
         assert result is not None
         # on_messages returns a Response; verify the chat_message is from assistant
         assert getattr(result.chat_message, "source", "") == "assistant"
     finally:
-        await model_client.close() 
+        await model_client.close()

@@ -11,8 +11,8 @@ These tests validate the Responses API client implementation,
 parameter handling, and integration with AutoGen frameworks.
 """
 
-from typing import Any, Dict, cast
 from types import SimpleNamespace
+from typing import Any, Dict, cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -26,8 +26,8 @@ from autogen_ext.models.openai._responses_client import (
     ResponsesAPICreateParams,
 )
 from openai.types.responses.response_custom_tool_call import ResponseCustomToolCall
-from openai.types.responses.response_output_text import ResponseOutputText
 from openai.types.responses.response_output_message import ResponseOutputMessage
+from openai.types.responses.response_output_text import ResponseOutputText
 from test_gpt5_features import TestCodeExecutorTool
 
 
@@ -156,10 +156,11 @@ class TestResponsesAPICallHandling:
             id="resp-123",
             output=[
                 ResponseOutputMessage(
+                    id="m-1",
                     role="assistant",
                     status="completed",
                     type="message",
-                    content=[ResponseOutputText(type="output_text", text="This is a test response")],
+                    content=[ResponseOutputText(type="output_text", text="This is a test response", annotations=[])],
                 )
             ],
             usage=SimpleNamespace(input_tokens=15, output_tokens=25),
@@ -182,14 +183,23 @@ class TestResponsesAPICallHandling:
             id="resp-124",
             output=[
                 ResponseOutputMessage(
+                    id="m-1",
                     role="assistant",
                     status="completed",
                     type="message",
-                    content=[ResponseOutputText(type="output_text", text="Final answer after reasoning")],
+                    content=[
+                        ResponseOutputText(type="output_text", text="Final answer after reasoning", annotations=[])
+                    ],
                 )
             ],
             usage=SimpleNamespace(input_tokens=30, output_tokens=50),
-            reasoning=SimpleNamespace(summary=[SimpleNamespace(text="First, I need to consider..."), SimpleNamespace(text="Then, I should analyze..."), SimpleNamespace(text="Finally, the conclusion is...")]),
+            reasoning=SimpleNamespace(
+                summary=[
+                    SimpleNamespace(text="First, I need to consider..."),
+                    SimpleNamespace(text="Then, I should analyze..."),
+                    SimpleNamespace(text="Finally, the conclusion is..."),
+                ]
+            ),
             to_dict=lambda: {"id": "resp-124"},
         )
         mock_openai_client.responses.create.return_value = sdk_like
@@ -232,7 +242,7 @@ class TestResponsesAPICallHandling:
         assert tool_call.name == "code_exec"
         assert "print('Hello from GPT-5!')" in tool_call.arguments
         assert result.thought == "I'll execute this Python code for you."
-        assert result.finish_reason == "tool_calls"
+        assert result.finish_reason in {"tool_calls"}
 
     async def test_cot_preservation_call(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test call with chain-of-thought preservation."""
@@ -241,10 +251,11 @@ class TestResponsesAPICallHandling:
             id="resp-100",
             output=[
                 ResponseOutputMessage(
+                    id="m-1",
                     role="assistant",
                     status="completed",
                     type="message",
-                    content=[ResponseOutputText(type="output_text", text="Initial response")],
+                    content=[ResponseOutputText(type="output_text", text="Initial response", annotations=[])],
                 )
             ],
             usage=SimpleNamespace(input_tokens=20, output_tokens=30),
@@ -260,10 +271,11 @@ class TestResponsesAPICallHandling:
             id="resp-101",
             output=[
                 ResponseOutputMessage(
+                    id="m-1",
                     role="assistant",
                     status="completed",
                     type="message",
-                    content=[ResponseOutputText(type="output_text", text="Follow-up response")],
+                    content=[ResponseOutputText(type="output_text", text="Follow-up response", annotations=[])],
                 )
             ],
             usage=SimpleNamespace(input_tokens=10, output_tokens=20),
@@ -272,7 +284,9 @@ class TestResponsesAPICallHandling:
         )
         mock_openai_client.responses.create.return_value = sdk_like2
 
-        result2 = await client.create(input="Follow-up question", previous_response_id="resp-100", reasoning_effort="low")
+        result2 = await client.create(
+            input="Follow-up question", previous_response_id="resp-100", reasoning_effort="low"
+        )
 
         # Verify parameters were passed correctly
         call_kwargs = mock_openai_client.responses.create.call_args[1]
@@ -317,10 +331,11 @@ class TestResponsesAPIErrorHandling:
             id="resp-999",
             output=[
                 ResponseOutputMessage(
+                    id="m-1",
                     role="assistant",
                     status="completed",
                     type="message",
-                    content=[ResponseOutputText(type="output_text", text="Response")],
+                    content=[ResponseOutputText(type="output_text", text="Response", annotations=[])],
                 )
             ],
             usage=SimpleNamespace(input_tokens=5, output_tokens=10),
@@ -398,10 +413,17 @@ class TestResponsesAPIIntegration:
             id="resp-002",
             output=[
                 ResponseOutputMessage(
+                    id="m-1",
                     role="assistant",
                     status="completed",
                     type="message",
-                    content=[ResponseOutputText(type="output_text", text="Building on quantum fundamentals, quantum algorithms...")],
+                    content=[
+                        ResponseOutputText(
+                            type="output_text",
+                            text="Building on quantum fundamentals, quantum algorithms...",
+                            annotations=[],
+                        )
+                    ],
                 )
             ],
             usage=SimpleNamespace(input_tokens=30, output_tokens=150),
@@ -461,10 +483,11 @@ class TestResponsesAPIIntegration:
                 id="r1",
                 output=[
                     ResponseOutputMessage(
+                        id="m-1",
                         role="assistant",
                         status="completed",
                         type="message",
-                        content=[ResponseOutputText(type="output_text", text="Response 1")],
+                        content=[ResponseOutputText(type="output_text", text="Response 1", annotations=[])],
                     )
                 ],
                 usage=SimpleNamespace(input_tokens=10, output_tokens=20),
@@ -475,10 +498,11 @@ class TestResponsesAPIIntegration:
                 id="r2",
                 output=[
                     ResponseOutputMessage(
+                        id="m-1",
                         role="assistant",
                         status="completed",
                         type="message",
-                        content=[ResponseOutputText(type="output_text", text="Response 2")],
+                        content=[ResponseOutputText(type="output_text", text="Response 2", annotations=[])],
                     )
                 ],
                 usage=SimpleNamespace(input_tokens=15, output_tokens=25),
@@ -489,10 +513,11 @@ class TestResponsesAPIIntegration:
                 id="r3",
                 output=[
                     ResponseOutputMessage(
+                        id="m-1",
                         role="assistant",
                         status="completed",
                         type="message",
-                        content=[ResponseOutputText(type="output_text", text="Response 3")],
+                        content=[ResponseOutputText(type="output_text", text="Response 3", annotations=[])],
                     )
                 ],
                 usage=SimpleNamespace(input_tokens=5, output_tokens=15),

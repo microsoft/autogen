@@ -103,6 +103,7 @@ from typing import (
     Union,
     cast,
 )
+from typing import cast as _cast  # alias to avoid shadowing
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall
 from autogen_core.logging import LLMCallEvent
@@ -113,13 +114,7 @@ from autogen_core.models import (
 )
 from autogen_core.tools import CustomTool, CustomToolSchema, Tool, ToolSchema
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
-from openai.types.chat.chat_completion_message_custom_tool_call import ChatCompletionMessageCustomToolCall
-from openai.types.chat.chat_completion_message_function_tool_call import ChatCompletionMessageFunctionToolCall
-from openai.types.responses.response_create_params import ToolParam as ResponsesToolParam
-from typing import cast as _cast  # alias to avoid shadowing
-
-# Import concrete tool call classes for strict typing
-from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall
+from openai.types.responses.tool_param import ToolParam as ResponsesToolParam
 from typing_extensions import Unpack
 
 from .._utils.normalize_stop_reason import normalize_stop_reason
@@ -128,7 +123,6 @@ from ._openai_client import (
     azure_openai_client_from_config as _azure_openai_client_from_config,  # noqa: F401  # pyright: ignore[reportUnusedImport]
 )
 from ._openai_client import (
-    convert_tools,
     normalize_name,
 )
 
@@ -306,20 +300,20 @@ class BaseOpenAIResponsesAPIClient:
                     "description": custom_schema.get("description", ""),
                 }
                 if "format" in custom_schema:
-                    fmt = custom_schema["format"]
-                    if isinstance(fmt, dict) and fmt.get("type") == "grammar":
-                        syntax = fmt.get("syntax")
-                        definition = fmt.get("definition")
-                        if syntax and definition:
+                    fmt_val = custom_schema["format"]
+                    if isinstance(fmt_val, dict) and cast(Dict[str, Any], fmt_val).get("type") == "grammar":
+                        fmt = cast(Dict[str, Any], fmt_val)
+                        syntax = cast(Optional[str], fmt.get("syntax"))
+                        definition = cast(Optional[str], fmt.get("definition"))
+                        if syntax is not None and definition is not None:
                             custom_param["format"] = {"type": "grammar", "syntax": syntax, "definition": definition}
                     else:
-                        custom_param["format"] = fmt
+                        custom_param["format"] = fmt_val
                 converted_tools.append(custom_param)
             else:
                 # Standard function tool
-                tool_schema: Dict[str, Any]
                 if isinstance(tool, Tool):
-                    tool_schema = tool.schema
+                    tool_schema = cast(Dict[str, Any], tool.schema)
                 else:
                     tool_schema = cast(Dict[str, Any], tool)
 
@@ -363,14 +357,14 @@ class BaseOpenAIResponsesAPIClient:
                     if isinstance(allowed_tool, str):
                         allowed_tool_names.append(allowed_tool)
                     elif isinstance(allowed_tool, (Tool, CustomTool)):
-                        allowed_tool_names.append(allowed_tool.schema["name"])
+                        allowed_tool_names.append(allowed_tool.schema["name"])  # type: ignore[index]
 
                 # Build allowed tools structure for Responses API
                 if isinstance(tool_choice, str) and tool_choice in ["auto", "required"]:
                     allowed_tools_param: Dict[str, Any] = {"type": "allowed_tools", "mode": tool_choice, "tools": []}
 
                     for tool_param in converted_tools:
-                        tool_dict = cast(Dict[str, Any], tool_param)
+                        tool_dict = tool_param
                         tool_type = tool_dict.get("type")
                         tool_name = cast(str, tool_dict.get("name", ""))
                         if tool_type in {"function", "custom"} and tool_name in allowed_tool_names:
@@ -486,10 +480,10 @@ class BaseOpenAIResponsesAPIClient:
             cancellation_token.link_future(future)
 
         from openai.types.responses.response import Response as SDKResponse
+        from openai.types.responses.response_custom_tool_call import ResponseCustomToolCall
+        from openai.types.responses.response_function_tool_call import ResponseFunctionToolCall
         from openai.types.responses.response_output_message import ResponseOutputMessage
         from openai.types.responses.response_output_text import ResponseOutputText
-        from openai.types.responses.response_function_tool_call import ResponseFunctionToolCall
-        from openai.types.responses.response_custom_tool_call import ResponseCustomToolCall
 
         sdk_response = cast(SDKResponse, await future)
 
