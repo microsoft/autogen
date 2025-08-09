@@ -11,20 +11,17 @@ These tests validate the Responses API client implementation,
 parameter handling, and integration with AutoGen frameworks.
 """
 
-import asyncio
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from autogen_core import CancellationToken
-from autogen_core.models import CreateResult, RequestUsage, UserMessage
-from autogen_core.tools import FunctionTool
+from autogen_core.models import CreateResult
 from autogen_ext.models.openai import (
     AzureOpenAIResponsesAPIClient,
     OpenAIResponsesAPIClient,
 )
 from autogen_ext.models.openai._responses_client import (
-    BaseOpenAIResponsesAPIClient,
     ResponsesAPICreateParams,
 )
 from test_gpt5_features import TestCodeExecutorTool
@@ -33,14 +30,14 @@ from test_gpt5_features import TestCodeExecutorTool
 class TestResponsesAPIClientInitialization:
     """Test Responses API client initialization and configuration."""
 
-    def test_openai_responses_client_creation(self):
+    def test_openai_responses_client_creation(self) -> None:
         """Test OpenAI Responses API client can be created."""
         with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock.return_value = AsyncMock()
             client = OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
             assert client._model_info["family"] == "GPT_5"
 
-    def test_azure_responses_client_creation(self):
+    def test_azure_responses_client_creation(self) -> None:
         """Test Azure OpenAI Responses API client can be created."""
         with patch("autogen_ext.models.openai._responses_client._azure_openai_client_from_config") as mock:
             mock.return_value = AsyncMock()
@@ -53,7 +50,7 @@ class TestResponsesAPIClientInitialization:
             )
             assert client._model_info["family"] == "GPT_5"
 
-    def test_invalid_model_raises_error(self):
+    def test_invalid_model_raises_error(self) -> None:
         """Test that invalid model names raise appropriate errors."""
         with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock.return_value = AsyncMock()
@@ -73,10 +70,10 @@ class TestResponsesAPIParameterHandling:
             yield mock_client
 
     @pytest.fixture
-    def client(self, mock_openai_client):
+    def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
         return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
 
-    def test_process_create_args_basic(self, client):
+    def test_process_create_args_basic(self, client: OpenAIResponsesAPIClient) -> None:
         """Test basic parameter processing for Responses API."""
         params = client._process_create_args(
             input="Test input",
@@ -95,7 +92,7 @@ class TestResponsesAPIParameterHandling:
         assert params.create_args["text"]["verbosity"] == "high"
         assert params.create_args["preambles"] is True
 
-    def test_process_create_args_with_cot_preservation(self, client):
+    def test_process_create_args_with_cot_preservation(self, client: OpenAIResponsesAPIClient) -> None:
         """Test chain-of-thought preservation parameters."""
         params = client._process_create_args(
             input="Follow-up question",
@@ -109,7 +106,7 @@ class TestResponsesAPIParameterHandling:
         assert params.create_args["previous_response_id"] == "resp-123"
         assert params.create_args["reasoning_items"] == [{"type": "reasoning", "content": "Previous reasoning"}]
 
-    def test_invalid_extra_args_rejected(self, client):
+    def test_invalid_extra_args_rejected(self, client: OpenAIResponsesAPIClient) -> None:
         """Test that invalid extra arguments are rejected."""
         with pytest.raises(ValueError, match="Extra create args are invalid for Responses API"):
             client._process_create_args(
@@ -119,7 +116,7 @@ class TestResponsesAPIParameterHandling:
                 extra_create_args={"invalid_param": "value"},  # Not allowed in Responses API
             )
 
-    def test_default_reasoning_effort(self, client):
+    def test_default_reasoning_effort(self, client: OpenAIResponsesAPIClient) -> None:
         """Test default reasoning effort is set when not specified."""
         params = client._process_create_args(input="Test input", tools=[], tool_choice="auto", extra_create_args={})
 
@@ -139,10 +136,10 @@ class TestResponsesAPICallHandling:
             yield mock_client
 
     @pytest.fixture
-    def client(self, mock_openai_client):
+    def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
         return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
 
-    async def test_basic_text_response(self, client, mock_openai_client):
+    async def test_basic_text_response(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test processing of basic text response."""
         mock_response = {
             "id": "resp-123",
@@ -161,7 +158,7 @@ class TestResponsesAPICallHandling:
         assert hasattr(result, "response_id")
         assert result.response_id == "resp-123"  # type: ignore
 
-    async def test_response_with_reasoning(self, client, mock_openai_client):
+    async def test_response_with_reasoning(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test processing response with reasoning items."""
         mock_response = {
             "id": "resp-124",
@@ -183,7 +180,7 @@ class TestResponsesAPICallHandling:
         assert "Then, I should analyze..." in result.thought
         assert "Finally, the conclusion is..." in result.thought
 
-    async def test_custom_tool_call_response(self, client, mock_openai_client):
+    async def test_custom_tool_call_response(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test processing response with custom tool calls."""
         from test_gpt5_features import TestCodeExecutorTool
 
@@ -223,7 +220,7 @@ class TestResponsesAPICallHandling:
         assert result.thought == "I'll execute this Python code for you."
         assert result.finish_reason == "tool_calls"
 
-    async def test_cot_preservation_call(self, client, mock_openai_client):
+    async def test_cot_preservation_call(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test call with chain-of-thought preservation."""
         # First call
         mock_response1 = {
@@ -271,10 +268,10 @@ class TestResponsesAPIErrorHandling:
             yield mock_client
 
     @pytest.fixture
-    def client(self, mock_openai_client):
+    def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
         return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
 
-    async def test_api_error_propagation(self, client, mock_openai_client):
+    async def test_api_error_propagation(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test that API errors are properly propagated."""
         from openai import APIError
 
@@ -283,7 +280,7 @@ class TestResponsesAPIErrorHandling:
         with pytest.raises(APIError, match="Test API error"):
             await client.create(input="Test input")
 
-    async def test_cancellation_token_support(self, client, mock_openai_client):
+    async def test_cancellation_token_support(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test cancellation token is properly handled."""
         cancellation_token = CancellationToken()
 
@@ -301,7 +298,7 @@ class TestResponsesAPIErrorHandling:
         # Verify cancellation token was linked to the future
         # (This is tested implicitly by successful completion)
 
-    async def test_malformed_response_handling(self, client, mock_openai_client):
+    async def test_malformed_response_handling(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test handling of malformed API responses."""
         # Response missing required fields
         mock_response = {
@@ -330,10 +327,10 @@ class TestResponsesAPIIntegration:
             yield mock_client
 
     @pytest.fixture
-    def client(self, mock_openai_client):
+    def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
         return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
 
-    async def test_multi_turn_conversation_simulation(self, client, mock_openai_client):
+    async def test_multi_turn_conversation_simulation(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Simulate a realistic multi-turn conversation with GPT-5."""
 
         # Turn 1: Initial complex question
@@ -416,7 +413,7 @@ class TestResponsesAPIIntegration:
         assert "QuantumCircuit" in result3.content[0].arguments
         assert result3.thought == "I'll provide a simple quantum algorithm implementation."
 
-    async def test_usage_tracking(self, client, mock_openai_client):
+    async def test_usage_tracking(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test token usage tracking across multiple calls."""
         # Multiple API calls with different usage
         call_responses = [

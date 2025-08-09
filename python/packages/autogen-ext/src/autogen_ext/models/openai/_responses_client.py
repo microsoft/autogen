@@ -89,14 +89,11 @@ Examples:
 """
 
 import asyncio
-import json
 import logging
 import os
-import warnings
 from asyncio import Task
 from typing import (
     Any,
-    AsyncGenerator,
     Dict,
     List,
     Literal,
@@ -108,36 +105,38 @@ from typing import (
 )
 
 from autogen_core import CancellationToken, FunctionCall
-from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
+from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     CreateResult,
-    LLMMessage,
     ModelInfo,
     RequestUsage,
 )
 from autogen_core.tools import CustomTool, CustomToolSchema, Tool, ToolSchema
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import ChatCompletionToolParam
-from pydantic import BaseModel
-from typing_extensions import Self, Unpack
+from typing_extensions import Unpack
 
 from .._utils.normalize_stop_reason import normalize_stop_reason
 from . import _model_info
 from ._openai_client import (
     EVENT_LOGGER_NAME,
-    BaseOpenAIChatCompletionClient,
-    _add_usage,
     convert_tools,
     normalize_name,
 )
 from .config import (
     AzureOpenAIClientConfiguration,
-    AzureOpenAIClientConfigurationConfigModel,
     OpenAIClientConfiguration,
-    OpenAIClientConfigurationConfigModel,
 )
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
+
+
+def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
+    return RequestUsage(
+        prompt_tokens=usage1.prompt_tokens + usage2.prompt_tokens,
+        completion_tokens=usage1.completion_tokens + usage2.completion_tokens,
+    )
+
 
 # Responses API specific parameters
 responses_api_kwargs = {
@@ -273,7 +272,7 @@ class BaseOpenAIResponsesAPIClient:
                 raise ValueError("tool_choice specified but no tools provided")
 
             # Validate tool exists
-            tool_names_available = []
+            tool_names_available: List[str] = []
             for tool in tools:
                 if isinstance(tool, (Tool, CustomTool)):
                     tool_names_available.append(tool.schema["name"])
@@ -292,7 +291,7 @@ class BaseOpenAIResponsesAPIClient:
 
             # Handle allowed_tools for GPT-5
             if allowed_tools is not None:
-                allowed_tool_names = []
+                allowed_tool_names: List[str] = []
                 for allowed_tool in allowed_tools:
                     if isinstance(allowed_tool, str):
                         allowed_tool_names.append(allowed_tool)
@@ -301,20 +300,22 @@ class BaseOpenAIResponsesAPIClient:
 
                 # Build allowed tools structure for Responses API
                 if isinstance(tool_choice, str) and tool_choice in ["auto", "required"]:
-                    allowed_tools_param = {"type": "allowed_tools", "mode": tool_choice, "tools": []}
+                    allowed_tools_param: Dict[str, Any] = {"type": "allowed_tools", "mode": tool_choice, "tools": []}
 
                     for tool_param in converted_tools:
-                        if tool_param.get("type") == "function":
-                            tool_name = tool_param["function"]["name"]
-                        elif tool_param.get("type") == "custom":
-                            tool_name = tool_param["custom"]["name"]
+                        tool_dict = cast(Dict[str, Any], tool_param)
+                        tool_name = ""
+                        if tool_dict.get("type") == "function":
+                            tool_name = tool_dict["function"]["name"]
+                        elif tool_dict.get("type") == "custom":
+                            tool_name = tool_dict["custom"]["name"]
                         else:
                             continue
 
                         if tool_name in allowed_tool_names:
-                            if tool_param.get("type") == "function":
+                            if tool_dict.get("type") == "function":
                                 allowed_tools_param["tools"].append({"type": "function", "name": tool_name})
-                            elif tool_param.get("type") == "custom":
+                            elif tool_dict.get("type") == "custom":
                                 allowed_tools_param["tools"].append({"type": "custom", "name": tool_name})
 
                     create_args["tool_choice"] = allowed_tools_param
@@ -412,10 +413,10 @@ class BaseOpenAIResponsesAPIClient:
         )
 
         # Call OpenAI Responses API endpoint
-        future: Task[Dict[str, Any]] = asyncio.ensure_future(
-            self._client.responses.create(
+        future: Task[Any] = asyncio.ensure_future(
+            self._client.responses.create(  # type: ignore
                 **create_params.create_args,
-                tools=(create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN),
+                tools=cast(Any, create_params.tools) if len(create_params.tools) > 0 else NOT_GIVEN,
             )
         )
 

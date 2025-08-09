@@ -50,7 +50,7 @@ from autogen_core.models import (
     UserMessage,
     validate_model_info,
 )
-from autogen_core.tools import CustomTool, CustomToolFormat, CustomToolSchema, Tool, ToolSchema
+from autogen_core.tools import CustomTool, CustomToolSchema, Tool, ToolSchema
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
@@ -249,7 +249,7 @@ def convert_tools(
         if isinstance(tool, CustomTool):
             # GPT-5 Custom Tool - format according to OpenAI API spec
             custom_schema = tool.schema
-            custom_tool_param = {
+            custom_tool_param: Dict[str, Any] = {
                 "type": "custom",
                 "custom": {
                     "name": custom_schema["name"],
@@ -269,10 +269,10 @@ def convert_tools(
                         }
                 else:
                     custom_tool_param["custom"]["format"] = format_config
-            result.append(ChatCompletionToolParam(**custom_tool_param))  # type: ignore
+            result.append(cast(ChatCompletionToolParam, custom_tool_param))
         elif isinstance(tool, dict) and "format" in tool:
             # Custom tool schema dict
-            custom_tool_param = {
+            custom_tool_param: Dict[str, Any] = {
                 "type": "custom",
                 "custom": {
                     "name": tool["name"],
@@ -292,7 +292,7 @@ def convert_tools(
                         }
                 else:
                     custom_tool_param["custom"]["format"] = format_config
-            result.append(ChatCompletionToolParam(**custom_tool_param))  # type: ignore
+            result.append(cast(ChatCompletionToolParam, custom_tool_param))
         else:
             # Standard function tool
             if isinstance(tool, Tool):
@@ -317,10 +317,11 @@ def convert_tools(
 
     # Check if all tools have valid names.
     for tool_param in result:
-        if tool_param.get("type") == "function":
-            assert_valid_name(tool_param["function"]["name"])
-        elif tool_param.get("type") == "custom":
-            assert_valid_name(tool_param["custom"]["name"])
+        tool_dict = cast(Dict[str, Any], tool_param)
+        if tool_dict.get("type") == "function":
+            assert_valid_name(tool_dict["function"]["name"])
+        elif tool_dict.get("type") == "custom":
+            assert_valid_name(tool_dict["custom"]["name"])
     return result
 
 
@@ -712,7 +713,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # Handle allowed_tools parameter for GPT-5
             if allowed_tools is not None:
                 # Build allowed tools list
-                allowed_tool_names = []
+                allowed_tool_names: List[str] = []
                 for allowed_tool in allowed_tools:
                     if isinstance(allowed_tool, str):
                         allowed_tool_names.append(allowed_tool)
@@ -721,21 +722,23 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
                 # Create allowed_tools parameter according to GPT-5 spec
                 if isinstance(tool_choice, str) and tool_choice in ["auto", "required"]:
-                    allowed_tools_param = {"type": "allowed_tools", "mode": tool_choice, "tools": []}
+                    allowed_tools_param: Dict[str, Any] = {"type": "allowed_tools", "mode": tool_choice, "tools": []}
 
                     # Add tools that are in the allowed list
                     for tool_param in converted_tools:
-                        if tool_param.get("type") == "function":
-                            tool_name = tool_param["function"]["name"]
-                        elif tool_param.get("type") == "custom":
-                            tool_name = tool_param["custom"]["name"]
+                        tool_dict = cast(Dict[str, Any], tool_param)
+                        tool_name = ""
+                        if tool_dict.get("type") == "function":
+                            tool_name = tool_dict["function"]["name"]
+                        elif tool_dict.get("type") == "custom":
+                            tool_name = tool_dict["custom"]["name"]
                         else:
                             continue
 
                         if tool_name in allowed_tool_names:
-                            if tool_param.get("type") == "function":
+                            if tool_dict.get("type") == "function":
                                 allowed_tools_param["tools"].append({"type": "function", "name": tool_name})
-                            elif tool_param.get("type") == "custom":
+                            elif tool_dict.get("type") == "custom":
                                 allowed_tools_param["tools"].append({"type": "custom", "name": tool_name})
 
                     create_args["tool_choice"] = allowed_tools_param
@@ -979,32 +982,44 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # NOTE: If OAI response type changes, this will need to be updated
             content = []
             for tool_call in choice.message.tool_calls:
-                # Handle both function calls and custom tool calls
-                if hasattr(tool_call, "function") and tool_call.function is not None:
+                # Handle both function calls and custom tool calls using defensive programming
+                
+                if hasattr(tool_call, "function") and getattr(tool_call, "function", None) is not None:
                     # Standard function call
-                    if not isinstance(tool_call.function.arguments, str):
+                    function_obj = getattr(tool_call, "function")
+                    arguments_value = getattr(function_obj, "arguments", "") if function_obj else ""
+                    name_value = getattr(function_obj, "name", "") if function_obj else ""
+                    
+                    if not isinstance(arguments_value, str):
                         warnings.warn(
-                            f"Tool call function arguments field is not a string: {tool_call.function.arguments}."
+                            f"Tool call function arguments field is not a string: {arguments_value}."
                             "This is unexpected and may due to the API used not returning the correct type. "
                             "Attempting to convert it to string.",
                             stacklevel=2,
                         )
-                        if isinstance(tool_call.function.arguments, dict):
-                            tool_call.function.arguments = json.dumps(tool_call.function.arguments)
+                        if isinstance(arguments_value, dict):
+                            arguments_value = json.dumps(arguments_value)
+                        else:
+                            arguments_value = str(arguments_value)
+                    
                     content.append(
                         FunctionCall(
-                            id=tool_call.id,
-                            arguments=tool_call.function.arguments,
-                            name=normalize_name(tool_call.function.name),
+                            id=getattr(tool_call, "id", ""),
+                            arguments=arguments_value,
+                            name=normalize_name(name_value),
                         )
                     )
-                elif hasattr(tool_call, "custom") and tool_call.custom is not None:
+                elif hasattr(tool_call, "custom") and getattr(tool_call, "custom", None) is not None:
                     # GPT-5 Custom tool call - input is freeform text
+                    custom_obj = getattr(tool_call, "custom")
+                    input_value = getattr(custom_obj, "input", "") if custom_obj else ""
+                    custom_name = getattr(custom_obj, "name", "") if custom_obj else ""
+                    
                     content.append(
                         FunctionCall(
-                            id=tool_call.id,
-                            arguments=tool_call.custom.input,  # Custom tools use freeform text input
-                            name=normalize_name(tool_call.custom.name),
+                            id=getattr(tool_call, "id", ""),
+                            arguments=input_value,  # Custom tools use freeform text input
+                            name=normalize_name(custom_name),
                         )
                     )
                 else:
