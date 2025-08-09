@@ -64,6 +64,23 @@ from openai.types.chat import (
     completion_create_params,
 )
 from openai.types.chat.chat_completion import Choice
+from openai.types.chat.chat_completion_message_custom_tool_call import (
+    ChatCompletionMessageCustomToolCall,
+)
+from openai.types.chat.chat_completion_message_custom_tool_call import (
+    Custom as ToolCustom,
+)
+from openai.types.chat.chat_completion_message_function_tool_call import (
+    ChatCompletionMessageFunctionToolCall,
+)
+from openai.types.chat.chat_completion_message_function_tool_call import (
+    Function as ToolFunction,
+)
+
+# Added: import concrete tool call classes for precise typing
+from openai.types.chat.chat_completion_message_tool_call import (
+    ChatCompletionMessageToolCall,
+)
 from openai.types.shared_params import (
     FunctionDefinition,
     FunctionParameters,
@@ -128,10 +145,20 @@ def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpe
     return AsyncAzureOpenAI(**azure_config)
 
 
+# Public wrappers for cross-module usage
+def azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpenAI:
+    return _azure_openai_client_from_config(config)
+
+
 def _openai_client_from_config(config: Mapping[str, Any]) -> AsyncOpenAI:
     # Shave down the config to just the OpenAI kwargs
     openai_config = {k: v for k, v in config.items() if k in openai_init_kwargs}
     return AsyncOpenAI(**openai_config)
+
+
+# Public wrapper
+def openai_client_from_config(config: Mapping[str, Any]) -> AsyncOpenAI:
+    return _openai_client_from_config(config)
 
 
 def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
@@ -142,6 +169,11 @@ def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
     if disallowed_create_args.intersection(create_args_keys):
         raise ValueError(f"Disallowed create args are present: {disallowed_create_args.intersection(create_args_keys)}")
     return create_args
+
+
+# Public wrapper
+def create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
+    return _create_args_from_config(config)
 
 
 # TODO check types
@@ -981,15 +1013,16 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 thought = choice.message.content
             # NOTE: If OAI response type changes, this will need to be updated
             content = []
-            for tool_call in choice.message.tool_calls:
-                # Handle both function calls and custom tool calls using defensive programming
-                
-                if hasattr(tool_call, "function") and getattr(tool_call, "function", None) is not None:
-                    # Standard function call
-                    function_obj = getattr(tool_call, "function")
-                    arguments_value = getattr(function_obj, "arguments", "") if function_obj else ""
-                    name_value = getattr(function_obj, "name", "") if function_obj else ""
-                    
+            # Constrain tool_calls type for type checker clarity
+            tool_calls: Sequence[ChatCompletionMessageToolCall] = cast(
+                Sequence[ChatCompletionMessageToolCall], choice.message.tool_calls
+            )
+            for tool_call in tool_calls:
+                if isinstance(tool_call, ChatCompletionMessageFunctionToolCall):
+                    function_obj: ToolFunction | None = tool_call.function
+                    arguments_value: Any = function_obj.arguments if function_obj else ""
+                    name_value: Any = function_obj.name if function_obj else ""
+
                     if not isinstance(arguments_value, str):
                         warnings.warn(
                             f"Tool call function arguments field is not a string: {arguments_value}."
@@ -1001,23 +1034,22 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                             arguments_value = json.dumps(arguments_value)
                         else:
                             arguments_value = str(arguments_value)
-                    
+
                     content.append(
                         FunctionCall(
-                            id=getattr(tool_call, "id", ""),
+                            id=tool_call.id or "",
                             arguments=arguments_value,
                             name=normalize_name(name_value),
                         )
                     )
-                elif hasattr(tool_call, "custom") and getattr(tool_call, "custom", None) is not None:
-                    # GPT-5 Custom tool call - input is freeform text
-                    custom_obj = getattr(tool_call, "custom")
-                    input_value = getattr(custom_obj, "input", "") if custom_obj else ""
-                    custom_name = getattr(custom_obj, "name", "") if custom_obj else ""
-                    
+                elif isinstance(tool_call, ChatCompletionMessageCustomToolCall):
+                    custom_obj: ToolCustom | None = tool_call.custom
+                    input_value: str = cast(str, getattr(custom_obj, "input", "")) if custom_obj else ""
+                    custom_name: str = cast(str, getattr(custom_obj, "name", "")) if custom_obj else ""
+
                     content.append(
                         FunctionCall(
-                            id=getattr(tool_call, "id", ""),
+                            id=tool_call.id or "",
                             arguments=input_value,  # Custom tools use freeform text input
                             name=normalize_name(custom_name),
                         )

@@ -46,14 +46,29 @@ from openai.types.chat.chat_completion_chunk import (
     Choice as ChunkChoice,
 )
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
-from openai.types.chat.chat_completion_message_tool_call import (
-    ChatCompletionMessageToolCall,
-    Function,
+from openai.types.chat.chat_completion_message_function_tool_call import (
+    ChatCompletionMessageFunctionToolCall as _FuncToolCall,
 )
-from openai.types.chat.parsed_chat_completion import ParsedChatCompletion, ParsedChatCompletionMessage, ParsedChoice
+from openai.types.chat.chat_completion_message_function_tool_call import Function as _TypedFunction  # type: ignore
+from openai.types.chat.parsed_chat_completion import (
+    ParsedChatCompletion,
+    ParsedChatCompletionMessage,
+    ParsedChoice,
+)
 from openai.types.chat.parsed_function_tool_call import ParsedFunction, ParsedFunctionToolCall
 from openai.types.completion_usage import CompletionUsage
 from pydantic import BaseModel, Field
+
+# Provide a constructible alias for tests compatible with OpenAI 1.99 types
+ChatCompletionMessageToolCall = _FuncToolCall  # type: ignore[assignment]
+
+# Helper to satisfy type checker with OpenAI 1.99 types
+# Construct the function payload using the typed helper
+
+
+def Function(*, name: str, arguments: str) -> _TypedFunction:  # type: ignore[override]
+    return _TypedFunction(name=name, arguments=arguments)
+
 
 ResponseFormatT = TypeVar("ResponseFormatT", bound=BaseModel)
 
@@ -3270,7 +3285,7 @@ def test_gpt5_model_info():
     assert gpt5_info["json_output"] is True
     assert gpt5_info["family"] == ModelFamily.GPT_5
     assert gpt5_info["structured_output"] is True
-    assert gpt5_info["multiple_system_messages"] is True
+    assert gpt5_info.get("multiple_system_messages", False) is True
 
     gpt5_mini_info = get_info("gpt-5-mini")
     assert gpt5_mini_info["family"] == ModelFamily.GPT_5_MINI

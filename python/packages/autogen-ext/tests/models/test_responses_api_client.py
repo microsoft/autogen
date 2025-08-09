@@ -11,7 +11,7 @@ These tests validate the Responses API client implementation,
 parameter handling, and integration with AutoGen frameworks.
 """
 
-from typing import Any
+from typing import Any, Dict, cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -35,7 +35,8 @@ class TestResponsesAPIClientInitialization:
         with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock.return_value = AsyncMock()
             client = OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
-            assert client._model_info["family"] == "GPT_5"
+            # Access through public info() for type safety
+            assert client.info()["family"] == "GPT_5"
 
     def test_azure_responses_client_creation(self) -> None:
         """Test Azure OpenAI Responses API client can be created."""
@@ -48,7 +49,7 @@ class TestResponsesAPIClientInitialization:
                 api_version="2024-06-01",
                 api_key="test-key",
             )
-            assert client._model_info["family"] == "GPT_5"
+            assert client.info()["family"] == "GPT_5"
 
     def test_invalid_model_raises_error(self) -> None:
         """Test that invalid model names raise appropriate errors."""
@@ -75,7 +76,7 @@ class TestResponsesAPIParameterHandling:
 
     def test_process_create_args_basic(self, client: OpenAIResponsesAPIClient) -> None:
         """Test basic parameter processing for Responses API."""
-        params = client._process_create_args(
+        params = client._OpenAIResponsesAPIClient__process_create_args(  # type: ignore[attr-defined]
             input="Test input",
             tools=[],
             tool_choice="auto",
@@ -94,7 +95,7 @@ class TestResponsesAPIParameterHandling:
 
     def test_process_create_args_with_cot_preservation(self, client: OpenAIResponsesAPIClient) -> None:
         """Test chain-of-thought preservation parameters."""
-        params = client._process_create_args(
+        params = client._OpenAIResponsesAPIClient__process_create_args(  # type: ignore[attr-defined]
             input="Follow-up question",
             tools=[],
             tool_choice="auto",
@@ -103,13 +104,15 @@ class TestResponsesAPIParameterHandling:
             reasoning_items=[{"type": "reasoning", "content": "Previous reasoning"}],
         )
 
-        assert params.create_args["previous_response_id"] == "resp-123"
-        assert params.create_args["reasoning_items"] == [{"type": "reasoning", "content": "Previous reasoning"}]
+        # mypy/pyright: create_args is a dict[str, Any]
+        create_args: Dict[str, Any] = params.create_args
+        assert create_args.get("previous_response_id") == "resp-123"
+        assert create_args.get("reasoning_items") == [{"type": "reasoning", "content": "Previous reasoning"}]
 
     def test_invalid_extra_args_rejected(self, client: OpenAIResponsesAPIClient) -> None:
         """Test that invalid extra arguments are rejected."""
         with pytest.raises(ValueError, match="Extra create args are invalid for Responses API"):
-            client._process_create_args(
+            client._OpenAIResponsesAPIClient__process_create_args(  # type: ignore[attr-defined]
                 input="Test",
                 tools=[],
                 tool_choice="auto",
@@ -118,10 +121,14 @@ class TestResponsesAPIParameterHandling:
 
     def test_default_reasoning_effort(self, client: OpenAIResponsesAPIClient) -> None:
         """Test default reasoning effort is set when not specified."""
-        params = client._process_create_args(input="Test input", tools=[], tool_choice="auto", extra_create_args={})
+        params = client._OpenAIResponsesAPIClient__process_create_args(  # type: ignore[attr-defined]
+            input="Test input", tools=[], tool_choice="auto", extra_create_args={}
+        )
 
         # Should default to medium reasoning effort
-        assert params.create_args["reasoning"]["effort"] == "medium"
+        create_args: Dict[str, Any] = params.create_args
+        reasoning: Dict[str, Any] = cast(Dict[str, Any], create_args.get("reasoning", {}))
+        assert reasoning.get("effort") == "medium"
 
 
 class TestResponsesAPICallHandling:
@@ -275,7 +282,8 @@ class TestResponsesAPIErrorHandling:
         """Test that API errors are properly propagated."""
         from openai import APIError
 
-        mock_openai_client.responses.create.side_effect = APIError("Test API error")
+        # Instantiate with minimal required args for latest SDK
+        mock_openai_client.responses.create.side_effect = APIError(message="Test API error")  # type: ignore[call-arg]
 
         with pytest.raises(APIError, match="Test API error"):
             await client.create(input="Test input")
@@ -330,7 +338,9 @@ class TestResponsesAPIIntegration:
     def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
         return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
 
-    async def test_multi_turn_conversation_simulation(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
+    async def test_multi_turn_conversation_simulation(
+        self, client: OpenAIResponsesAPIClient, mock_openai_client: Any
+    ) -> None:
         """Simulate a realistic multi-turn conversation with GPT-5."""
 
         # Turn 1: Initial complex question

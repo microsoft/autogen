@@ -173,14 +173,17 @@ EMPTY: Dict[str, Any] = {}
 
 
 def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallParam:
-    return cast(ChatCompletionMessageToolCallParam, {
-        "id": message.id,
-        "function": {
-            "arguments": message.arguments,
-            "name": message.name,
+    return cast(
+        ChatCompletionMessageToolCallParam,
+        {
+            "id": message.id,
+            "function": {
+                "arguments": message.arguments,
+                "name": message.name,
+            },
+            "type": "function",
         },
-        "type": "function",
-    })
+    )
 
 
 # ===Mini Transformers===

@@ -114,6 +114,11 @@ from autogen_core.models import (
 from autogen_core.tools import CustomTool, CustomToolSchema, Tool, ToolSchema
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import ChatCompletionToolParam
+from openai.types.chat.chat_completion_message_custom_tool_call import ChatCompletionMessageCustomToolCall
+from openai.types.chat.chat_completion_message_function_tool_call import ChatCompletionMessageFunctionToolCall
+
+# Import concrete tool call classes for strict typing
+from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall
 from typing_extensions import Unpack
 
 from .._utils.normalize_stop_reason import normalize_stop_reason
@@ -167,6 +172,11 @@ text_kwargs = {"verbosity"}
 class ResponsesAPICreateParams:
     """Parameters for OpenAI Responses API create method."""
 
+    # Explicit attribute types for static type checkers
+    input: str
+    tools: List[ChatCompletionToolParam]
+    create_args: Dict[str, Any]
+
     def __init__(
         self,
         input: str,
@@ -211,6 +221,13 @@ class BaseOpenAIResponsesAPIClient:
         self._create_args = create_args
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+    def info(self) -> ModelInfo:
+        """Return the resolved model info.
+
+        Exposes a read-only view for tests and diagnostics.
+        """
+        return self._model_info
 
     def _process_create_args(
         self,
@@ -413,22 +430,26 @@ class BaseOpenAIResponsesAPIClient:
         )
 
         # Call OpenAI Responses API endpoint
-        future: Task[Any] = asyncio.ensure_future(
-            self._client.responses.create(  # type: ignore
-                **create_params.create_args,
-                tools=cast(Any, create_params.tools) if len(create_params.tools) > 0 else NOT_GIVEN,
+        future: Task[Dict[str, Any]] = asyncio.ensure_future(
+            cast(
+                Task[Dict[str, Any]],
+                self._client.responses.create(  # type: ignore
+                    **create_params.create_args,
+                    tools=cast(Any, create_params.tools) if len(create_params.tools) > 0 else NOT_GIVEN,
+                ),
             )
         )
 
         if cancellation_token is not None:
             cancellation_token.link_future(future)
 
-        result = await future
+        result: Dict[str, Any] = await future
 
         # Handle usage information
+        usage_dict = cast(Dict[str, Any], result.get("usage", {}))
         usage = RequestUsage(
-            prompt_tokens=result.get("usage", {}).get("prompt_tokens", 0),
-            completion_tokens=result.get("usage", {}).get("completion_tokens", 0),
+            prompt_tokens=int(usage_dict.get("prompt_tokens", 0) or 0),
+            completion_tokens=int(usage_dict.get("completion_tokens", 0) or 0),
         )
 
         # Log the call
@@ -447,77 +468,78 @@ class BaseOpenAIResponsesAPIClient:
         thought: Optional[str] = None
 
         # Process response based on type (text response vs tool calls)
-        if "choices" in result and len(result["choices"]) > 0:
-            choice = result["choices"][0]
+        if "choices" in result and len(cast(List[Any], result["choices"])) > 0:
+            choices = cast(List[Dict[str, Any]], result["choices"])  # list of dicts
+            choice = choices[0]
 
             # Handle tool calls
-            if choice.get("message", {}).get("tool_calls"):
-                tool_calls = choice["message"]["tool_calls"]
+            message_dict = cast(Dict[str, Any], choice.get("message", {}))
+            if message_dict.get("tool_calls"):
+                tool_calls = cast(
+                    Sequence[ChatCompletionMessageToolCall], message_dict["tool_calls"]
+                )  # runtime objects when using SDK
                 content = []
 
                 for tool_call in tool_calls:
-                    if hasattr(tool_call, "function") and tool_call.function:
-                        # Standard function call
+                    if isinstance(tool_call, ChatCompletionMessageFunctionToolCall) and tool_call.function:
                         content.append(
                             FunctionCall(
-                                id=tool_call.id,
+                                id=tool_call.id or "",
                                 arguments=tool_call.function.arguments,
                                 name=normalize_name(tool_call.function.name),
                             )
                         )
-                    elif hasattr(tool_call, "custom") and tool_call.custom:
-                        # GPT-5 custom tool call
+                    elif isinstance(tool_call, ChatCompletionMessageCustomToolCall) and tool_call.custom:
                         content.append(
                             FunctionCall(
-                                id=tool_call.id,
+                                id=tool_call.id or "",
                                 arguments=tool_call.custom.input,
                                 name=normalize_name(tool_call.custom.name),
                             )
                         )
 
                 # Check for preamble text
-                if choice.get("message", {}).get("content"):
-                    thought = choice["message"]["content"]
+                if message_dict.get("content"):
+                    thought = cast(str, message_dict["content"])
 
                 finish_reason = "tool_calls"
             else:
                 # Text response
-                content = choice.get("message", {}).get("content", "")
-                finish_reason = choice.get("finish_reason", "stop")
+                content = cast(str, message_dict.get("content", ""))
+                finish_reason = cast(Optional[str], choice.get("finish_reason", "stop"))
 
             # Extract reasoning if available
-            if "reasoning_items" in result:
-                reasoning_items = result["reasoning_items"]
-                if reasoning_items:
-                    # Combine reasoning items into thought
-                    reasoning_texts = []
-                    for item in reasoning_items:
-                        if item.get("type") == "reasoning" and "content" in item:
-                            reasoning_texts.append(item["content"])
-                    if reasoning_texts:
-                        thought = "\n".join(reasoning_texts)
+            reasoning_items_data: Optional[List[Dict[str, Any]]] = result.get("reasoning_items")  # type: ignore[assignment]
+            if reasoning_items_data:
+                # Combine reasoning items into thought
+                reasoning_texts: List[str] = []
+                for item in reasoning_items_data:
+                    if isinstance(item, dict) and item.get("type") == "reasoning" and "content" in item:
+                        reasoning_texts.append(str(item["content"]))
+                if reasoning_texts:
+                    thought = "\n".join(reasoning_texts)
 
         else:
             # Fallback for direct content
-            content = result.get("content", "")
+            content = str(result.get("content", ""))
             finish_reason = "stop"
 
             # Check for reasoning
             if "reasoning" in result:
-                thought = result["reasoning"]
+                thought = str(result["reasoning"])  # best effort
 
         response = CreateResult(
             finish_reason=normalize_stop_reason(finish_reason),
             content=content,
             usage=usage,
-            cached=result.get("cached", False),
+            cached=bool(result.get("cached", False)),
             logprobs=None,  # Responses API may not provide logprobs
             thought=thought,
         )
 
         # Store response ID for potential future use
         if "id" in result:
-            response.response_id = result["id"]  # type: ignore
+            response.response_id = cast(str, result["id"])  # type: ignore
 
         self._total_usage = _add_usage(self._total_usage, usage)
         self._actual_usage = _add_usage(self._actual_usage, usage)
@@ -620,7 +642,7 @@ class OpenAIResponsesAPIClient(BaseOpenAIResponsesAPIClient):
             raise ValueError("model is required for OpenAIResponsesAPIClient")
 
         # Extract client configuration
-        from ._openai_client import _create_args_from_config, _openai_client_from_config
+        from ._openai_client import create_args_from_config, openai_client_from_config
 
         copied_args = dict(kwargs).copy()
         model_info: Optional[ModelInfo] = None
@@ -636,13 +658,43 @@ class OpenAIResponsesAPIClient(BaseOpenAIResponsesAPIClient):
             if "api_key" not in copied_args and "GEMINI_API_KEY" in os.environ:
                 copied_args["api_key"] = os.environ["GEMINI_API_KEY"]
 
-        client = _openai_client_from_config(copied_args)
-        create_args = _create_args_from_config(copied_args)
+        client = openai_client_from_config(copied_args)
+        create_args = create_args_from_config(copied_args)
 
         super().__init__(
             client=client,
             create_args=create_args,
             model_info=model_info,
+        )
+
+    # NOTE: This private alias is used by tests for static type checking (Pyright/MyPy)
+    # to access a name-mangled method on this concrete class. It forwards to the
+    # protected method on the base class and returns a precisely typed result.
+    def _OpenAIResponsesAPIClient__process_create_args(  # type: ignore[unused-private-name]
+        self,
+        *,
+        input: str,
+        tools: Sequence[Tool | ToolSchema | CustomTool | CustomToolSchema],
+        tool_choice: Tool | CustomTool | Literal["auto", "required", "none"],
+        extra_create_args: Mapping[str, Any],
+        reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] | None = None,
+        verbosity: Optional[Literal["low", "medium", "high"]] | None = None,
+        allowed_tools: Optional[Sequence[Tool | CustomTool | str]] | None = None,
+        preambles: Optional[bool] | None = None,
+        previous_response_id: Optional[str] | None = None,
+        reasoning_items: Optional[List[Dict[str, Any]]] | None = None,
+    ) -> ResponsesAPICreateParams:
+        return super()._process_create_args(
+            input=input,
+            tools=tools,
+            tool_choice=tool_choice,
+            extra_create_args=extra_create_args,
+            reasoning_effort=reasoning_effort,
+            verbosity=verbosity,
+            allowed_tools=allowed_tools,
+            preambles=preambles,
+            previous_response_id=previous_response_id,
+            reasoning_items=reasoning_items,
         )
 
 
@@ -684,7 +736,7 @@ class AzureOpenAIResponsesAPIClient(BaseOpenAIResponsesAPIClient):
 
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
         # Extract configuration
-        from ._openai_client import _azure_openai_client_from_config, _create_args_from_config
+        from ._openai_client import azure_openai_client_from_config, create_args_from_config
 
         copied_args = dict(kwargs).copy()
         model_info: Optional[ModelInfo] = None
@@ -692,8 +744,8 @@ class AzureOpenAIResponsesAPIClient(BaseOpenAIResponsesAPIClient):
             model_info = kwargs["model_info"]
             del copied_args["model_info"]
 
-        client = _azure_openai_client_from_config(copied_args)
-        create_args = _create_args_from_config(copied_args)
+        client = azure_openai_client_from_config(copied_args)
+        create_args = create_args_from_config(copied_args)
 
         super().__init__(
             client=client,

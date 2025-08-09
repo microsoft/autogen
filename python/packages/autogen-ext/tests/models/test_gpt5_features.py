@@ -16,13 +16,13 @@ Tests use mocking to avoid actual API calls while validating
 that all GPT-5 features are properly integrated and functional.
 """
 
-from typing import Any
+from typing import Any, Dict, List, cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from autogen_core import CancellationToken
 from autogen_core.models import CreateResult, UserMessage
-from autogen_core.tools import BaseCustomTool
+from autogen_core.tools import BaseCustomTool, CustomToolFormat
 from autogen_ext.models.openai import (
     OpenAIChatCompletionClient,
     OpenAIResponsesAPIClient,
@@ -31,29 +31,40 @@ from autogen_ext.models.openai._model_info import get_info as get_model_info
 from autogen_ext.models.openai._openai_client import convert_tools
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
-from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall
+from openai.types.chat.chat_completion_message_function_tool_call import (
+    ChatCompletionMessageFunctionToolCall as ChatCompletionMessageToolCall,
+)
 from openai.types.completion_usage import CompletionUsage
+from pydantic import BaseModel
 
 
-class TestCodeExecutorTool(BaseCustomTool[Any]):
+class CodeExecResult(BaseModel):
+    result: str
+
+
+class TestCodeExecutorTool(BaseCustomTool[CodeExecResult]):
     """Test implementation of GPT-5 custom tool for code execution."""
 
     def __init__(self):
         super().__init__(
-            return_type=Any,
+            return_type=CodeExecResult,
             name="code_exec",
             description="Executes arbitrary Python code and returns the result",
         )
 
-    async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
-        return f"Executed: {input_text}"
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> CodeExecResult:
+        return CodeExecResult(result=f"Executed: {input_text}")
 
 
-class TestSQLTool(BaseCustomTool[Any]):
+class SQLResult(BaseModel):
+    result: str
+
+
+class TestSQLTool(BaseCustomTool[SQLResult]):
     """Test implementation of GPT-5 custom tool with grammar constraints."""
 
     def __init__(self):
-        sql_grammar = {
+        sql_grammar: CustomToolFormat = {
             "type": "grammar",
             "syntax": "lark",
             "definition": """
@@ -71,14 +82,14 @@ class TestSQLTool(BaseCustomTool[Any]):
         }
 
         super().__init__(
-            return_type=Any,
+            return_type=SQLResult,
             name="sql_query",
             description="Execute SQL queries with grammar validation",
             format=sql_grammar,
         )
 
-    async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
-        return f"SQL Result: {input_text}"
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> SQLResult:
+        return SQLResult(result=f"SQL Result: {input_text}")
 
 
 class TestGPT5ModelRecognition:
@@ -118,7 +129,7 @@ class TestCustomToolsIntegration:
         schema = code_tool.schema
 
         assert schema["name"] == "code_exec"
-        assert schema["description"] == "Executes arbitrary Python code and returns the result"
+        assert schema.get("description", "") == "Executes arbitrary Python code and returns the result"
         assert "format" not in schema  # No grammar constraints
 
     def test_custom_tool_with_grammar_schema(self) -> None:
@@ -128,9 +139,11 @@ class TestCustomToolsIntegration:
 
         assert schema["name"] == "sql_query"
         assert "format" in schema
-        assert schema["format"]["type"] == "grammar"
-        assert schema["format"]["syntax"] == "lark"
-        assert "SELECT" in schema["format"]["definition"]
+        fmt = schema.get("format")
+        assert fmt is not None and isinstance(fmt, dict)
+        assert fmt.get("type") == "grammar"
+        assert fmt.get("syntax") == "lark"
+        assert isinstance(fmt.get("definition"), str) and "SELECT" in fmt.get("definition", "")
 
     def test_convert_custom_tools(self) -> None:
         """Test conversion of custom tools to OpenAI API format."""
@@ -142,22 +155,22 @@ class TestCustomToolsIntegration:
         assert len(converted) == 2
 
         # Check code tool conversion
-        code_tool_param = next(t for t in converted if t["custom"]["name"] == "code_exec")
+        code_tool_param = next(t for t in converted if t.get("custom", {}).get("name") == "code_exec")
         assert code_tool_param["type"] == "custom"
-        assert "format" not in code_tool_param["custom"]
+        assert "format" not in code_tool_param.get("custom", {})
 
         # Check SQL tool conversion with grammar
-        sql_tool_param = next(t for t in converted if t["custom"]["name"] == "sql_query")
+        sql_tool_param = next(t for t in converted if t.get("custom", {}).get("name") == "sql_query")
         assert sql_tool_param["type"] == "custom"
-        assert "format" in sql_tool_param["custom"]
-        assert sql_tool_param["custom"]["format"]["type"] == "grammar"
+        assert "format" in sql_tool_param.get("custom", {})
+        assert sql_tool_param.get("custom", {}).get("format", {}).get("type") == "grammar"
 
     async def test_custom_tool_execution(self) -> None:
         """Test custom tool execution."""
         code_tool = TestCodeExecutorTool()
 
         result = await code_tool.run("print('hello world')", CancellationToken())
-        assert result == "Executed: print('hello world')"
+        assert result.result == "Executed: print('hello world')"
 
         result_via_freeform = await code_tool.run_freeform("x = 2 + 2", CancellationToken())
         assert result_via_freeform == "Executed: x = 2 + 2"
@@ -180,7 +193,9 @@ class TestGPT5Parameters:
         """Create test client with mocked OpenAI client."""
         return OpenAIChatCompletionClient(model="gpt-5", api_key="test-key")
 
-    async def test_reasoning_effort_parameter(self, client: OpenAIChatCompletionClient, mock_openai_client: Any) -> None:
+    async def test_reasoning_effort_parameter(
+        self, client: OpenAIChatCompletionClient, mock_openai_client: Any
+    ) -> None:
         """Test reasoning_effort parameter is properly passed."""
         # Mock successful API response
         mock_response = ChatCompletion(
@@ -195,13 +210,13 @@ class TestGPT5Parameters:
                     finish_reason="stop",
                 )
             ],
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=20),
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
         mock_openai_client.chat.completions.create.return_value = mock_response
 
         # Test different reasoning efforts
         for effort in ["minimal", "low", "medium", "high"]:
-            await client.create(messages=[UserMessage(content="Test message", source="user")], reasoning_effort=effort)
+            await client.create(messages=[UserMessage(content="Test message", source="user")], reasoning_effort=effort)  # type: ignore[arg-type]
 
             # Verify parameter was passed correctly
             call_kwargs = mock_openai_client.chat.completions.create.call_args[1]
@@ -221,13 +236,13 @@ class TestGPT5Parameters:
                     finish_reason="stop",
                 )
             ],
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=20),
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
         mock_openai_client.chat.completions.create.return_value = mock_response
 
         # Test different verbosity levels
         for verbosity in ["low", "medium", "high"]:
-            await client.create(messages=[UserMessage(content="Test message", source="user")], verbosity=verbosity)
+            await client.create(messages=[UserMessage(content="Test message", source="user")], verbosity=verbosity)  # type: ignore[arg-type]
 
             call_kwargs = mock_openai_client.chat.completions.create.call_args[1]
             assert call_kwargs["verbosity"] == verbosity
@@ -246,7 +261,7 @@ class TestGPT5Parameters:
                     finish_reason="stop",
                 )
             ],
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=20),
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
         mock_openai_client.chat.completions.create.return_value = mock_response
 
@@ -276,7 +291,7 @@ class TestGPT5Parameters:
                     finish_reason="stop",
                 )
             ],
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=20),
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
         mock_openai_client.chat.completions.create.return_value = mock_response
 
@@ -337,7 +352,7 @@ class TestAllowedToolsFeature:
                     finish_reason="stop",
                 )
             ],
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=20),
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
         mock_openai_client.chat.completions.create.return_value = mock_response
 
@@ -348,18 +363,24 @@ class TestAllowedToolsFeature:
             tool_choice="auto",
         )
 
-        call_kwargs = mock_openai_client.chat.completions.create.call_args[1]
+        call_kwargs_any: Any = mock_openai_client.chat.completions.create.call_args[1]
 
         # Verify allowed_tools structure was created
+        call_kwargs: Dict[str, Any] = cast(Dict[str, Any], call_kwargs_any)
         assert "tool_choice" in call_kwargs
-        tool_choice = call_kwargs["tool_choice"]
+        tool_choice_val: Any = call_kwargs.get("tool_choice")
 
-        if isinstance(tool_choice, dict) and tool_choice.get("type") == "allowed_tools":
-            assert tool_choice["mode"] == "auto"
-            allowed_tool_names = [t["name"] for t in tool_choice["tools"]]
-            assert "safe_calc" in allowed_tool_names
-            assert "dangerous_exec" not in allowed_tool_names
-            assert "code_exec" not in allowed_tool_names
+        if isinstance(tool_choice_val, dict):
+            tc: Dict[str, Any] = cast(Dict[str, Any], tool_choice_val)
+            if str(tc.get("type", "")) == "allowed_tools":
+                mode_val: str = str(tc.get("mode", ""))
+                assert mode_val == "auto"
+                tools_seq: List[Any] = list(cast(List[Any] | tuple[Any, ...], tc.get("tools", [])))
+                tools_list: List[Dict[str, Any]] = [t for t in tools_seq if isinstance(t, dict)]
+                allowed_tool_names: List[str] = [str(t.get("name", "")) for t in tools_list]
+                assert "safe_calc" in allowed_tool_names
+                assert "dangerous_exec" not in allowed_tool_names
+                assert "code_exec" not in allowed_tool_names
 
 
 class TestResponsesAPIClient:
@@ -377,7 +398,9 @@ class TestResponsesAPIClient:
     def responses_client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
         return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
 
-    async def test_responses_api_basic_call(self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
+    async def test_responses_api_basic_call(
+        self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any
+    ) -> None:
         """Test basic Responses API call structure."""
         mock_response = {
             "id": "resp-123",
@@ -393,7 +416,9 @@ class TestResponsesAPIClient:
         assert result.usage.prompt_tokens == 10
         assert result.usage.completion_tokens == 20
 
-    async def test_responses_api_with_cot_preservation(self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
+    async def test_responses_api_with_cot_preservation(
+        self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any
+    ) -> None:
         """Test chain-of-thought preservation between turns."""
         # First turn
         mock_response1 = {
@@ -426,7 +451,9 @@ class TestResponsesAPIClient:
         assert call_kwargs["reasoning"]["effort"] == "low"
         assert result2.content == "Follow-up response"
 
-    async def test_responses_api_with_custom_tools(self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
+    async def test_responses_api_with_custom_tools(
+        self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any
+    ) -> None:
         """Test Responses API with GPT-5 custom tools."""
         code_tool = TestCodeExecutorTool()
 
@@ -473,7 +500,9 @@ class TestGPT5IntegrationScenarios:
     def client(self, mock_openai_client: Any) -> OpenAIChatCompletionClient:
         return OpenAIChatCompletionClient(model="gpt-5", api_key="test-key")
 
-    async def test_code_analysis_with_custom_tools(self, client: OpenAIChatCompletionClient, mock_openai_client: Any) -> None:
+    async def test_code_analysis_with_custom_tools(
+        self, client: OpenAIChatCompletionClient, mock_openai_client: Any
+    ) -> None:
         """Test GPT-5 analyzing and executing code with custom tools."""
         code_tool = TestCodeExecutorTool()
         sql_tool = TestSQLTool()
@@ -503,15 +532,15 @@ class TestGPT5IntegrationScenarios:
                     finish_reason="tool_calls",
                 )
             ],
-            usage=CompletionUsage(prompt_tokens=50, completion_tokens=30),
+            usage=CompletionUsage(prompt_tokens=50, completion_tokens=30, total_tokens=80),
         )
         mock_openai_client.chat.completions.create.return_value = mock_response
 
         result = await client.create(
             messages=[UserMessage(content="Analyze this fibonacci implementation and run it for n=10", source="user")],
             tools=[code_tool, sql_tool],
-            reasoning_effort="medium",
-            verbosity="low",
+            reasoning_effort="medium",  # type: ignore[arg-type]
+            verbosity="low",  # type: ignore[arg-type]
             preambles=True,
         )
 
@@ -531,7 +560,9 @@ class TestGPT5IntegrationScenarios:
         assert len(result.content) == 1
         assert result.thought == "I need to analyze this code and run it."
 
-    async def test_multi_modal_with_reasoning_control(self, client: OpenAIChatCompletionClient, mock_openai_client: Any) -> None:
+    async def test_multi_modal_with_reasoning_control(
+        self, client: OpenAIChatCompletionClient, mock_openai_client: Any
+    ) -> None:
         """Test GPT-5 with vision and reasoning control."""
         import io
 
@@ -560,7 +591,7 @@ class TestGPT5IntegrationScenarios:
                     finish_reason="stop",
                 )
             ],
-            usage=CompletionUsage(prompt_tokens=100, completion_tokens=40),
+            usage=CompletionUsage(prompt_tokens=100, completion_tokens=40, total_tokens=140),
         )
         mock_openai_client.chat.completions.create.return_value = mock_response
 
@@ -602,7 +633,7 @@ async def test_gpt5_error_handling():
             created=1234567890,
             model="gpt-4",
             choices=[],
-            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0),
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         )
 
         # This should work but parameters won't have any effect
