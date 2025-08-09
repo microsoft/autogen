@@ -50,7 +50,7 @@ from autogen_core.models import (
     UserMessage,
     validate_model_info,
 )
-from autogen_core.tools import Tool, ToolSchema
+from autogen_core.tools import CustomTool, CustomToolFormat, CustomToolSchema, Tool, ToolSchema
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
@@ -242,40 +242,91 @@ def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
 
 
 def convert_tools(
-    tools: Sequence[Tool | ToolSchema],
+    tools: Sequence[Tool | ToolSchema | CustomTool | CustomToolSchema],
 ) -> List[ChatCompletionToolParam]:
     result: List[ChatCompletionToolParam] = []
     for tool in tools:
-        if isinstance(tool, Tool):
-            tool_schema = tool.schema
+        if isinstance(tool, CustomTool):
+            # GPT-5 Custom Tool - format according to OpenAI API spec
+            custom_schema = tool.schema
+            custom_tool_param = {
+                "type": "custom",
+                "custom": {
+                    "name": custom_schema["name"],
+                    "description": custom_schema.get("description", ""),
+                }
+            }
+            if "format" in custom_schema:
+                format_config = custom_schema["format"]
+                if format_config["type"] == "grammar":
+                    custom_tool_param["custom"]["format"] = {
+                        "type": "grammar",
+                        "grammar": {
+                            "type": format_config["syntax"],
+                            "grammar": format_config["definition"]
+                        }
+                    }
+                else:
+                    custom_tool_param["custom"]["format"] = format_config
+            result.append(ChatCompletionToolParam(**custom_tool_param))  # type: ignore
+        elif isinstance(tool, dict) and "format" in tool:
+            # Custom tool schema dict
+            custom_tool_param = {
+                "type": "custom",
+                "custom": {
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                }
+            }
+            if "format" in tool:
+                format_config = tool["format"]
+                if format_config["type"] == "grammar":
+                    custom_tool_param["custom"]["format"] = {
+                        "type": "grammar", 
+                        "grammar": {
+                            "type": format_config["syntax"],
+                            "grammar": format_config["definition"]
+                        }
+                    }
+                else:
+                    custom_tool_param["custom"]["format"] = format_config
+            result.append(ChatCompletionToolParam(**custom_tool_param))  # type: ignore
         else:
-            assert isinstance(tool, dict)
-            tool_schema = tool
+            # Standard function tool
+            if isinstance(tool, Tool):
+                tool_schema = tool.schema
+            else:
+                assert isinstance(tool, dict)
+                tool_schema = tool
 
-        result.append(
-            ChatCompletionToolParam(
-                type="function",
-                function=FunctionDefinition(
-                    name=tool_schema["name"],
-                    description=(tool_schema["description"] if "description" in tool_schema else ""),
-                    parameters=(
-                        cast(FunctionParameters, tool_schema["parameters"]) if "parameters" in tool_schema else {}
+            result.append(
+                ChatCompletionToolParam(
+                    type="function",
+                    function=FunctionDefinition(
+                        name=tool_schema["name"],
+                        description=(tool_schema["description"] if "description" in tool_schema else ""),
+                        parameters=(
+                            cast(FunctionParameters, tool_schema["parameters"]) if "parameters" in tool_schema else {}
+                        ),
+                        strict=(tool_schema["strict"] if "strict" in tool_schema else False),
                     ),
-                    strict=(tool_schema["strict"] if "strict" in tool_schema else False),
-                ),
+                )
             )
-        )
+    
     # Check if all tools have valid names.
     for tool_param in result:
-        assert_valid_name(tool_param["function"]["name"])
+        if tool_param.get("type") == "function":
+            assert_valid_name(tool_param["function"]["name"])
+        elif tool_param.get("type") == "custom":
+            assert_valid_name(tool_param["custom"]["name"])
     return result
 
 
-def convert_tool_choice(tool_choice: Tool | Literal["auto", "required", "none"]) -> Any:
+def convert_tool_choice(tool_choice: Tool | CustomTool | Literal["auto", "required", "none"]) -> Any:
     """Convert tool_choice parameter to OpenAI API format.
 
     Args:
-        tool_choice: A single Tool object to force the model to use, "auto" to let the model choose any available tool, "required" to force tool usage, or "none" to disable tool usage.
+        tool_choice: A single Tool/CustomTool object to force the model to use, "auto" to let the model choose any available tool, "required" to force tool usage, or "none" to disable tool usage.
 
     Returns:
         OpenAI API compatible tool_choice value or None if not specified.
@@ -289,11 +340,13 @@ def convert_tool_choice(tool_choice: Tool | Literal["auto", "required", "none"])
     if tool_choice == "required":
         return "required"
 
-    # Must be a Tool object
+    # Must be a Tool or CustomTool object
     if isinstance(tool_choice, Tool):
         return {"type": "function", "function": {"name": tool_choice.schema["name"]}}
+    elif isinstance(tool_choice, CustomTool):
+        return {"type": "custom", "custom": {"name": tool_choice.schema["name"]}}
     else:
-        raise ValueError(f"tool_choice must be a Tool object, 'auto', 'required', or 'none', got {type(tool_choice)}")
+        raise ValueError(f"tool_choice must be a Tool/CustomTool object, 'auto', 'required', or 'none', got {type(tool_choice)}")
 
 
 def normalize_name(name: str) -> str:
@@ -310,7 +363,7 @@ def count_tokens_openai(
     model: str,
     *,
     add_name_prefixes: bool = False,
-    tools: Sequence[Tool | ToolSchema] = [],
+    tools: Sequence[Tool | ToolSchema | CustomTool | CustomToolSchema] = [],
     model_family: str = ModelFamily.UNKNOWN,
     include_name_in_message: bool = True,
 ) -> int:
@@ -488,12 +541,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def _process_create_args(
         self,
         messages: Sequence[LLMMessage],
-        tools: Sequence[Tool | ToolSchema],
-        tool_choice: Tool | Literal["auto", "required", "none"],
+        tools: Sequence[Tool | ToolSchema | CustomTool | CustomToolSchema],
+        tool_choice: Tool | CustomTool | Literal["auto", "required", "none"],
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
         reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = None,
         verbosity: Optional[Literal["low", "medium", "high"]] = None,
+        allowed_tools: Optional[Sequence[Tool | CustomTool | str]] = None,
     ) -> CreateParams:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
@@ -626,19 +680,19 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         converted_tools = convert_tools(tools)
 
         # Process tool_choice parameter
-        if isinstance(tool_choice, Tool):
+        if isinstance(tool_choice, (Tool, CustomTool)):
             if len(tools) == 0:
                 raise ValueError("tool_choice specified but no tools provided")
 
             # Validate that the tool exists in the provided tools
             tool_names_available: List[str] = []
             for tool in tools:
-                if isinstance(tool, Tool):
+                if isinstance(tool, (Tool, CustomTool)):
                     tool_names_available.append(tool.schema["name"])
                 else:
                     tool_names_available.append(tool["name"])
 
-            # tool_choice is a single Tool object
+            # tool_choice is a single Tool or CustomTool object
             tool_name = tool_choice.schema["name"]
             if tool_name not in tool_names_available:
                 raise ValueError(f"tool_choice references '{tool_name}' but it's not in the provided tools")
@@ -647,6 +701,47 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # Convert to OpenAI format and add to create_args
             converted_tool_choice = convert_tool_choice(tool_choice)
             create_args["tool_choice"] = converted_tool_choice
+            
+            # Handle allowed_tools parameter for GPT-5
+            if allowed_tools is not None:
+                # Build allowed tools list
+                allowed_tool_names = []
+                for allowed_tool in allowed_tools:
+                    if isinstance(allowed_tool, str):
+                        allowed_tool_names.append(allowed_tool)
+                    elif isinstance(allowed_tool, (Tool, CustomTool)):
+                        allowed_tool_names.append(allowed_tool.schema["name"])
+                
+                # Create allowed_tools parameter according to GPT-5 spec
+                if isinstance(tool_choice, str) and tool_choice in ["auto", "required"]:
+                    allowed_tools_param = {
+                        "type": "allowed_tools",
+                        "mode": tool_choice,
+                        "tools": []
+                    }
+                    
+                    # Add tools that are in the allowed list
+                    for tool_param in converted_tools:
+                        if tool_param.get("type") == "function":
+                            tool_name = tool_param["function"]["name"]
+                        elif tool_param.get("type") == "custom":
+                            tool_name = tool_param["custom"]["name"]
+                        else:
+                            continue
+                            
+                        if tool_name in allowed_tool_names:
+                            if tool_param.get("type") == "function":
+                                allowed_tools_param["tools"].append({
+                                    "type": "function",
+                                    "name": tool_name
+                                })
+                            elif tool_param.get("type") == "custom":
+                                allowed_tools_param["tools"].append({
+                                    "type": "custom", 
+                                    "name": tool_name
+                                })
+                    
+                    create_args["tool_choice"] = allowed_tools_param
 
         return CreateParams(
             messages=oai_messages,
@@ -659,14 +754,136 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         *,
-        tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
+        tools: Sequence[Tool | ToolSchema | CustomTool | CustomToolSchema] = [],
+        tool_choice: Tool | CustomTool | Literal["auto", "required", "none"] = "auto",
+        allowed_tools: Optional[Sequence[Tool | CustomTool | str]] = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = None,
         verbosity: Optional[Literal["low", "medium", "high"]] = None,
     ) -> CreateResult:
+        """Create a chat completion with GPT-5 custom tools and reasoning control.
+        
+        This method extends the standard chat completion API with GPT-5 specific features:
+        
+        - **Custom Tools**: Accept freeform text input instead of JSON parameters
+        - **Grammar Constraints**: Use Context-Free Grammar to constrain tool input
+        - **Allowed Tools**: Restrict model to subset of available tools  
+        - **Reasoning Effort**: Control model thinking depth (minimal/low/medium/high)
+        - **Verbosity**: Control output length (low/medium/high)
+        
+        Args:
+            messages: Conversation messages
+            tools: Standard function tools and/or GPT-5 custom tools
+            tool_choice: Tool selection strategy or specific tool to use
+            allowed_tools: GPT-5 feature - restrict model to subset of tools
+            json_output: Enable JSON mode or structured output
+            extra_create_args: Additional OpenAI API parameters
+            cancellation_token: Token to cancel the operation
+            reasoning_effort: GPT-5 reasoning depth control
+            verbosity: GPT-5 output length control
+            
+        Returns:
+            CreateResult with model response and tool calls
+            
+        Examples:
+            Basic GPT-5 usage with reasoning control::
+            
+                client = OpenAIChatCompletionClient(model="gpt-5")
+                
+                response = await client.create(
+                    messages=[UserMessage(content="Solve this complex problem...", source="user")],
+                    reasoning_effort="high",     # More thorough reasoning
+                    verbosity="medium"           # Balanced output length
+                )
+            
+            Using GPT-5 custom tools::
+            
+                from autogen_core.tools import CodeExecutorTool
+                
+                code_tool = CodeExecutorTool()  # Custom tool
+                
+                response = await client.create(
+                    messages=[UserMessage(content="Use code_exec to calculate fibonacci(10)", source="user")],
+                    tools=[code_tool],
+                    reasoning_effort="medium",
+                    verbosity="low"
+                )
+                
+                # Custom tool calls return freeform text
+                if isinstance(response.content, list):
+                    tool_call = response.content[0]
+                    print(f"Generated code: {tool_call.arguments}")
+            
+            Using allowed_tools to restrict model behavior::
+            
+                # Define multiple tools but restrict to safe subset
+                all_tools = [code_tool, web_tool, file_tool, calc_tool]
+                safe_tools = [calc_tool]  # Only allow calculator
+                
+                response = await client.create(
+                    messages=[UserMessage(content="Help me with calculations and web research", source="user")],
+                    tools=all_tools,
+                    allowed_tools=safe_tools,  # Model can only use calculator
+                    tool_choice="auto"
+                )
+            
+            Grammar-constrained custom tools::
+            
+                from autogen_core.tools import BaseCustomTool, CustomToolFormat
+                
+                # Define SQL grammar
+                sql_grammar = CustomToolFormat(
+                    type="grammar",
+                    syntax="lark",
+                    definition='''
+                        start: "SELECT" column_list "FROM" table_name "WHERE" condition ";"
+                        column_list: column ("," column)*
+                        column: IDENTIFIER
+                        table_name: IDENTIFIER
+                        condition: column ">" NUMBER
+                        IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
+                        NUMBER: /[0-9]+/
+                    '''
+                )
+                
+                class SQLTool(BaseCustomTool[str]):
+                    def __init__(self):
+                        super().__init__(
+                            return_type=str,
+                            name="sql_query",
+                            description="Execute SQL with grammar validation",
+                            format=sql_grammar  # Enforce grammar
+                        )
+                        
+                    async def run(self, input_text: str, cancellation_token) -> str:
+                        return f"Executed SQL: {input_text}"
+                
+                sql_tool = SQLTool()
+                response = await client.create(
+                    messages=[UserMessage(content="Query users older than 18", source="user")],
+                    tools=[sql_tool],
+                    reasoning_effort="low"
+                )
+            
+            Combining with traditional function tools::
+            
+                from autogen_core.tools import FunctionTool
+                
+                def get_weather(location: str) -> str:
+                    return f"Weather in {location}: sunny"
+                
+                # Mix traditional and custom tools
+                weather_tool = FunctionTool(get_weather, description="Get weather")
+                code_tool = CodeExecutorTool()
+                
+                response = await client.create(
+                    messages=[UserMessage(content="Get Paris weather and calculate 2+2", source="user")],
+                    tools=[weather_tool, code_tool],  # Mix both types
+                    reasoning_effort="medium"
+                )
+        """
         create_params = self._process_create_args(
             messages,
             tools,
@@ -675,6 +892,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             extra_create_args,
             reasoning_effort,
             verbosity,
+            allowed_tools,
         )
         future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
         if create_params.response_format is not None:
@@ -754,22 +972,39 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # NOTE: If OAI response type changes, this will need to be updated
             content = []
             for tool_call in choice.message.tool_calls:
-                if not isinstance(tool_call.function.arguments, str):
+                # Handle both function calls and custom tool calls
+                if hasattr(tool_call, 'function') and tool_call.function is not None:
+                    # Standard function call
+                    if not isinstance(tool_call.function.arguments, str):
+                        warnings.warn(
+                            f"Tool call function arguments field is not a string: {tool_call.function.arguments}."
+                            "This is unexpected and may due to the API used not returning the correct type. "
+                            "Attempting to convert it to string.",
+                            stacklevel=2,
+                        )
+                        if isinstance(tool_call.function.arguments, dict):
+                            tool_call.function.arguments = json.dumps(tool_call.function.arguments)
+                    content.append(
+                        FunctionCall(
+                            id=tool_call.id,
+                            arguments=tool_call.function.arguments,
+                            name=normalize_name(tool_call.function.name),
+                        )
+                    )
+                elif hasattr(tool_call, 'custom') and tool_call.custom is not None:
+                    # GPT-5 Custom tool call - input is freeform text
+                    content.append(
+                        FunctionCall(
+                            id=tool_call.id,
+                            arguments=tool_call.custom.input,  # Custom tools use freeform text input
+                            name=normalize_name(tool_call.custom.name),
+                        )
+                    )
+                else:
                     warnings.warn(
-                        f"Tool call function arguments field is not a string: {tool_call.function.arguments}."
-                        "This is unexpected and may due to the API used not returning the correct type. "
-                        "Attempting to convert it to string.",
+                        f"Unknown tool call type: {tool_call}. Skipping.",
                         stacklevel=2,
                     )
-                    if isinstance(tool_call.function.arguments, dict):
-                        tool_call.function.arguments = json.dumps(tool_call.function.arguments)
-                content.append(
-                    FunctionCall(
-                        id=tool_call.id,
-                        arguments=tool_call.function.arguments,
-                        name=normalize_name(tool_call.function.name),
-                    )
-                )
             finish_reason = "tool_calls"
         else:
             # if not tool_calls, then it is a text response and we populate the content and thought fields.
@@ -816,8 +1051,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         *,
-        tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
+        tools: Sequence[Tool | ToolSchema | CustomTool | CustomToolSchema] = [],
+        tool_choice: Tool | CustomTool | Literal["auto", "required", "none"] = "auto",
+        allowed_tools: Optional[Sequence[Tool | CustomTool | str]] = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -856,6 +1092,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             extra_create_args,
             reasoning_effort,
             verbosity,
+            allowed_tools,
         )
 
         if include_usage is not None:
@@ -1151,7 +1388,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def total_usage(self) -> RequestUsage:
         return self._total_usage
 
-    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema | CustomTool | CustomToolSchema] = []) -> int:
         return count_tokens_openai(
             messages,
             self._create_args["model"],
@@ -1161,7 +1398,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             include_name_in_message=self._include_name_in_message,
         )
 
-    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema | CustomTool | CustomToolSchema] = []) -> int:
         token_limit = _model_info.get_token_limit(self._create_args["model"])
         return token_limit - self.count_tokens(messages, tools=tools)
 
