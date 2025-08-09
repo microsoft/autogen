@@ -498,19 +498,6 @@ ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1/"
 LLAMA_API_BASE_URL = "https://api.llama.com/compat/v1/"
 
 
-def _mask_value(value: str, unmasked_prefix: int = 3, unmasked_suffix: int = 2) -> str:
-    """Return a masked representation of a potentially sensitive value.
-
-    Shows a small prefix and suffix while masking the middle to avoid logging clear text secrets.
-    """
-    length: int = len(value)
-    if length == 0:
-        return ""
-    if length <= unmasked_prefix + unmasked_suffix:
-        return "*" * length
-    return f"{value[:unmasked_prefix]}...{value[-unmasked_suffix:]}"
-
-
 def resolve_model(model: str) -> str:
     if model in _MODEL_POINTERS:
         return _MODEL_POINTERS[model]
