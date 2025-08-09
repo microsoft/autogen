@@ -296,7 +296,7 @@ def _build_custom_tool_param_from_schema(custom_schema: Dict[str, Any]) -> Dict[
             if syntax and definition:
                 custom_tool_param["custom"]["format"] = {
                     "type": "grammar",
-                    "grammar": {"type": syntax, "grammar": definition},
+                    "grammar": {"syntax": syntax, "definition": definition},
                 }
         else:
             custom_tool_param["custom"]["format"] = format_config
