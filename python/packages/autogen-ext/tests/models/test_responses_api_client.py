@@ -11,6 +11,7 @@ These tests validate the Responses API client implementation,
 parameter handling, and integration with AutoGen frameworks.
 """
 
+import os
 from types import SimpleNamespace
 from typing import Any, Dict, cast
 from unittest.mock import AsyncMock, patch
@@ -31,12 +32,18 @@ from openai.types.responses.response_output_text import ResponseOutputText
 from test_gpt5_features import TestCodeExecutorTool
 
 
+# Helper function to check for API key availability
+def requires_openai_api_key():
+    """Skip test if OPENAI_API_KEY is not available."""
+    return pytest.mark.skipif(os.getenv("OPENAI_API_KEY") is None, reason="OPENAI_API_KEY environment variable not set")
+
+
 class TestResponsesAPIClientInitialization:
     """Test Responses API client initialization and configuration."""
 
     def test_openai_responses_client_creation(self) -> None:
         """Test OpenAI Responses API client can be created."""
-        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock.return_value = AsyncMock()
             client = OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
             # Access through public info() for type safety
@@ -57,7 +64,7 @@ class TestResponsesAPIClientInitialization:
 
     def test_invalid_model_raises_error(self) -> None:
         """Test that invalid model names raise appropriate errors."""
-        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock.return_value = AsyncMock()
             with pytest.raises(ValueError, match="model_info is required"):
                 OpenAIResponsesAPIClient(model="invalid-model", api_key="test-key")
@@ -68,7 +75,7 @@ class TestResponsesAPIParameterHandling:
 
     @pytest.fixture
     def mock_openai_client(self) -> Any:
-        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
             mock.return_value = mock_client
@@ -76,7 +83,8 @@ class TestResponsesAPIParameterHandling:
 
     @pytest.fixture
     def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
-        return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
+        api_key = os.getenv("OPENAI_API_KEY", "test-key")
+        return OpenAIResponsesAPIClient(model="gpt-5", api_key=api_key)
 
     def test_process_create_args_basic(self, client: OpenAIResponsesAPIClient) -> None:
         """Test basic parameter processing for Responses API."""
@@ -140,7 +148,7 @@ class TestResponsesAPICallHandling:
 
     @pytest.fixture
     def mock_openai_client(self) -> Any:
-        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
             mock.return_value = mock_client
@@ -148,7 +156,8 @@ class TestResponsesAPICallHandling:
 
     @pytest.fixture
     def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
-        return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
+        api_key = os.getenv("OPENAI_API_KEY", "test-key")
+        return OpenAIResponsesAPIClient(model="gpt-5", api_key=api_key)
 
     async def test_basic_text_response(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test processing of basic text response."""
@@ -302,7 +311,7 @@ class TestResponsesAPIErrorHandling:
 
     @pytest.fixture
     def mock_openai_client(self) -> Any:
-        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
             mock.return_value = mock_client
@@ -310,7 +319,8 @@ class TestResponsesAPIErrorHandling:
 
     @pytest.fixture
     def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
-        return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
+        api_key = os.getenv("OPENAI_API_KEY", "test-key")
+        return OpenAIResponsesAPIClient(model="gpt-5", api_key=api_key)
 
     async def test_api_error_propagation(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test that API errors are properly propagated."""
@@ -377,7 +387,7 @@ class TestResponsesAPIIntegration:
 
     @pytest.fixture
     def mock_openai_client(self) -> Any:
-        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
             mock.return_value = mock_client
@@ -385,7 +395,8 @@ class TestResponsesAPIIntegration:
 
     @pytest.fixture
     def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
-        return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
+        api_key = os.getenv("OPENAI_API_KEY", "test-key")
+        return OpenAIResponsesAPIClient(model="gpt-5", api_key=api_key)
 
     async def test_multi_turn_conversation_simulation(
         self, client: OpenAIResponsesAPIClient, mock_openai_client: Any
@@ -562,7 +573,7 @@ class TestResponsesAPIToolChoiceAndConversion:
 
     @pytest.fixture
     def mock_openai_client(self) -> Any:
-        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
             mock.return_value = mock_client
@@ -570,7 +581,8 @@ class TestResponsesAPIToolChoiceAndConversion:
 
     @pytest.fixture
     def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
-        return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
+        api_key = os.getenv("OPENAI_API_KEY", "test-key")
+        return OpenAIResponsesAPIClient(model="gpt-5", api_key=api_key)
 
     def test_tool_choice_without_tools_raises(self, client: OpenAIResponsesAPIClient) -> None:
         # Use a simple function tool
@@ -681,7 +693,7 @@ class TestResponsesAPIFunctionToolCallParsing:
 
     @pytest.fixture
     def mock_openai_client(self) -> Any:
-        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
             mock.return_value = mock_client
@@ -689,7 +701,8 @@ class TestResponsesAPIFunctionToolCallParsing:
 
     @pytest.fixture
     def client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
-        return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
+        api_key = os.getenv("OPENAI_API_KEY", "test-key")
+        return OpenAIResponsesAPIClient(model="gpt-5", api_key=api_key)
 
     @pytest.mark.asyncio
     async def test_function_tool_call_is_parsed(
@@ -735,7 +748,7 @@ class TestResponsesAPIGeminiRouting:
 
     def test_gemini_model_sets_base_url(self) -> None:
         with (
-            patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as openai_mock,
+            patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as openai_mock,
             patch("autogen_ext.models.openai._openai_client.create_args_from_config") as create_args_mock,
         ):
             openai_mock.return_value = AsyncMock()

@@ -342,22 +342,34 @@ class BaseCustomTool(ABC, CustomTool, Generic[ReturnT], ComponentBase[BaseModel]
 
             from autogen_core.tools import BaseCustomTool
             from autogen_core import CancellationToken
+            from pydantic import BaseModel
 
 
-            class CodeExecutorTool(BaseCustomTool[str]):
+            class CodeResult(BaseModel):
+                output: str
+
+
+            class CodeExecutorTool(BaseCustomTool[CodeResult]):
                 def __init__(self) -> None:
                     super().__init__(
-                        return_type=str,
+                        return_type=CodeResult,
                         name="code_exec",
                         description="Executes arbitrary Python code",
                     )
 
-                async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
+                async def run(self, input_text: str, cancellation_token: CancellationToken) -> CodeResult:
                     # Execute Python code from freeform text input
                     # In production, use secure sandbox
-                    return f"Executed: {input_text}"
+                    return CodeResult(output=f"Executed: {input_text}")
 
         Custom tool with Context-Free Grammar constraints::
+
+            from autogen_core.tools import CustomToolFormat
+
+
+            class SQLResult(BaseModel):
+                output: str
+
 
             sql_grammar = CustomToolFormat(
                 type="grammar",
@@ -377,17 +389,17 @@ class BaseCustomTool(ABC, CustomTool, Generic[ReturnT], ComponentBase[BaseModel]
             )
 
 
-            class SQLQueryTool(BaseCustomTool[str]):
+            class SQLQueryTool(BaseCustomTool[SQLResult]):
                 def __init__(self) -> None:
                     super().__init__(
-                        return_type=str,
+                        return_type=SQLResult,
                         name="sql_query",
                         description="Executes SQL queries with grammar constraints",
                         format=sql_grammar,
                     )
 
-                async def run(self, input_text: str, cancellation_token: CancellationToken) -> str:
-                    return f"SQL Result: {input_text}"
+                async def run(self, input_text: str, cancellation_token: CancellationToken) -> SQLResult:
+                    return SQLResult(output=f"SQL Result: {input_text}")
 
         Using with OpenAI GPT-5 client::
 

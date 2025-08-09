@@ -33,12 +33,15 @@ def docker_tests_enabled() -> bool:
         return False
 
 
-@pytest_asyncio.fixture(scope="module")  # type: ignore
+@pytest_asyncio.fixture(scope="function")  # type: ignore
 async def executor_and_temp_dir(
     request: pytest.FixtureRequest,
 ) -> AsyncGenerator[tuple[DockerCommandLineCodeExecutor, str], None]:
     if not docker_tests_enabled():
         pytest.skip("Docker tests are disabled")
+
+    # Handle parameterization if provided
+    _ = getattr(request, "param", "docker")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:

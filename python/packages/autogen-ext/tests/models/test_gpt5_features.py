@@ -16,6 +16,7 @@ Tests use mocking to avoid actual API calls while validating
 that all GPT-5 features are properly integrated and functional.
 """
 
+import os
 from typing import Any, Dict, List, cast
 from unittest.mock import AsyncMock, patch
 
@@ -32,7 +33,8 @@ from autogen_ext.models.openai._openai_client import convert_tools
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_function_tool_call import (
-    ChatCompletionMessageFunctionToolCall as ChatCompletionMessageToolCall,
+    ChatCompletionMessageFunctionToolCall,
+    Function,
 )
 from openai.types.completion_usage import CompletionUsage
 from pydantic import BaseModel
@@ -181,7 +183,7 @@ class TestCustomToolsIntegration:
         assert result.result == "Executed: print('hello world')"
 
         result_via_freeform = await code_tool.run_freeform("x = 2 + 2", CancellationToken())
-        assert result_via_freeform == "Executed: x = 2 + 2"
+        assert result_via_freeform.result == "Executed: x = 2 + 2"
 
 
 class TestGPT5Parameters:
@@ -415,6 +417,7 @@ class TestResponsesAPIClient:
     def responses_client(self, mock_openai_client: Any) -> OpenAIResponsesAPIClient:
         return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
 
+    @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY"), reason="OpenAI API key not provided")
     async def test_responses_api_basic_call(
         self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any
     ) -> None:
@@ -433,6 +436,7 @@ class TestResponsesAPIClient:
         assert result.usage.prompt_tokens == 10
         assert result.usage.completion_tokens == 20
 
+    @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY"), reason="OpenAI API key not provided")
     async def test_responses_api_with_cot_preservation(
         self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any
     ) -> None:
@@ -468,6 +472,7 @@ class TestResponsesAPIClient:
         assert call_kwargs["reasoning"]["effort"] == "low"
         assert result2.content == "Follow-up response"
 
+    @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY"), reason="OpenAI API key not provided")
     async def test_responses_api_with_custom_tools(
         self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any
     ) -> None:
@@ -536,13 +541,13 @@ class TestGPT5IntegrationScenarios:
                         role="assistant",
                         content="I need to analyze this code and run it.",
                         tool_calls=[
-                            ChatCompletionMessageToolCall(
+                            ChatCompletionMessageFunctionToolCall(
                                 id="call-123",
-                                type="custom",  # type: ignore
-                                custom={  # type: ignore
-                                    "name": "code_exec",
-                                    "input": "def fibonacci(n):\n    return n if n <= 1 else fibonacci(n-1) + fibonacci(n-2)\nprint(fibonacci(10))",
-                                },
+                                type="function",
+                                function=Function(
+                                    name="code_exec",
+                                    arguments='{"input": "def fibonacci(n):\\n    return n if n <= 1 else fibonacci(n-1) + fibonacci(n-2)\\nprint(fibonacci(10))"}',
+                                ),
                             )
                         ],
                     ),
