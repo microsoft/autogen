@@ -4,13 +4,13 @@ import os
 from typing import Final
 
 import pytest
-from pydantic import BaseModel
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import TextMessage
 from autogen_core import CancellationToken
 from autogen_core.models import CreateResult, UserMessage
 from autogen_core.tools import BaseCustomTool, CustomToolFormat
 from autogen_ext.models.openai import OpenAIChatCompletionClient, OpenAIResponsesAPIClient
+from pydantic import BaseModel
 
 _REQUIRE_KEY: Final[bool] = bool(os.getenv("OPENAI_API_KEY"))
 pytestmark = pytest.mark.skipif(not _REQUIRE_KEY, reason="OPENAI_API_KEY not set; skipping live GPT-5 agent tests")
@@ -22,7 +22,9 @@ class CodeExecResult(BaseModel):
 
 class CodeExecTool(BaseCustomTool[CodeExecResult]):
     def __init__(self) -> None:
-        super().__init__(return_type=CodeExecResult, name="code_exec", description="Execute code from freeform text input")
+        super().__init__(
+            return_type=CodeExecResult, name="code_exec", description="Execute code from freeform text input"
+        )
 
     async def run(self, input_text: str, cancellation_token: CancellationToken) -> CodeExecResult:  # type: ignore[override]
         return CodeExecResult(output=f"echo:{input_text.strip()}")
