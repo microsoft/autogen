@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar
+from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar, get_args
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
@@ -3268,14 +3268,14 @@ async def test_openai_tool_choice_validation_error_integration() -> None:
 
 
 # GPT-5 model tests
-def test_gpt5_model_resolution():
+def test_gpt5_model_resolution() -> None:
     """Test that GPT-5 models resolve correctly."""
     assert resolve_model("gpt-5") == "gpt-5-2025-08-07"
     assert resolve_model("gpt-5-mini") == "gpt-5-mini-2025-08-07"
     assert resolve_model("gpt-5-nano") == "gpt-5-nano-2025-08-07"
 
 
-def test_gpt5_model_info():
+def test_gpt5_model_info() -> None:
     """Test that GPT-5 models have correct capabilities."""
     from autogen_ext.models.openai._model_info import get_info
 
@@ -3294,7 +3294,7 @@ def test_gpt5_model_info():
     assert gpt5_nano_info["family"] == ModelFamily.GPT_5_NANO
 
 
-def test_gpt5_client_creation():
+def test_gpt5_client_creation() -> None:
     """Test that GPT-5 client can be created with new parameters."""
     client = OpenAIChatCompletionClient(
         model="gpt-5",
@@ -3304,7 +3304,7 @@ def test_gpt5_client_creation():
 
 
 @pytest.mark.asyncio
-async def test_gpt5_reasoning_effort_parameter():
+async def test_gpt5_reasoning_effort_parameter() -> None:
     """Test that reasoning_effort parameter is properly handled."""
     # Mock the OpenAI client to avoid actual API calls
     import unittest.mock
@@ -3348,16 +3348,17 @@ async def test_gpt5_reasoning_effort_parameter():
         assert call_args.kwargs["verbosity"] == "low"
 
 
-def test_gpt5_model_families():
+def test_gpt5_model_families() -> None:
     """Test that GPT-5 model families are properly defined."""
     assert ModelFamily.GPT_5 == "gpt-5"
     assert ModelFamily.GPT_5_MINI == "gpt-5-mini"
     assert ModelFamily.GPT_5_NANO == "gpt-5-nano"
 
     # Check that they're included in the ANY type
-    assert "gpt-5" in ModelFamily.ANY.__args__
-    assert "gpt-5-mini" in ModelFamily.ANY.__args__
-    assert "gpt-5-nano" in ModelFamily.ANY.__args__
+    any_args = get_args(ModelFamily.ANY)
+    assert "gpt-5" in any_args
+    assert "gpt-5-mini" in any_args
+    assert "gpt-5-nano" in any_args
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.

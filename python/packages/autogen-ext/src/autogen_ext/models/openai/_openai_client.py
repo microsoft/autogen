@@ -273,6 +273,36 @@ def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
     )
 
 
+def _build_custom_tool_param_from_schema(custom_schema: Dict[str, Any]) -> Dict[str, Any]:
+    """Build an OpenAI ChatCompletionToolParam for a GPT-5 custom tool schema.
+
+    The input schema is expected to be a mapping with at least "name" and optional
+    "description" and "format" (for grammar or other formats).
+    """
+    custom_tool_param: Dict[str, Any] = {
+        "type": "custom",
+        "custom": {
+            "name": custom_schema["name"],
+            "description": custom_schema.get("description", ""),
+        },
+    }
+    if "format" in custom_schema:
+        format_config = custom_schema["format"]
+        # Support grammar format as well as opaque format payloads
+        format_type = cast(Dict[str, Any], format_config).get("type") if isinstance(format_config, dict) else None
+        if format_type == "grammar":
+            syntax = cast(Dict[str, Any], format_config).get("syntax")
+            definition = cast(Dict[str, Any], format_config).get("definition")
+            if syntax and definition:
+                custom_tool_param["custom"]["format"] = {
+                    "type": "grammar",
+                    "grammar": {"type": syntax, "grammar": definition},
+                }
+        else:
+            custom_tool_param["custom"]["format"] = format_config
+    return custom_tool_param
+
+
 def convert_tools(
     tools: Sequence[Tool | ToolSchema | CustomTool | CustomToolSchema],
 ) -> List[ChatCompletionToolParam]:
@@ -280,58 +310,22 @@ def convert_tools(
     for tool in tools:
         if isinstance(tool, CustomTool):
             # GPT-5 Custom Tool - format according to OpenAI API spec
-            custom_schema = tool.schema
-            custom_tool_param: Dict[str, Any] = {
-                "type": "custom",
-                "custom": {
-                    "name": custom_schema["name"],
-                    "description": custom_schema.get("description", ""),
-                },
-            }
-            if "format" in custom_schema:
-                format_config = custom_schema["format"]
-                format_type = format_config.get("type")
-                if format_type == "grammar":
-                    syntax = format_config.get("syntax")
-                    definition = format_config.get("definition")
-                    if syntax and definition:
-                        custom_tool_param["custom"]["format"] = {
-                            "type": "grammar",
-                            "grammar": {"type": syntax, "grammar": definition},
-                        }
-                else:
-                    custom_tool_param["custom"]["format"] = format_config
+            custom_schema = cast(Dict[str, Any], tool.schema)
+            custom_tool_param = _build_custom_tool_param_from_schema(custom_schema)
             result.append(cast(ChatCompletionToolParam, custom_tool_param))
         elif isinstance(tool, dict) and "format" in tool:
-            # Custom tool schema dict
-            custom_tool_param: Dict[str, Any] = {
-                "type": "custom",
-                "custom": {
-                    "name": tool["name"],
-                    "description": tool.get("description", ""),
-                },
-            }
-            if "format" in tool:
-                format_config = tool["format"]
-                format_type = format_config.get("type")
-                if format_type == "grammar":
-                    syntax = format_config.get("syntax")
-                    definition = format_config.get("definition")
-                    if syntax and definition:
-                        custom_tool_param["custom"]["format"] = {
-                            "type": "grammar",
-                            "grammar": {"type": syntax, "grammar": definition},
-                        }
-                else:
-                    custom_tool_param["custom"]["format"] = format_config
+            # Custom tool schema dict (explicit schema)
+            custom_schema = cast(Dict[str, Any], tool)
+            custom_tool_param = _build_custom_tool_param_from_schema(custom_schema)
             result.append(cast(ChatCompletionToolParam, custom_tool_param))
         else:
             # Standard function tool
+            tool_schema: ToolSchema
             if isinstance(tool, Tool):
                 tool_schema = tool.schema
             else:
-                assert isinstance(tool, dict)
-                tool_schema = tool
+                # At this point, this must be a function ToolSchema (not a CustomToolSchema)
+                tool_schema = cast(ToolSchema, tool)
 
             result.append(
                 ChatCompletionToolParam(

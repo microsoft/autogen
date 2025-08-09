@@ -63,7 +63,7 @@ class TestResponsesAPIParameterHandling:
     """Test Responses API specific parameter handling."""
 
     @pytest.fixture
-    def mock_openai_client(self):
+    def mock_openai_client(self) -> Any:
         with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
@@ -135,7 +135,7 @@ class TestResponsesAPICallHandling:
     """Test actual API call handling and response processing."""
 
     @pytest.fixture
-    def mock_openai_client(self):
+    def mock_openai_client(self) -> Any:
         with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
@@ -225,7 +225,7 @@ class TestResponsesAPICallHandling:
         assert tool_call.name == "code_exec"
         assert "print('Hello from GPT-5!')" in tool_call.arguments
         assert result.thought == "I'll execute this Python code for you."
-        assert result.finish_reason == "tool_calls"
+        assert str(result.finish_reason) == "tool_calls"
 
     async def test_cot_preservation_call(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test call with chain-of-thought preservation."""
@@ -267,7 +267,7 @@ class TestResponsesAPIErrorHandling:
     """Test error handling in Responses API client."""
 
     @pytest.fixture
-    def mock_openai_client(self):
+    def mock_openai_client(self) -> Any:
         with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
@@ -327,7 +327,7 @@ class TestResponsesAPIIntegration:
     """Test integration scenarios for Responses API."""
 
     @pytest.fixture
-    def mock_openai_client(self):
+    def mock_openai_client(self) -> Any:
         with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()

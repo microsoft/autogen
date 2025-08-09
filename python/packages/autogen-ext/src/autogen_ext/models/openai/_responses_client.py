@@ -123,8 +123,8 @@ from typing_extensions import Unpack
 
 from .._utils.normalize_stop_reason import normalize_stop_reason
 from . import _model_info
+from autogen_core import EVENT_LOGGER_NAME
 from ._openai_client import (
-    EVENT_LOGGER_NAME,
     convert_tools,
     normalize_name,
 )
@@ -502,11 +502,11 @@ class BaseOpenAIResponsesAPIClient:
                 if message_dict.get("content"):
                     thought = cast(str, message_dict["content"])
 
-                finish_reason = "tool_calls"
+                finish_reason_tools: Optional[str] = "tool_calls"
             else:
                 # Text response
                 content = cast(str, message_dict.get("content", ""))
-                finish_reason = cast(Optional[str], choice.get("finish_reason", "stop"))
+                finish_reason: Optional[str] = cast(Optional[str], choice.get("finish_reason", "stop"))
 
             # Extract reasoning if available
             reasoning_items_data: Optional[List[Dict[str, Any]]] = result.get("reasoning_items")  # type: ignore[assignment]
@@ -519,6 +519,26 @@ class BaseOpenAIResponsesAPIClient:
                 if reasoning_texts:
                     thought = "\n".join(reasoning_texts)
 
+            # Build CreateResult
+            if (locals().get("finish_reason_tools") or "") == "tool_calls":
+                # The model requested tool calls
+                create_result = CreateResult(
+                    finish_reason=normalize_stop_reason("tool_calls"),
+                    content=cast(List[FunctionCall], content),
+                    usage=usage,
+                    cached=False,
+                    thought=thought,
+                )
+            else:
+                # Plain text response
+                create_result = CreateResult(
+                    finish_reason=normalize_stop_reason(finish_reason),
+                    content=str(content),
+                    usage=usage,
+                    cached=False,
+                    thought=thought,
+                )
+
         else:
             # Fallback for direct content
             content = str(result.get("content", ""))
@@ -528,23 +548,23 @@ class BaseOpenAIResponsesAPIClient:
             if "reasoning" in result:
                 thought = str(result["reasoning"])  # best effort
 
-        response = CreateResult(
-            finish_reason=normalize_stop_reason(finish_reason),
-            content=content,
-            usage=usage,
-            cached=bool(result.get("cached", False)),
-            logprobs=None,  # Responses API may not provide logprobs
-            thought=thought,
-        )
+            # Build CreateResult
+            create_result = CreateResult(
+                finish_reason=normalize_stop_reason(finish_reason),
+                content=str(content),
+                usage=usage,
+                cached=False,
+                thought=thought,
+            )
 
         # Store response ID for potential future use
         if "id" in result:
-            response.response_id = cast(str, result["id"])  # type: ignore
+            create_result.response_id = cast(str, result["id"])  # type: ignore
 
         self._total_usage = _add_usage(self._total_usage, usage)
         self._actual_usage = _add_usage(self._actual_usage, usage)
 
-        return response
+        return create_result
 
     async def close(self) -> None:
         """Close the underlying client."""

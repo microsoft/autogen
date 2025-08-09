@@ -45,7 +45,7 @@ class CodeExecResult(BaseModel):
 class TestCodeExecutorTool(BaseCustomTool[CodeExecResult]):
     """Test implementation of GPT-5 custom tool for code execution."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             return_type=CodeExecResult,
             name="code_exec",
@@ -63,7 +63,7 @@ class SQLResult(BaseModel):
 class TestSQLTool(BaseCustomTool[SQLResult]):
     """Test implementation of GPT-5 custom tool with grammar constraints."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         sql_grammar: CustomToolFormat = {
             "type": "grammar",
             "syntax": "lark",
@@ -139,11 +139,11 @@ class TestCustomToolsIntegration:
 
         assert schema["name"] == "sql_query"
         assert "format" in schema
-        fmt = schema.get("format")
-        assert fmt is not None and isinstance(fmt, dict)
-        assert fmt.get("type") == "grammar"
-        assert fmt.get("syntax") == "lark"
-        assert isinstance(fmt.get("definition"), str) and "SELECT" in fmt.get("definition", "")
+        fmt_any = schema.get("format")
+        assert isinstance(fmt_any, dict)
+        assert fmt_any.get("type") == "grammar"
+        assert fmt_any.get("syntax") == "lark"
+        assert isinstance(fmt_any.get("definition"), str) and "SELECT" in fmt_any.get("definition", "")
 
     def test_convert_custom_tools(self) -> None:
         """Test conversion of custom tools to OpenAI API format."""
@@ -155,13 +155,13 @@ class TestCustomToolsIntegration:
         assert len(converted) == 2
 
         # Check code tool conversion
-        code_tool_param = next(t for t in converted if t.get("custom", {}).get("name") == "code_exec")
-        assert code_tool_param["type"] == "custom"
+        code_tool_param = next(cast(Dict[str, Any], t) for t in converted if cast(Dict[str, Any], t).get("custom", {}).get("name") == "code_exec")
+        assert str(code_tool_param.get("type")) == "custom"
         assert "format" not in code_tool_param.get("custom", {})
 
         # Check SQL tool conversion with grammar
-        sql_tool_param = next(t for t in converted if t.get("custom", {}).get("name") == "sql_query")
-        assert sql_tool_param["type"] == "custom"
+        sql_tool_param = next(cast(Dict[str, Any], t) for t in converted if cast(Dict[str, Any], t).get("custom", {}).get("name") == "sql_query")
+        assert str(sql_tool_param.get("type")) == "custom"
         assert "format" in sql_tool_param.get("custom", {})
         assert sql_tool_param.get("custom", {}).get("format", {}).get("type") == "grammar"
 
@@ -337,8 +337,15 @@ class TestAllowedToolsFeature:
         exec_tool = FunctionTool(dangerous_exec, description="Code executor")
         code_tool = TestCodeExecutorTool()
 
-        all_tools = [calc_tool, exec_tool, code_tool]
-        safe_tools = [calc_tool]  # Only allow calculator
+        from autogen_core.tools import Tool as _Tool, ToolSchema as _ToolSchema
+        from autogen_core.tools import CustomTool as _CustomTool, CustomToolSchema as _CustomToolSchema
+
+        all_tools: List[_Tool | _ToolSchema | _CustomTool | _CustomToolSchema] = [
+            cast(_Tool, calc_tool),
+            cast(_Tool, exec_tool),
+            cast(_CustomTool, code_tool),
+        ]
+        safe_tools: List[_Tool | _CustomTool | str] = [cast(_Tool, calc_tool)]  # Only allow calculator
 
         mock_response = ChatCompletion(
             id="test-id",
@@ -536,9 +543,11 @@ class TestGPT5IntegrationScenarios:
         )
         mock_openai_client.chat.completions.create.return_value = mock_response
 
+        # Tools typed to expected union for create
+        tools_param = [code_tool, sql_tool]
         result = await client.create(
             messages=[UserMessage(content="Analyze this fibonacci implementation and run it for n=10", source="user")],
-            tools=[code_tool, sql_tool],
+            tools=tools_param,
             reasoning_effort="medium",  # type: ignore[arg-type]
             verbosity="low",  # type: ignore[arg-type]
             preambles=True,
@@ -610,7 +619,7 @@ class TestGPT5IntegrationScenarios:
 
 
 @pytest.mark.asyncio
-async def test_gpt5_error_handling():
+async def test_gpt5_error_handling() -> None:
     """Test proper error handling for GPT-5 specific scenarios."""
 
     # Test invalid reasoning effort
