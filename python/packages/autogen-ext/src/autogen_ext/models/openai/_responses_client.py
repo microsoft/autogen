@@ -113,9 +113,10 @@ from autogen_core.models import (
 )
 from autogen_core.tools import CustomTool, CustomToolSchema, Tool, ToolSchema
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
-from openai.types.chat import ChatCompletionToolParam
 from openai.types.chat.chat_completion_message_custom_tool_call import ChatCompletionMessageCustomToolCall
 from openai.types.chat.chat_completion_message_function_tool_call import ChatCompletionMessageFunctionToolCall
+from openai.types.responses.response_create_params import ToolParam as ResponsesToolParam
+from typing import cast as _cast  # alias to avoid shadowing
 
 # Import concrete tool call classes for strict typing
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall
@@ -181,13 +182,13 @@ class ResponsesAPICreateParams:
 
     # Explicit attribute types for static type checkers
     input: str
-    tools: List[ChatCompletionToolParam]
+    tools: List[ResponsesToolParam]
     create_args: Dict[str, Any]
 
     def __init__(
         self,
         input: str,
-        tools: List[ChatCompletionToolParam],
+        tools: List[ResponsesToolParam],
         create_args: Dict[str, Any],
     ):
         self.input = input
@@ -292,8 +293,45 @@ class BaseOpenAIResponsesAPIClient:
         if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
 
-        # Convert tools to OpenAI format
-        converted_tools = convert_tools(tools)
+        # Convert tools to OpenAI Responses API format
+        converted_tools: List[Dict[str, Any]] = []
+
+        for tool in tools:
+            if isinstance(tool, CustomTool) or (isinstance(tool, dict) and "format" in tool):
+                # GPT-5 Custom tool for Responses API
+                custom_schema = cast(Dict[str, Any], getattr(tool, "schema", tool))  # type: ignore[arg-type]
+                custom_param: Dict[str, Any] = {
+                    "type": "custom",
+                    "name": custom_schema["name"],
+                    "description": custom_schema.get("description", ""),
+                }
+                if "format" in custom_schema:
+                    fmt = custom_schema["format"]
+                    if isinstance(fmt, dict) and fmt.get("type") == "grammar":
+                        syntax = fmt.get("syntax")
+                        definition = fmt.get("definition")
+                        if syntax and definition:
+                            custom_param["format"] = {"type": "grammar", "syntax": syntax, "definition": definition}
+                    else:
+                        custom_param["format"] = fmt
+                converted_tools.append(custom_param)
+            else:
+                # Standard function tool
+                tool_schema: Dict[str, Any]
+                if isinstance(tool, Tool):
+                    tool_schema = tool.schema
+                else:
+                    tool_schema = cast(Dict[str, Any], tool)
+
+                converted_tools.append(
+                    {
+                        "type": "function",
+                        "name": tool_schema["name"],
+                        "description": tool_schema.get("description", ""),
+                        "parameters": tool_schema.get("parameters", {}),
+                        "strict": tool_schema.get("strict", False),
+                    }
+                )
 
         # Process tool choice
         if isinstance(tool_choice, (Tool, CustomTool)):
@@ -333,25 +371,17 @@ class BaseOpenAIResponsesAPIClient:
 
                     for tool_param in converted_tools:
                         tool_dict = cast(Dict[str, Any], tool_param)
-                        tool_name = ""
-                        if tool_dict.get("type") == "function":
-                            tool_name = tool_dict["function"]["name"]
-                        elif tool_dict.get("type") == "custom":
-                            tool_name = tool_dict["custom"]["name"]
-                        else:
-                            continue
-
-                        if tool_name in allowed_tool_names:
-                            if tool_dict.get("type") == "function":
-                                allowed_tools_param["tools"].append({"type": "function", "name": tool_name})
-                            elif tool_dict.get("type") == "custom":
-                                allowed_tools_param["tools"].append({"type": "custom", "name": tool_name})
+                        tool_type = tool_dict.get("type")
+                        tool_name = cast(str, tool_dict.get("name", ""))
+                        if tool_type in {"function", "custom"} and tool_name in allowed_tool_names:
+                            allowed_tools_param["tools"].append({"type": tool_type, "name": tool_name})
 
                     create_args["tool_choice"] = allowed_tools_param
 
+        # Cast converted tools to the precise ToolParam union type for typing only
         return ResponsesAPICreateParams(
             input=input,
-            tools=converted_tools,
+            tools=_cast(List[ResponsesToolParam], converted_tools),
             create_args=create_args,
         )
 
@@ -455,125 +485,78 @@ class BaseOpenAIResponsesAPIClient:
         if cancellation_token is not None:
             cancellation_token.link_future(future)
 
-        result: Dict[str, Any] = await future
+        from openai.types.responses.response import Response as SDKResponse
+        from openai.types.responses.response_output_message import ResponseOutputMessage
+        from openai.types.responses.response_output_text import ResponseOutputText
+        from openai.types.responses.response_function_tool_call import ResponseFunctionToolCall
+        from openai.types.responses.response_custom_tool_call import ResponseCustomToolCall
 
-        # Handle usage information
-        usage_dict = cast(Dict[str, Any], result.get("usage", {}))
+        sdk_response = cast(SDKResponse, await future)
+
+        # Handle usage information (Responses API uses input/output tokens)
         usage = RequestUsage(
-            prompt_tokens=int(usage_dict.get("prompt_tokens", 0) or 0),
-            completion_tokens=int(usage_dict.get("completion_tokens", 0) or 0),
+            prompt_tokens=int(getattr(sdk_response.usage, "input_tokens", 0) or 0),
+            completion_tokens=int(getattr(sdk_response.usage, "output_tokens", 0) or 0),
         )
 
         # Log the call
         logger.info(
             LLMCallEvent(
                 messages=[{"role": "user", "content": input}],
-                response=result,
+                response=sdk_response.to_dict(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
                 tools=create_params.tools,
             )
         )
 
-        # Extract content and reasoning from response
-        content: Union[str, List[FunctionCall]] = ""
+        # Parse Responses API output
+        tool_calls_fc: List[FunctionCall] = []
         thought: Optional[str] = None
-
-        # Process response based on type (text response vs tool calls)
-        if "choices" in result and len(cast(List[Any], result["choices"])) > 0:
-            choices = cast(List[Dict[str, Any]], result["choices"])  # list of dicts
-            choice = choices[0]
-
-            # Handle tool calls
-            message_dict = cast(Dict[str, Any], choice.get("message", {}))
-            is_tool_calls: bool = False
-            finish_reason: Optional[str] = None
-            if message_dict.get("tool_calls"):
-                tool_calls = cast(
-                    Sequence[ChatCompletionMessageToolCall], message_dict["tool_calls"]
-                )  # runtime objects when using SDK
-                content = []
-
-                for tool_call in tool_calls:
-                    if isinstance(tool_call, ChatCompletionMessageFunctionToolCall) and tool_call.function:
-                        content.append(
-                            FunctionCall(
-                                id=tool_call.id or "",
-                                arguments=tool_call.function.arguments,
-                                name=normalize_name(tool_call.function.name),
-                            )
-                        )
-                    elif isinstance(tool_call, ChatCompletionMessageCustomToolCall) and tool_call.custom:
-                        content.append(
-                            FunctionCall(
-                                id=tool_call.id or "",
-                                arguments=tool_call.custom.input,
-                                name=normalize_name(tool_call.custom.name),
-                            )
-                        )
-
-                # Check for preamble text
-                if message_dict.get("content"):
-                    thought = cast(str, message_dict["content"])
-
-                is_tool_calls = True
-            else:
-                # Text response
-                content = cast(str, message_dict.get("content", ""))
-                finish_reason = cast(Optional[str], choice.get("finish_reason", "stop"))
-
-            # Extract reasoning if available
-            reasoning_items_data: Optional[List[Dict[str, Any]]] = result.get("reasoning_items")  # type: ignore[assignment]
-            if reasoning_items_data:
-                # Combine reasoning items into thought
-                reasoning_texts: List[str] = []
-                for item in reasoning_items_data:
-                    if isinstance(item, dict) and item.get("type") == "reasoning" and "content" in item:
-                        reasoning_texts.append(str(item["content"]))
-                if reasoning_texts:
-                    thought = "\n".join(reasoning_texts)
-
-            # Build CreateResult
-            if is_tool_calls:
-                # The model requested tool calls
-                create_result = CreateResult(
-                    finish_reason=normalize_stop_reason("tool_calls"),
-                    content=cast(List[FunctionCall], content),
-                    usage=usage,
-                    cached=False,
-                    thought=thought,
+        text_parts: List[str] = []
+        for item in sdk_response.output or []:
+            if isinstance(item, ResponseFunctionToolCall):
+                tool_calls_fc.append(
+                    FunctionCall(id=item.id or "", arguments=item.arguments or "", name=normalize_name(item.name))
                 )
-            else:
-                # Plain text response
-                create_result = CreateResult(
-                    finish_reason=normalize_stop_reason(finish_reason or "stop"),
-                    content=str(content),
-                    usage=usage,
-                    cached=False,
-                    thought=thought,
+            elif isinstance(item, ResponseCustomToolCall):
+                tool_calls_fc.append(
+                    FunctionCall(id=item.id or "", arguments=item.input or "", name=normalize_name(item.name))
                 )
+            elif isinstance(item, ResponseOutputMessage):
+                for c in item.content or []:
+                    if isinstance(c, ResponseOutputText):
+                        text_parts.append(c.text)
 
-        else:
-            # Fallback for direct content
-            content = str(result.get("content", ""))
-            finish_reason = "stop"
+        # Reasoning items
+        if sdk_response.reasoning is not None:
+            try:
+                # Newer SDKs may expose summary text
+                summary_texts = getattr(sdk_response.reasoning, "summary", None)
+                if summary_texts:
+                    thought = "\n".join([getattr(s, "text", "") for s in summary_texts])
+            except Exception:
+                thought = None
 
-            # Check for reasoning
-            if "reasoning" in result:
-                thought = str(result["reasoning"])  # best effort
-
-            # Build CreateResult
+        if tool_calls_fc:
             create_result = CreateResult(
-                finish_reason=normalize_stop_reason(finish_reason),
-                content=str(content),
+                finish_reason=normalize_stop_reason("tool_calls"),
+                content=tool_calls_fc,
+                usage=usage,
+                cached=False,
+                thought=thought,
+            )
+        else:
+            create_result = CreateResult(
+                finish_reason=normalize_stop_reason("stop"),
+                content="".join(text_parts),
                 usage=usage,
                 cached=False,
                 thought=thought,
             )
 
-        # Store response ID for potential future use
-        if "id" in result:
-            create_result.response_id = cast(str, result["id"])  # type: ignore
+        # The CreateResult type does not currently expose a response_id field
+        # We can add it in the future if the core model supports it.
 
         self._total_usage = _add_usage(self._total_usage, usage)
         self._actual_usage = _add_usage(self._actual_usage, usage)

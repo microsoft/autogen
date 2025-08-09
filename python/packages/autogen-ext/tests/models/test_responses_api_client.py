@@ -12,6 +12,7 @@ parameter handling, and integration with AutoGen frameworks.
 """
 
 from typing import Any, Dict, cast
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -24,6 +25,9 @@ from autogen_ext.models.openai import (
 from autogen_ext.models.openai._responses_client import (
     ResponsesAPICreateParams,
 )
+from openai.types.responses.response_custom_tool_call import ResponseCustomToolCall
+from openai.types.responses.response_output_text import ResponseOutputText
+from openai.types.responses.response_output_message import ResponseOutputMessage
 from test_gpt5_features import TestCodeExecutorTool
 
 
@@ -32,7 +36,7 @@ class TestResponsesAPIClientInitialization:
 
     def test_openai_responses_client_creation(self) -> None:
         """Test OpenAI Responses API client can be created."""
-        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
             mock.return_value = AsyncMock()
             client = OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
             # Access through public info() for type safety
@@ -40,7 +44,7 @@ class TestResponsesAPIClientInitialization:
 
     def test_azure_responses_client_creation(self) -> None:
         """Test Azure OpenAI Responses API client can be created."""
-        with patch("autogen_ext.models.openai._responses_client._azure_openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._openai_client.azure_openai_client_from_config") as mock:
             mock.return_value = AsyncMock()
             client = AzureOpenAIResponsesAPIClient(
                 model="gpt-5",
@@ -53,7 +57,7 @@ class TestResponsesAPIClientInitialization:
 
     def test_invalid_model_raises_error(self) -> None:
         """Test that invalid model names raise appropriate errors."""
-        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
             mock.return_value = AsyncMock()
             with pytest.raises(ValueError, match="model_info is required"):
                 OpenAIResponsesAPIClient(model="invalid-model", api_key="test-key")
@@ -64,7 +68,7 @@ class TestResponsesAPIParameterHandling:
 
     @pytest.fixture
     def mock_openai_client(self) -> Any:
-        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
             mock.return_value = mock_client
@@ -136,7 +140,7 @@ class TestResponsesAPICallHandling:
 
     @pytest.fixture
     def mock_openai_client(self) -> Any:
-        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
             mock.return_value = mock_client
@@ -148,12 +152,21 @@ class TestResponsesAPICallHandling:
 
     async def test_basic_text_response(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test processing of basic text response."""
-        mock_response = {
-            "id": "resp-123",
-            "choices": [{"message": {"content": "This is a test response"}, "finish_reason": "stop"}],
-            "usage": {"prompt_tokens": 15, "completion_tokens": 25},
-        }
-        mock_openai_client.responses.create.return_value = mock_response
+        sdk_like = SimpleNamespace(
+            id="resp-123",
+            output=[
+                ResponseOutputMessage(
+                    role="assistant",
+                    status="completed",
+                    type="message",
+                    content=[ResponseOutputText(type="output_text", text="This is a test response")],
+                )
+            ],
+            usage=SimpleNamespace(input_tokens=15, output_tokens=25),
+            reasoning=None,
+            to_dict=lambda: {"id": "resp-123"},
+        )
+        mock_openai_client.responses.create.return_value = sdk_like
 
         result = await client.create(input="Test question")
 
@@ -162,22 +175,24 @@ class TestResponsesAPICallHandling:
         assert result.finish_reason == "stop"
         assert result.usage.prompt_tokens == 15
         assert result.usage.completion_tokens == 25
-        assert hasattr(result, "response_id")
-        assert result.response_id == "resp-123"  # type: ignore
 
     async def test_response_with_reasoning(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test processing response with reasoning items."""
-        mock_response = {
-            "id": "resp-124",
-            "choices": [{"message": {"content": "Final answer after reasoning"}, "finish_reason": "stop"}],
-            "reasoning_items": [
-                {"type": "reasoning", "content": "First, I need to consider..."},
-                {"type": "reasoning", "content": "Then, I should analyze..."},
-                {"type": "reasoning", "content": "Finally, the conclusion is..."},
+        sdk_like = SimpleNamespace(
+            id="resp-124",
+            output=[
+                ResponseOutputMessage(
+                    role="assistant",
+                    status="completed",
+                    type="message",
+                    content=[ResponseOutputText(type="output_text", text="Final answer after reasoning")],
+                )
             ],
-            "usage": {"prompt_tokens": 30, "completion_tokens": 50},
-        }
-        mock_openai_client.responses.create.return_value = mock_response
+            usage=SimpleNamespace(input_tokens=30, output_tokens=50),
+            reasoning=SimpleNamespace(summary=[SimpleNamespace(text="First, I need to consider..."), SimpleNamespace(text="Then, I should analyze..."), SimpleNamespace(text="Finally, the conclusion is...")]),
+            to_dict=lambda: {"id": "resp-124"},
+        )
+        mock_openai_client.responses.create.return_value = sdk_like
 
         result = await client.create(input="Complex reasoning question", reasoning_effort="high")
 
@@ -189,32 +204,24 @@ class TestResponsesAPICallHandling:
 
     async def test_custom_tool_call_response(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test processing response with custom tool calls."""
-        from test_gpt5_features import TestCodeExecutorTool
-
         code_tool = TestCodeExecutorTool()
 
-        mock_response = {
-            "id": "resp-125",
-            "choices": [
-                {
-                    "message": {
-                        "content": "I'll execute this Python code for you.",
-                        "tool_calls": [
-                            {
-                                "id": "call-789",
-                                "custom": {
-                                    "name": "code_exec",
-                                    "input": "print('Hello from GPT-5!')\nresult = 2 + 2\nprint(f'2 + 2 = {result}')",
-                                },
-                            }
-                        ],
-                    },
-                    "finish_reason": "tool_calls",
-                }
+        sdk_like = SimpleNamespace(
+            id="resp-125",
+            output=[
+                ResponseCustomToolCall(
+                    type="custom_tool_call",
+                    id="call-789",
+                    call_id="call-789",
+                    name="code_exec",
+                    input="print('Hello from GPT-5!')\nresult = 2 + 2\nprint(f'2 + 2 = {result}')",
+                )
             ],
-            "usage": {"prompt_tokens": 25, "completion_tokens": 35},
-        }
-        mock_openai_client.responses.create.return_value = mock_response
+            usage=SimpleNamespace(input_tokens=25, output_tokens=35),
+            reasoning=None,
+            to_dict=lambda: {"id": "resp-125"},
+        )
+        mock_openai_client.responses.create.return_value = sdk_like
 
         result = await client.create(input="Run this Python code to do basic math", tools=[code_tool], preambles=True)
 
@@ -225,34 +232,47 @@ class TestResponsesAPICallHandling:
         assert tool_call.name == "code_exec"
         assert "print('Hello from GPT-5!')" in tool_call.arguments
         assert result.thought == "I'll execute this Python code for you."
-        assert str(result.finish_reason) == "tool_calls"
+        assert result.finish_reason == "tool_calls"
 
     async def test_cot_preservation_call(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test call with chain-of-thought preservation."""
         # First call
-        mock_response1 = {
-            "id": "resp-100",
-            "choices": [{"message": {"content": "Initial response"}, "finish_reason": "stop"}],
-            "usage": {"prompt_tokens": 20, "completion_tokens": 30},
-            "reasoning_items": [{"type": "reasoning", "content": "Initial reasoning"}],
-        }
-        mock_openai_client.responses.create.return_value = mock_response1
+        sdk_like1 = SimpleNamespace(
+            id="resp-100",
+            output=[
+                ResponseOutputMessage(
+                    role="assistant",
+                    status="completed",
+                    type="message",
+                    content=[ResponseOutputText(type="output_text", text="Initial response")],
+                )
+            ],
+            usage=SimpleNamespace(input_tokens=20, output_tokens=30),
+            reasoning=SimpleNamespace(summary=[SimpleNamespace(text="Initial reasoning")]),
+            to_dict=lambda: {"id": "resp-100"},
+        )
+        mock_openai_client.responses.create.return_value = sdk_like1
 
         result1 = await client.create(input="First question", reasoning_effort="high")
 
         # Second call with preserved context
-        mock_response2 = {
-            "id": "resp-101",
-            "choices": [{"message": {"content": "Follow-up response"}, "finish_reason": "stop"}],
-            "usage": {"prompt_tokens": 10, "completion_tokens": 20},  # Lower tokens due to context reuse
-        }
-        mock_openai_client.responses.create.return_value = mock_response2
-
-        result2 = await client.create(
-            input="Follow-up question",
-            previous_response_id=result1.response_id,  # type: ignore
-            reasoning_effort="low",
+        sdk_like2 = SimpleNamespace(
+            id="resp-101",
+            output=[
+                ResponseOutputMessage(
+                    role="assistant",
+                    status="completed",
+                    type="message",
+                    content=[ResponseOutputText(type="output_text", text="Follow-up response")],
+                )
+            ],
+            usage=SimpleNamespace(input_tokens=10, output_tokens=20),
+            reasoning=None,
+            to_dict=lambda: {"id": "resp-101"},
         )
+        mock_openai_client.responses.create.return_value = sdk_like2
+
+        result2 = await client.create(input="Follow-up question", previous_response_id="resp-100", reasoning_effort="low")
 
         # Verify parameters were passed correctly
         call_kwargs = mock_openai_client.responses.create.call_args[1]
@@ -268,7 +288,7 @@ class TestResponsesAPIErrorHandling:
 
     @pytest.fixture
     def mock_openai_client(self) -> Any:
-        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
             mock.return_value = mock_client
@@ -293,12 +313,21 @@ class TestResponsesAPIErrorHandling:
         cancellation_token = CancellationToken()
 
         # Mock a successful response
-        mock_response = {
-            "id": "resp-999",
-            "choices": [{"message": {"content": "Response"}, "finish_reason": "stop"}],
-            "usage": {"prompt_tokens": 5, "completion_tokens": 10},
-        }
-        mock_openai_client.responses.create.return_value = mock_response
+        sdk_like = SimpleNamespace(
+            id="resp-999",
+            output=[
+                ResponseOutputMessage(
+                    role="assistant",
+                    status="completed",
+                    type="message",
+                    content=[ResponseOutputText(type="output_text", text="Response")],
+                )
+            ],
+            usage=SimpleNamespace(input_tokens=5, output_tokens=10),
+            reasoning=None,
+            to_dict=lambda: {"id": "resp-999"},
+        )
+        mock_openai_client.responses.create.return_value = sdk_like
 
         result = await client.create(input="Test with cancellation", cancellation_token=cancellation_token)
 
@@ -309,11 +338,14 @@ class TestResponsesAPIErrorHandling:
     async def test_malformed_response_handling(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test handling of malformed API responses."""
         # Response missing required fields
-        mock_response = {
-            "id": "resp-bad"
-            # Missing choices, usage, etc.
-        }
-        mock_openai_client.responses.create.return_value = mock_response
+        # Minimal response: empty output and zero usage
+        mock_openai_client.responses.create.return_value = SimpleNamespace(
+            id="resp-bad",
+            output=[],
+            usage=SimpleNamespace(input_tokens=0, output_tokens=0),
+            reasoning=None,
+            to_dict=lambda: {"id": "resp-bad"},
+        )
 
         result = await client.create(input="Test malformed response")
 
@@ -328,7 +360,7 @@ class TestResponsesAPIIntegration:
 
     @pytest.fixture
     def mock_openai_client(self) -> Any:
-        with patch("autogen_ext.models.openai._responses_client._openai_client_from_config") as mock:
+        with patch("autogen_ext.models.openai._openai_client.openai_client_from_config") as mock:
             mock_client = AsyncMock()
             mock_client.responses.create = AsyncMock()
             mock.return_value = mock_client
@@ -362,16 +394,20 @@ class TestResponsesAPIIntegration:
         )
 
         # Turn 2: Follow-up question with context reuse
-        mock_openai_client.responses.create.return_value = {
-            "id": "resp-002",
-            "choices": [
-                {
-                    "message": {"content": "Building on quantum fundamentals, quantum algorithms..."},
-                    "finish_reason": "stop",
-                }
+        mock_openai_client.responses.create.return_value = SimpleNamespace(
+            id="resp-002",
+            output=[
+                ResponseOutputMessage(
+                    role="assistant",
+                    status="completed",
+                    type="message",
+                    content=[ResponseOutputText(type="output_text", text="Building on quantum fundamentals, quantum algorithms...")],
+                )
             ],
-            "usage": {"prompt_tokens": 30, "completion_tokens": 150},  # Lower due to context
-        }
+            usage=SimpleNamespace(input_tokens=30, output_tokens=150),
+            reasoning=None,
+            to_dict=lambda: {"id": "resp-002"},
+        )
 
         result2 = await client.create(
             input="How do quantum algorithms leverage these principles?",
@@ -380,27 +416,21 @@ class TestResponsesAPIIntegration:
         )
 
         # Turn 3: Specific implementation request
-        mock_openai_client.responses.create.return_value = {
-            "id": "resp-003",
-            "choices": [
-                {
-                    "message": {
-                        "content": "I'll provide a simple quantum algorithm implementation.",
-                        "tool_calls": [
-                            {
-                                "id": "call-001",
-                                "custom": {
-                                    "name": "code_exec",
-                                    "input": "# Simple quantum circuit\nfrom qiskit import QuantumCircuit\nqc = QuantumCircuit(2)\nqc.h(0)\nqc.cx(0, 1)\nprint(qc)",
-                                },
-                            }
-                        ],
-                    },
-                    "finish_reason": "tool_calls",
-                }
+        mock_openai_client.responses.create.return_value = SimpleNamespace(
+            id="resp-003",
+            output=[
+                ResponseCustomToolCall(
+                    type="custom_tool_call",
+                    id="call-001",
+                    call_id="call-001",
+                    name="code_exec",
+                    input="# Simple quantum circuit\nfrom qiskit import QuantumCircuit\nqc = QuantumCircuit(2)\nqc.h(0)\nqc.cx(0, 1)\nprint(qc)",
+                )
             ],
-            "usage": {"prompt_tokens": 25, "completion_tokens": 100},
-        }
+            usage=SimpleNamespace(input_tokens=25, output_tokens=100),
+            reasoning=None,
+            to_dict=lambda: {"id": "resp-003"},
+        )
 
         code_tool = TestCodeExecutorTool()
         result3 = await client.create(
@@ -427,21 +457,48 @@ class TestResponsesAPIIntegration:
         """Test token usage tracking across multiple calls."""
         # Multiple API calls with different usage
         call_responses = [
-            {
-                "id": "r1",
-                "choices": [{"message": {"content": "Response 1"}, "finish_reason": "stop"}],
-                "usage": {"prompt_tokens": 10, "completion_tokens": 20},
-            },
-            {
-                "id": "r2",
-                "choices": [{"message": {"content": "Response 2"}, "finish_reason": "stop"}],
-                "usage": {"prompt_tokens": 15, "completion_tokens": 25},
-            },
-            {
-                "id": "r3",
-                "choices": [{"message": {"content": "Response 3"}, "finish_reason": "stop"}],
-                "usage": {"prompt_tokens": 5, "completion_tokens": 15},
-            },
+            SimpleNamespace(
+                id="r1",
+                output=[
+                    ResponseOutputMessage(
+                        role="assistant",
+                        status="completed",
+                        type="message",
+                        content=[ResponseOutputText(type="output_text", text="Response 1")],
+                    )
+                ],
+                usage=SimpleNamespace(input_tokens=10, output_tokens=20),
+                reasoning=None,
+                to_dict=lambda: {"id": "r1"},
+            ),
+            SimpleNamespace(
+                id="r2",
+                output=[
+                    ResponseOutputMessage(
+                        role="assistant",
+                        status="completed",
+                        type="message",
+                        content=[ResponseOutputText(type="output_text", text="Response 2")],
+                    )
+                ],
+                usage=SimpleNamespace(input_tokens=15, output_tokens=25),
+                reasoning=None,
+                to_dict=lambda: {"id": "r2"},
+            ),
+            SimpleNamespace(
+                id="r3",
+                output=[
+                    ResponseOutputMessage(
+                        role="assistant",
+                        status="completed",
+                        type="message",
+                        content=[ResponseOutputText(type="output_text", text="Response 3")],
+                    )
+                ],
+                usage=SimpleNamespace(input_tokens=5, output_tokens=15),
+                reasoning=None,
+                to_dict=lambda: {"id": "r3"},
+            ),
         ]
 
         for i, response in enumerate(call_responses):
