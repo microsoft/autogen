@@ -15,9 +15,17 @@ from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
-from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
+from openai.types.chat.chat_completion_message_function_tool_call import (
+    ChatCompletionMessageFunctionToolCall as _FuncToolCall,
+)
+from openai.types.chat.chat_completion_message_function_tool_call import (
+    Function,
+)
 from openai.types.completion_usage import CompletionUsage
 from pydantic import BaseModel
+
+# Ensure constructible type for tool_calls in tests
+ChatCompletionMessageToolCall = _FuncToolCall  # type: ignore[assignment]
 
 
 class FileLogHandler(logging.Handler):
