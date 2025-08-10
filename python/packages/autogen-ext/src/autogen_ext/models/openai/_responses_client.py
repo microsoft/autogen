@@ -557,8 +557,10 @@ class BaseOpenAIResponsesAPIClient:
 
         sdk_response = cast(SDKResponse, await future)
         raw_response: Any = sdk_response
+        raw_dict: Optional[Dict[str, Any]] = None
         if isinstance(raw_response, dict):
-            usage_dict = cast(Dict[str, Any], raw_response.get("usage", {}))
+            raw_dict = cast(Dict[str, Any], raw_response)
+            usage_dict = cast(Dict[str, Any], raw_dict.get("usage", {}))
             usage = RequestUsage(
                 prompt_tokens=int(usage_dict.get("prompt_tokens", usage_dict.get("input_tokens", 0)) or 0),
                 completion_tokens=int(usage_dict.get("completion_tokens", usage_dict.get("output_tokens", 0)) or 0),
@@ -574,7 +576,7 @@ class BaseOpenAIResponsesAPIClient:
         logger.info(
             LLMCallEvent(
                 messages=[{"role": "user", "content": input}],
-                response=(raw_response if isinstance(raw_response, dict) else sdk_response.to_dict()),
+                response=(raw_dict if raw_dict is not None else sdk_response.to_dict()),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
                 tools=create_params.tools,
@@ -585,10 +587,10 @@ class BaseOpenAIResponsesAPIClient:
         tool_calls_fc: List[FunctionCall] = []
         thought: Optional[str] = None
         text_parts: List[str] = []
-        if isinstance(raw_response, dict):
+        if isinstance(raw_response, dict) and raw_dict is not None:
             # Fallback for tests providing dict-shaped responses
-            if "choices" in raw_response:
-                choices_list = cast(List[Dict[str, Any]], raw_response.get("choices", []))
+            if "choices" in raw_dict:
+                choices_list = cast(List[Dict[str, Any]], raw_dict.get("choices", []))
                 if choices_list:
                     first = choices_list[0]
                     msg = cast(Dict[str, Any], first.get("message", {}))
@@ -620,15 +622,17 @@ class BaseOpenAIResponsesAPIClient:
                         content_text = cast(Optional[str], msg.get("content"))
                         if content_text:
                             text_parts.append(content_text)
-            elif "output" in raw_response:
+            elif "output" in raw_dict:
                 # Not used by current tests, but keep compatibility
-                output_items = cast(List[Any], raw_response.get("output", []) or [])
+                output_items = cast(List[Any], raw_dict.get("output", []) or [])
                 for item in output_items:
-                    if isinstance(item, dict) and item.get("type") == "message":
-                        contents = cast(List[Dict[str, Any]], item.get("content", []) or [])
-                        for c in contents:
-                            if c.get("type") == "output_text":
-                                text_parts.append(str(c.get("text", "")))
+                    if isinstance(item, dict):
+                        item_dict = cast(Dict[str, Any], item)
+                        if item_dict.get("type") == "message":
+                            contents = cast(List[Dict[str, Any]], item_dict.get("content", []) or [])
+                            for c in contents:
+                                if c.get("type") == "output_text":
+                                    text_parts.append(str(c.get("text", "")))
         else:
             for item in sdk_response.output or []:
                 if isinstance(item, ResponseFunctionToolCall):
@@ -640,9 +644,9 @@ class BaseOpenAIResponsesAPIClient:
                         FunctionCall(id=item.id or "", arguments=item.input or "", name=normalize_name(item.name))
                     )
                 elif isinstance(item, ResponseOutputMessage):
-                    for c in item.content or []:
-                        if isinstance(c, ResponseOutputText):
-                            text_parts.append(c.text)
+                    for content_item in item.content or []:
+                        if isinstance(content_item, ResponseOutputText):
+                            text_parts.append(content_item.text)
 
         if not isinstance(raw_response, dict):
             if sdk_response.reasoning is not None:
@@ -662,9 +666,7 @@ class BaseOpenAIResponsesAPIClient:
                 usage=usage,
                 cached=False,
                 thought=thought,
-                response_id=(
-                    raw_response.get("id") if isinstance(raw_response, dict) else getattr(sdk_response, "id", None)
-                ),
+                response_id=(raw_dict.get("id") if raw_dict is not None else getattr(sdk_response, "id", None)),
             )
         else:
             create_result = CreateResultWithId(
@@ -673,9 +675,7 @@ class BaseOpenAIResponsesAPIClient:
                 usage=usage,
                 cached=False,
                 thought=thought,
-                response_id=(
-                    raw_response.get("id") if isinstance(raw_response, dict) else getattr(sdk_response, "id", None)
-                ),
+                response_id=(raw_dict.get("id") if raw_dict is not None else getattr(sdk_response, "id", None)),
             )
 
         # The CreateResult type does not currently expose a response_id field

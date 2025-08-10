@@ -33,7 +33,7 @@ from test_gpt5_features import TestCodeExecutorTool
 
 
 # Helper function to check for API key availability
-def requires_openai_api_key():
+def requires_openai_api_key() -> pytest.MarkDecorator:
     """Skip test if OPENAI_API_KEY is not available."""
     return pytest.mark.skipif(os.getenv("OPENAI_API_KEY") is None, reason="OPENAI_API_KEY environment variable not set")
 
