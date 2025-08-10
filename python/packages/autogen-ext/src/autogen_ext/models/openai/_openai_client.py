@@ -832,6 +832,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                         verbosity="medium",  # Balanced output length
                         preambles=True,  # Enable tool explanations
                     )
+                    print(f"Response: {response.content}")
 
             Using GPT-5 custom tools::
 
@@ -878,8 +879,26 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             Using allowed_tools to restrict model behavior::
 
                 from autogen_ext.models.openai import OpenAIChatCompletionClient
-                from autogen_core.tools import FunctionTool
+                from autogen_core.tools import FunctionTool, BaseCustomTool
                 from autogen_core.models import UserMessage
+                from autogen_core import CancellationToken
+                from pydantic import BaseModel
+
+
+                class CodeResult(BaseModel):
+                    output: str
+
+
+                class CodeExecutorTool(BaseCustomTool[CodeResult]):
+                    def __init__(self):
+                        super().__init__(
+                            return_type=CodeResult,
+                            name="code_exec",
+                            description="Executes arbitrary Python code",
+                        )
+
+                    async def run(self, input_text: str, cancellation_token: CancellationToken) -> CodeResult:
+                        return CodeResult(output=f"Executed: {input_text}")
 
 
                 def calculate(expression: str) -> str:
@@ -892,7 +911,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
                 async def example():
                     client = OpenAIChatCompletionClient(model="gpt-5")
-                    code_tool = CodeExecutorTool()  # From previous example
+                    code_tool = CodeExecutorTool()
                     # Define multiple tools but restrict to safe subset
                     calc_tool = FunctionTool(calculate, description="Calculator")
                     web_tool = FunctionTool(search_web, description="Web search")
@@ -905,6 +924,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                         allowed_tools=safe_tools,  # Model can only use calculator
                         tool_choice="auto",
                     )
+                    print(f"Response: {response.content}")
 
             Grammar-constrained custom tools::
 
@@ -956,12 +976,31 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                         tools=[sql_tool],
                         reasoning_effort="low",
                     )
+                    print(f"Response: {response.content}")
 
             Combining with traditional function tools::
 
                 from autogen_ext.models.openai import OpenAIChatCompletionClient
-                from autogen_core.tools import FunctionTool
+                from autogen_core.tools import FunctionTool, BaseCustomTool
                 from autogen_core.models import UserMessage
+                from autogen_core import CancellationToken
+                from pydantic import BaseModel
+
+
+                class CodeResult(BaseModel):
+                    output: str
+
+
+                class CodeExecutorTool(BaseCustomTool[CodeResult]):
+                    def __init__(self):
+                        super().__init__(
+                            return_type=CodeResult,
+                            name="code_exec",
+                            description="Executes arbitrary Python code",
+                        )
+
+                    async def run(self, input_text: str, cancellation_token: CancellationToken) -> CodeResult:
+                        return CodeResult(output=f"Executed: {input_text}")
 
 
                 def get_weather(location: str) -> str:
@@ -972,13 +1011,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     client = OpenAIChatCompletionClient(model="gpt-5")
                     # Mix traditional and custom tools
                     weather_tool = FunctionTool(get_weather, description="Get weather")
-                    code_tool = CodeExecutorTool()  # Using the CodeExecutorTool defined above
+                    code_tool = CodeExecutorTool()
 
                     response = await client.create(
                         messages=[UserMessage(content="Get Paris weather and calculate 2+2", source="user")],
                         tools=[weather_tool, code_tool],  # Mix both types
                         reasoning_effort="medium",
                     )
+                    print(f"Response: {response.content}")
         """
         create_params = self._process_create_args(
             messages,

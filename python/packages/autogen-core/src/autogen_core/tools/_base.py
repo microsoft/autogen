@@ -407,11 +407,30 @@ class BaseCustomTool(ABC, CustomTool, Generic[ReturnT], ComponentBase[BaseModel]
 
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_core.models import UserMessage
+            from autogen_core.tools import BaseCustomTool
+            from autogen_core import CancellationToken
+            from pydantic import BaseModel
+
+
+            class CodeResult(BaseModel):
+                output: str
+
+
+            class CodeExecutorTool(BaseCustomTool[CodeResult]):
+                def __init__(self) -> None:
+                    super().__init__(
+                        return_type=CodeResult,
+                        name="code_exec",
+                        description="Executes arbitrary Python code",
+                    )
+
+                async def run(self, input_text: str, cancellation_token: CancellationToken) -> CodeResult:
+                    return CodeResult(output=f"Executed: {input_text}")
 
 
             async def example():
                 client = OpenAIChatCompletionClient(model="gpt-5")
-                code_tool = CodeExecutorTool()  # Defined in previous example
+                code_tool = CodeExecutorTool()
 
                 response = await client.create(
                     messages=[UserMessage(content="Use code_exec to calculate 2+2", source="user")],
