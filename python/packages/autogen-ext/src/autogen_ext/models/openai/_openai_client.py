@@ -822,6 +822,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 from autogen_ext.models.openai import OpenAIChatCompletionClient
                 from autogen_core.models import UserMessage
 
+
                 async def example():
                     client = OpenAIChatCompletionClient(model="gpt-5")
 
