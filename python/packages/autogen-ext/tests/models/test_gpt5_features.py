@@ -175,6 +175,7 @@ class TestCustomToolsIntegration:
         assert "format" in sql_tool_param.get("custom", {})
         assert sql_tool_param.get("custom", {}).get("format", {}).get("type") == "grammar"
 
+    @pytest.mark.asyncio
     async def test_custom_tool_execution(self) -> None:
         """Test custom tool execution."""
         code_tool = TestCodeExecutorTool()
@@ -203,6 +204,7 @@ class TestGPT5Parameters:
         """Create test client with mocked OpenAI client."""
         return OpenAIChatCompletionClient(model="gpt-5", api_key="test-key")
 
+    @pytest.mark.asyncio
     async def test_reasoning_effort_parameter(
         self, client: OpenAIChatCompletionClient, mock_openai_client: Any
     ) -> None:
@@ -232,6 +234,7 @@ class TestGPT5Parameters:
             call_kwargs = mock_openai_client.chat.completions.create.call_args[1]
             assert call_kwargs["reasoning_effort"] == effort
 
+    @pytest.mark.asyncio
     async def test_verbosity_parameter(self, client: OpenAIChatCompletionClient, mock_openai_client: Any) -> None:
         """Test verbosity parameter is properly passed."""
         mock_response = ChatCompletion(
@@ -257,6 +260,7 @@ class TestGPT5Parameters:
             call_kwargs = mock_openai_client.chat.completions.create.call_args[1]
             assert call_kwargs["verbosity"] == verbosity
 
+    @pytest.mark.asyncio
     async def test_preambles_parameter(self, client: OpenAIChatCompletionClient, mock_openai_client: Any) -> None:
         """Test preambles parameter is properly passed."""
         mock_response = ChatCompletion(
@@ -287,6 +291,7 @@ class TestGPT5Parameters:
         call_kwargs = mock_openai_client.chat.completions.create.call_args[1]
         assert call_kwargs["preambles"] is False
 
+    @pytest.mark.asyncio
     async def test_combined_gpt5_parameters(self, client: OpenAIChatCompletionClient, mock_openai_client: Any) -> None:
         """Test multiple GPT-5 parameters used together."""
         mock_response = ChatCompletion(
@@ -333,6 +338,7 @@ class TestAllowedToolsFeature:
     def client(self, mock_openai_client: Any) -> OpenAIChatCompletionClient:
         return OpenAIChatCompletionClient(model="gpt-5", api_key="test-key")
 
+    @pytest.mark.asyncio
     async def test_allowed_tools_restriction(self, client: OpenAIChatCompletionClient, mock_openai_client: Any) -> None:
         """Test allowed_tools parameter restricts model to specific tools."""
         from autogen_core.tools import FunctionTool
@@ -418,6 +424,7 @@ class TestResponsesAPIClient:
         return OpenAIResponsesAPIClient(model="gpt-5", api_key="test-key")
 
     @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY"), reason="OpenAI API key not provided")
+    @pytest.mark.asyncio
     async def test_responses_api_basic_call(
         self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any
     ) -> None:
@@ -437,6 +444,7 @@ class TestResponsesAPIClient:
         assert result.usage.completion_tokens == 20
 
     @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY"), reason="OpenAI API key not provided")
+    @pytest.mark.asyncio
     async def test_responses_api_with_cot_preservation(
         self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any
     ) -> None:
@@ -473,6 +481,7 @@ class TestResponsesAPIClient:
         assert result2.content == "Follow-up response"
 
     @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY"), reason="OpenAI API key not provided")
+    @pytest.mark.asyncio
     async def test_responses_api_with_custom_tools(
         self, responses_client: OpenAIResponsesAPIClient, mock_openai_client: Any
     ) -> None:
@@ -522,6 +531,7 @@ class TestGPT5IntegrationScenarios:
     def client(self, mock_openai_client: Any) -> OpenAIChatCompletionClient:
         return OpenAIChatCompletionClient(model="gpt-5", api_key="test-key")
 
+    @pytest.mark.asyncio
     async def test_code_analysis_with_custom_tools(
         self, client: OpenAIChatCompletionClient, mock_openai_client: Any
     ) -> None:
@@ -584,6 +594,7 @@ class TestGPT5IntegrationScenarios:
         assert len(result.content) == 1
         assert result.thought == "I need to analyze this code and run it."
 
+    @pytest.mark.asyncio
     async def test_multi_modal_with_reasoning_control(
         self, client: OpenAIChatCompletionClient, mock_openai_client: Any
     ) -> None:

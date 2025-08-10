@@ -159,6 +159,7 @@ class TestResponsesAPICallHandling:
         api_key = os.getenv("OPENAI_API_KEY", "test-key")
         return OpenAIResponsesAPIClient(model="gpt-5", api_key=api_key)
 
+    @pytest.mark.asyncio
     async def test_basic_text_response(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test processing of basic text response."""
         sdk_like = SimpleNamespace(
@@ -186,6 +187,7 @@ class TestResponsesAPICallHandling:
         assert result.usage.prompt_tokens == 15
         assert result.usage.completion_tokens == 25
 
+    @pytest.mark.asyncio
     async def test_response_with_reasoning(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test processing response with reasoning items."""
         sdk_like = SimpleNamespace(
@@ -221,6 +223,7 @@ class TestResponsesAPICallHandling:
         assert "Then, I should analyze..." in result.thought
         assert "Finally, the conclusion is..." in result.thought
 
+    @pytest.mark.asyncio
     async def test_custom_tool_call_response(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test processing response with custom tool calls."""
         code_tool = TestCodeExecutorTool()
@@ -253,6 +256,7 @@ class TestResponsesAPICallHandling:
         assert result.thought == "I'll execute this Python code for you."
         assert result.finish_reason in {"function_calls"}
 
+    @pytest.mark.asyncio
     async def test_cot_preservation_call(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test call with chain-of-thought preservation."""
         # First call
@@ -322,6 +326,7 @@ class TestResponsesAPIErrorHandling:
         api_key = os.getenv("OPENAI_API_KEY", "test-key")
         return OpenAIResponsesAPIClient(model="gpt-5", api_key=api_key)
 
+    @pytest.mark.asyncio
     async def test_api_error_propagation(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test that API errors are properly propagated."""
         # Instantiate with minimal required args for latest SDK
@@ -334,6 +339,7 @@ class TestResponsesAPIErrorHandling:
         with pytest.raises(APIError, match="Test API error"):
             await client.create(input="Test input")
 
+    @pytest.mark.asyncio
     async def test_cancellation_token_support(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test cancellation token is properly handled."""
         cancellation_token = CancellationToken()
@@ -362,6 +368,7 @@ class TestResponsesAPIErrorHandling:
         # Verify cancellation token was linked to the future
         # (This is tested implicitly by successful completion)
 
+    @pytest.mark.asyncio
     async def test_malformed_response_handling(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test handling of malformed API responses."""
         # Response missing required fields
@@ -398,6 +405,7 @@ class TestResponsesAPIIntegration:
         api_key = os.getenv("OPENAI_API_KEY", "test-key")
         return OpenAIResponsesAPIClient(model="gpt-5", api_key=api_key)
 
+    @pytest.mark.asyncio
     async def test_multi_turn_conversation_simulation(
         self, client: OpenAIResponsesAPIClient, mock_openai_client: Any
     ) -> None:
@@ -503,6 +511,7 @@ class TestResponsesAPIIntegration:
         assert "QuantumCircuit" in result3.content[0].arguments
         assert result3.thought == "I'll provide a simple quantum algorithm implementation."
 
+    @pytest.mark.asyncio
     async def test_usage_tracking(self, client: OpenAIResponsesAPIClient, mock_openai_client: Any) -> None:
         """Test token usage tracking across multiple calls."""
         # Multiple API calls with different usage
