@@ -364,7 +364,9 @@ class BaseCustomTool(ABC, CustomTool, Generic[ReturnT], ComponentBase[BaseModel]
 
         Custom tool with Context-Free Grammar constraints::
 
-            from autogen_core.tools import CustomToolFormat
+            from autogen_core.tools import BaseCustomTool, CustomToolFormat
+            from autogen_core import CancellationToken
+            from pydantic import BaseModel
 
 
             class SQLResult(BaseModel):
@@ -409,7 +411,7 @@ class BaseCustomTool(ABC, CustomTool, Generic[ReturnT], ComponentBase[BaseModel]
 
             async def example():
                 client = OpenAIChatCompletionClient(model="gpt-5")
-                code_tool = CodeExecutorTool()
+                code_tool = CodeExecutorTool()  # Defined in previous example
 
                 response = await client.create(
                     messages=[UserMessage(content="Use code_exec to calculate 2+2", source="user")],

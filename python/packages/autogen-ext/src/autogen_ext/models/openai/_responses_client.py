@@ -878,6 +878,7 @@ class AzureOpenAIResponsesAPIClient(BaseOpenAIResponsesAPIClient):
 
         With Azure AD authentication::
 
+            from autogen_ext.models.openai import AzureOpenAIResponsesAPIClient
             from autogen_ext.auth.azure import AzureTokenProvider
             from azure.identity import DefaultAzureCredential
 

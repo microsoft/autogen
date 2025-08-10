@@ -819,19 +819,22 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         Examples:
             Basic GPT-5 usage with reasoning control::
 
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
                 from autogen_core.models import UserMessage
 
-                client = OpenAIChatCompletionClient(model="gpt-5")
+                async def example():
+                    client = OpenAIChatCompletionClient(model="gpt-5")
 
-                response = await client.create(
-                    messages=[UserMessage(content="Solve this complex problem...", source="user")],
-                    reasoning_effort="high",  # More thorough reasoning
-                    verbosity="medium",  # Balanced output length
-                    preambles=True,  # Enable tool explanations
-                )
+                    response = await client.create(
+                        messages=[UserMessage(content="Solve this complex problem...", source="user")],
+                        reasoning_effort="high",  # More thorough reasoning
+                        verbosity="medium",  # Balanced output length
+                        preambles=True,  # Enable tool explanations
+                    )
 
             Using GPT-5 custom tools::
 
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
                 from autogen_core.tools import BaseCustomTool
                 from autogen_core import CancellationToken
                 from autogen_core.models import UserMessage
@@ -854,24 +857,28 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                         return CodeResult(output=f"Executed: {input_text}")
 
 
-                code_tool = CodeExecutorTool()  # Custom tool
+                async def example():
+                    client = OpenAIChatCompletionClient(model="gpt-5")
+                    code_tool = CodeExecutorTool()  # Custom tool
 
-                response = await client.create(
-                    messages=[UserMessage(content="Use code_exec to calculate fibonacci(10)", source="user")],
-                    tools=[code_tool],
-                    reasoning_effort="medium",
-                    verbosity="low",
-                    preambles=True,  # Explain why code_exec is being called
-                )
+                    response = await client.create(
+                        messages=[UserMessage(content="Use code_exec to calculate fibonacci(10)", source="user")],
+                        tools=[code_tool],
+                        reasoning_effort="medium",
+                        verbosity="low",
+                        preambles=True,  # Explain why code_exec is being called
+                    )
 
-                # Custom tool calls return freeform text
-                if isinstance(response.content, list):
-                    tool_call = response.content[0]
-                    print(f"Generated code: {tool_call.arguments}")
+                    # Custom tool calls return freeform text
+                    if isinstance(response.content, list):
+                        tool_call = response.content[0]
+                        print(f"Generated code: {tool_call.arguments}")
 
             Using allowed_tools to restrict model behavior::
 
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
                 from autogen_core.tools import FunctionTool
+                from autogen_core.models import UserMessage
 
 
                 def calculate(expression: str) -> str:
@@ -882,23 +889,28 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     return f"Web results for: {query}"
 
 
-                # Define multiple tools but restrict to safe subset
-                calc_tool = FunctionTool(calculate, description="Calculator")
-                web_tool = FunctionTool(search_web, description="Web search")
-                all_tools = [code_tool, web_tool, calc_tool]
-                safe_tools = [calc_tool]  # Only allow calculator
+                async def example():
+                    client = OpenAIChatCompletionClient(model="gpt-5")
+                    code_tool = CodeExecutorTool()  # From previous example
+                    # Define multiple tools but restrict to safe subset
+                    calc_tool = FunctionTool(calculate, description="Calculator")
+                    web_tool = FunctionTool(search_web, description="Web search")
+                    all_tools = [code_tool, web_tool, calc_tool]
+                    safe_tools = [calc_tool]  # Only allow calculator
 
-                response = await client.create(
-                    messages=[UserMessage(content="Help me with calculations and web research", source="user")],
-                    tools=all_tools,
-                    allowed_tools=safe_tools,  # Model can only use calculator
-                    tool_choice="auto",
-                )
+                    response = await client.create(
+                        messages=[UserMessage(content="Help me with calculations and web research", source="user")],
+                        tools=all_tools,
+                        allowed_tools=safe_tools,  # Model can only use calculator
+                        tool_choice="auto",
+                    )
 
             Grammar-constrained custom tools::
 
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
                 from autogen_core.tools import BaseCustomTool, CustomToolFormat
                 from autogen_core import CancellationToken
+                from autogen_core.models import UserMessage
                 from pydantic import BaseModel
 
 
@@ -935,31 +947,37 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                         return SQLResult(output=f"Executed SQL: {input_text}")
 
 
-                sql_tool = SQLTool()
-                response = await client.create(
-                    messages=[UserMessage(content="Query users older than 18", source="user")],
-                    tools=[sql_tool],
-                    reasoning_effort="low",
-                )
+                async def example():
+                    client = OpenAIChatCompletionClient(model="gpt-5")
+                    sql_tool = SQLTool()
+                    response = await client.create(
+                        messages=[UserMessage(content="Query users older than 18", source="user")],
+                        tools=[sql_tool],
+                        reasoning_effort="low",
+                    )
 
             Combining with traditional function tools::
 
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
                 from autogen_core.tools import FunctionTool
+                from autogen_core.models import UserMessage
 
 
                 def get_weather(location: str) -> str:
                     return f"Weather in {location}: sunny"
 
 
-                # Mix traditional and custom tools
-                weather_tool = FunctionTool(get_weather, description="Get weather")
-                code_tool = CodeExecutorTool()  # Using the CodeExecutorTool defined above
+                async def example():
+                    client = OpenAIChatCompletionClient(model="gpt-5")
+                    # Mix traditional and custom tools
+                    weather_tool = FunctionTool(get_weather, description="Get weather")
+                    code_tool = CodeExecutorTool()  # Using the CodeExecutorTool defined above
 
-                response = await client.create(
-                    messages=[UserMessage(content="Get Paris weather and calculate 2+2", source="user")],
-                    tools=[weather_tool, code_tool],  # Mix both types
-                    reasoning_effort="medium",
-                )
+                    response = await client.create(
+                        messages=[UserMessage(content="Get Paris weather and calculate 2+2", source="user")],
+                        tools=[weather_tool, code_tool],  # Mix both types
+                        reasoning_effort="medium",
+                    )
         """
         create_params = self._process_create_args(
             messages,
