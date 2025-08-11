@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, Optional, TypeVar, cast
 
 import redis
@@ -65,17 +66,22 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
 
             if isinstance(raw_value, bytes):
                 try:
-                    # Assume it's JSON serialized
-                    json_str = raw_value.decode("utf-8")
-                    # Just use BaseModel for generic deserialization
-                    return cast(Optional[T], BaseModel.model_validate_json(json_str))
-                except Exception:
-                    # If not a valid JSON, return as is (might be a simple string)
-                    return cast(Optional[T], raw_value.decode("utf-8"))
+                    # First try to decode as UTF-8 string
+                    decoded_str = raw_value.decode("utf-8")
+                    try:
+                        # Try to parse as JSON and return the parsed object
+                        parsed_json = json.loads(decoded_str)
+                        return cast(Optional[T], parsed_json)
+                    except json.JSONDecodeError:
+                        # If not valid JSON, return the decoded string
+                        return cast(Optional[T], decoded_str)
+                except UnicodeDecodeError:
+                    return default
             else:
                 # Backward compatibility for primitives
                 return cast(Optional[T], raw_value)
-        except Exception:
+        except (redis.RedisError, ConnectionError):
+            # Log Redis-specific errors but return default gracefully
             return default
 
     def set(self, key: str, value: T) -> None:
@@ -91,16 +97,14 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
             value: The value to store
         """
         try:
-            if hasattr(value, "model_dump_json"):
-                # For type checking, we need to cast the value
-                model_value = cast(BaseModel, value)
+            if isinstance(value, BaseModel):
                 # Serialize Pydantic models to JSON
-                serialized_value = model_value.model_dump_json().encode("utf-8")
+                serialized_value = value.model_dump_json().encode("utf-8")
                 self.cache.set(key, serialized_value)
             else:
                 # Backward compatibility for primitives
                 self.cache.set(key, cast(Any, value))
-        except Exception:
+        except (redis.RedisError, ConnectionError, UnicodeEncodeError):
             # Log the error but don't re-raise to maintain robustness
             pass
 
