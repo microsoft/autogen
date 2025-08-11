@@ -16,7 +16,7 @@ from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
-from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
+from openai.types.chat.chat_completion_message_function_tool_call import ChatCompletionMessageFunctionToolCall, Function
 from openai.types.completion_usage import CompletionUsage
 from pydantic import BaseModel
 
@@ -82,7 +82,7 @@ async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
                     message=ChatCompletionMessage(
                         content=None,
                         tool_calls=[
-                            ChatCompletionMessageToolCall(
+                            ChatCompletionMessageFunctionToolCall(
                                 id="1",
                                 type="function",
                                 function=Function(
