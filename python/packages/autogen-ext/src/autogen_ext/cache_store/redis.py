@@ -73,7 +73,7 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
                         parsed_json = json.loads(decoded_str)
                         return cast(Optional[T], parsed_json)
                     except json.JSONDecodeError:
-                        # If not valid JSON, return the decoded string
+                        # If not valid JSON, return the decoded string.
                         return cast(Optional[T], decoded_str)
                 except UnicodeDecodeError:
                     return default
