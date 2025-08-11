@@ -551,6 +551,82 @@ def test_oneof_with_discriminator(converter: _JSONSchemaToPydantic) -> None:
     assert model_schema["properties"]["pet"]["discriminator"]["propertyName"] == "pet_type"
 
 
+def test_anyof_array_with_item_constraints(converter: _JSONSchemaToPydantic) -> None:
+    """Test anyOf branch as array with items and min/max constraints."""
+    schema = {
+        "title": "ArrayOrString",
+        "type": "object",
+        "properties": {
+            "value": {
+                "anyOf": [
+                    {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "maxItems": 3,
+                    },
+                    {"type": "string"},
+                ]
+            }
+        },
+        "required": ["value"],
+    }
+
+    Model = converter.json_schema_to_pydantic(schema, "ArrayOrString")
+
+    m1 = Model(value="hello")
+    assert m1.value == "hello"  # type: ignore[attr-defined]
+
+    m2 = Model(value=["a", "b"])
+    assert m2.value == ["a", "b"]  # type: ignore[attr-defined]
+
+    with pytest.raises(ValidationError):
+        Model(value=["one", "two", "three", "four"])
+
+    with pytest.raises(ValidationError):
+        Model(value=[])
+
+
+def test_oneof_array_with_ref_items(converter: _JSONSchemaToPydantic) -> None:
+    """Test oneOf branch as array whose items are a $ref object."""
+    schema = {
+        "title": "RefArrayOrInt",
+        "type": "object",
+        "properties": {
+            "payload": {
+                "oneOf": [
+                    {
+                        "type": "array",
+                        "items": {"$ref": "#/$defs/Item"},
+                        "minItems": 1,
+                    },
+                    {"type": "integer"},
+                ]
+            }
+        },
+        "required": ["payload"],
+        "$defs": {
+            "Item": {
+                "type": "object",
+                "properties": {"name": {"type": "string"}, "count": {"type": "integer"}},
+                "required": ["name"],
+                "title": "Item",
+            }
+        },
+    }
+
+    Model = converter.json_schema_to_pydantic(schema, "RefArrayOrInt")
+
+    m1 = Model(payload=42)
+    assert m1.payload == 42  # type: ignore[attr-defined]
+
+    m2 = Model(payload=[{"name": "widget", "count": 5}, {"name": "gadget"}])
+    assert [it.name for it in m2.payload] == ["widget", "gadget"]  # type: ignore[attr-defined]
+
+    with pytest.raises(ValidationError):
+        Model(payload=[])
+
+
 def test_allof_merging_with_refs(converter: _JSONSchemaToPydantic) -> None:
     schema = {
         "title": "EmployeeWithDepartment",
