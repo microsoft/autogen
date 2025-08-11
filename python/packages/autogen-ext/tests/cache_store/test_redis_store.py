@@ -100,7 +100,7 @@ def test_redis_store_serialization() -> None:
     # When we retrieve, we get the JSON data back as a dict
     retrieved_model = store.get(test_key)
     assert retrieved_model is not None
-    # The retrieved model should be a dict with the original data
+    # The retrieved model should be a dict with the original data.
     assert isinstance(retrieved_model, dict)
     assert retrieved_model["name"] == "test"  # type: ignore
     assert retrieved_model["value"] == 42  # type: ignore
