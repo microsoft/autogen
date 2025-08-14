@@ -258,6 +258,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
             top_k (int): The maximum number of relevant memories to include. Defaults to 10.
             distance_threshold (float): The maximum distance in vector space to consider a memory
             semantically similar when performining cosine similarity search. Defaults to 0.7.
+            sequential (bool): Ignore semantic similarity and return the top_k most recent memories.
 
         Args:
             query (str | MemoryContent): query to perform vector similarity search with. If a
@@ -270,30 +271,38 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         Returns:
             memoryQueryResult: Object containing memories relevant to the provided query.
         """
-        # get the query string, or raise an error for unsupported MemoryContent types
-        if isinstance(query, str):
-            prompt = query
-        elif isinstance(query, MemoryContent):
-            if query.mime_type in (MemoryMimeType.TEXT, MemoryMimeType.MARKDOWN):
-                prompt = str(query.content)
-            elif query.mime_type == MemoryMimeType.JSON:
-                prompt = serialize(query.content)
-            else:
-                raise NotImplementedError(
-                    f"Error: {query.mime_type} is not supported. Only MemoryMimeType.TEXT, MemoryMimeType.JSON, MemoryMimeType.MARKDOWN are currently supported."
-                )
-        else:
-            raise TypeError("'query' must be either a string or MemoryContent")
-
         top_k = kwargs.pop("top_k", self.config.top_k)
         distance_threshold = kwargs.pop("distance_threshold", self.config.distance_threshold)
 
-        results = self.message_history.get_relevant(
-            prompt=prompt,  # type: ignore[reportArgumentType]
-            top_k=top_k,
-            distance_threshold=distance_threshold,
-            raw=False,
-        )
+        # if sequential memory is requested skip prompt creation
+        sequential = bool(kwargs.pop("sequential", False))
+        if sequential:
+            results = self.message_history.get_recent(
+                top_k=top_k,
+                raw=False,
+            )
+        else:
+            # get the query string, or raise an error for unsupported MemoryContent types
+            if isinstance(query, str):
+                prompt = query
+            elif isinstance(query, MemoryContent):
+                if query.mime_type in (MemoryMimeType.TEXT, MemoryMimeType.MARKDOWN):
+                    prompt = str(query.content)
+                elif query.mime_type == MemoryMimeType.JSON:
+                    prompt = serialize(query.content)
+                else:
+                    raise NotImplementedError(
+                        f"Error: {query.mime_type} is not supported. Only MemoryMimeType.TEXT, MemoryMimeType.JSON, MemoryMimeType.MARKDOWN are currently supported."
+                    )
+            else:
+                raise TypeError("'query' must be either a string or MemoryContent")
+
+            results = self.message_history.get_relevant(
+                prompt=prompt,  # type: ignore[reportArgumentType]
+                top_k=top_k,
+                distance_threshold=distance_threshold,
+                raw=False,
+            )
 
         memories: List[MemoryContent] = []
         for result in results:

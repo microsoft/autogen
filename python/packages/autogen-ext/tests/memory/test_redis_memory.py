@@ -419,3 +419,11 @@ async def test_query_arguments(semantic_memory: RedisMemory) -> None:
     # limit search to only close matches
     results = await semantic_memory.query("my favorite fruit are what?", distance_threshold=0.2)
     assert len(results.results) == 1
+
+    # get memories based on recency instead of relevance
+    results = await semantic_memory.query("fast sports cars", sequential=True)
+    assert len(results.results) == 3
+
+    # setting 'sequential' to False results in default behaviour
+    results = await semantic_memory.query("my favorite fruit are what?", sequential=False)
+    assert len(results.results) == 3
