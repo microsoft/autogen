@@ -1,0 +1,20 @@
+[project]
+name = "agentchat-intel-preventative-healthcare"
+version = "0.1.0"
+description = "AutoGen Agents for Preventative Healthcare"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiofiles>=24.1.0",
+    "anyio>=4.9.0",
+    "argparse>=1.4.0",
+    "asyncio>=3.4.3",
+    "autogen>=0.9",
+    "autogen-ext[openai]>=0.5.6",
+    "distro>=1.9.0",
+    "litellm[proxy]>=1.68.0",
+    "markitdown>=0.1.1",
+    "openai>=1.75.0",
+    "pandas>=2.2.3",
+    "streamlit>=1.25.0",
+]
