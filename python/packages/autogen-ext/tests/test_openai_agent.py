@@ -314,9 +314,9 @@ async def test_convert_message_functions(agent: OpenAIAgent) -> None:
 
 @pytest.mark.asyncio
 async def test_tool_schema_conversion(agent: OpenAIAgent) -> None:
-    from autogen_ext.agents.openai._openai_agent import _convert_tool_to_function_schema  # type: ignore
+    from autogen_ext.agents.openai._openai_agent import _convert_tool_to_function_tool_param  # type: ignore
 
-    tool_schema = _convert_tool_to_function_schema(agent._tool_map["get_weather"])  # type: ignore
+    tool_schema = _convert_tool_to_function_tool_param(agent._tool_map["get_weather"])  # type: ignore
 
     assert tool_schema["name"] == "get_weather"
     assert "description" in tool_schema

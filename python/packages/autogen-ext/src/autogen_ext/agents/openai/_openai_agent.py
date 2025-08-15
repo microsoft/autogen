@@ -37,6 +37,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import NotRequired, TypedDict
 
 from openai import AsyncAzureOpenAI, AsyncOpenAI  # type: ignore
+from openai.types.responses import FunctionToolParam
 
 # Number of characters to display when previewing image content in logs and UI
 # Base64 encoded images can be very long, so we truncate for readability
@@ -45,6 +46,29 @@ IMAGE_CONTENT_PREVIEW_LENGTH = 50
 # NOTE: We use the new Responses API, so ChatCompletion imports are not needed.
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
+
+
+def _convert_tool_to_function_tool_param(tool: Tool) -> FunctionToolParam:
+    """Convert an autogen Tool to an OpenAI Responses function tool parameter."""
+
+    schema = tool.schema
+    parameters: Dict[str, object] = {}
+    if "parameters" in schema:
+        parameters = {
+            "type": schema["parameters"]["type"],
+            "properties": schema["parameters"]["properties"],
+        }
+        if "required" in schema["parameters"]:
+            parameters["required"] = schema["parameters"]["required"]
+
+    function_tool_param = FunctionToolParam(
+        type="function",
+        name=schema["name"],
+        description=schema.get("description", ""),
+        parameters=parameters,
+        strict=None,
+    )
+    return function_tool_param
 
 
 # TypedDict classes for built-in tool configurations
@@ -142,24 +166,6 @@ class ImageMessage(BaseChatMessage):
         if len(self.content) > IMAGE_CONTENT_PREVIEW_LENGTH:
             return f"[Image: {self.content[:IMAGE_CONTENT_PREVIEW_LENGTH]}...]"
         return f"[Image: {self.content}]"
-
-
-def _convert_tool_to_function_schema(tool: Tool) -> Dict[str, Any]:
-    schema = tool.schema
-    parameters: Dict[str, object] = {}
-    if "parameters" in schema:
-        parameters = {
-            "type": schema["parameters"]["type"],
-            "properties": schema["parameters"]["properties"],
-        }
-        if "required" in schema["parameters"]:
-            parameters["required"] = schema["parameters"]["required"]
-
-    return {
-        "name": schema["name"],
-        "description": schema.get("description", ""),
-        "parameters": parameters,
-    }
 
 
 class OpenAIMessageContent(TypedDict):
@@ -510,11 +516,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     self._add_configured_tool(tool)
                 elif isinstance(tool, Tool):
                     # Handle custom function tools
-                    function_schema: Dict[str, Any] = {
-                        "type": "function",
-                        "function": _convert_tool_to_function_schema(tool),
-                    }
-                    self._tools.append(function_schema)
+                    self._tools.append(_convert_tool_to_function_tool_param(tool))
                     self._tool_map[tool.name] = tool
                 else:
                     raise ValueError(f"Unsupported tool type: {type(tool)}")
