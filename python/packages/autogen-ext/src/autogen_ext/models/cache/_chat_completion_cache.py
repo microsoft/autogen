@@ -13,7 +13,7 @@ from autogen_core.models import (
     RequestUsage,
 )
 from autogen_core.tools import Tool, ToolSchema
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from typing_extensions import Self
 
 CHAT_CACHE_VALUE_TYPE = Union[CreateResult, List[Union[str, CreateResult]]]
@@ -126,8 +126,29 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         serialized_data = json.dumps(data, sort_keys=True)
         cache_key = hashlib.sha256(serialized_data.encode()).hexdigest()
 
-        cached_result = cast(Optional[CreateResult], self.store.get(cache_key))
+        cached_result = self.store.get(cache_key)
         if cached_result is not None:
+            # Handle case where cache store returns dict instead of CreateResult (e.g., Redis)
+            if isinstance(cached_result, dict):
+                try:
+                    cached_result = CreateResult.model_validate(cached_result)
+                except ValidationError:
+                    # If reconstruction fails, treat as cache miss
+                    return None, cache_key
+            elif isinstance(cached_result, list):
+                # Handle streaming results - reconstruct CreateResult instances from dicts
+                try:
+                    reconstructed_list: List[Union[str, CreateResult]] = []
+                    for item in cached_result:
+                        if isinstance(item, dict):
+                            reconstructed_list.append(CreateResult.model_validate(item))
+                        else:
+                            reconstructed_list.append(item)
+                    cached_result = reconstructed_list
+                except ValidationError:
+                    # If reconstruction fails, treat as cache miss
+                    return None, cache_key
+            # If it's already the right type (CreateResult or list), return as-is
             return cached_result, cache_key
 
         return None, cache_key
