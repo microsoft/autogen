@@ -211,7 +211,7 @@ class MockCacheStore(CacheStore[CHAT_CACHE_VALUE_TYPE]):
         return cls()
 
 
-def test_check_cache_redis_dict_deserialization_success():
+def test_check_cache_redis_dict_deserialization_success() -> None:
     """Test _check_cache when Redis cache returns a dict that can be deserialized to CreateResult.
     This tests the core Redis deserialization fix where Redis returns serialized Pydantic
     models as dictionaries instead of the original objects.
@@ -240,7 +240,7 @@ def test_check_cache_redis_dict_deserialization_success():
     assert cache_key is not None
 
 
-def test_check_cache_redis_dict_deserialization_failure():
+def test_check_cache_redis_dict_deserialization_failure() -> None:
     """Test _check_cache gracefully handles corrupted Redis data.
     This ensures the system degrades gracefully when Redis returns corrupted
     or invalid data that cannot be deserialized back to CreateResult.
@@ -260,7 +260,7 @@ def test_check_cache_redis_dict_deserialization_failure():
     assert cache_key is not None
 
 
-def test_check_cache_redis_streaming_dict_deserialization():
+def test_check_cache_redis_streaming_dict_deserialization() -> None:
     """Test _check_cache with Redis streaming data containing dicts that need deserialization.
     This tests the streaming scenario where Redis returns a list containing
     serialized CreateResult objects as dictionaries mixed with string chunks.
@@ -275,7 +275,7 @@ def test_check_cache_redis_streaming_dict_deserialization():
         finish_reason="stop",
     )
 
-    cached_list = [
+    cached_list: List[Union[str, CreateResult]] = [
         "streaming chunk 1",
         create_result,  # Proper CreateResult object
         "streaming chunk 2",
@@ -299,7 +299,7 @@ def test_check_cache_redis_streaming_dict_deserialization():
     assert cache_key is not None
 
 
-def test_check_cache_redis_streaming_deserialization_failure():
+def test_check_cache_redis_streaming_deserialization_failure() -> None:
     """Test _check_cache gracefully handles corrupted Redis streaming data.
     This ensures the system degrades gracefully when Redis returns streaming
     data with corrupted CreateResult dictionaries that cannot be deserialized.
