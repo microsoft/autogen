@@ -25,6 +25,13 @@ class TeamTool(TaskRunnerTool, Component[TeamToolConfig]):
 
     The tool returns the result of the task execution as a :class:`~autogen_agentchat.base.TaskResult` object.
 
+    .. important::
+        When using TeamTool, you **must** disable parallel tool calls in the model client configuration
+        to avoid concurrency issues. Teams cannot run concurrently as they maintain internal state
+        that would conflict with parallel execution. For example, set ``parallel_tool_calls=False``
+        for :class:`~autogen_ext.models.openai.OpenAIChatCompletionClient` and
+        :class:`~autogen_ext.models.openai.AzureOpenAIChatCompletionClient`.
+
     Args:
         team (BaseGroupChat): The team to be used for running the task.
         name (str): The name of the tool.
@@ -44,11 +51,12 @@ class TeamTool(TaskRunnerTool, Component[TeamToolConfig]):
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_agentchat.tools import TeamTool
             from autogen_agentchat.ui import Console
-            from autogen_ext.models.ollama import OllamaChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
-                model_client = OllamaChatCompletionClient(model="llama3.2")
+                # Disable parallel tool calls when using TeamTool
+                model_client = OpenAIChatCompletionClient(model="gpt-4.1")
 
                 writer = AssistantAgent(name="writer", model_client=model_client, system_message="You are a helpful assistant.")
                 reviewer = AssistantAgent(
@@ -65,12 +73,17 @@ class TeamTool(TaskRunnerTool, Component[TeamToolConfig]):
 
                 # Create a TeamTool that uses the team to run tasks, returning the last message as the result.
                 tool = TeamTool(
-                    team=team, name="writing_team", description="A tool for writing tasks.", return_value_as_last_message=True
+                    team=team,
+                    name="writing_team",
+                    description="A tool for writing tasks.",
+                    return_value_as_last_message=True,
                 )
 
+                # Create model client with parallel tool calls disabled for the main agent
+                main_model_client = OpenAIChatCompletionClient(model="gpt-4.1", parallel_tool_calls=False)
                 main_agent = AssistantAgent(
                     name="main_agent",
-                    model_client=model_client,
+                    model_client=main_model_client,
                     system_message="You are a helpful assistant that can use the writing tool.",
                     tools=[tool],
                 )
