@@ -516,7 +516,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     self._add_configured_tool(tool)
                 elif isinstance(tool, Tool):
                     # Handle custom function tools
-                    self._tools.append(_convert_tool_to_function_tool_param(tool))
+                    self._tools.append(cast(dict[str, Any], _convert_tool_to_function_tool_param(tool)))
                     self._tool_map[tool.name] = tool
                 else:
                     raise ValueError(f"Unsupported tool type: {type(tool)}")
