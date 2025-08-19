@@ -39,7 +39,7 @@ jobs:
               poe-dir: ".",
             },
             {
-              ref: "python-v0.7.2",
+              ref: "python-v0.7.3",
               dest-dir: stable,
               uv-version: "0.7.13",
               sphinx-release-override: "stable",
@@ -199,6 +199,13 @@ jobs:
               sphinx-release-override: "",
               poe-dir: ".",
             },
+            {
+              ref: "python-v0.7.3",
+              dest-dir: "0.7.3",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
           ]
     steps:
       - name: Checkout
@@ -216,8 +223,6 @@ jobs:
       - run: |
           uv venv --python=3.11
           source .venv/bin/activate
-          # Only pin version to ensure compatibility
-          uv pip install -U 'setuptools-scm==8.3.1'
           uv sync --locked --all-extras
           poe --directory ${{ matrix.version.poe-dir }} docs-build
           mkdir -p docs-staging/${{ matrix.version.dest-dir }}/
