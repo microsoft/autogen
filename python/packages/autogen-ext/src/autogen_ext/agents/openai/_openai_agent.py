@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import warnings
 from typing import (
@@ -30,14 +29,12 @@ from autogen_agentchat.messages import (
     TextMessage,
     ToolCallSummaryMessage,
 )
-from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
+from autogen_core import CancellationToken, Component, ComponentModel
 from autogen_core.models import UserMessage
-from autogen_core.tools import Tool
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired, TypedDict
 
 from openai import AsyncAzureOpenAI, AsyncOpenAI  # type: ignore
-from openai.types.responses import FunctionToolParam
 
 # Number of characters to display when previewing image content in logs and UI
 # Base64 encoded images can be very long, so we truncate for readability
@@ -46,29 +43,6 @@ IMAGE_CONTENT_PREVIEW_LENGTH = 50
 # NOTE: We use the new Responses API, so ChatCompletion imports are not needed.
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
-
-
-def _convert_tool_to_function_tool_param(tool: Tool) -> FunctionToolParam:
-    """Convert an autogen Tool to an OpenAI Responses function tool parameter."""
-
-    schema = tool.schema
-    parameters: Dict[str, object] = {}
-    if "parameters" in schema:
-        parameters = {
-            "type": schema["parameters"]["type"],
-            "properties": schema["parameters"]["properties"],
-        }
-        if "required" in schema["parameters"]:
-            parameters["required"] = schema["parameters"]["required"]
-
-    function_tool_param = FunctionToolParam(
-        type="function",
-        name=schema["name"],
-        description=schema.get("description", ""),
-        parameters=parameters,
-        strict=schema.get("strict", None),
-    )
-    return function_tool_param
 
 
 # TypedDict classes for built-in tool configurations
@@ -219,17 +193,18 @@ class OpenAIAgentState(BaseModel):
     history: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-# Union type for tool configurations in the config schema
-ToolConfigUnion = Union[ComponentModel, BuiltinToolConfig, str]
+# Union type for tool configurations in the config schema (custom tools are not supported)
+ToolConfigUnion = Union[BuiltinToolConfig, str]
 
 
 class OpenAIAgentConfig(BaseModel):
-    """Configuration model for OpenAI agent that supports both custom tools and built-in tools.
+    """
+    Configuration model for OpenAI agent supporting OpenAI built-in tools only.
 
     .. versionchanged:: v0.7.0
-       Added support for built-in tools in JSON configuration via _to_config and _from_config methods.
-       The tools field now accepts ComponentModel (for custom tools), built-in tool configurations
-       (dict format), and built-in tool names (string format).
+        Added support for built-in tools in JSON configuration via _to_config and _from_config methods.
+        The tools field accepts built-in tool configurations (dict format) and built-in tool names (string format).
+        Custom tools are not supported.
     """
 
     name: str
@@ -242,15 +217,6 @@ class OpenAIAgentConfig(BaseModel):
     json_mode: bool = False
     store: bool = True
     truncation: str = "disabled"
-
-
-class FunctionExecutionResult(BaseModel):
-    """Result of a function execution."""
-
-    content: str
-    call_id: str
-    name: str
-    is_error: bool = False
 
 
 class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
@@ -266,26 +232,27 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
     This agent leverages the Responses API to generate responses with capabilities like:
 
-    * Custom function calling
     * Multi-turn conversations
     * Built-in tool support (file_search, code_interpreter, web_search_preview, etc.)
 
+    Currently, custom tools are not supported.
+
     .. versionchanged:: v0.7.0
 
-       Added support for built-in tool types like file_search, web_search_preview,
-       code_interpreter, computer_use_preview, image_generation, and mcp.
-       Added support for tool configurations with required and optional parameters.
+        Added support for built-in tool types like file_search, web_search_preview,
+        code_interpreter, computer_use_preview, image_generation, and mcp.
+        Added support for tool configurations with required and optional parameters.
 
-       Built-in tools are split into two categories:
+    Built-in tools are split into two categories:
 
-       **Tools that can use string format** (no required parameters):
+    **Tools that can use string format** (no required parameters):
 
        - web_search_preview: Can be used as "web_search_preview" or with optional config
          (user_location, search_context_size)
        - image_generation: Can be used as "image_generation" or with optional config (background, input_image_mask)
        - local_shell: Can be used as "local_shell" (WARNING: Only works with codex-mini-latest model)
 
-       **Tools that REQUIRE dict configuration** (have required parameters):
+    **Tools that REQUIRE dict configuration** (have required parameters):
 
        - file_search: MUST use dict with vector_store_ids (List[str])
        - computer_use_preview: MUST use dict with display_height (int), display_width (int), environment (str)
@@ -295,6 +262,10 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
        Using required-parameter tools in string format will raise a ValueError with helpful error messages.
        The tools parameter type annotation only accepts string values for tools that don't require parameters.
 
+    Note:
+        Custom tools (autogen FunctionTool or other user-defined tools) are not supported by this agent.
+        Only OpenAI built-in tools provided via the Responses API are supported.
+
 
     Args:
         name (str): Name of the agent
@@ -302,7 +273,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         client (Union[AsyncOpenAI, AsyncAzureOpenAI]): OpenAI client instance
         model (str): Model to use (e.g. "gpt-4.1")
         instructions (str): System instructions for the agent
-        tools (Optional[Iterable[Union[str, BuiltinToolConfig, Tool]]]): Tools the agent can use.
+        tools (Optional[Iterable[Union[str, BuiltinToolConfig]]]): Tools the agent can use.
             Supported string values (no required parameters): "web_search_preview", "image_generation", "local_shell".
             Dict values can provide configuration for built-in tools with parameters.
             Required parameters for built-in tools:
@@ -317,7 +288,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             - mcp: allowed_tools (List[str]), headers (dict), require_approval (bool)
             Special tools with model restrictions:
             - local_shell: Only works with "codex-mini-latest" model (WARNING: Very limited support)
-            Also accepts custom Tool objects for function calling.
+            Custom tools are not supported.
         temperature (Optional[float]): Temperature for response generation (default: 1)
         max_output_tokens (Optional[int]): Maximum output tokens
         json_mode (bool): Whether to use JSON mode (default: False)
@@ -414,48 +385,8 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             asyncio.run(example_with_configs())
 
 
-        Mixed usage with custom function tools:
-
-        .. code-block:: python
-
-            import asyncio
-
-            from autogen_agentchat.ui import Console
-            from autogen_core.tools import FunctionTool
-            from autogen_ext.agents.openai import OpenAIAgent
-            from openai import AsyncOpenAI
-
-
-            # Define a simple calculator function
-            async def calculate(a: int, b: int) -> int:
-                \"\"\"Simple function to add two numbers.\"\"\"
-                return a + b
-
-
-            # Wrap the calculate function as a tool
-            calculator = FunctionTool(calculate, description="A simple calculator tool")
-
-
-            async def example_mixed_tools():
-                client = AsyncOpenAI()
-                # Use the FunctionTool instance defined above
-
-                agent = OpenAIAgent(
-                    name="MixedToolsAgent",
-                    description="An agent with both built-in and custom tools",
-                    client=client,
-                    model="gpt-4o",
-                    instructions="You are a helpful assistant with calculation and web search capabilities.",
-                    tools=[
-                        "web_search_preview",
-                        calculator,
-                        # {"type": "mcp", "server_label": "tools", "server_url": "http://localhost:3000"},
-                    ],
-                )
-                await Console(agent.run_stream(task="What's 2+2 and what's the weather like?"))
-
-
-            asyncio.run(example_mixed_tools())
+        Note:
+            Custom tools are not supported by OpenAIAgent. Use only built-in tools from the Responses API.
 
     """
 
@@ -474,7 +405,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 Union[
                     Literal["web_search_preview", "image_generation", "local_shell"],
                     BuiltinToolConfig,
-                    Tool,
                 ]
             ]
         ] = None,
@@ -496,7 +426,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         self._last_response_id: Optional[str] = None
         self._message_history: List[Dict[str, Any]] = []
         self._tools: List[Dict[str, Any]] = []
-        self._tool_map: Dict[str, Tool] = {}
         if tools is not None:
             for tool in tools:
                 if isinstance(tool, str):
@@ -505,10 +434,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 elif isinstance(tool, dict) and "type" in tool:
                     # Handle configured built-in tools
                     self._tools.append(cast(dict[str, Any], tool))
-                elif isinstance(tool, Tool):
-                    # Handle custom function tools
-                    self._tools.append(cast(dict[str, Any], _convert_tool_to_function_tool_param(tool)))
-                    self._tool_map[tool.name] = tool
                 else:
                     raise ValueError(f"Unsupported tool type: {type(tool)}")
 
@@ -572,38 +497,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         """Return the types of messages that this agent can produce."""
         return [TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage]
 
-    async def _execute_tool_call(
-        self: "OpenAIAgent", tool_call: FunctionCall, cancellation_token: CancellationToken
-    ) -> FunctionExecutionResult:
-        tool_name = tool_call.name
-        if tool_name not in self._tool_map:
-            return FunctionExecutionResult(
-                content=f"Error: Tool '{tool_name}' is not available",
-                call_id=tool_call.id,
-                name=tool_name,
-                is_error=True,
-            )
-
-        tool = self._tool_map[tool_name]
-        try:
-            try:
-                arguments = json.loads(tool_call.arguments)
-            except json.JSONDecodeError as json_err:
-                return FunctionExecutionResult(
-                    content=f"Error: Invalid JSON in tool arguments - {str(json_err)}",
-                    call_id=tool_call.id,
-                    name=tool_name,
-                    is_error=True,
-                )
-
-            result = await tool.run_json(arguments, cancellation_token, call_id=tool_call.id)
-            return FunctionExecutionResult(
-                content=tool.return_value_as_string(result), call_id=tool_call.id, name=tool_name, is_error=False
-            )
-        except Exception as e:
-            error_msg = f"Error: {str(e)}"
-            event_logger.warning(f"Tool execution error in {tool_name}: {error_msg}")
-            return FunctionExecutionResult(content=error_msg, call_id=tool_call.id, name=tool_name, is_error=True)
+    # Custom tool execution is not supported by this agent.
 
     def _build_api_parameters(self: "OpenAIAgent", messages: List[Dict[str, Any]]) -> Dict[str, Any]:
         has_system_message = any(msg.get("role") == "system" for msg in messages)
@@ -724,60 +618,16 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
     def _to_config(self: "OpenAIAgent") -> OpenAIAgentConfig:
         """Convert the OpenAI agent to a declarative config.
 
-        Serializes both custom Tool objects and built-in tools to their appropriate
-        configuration formats for JSON serialization.
-
-        .. versionchanged:: v0.6.2
-           Added support for serializing built-in tools alongside custom tools.
+        Serializes built-in tools to their appropriate configuration formats for JSON serialization.
 
         Returns:
             OpenAIAgentConfig: The configuration that can recreate this agent.
         """
-        # Serialize tools in the **original order** they were registered.  We iterate over the
-        # internal ``self._tools`` list which contains both built-in tool definitions **and** the
-        # synthetic "function" records for custom :class:`Tool` objects.  For the latter we
-        # convert the synthetic record back to a :class:`ComponentModel` by looking up the actual
-        # tool instance in ``self._tool_map``.  This approach keeps ordering stable while still
-        # supporting full round-trip serialisation.
+        # Serialize tools in the original order they were registered. Only built-in tools are supported.
         tool_configs: List[ToolConfigUnion] = []
 
         for tool_def in self._tools:
-            # 1. Custom function tools are stored internally as ``{"type": "function", "function": {...}}``.
-            if tool_def.get("type") == "function":
-                fn_schema = cast(Dict[str, Any], tool_def.get("function", {}))
-                tool_name = fn_schema.get("name")  # type: ignore[arg-type]
-                if tool_name and tool_name in self._tool_map:
-                    tool_obj = self._tool_map[tool_name]
-                    try:
-                        if hasattr(tool_obj, "dump_component"):
-                            component_model = cast(Any, tool_obj).dump_component()
-                            tool_configs.append(component_model)
-                        else:
-                            component_model = ComponentModel(
-                                provider="autogen_core.tools.FunctionTool",
-                                component_type=None,
-                                config={
-                                    "name": tool_obj.name,
-                                    "description": getattr(tool_obj, "description", ""),
-                                },
-                            )
-                            tool_configs.append(component_model)
-                    except Exception as e:  # pragma: no cover – extremely unlikely
-                        warnings.warn(
-                            f"Error serializing tool '{tool_name}': {e}",
-                            stacklevel=2,
-                        )
-                        component_model = ComponentModel(
-                            provider="autogen_core.tools.FunctionTool",
-                            component_type=None,
-                            config={
-                                "name": tool_name or "unknown_tool",
-                                "description": getattr(tool_obj, "description", ""),
-                            },
-                        )
-                        tool_configs.append(component_model)
-            # 2. Built-in tools are already in their correct dict form – append verbatim.
-            elif "type" in tool_def:  # built-in tool
+            if "type" in tool_def:  # built-in tool
                 tool_configs.append(cast(BuiltinToolConfig, tool_def))
             else:  # pragma: no cover – should never happen
                 warnings.warn(
@@ -802,48 +652,28 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
     def _from_config(cls: Type["OpenAIAgent"], config: OpenAIAgentConfig) -> "OpenAIAgent":
         """Create an OpenAI agent from a declarative config.
 
-        Handles both custom Tool objects (from ComponentModel) and built-in tools
-        (from string or dict configurations).
+        Handles built-in tools (from string or dict configurations).
 
-        .. versionchanged:: v0.6.2
-           Added support for loading built-in tools alongside custom tools.
+            Args:
+                config: The configuration to load the agent from.
 
-        Args:
-            config: The configuration to load the agent from.
-
-        Returns:
-            OpenAIAgent: The reconstructed agent.
+            Returns:
+                OpenAIAgent: The reconstructed agent.
         """
         from openai import AsyncOpenAI
 
         client = AsyncOpenAI()
 
-        tools: Optional[List[Union[str, BuiltinToolConfig, Tool]]] = None
+        tools: Optional[List[Union[str, BuiltinToolConfig]]] = None
         if config.tools:
-            tools_list: List[Union[str, BuiltinToolConfig, Tool]] = []
+            tools_list: List[Union[str, BuiltinToolConfig]] = []
             for tool_config in config.tools:
-                # Handle ComponentModel (custom Tool objects)
+                # ComponentModel (custom tools) are not supported – ignore with a warning.
                 if isinstance(tool_config, ComponentModel):
-                    try:
-                        provider = tool_config.provider
-                        module_name, class_name = provider.rsplit(".", 1)
-                        module = __import__(module_name, fromlist=[class_name])
-                        tool_cls = getattr(module, class_name)
-                        tool = tool_cls(**tool_config.config)
-                        tools_list.append(cast(Tool, tool))
-                    except Exception as e:
-                        warnings.warn(f"Error loading custom tool: {e}", stacklevel=2)
-                        from autogen_core.tools import FunctionTool
-
-                        async def dummy_func(*args: Any, **kwargs: Any) -> str:
-                            return "Tool not fully restored"
-
-                        tool = FunctionTool(
-                            name=tool_config.config.get("name", "unknown_tool"),
-                            description=tool_config.config.get("description", ""),
-                            func=dummy_func,
-                        )
-                        tools_list.append(tool)
+                    warnings.warn(
+                        "Custom tools are not supported by OpenAIAgent and will be ignored in from_config().",
+                        stacklevel=2,
+                    )
 
                 # Handle string format built-in tools
                 elif isinstance(tool_config, str):
@@ -869,7 +699,6 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     Iterable[
                         Union[
                             BuiltinToolConfig,
-                            Tool,
                             Literal["web_search_preview", "image_generation", "local_shell"],
                         ]
                     ]
