@@ -130,7 +130,9 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
             cache_client = ChatCompletionCache(openai_model_client, cache_store)
 
             # First streaming call
-            async for chunk in cache_client.create_stream([UserMessage(content="List all countries in Africa", source="user")]):
+            async for chunk in cache_client.create_stream(
+                [UserMessage(content="List all countries in Africa", source="user")]
+            ):
                 if isinstance(chunk, CreateResult):
                     print("\\n")
                     print("Cached: ", chunk.cached)  # Should print False
@@ -138,7 +140,9 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                     print(chunk, end="")
 
             # Second streaming call (cached)
-            async for chunk in cache_client.create_stream([UserMessage(content="List all countries in Africa", source="user")]):
+            async for chunk in cache_client.create_stream(
+                [UserMessage(content="List all countries in Africa", source="user")]
+            ):
                 if isinstance(chunk, CreateResult):
                     print("\\n")
                     print("Cached: ", chunk.cached)  # Should print True

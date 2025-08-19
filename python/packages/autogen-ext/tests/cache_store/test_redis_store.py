@@ -227,18 +227,8 @@ def test_redis_store_list_with_create_results_only() -> None:
     # Create a list with only CreateResult objects
     usage = RequestUsage(prompt_tokens=10, completion_tokens=20)
     create_result_list: List[Union[str, CreateResult]] = [
-        CreateResult(
-            content="First response",
-            usage=usage,
-            finish_reason="stop",
-            cached=False
-        ),
-        CreateResult(
-            content="Second response",
-            usage=usage,
-            finish_reason="stop",
-            cached=False
-        ),
+        CreateResult(content="First response", usage=usage, finish_reason="stop", cached=False),
+        CreateResult(content="Second response", usage=usage, finish_reason="stop", cached=False),
     ]
 
     # Test setting the list
@@ -292,12 +282,7 @@ def test_redis_store_mixed_list_streaming_scenario() -> None:
         " is",
         " Paris",
         ".",
-        CreateResult(
-            content="The capital of France is Paris.",
-            usage=usage,
-            finish_reason="stop",
-            cached=False
-        ),
+        CreateResult(content="The capital of France is Paris.", usage=usage, finish_reason="stop", cached=False),
     ]
 
     # Test setting the mixed list
@@ -392,8 +377,8 @@ def test_redis_store_list_serialization_error_handling() -> None:
             content="test content",
             usage=RequestUsage(prompt_tokens=1, completion_tokens=1),
             finish_reason="stop",
-            cached=False
-        )
+            cached=False,
+        ),
     ]
 
     # This should not raise an exception due to our try/except block
