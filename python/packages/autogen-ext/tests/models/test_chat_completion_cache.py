@@ -712,3 +712,112 @@ async def test_cache_streaming_list_without_create_result() -> None:
     assert isinstance(result, CreateResult)
     assert not result.cached  # Should be from real API call, not cache
     assert result.content == responses[0]
+
+
+@pytest.mark.asyncio
+async def test_create_stream_with_cached_non_streaming_result_string_content() -> None:
+    """
+    Test that when create_stream() finds a cached non-streaming result with string content,
+    it yields both the content string as a streaming chunk and then the CreateResult.
+    """
+    responses, prompts, system_prompt, replay_client, _ = get_test_data()
+
+    # Create a CreateResult with string content (simulating a cached non-streaming result)
+    cached_create_result = CreateResult(
+        content=responses[0],  # This is a string
+        finish_reason="stop",
+        usage=RequestUsage(prompt_tokens=10, completion_tokens=20),
+        cached=False,  # Will be set to True when retrieved from cache
+    )
+
+    # Mock cache store that returns the non-streaming CreateResult
+    mock_store = MockCacheStore(return_value=cached_create_result)
+    cached_client = ChatCompletionCache(replay_client, mock_store)
+
+    # Call create_stream() - should yield string content first, then CreateResult
+    stream_results: List[Union[str, CreateResult]] = []
+    async for chunk in cached_client.create_stream([system_prompt, UserMessage(content=prompts[0], source="user")]):
+        stream_results.append(copy.copy(chunk))
+
+    # Should have exactly 2 items: the string content, then the CreateResult
+    assert len(stream_results) == 2
+
+    # First item should be the string content
+    assert isinstance(stream_results[0], str)
+    assert stream_results[0] == responses[0]
+
+    # Second item should be the CreateResult
+    assert isinstance(stream_results[1], CreateResult)
+    assert stream_results[1].content == responses[0]
+    assert stream_results[1].finish_reason == "stop"
+    assert stream_results[1].cached is True  # Should be marked as cached
+
+
+@pytest.mark.asyncio
+async def test_create_stream_with_cached_non_streaming_result_empty_content() -> None:
+    """
+    Test that when create_stream() finds a cached non-streaming result with empty string content,
+    it only yields the CreateResult (no separate string chunk).
+    """
+    responses, prompts, system_prompt, replay_client, _ = get_test_data()
+
+    # Create a CreateResult with empty string content
+    cached_create_result = CreateResult(
+        content="",  # Empty string
+        finish_reason="stop",
+        usage=RequestUsage(prompt_tokens=10, completion_tokens=0),
+        cached=False,
+    )
+
+    # Mock cache store that returns the non-streaming CreateResult
+    mock_store = MockCacheStore(return_value=cached_create_result)
+    cached_client = ChatCompletionCache(replay_client, mock_store)
+
+    # Call create_stream() - should yield only the CreateResult (no string chunk)
+    stream_results: List[Union[str, CreateResult]] = []
+    async for chunk in cached_client.create_stream([system_prompt, UserMessage(content=prompts[0], source="user")]):
+        stream_results.append(copy.copy(chunk))
+
+    # Should have exactly 1 item: just the CreateResult
+    assert len(stream_results) == 1
+
+    # Only item should be the CreateResult
+    assert isinstance(stream_results[0], CreateResult)
+    assert stream_results[0].content == ""
+    assert stream_results[0].finish_reason == "stop"
+    assert stream_results[0].cached is True
+
+
+@pytest.mark.asyncio
+async def test_create_stream_with_cached_non_streaming_result_non_string_content() -> None:
+    """
+    Test that when create_stream() finds a cached non-streaming result with non-string content,
+    it only yields the CreateResult (no separate string chunk).
+    """
+    responses, prompts, system_prompt, replay_client, _ = get_test_data()
+
+    # Create a CreateResult with non-string content (e.g., list of function calls)
+    cached_create_result = CreateResult(
+        content=[{"type": "function", "name": "test_func"}],  # Non-string content
+        finish_reason="tool_calls",
+        usage=RequestUsage(prompt_tokens=10, completion_tokens=15),
+        cached=False,
+    )
+
+    # Mock cache store that returns the non-streaming CreateResult
+    mock_store = MockCacheStore(return_value=cached_create_result)
+    cached_client = ChatCompletionCache(replay_client, mock_store)
+
+    # Call create_stream() - should yield only the CreateResult (no string chunk)
+    stream_results: List[Union[str, CreateResult]] = []
+    async for chunk in cached_client.create_stream([system_prompt, UserMessage(content=prompts[0], source="user")]):
+        stream_results.append(copy.copy(chunk))
+
+    # Should have exactly 1 item: just the CreateResult
+    assert len(stream_results) == 1
+
+    # Only item should be the CreateResult
+    assert isinstance(stream_results[0], CreateResult)
+    assert stream_results[0].content == [{"type": "function", "name": "test_func"}]
+    assert stream_results[0].finish_reason == "tool_calls"
+    assert stream_results[0].cached is True
