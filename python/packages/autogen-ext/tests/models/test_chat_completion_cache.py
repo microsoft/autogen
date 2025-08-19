@@ -210,13 +210,9 @@ def test_check_cache_redis_dict_deserialization_success():
     # Create a dict representation of CreateResult (like what Redis would return)
     create_result_dict = {
         "content": "test response from redis",
-        "usage": {
-            "prompt_tokens": 15,
-            "completion_tokens": 8,
-            "total_tokens": 23
-        },
+        "usage": {"prompt_tokens": 15, "completion_tokens": 8, "total_tokens": 23},
         "cached": False,
-        "finish_reason": "stop"
+        "finish_reason": "stop",
     }
 
     # Mock cache store that returns a dict (simulating Redis behavior)
@@ -241,10 +237,7 @@ def test_check_cache_redis_dict_deserialization_failure():
     _, prompts, system_prompt, replay_client, _ = get_test_data()
 
     # Create an invalid dict that cannot be deserialized to CreateResult
-    invalid_dict = {
-        "invalid_field": "invalid value",
-        "missing_required_fields": True
-    }
+    invalid_dict = {"invalid_field": "invalid value", "missing_required_fields": True}
 
     # Mock cache store that returns an invalid dict
     mock_store = MockCacheStore(return_value=invalid_dict)
@@ -269,19 +262,15 @@ def test_check_cache_redis_streaming_dict_deserialization():
     # Create a list with dicts that represent CreateResults (Redis streaming scenario)
     create_result_dict = {
         "content": "final streaming response from redis",
-        "usage": {
-            "prompt_tokens": 12,
-            "completion_tokens": 6,
-            "total_tokens": 18
-        },
+        "usage": {"prompt_tokens": 12, "completion_tokens": 6, "total_tokens": 18},
         "cached": False,
-        "finish_reason": "stop"
+        "finish_reason": "stop",
     }
 
     cached_list = [
         "streaming chunk 1",
         create_result_dict,  # This dict needs deserialization
-        "streaming chunk 2"
+        "streaming chunk 2",
     ]
 
     # Mock cache store that returns the list with dicts (simulating Redis streaming)
@@ -310,15 +299,12 @@ def test_check_cache_redis_streaming_deserialization_failure():
     _, prompts, system_prompt, replay_client, _ = get_test_data(num_messages=4)
 
     # Create a list with an invalid dict that will fail deserialization
-    invalid_dict = {
-        "invalid_field": "invalid value",
-        "missing_required_fields": True
-    }
+    invalid_dict = {"invalid_field": "invalid value", "missing_required_fields": True}
 
     cached_list = [
         "streaming chunk 1",
         invalid_dict,  # This will fail deserialization
-        "streaming chunk 2"
+        "streaming chunk 2",
     ]
 
     # Mock cache store that returns the list with invalid dict
