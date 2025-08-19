@@ -193,10 +193,6 @@ class OpenAIAgentState(BaseModel):
     history: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-# Union type for tool configurations in the config schema (custom tools are not supported)
-ToolConfigUnion = Union[BuiltinToolConfig, str]
-
-
 class OpenAIAgentConfig(BaseModel):
     """
     Configuration model for OpenAI agent supporting OpenAI built-in tools only.
@@ -211,7 +207,7 @@ class OpenAIAgentConfig(BaseModel):
     description: str
     model: str
     instructions: str
-    tools: List[ToolConfigUnion] | None = None
+    tools: List[Dict[str, Any] | str] | None = None
     temperature: Optional[float] = 1
     max_output_tokens: Optional[int] = None
     json_mode: bool = False
@@ -623,24 +619,12 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         Returns:
             OpenAIAgentConfig: The configuration that can recreate this agent.
         """
-        # Serialize tools in the original order they were registered. Only built-in tools are supported.
-        tool_configs: List[ToolConfigUnion] = []
-
-        for tool_def in self._tools:
-            if "type" in tool_def:  # built-in tool
-                tool_configs.append(cast(BuiltinToolConfig, tool_def))
-            else:  # pragma: no cover – should never happen
-                warnings.warn(
-                    f"Encountered unexpected tool definition during serialisation: {tool_def}",
-                    stacklevel=2,
-                )
-
         return OpenAIAgentConfig(
             name=self.name,
             description=self.description,
             model=self._model,
             instructions=self._instructions,
-            tools=tool_configs if tool_configs else None,
+            tools=list(self._tools),
             temperature=self._temperature,
             max_output_tokens=self._max_output_tokens,
             json_mode=self._json_mode,
@@ -664,47 +648,13 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
         client = AsyncOpenAI()
 
-        tools: Optional[List[Union[str, BuiltinToolConfig]]] = None
-        if config.tools:
-            tools_list: List[Union[str, BuiltinToolConfig]] = []
-            for tool_config in config.tools:
-                # ComponentModel (custom tools) are not supported – ignore with a warning.
-                if isinstance(tool_config, ComponentModel):
-                    warnings.warn(
-                        "Custom tools are not supported by OpenAIAgent and will be ignored in from_config().",
-                        stacklevel=2,
-                    )
-
-                # Handle string format built-in tools
-                elif isinstance(tool_config, str):
-                    tools_list.append(tool_config)
-
-                # Handle dict format built-in tools
-                elif isinstance(tool_config, dict) and "type" in tool_config:
-                    tools_list.append(tool_config)  # type: ignore[arg-type]
-
-                else:
-                    warnings.warn(f"Unknown tool configuration format: {type(tool_config)}", stacklevel=2)
-
-            tools = tools_list if tools_list else None
-
         return cls(
             name=config.name,
             description=config.description,
             client=client,
             model=config.model,
             instructions=config.instructions,
-            tools=cast(
-                Optional[
-                    Iterable[
-                        Union[
-                            BuiltinToolConfig,
-                            Literal["web_search_preview", "image_generation", "local_shell"],
-                        ]
-                    ]
-                ],
-                tools,
-            ),
+            tools=config.tools,  # type: ignore
             temperature=config.temperature,
             max_output_tokens=config.max_output_tokens,
             json_mode=config.json_mode,
