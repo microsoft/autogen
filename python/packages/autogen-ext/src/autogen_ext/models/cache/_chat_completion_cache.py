@@ -1,7 +1,7 @@
 import hashlib
 import json
 import warnings
-from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Sequence, Union, cast
+from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Sequence, Union
 
 from autogen_core import CacheStore, CancellationToken, Component, ComponentModel, InMemoryStore
 from autogen_core.models import (
