@@ -498,7 +498,7 @@ async def test_redis_streaming_cache_integration() -> None:
     from autogen_ext.cache_store.redis import RedisStore
 
     # Use standardized test data
-    responses, prompts, system_prompt, replay_client, _ = get_test_data()
+    _, prompts, system_prompt, replay_client, _ = get_test_data()
 
     # Mock Redis instance to control what gets stored/retrieved
     redis_instance = MagicMock()
@@ -563,7 +563,7 @@ async def test_cache_cross_compatibility_create_to_stream() -> None:
     1. User calls create() - stores CreateResult
     2. User calls create_stream() with same inputs - should get cache hit and yield the CreateResult
     """
-    responses, prompts, system_prompt, replay_client, cached_client = get_test_data()
+    responses, prompts, system_prompt, _, cached_client = get_test_data()
 
     # First call: create() - should cache a CreateResult
     create_result = await cached_client.create([system_prompt, UserMessage(content=prompts[0], source="user")])
