@@ -242,10 +242,18 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         NOTE: cancellation_token is ignored for cached results.
         """
         cached_result, cache_key = self._check_cache(messages, tools, json_output, extra_create_args)
-        if cached_result:
-            assert isinstance(cached_result, CreateResult)
-            cached_result.cached = True
-            return cached_result
+        if cached_result is not None:
+            if isinstance(cached_result, CreateResult):
+                # Cache hit from previous non-streaming call
+                cached_result.cached = True
+                return cached_result
+            elif isinstance(cached_result, list):
+                # Cache hit from previous streaming call - extract the final CreateResult
+                for item in reversed(cached_result):
+                    if isinstance(item, CreateResult):
+                        item.cached = True
+                        return item
+                # If no CreateResult found in list, fall through to make actual call
 
         result = await self.client.create(
             messages,
@@ -283,13 +291,19 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                 json_output,
                 extra_create_args,
             )
-            if cached_result:
-                assert isinstance(cached_result, list)
-                for result in cached_result:
-                    if isinstance(result, CreateResult):
-                        result.cached = True
-                    yield result
-                return
+            if cached_result is not None:
+                if isinstance(cached_result, list):
+                    # Cache hit from previous streaming call
+                    for result in cached_result:
+                        if isinstance(result, CreateResult):
+                            result.cached = True
+                        yield result
+                    return
+                elif isinstance(cached_result, CreateResult):
+                    # Cache hit from previous non-streaming call - convert to streaming format
+                    cached_result.cached = True
+                    yield cached_result
+                    return
 
             result_stream = self.client.create_stream(
                 messages,
@@ -305,7 +319,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
             async for result in result_stream:
                 output_results.append(result)
                 yield result
-            
+
             # Store the complete results only after streaming is finished
             self.store.set(cache_key, output_results)
 

@@ -192,7 +192,7 @@ def test_redis_store_list_with_strings_only() -> None:
     test_key = "test_string_list_key"
 
     # Create a list with only strings (partial streaming result)
-    string_list = ["Hello", " world", "!", " How", " are", " you", "?"]
+    string_list: List[Union[str, CreateResult]] = ["Hello", " world", "!", " How", " are", " you", "?"]
 
     # Test setting the list
     store.set(test_key, string_list)
@@ -210,7 +210,7 @@ def test_redis_store_list_with_strings_only() -> None:
     # Test retrieving the list
     redis_instance.get.return_value = args[1]  # Return the serialized data
     retrieved_list = store.get(test_key)
-    
+
     assert retrieved_list is not None
     assert isinstance(retrieved_list, list)
     assert retrieved_list == string_list
@@ -226,7 +226,7 @@ def test_redis_store_list_with_create_results_only() -> None:
 
     # Create a list with only CreateResult objects
     usage = RequestUsage(prompt_tokens=10, completion_tokens=20)
-    create_result_list = [
+    create_result_list: List[Union[str, CreateResult]] = [
         CreateResult(
             content="First response",
             usage=usage,
@@ -234,7 +234,7 @@ def test_redis_store_list_with_create_results_only() -> None:
             cached=False
         ),
         CreateResult(
-            content="Second response", 
+            content="Second response",
             usage=usage,
             finish_reason="stop",
             cached=False
@@ -252,7 +252,7 @@ def test_redis_store_list_with_create_results_only() -> None:
     # Verify the serialized data structure
     serialized_json = args[1].decode("utf-8")
     deserialized_data = json.loads(serialized_json)
-    
+
     assert isinstance(deserialized_data, list)
     assert len(deserialized_data) == 2
     assert deserialized_data[0]["content"] == "First response"
@@ -262,11 +262,11 @@ def test_redis_store_list_with_create_results_only() -> None:
     # Test retrieving the list
     redis_instance.get.return_value = args[1]  # Return the serialized data
     retrieved_list = store.get(test_key)
-    
+
     assert retrieved_list is not None
     assert isinstance(retrieved_list, list)
     assert len(retrieved_list) == 2
-    
+
     # The retrieved items should be dicts (as Redis returns JSON-parsed objects)
     assert isinstance(retrieved_list[0], dict)
     assert isinstance(retrieved_list[1], dict)
@@ -311,14 +311,14 @@ def test_redis_store_mixed_list_streaming_scenario() -> None:
     # Verify the serialized data structure
     serialized_json = args[1].decode("utf-8")
     deserialized_data = json.loads(serialized_json)
-    
+
     assert isinstance(deserialized_data, list)
     assert len(deserialized_data) == 8  # 7 strings + 1 CreateResult
-    
+
     # First 7 items should be strings
     for i in range(7):
         assert isinstance(deserialized_data[i], str)
-    
+
     # Last item should be the serialized CreateResult (as dict)
     assert isinstance(deserialized_data[7], dict)
     assert deserialized_data[7]["content"] == "The capital of France is Paris."
@@ -329,16 +329,16 @@ def test_redis_store_mixed_list_streaming_scenario() -> None:
     # Test retrieving the mixed list
     redis_instance.get.return_value = args[1]  # Return the serialized data
     retrieved_list = store.get(test_key)
-    
+
     assert retrieved_list is not None
     assert isinstance(retrieved_list, list)
     assert len(retrieved_list) == 8
-    
+
     # First 7 items should still be strings
     for i in range(7):
         assert isinstance(retrieved_list[i], str)
         assert retrieved_list[i] == mixed_list[i]
-    
+
     # Last item should be a dict (CreateResult deserialized from JSON)
     assert isinstance(retrieved_list[7], dict)
     assert retrieved_list[7]["content"] == "The capital of France is Paris."  # type: ignore
@@ -370,7 +370,7 @@ def test_redis_store_empty_list() -> None:
     # Test retrieving the empty list
     redis_instance.get.return_value = args[1]
     retrieved_list = store.get(test_key)
-    
+
     assert retrieved_list is not None
     assert isinstance(retrieved_list, list)
     assert len(retrieved_list) == 0
@@ -385,7 +385,7 @@ def test_redis_store_list_serialization_error_handling() -> None:
 
     # Test Redis error during set
     redis_instance.set.side_effect = redis.RedisError("Redis connection failed")
-    
+
     mixed_list: List[Union[str, CreateResult]] = [
         "test",
         CreateResult(
@@ -395,7 +395,7 @@ def test_redis_store_list_serialization_error_handling() -> None:
             cached=False
         )
     ]
-    
+
     # This should not raise an exception due to our try/except block
     try:
         store.set("error_key", mixed_list)
@@ -405,7 +405,7 @@ def test_redis_store_list_serialization_error_handling() -> None:
     # Test get with corrupted JSON data for lists
     redis_instance.get.side_effect = None  # Reset side effect
     redis_instance.get.return_value = b'[{"invalid": json}]'  # Invalid JSON
-    
+
     retrieved_value = store.get("corrupted_key", default=[])
     # Should return the decoded string when JSON parsing fails (backward compatibility)
     assert retrieved_value == '[{"invalid": json}]'
