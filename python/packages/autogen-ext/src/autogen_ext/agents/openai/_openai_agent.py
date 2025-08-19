@@ -66,7 +66,7 @@ def _convert_tool_to_function_tool_param(tool: Tool) -> FunctionToolParam:
         name=schema["name"],
         description=schema.get("description", ""),
         parameters=parameters,
-        strict=None,
+        strict=schema.get("strict", None),
     )
     return function_tool_param
 
