@@ -1,7 +1,8 @@
 import copy
-from typing import List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import pytest
+from autogen_core import CacheStore
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -9,7 +10,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_ext.models.cache import ChatCompletionCache
+from autogen_ext.models.cache import CHAT_CACHE_VALUE_TYPE, ChatCompletionCache
 from autogen_ext.models.replay import ReplayChatCompletionClient
 from pydantic import BaseModel
 
@@ -186,18 +187,27 @@ async def test_cache_create_stream() -> None:
     # assert loaded_client.client == cached_client.client
 
 
-class MockCacheStore:
+class MockCacheStore(CacheStore[CHAT_CACHE_VALUE_TYPE]):
     """Mock cache store for testing deserialization scenarios."""
 
-    def __init__(self, return_value=None):
+    def __init__(self, return_value: Optional[CHAT_CACHE_VALUE_TYPE] = None) -> None:
         self._return_value = return_value
-        self._storage = {}
+        self._storage: Dict[str, CHAT_CACHE_VALUE_TYPE] = {}
 
-    def get(self, key: str):
+    def get(self, key: str, default: Optional[CHAT_CACHE_VALUE_TYPE] = None) -> Optional[CHAT_CACHE_VALUE_TYPE]:
         return self._return_value
 
-    def set(self, key: str, value):
+    def set(self, key: str, value: CHAT_CACHE_VALUE_TYPE) -> None:
         self._storage[key] = value
+
+    def _to_config(self) -> BaseModel:
+        """Dummy implementation for testing."""
+        return BaseModel()
+
+    @classmethod
+    def _from_config(cls, _config: BaseModel) -> "MockCacheStore":
+        """Dummy implementation for testing."""
+        return cls()
 
 
 def test_check_cache_redis_dict_deserialization_success():
@@ -221,7 +231,7 @@ def test_check_cache_redis_dict_deserialization_success():
 
     # Test _check_cache method directly using proper test data
     messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
-    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})
+    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})  # type: ignore
 
     assert cached_result is not None
     assert isinstance(cached_result, CreateResult)
@@ -245,7 +255,7 @@ def test_check_cache_redis_dict_deserialization_failure():
 
     # Test _check_cache method directly using proper test data
     messages = [system_prompt, UserMessage(content=prompts[1], source="user")]
-    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})
+    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})  # type: ignore
 
     # Should return None (cache miss) when deserialization fails
     assert cached_result is None
@@ -279,7 +289,7 @@ def test_check_cache_redis_streaming_dict_deserialization():
 
     # Test _check_cache method directly using proper test data
     messages = [system_prompt, UserMessage(content=prompts[2], source="user")]
-    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})
+    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})  # type: ignore
 
     assert cached_result is not None
     assert isinstance(cached_result, list)
@@ -313,7 +323,7 @@ def test_check_cache_redis_streaming_deserialization_failure():
 
     # Test _check_cache method directly using proper test data
     messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
-    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})
+    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})  # type: ignore
 
     # Should return None (cache miss) when deserialization fails
     assert cached_result is None
