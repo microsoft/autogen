@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import warnings
 from typing import (
     Any,
     AsyncGenerator,
@@ -29,7 +28,7 @@ from autogen_agentchat.messages import (
     TextMessage,
     ToolCallSummaryMessage,
 )
-from autogen_core import CancellationToken, Component, ComponentModel
+from autogen_core import CancellationToken, Component
 from autogen_core.models import UserMessage
 from pydantic import BaseModel, Field
 from typing_extensions import NotRequired, TypedDict

@@ -404,7 +404,7 @@ async def test_to_config_with_string_builtin_tools() -> None:
         if isinstance(tool, str):
             tool_types.append(tool)
         elif isinstance(tool, dict):
-            tool_types.append(cast(Dict[str, Any], tool)["type"])
+            tool_types.append(tool["type"])
         else:
             # Handle ComponentModel case
             tool_types.append(str(tool))
@@ -436,7 +436,7 @@ async def test_to_config_with_configured_builtin_tools() -> None:
     assert len(config.tools) == 3
 
     # Verify configured tools are serialized correctly
-    tool_configs = [cast(Dict[str, Any], tool) for tool in config.tools if isinstance(tool, dict)]
+    tool_configs = [tool for tool in config.tools if isinstance(tool, dict)]
     assert len(tool_configs) == 3
 
     # Check file_search config
@@ -583,7 +583,7 @@ async def test_config_serialization_with_mixed_tools() -> None:
     assert len(config.tools) == 4
 
     # Verify all tools are serialized as dicts with "type" key
-    dict_tools = [cast(Dict[str, Any], tool) for tool in config.tools if isinstance(tool, dict)]
+    dict_tools = [tool for tool in config.tools if isinstance(tool, dict)]
     assert len(dict_tools) == 4
 
     # Check that string tools are converted to dicts with "type" key
