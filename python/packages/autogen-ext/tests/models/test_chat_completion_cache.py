@@ -387,7 +387,7 @@ def test_check_cache_list_reconstruction_success() -> None:
         "finish_reason": "stop",
     }
     valid_dict2 = {
-        "content": "second result", 
+        "content": "second result",
         "usage": {"prompt_tokens": 12, "completion_tokens": 7},
         "cached": False,
         "finish_reason": "stop",
@@ -396,7 +396,7 @@ def test_check_cache_list_reconstruction_success() -> None:
     cached_list: List[Union[str, Dict[str, Any]]] = [
         "streaming chunk 1",
         valid_dict1,
-        "streaming chunk 2", 
+        "streaming chunk 2",
         valid_dict2,
     ]
 
@@ -416,7 +416,7 @@ def test_check_cache_list_reconstruction_success() -> None:
     assert isinstance(cached_result[1], CreateResult)
     assert cached_result[1].content == "first result"
     assert cached_result[2] == "streaming chunk 2"
-    assert isinstance(cached_result[3], CreateResult) 
+    assert isinstance(cached_result[3], CreateResult)
     assert cached_result[3].content == "second result"
     assert cache_key is not None
 
