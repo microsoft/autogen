@@ -113,9 +113,8 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
                 serialized_value = json.dumps(serializable_list).encode("utf-8")
                 self.cache.set(key, serialized_value)
             else:
-                # For primitives, serialize to JSON to maintain consistency
-                serialized_value = json.dumps(value).encode("utf-8")
-                self.cache.set(key, serialized_value)
+                # Backward compatibility for primitives
+                self.cache.set(key, cast(Any, value))
         except (redis.RedisError, ConnectionError, UnicodeEncodeError, TypeError):
             # Log the error but don't re-raise to maintain robustness
             pass
