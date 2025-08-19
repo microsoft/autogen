@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-core"
-version = "0.6.1"
+version = "0.7.2"
 license = {file = "LICENSE-CODE"}
 description = "Foundational interfaces and agent runtime implementation for AutoGen"
 readme = "README.md"
@@ -19,7 +19,7 @@ dependencies = [
     "typing-extensions>=4.0.0",
     "pydantic<3.0.0,>=2.10.0",
     "protobuf~=5.29.3",
-    "opentelemetry-api>=1.27.0",
+    "opentelemetry-api>=1.34.1",
     "jsonref~=1.1.0",
 ]
 
@@ -42,7 +42,7 @@ dev = [
     "llama-index",
     "markdownify",
     "nbqa",
-    "opentelemetry-sdk>=1.27.0",
+    "opentelemetry-sdk>=1.34.1",
     "pip",
     "polars",
     "python-dotenv",
@@ -57,34 +57,13 @@ dev = [
     "types-protobuf",
     "types-requests",
     "wikipedia",
-
-    # Documentation
-    "myst-nb==1.1.2",
-    "pydata-sphinx-theme==0.16.0",
-    "sphinx-copybutton",
-    "sphinx-design",
-    "sphinx",
-    "sphinxcontrib-apidoc",
-    "autodoc_pydantic~=2.2",
-    "pygments",
-    "sphinxext-rediraffe",
-
-    "autogen_ext==0.6.1",
-
-    # Documentation tooling
-    "diskcache",
-    "redis",
-    "sphinx-autobuild",
 ]
 
 
 [tool.ruff]
 extend = "../../pyproject.toml"
 exclude = ["build", "dist", "src/autogen_core/application/protos", "tests/protos"]
-include = ["src/**", "docs/**/*.ipynb", "tests/**"]
-
-[tool.ruff.lint.per-file-ignores]
-"docs/**.ipynb" = ["T20"]
+include = ["src/**", "tests/**"]
 
 [tool.pyright]
 extends = "../../pyproject.toml"
@@ -97,11 +76,6 @@ minversion = "6.0"
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "session"
 
-[tool.nbqa.addopts]
-mypy = [
-    "--disable-error-code=top-level-await"
-]
-
 [tool.poe]
 include = "../../shared_tasks.toml"
 
@@ -110,24 +84,5 @@ test = "pytest -n auto --cov=src --cov-report=term-missing --cov-report=xml"
 mypy.default_item_type = "cmd"
 mypy.sequence = [
     "mypy --config-file ../../pyproject.toml --exclude src/autogen_core/application/protos --exclude tests/protos src tests",
-    "nbqa mypy docs/src --config-file ../../pyproject.toml",
 ]
-
-# Docs
-docs-clean = "rm -rf docs/build"
-
-# Inline tables are WAY easier to read but for some reason they break pyright. So we have to write it out this way.
-# Example of inline table:
-# docs-build = [
-#     "docs-apidoc-all",
-#     { cmd = "sphinx-build docs/src docs/build" }
-# ]
-
-docs-build = "sphinx-build docs/src docs/build"
-
-docs-serve = "sphinx-autobuild --watch src docs/src docs/build --port 8000 --jobs auto"
-
-docs-check = "sphinx-build --fail-on-warning docs/src docs/build"
-
-docs-check-examples = "sphinx-build -b code_lint docs/src docs/build"
 

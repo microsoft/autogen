@@ -1,21 +1,22 @@
-# mypy: disable-error-code="no-any-unimported,misc"
 from pathlib import Path
 
 import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
-from graphrag.config.config_file_loader import load_config_from_file
+from pydantic import BaseModel, Field
+
+import graphrag.config.defaults as defs
+from graphrag.config.load_config import load_config
+from graphrag.language_model.manager import ModelManager
+from graphrag.language_model.protocol import ChatModel
 from graphrag.query.indexer_adapters import (
     read_indexer_communities,
     read_indexer_entities,
     read_indexer_reports,
 )
-from graphrag.query.llm.base import BaseLLM
-from graphrag.query.llm.get_client import get_llm
 from graphrag.query.structured_search.global_search.community_context import GlobalCommunityContext
 from graphrag.query.structured_search.global_search.search import GlobalSearch
-from pydantic import BaseModel, Field
 
 from ._config import GlobalContextConfig as ContextConfig
 from ._config import GlobalDataConfig as DataConfig
@@ -63,6 +64,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
     .. code-block:: python
 
         import asyncio
+        from pathlib import Path
         from autogen_ext.models.openai import OpenAIChatCompletionClient
         from autogen_agentchat.ui import Console
         from autogen_ext.tools.graphrag import GlobalSearchTool
@@ -77,7 +79,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
             )
 
             # Set up global search tool
-            global_tool = GlobalSearchTool.from_settings(settings_path="./settings.yaml")
+            global_tool = GlobalSearchTool.from_settings(root_dir=Path("./"), config_filepath=Path("./settings.yaml"))
 
             # Create assistant agent with the global search tool
             assistant_agent = AssistantAgent(
@@ -103,7 +105,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
     def __init__(
         self,
         token_encoder: tiktoken.Encoding,
-        llm: BaseLLM,
+        model: ChatModel,
         data_config: DataConfig,
         context_config: ContextConfig = _default_context_config,
         mapreduce_config: MapReduceConfig = _default_mapreduce_config,
@@ -114,8 +116,8 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
             name="global_search_tool",
             description="Perform a global search with given parameters using graphrag.",
         )
-        # Use the provided LLM
-        self._llm = llm
+        # Use the provided model
+        self._model = model
 
         # Load parquet files
         community_df: pd.DataFrame = pd.read_parquet(f"{data_config.input_dir}/{data_config.community_table}.parquet")  # type: ignore
@@ -123,13 +125,11 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
         report_df: pd.DataFrame = pd.read_parquet(  # type: ignore
             f"{data_config.input_dir}/{data_config.community_report_table}.parquet"
         )
-        entity_embedding_df: pd.DataFrame = pd.read_parquet(  # type: ignore
-            f"{data_config.input_dir}/{data_config.entity_embedding_table}.parquet"
-        )
 
-        communities = read_indexer_communities(community_df, entity_df, report_df)
-        reports = read_indexer_reports(report_df, entity_df, data_config.community_level)
-        entities = read_indexer_entities(entity_df, entity_embedding_df, data_config.community_level)
+        # Fix: Use correct argument order and types for GraphRAG API
+        communities = read_indexer_communities(community_df, report_df)
+        reports = read_indexer_reports(report_df, community_df, data_config.community_level)
+        entities = read_indexer_entities(entity_df, community_df, data_config.community_level)
 
         context_builder = GlobalCommunityContext(
             community_reports=reports,
@@ -163,7 +163,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
         }
 
         self._search_engine = GlobalSearch(
-            llm=self._llm,
+            model=self._model,
             context_builder=context_builder,
             token_encoder=token_encoder,
             max_data_tokens=context_config.max_data_tokens,
@@ -177,37 +177,56 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
         )
 
     async def run(self, args: GlobalSearchToolArgs, cancellation_token: CancellationToken) -> GlobalSearchToolReturn:
-        search_result = await self._search_engine.asearch(args.query)
+        search_result = await self._search_engine.search(args.query)
         assert isinstance(search_result.response, str), "Expected response to be a string"
         return GlobalSearchToolReturn(answer=search_result.response)
 
     @classmethod
-    def from_settings(cls, settings_path: str | Path) -> "GlobalSearchTool":
+    def from_settings(cls, root_dir: str | Path, config_filepath: str | Path | None = None) -> "GlobalSearchTool":
         """Create a GlobalSearchTool instance from GraphRAG settings file.
 
         Args:
-            settings_path: Path to the GraphRAG settings.yaml file
+            root_dir: Path to the GraphRAG root directory
+            config_filepath: Path to the GraphRAG settings file (optional)
 
         Returns:
             An initialized GlobalSearchTool instance
         """
         # Load GraphRAG config
-        config = load_config_from_file(settings_path)
+        if isinstance(root_dir, str):
+            root_dir = Path(root_dir)
+        if isinstance(config_filepath, str):
+            config_filepath = Path(config_filepath)
+        config = load_config(root_dir=root_dir, config_filepath=config_filepath)
 
-        # Initialize token encoder
-        token_encoder = tiktoken.get_encoding(config.encoding_model)
+        # Get the language model configuration from the models section
+        chat_model_config = config.models.get(defs.DEFAULT_CHAT_MODEL_ID)
 
-        # Initialize LLM using graphrag's get_client
-        llm = get_llm(config)
+        if chat_model_config is None:
+            raise ValueError("default_chat_model not found in config.models")
+
+        # Initialize token encoder based on the model being used
+        try:
+            token_encoder = tiktoken.encoding_for_model(chat_model_config.model)
+        except KeyError:
+            # Fallback to cl100k_base if model is not recognized by tiktoken
+            token_encoder = tiktoken.get_encoding("cl100k_base")
+
+        # Create the LLM using ModelManager
+        model = ModelManager().get_or_create_chat_model(
+            name="global_search_model",
+            model_type=chat_model_config.type,
+            config=chat_model_config,
+        )
 
         # Create data config from storage paths
         data_config = DataConfig(
-            input_dir=str(Path(config.storage.base_dir)),
+            input_dir=str(config.output.base_dir),
         )
 
         return cls(
             token_encoder=token_encoder,
-            llm=llm,
+            model=model,
             data_config=data_config,
             context_config=_default_context_config,
             mapreduce_config=_default_mapreduce_config,

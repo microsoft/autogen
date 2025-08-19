@@ -1,5 +1,4 @@
 # api/routes/sessions.py
-import re
 from typing import Dict
 
 from fastapi import APIRouter, Depends, HTTPException

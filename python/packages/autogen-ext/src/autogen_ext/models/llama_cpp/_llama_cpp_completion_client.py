@@ -1,6 +1,7 @@
 import asyncio
 import logging  # added import
 import re
+import warnings
 from typing import Any, AsyncGenerator, Dict, List, Literal, Mapping, Optional, Sequence, TypedDict, Union, cast
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, MessageHandlerContext
@@ -264,6 +265,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
@@ -301,6 +303,15 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             create_args["response_format"] = {"type": "json_object"}
         elif json_output is not False and json_output is not None:
             raise ValueError("json_output must be a boolean, a BaseModel subclass or None.")
+
+        # Handle tool_choice parameter
+        if tool_choice != "auto":
+            warnings.warn(
+                "tool_choice parameter is specified but LlamaCppChatCompletionClient does not support it. "
+                "This parameter will be ignored.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         if self.model_info["function_calling"]:
             # Run this in on the event loop to avoid blocking.
@@ -397,12 +408,21 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
+        # Validate tool_choice parameter even though streaming is not implemented
+        if tool_choice != "auto" and tool_choice != "none":
+            if not self.model_info["function_calling"]:
+                raise ValueError("tool_choice specified but model does not support function calling")
+            if len(tools) == 0:
+                raise ValueError("tool_choice specified but no tools provided")
+            logger.warning("tool_choice parameter specified but may not be supported by llama-cpp-python")
+
         raise NotImplementedError("Stream not yet implemented for LlamaCppChatCompletionClient")
         yield ""
 
