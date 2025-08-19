@@ -320,8 +320,8 @@ async def test_tool_schema_conversion(agent: OpenAIAgent) -> None:
 
     assert tool_schema["name"] == "get_weather"
     assert "description" in tool_schema
-    assert "parameters" in tool_schema
-    assert tool_schema["parameters"]["type"] == "object"
+    assert "parameters" in tool_schema and isinstance(tool_schema["parameters"], dict)
+    assert tool_schema["parameters"].get("type") == "object"
     assert "properties" in tool_schema["parameters"]
 
 
