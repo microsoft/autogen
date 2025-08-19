@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Union, cast
+from typing import Dict, List, Union, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -245,7 +245,7 @@ def test_redis_store_list_with_create_results_only() -> None:
 
     assert isinstance(deserialized_data, list)
     # Type narrowing: after isinstance check, deserialized_data is known to be a list
-    deserialized_list = deserialized_data  # Now properly typed as list
+    deserialized_list: List[Dict[str, Union[str, int]]] = deserialized_data  # Now properly typed as list
     assert len(deserialized_list) == 2
     assert deserialized_list[0]["content"] == "First response"
     assert deserialized_list[1]["content"] == "Second response"
@@ -301,7 +301,7 @@ def test_redis_store_mixed_list_streaming_scenario() -> None:
 
     assert isinstance(deserialized_data, list)
     # Type narrowing: after isinstance check, deserialized_data is known to be a list
-    deserialized_list = deserialized_data  # Now properly typed as list
+    deserialized_list: List[Union[str, Dict[str, Union[str, int]]]] = deserialized_data  # Now properly typed as list
     assert len(deserialized_list) == 8  # 7 strings + 1 CreateResult
 
     # First 7 items should be strings

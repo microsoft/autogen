@@ -524,7 +524,7 @@ async def test_redis_streaming_cache_integration() -> None:
     deserialized = json.loads(serialized_data.decode("utf-8"))
     assert isinstance(deserialized, list)
     # Type narrowing: after isinstance check, deserialized is known to be a list
-    deserialized_list = deserialized  # Now properly typed as list
+    deserialized_list: List[Union[str, Dict[str, Union[str, int]]]] = deserialized  # Now properly typed as list
     # Should contain both string chunks and final CreateResult (as dict)
     assert len(deserialized_list) > 0
 
@@ -799,7 +799,9 @@ async def test_create_stream_with_cached_non_streaming_result_non_string_content
 
     # Create a CreateResult with non-string content (e.g., list of function calls)
     cached_create_result = CreateResult(
-        content=[FunctionCall(id="call_123", name="test_func", arguments='{"param": "value"}')],  # List of FunctionCall objects
+        content=[
+            FunctionCall(id="call_123", name="test_func", arguments='{"param": "value"}')
+        ],  # List of FunctionCall objects
         finish_reason="function_calls",  # Valid finish reason for function calls
         usage=RequestUsage(prompt_tokens=10, completion_tokens=15),
         cached=False,
