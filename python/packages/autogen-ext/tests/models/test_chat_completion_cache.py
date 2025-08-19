@@ -578,11 +578,17 @@ async def test_cache_cross_compatibility_create_to_stream() -> None:
     async for chunk in cached_client.create_stream([system_prompt, UserMessage(content=prompts[0], source="user")]):
         stream_results.append(copy.copy(chunk))
 
-    # Should yield exactly one item (the cached CreateResult)
-    assert len(stream_results) == 1
-    assert isinstance(stream_results[0], CreateResult)
-    assert stream_results[0].cached  # Should be marked as cached
-    assert stream_results[0].content == responses[0]
+    # Should yield exactly two items: the string content + the cached CreateResult
+    assert len(stream_results) == 2
+
+    # First item should be the string content
+    assert isinstance(stream_results[0], str)
+    assert stream_results[0] == responses[0]
+
+    # Second item should be the cached CreateResult
+    assert isinstance(stream_results[1], CreateResult)
+    assert stream_results[1].cached  # Should be marked as cached
+    assert stream_results[1].content == responses[0]
 
     # Verify no additional API calls were made (cache hit)
     initial_usage = cached_client.total_usage()
@@ -660,9 +666,11 @@ async def test_cache_cross_compatibility_mixed_sequence() -> None:
     async for chunk in cached_client.create_stream([system_prompt, UserMessage(content=prompts[0], source="user")]):
         stream1_results.append(chunk)
 
-    assert len(stream1_results) == 1  # Should just yield the cached CreateResult
-    assert isinstance(stream1_results[0], CreateResult)
-    assert stream1_results[0].cached
+    assert len(stream1_results) == 2  # Should yield string content + cached CreateResult
+    assert isinstance(stream1_results[0], str)  # First item: string content
+    assert stream1_results[0] == responses[0]
+    assert isinstance(stream1_results[1], CreateResult)  # Second item: cached CreateResult
+    assert stream1_results[1].cached
     usage_after_2 = copy.copy(cached_client.total_usage())
     # No new API call should have been made
     assert usage_after_2.prompt_tokens == usage_after_1.prompt_tokens
@@ -821,6 +829,7 @@ async def test_create_stream_with_cached_non_streaming_result_non_string_content
 
     # Only item should be the CreateResult
     assert isinstance(stream_results[0], CreateResult)
-    assert stream_results[0].content == [{"type": "function", "name": "test_func"}]
-    assert stream_results[0].finish_reason == "tool_calls"
+    expected_function_call = FunctionCall(id="call_123", name="test_func", arguments='{"param": "value"}')
+    assert stream_results[0].content == [expected_function_call]
+    assert stream_results[0].finish_reason == "function_calls"
     assert stream_results[0].cached is True
