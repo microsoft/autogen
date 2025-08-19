@@ -139,7 +139,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-For more complex multi-agent orchestrations and workflows, read
+For more advanced multi-agent orchestrations and workflows, read
 [AgentChat documentation](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html).
 
 ### AutoGen Studio
