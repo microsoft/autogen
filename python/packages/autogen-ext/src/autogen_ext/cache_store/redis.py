@@ -104,7 +104,7 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
                 self.cache.set(key, serialized_value)
             elif isinstance(value, list):
                 # Serialize lists (which may contain Pydantic models) to JSON
-                serializable_list = []
+                serializable_list: list[Any] = []
                 for item in value:
                     if isinstance(item, BaseModel):
                         serializable_list.append(item.model_dump())
