@@ -77,6 +77,77 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
 
         asyncio.run(main())
 
+    For Redis caching:
+
+    .. code-block:: python
+
+        import asyncio
+
+        from autogen_core.models import UserMessage
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
+        from autogen_ext.cache_store.redis import RedisStore
+        import redis
+
+
+        async def main():
+            # Initialize the original client
+            openai_model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+            # Initialize Redis cache store
+            redis_instance = redis.Redis()
+            cache_store = RedisStore[CHAT_CACHE_VALUE_TYPE](redis_instance)
+            cache_client = ChatCompletionCache(openai_model_client, cache_store)
+
+            response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+            print(response)  # Should print response from OpenAI
+            response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+            print(response)  # Should print cached response
+
+
+        asyncio.run(main())
+
+    For streaming with Redis caching:
+
+    .. code-block:: python
+
+        import asyncio
+
+        from autogen_core.models import UserMessage, CreateResult
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
+        from autogen_ext.cache_store.redis import RedisStore
+        import redis
+
+
+        async def main():
+            # Initialize the original client
+            openai_model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+            # Initialize Redis cache store
+            redis_instance = redis.Redis()
+            cache_store = RedisStore[CHAT_CACHE_VALUE_TYPE](redis_instance)
+            cache_client = ChatCompletionCache(openai_model_client, cache_store)
+
+            # First streaming call
+            async for chunk in cache_client.create_stream([UserMessage(content="List all countries in Africa", source="user")]):
+                if isinstance(chunk, CreateResult):
+                    print("\\n")
+                    print("Cached: ", chunk.cached)  # Should print False
+                else:
+                    print(chunk, end="")
+
+            # Second streaming call (cached)
+            async for chunk in cache_client.create_stream([UserMessage(content="List all countries in Africa", source="user")]):
+                if isinstance(chunk, CreateResult):
+                    print("\\n")
+                    print("Cached: ", chunk.cached)  # Should print True
+                else:
+                    print(chunk, end="")
+
+
+        asyncio.run(main())
+
     You can now use the `cached_client` as you would the original client, but with caching enabled.
 
     Args:
