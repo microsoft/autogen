@@ -523,9 +523,8 @@ async def test_redis_streaming_cache_integration() -> None:
 
     deserialized: Any = json.loads(serialized_data.decode("utf-8"))
     assert isinstance(deserialized, list)
-    deserialized_list: List[Any] = cast(List[Any], deserialized)
     # Should contain both string chunks and final CreateResult (as dict)
-    assert len(deserialized_list) > 0
+    assert len(deserialized) > 0
 
     # Reset the mock for the second call
     redis_instance.reset_mock()

@@ -244,11 +244,10 @@ def test_redis_store_list_with_create_results_only() -> None:
     deserialized_data: Any = json.loads(serialized_json)
 
     assert isinstance(deserialized_data, list)
-    deserialized_list: List[Any] = cast(List[Any], deserialized_data)
-    assert len(deserialized_list) == 2
-    assert deserialized_list[0]["content"] == "First response"
-    assert deserialized_list[1]["content"] == "Second response"
-    assert deserialized_list[0]["finish_reason"] == "stop"
+    assert len(deserialized_data) == 2
+    assert deserialized_data[0]["content"] == "First response"
+    assert deserialized_data[1]["content"] == "Second response"
+    assert deserialized_data[0]["finish_reason"] == "stop"
 
     # Test retrieving the list
     redis_instance.get.return_value = args[1]  # Return the serialized data
@@ -299,17 +298,16 @@ def test_redis_store_mixed_list_streaming_scenario() -> None:
     deserialized_data: Any = json.loads(serialized_json)
 
     assert isinstance(deserialized_data, list)
-    deserialized_list: List[Any] = cast(List[Any], deserialized_data)
-    assert len(deserialized_list) == 8  # 7 strings + 1 CreateResult
+    assert len(deserialized_data) == 8  # 7 strings + 1 CreateResult
 
     # First 7 items should be strings
     for i in range(7):
-        assert isinstance(deserialized_list[i], str)
+        assert isinstance(deserialized_data[i], str)
 
     # Last item should be the serialized CreateResult (as dict)
-    assert isinstance(deserialized_list[7], dict)
-    assert deserialized_list[7]["content"] == "The capital of France is Paris."
-    assert deserialized_list[7]["finish_reason"] == "stop"
+    assert isinstance(deserialized_data[7], dict)
+    assert deserialized_data[7]["content"] == "The capital of France is Paris."
+    assert deserialized_data[7]["finish_reason"] == "stop"
     assert deserialized_data[7]["usage"]["prompt_tokens"] == 15
     assert deserialized_data[7]["usage"]["completion_tokens"] == 30
 

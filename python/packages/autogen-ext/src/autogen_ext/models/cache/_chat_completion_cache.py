@@ -306,11 +306,11 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                 elif isinstance(cached_result, CreateResult):
                     # Cache hit from previous non-streaming call - convert to streaming format
                     cached_result.cached = True
-                    
-                    # If content string, yield it as a streaming chunk first
-                    if cached_result.content:
+
+                    # If content is a non-empty string, yield it as a streaming chunk first
+                    if isinstance(cached_result.content, str) and cached_result.content:
                         yield cached_result.content
-                    
+
                     yield cached_result
                     return
 
