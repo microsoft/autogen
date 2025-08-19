@@ -395,4 +395,4 @@ def test_redis_store_list_serialization_error_handling() -> None:
 
     retrieved_value = store.get("corrupted_key", default=[])
     # Should return the decoded string when JSON parsing fails (backward compatibility)
-    assert retrieved_value == '[{"invalid": json}]'
+    assert retrieved_value == '[{"invalid": json}]'  # type: ignore[comparison-overlap]
