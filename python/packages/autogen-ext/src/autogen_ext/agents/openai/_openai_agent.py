@@ -86,7 +86,7 @@ class WebSearchToolConfig(TypedDict):
     """Configuration for web_search_preview tool."""
 
     type: Literal["web_search_preview"]
-    search_context_size: NotRequired[int]  # optional
+    search_context_size: NotRequired[str]  # optional
     user_location: NotRequired[Union[str, Dict[str, Any]]]  # optional - Can be string or structured location
 
 
@@ -114,7 +114,7 @@ class CodeInterpreterToolConfig(TypedDict):
     """Configuration for code_interpreter tool."""
 
     type: Literal["code_interpreter"]
-    container: str  # required - Container configuration for code execution
+    container: str | Dict[str, Any]  # required - Container configuration for code execution
 
 
 class ImageGenerationToolConfig(TypedDict):
@@ -330,66 +330,63 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
         .. code-block:: python
 
-            from openai import AsyncOpenAI
-            from autogen_core import CancellationToken
+            import asyncio
+
+            from autogen_agentchat.ui import Console
             from autogen_ext.agents.openai import OpenAIAgent
-            from autogen_agentchat.messages import TextMessage
-            import logging
+            from openai import AsyncOpenAI
 
 
             async def example():
-                cancellation_token = CancellationToken()
                 client = AsyncOpenAI()
                 agent = OpenAIAgent(
-                    name="Simple Agent",
+                    name="SimpleAgent",
                     description="A simple OpenAI agent using the Responses API",
                     client=client,
-                    model="gpt-4o",
+                    model="gpt-4.1",
                     instructions="You are a helpful assistant.",
-                    tools=["web_search_preview", "image_generation"],  # Only tools without required params
+                    tools=["web_search_preview"],  # Only tools without required params
                 )
-                response = await agent.on_messages(
-                    [TextMessage(source="user", content="Search for recent AI developments")], cancellation_token
-                )
-                logging.info(response)
+                await Console(agent.run_stream(task="Search for recent AI developments"))
+
+
+            asyncio.run(example())
 
         Usage with configured built-in tools:
 
         .. code-block:: python
 
-            from openai import AsyncOpenAI
-            from autogen_core import CancellationToken
+            import asyncio
+
+            from autogen_agentchat.ui import Console
             from autogen_ext.agents.openai import OpenAIAgent
-            from autogen_agentchat.messages import TextMessage
-            import logging
+            from openai import AsyncOpenAI
 
 
             async def example_with_configs():
-                cancellation_token = CancellationToken()
                 client = AsyncOpenAI()
-
                 # Configure tools with required and optional parameters
                 tools = [
-                    {
-                        "type": "file_search",
-                        "vector_store_ids": ["vs_abc123"],  # required
-                        "max_num_results": 10,  # optional
-                    },
-                    {
-                        "type": "computer_use_preview",
-                        "display_height": 1024,  # required
-                        "display_width": 1280,  # required
-                        "environment": "desktop",  # required
-                    },
+                    # {
+                    #     "type": "file_search",
+                    #     "vector_store_ids": ["vs_abc123"],  # required
+                    #     "max_num_results": 10,  # optional
+                    # },
+                    # {
+                    #     "type": "computer_use_preview",
+                    #     "display_height": 1024,  # required
+                    #     "display_width": 1280,  # required
+                    #     "environment": "linux",  # required
+                    # },
                     {
                         "type": "code_interpreter",
-                        "container": "python-3.11",  # required
+                        "container": {"type": "auto"},  # required
                     },
-                    {
-                        "type": "mcp",
-                        "server_label": "my-mcp-server",  # required
-                        "server_url": "http://localhost:3000",  # required
-                    },
+                    # {
+                    #     "type": "mcp",
+                    #     "server_label": "my-mcp-server",  # required
+                    #     "server_url": "http://localhost:3000",  # required
+                    # },
                     {
                         "type": "web_search_preview",
                         "user_location": {  # optional - structured location
@@ -398,40 +395,40 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                             "region": "CA",  # optional
                             "city": "San Francisco",  # optional
                         },
-                        "search_context_size": 5,  # optional
+                        "search_context_size": "low",  # optional
                     },
-                    "image_generation",  # Simple tools can still use string format
+                    # "image_generation",  # Simple tools can still use string format
                 ]
 
                 agent = OpenAIAgent(
-                    name="Configured Agent",
+                    name="ConfiguredAgent",
                     description="An agent with configured tools",
                     client=client,
-                    model="gpt-4o",
+                    model="gpt-4.1",
                     instructions="You are a helpful assistant with specialized tools.",
                     tools=tools,  # type: ignore
                 )
-                response = await agent.on_messages(
-                    [TextMessage(source="user", content="Search for recent AI developments")], cancellation_token
-                )
-                logging.info(response)
+                await Console(agent.run_stream(task="Search for recent AI developments"))
+
+
+            asyncio.run(example_with_configs())
+
 
         Mixed usage with custom function tools:
 
         .. code-block:: python
 
             import asyncio
-            import logging
-            from openai import AsyncOpenAI
-            from autogen_core import CancellationToken
-            from autogen_ext.agents.openai import OpenAIAgent
-            from autogen_agentchat.messages import TextMessage
+
+            from autogen_agentchat.ui import Console
             from autogen_core.tools import FunctionTool
+            from autogen_ext.agents.openai import OpenAIAgent
+            from openai import AsyncOpenAI
 
 
             # Define a simple calculator function
             async def calculate(a: int, b: int) -> int:
-                '''Simple function to add two numbers.'''
+                \"\"\"Simple function to add two numbers.\"\"\"
                 return a + b
 
 
@@ -440,12 +437,11 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
 
             async def example_mixed_tools():
-                cancellation_token = CancellationToken()
                 client = AsyncOpenAI()
                 # Use the FunctionTool instance defined above
 
                 agent = OpenAIAgent(
-                    name="Mixed Tools Agent",
+                    name="MixedToolsAgent",
                     description="An agent with both built-in and custom tools",
                     client=client,
                     model="gpt-4o",
@@ -453,18 +449,13 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     tools=[
                         "web_search_preview",
                         calculator,
-                        {"type": "mcp", "server_label": "tools", "server_url": "http://localhost:3000"},
+                        # {"type": "mcp", "server_label": "tools", "server_url": "http://localhost:3000"},
                     ],
                 )
-                response = await agent.on_messages(
-                    [TextMessage(source="user", content="What's 2+2 and what's the weather like?")],
-                    cancellation_token,
-                )
-                logging.info(response)
+                await Console(agent.run_stream(task="What's 2+2 and what's the weather like?"))
 
 
             asyncio.run(example_mixed_tools())
-
 
     """
 
@@ -513,7 +504,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                     self._add_builtin_tool(tool)
                 elif isinstance(tool, dict) and "type" in tool:
                     # Handle configured built-in tools
-                    self._add_configured_tool(tool)
+                    self._tools.append(cast(dict[str, Any], tool))
                 elif isinstance(tool, Tool):
                     # Handle custom function tools
                     self._tools.append(cast(dict[str, Any], _convert_tool_to_function_tool_param(tool)))
@@ -556,193 +547,11 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         """Get help text for required parameters of a tool."""
         help_text = {
             "file_search": "vector_store_ids (List[str])",
-            "code_interpreter": "container (str)",
+            "code_interpreter": "container (str | dict)",
             "computer_use_preview": "display_height (int), display_width (int), environment (str)",
             "mcp": "server_label (str), server_url (str)",
         }
         return help_text.get(tool_name, "unknown parameters")
-
-    def _add_configured_tool(self, tool_config: BuiltinToolConfig) -> None:
-        """Add a configured built-in tool with parameters."""
-        tool_type = tool_config.get("type")
-        if not tool_type:
-            raise ValueError("Tool configuration must include 'type' field")
-
-        # If an identical configuration is already present we simply ignore the new one (keeps API payload minimal)
-        if cast(Dict[str, Any], tool_config) in self._tools:
-            return
-
-        # Initialize tool definition
-        tool_def: Dict[str, Any] = {}
-
-        # Special validation for model-restricted tools
-        if tool_type == "local_shell":
-            if self._model != "codex-mini-latest":
-                raise ValueError(
-                    f"Tool 'local_shell' is only supported with model 'codex-mini-latest', "
-                    f"but current model is '{self._model}'. "
-                    f"This tool is available exclusively through the Responses API and has severe limitations. "
-                    f"Consider using autogen_ext.tools.code_execution.PythonCodeExecutionTool with "
-                    f"autogen_ext.code_executors.local.LocalCommandLineCodeExecutor for shell execution instead."
-                )
-            tool_def = {"type": "local_shell"}
-
-        # For Responses API, built-in tools are defined directly without nesting
-        elif tool_type == "file_search":
-            # file_search requires vector_store_ids
-            fs_config = cast(FileSearchToolConfig, tool_config)
-            if "vector_store_ids" not in fs_config:
-                raise ValueError("file_search tool requires 'vector_store_ids' parameter")
-
-            vector_store_ids = fs_config["vector_store_ids"]
-            if not isinstance(vector_store_ids, list) or not vector_store_ids:
-                raise ValueError("file_search 'vector_store_ids' must be a non-empty list of strings")
-            if not all(isinstance(vid, str) and vid.strip() for vid in vector_store_ids):
-                raise ValueError("file_search 'vector_store_ids' must contain non-empty strings")
-
-            tool_def = {"type": "file_search", "vector_store_ids": vector_store_ids}
-            # Optional parameters
-            if "max_num_results" in fs_config:
-                max_results = fs_config["max_num_results"]
-                if not isinstance(max_results, int) or max_results <= 0:
-                    raise ValueError("file_search 'max_num_results' must be a positive integer")
-                tool_def["max_num_results"] = max_results
-            if "ranking_options" in fs_config:
-                tool_def["ranking_options"] = fs_config["ranking_options"]
-            if "filters" in fs_config:
-                tool_def["filters"] = fs_config["filters"]
-
-        elif tool_type == "web_search_preview":
-            # web_search_preview can have optional parameters
-            ws_config = cast(WebSearchToolConfig, tool_config)
-            tool_def = {"type": "web_search_preview"}
-            if "search_context_size" in ws_config:
-                context_size = ws_config["search_context_size"]
-                if not isinstance(context_size, int) or context_size <= 0:
-                    raise ValueError("web_search_preview 'search_context_size' must be a positive integer")
-                tool_def["search_context_size"] = context_size
-            if "user_location" in ws_config:
-                user_location = ws_config["user_location"]
-                if isinstance(user_location, str):
-                    if not user_location.strip():
-                        raise ValueError(
-                            "web_search_preview 'user_location' must be a non-empty string when using string format"
-                        )
-                elif isinstance(user_location, dict):
-                    if "type" not in user_location:
-                        raise ValueError("web_search_preview 'user_location' dictionary must include 'type' field")
-                    location_type = user_location["type"]
-                    if location_type not in ["approximate", "exact"]:
-                        raise ValueError("web_search_preview 'user_location' type must be 'approximate' or 'exact'")
-                    # Optional fields: country, region, city can be validated if present
-                    for optional_field in ["country", "region", "city"]:
-                        if optional_field in user_location:
-                            if (
-                                not isinstance(user_location[optional_field], str)
-                                or not user_location[optional_field].strip()
-                            ):
-                                raise ValueError(
-                                    f"web_search_preview 'user_location' {optional_field} must be a non-empty string"
-                                )
-                else:
-                    raise ValueError("web_search_preview 'user_location' must be a string or dictionary")
-                tool_def["user_location"] = user_location
-
-        elif tool_type == "computer_use_preview":
-            # computer_use_preview requires display dimensions and environment
-            cu_config = cast(ComputerUseToolConfig, tool_config)
-            required_params = ["display_height", "display_width", "environment"]
-            for param in required_params:
-                if param not in cu_config:
-                    raise ValueError(f"computer_use_preview tool requires '{param}' parameter")
-
-            # Validate display dimensions
-            height = cu_config["display_height"]
-            width = cu_config["display_width"]
-            if not isinstance(height, int) or height <= 0:
-                raise ValueError("computer_use_preview 'display_height' must be a positive integer")
-            if not isinstance(width, int) or width <= 0:
-                raise ValueError("computer_use_preview 'display_width' must be a positive integer")
-
-            # Validate environment
-            environment = cu_config["environment"]
-            if not isinstance(environment, str) or not environment.strip():
-                raise ValueError("computer_use_preview 'environment' must be a non-empty string")
-
-            tool_def = {
-                "type": "computer_use_preview",
-                "display_height": height,
-                "display_width": width,
-                "environment": environment,
-            }
-
-        elif tool_type == "mcp":
-            # MCP requires server_label and server_url
-            mcp_config = cast(MCPToolConfig, tool_config)
-            required_params = ["server_label", "server_url"]
-            for param in required_params:
-                if param not in mcp_config:
-                    raise ValueError(f"mcp tool requires '{param}' parameter")
-
-            # Validate required parameters
-            server_label = mcp_config["server_label"]
-            server_url = mcp_config["server_url"]
-            if not isinstance(server_label, str) or not server_label.strip():
-                raise ValueError("mcp 'server_label' must be a non-empty string")
-            if not isinstance(server_url, str) or not server_url.strip():
-                raise ValueError("mcp 'server_url' must be a non-empty string")
-
-            tool_def = {"type": "mcp", "server_label": server_label, "server_url": server_url}
-            # Optional parameters
-            if "allowed_tools" in mcp_config:
-                allowed_tools = mcp_config["allowed_tools"]
-                if not isinstance(allowed_tools, list):
-                    raise ValueError("mcp 'allowed_tools' must be a list of strings")
-                if not all(isinstance(tool, str) for tool in allowed_tools):
-                    raise ValueError("mcp 'allowed_tools' must contain only strings")
-                tool_def["allowed_tools"] = allowed_tools
-            if "headers" in mcp_config:
-                headers = mcp_config["headers"]
-                if not isinstance(headers, dict):
-                    raise ValueError("mcp 'headers' must be a dictionary")
-                tool_def["headers"] = headers
-            if "require_approval" in mcp_config:
-                require_approval = mcp_config["require_approval"]
-                if not isinstance(require_approval, bool):
-                    raise ValueError("mcp 'require_approval' must be a boolean")
-                tool_def["require_approval"] = require_approval
-
-        elif tool_type == "code_interpreter":
-            # code_interpreter requires container
-            ci_config = cast(CodeInterpreterToolConfig, tool_config)
-            if "container" not in ci_config:
-                raise ValueError("code_interpreter tool requires 'container' parameter")
-
-            container = ci_config["container"]
-            if not isinstance(container, str) or not container.strip():
-                raise ValueError("code_interpreter 'container' must be a non-empty string")
-
-            tool_def = {"type": "code_interpreter", "container": container}
-
-        elif tool_type == "image_generation":
-            # image_generation can have optional parameters
-            ig_config = cast(ImageGenerationToolConfig, tool_config)
-            tool_def = {"type": "image_generation"}
-            if "background" in ig_config:
-                background = ig_config["background"]
-                if not isinstance(background, str) or not background.strip():
-                    raise ValueError("image_generation 'background' must be a non-empty string")
-                tool_def["background"] = background
-            if "input_image_mask" in ig_config:
-                input_image_mask = ig_config["input_image_mask"]
-                if not isinstance(input_image_mask, str) or not input_image_mask.strip():
-                    raise ValueError("image_generation 'input_image_mask' must be a non-empty string")
-                tool_def["input_image_mask"] = input_image_mask
-
-        else:
-            raise ValueError(f"Unsupported built-in tool type: {tool_type}")
-
-        self._tools.append(tool_def)
 
     def _convert_message_to_dict(self, message: OpenAIMessage) -> Dict[str, Any]:
         """Convert an OpenAIMessage to a Dict[str, Any]."""
