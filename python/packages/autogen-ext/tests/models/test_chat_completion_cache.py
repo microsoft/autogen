@@ -1,5 +1,5 @@
 import copy
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import pytest
 from autogen_core import CacheStore
@@ -334,7 +334,7 @@ def test_check_cache_dict_reconstruction_success() -> None:
     }
 
     # Create a MockCacheStore that returns the dict directly (simulating Redis)
-    mock_store = MockCacheStore(return_value=valid_dict)
+    mock_store = MockCacheStore(return_value=cast(Any, valid_dict))
     cached_client = ChatCompletionCache(replay_client, mock_store)
 
     # Test _check_cache method
@@ -361,7 +361,7 @@ def test_check_cache_dict_reconstruction_failure() -> None:
     }
 
     # Create a MockCacheStore that returns the invalid dict
-    mock_store = MockCacheStore(return_value=invalid_dict)
+    mock_store = MockCacheStore(return_value=cast(Any, invalid_dict))
     cached_client = ChatCompletionCache(replay_client, mock_store)
 
     # Test _check_cache method
@@ -393,7 +393,7 @@ def test_check_cache_list_reconstruction_success() -> None:
         "finish_reason": "stop",
     }
 
-    cached_list: List[Union[str, Dict[str, Any]]] = [
+    cached_list = [
         "streaming chunk 1",
         valid_dict1,
         "streaming chunk 2",
@@ -401,7 +401,7 @@ def test_check_cache_list_reconstruction_success() -> None:
     ]
 
     # Create a MockCacheStore that returns the list with dicts
-    mock_store = MockCacheStore(return_value=cached_list)
+    mock_store = MockCacheStore(return_value=cast(Any, cached_list))
     cached_client = ChatCompletionCache(replay_client, mock_store)
 
     # Test _check_cache method
@@ -433,14 +433,14 @@ def test_check_cache_list_reconstruction_failure() -> None:
         "missing_required": True,
     }
 
-    cached_list: List[Union[str, Dict[str, Any]]] = [
+    cached_list = [
         "streaming chunk 1",
         invalid_dict,  # This will cause ValidationError
         "streaming chunk 2",
     ]
 
     # Create a MockCacheStore that returns the list with invalid dict
-    mock_store = MockCacheStore(return_value=cached_list)
+    mock_store = MockCacheStore(return_value=cast(Any, cached_list))
     cached_client = ChatCompletionCache(replay_client, mock_store)
 
     # Test _check_cache method
