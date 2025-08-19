@@ -2,7 +2,7 @@ import copy
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import pytest
-from autogen_core import CacheStore
+from autogen_core import CacheStore, FunctionCall
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -521,10 +521,12 @@ async def test_redis_streaming_cache_integration() -> None:
     assert isinstance(serialized_data, bytes)
     import json
 
-    deserialized: Any = json.loads(serialized_data.decode("utf-8"))
+    deserialized = json.loads(serialized_data.decode("utf-8"))
     assert isinstance(deserialized, list)
+    # Type narrowing: after isinstance check, deserialized is known to be a list
+    deserialized_list = deserialized  # Now properly typed as list
     # Should contain both string chunks and final CreateResult (as dict)
-    assert len(deserialized) > 0
+    assert len(deserialized_list) > 0
 
     # Reset the mock for the second call
     redis_instance.reset_mock()
@@ -758,7 +760,7 @@ async def test_create_stream_with_cached_non_streaming_result_empty_content() ->
     Test that when create_stream() finds a cached non-streaming result with empty string content,
     it only yields the CreateResult (no separate string chunk).
     """
-    responses, prompts, system_prompt, replay_client, _ = get_test_data()
+    _, prompts, system_prompt, replay_client, _ = get_test_data()
 
     # Create a CreateResult with empty string content
     cached_create_result = CreateResult(
@@ -793,12 +795,12 @@ async def test_create_stream_with_cached_non_streaming_result_non_string_content
     Test that when create_stream() finds a cached non-streaming result with non-string content,
     it only yields the CreateResult (no separate string chunk).
     """
-    responses, prompts, system_prompt, replay_client, _ = get_test_data()
+    _, prompts, system_prompt, replay_client, _ = get_test_data()
 
     # Create a CreateResult with non-string content (e.g., list of function calls)
     cached_create_result = CreateResult(
-        content=[{"type": "function", "name": "test_func"}],  # Non-string content
-        finish_reason="tool_calls",
+        content=[FunctionCall(id="call_123", name="test_func", arguments='{"param": "value"}')],  # List of FunctionCall objects
+        finish_reason="function_calls",  # Valid finish reason for function calls
         usage=RequestUsage(prompt_tokens=10, completion_tokens=15),
         cached=False,
     )
