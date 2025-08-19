@@ -230,11 +230,13 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
             )
 
             output_results: List[Union[str, CreateResult]] = []
-            self.store.set(cache_key, output_results)
 
             async for result in result_stream:
                 output_results.append(result)
                 yield result
+            
+            # Store the complete results only after streaming is finished
+            self.store.set(cache_key, output_results)
 
         return _generator()
 
