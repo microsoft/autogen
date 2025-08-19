@@ -188,26 +188,25 @@ async def test_cache_create_stream() -> None:
 
 class MockCacheStore:
     """Mock cache store for testing deserialization scenarios."""
-    
+
     def __init__(self, return_value=None):
         self._return_value = return_value
         self._storage = {}
-    
+
     def get(self, key: str):
         return self._return_value
-    
+
     def set(self, key: str, value):
         self._storage[key] = value
 
 
 def test_check_cache_redis_dict_deserialization_success():
     """Test _check_cache when Redis cache returns a dict that can be deserialized to CreateResult.
-    
     This tests the core Redis deserialization fix where Redis returns serialized Pydantic
     models as dictionaries instead of the original objects.
     """
     _, prompts, system_prompt, replay_client, _ = get_test_data()
-    
+
     # Create a dict representation of CreateResult (like what Redis would return)
     create_result_dict = {
         "content": "test response from redis",
@@ -219,15 +218,15 @@ def test_check_cache_redis_dict_deserialization_success():
         "cached": False,
         "finish_reason": "stop"
     }
-    
+
     # Mock cache store that returns a dict (simulating Redis behavior)
     mock_store = MockCacheStore(return_value=create_result_dict)
     cached_client = ChatCompletionCache(replay_client, mock_store)
-    
+
     # Test _check_cache method directly using proper test data
     messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
     cached_result, cache_key = cached_client._check_cache(messages, [], None, {})
-    
+
     assert cached_result is not None
     assert isinstance(cached_result, CreateResult)
     assert cached_result.content == "test response from redis"
@@ -236,26 +235,25 @@ def test_check_cache_redis_dict_deserialization_success():
 
 def test_check_cache_redis_dict_deserialization_failure():
     """Test _check_cache gracefully handles corrupted Redis data.
-    
     This ensures the system degrades gracefully when Redis returns corrupted
     or invalid data that cannot be deserialized back to CreateResult.
     """
     _, prompts, system_prompt, replay_client, _ = get_test_data()
-    
+
     # Create an invalid dict that cannot be deserialized to CreateResult
     invalid_dict = {
         "invalid_field": "invalid value",
         "missing_required_fields": True
     }
-    
+
     # Mock cache store that returns an invalid dict
     mock_store = MockCacheStore(return_value=invalid_dict)
     cached_client = ChatCompletionCache(replay_client, mock_store)
-    
+
     # Test _check_cache method directly using proper test data
     messages = [system_prompt, UserMessage(content=prompts[1], source="user")]
     cached_result, cache_key = cached_client._check_cache(messages, [], None, {})
-    
+
     # Should return None (cache miss) when deserialization fails
     assert cached_result is None
     assert cache_key is not None
@@ -263,12 +261,11 @@ def test_check_cache_redis_dict_deserialization_failure():
 
 def test_check_cache_redis_streaming_dict_deserialization():
     """Test _check_cache with Redis streaming data containing dicts that need deserialization.
-    
     This tests the streaming scenario where Redis returns a list containing
     serialized CreateResult objects as dictionaries mixed with string chunks.
     """
     _, prompts, system_prompt, replay_client, _ = get_test_data()
-    
+
     # Create a list with dicts that represent CreateResults (Redis streaming scenario)
     create_result_dict = {
         "content": "final streaming response from redis",
@@ -280,21 +277,21 @@ def test_check_cache_redis_streaming_dict_deserialization():
         "cached": False,
         "finish_reason": "stop"
     }
-    
+
     cached_list = [
         "streaming chunk 1",
         create_result_dict,  # This dict needs deserialization
         "streaming chunk 2"
     ]
-    
+
     # Mock cache store that returns the list with dicts (simulating Redis streaming)
     mock_store = MockCacheStore(return_value=cached_list)
     cached_client = ChatCompletionCache(replay_client, mock_store)
-    
+
     # Test _check_cache method directly using proper test data
     messages = [system_prompt, UserMessage(content=prompts[2], source="user")]
     cached_result, cache_key = cached_client._check_cache(messages, [], None, {})
-    
+
     assert cached_result is not None
     assert isinstance(cached_result, list)
     assert len(cached_result) == 3
@@ -307,32 +304,31 @@ def test_check_cache_redis_streaming_dict_deserialization():
 
 def test_check_cache_redis_streaming_deserialization_failure():
     """Test _check_cache gracefully handles corrupted Redis streaming data.
-    
     This ensures the system degrades gracefully when Redis returns streaming
     data with corrupted CreateResult dictionaries that cannot be deserialized.
     """
     _, prompts, system_prompt, replay_client, _ = get_test_data(num_messages=4)
-    
+
     # Create a list with an invalid dict that will fail deserialization
     invalid_dict = {
         "invalid_field": "invalid value",
         "missing_required_fields": True
     }
-    
+
     cached_list = [
         "streaming chunk 1",
         invalid_dict,  # This will fail deserialization
         "streaming chunk 2"
     ]
-    
+
     # Mock cache store that returns the list with invalid dict
     mock_store = MockCacheStore(return_value=cached_list)
     cached_client = ChatCompletionCache(replay_client, mock_store)
-    
+
     # Test _check_cache method directly using proper test data
     messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
     cached_result, cache_key = cached_client._check_cache(messages, [], None, {})
-    
+
     # Should return None (cache miss) when deserialization fails
     assert cached_result is None
     assert cache_key is not None
