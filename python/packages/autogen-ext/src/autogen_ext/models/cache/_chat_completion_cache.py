@@ -1,7 +1,7 @@
 import hashlib
 import json
 import warnings
-from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Sequence, Union, cast
+from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Sequence, Union
 
 from autogen_core import CacheStore, CancellationToken, Component, ComponentModel, InMemoryStore
 from autogen_core.models import (
@@ -13,7 +13,7 @@ from autogen_core.models import (
     RequestUsage,
 )
 from autogen_core.tools import Tool, ToolSchema
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from typing_extensions import Self
 
 CHAT_CACHE_VALUE_TYPE = Union[CreateResult, List[Union[str, CreateResult]]]
@@ -77,6 +77,81 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
 
         asyncio.run(main())
 
+    For Redis caching:
+
+    .. code-block:: python
+
+        import asyncio
+
+        from autogen_core.models import UserMessage
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
+        from autogen_ext.cache_store.redis import RedisStore
+        import redis
+
+
+        async def main():
+            # Initialize the original client
+            openai_model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+            # Initialize Redis cache store
+            redis_instance = redis.Redis()
+            cache_store = RedisStore[CHAT_CACHE_VALUE_TYPE](redis_instance)
+            cache_client = ChatCompletionCache(openai_model_client, cache_store)
+
+            response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+            print(response)  # Should print response from OpenAI
+            response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+            print(response)  # Should print cached response
+
+
+        asyncio.run(main())
+
+    For streaming with Redis caching:
+
+    .. code-block:: python
+
+        import asyncio
+
+        from autogen_core.models import UserMessage, CreateResult
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
+        from autogen_ext.cache_store.redis import RedisStore
+        import redis
+
+
+        async def main():
+            # Initialize the original client
+            openai_model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+            # Initialize Redis cache store
+            redis_instance = redis.Redis()
+            cache_store = RedisStore[CHAT_CACHE_VALUE_TYPE](redis_instance)
+            cache_client = ChatCompletionCache(openai_model_client, cache_store)
+
+            # First streaming call
+            async for chunk in cache_client.create_stream(
+                [UserMessage(content="List all countries in Africa", source="user")]
+            ):
+                if isinstance(chunk, CreateResult):
+                    print("\\n")
+                    print("Cached: ", chunk.cached)  # Should print False
+                else:
+                    print(chunk, end="")
+
+            # Second streaming call (cached)
+            async for chunk in cache_client.create_stream(
+                [UserMessage(content="List all countries in Africa", source="user")]
+            ):
+                if isinstance(chunk, CreateResult):
+                    print("\\n")
+                    print("Cached: ", chunk.cached)  # Should print True
+                else:
+                    print(chunk, end="")
+
+
+        asyncio.run(main())
+
     You can now use the `cached_client` as you would the original client, but with caching enabled.
 
     Args:
@@ -126,8 +201,29 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         serialized_data = json.dumps(data, sort_keys=True)
         cache_key = hashlib.sha256(serialized_data.encode()).hexdigest()
 
-        cached_result = cast(Optional[CreateResult], self.store.get(cache_key))
+        cached_result = self.store.get(cache_key)
         if cached_result is not None:
+            # Handle case where cache store returns dict instead of CreateResult (e.g., Redis)
+            if isinstance(cached_result, dict):
+                try:
+                    cached_result = CreateResult.model_validate(cached_result)
+                except ValidationError:
+                    # If reconstruction fails, treat as cache miss
+                    return None, cache_key
+            elif isinstance(cached_result, list):
+                # Handle streaming results - reconstruct CreateResult instances from dicts
+                try:
+                    reconstructed_list: List[Union[str, CreateResult]] = []
+                    for item in cached_result:
+                        if isinstance(item, dict):
+                            reconstructed_list.append(CreateResult.model_validate(item))
+                        else:
+                            reconstructed_list.append(item)
+                    cached_result = reconstructed_list
+                except ValidationError:
+                    # If reconstruction fails, treat as cache miss
+                    return None, cache_key
+            # If it's already the right type (CreateResult or list), return as-is
             return cached_result, cache_key
 
         return None, cache_key
@@ -150,10 +246,18 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         NOTE: cancellation_token is ignored for cached results.
         """
         cached_result, cache_key = self._check_cache(messages, tools, json_output, extra_create_args)
-        if cached_result:
-            assert isinstance(cached_result, CreateResult)
-            cached_result.cached = True
-            return cached_result
+        if cached_result is not None:
+            if isinstance(cached_result, CreateResult):
+                # Cache hit from previous non-streaming call
+                cached_result.cached = True
+                return cached_result
+            elif isinstance(cached_result, list):
+                # Cache hit from previous streaming call - extract the final CreateResult
+                for item in reversed(cached_result):
+                    if isinstance(item, CreateResult):
+                        item.cached = True
+                        return item
+                # If no CreateResult found in list, fall through to make actual call
 
         result = await self.client.create(
             messages,
@@ -191,13 +295,24 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                 json_output,
                 extra_create_args,
             )
-            if cached_result:
-                assert isinstance(cached_result, list)
-                for result in cached_result:
-                    if isinstance(result, CreateResult):
-                        result.cached = True
-                    yield result
-                return
+            if cached_result is not None:
+                if isinstance(cached_result, list):
+                    # Cache hit from previous streaming call
+                    for result in cached_result:
+                        if isinstance(result, CreateResult):
+                            result.cached = True
+                        yield result
+                    return
+                elif isinstance(cached_result, CreateResult):
+                    # Cache hit from previous non-streaming call - convert to streaming format
+                    cached_result.cached = True
+
+                    # If content is a non-empty string, yield it as a streaming chunk first
+                    if isinstance(cached_result.content, str) and cached_result.content:
+                        yield cached_result.content
+
+                    yield cached_result
+                    return
 
             result_stream = self.client.create_stream(
                 messages,
@@ -209,11 +324,13 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
             )
 
             output_results: List[Union[str, CreateResult]] = []
-            self.store.set(cache_key, output_results)
 
             async for result in result_stream:
                 output_results.append(result)
                 yield result
+
+            # Store the complete results only after streaming is finished
+            self.store.set(cache_key, output_results)
 
         return _generator()
 

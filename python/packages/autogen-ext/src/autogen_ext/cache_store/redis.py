@@ -90,6 +90,7 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
 
         This method handles both primitive values and complex objects:
         - Pydantic models are automatically serialized to JSON
+        - Lists containing Pydantic models are serialized to JSON
         - Primitive values (strings, numbers, etc.) are stored as-is
 
         Args:
@@ -101,10 +102,21 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
                 # Serialize Pydantic models to JSON
                 serialized_value = value.model_dump_json().encode("utf-8")
                 self.cache.set(key, serialized_value)
+            elif isinstance(value, list):
+                # Serialize lists (which may contain Pydantic models) to JSON
+                serializable_list: list[Any] = []
+                item: Any
+                for item in value:
+                    if isinstance(item, BaseModel):
+                        serializable_list.append(item.model_dump())
+                    else:
+                        serializable_list.append(item)
+                serialized_value = json.dumps(serializable_list).encode("utf-8")
+                self.cache.set(key, serialized_value)
             else:
                 # Backward compatibility for primitives
                 self.cache.set(key, cast(Any, value))
-        except (redis.RedisError, ConnectionError, UnicodeEncodeError):
+        except (redis.RedisError, ConnectionError, UnicodeEncodeError, TypeError):
             # Log the error but don't re-raise to maintain robustness
             pass
 
