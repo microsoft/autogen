@@ -226,6 +226,27 @@ export const MODEL_TEMPLATES: ComponentTemplate<ModelConfig>[] = [
       temperature: 0.7,
     } as AnthropicClientConfig,
   },
+  {
+    id: "external-custom-model",
+    label: "External Model",
+    description: "Template for a model using an OpenAI-compatible endpoint",
+    provider: PROVIDERS.OPENAI,
+    component_type: "model",
+    version: 1,
+    component_version: 1,
+    config: {
+      model: "your-model-name",
+      base_url: "https://example.com/",
+      model_info: {
+        vision: false,
+        function_calling: true,
+        json_output: false,
+        structured_output: false,
+        family: "unknown",
+        multiple_system_messages: false,
+      },
+    } as OpenAIClientConfig,
+  },
 ];
 
 // Tool Templates
