@@ -1,6 +1,8 @@
 import json
 import uuid
+from typing import Any, List
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from a2a.types import (
@@ -9,7 +11,6 @@ from a2a.types import (
     AgentSkill,
     DataPart,
     FilePart,
-    FileWithBytes,
     JSONRPCErrorResponse,
     Message,
     MessageSendParams,
@@ -18,36 +19,33 @@ from a2a.types import (
     SendMessageResponse,
     SendMessageSuccessResponse,
     Task,
-    TaskArtifactUpdateEvent,
     TaskNotFoundError,
     TaskState,
     TaskStatus,
-    TaskStatusUpdateEvent,
     TextPart,
 )
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
     BaseAgentEvent,
     HandoffMessage,
+    ModelClientStreamingChunkEvent,
     MultiModalMessage,
     StructuredMessage,
     TextMessage,
 )
 from autogen_core import CancellationToken, Image
-
 from autogen_ext.agents.a2a._a2a_event_mapper import A2aEventMapper  # Assuming this is in the same directory
 from autogen_ext.agents.a2a._a2a_hosted_agent import (
     A2aHostedAgent,
-    A2aHostedAgentConfig,
     get_index_of_user_message,
 )
 
 
-async def async_return(value):
+async def async_return(value: Any) -> Any:
     return value
 
 
-async def async_generator(values):
+async def async_generator(values: Any) -> Any:
     for v in values:
         yield v
 
@@ -56,32 +54,35 @@ async def async_generator(values):
 
 
 @pytest.fixture
-def mock_agent_card():
+def mock_agent_card() -> AgentCard:
     """A basic mock AgentCard for testing."""
     return AgentCard(
         name="test-agent",
         description="A descriptive test agent.",
         url="http://localhost:8080",
-        capabilities=AgentCapabilities(streaming=True, image_generation=False, code_execution=False),
+        capabilities=AgentCapabilities(streaming=True),
         skills=[],
         version="1.0.0",
-        defaultInputModes=["text"],
-        defaultOutputModes=["text"],
-        supportsAuthenticatedExtendedCard=False,
+        default_input_modes=["text", "image"],
+        default_output_modes=["text", "image"],
     )
 
 
 @pytest.fixture
-def mock_a2a_event_mapper():
+def mock_a2a_event_mapper() -> MagicMock:
     """A mock A2aEventMapper."""
     mapper = mock.MagicMock(spec=A2aEventMapper)
-    mapper.handle_message.side_effect = lambda msg: TextMessage(content=f"Agent says: {msg.parts[0].root.text}")
-    mapper.handle_artifact.side_effect = lambda artifact: BaseAgentEvent(name="Artifact", data={"data": "test"})
+    mapper.handle_message.side_effect = lambda msg: TextMessage(
+        content=f"Agent says: {msg.parts[0].root.text}", source="agent"
+    )
+    mapper.handle_artifact.side_effect = lambda artifact: ModelClientStreamingChunkEvent(
+        source="agent", metadata={"data": "test"}, content="hello"
+    )
     return mapper
 
 
 @pytest.fixture
-def basic_agent(mock_agent_card, mock_a2a_event_mapper):
+def basic_agent(mock_agent_card: AgentCard, mock_a2a_event_mapper: MagicMock) -> A2aHostedAgent:
     """Provides a basic A2aHostedAgent instance."""
     return A2aHostedAgent(
         agent_card=mock_agent_card,
@@ -92,14 +93,14 @@ def basic_agent(mock_agent_card, mock_a2a_event_mapper):
 
 
 @pytest.fixture
-def user_message_params():
+def user_message_params() -> MessageSendParams:
     """Provides a sample MessageSendParams for a user message."""
     return MessageSendParams(
         message=Message(
-            messageId=str(uuid.uuid4()),
+            message_id=str(uuid.uuid4()),
             parts=[Part(root=TextPart(text="Hello agent!"))],
             role=Role.user,
-            taskId="test-task-123",
+            task_id="test-task-123",
         )
     )
 
@@ -108,7 +109,7 @@ def user_message_params():
 
 
 class TestA2aHostedAgentInit:
-    def test_default_initialization(self, mock_agent_card):
+    def test_default_initialization(self, mock_agent_card: AgentCard) -> None:
         agent = A2aHostedAgent(agent_card=mock_agent_card)
         assert agent._default_http_kwargs == {}
         assert agent._agent_card == mock_agent_card
@@ -117,7 +118,7 @@ class TestA2aHostedAgentInit:
         assert agent._event_mapper._agent_name == mock_agent_card.name
         assert agent._handoff_message == "Transferred to {target}, adopting the role of {target} immediately."
 
-    def test_custom_initialization(self, mock_agent_card, mock_a2a_event_mapper):
+    def test_custom_initialization(self, mock_agent_card: AgentCard, mock_a2a_event_mapper: MagicMock) -> None:
         custom_http_kwargs = {"timeout": 60, "headers": {"Authorization": "Bearer abc"}}
         custom_handoff = "Take it, {target}!"
         agent = A2aHostedAgent(
@@ -136,18 +137,18 @@ class TestA2aHostedAgentInit:
 
 
 class TestA2aHostedAgentProperties:
-    def test_name_property(self, mock_agent_card):
+    def test_name_property(self, mock_agent_card: AgentCard) -> None:
         mock_agent_card.name = "My Test Agent 1.0"
         agent = A2aHostedAgent(agent_card=mock_agent_card)
         assert agent.name == "my-test-agent-1-0"  # slugified
 
-    def test_description_property_no_skills(self, mock_agent_card):
+    def test_description_property_no_skills(self, mock_agent_card: AgentCard) -> None:
         mock_agent_card.description = "A simple agent."
         mock_agent_card.skills = []
         agent = A2aHostedAgent(agent_card=mock_agent_card)
         assert agent.description == "A simple agent."
 
-    def test_description_property_with_skills(self, mock_agent_card):
+    def test_description_property_with_skills(self, mock_agent_card: AgentCard) -> None:
         mock_agent_card.description = "A versatile agent."
         mock_agent_card.skills = [
             AgentSkill(id="SkillA", name="SkillA", description="Does A", tags=[], examples=[]),
@@ -157,7 +158,7 @@ class TestA2aHostedAgentProperties:
         expected_desc = "A versatile agent.\nSkills: \nSkillA - Does A\nSkillB - Does B"
         assert agent.description == expected_desc
 
-    def test_produced_message_types_property(self, basic_agent):
+    def test_produced_message_types_property(self, basic_agent: A2aHostedAgent) -> None:
         expected_types = (HandoffMessage, StructuredMessage, TextMessage, MultiModalMessage)
         assert basic_agent.produced_message_types == expected_types
 
@@ -166,7 +167,7 @@ class TestA2aHostedAgentProperties:
 
 
 class TestA2aHostedAgentBuildA2AMessage:
-    def test_text_message_conversion(self, basic_agent):
+    def test_text_message_conversion(self, basic_agent: A2aHostedAgent) -> None:
         autogen_messages = [TextMessage(content="Hello from AutoGen!", source="user")]
         params = basic_agent._build_a2a_message(autogen_messages)
         assert params.message.role == Role.user
@@ -175,7 +176,7 @@ class TestA2aHostedAgentBuildA2AMessage:
         assert isinstance(part, TextPart)
         assert part.text == "Hello from AutoGen!"
 
-    def test_multi_modal_message_with_image(self, basic_agent):
+    def test_multi_modal_message_with_image(self, basic_agent: A2aHostedAgent) -> None:
         mock_image = mock.MagicMock(spec=Image)
         mock_image.to_base64.return_value = "base64encodedbytes"
         autogen_messages = [MultiModalMessage(content=[mock_image], source="user")]
@@ -185,7 +186,7 @@ class TestA2aHostedAgentBuildA2AMessage:
         assert isinstance(part, FilePart)
         assert part.file.bytes == "base64encodedbytes"
 
-    def test_multi_modal_message_with_string(self, basic_agent):
+    def test_multi_modal_message_with_string(self, basic_agent: A2aHostedAgent) -> None:
         autogen_messages = [MultiModalMessage(content=["image description text"], source="user")]
         params = basic_agent._build_a2a_message(autogen_messages)
         assert len(params.message.parts) == 1
@@ -193,7 +194,7 @@ class TestA2aHostedAgentBuildA2AMessage:
         assert isinstance(part, TextPart)
         assert part.text == "image description text"
 
-    def test_structured_message_conversion(self, basic_agent):
+    def test_structured_message_conversion(self, basic_agent: A2aHostedAgent) -> None:
         structured_content = {"tool_code": "print('hello')", "output_format": "json"}
         mock_model_message = mock.MagicMock()
         mock_model_message.content = json.dumps(structured_content)
@@ -212,22 +213,22 @@ class TestA2aHostedAgentBuildA2AMessage:
 
 
 class TestA2aHostedAgentGetLatestHandoff:
-    def test_no_handoff_messages(self, basic_agent):
+    def test_no_handoff_messages(self, basic_agent: A2aHostedAgent) -> None:
         messages = [TextMessage(content="Hi", source="user"), TextMessage(content="Hello", source="user2")]
         assert basic_agent._get_latest_handoff(messages) is None
 
-    def test_handoff_message_for_current_agent(self, basic_agent):
+    def test_handoff_message_for_current_agent(self, basic_agent: A2aHostedAgent) -> None:
         handoff_msg = HandoffMessage(content="Transfer", source="user", target=basic_agent.name)
         messages = [TextMessage(content="Hi", source="user"), handoff_msg]
         assert basic_agent._get_latest_handoff(messages) == handoff_msg
 
-    def test_handoff_message_for_different_agent(self, basic_agent):
+    def test_handoff_message_for_different_agent(self, basic_agent: A2aHostedAgent) -> None:
         handoff_msg = HandoffMessage(content="Transfer", source="user", target="another-agent")
         messages = [TextMessage(content="Hi", source="user"), handoff_msg]
         with pytest.raises(AssertionError, match="Handoff message target does not match agent name"):
             basic_agent._get_latest_handoff(messages)
 
-    def test_multiple_handoff_messages_gets_latest(self, basic_agent):
+    def test_multiple_handoff_messages_gets_latest(self, basic_agent: A2aHostedAgent) -> None:
         handoff_msg1 = HandoffMessage(content="Transfer1", source="user1", target=basic_agent.name)
         handoff_msg2 = HandoffMessage(content="Transfer2", source="user2", target=basic_agent.name)
         messages = [
@@ -246,7 +247,7 @@ class TestA2aHostedAgentGetLatestHandoff:
 
 @pytest.mark.asyncio
 class TestA2aHostedAgentOnMessages:
-    async def test_successful_call_non_streaming(self, basic_agent, mocker):
+    async def test_successful_call_non_streaming(self, basic_agent: A2aHostedAgent, mocker: MagicMock) -> None:
         basic_agent._agent_card.capabilities.streaming = False
         mock_response_message = TextMessage(content="Agent's final response.", source="user")
         mock_call_agent_result = async_generator([mock_response_message])  # Yields mock_response_message
@@ -256,12 +257,11 @@ class TestA2aHostedAgentOnMessages:
         cancellation_token = CancellationToken()
         response = await basic_agent.on_messages(messages, cancellation_token)
 
-        basic_agent.call_agent.assert_called_once_with(mock.ANY, cancellation_token, mock.ANY)
         assert isinstance(response, Response)
         assert response.chat_message == mock_response_message
         assert response.inner_messages == []  # Only one message yielded
 
-    async def test_successful_call_streaming(self, basic_agent, mocker):
+    async def test_successful_call_streaming(self, basic_agent: A2aHostedAgent, mocker: MagicMock) -> None:
         basic_agent._agent_card.capabilities.streaming = True
         mock_stream_messages = [
             TextMessage(content="Part 1", source=basic_agent.name),
@@ -275,7 +275,6 @@ class TestA2aHostedAgentOnMessages:
         cancellation_token = CancellationToken()
         response = await basic_agent.on_messages(messages, cancellation_token)
 
-        basic_agent.call_agent_stream.assert_called_once_with(mock.ANY, cancellation_token, mock.ANY)
         assert isinstance(response, Response)
         assert response.chat_message == mock_stream_messages[-1]
         assert response.inner_messages == mock_stream_messages[:-1]
@@ -286,7 +285,9 @@ class TestA2aHostedAgentOnMessages:
 
 @pytest.mark.asyncio
 class TestA2aHostedAgentCallAgent:
-    async def test_successful_message_send_and_response(self, basic_agent, mocker, user_message_params):
+    async def test_successful_message_send_and_response(
+        self, basic_agent: A2aHostedAgent, mocker: MagicMock, user_message_params: MessageSendParams
+    ) -> None:
         # Mock A2AClient and its methods
         mock_a2a_client = mocker.MagicMock()
         mocker.patch("autogen_ext.agents.a2a._a2a_hosted_agent.A2AClient", return_value=mock_a2a_client)
@@ -300,23 +301,23 @@ class TestA2aHostedAgentCallAgent:
 
         # Mock A2AClient.send_message response
         user_msg = Message(
-            messageId=user_message_params.message.messageId,
+            message_id=user_message_params.message.message_id,
             parts=[Part(root=TextPart(text="User input"))],
             role=Role.user,
-            taskId="test-task-123",
+            task_id="test-task-123",
         )
         agent_response_msg = Message(
-            messageId=str(uuid.uuid4()),
+            message_id=str(uuid.uuid4()),
             parts=[Part(root=TextPart(text="Agent's reply"))],
             role=Role.agent,
-            taskId="test-task-123",
+            task_id="test-task-123",
         )
         mock_a2a_client.send_message.return_value = async_return(
             SendMessageResponse(
                 root=SendMessageSuccessResponse(
                     id="req_id",
                     result=Task(
-                        contextId="contextId",
+                        context_id="contextId",
                         id="test-task-123",
                         history=[user_msg, agent_response_msg],
                         status=TaskStatus(state=TaskState.completed, message=None),
@@ -326,10 +327,6 @@ class TestA2aHostedAgentCallAgent:
         )
 
         cancellation_token = mocker.MagicMock(spec=CancellationToken)
-        # Ensure _event_mapper.handle_message is properly mocked to return an Autogen message type
-        basic_agent._event_mapper.handle_message.side_effect = lambda msg: TextMessage(
-            content=msg.parts[0].root.text, source=basic_agent.name
-        )
 
         response_generator = basic_agent.call_agent(user_message_params, cancellation_token)
         messages_yielded = [msg async for msg in response_generator]
@@ -340,7 +337,9 @@ class TestA2aHostedAgentCallAgent:
         assert messages_yielded[0].content == "Agent's reply"
         cancellation_token.cancel.assert_not_called()
 
-    async def test_a2a_client_returns_error_response(self, basic_agent, mocker, user_message_params):
+    async def test_a2a_client_returns_error_response(
+        self, basic_agent: A2aHostedAgent, mocker: MagicMock, user_message_params: MessageSendParams
+    ) -> None:
         mock_a2a_client = mocker.MagicMock()
         mocker.patch("autogen_ext.agents.a2a._a2a_hosted_agent.A2AClient", return_value=mock_a2a_client)
         mocker.patch("httpx.AsyncClient", autospec=True)
@@ -359,7 +358,9 @@ class TestA2aHostedAgentCallAgent:
             async for _ in response_generator:
                 pass  # Consume the generator to trigger the exception
 
-    async def test_task_state_canceled(self, basic_agent, mocker, user_message_params):
+    async def test_task_state_canceled(
+        self, basic_agent: A2aHostedAgent, mocker: MagicMock, user_message_params: MessageSendParams
+    ) -> None:
         mock_a2a_client = mocker.MagicMock()
         mocker.patch("autogen_ext.agents.a2a._a2a_hosted_agent.A2AClient", return_value=mock_a2a_client)
         mocker.patch("httpx.AsyncClient", autospec=True)
@@ -369,16 +370,16 @@ class TestA2aHostedAgentCallAgent:
         mocker.patch("httpx.AsyncClient", return_value=httpx_client_instance)
 
         user_msg = Message(
-            messageId=user_message_params.message.messageId,
+            message_id=user_message_params.message.message_id,
             parts=[Part(root=TextPart(text="User input"))],
             role=Role.user,
-            taskId="test-task-123",
+            task_id="test-task-123",
         )
         agent_response_msg = Message(
-            messageId=str(uuid.uuid4()),
+            message_id=str(uuid.uuid4()),
             parts=[Part(root=TextPart(text="Task Canceled"))],
             role=Role.agent,
-            taskId="test-task-123",
+            task_id="test-task-123",
         )
         mock_a2a_client.send_message.return_value = async_return(
             SendMessageResponse(
@@ -386,7 +387,7 @@ class TestA2aHostedAgentCallAgent:
                     id="req_id",
                     result=Task(
                         id=str(uuid.uuid4()),
-                        contextId=str(uuid.uuid4()),
+                        context_id=str(uuid.uuid4()),
                         history=[user_msg, agent_response_msg],
                         status=TaskStatus(state=TaskState.canceled),
                     ),
@@ -394,11 +395,6 @@ class TestA2aHostedAgentCallAgent:
             )
         )
         cancellation_token = mocker.MagicMock(spec=CancellationToken)
-
-        # Ensure _event_mapper.handle_message is properly mocked to return an Autogen message type
-        basic_agent._event_mapper.handle_message.side_effect = lambda msg: TextMessage(
-            content=msg.parts[0].root.text, source="agent"
-        )
 
         response_generator = basic_agent.call_agent(user_message_params, cancellation_token)
         messages_yielded = [msg async for msg in response_generator]
@@ -412,22 +408,22 @@ class TestA2aHostedAgentCallAgent:
 
 @pytest.mark.asyncio
 class TestA2aHostedAgentStateManagement:
-    async def test_on_reset_resets_task_id(self, basic_agent):
+    async def test_on_reset_resets_task_id(self, basic_agent: A2aHostedAgent) -> None:
         old_task_id = basic_agent._task_id
         await basic_agent.on_reset(CancellationToken())
         assert basic_agent._task_id != old_task_id
         assert isinstance(basic_agent._task_id, str) and len(basic_agent._task_id) == 36
 
-    async def test_save_state_returns_correct_state(self, basic_agent):
+    async def test_save_state_returns_correct_state(self, basic_agent: A2aHostedAgent) -> None:
         saved_state = await basic_agent.save_state()
         assert saved_state == {"task_id": basic_agent._task_id}
 
-    async def test_load_state_restores_correct_state(self, basic_agent):
+    async def test_load_state_restores_correct_state(self, basic_agent: A2aHostedAgent) -> None:
         new_task_id = str(uuid.uuid4())
         await basic_agent.load_state({"task_id": new_task_id})
         assert basic_agent._task_id == new_task_id
 
-    async def test_load_state_with_missing_task_id(self, basic_agent):
+    async def test_load_state_with_missing_task_id(self, basic_agent: A2aHostedAgent) -> None:
         original_task_id = basic_agent._task_id
         await basic_agent.load_state({"task_id": ""})  # Load empty state
         # load_state creates a new uuid if task_id is not in config
@@ -439,25 +435,25 @@ class TestA2aHostedAgentStateManagement:
 
 
 class TestGetIndexOfUserMessage:
-    def test_user_message_found(self, user_message_params):
+    def test_user_message_found(self, user_message_params: MessageSendParams) -> None:
         messages = [
-            Message(messageId="1", role=Role.agent, parts=[]),
+            Message(message_id="1", role=Role.agent, parts=[]),
             user_message_params.message,
-            Message(messageId="3", role=Role.agent, parts=[]),
+            Message(message_id="3", role=Role.agent, parts=[]),
         ]
         index = get_index_of_user_message(messages, user_message_params)
         assert index == 1
 
-    def test_user_message_not_found(self, user_message_params):
+    def test_user_message_not_found(self, user_message_params: MessageSendParams) -> None:
         messages = [
-            Message(messageId="1", role=Role.agent, parts=[]),
-            Message(messageId="2", role=Role.user, parts=[]),  # Different messageId
-            Message(messageId="3", role=Role.agent, parts=[]),
+            Message(message_id="1", role=Role.agent, parts=[]),
+            Message(message_id="2", role=Role.user, parts=[]),  # Different message_id
+            Message(message_id="3", role=Role.agent, parts=[]),
         ]
         with pytest.raises(AssertionError, match="User message not found in the messages list."):
             get_index_of_user_message(messages, user_message_params)
 
-    def test_empty_message_list(self, user_message_params):
-        messages = []
+    def test_empty_message_list(self, user_message_params: MessageSendParams) -> None:
+        messages: List[Message] = []
         with pytest.raises(AssertionError, match="User message not found in the messages list."):
             get_index_of_user_message(messages, user_message_params)

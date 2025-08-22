@@ -5,20 +5,15 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
-from a2a.types import AgentCard, Artifact, DataPart, FilePart, FileWithBytes, FileWithUri, Message, Part, Role, TextPart
+from a2a.types import Artifact, DataPart, FilePart, FileWithBytes, FileWithUri, Message, Part, Role, TextPart
 from autogen_agentchat.messages import (
-    BaseAgentEvent,
-    BaseChatMessage,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
     StructuredMessage,
     StructuredMessageFactory,
     TextMessage,
 )
-from autogen_core import ComponentBase, Image
-from PIL import Image as PILImage
-from pydantic import BaseModel
-
+from autogen_core import Image
 from autogen_ext.agents.a2a._a2a_event_mapper import (
     A2aEventMapper,
     A2aEventMapperConfig,
@@ -26,17 +21,19 @@ from autogen_ext.agents.a2a._a2a_event_mapper import (
     convert_file_to_str,
     handle_file_part,
 )
+from PIL import Image as PILImage
+from pydantic import BaseModel
 
 
-def to_base64(img: PILImage):
+def to_base64() -> str:
+    img = PILImage.new("RGB", (100, 100), color="red")
     buffered = io.BytesIO()
     img.save(buffered, format="PNG")
     content = buffered.getvalue()
     return base64.b64encode(content).decode("utf-8")
 
 
-img = PILImage.new("RGB", (100, 100), color="red")
-b64_img = to_base64(img)
+b64_img = to_base64()
 img_data_uri = f"data:image/png;base64,{b64_img}"
 img_object = Image.from_uri(img_data_uri)
 
@@ -50,7 +47,7 @@ class MyPydanticModel(BaseModel):
 # --- Test Cases for Utility Functions ---
 
 
-def test_convert_file_to_image_file_with_bytes():
+def test_convert_file_to_image_file_with_bytes() -> None:
     """Test convert_file_to_image with FileWithBytes."""
     file_with_bytes = FileWithBytes(bytes=b64_img, mime_type="image/png")
     file_part = FilePart(file=file_with_bytes)
@@ -59,7 +56,7 @@ def test_convert_file_to_image_file_with_bytes():
     assert isinstance(image, Image)
 
 
-def test_convert_file_to_image_file_with_uri():
+def test_convert_file_to_image_file_with_uri() -> None:
     """Test convert_file_to_image with FileWithUri."""
     uri = img_data_uri
     file_with_uri = FileWithUri(uri=uri, mime_type="image/png")
@@ -69,7 +66,7 @@ def test_convert_file_to_image_file_with_uri():
     assert isinstance(image, Image)
 
 
-def test_convert_file_to_str_file_with_bytes():
+def test_convert_file_to_str_file_with_bytes() -> None:
     """Test convert_file_to_str with FileWithBytes."""
     original_text = "Hello, world!"
     b64_text_data = base64.b64encode(original_text.encode("utf-8")).decode("utf-8")
@@ -80,7 +77,7 @@ def test_convert_file_to_str_file_with_bytes():
     assert result_str == original_text
 
 
-def test_convert_file_to_str_file_with_uri():
+def test_convert_file_to_str_file_with_uri() -> None:
     """Test convert_file_to_str with FileWithUri."""
     uri = "https://example.com/document.pdf"
     file_with_uri = FileWithUri(uri=uri, mime_type="application/pdf")
@@ -90,9 +87,11 @@ def test_convert_file_to_str_file_with_uri():
     assert result_str == uri
 
 
-@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image")
-@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str")
-def test_handle_file_part_successful_image_conversion(mock_convert_to_str, mock_convert_to_image):
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image", autospec=True)
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str", autospec=True)
+def test_handle_file_part_successful_image_conversion(
+    mock_convert_to_str: MagicMock, mock_convert_to_image: MagicMock
+) -> None:
     """Test handle_file_part when image conversion succeeds."""
     mock_image_obj = img_object
     mock_convert_to_image.return_value = mock_image_obj
@@ -104,9 +103,11 @@ def test_handle_file_part_successful_image_conversion(mock_convert_to_str, mock_
     mock_convert_to_str.assert_not_called()
 
 
-@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image")
-@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str")
-def test_handle_file_part_image_fails_string_succeeds(mock_convert_to_str, mock_convert_to_image):
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image", autospec=True)
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str", autospec=True)
+def test_handle_file_part_image_fails_string_succeeds(
+    mock_convert_to_str: MagicMock, mock_convert_to_image: MagicMock
+) -> None:
     """Test handle_file_part when image conversion fails, but string conversion succeeds."""
     mock_convert_to_image.side_effect = ValueError("Not an image")
     mock_convert_to_str.return_value = "decoded_string"
@@ -118,9 +119,11 @@ def test_handle_file_part_image_fails_string_succeeds(mock_convert_to_str, mock_
     mock_convert_to_str.assert_called_once_with(file_part)
 
 
-@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image")
-@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str")
-def test_handle_file_part_both_conversions_fail(mock_convert_to_str, mock_convert_to_image):
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image", autospec=True)
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str", autospec=True)
+def test_handle_file_part_both_conversions_fail(
+    mock_convert_to_str: MagicMock, mock_convert_to_image: MagicMock
+) -> None:
     """Test handle_file_part when both image and string conversions fail."""
     mock_convert_to_image.side_effect = ValueError("Not an image")
     mock_convert_to_str.side_effect = ValueError("Unsupported file type")
@@ -135,7 +138,7 @@ def test_handle_file_part_both_conversions_fail(mock_convert_to_str, mock_conver
 # --- Test Cases for A2aEventMapper ---
 
 
-def test_a2a_event_mapper_init_basic():
+def test_a2a_event_mapper_init_basic() -> None:
     """Test A2aEventMapper initialization with basic parameters."""
     mapper = A2aEventMapper(agent_name="My-Agent")
     assert mapper._config.agent_name == "My-Agent"
@@ -144,7 +147,7 @@ def test_a2a_event_mapper_init_basic():
     assert mapper._structured_message_factory is None
 
 
-def test_a2a_event_mapper_init_with_output_content_type():
+def test_a2a_event_mapper_init_with_output_content_type() -> None:
     """Test A2aEventMapper initialization with output_content_type."""
     mapper = A2aEventMapper(
         agent_name="Test-Agent", output_content_type=MyPydanticModel, output_content_type_format="{content.name}"
@@ -157,30 +160,30 @@ def test_a2a_event_mapper_init_with_output_content_type():
     assert mapper._structured_message_factory.format_string == "{content.name}"
 
 
-def test_a2a_event_mapper_handle_message_user_role():
+def test_a2a_event_mapper_handle_message_user_role() -> None:
     """Test handle_message with a user role message."""
     mapper = A2aEventMapper(agent_name="Agent")
-    user_message = Message(role=Role.user, parts=[TextPart(text="Hello")], messageId=str(uuid.uuid4()))
+    user_message = Message(role=Role.user, parts=[Part(root=TextPart(text="Hello"))], message_id=str(uuid.uuid4()))
     result = mapper.handle_message(user_message)
     assert result is None
 
 
-def test_a2a_event_mapper_handle_message_empty_parts():
+def test_a2a_event_mapper_handle_message_empty_parts() -> None:
     """Test handle_message with an empty parts list."""
     mapper = A2aEventMapper(agent_name="Agent")
-    empty_message = Message(role=Role.agent, parts=[], messageId=str(uuid.uuid4()))
+    empty_message = Message(role=Role.agent, parts=[], message_id=str(uuid.uuid4()))
     result = mapper.handle_message(empty_message)
     assert result is None
 
 
-def test_a2a_event_mapper_handle_message_all_text_parts():
+def test_a2a_event_mapper_handle_message_all_text_parts() -> None:
     """Test handle_message with multiple text parts."""
     mapper = A2aEventMapper(agent_name="Agent")
     message = Message(
         role=Role.agent,
         parts=[Part(root=TextPart(text="Part 1")), Part(root=TextPart(text="Part 2"))],
         metadata={"key": "value"},
-        messageId=str(uuid.uuid4()),
+        message_id=str(uuid.uuid4()),
     )
     result = mapper.handle_message(message)
     assert isinstance(result, TextMessage)
@@ -189,14 +192,14 @@ def test_a2a_event_mapper_handle_message_all_text_parts():
     assert result.metadata == {"key": "value"}
 
 
-def test_a2a_event_mapper_handle_message_single_data_part_with_output_type():
+def test_a2a_event_mapper_handle_message_single_data_part_with_output_type() -> None:
     """Test handle_message with a single data part and configured output type."""
     mapper = A2aEventMapper(
         agent_name="Agent", output_content_type=MyPydanticModel, output_content_type_format="{content.name}"
     )
     json_data = {"name": "Test", "value": 123}
     message = Message(
-        role=Role.agent, parts=[Part(root=DataPart(data=json_data))], metadata={"id": "1"}, messageId=str(uuid.uuid4())
+        role=Role.agent, parts=[Part(root=DataPart(data=json_data))], metadata={"id": "1"}, message_id=str(uuid.uuid4())
     )
     result = mapper.handle_message(message)
     assert isinstance(result, StructuredMessage)
@@ -208,11 +211,11 @@ def test_a2a_event_mapper_handle_message_single_data_part_with_output_type():
     assert result.metadata == {"id": "1"}
 
 
-def test_a2a_event_mapper_handle_message_single_data_part_no_output_type():
+def test_a2a_event_mapper_handle_message_single_data_part_no_output_type() -> None:
     """Test handle_message with a single data part and no output type configured."""
     mapper = A2aEventMapper(agent_name="Agent")
     json_data = {"key": "value"}
-    message = Message(role=Role.agent, parts=[DataPart(data=json_data)], messageId=str(uuid.uuid4()))
+    message = Message(role=Role.agent, parts=[Part(root=DataPart(data=json_data))], message_id=str(uuid.uuid4()))
     result = mapper.handle_message(message)
     assert isinstance(result, MultiModalMessage)
     assert len(result.content) == 1
@@ -220,7 +223,7 @@ def test_a2a_event_mapper_handle_message_single_data_part_no_output_type():
     assert result.source == "agent"
 
 
-def test_a2a_event_mapper_handle_message_mixed_parts_with_image_file():
+def test_a2a_event_mapper_handle_message_mixed_parts_with_image_file() -> None:
     """Test handle_message with mixed parts including an image file."""
     mapper = A2aEventMapper(agent_name="Agent")
     file_with_uri = FileWithUri(uri=img_data_uri, mime_type="image/png")
@@ -228,8 +231,12 @@ def test_a2a_event_mapper_handle_message_mixed_parts_with_image_file():
 
     message = Message(
         role=Role.agent,
-        parts=[TextPart(text="Hello"), DataPart(data={"data_key": "data_value"}), file_part],
-        messageId=str(uuid.uuid4()),
+        parts=[
+            Part(root=TextPart(text="Hello")),
+            Part(root=DataPart(data={"data_key": "data_value"})),
+            Part(root=file_part),
+        ],
+        message_id=str(uuid.uuid4()),
     )
     result = mapper.handle_message(message)
 
@@ -241,8 +248,8 @@ def test_a2a_event_mapper_handle_message_mixed_parts_with_image_file():
     assert result.source == "agent"
 
 
-@patch("autogen_ext.agents.a2a._a2a_event_mapper.handle_file_part")
-def test_a2a_event_mapper_handle_message_mixed_parts_with_string_file(mock_handle_file_part):
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.handle_file_part", autospec=True)
+def test_a2a_event_mapper_handle_message_mixed_parts_with_string_file(mock_handle_file_part: MagicMock) -> None:
     """Test handle_message with mixed parts including a string file (non-image)."""
     mapper = A2aEventMapper(agent_name="Agent")
     mock_handle_file_part.return_value = "file_content_as_string"
@@ -250,7 +257,11 @@ def test_a2a_event_mapper_handle_message_mixed_parts_with_string_file(mock_handl
     file_with_bytes = FileWithBytes(bytes="b64_string", mime_type="text/plain")
     file_part = FilePart(file=file_with_bytes)
 
-    message = Message(role=Role.agent, parts=[TextPart(text="Introduction"), file_part], messageId=str(uuid.uuid4()))
+    message = Message(
+        role=Role.agent,
+        parts=[Part(root=TextPart(text="Introduction")), Part(root=file_part)],
+        message_id=str(uuid.uuid4()),
+    )
     result = mapper.handle_message(message)
     assert isinstance(result, MultiModalMessage)
     assert len(result.content) == 2
@@ -259,16 +270,16 @@ def test_a2a_event_mapper_handle_message_mixed_parts_with_string_file(mock_handl
     mock_handle_file_part.assert_called_once_with(file_part)
 
 
-def test_a2a_event_mapper_handle_artifact_empty_parts():
+def test_a2a_event_mapper_handle_artifact_empty_parts() -> None:
     """Test handle_artifact with an empty parts list."""
     mapper = A2aEventMapper(agent_name="Agent")
-    empty_artifact = Artifact(artifactId="123", parts=[])
+    empty_artifact = Artifact(artifact_id="123", parts=[])
     result = mapper.handle_artifact(empty_artifact)
     assert result is None
 
 
-@patch("autogen_ext.agents.a2a._a2a_event_mapper.A2aEventMapper.handle_message")
-def test_a2a_event_mapper_handle_artifact_with_file_parts(mock_handle_message):
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.A2aEventMapper.handle_message", autospec=True)
+def test_a2a_event_mapper_handle_artifact_with_file_parts(mock_handle_message: MagicMock) -> None:
     """Test handle_artifact when it contains file parts (delegates to handle_message)."""
     mapper = A2aEventMapper(agent_name="Agent")
     mock_message_result = MagicMock(spec=MultiModalMessage)
@@ -276,7 +287,7 @@ def test_a2a_event_mapper_handle_artifact_with_file_parts(mock_handle_message):
 
     file_part = Part(root=FilePart(file=FileWithBytes(bytes="b64_data", mime_type="image/jpeg")))
     text_part = Part(root=TextPart(text="Some text"))
-    artifact = Artifact(artifactId="art1", parts=[text_part, file_part], metadata={"test_meta": "artifact_value"})
+    artifact = Artifact(artifact_id="art1", parts=[text_part, file_part], metadata={"test_meta": "artifact_value"})
 
     result = mapper.handle_artifact(artifact)
     assert result == mock_message_result
@@ -286,15 +297,17 @@ def test_a2a_event_mapper_handle_artifact_with_file_parts(mock_handle_message):
     assert isinstance(called_message, Message)
     assert called_message.parts == [text_part, file_part]
     assert called_message.role == Role.agent
-    assert called_message.messageId == "art1"
+    assert called_message.message_id == "art1"
     assert called_message.metadata == {"test_meta": "artifact_value"}
 
 
-def test_a2a_event_mapper_handle_artifact_only_text_parts():
+def test_a2a_event_mapper_handle_artifact_only_text_parts() -> None:
     """Test handle_artifact with only text parts."""
     mapper = A2aEventMapper(agent_name="Agent")
     artifact = Artifact(
-        artifactId="art2", parts=[TextPart(text="Line one"), TextPart(text="Line two")], metadata={"source": "artifact"}
+        artifact_id="art2",
+        parts=[Part(root=TextPart(text="Line one")), Part(root=TextPart(text="Line two"))],
+        metadata={"source": "artifact"},
     )
     result = mapper.handle_artifact(artifact)
     assert isinstance(result, ModelClientStreamingChunkEvent)
@@ -303,13 +316,13 @@ def test_a2a_event_mapper_handle_artifact_only_text_parts():
     assert result.metadata == {"source": "artifact"}
 
 
-def test_a2a_event_mapper_handle_artifact_only_data_parts():
+def test_a2a_event_mapper_handle_artifact_only_data_parts() -> None:
     """Test handle_artifact with only data parts."""
     mapper = A2aEventMapper(agent_name="Agent")
     json_data1 = {"id": 1}
     json_data2 = {"status": "ok"}
     artifact = Artifact(
-        artifactId="art3", parts=[Part(root=DataPart(data=json_data1)), Part(root=DataPart(data=json_data2))]
+        artifact_id="art3", parts=[Part(root=DataPart(data=json_data1)), Part(root=DataPart(data=json_data2))]
     )
     result = mapper.handle_artifact(artifact)
     assert isinstance(result, ModelClientStreamingChunkEvent)
@@ -317,12 +330,12 @@ def test_a2a_event_mapper_handle_artifact_only_data_parts():
     assert result.source == "agent"
 
 
-def test_a2a_event_mapper_handle_artifact_mixed_text_and_data_parts_no_files():
+def test_a2a_event_mapper_handle_artifact_mixed_text_and_data_parts_no_files() -> None:
     """Test handle_artifact with mixed text and data parts, but no files."""
     mapper = A2aEventMapper(agent_name="Agent")
     json_data = {"command": "execute"}
     artifact = Artifact(
-        artifactId="art4",
+        artifact_id="art4",
         parts=[
             Part(root=TextPart(text="Processing")),
             Part(root=DataPart(data=json_data)),
@@ -335,7 +348,7 @@ def test_a2a_event_mapper_handle_artifact_mixed_text_and_data_parts_no_files():
     assert result.source == "agent"
 
 
-def test_a2a_event_mapper_to_config_basic():
+def test_a2a_event_mapper_to_config_basic() -> None:
     """Test _to_config method with basic initialization."""
     mapper = A2aEventMapper(agent_name="ConfigAgent")
     config = mapper._to_config()
@@ -345,7 +358,7 @@ def test_a2a_event_mapper_to_config_basic():
     assert config.output_content_type_format is None
 
 
-def test_a2a_event_mapper_to_config_with_output_type():
+def test_a2a_event_mapper_to_config_with_output_type() -> None:
     """Test _to_config method with output_content_type configured."""
     mapper = A2aEventMapper(
         agent_name="ConfigAgent2", output_content_type=MyPydanticModel, output_content_type_format="format_str"
@@ -357,7 +370,7 @@ def test_a2a_event_mapper_to_config_with_output_type():
     assert config.output_content_type_format == "format_str"
 
 
-def test_a2a_event_mapper_from_config_basic():
+def test_a2a_event_mapper_from_config_basic() -> None:
     """Test _from_config method with basic config."""
     config = A2aEventMapperConfig(agent_name="Reconstructed-Agent")
     mapper = A2aEventMapper._from_config(config)
@@ -367,7 +380,7 @@ def test_a2a_event_mapper_from_config_basic():
     assert mapper._structured_message_factory is None
 
 
-def test_a2a_event_mapper_from_config_with_output_type():
+def test_a2a_event_mapper_from_config_with_output_type() -> None:
     """Test _from_config method with output_content_type in config."""
     config = A2aEventMapperConfig(
         agent_name="Reconstructed-Agent2", output_content_type=MyPydanticModel, output_content_type_format="re_format"

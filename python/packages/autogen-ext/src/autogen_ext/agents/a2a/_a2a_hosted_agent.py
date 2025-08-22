@@ -1,6 +1,5 @@
 import json
 import uuid
-from typing import Any, AsyncGenerator, List, Mapping, Optional, Self, Sequence, Union
 
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
@@ -17,6 +16,7 @@ from autogen_core import CancellationToken, ComponentBase, Image
 from httpx import AsyncClient
 from pydantic import BaseModel
 from slugify import slugify
+from typing_extensions import Any, AsyncGenerator, Dict, List, Mapping, Optional, Self, Sequence, Union
 
 from a2a.client import A2AClient
 from a2a.types import (
@@ -82,9 +82,9 @@ class A2aHostedAgentConfig(BaseModel):
     """
 
     agent_card: AgentCard
-    event_mapper: A2aEventMapper = None
-    http_kwargs: dict = {}
-    handoff_message: str = None
+    event_mapper: Optional[A2aEventMapper] = None
+    http_kwargs: Dict[str, Any] = {}
+    handoff_message: Optional[str] = None
 
 
 class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
@@ -124,9 +124,9 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
     def __init__(
         self,
         agent_card: AgentCard,
-        event_mapper: A2aEventMapper = None,
-        http_kwargs: dict = None,
-        handoff_message: str = None,
+        event_mapper: Optional[A2aEventMapper] = None,
+        http_kwargs: Optional[Dict[str, Any]] = None,
+        handoff_message: Optional[str] = None,
     ):
         super().__init__(name="A2aHostedAgent", description="A hosted agent for A2A operations.")
         self._default_http_kwargs = http_kwargs if http_kwargs is not None else dict()
@@ -189,7 +189,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
             - Images -> FilePart
             - Structured data -> DataPart
         """
-        message = Message(messageId=str(uuid.uuid4()), parts=list(), role=Role.user, taskId=self._task_id)
+        message = Message(message_id=str(uuid.uuid4()), parts=list(), role=Role.user, task_id=self._task_id)
 
         for autogen_message in autogen_messages:
             if isinstance(autogen_message, BaseTextChatMessage):
@@ -199,7 +199,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
             if isinstance(autogen_message, MultiModalMessage):
                 for content in autogen_message.content:
                     if isinstance(content, Image):
-                        file_part = FilePart(file=FileWithBytes(bytes=content.to_base64()))
+                        file_part: FilePart | TextPart = FilePart(file=FileWithBytes(bytes=content.to_base64()))
                     elif isinstance(content, str):
                         file_part = TextPart(text=content)
                     else:
@@ -291,7 +291,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
             response = self.call_agent(params, cancellation_token, handoff)
         else:
             response = self.call_agent_stream(params, cancellation_token, handoff)
-        output_messages = []
+        output_messages: List[Union[BaseAgentEvent, BaseChatMessage]] = []
 
         async for message in response:
             if len(output_messages) > 0:
@@ -304,8 +304,8 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         )
 
     async def call_agent(
-        self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage = None
-    ) -> AsyncGenerator[Union[BaseAgentEvent, BaseChatMessage, Response], None]:
+        self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: Optional[HandoffMessage] = None
+    ) -> AsyncGenerator[Union[BaseAgentEvent, BaseChatMessage], None]:
         """Make a non-streaming call to the remote A2A agent.
 
         Sends a message to the remote agent and processes its response in a single request.
@@ -347,6 +347,8 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
                 response.root.error.data,
             )
 
+        assert response.root.result.history
+
         history = response.root.result.history[get_index_of_user_message(response.root.result.history, params) + 1 :]
 
         if response.root.result.status.state == TaskState.canceled:
@@ -374,8 +376,8 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         yield last_message
 
     async def call_agent_stream(
-        self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage = None
-    ) -> AsyncGenerator[Union[BaseAgentEvent | BaseChatMessage | Response], None]:
+        self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: Optional[HandoffMessage] = None
+    ) -> AsyncGenerator[Union[BaseAgentEvent | BaseChatMessage], None]:
         """Make a streaming call to the remote A2A agent.
 
         Sends a message to the remote agent and processes its response as a stream of events.
@@ -496,7 +498,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
     def _from_config(cls, config: A2aHostedAgentConfig) -> Self:
         return cls(
             agent_card=config.agent_card,
-            event_mapper=config.event_mapper or A2aEventMapper(config.agentCard),
+            event_mapper=config.event_mapper or A2aEventMapper(config.agent_card.name),
             http_kwargs=config.http_kwargs or {},
             handoff_message=config.handoff_message
             or "Transferred to {target}, adopting the role of {target} immediately.",

@@ -1,6 +1,5 @@
 import base64
 import json
-from typing import Self
 
 from autogen_agentchat.messages import (
     BaseAgentEvent,
@@ -14,6 +13,7 @@ from autogen_agentchat.messages import (
 from autogen_core import ComponentBase, Image
 from pydantic import BaseModel
 from slugify import slugify
+from typing_extensions import List, Self
 
 from a2a.types import AgentCard, Artifact, DataPart, FilePart, FileWithBytes, FileWithUri, Message, Role, TextPart
 
@@ -206,7 +206,7 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
                     format_string=self._format_string,
                     metadata=message.metadata or dict(),
                 )
-        contents = []
+        contents: List[str | Image] = []
         for part in message.parts:
             if isinstance(part.root, TextPart):
                 contents.append(part.root.text)
@@ -254,7 +254,7 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
                 Message(
                     parts=artifact.parts,
                     role=Role.agent,
-                    messageId=artifact.artifactId,
+                    message_id=artifact.artifactId,
                     metadata=artifact.metadata or dict(),
                 )
             )

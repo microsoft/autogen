@@ -1,5 +1,5 @@
 from asyncio import CancelledError, iscoroutinefunction
-from typing import Awaitable, Callable, Union
+from typing import Any, Awaitable, Callable, Mapping, Optional, Union
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
@@ -125,15 +125,16 @@ class A2aExecutor(AgentExecutor):
     """
 
     def __init__(
-        self, get_agent: GetAgentFuncType, event_adapter: A2aEventAdapter = None, state_store: CacheStore = None
+        self,
+        get_agent: GetAgentFuncType,
+        event_adapter: Optional[A2aEventAdapter] = None,
+        state_store: Optional[CacheStore[Mapping[str, Any]]] = None,
     ):
         super().__init__()
         self._cancellation_tokens: dict[str, CancellationToken] = {}
-        self._state_store: CacheStore = state_store
+        self._state_store: CacheStore[Mapping[str, Any]] = state_store if state_store else InMemoryStore()
         self._get_agent: GetAgentFuncType = get_agent
         self._event_adapter: A2aEventAdapter = event_adapter if event_adapter else BaseA2aEventAdapter()
-        if not self._state_store:
-            self._state_store = InMemoryStore()
 
     def build_context(
         self,
@@ -146,43 +147,47 @@ class A2aExecutor(AgentExecutor):
         """Get the agent to execute the task."""
         return A2aExecutionContext(request_context, task, updater, user_proxy_agent, cancellation_token)
 
-    def ensure_cancellation_data(self, task: Task):
+    def ensure_cancellation_data(self, task: Task) -> None:
         """Ensure cancellation data exists for the given task ID."""
         if task.id not in self._cancellation_tokens:
             self._cancellation_tokens[task.id] = CancellationToken()
 
-    def clear_cancellation_data(self, task: Task):
+    def clear_cancellation_data(self, task: Task) -> None:
         """Clear cancellation data for the given task ID."""
         if task.id in self._cancellation_tokens:
             del self._cancellation_tokens[task.id]
 
-    async def cancel(self, request_context: RequestContext, event_queue: EventQueue):
+    async def cancel(self, request_context: RequestContext, event_queue: EventQueue) -> None:
         if not request_context.current_task:
             return
         if request_context.current_task.id not in self._cancellation_tokens:
             return
         cancellation_token = self._cancellation_tokens.get(request_context.current_task.id)
+        assert cancellation_token
         cancellation_token.cancel()
 
     async def get_stateful_agent(self, context: A2aExecutionContext) -> Union[ChatAgent, Team]:
         if iscoroutinefunction(self._get_agent):
             agent: Union[ChatAgent, Team] = await self._get_agent(context)
         else:
-            agent: Union[ChatAgent, Team] = self._get_agent(context)
+            agent = self._get_agent(context)
         existing_state = self._state_store.get(context.task.id)
         if existing_state:
             await agent.load_state(existing_state)
         return agent
 
-    async def execute(self, request_context: RequestContext, event_queue: EventQueue):
+    async def execute(self, request_context: RequestContext, event_queue: EventQueue) -> None:
         """Execute the agent with the given context and event queue."""
         query = request_context.get_user_input()
         task = request_context.current_task
         if not task:
+            assert request_context.message
             task = new_task(request_context.message)
-            event_queue.enqueue_event(task)
+            await event_queue.enqueue_event(task)
+        assert request_context.context_id
+
         updater = TaskUpdater(event_queue, task.id, request_context.context_id)
-        updater.submit()
+        await updater.submit()
 
         self.ensure_cancellation_data(task)
         cancellation_token = self._cancellation_tokens[task.id]
@@ -191,23 +196,23 @@ class A2aExecutor(AgentExecutor):
         execution_context = self.build_context(request_context, task, updater, user_proxy_agent, cancellation_token)
         agent = await self.get_stateful_agent(execution_context)
         try:
-            updater.start_work()
+            await updater.start_work()
             async for message in agent.run_stream(
                 task=TextMessage(content=query, source=user_proxy_agent.name), cancellation_token=cancellation_token
             ):
                 if isinstance(message, TaskResult):
-                    updater.complete()
+                    await updater.complete()
                 elif isinstance(message, UserInputRequestedEvent):
-                    updater.update_status(final=False, state=TaskState.input_required)
+                    await updater.update_status(final=False, state=TaskState.input_required)
                 else:
-                    self._event_adapter.handle_events(message, execution_context)
+                    await self._event_adapter.handle_events(message, execution_context)
         except CancelledError:
             if user_proxy_agent.is_cancelled_by_me:
-                updater.update_status(state=TaskState.input_required, final=True)
+                await updater.update_status(state=TaskState.input_required, final=True)
             else:
-                updater.update_status(state=TaskState.canceled, final=True)
+                await updater.update_status(state=TaskState.canceled, final=True)
         except Exception as e:
-            updater.update_status(
+            await updater.update_status(
                 state=TaskState.failed,
                 final=True,
                 message=updater.new_agent_message([Part(root=TextPart(text=str(e.args)))]),

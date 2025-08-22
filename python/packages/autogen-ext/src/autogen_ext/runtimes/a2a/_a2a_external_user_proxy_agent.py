@@ -1,8 +1,7 @@
-from typing import Any, Mapping, Optional, Self
-
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_core import CancellationToken, Component
 from pydantic import BaseModel
+from typing_extensions import Any, Mapping, Optional, Self
 
 
 class A2aExternalUserProxyAgentConfig(BaseModel):
@@ -74,7 +73,7 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
         - Support async operations and timeouts
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "ExternalUser",
             description="A proxy user agent to get input from external user.",
@@ -82,7 +81,7 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
         )
         self.is_cancelled_by_me = False
 
-    async def cancel_for_user_input(self, _prompt: str, cancellation_token: CancellationToken) -> str:
+    async def cancel_for_user_input(self, _prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
         """Handle user input requests with cancellation support.
 
         This method is called when the agent needs user input. Override this method
