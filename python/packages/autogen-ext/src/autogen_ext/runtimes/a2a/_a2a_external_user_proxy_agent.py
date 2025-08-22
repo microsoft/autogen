@@ -1,4 +1,4 @@
-from typing import Optional, Self, Any, Mapping
+from typing import Any, Mapping, Optional, Self
 
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_core import CancellationToken, Component
@@ -11,6 +11,7 @@ class A2aExternalUserProxyAgentConfig(BaseModel):
     Attributes:
         is_cancelled_by_me (bool): Flag indicating if the agent initiated cancellation
     """
+
     is_cancelled_by_me: bool = False
 
 
@@ -30,17 +31,17 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
         Custom implementation with specific input handling:
         ```python
         class CustomUserProxy(A2aExternalUserProxyAgent):
-            async def cancel_for_user_input(self, prompt: str, 
-                                         cancellation_token: CancellationToken) -> str:
+            async def cancel_for_user_input(self, prompt: str, cancellation_token: CancellationToken) -> str:
                 # Custom input handling logic
                 if should_cancel():
                     self.is_cancelled_by_me = True
                     cancellation_token.cancel()
                     return "Cancelled due to specific condition"
-                
+
                 # Or delegate to external service
                 result = await external_service.get_user_input(prompt)
                 return result
+
 
         custom_agent = CustomUserProxy()
         ```
@@ -52,11 +53,10 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
                 super().__init__()
                 self.web_socket = web_socket
 
-            async def cancel_for_user_input(self, prompt: str, 
-                                         cancellation_token: CancellationToken) -> str:
+            async def cancel_for_user_input(self, prompt: str, cancellation_token: CancellationToken) -> str:
                 # Send prompt to web UI
                 await self.web_socket.send(prompt)
-                
+
                 # Wait for user response or cancellation
                 try:
                     response = await self.web_socket.receive()
@@ -75,11 +75,14 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
     """
 
     def __init__(self):
-        super().__init__('ExternalUser', description= "A proxy user agent to get input from external user.",input_func= self.cancel_for_user_input)
+        super().__init__(
+            "ExternalUser",
+            description="A proxy user agent to get input from external user.",
+            input_func=self.cancel_for_user_input,
+        )
         self.is_cancelled_by_me = False
 
-
-    async def cancel_for_user_input(self, _prompt: str, cancellation_token: CancellationToken)-> str:
+    async def cancel_for_user_input(self, _prompt: str, cancellation_token: CancellationToken) -> str:
         """Handle user input requests with cancellation support.
 
         This method is called when the agent needs user input. Override this method
@@ -99,16 +102,14 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
             REST API integration:
             ```python
             class RestApiUserProxy(A2aExternalUserProxyAgent):
-                async def cancel_for_user_input(self, prompt: str,
-                                             cancellation_token: CancellationToken) -> str:
+                async def cancel_for_user_input(self, prompt: str, cancellation_token: CancellationToken) -> str:
                     try:
                         # Post prompt to API
                         async with aiohttp.ClientSession() as session:
-                            async with session.post('/api/user/prompt', 
-                                                  json={'prompt': prompt}) as resp:
+                            async with session.post("/api/user/prompt", json={"prompt": prompt}) as resp:
                                 if resp.status == 200:
                                     return await resp.text()
-                                
+
                         # Handle timeout or error
                         self.is_cancelled_by_me = True
                         cancellation_token.cancel()
@@ -122,19 +123,17 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
             CLI integration:
             ```python
             class CliUserProxy(A2aExternalUserProxyAgent):
-                async def cancel_for_user_input(self, prompt: str,
-                                             cancellation_token: CancellationToken) -> str:
+                async def cancel_for_user_input(self, prompt: str, cancellation_token: CancellationToken) -> str:
                     try:
                         # Register Ctrl+C handler
                         def on_interrupt():
                             self.is_cancelled_by_me = True
                             cancellation_token.cancel()
-                        
+
                         # Show prompt and get input with timeout
                         print(prompt)
                         result = await asyncio.wait_for(
-                            asyncio.get_event_loop().run_in_executor(None, input),
-                            timeout=30.0
+                            asyncio.get_event_loop().run_in_executor(None, input), timeout=30.0
                         )
                         return result
                     except asyncio.TimeoutError:
@@ -180,7 +179,6 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
         self.is_cancelled_by_me = False
         await super().on_reset(cancellation_token)
 
-
     @classmethod
     def _from_config(cls, config: Any) -> Self:
         return cls()
@@ -195,9 +193,9 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
             ```python
             # Save agent state
             state = await agent.save_state()
-            
+
             # Persist state
-            with open('agent_state.json', 'w') as f:
+            with open("agent_state.json", "w") as f:
                 json.dump(state, f)
             ```
 
@@ -217,9 +215,9 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
         Example:
             ```python
             # Load saved state
-            with open('agent_state.json', 'r') as f:
+            with open("agent_state.json", "r") as f:
                 state = json.load(f)
-            
+
             # Restore agent
             await agent.load_state(state)
             ```

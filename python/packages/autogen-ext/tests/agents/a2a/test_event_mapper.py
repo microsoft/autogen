@@ -1,25 +1,32 @@
-import uuid
-import io
-
-import pytest
 import base64
+import io
 import json
+import uuid
 from unittest.mock import MagicMock, patch
 
+import pytest
+from a2a.types import AgentCard, Artifact, DataPart, FilePart, FileWithBytes, FileWithUri, Message, Part, Role, TextPart
+from autogen_agentchat.messages import (
+    BaseAgentEvent,
+    BaseChatMessage,
+    ModelClientStreamingChunkEvent,
+    MultiModalMessage,
+    StructuredMessage,
+    StructuredMessageFactory,
+    TextMessage,
+)
+from autogen_core import ComponentBase, Image
 from PIL import Image as PILImage
+from pydantic import BaseModel
+
 from autogen_ext.agents.a2a._a2a_event_mapper import (
+    A2aEventMapper,
+    A2aEventMapperConfig,
     convert_file_to_image,
     convert_file_to_str,
     handle_file_part,
-    A2aEventMapper,
-    A2aEventMapperConfig,
 )
 
-from a2a.types import Part, Message, Role, TextPart, AgentCard, DataPart, FilePart, FileWithBytes, FileWithUri, Artifact
-from autogen_agentchat.messages import BaseChatMessage, BaseAgentEvent, TextMessage, StructuredMessage, \
-    StructuredMessageFactory, MultiModalMessage, ModelClientStreamingChunkEvent
-from autogen_core import Image, ComponentBase
-from pydantic import BaseModel
 
 def to_base64(img: PILImage):
     buffered = io.BytesIO()
@@ -63,7 +70,7 @@ def test_convert_file_to_image_file_with_uri():
 def test_convert_file_to_str_file_with_bytes():
     """Test convert_file_to_str with FileWithBytes."""
     original_text = "Hello, world!"
-    b64_text_data = base64.b64encode(original_text.encode('utf-8')).decode('utf-8')
+    b64_text_data = base64.b64encode(original_text.encode("utf-8")).decode("utf-8")
     file_with_bytes = FileWithBytes(bytes=b64_text_data, mime_type="text/plain")
     file_part = FilePart(file=file_with_bytes)
 
@@ -81,8 +88,8 @@ def test_convert_file_to_str_file_with_uri():
     assert result_str == uri
 
 
-@patch('autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image')
-@patch('autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str')
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image")
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str")
 def test_handle_file_part_successful_image_conversion(mock_convert_to_str, mock_convert_to_image):
     """Test handle_file_part when image conversion succeeds."""
     mock_image_obj = img_object
@@ -95,8 +102,8 @@ def test_handle_file_part_successful_image_conversion(mock_convert_to_str, mock_
     mock_convert_to_str.assert_not_called()
 
 
-@patch('autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image')
-@patch('autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str')
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image")
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str")
 def test_handle_file_part_image_fails_string_succeeds(mock_convert_to_str, mock_convert_to_image):
     """Test handle_file_part when image conversion fails, but string conversion succeeds."""
     mock_convert_to_image.side_effect = ValueError("Not an image")
@@ -109,8 +116,8 @@ def test_handle_file_part_image_fails_string_succeeds(mock_convert_to_str, mock_
     mock_convert_to_str.assert_called_once_with(file_part)
 
 
-@patch('autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image')
-@patch('autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str')
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_image")
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.convert_file_to_str")
 def test_handle_file_part_both_conversions_fail(mock_convert_to_str, mock_convert_to_image):
     """Test handle_file_part when both image and string conversions fail."""
     mock_convert_to_image.side_effect = ValueError("Not an image")
@@ -237,7 +244,7 @@ def test_a2a_event_mapper_handle_message_mixed_parts_with_image_file():
         messageId=str(uuid.uuid4())
     )
     result = mapper.handle_message(message)
-    print(result)
+
     assert isinstance(result, MultiModalMessage)
     assert len(result.content) == 3
     assert result.content[0] == "Hello"
@@ -246,7 +253,7 @@ def test_a2a_event_mapper_handle_message_mixed_parts_with_image_file():
     assert result.source == "agent"
 
 
-@patch('autogen_ext.agents.a2a._a2a_event_mapper.handle_file_part')
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.handle_file_part")
 def test_a2a_event_mapper_handle_message_mixed_parts_with_string_file(mock_handle_file_part):
     """Test handle_message with mixed parts including a string file (non-image)."""
     mapper = A2aEventMapper(agent_name="Agent")
@@ -279,7 +286,7 @@ def test_a2a_event_mapper_handle_artifact_empty_parts():
     assert result is None
 
 
-@patch('autogen_ext.agents.a2a._a2a_event_mapper.A2aEventMapper.handle_message')
+@patch("autogen_ext.agents.a2a._a2a_event_mapper.A2aEventMapper.handle_message")
 def test_a2a_event_mapper_handle_artifact_with_file_parts(mock_handle_message):
     """Test handle_artifact when it contains file parts (delegates to handle_message)."""
     mapper = A2aEventMapper(agent_name="Agent")
@@ -332,7 +339,7 @@ def test_a2a_event_mapper_handle_artifact_only_data_parts():
     )
     result = mapper.handle_artifact(artifact)
     assert isinstance(result, ModelClientStreamingChunkEvent)
-    assert result.content == f'{json.dumps(json_data1)}\n{json.dumps(json_data2)}'
+    assert result.content == f"{json.dumps(json_data1)}\n{json.dumps(json_data2)}"
     assert result.source == "agent"
 
 
@@ -346,7 +353,7 @@ def test_a2a_event_mapper_handle_artifact_mixed_text_and_data_parts_no_files():
     )
     result = mapper.handle_artifact(artifact)
     assert isinstance(result, ModelClientStreamingChunkEvent)
-    assert result.content == f'Processing\n{json.dumps(json_data)}\nDone'
+    assert result.content == f"Processing\n{json.dumps(json_data)}\nDone"
     assert result.source == "agent"
 
 def test_a2a_event_mapper_to_config_basic():

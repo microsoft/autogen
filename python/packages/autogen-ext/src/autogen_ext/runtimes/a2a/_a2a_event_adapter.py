@@ -3,14 +3,18 @@ import uuid
 from abc import ABC, abstractmethod
 from typing import Union
 
-from a2a.types import TaskState, TextPart, Part, FilePart, FileWithBytes, DataPart, \
-    TaskArtifactUpdateEvent, Artifact
-from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, TextMessage, MultiModalMessage, \
-    StructuredMessage, ModelClientStreamingChunkEvent
+from _a2a_execution_context import A2aExecutionContext
+from a2a.types import Artifact, DataPart, FilePart, FileWithBytes, Part, TaskArtifactUpdateEvent, TaskState, TextPart
+from autogen_agentchat.messages import (
+    BaseAgentEvent,
+    BaseChatMessage,
+    ModelClientStreamingChunkEvent,
+    MultiModalMessage,
+    StructuredMessage,
+    TextMessage,
+)
 from autogen_core import Image
 from pydantic import BaseModel
-
-from _a2a_execution_context import A2aExecutionContext
 
 
 class A2aEventAdapter(ABC, BaseModel):
@@ -27,9 +31,7 @@ class A2aEventAdapter(ABC, BaseModel):
                 if isinstance(message, TextMessage):
                     context.updater.update_status(
                         state=TaskState.working,
-                        message=context.updater.new_agent_message([
-                            Part(root=TextPart(text=message.content))
-                        ])
+                        message=context.updater.new_agent_message([Part(root=TextPart(text=message.content))]),
                     )
         ```
     """
@@ -49,6 +51,7 @@ class A2aEventAdapter(ABC, BaseModel):
         - ModelClientStreamingChunkEvent -> A2A streaming artifacts
         """
         pass
+
 
 class BaseA2aEventAdapter(A2aEventAdapter):
     """Base implementation of A2aEventAdapter with standard event handling.
@@ -70,16 +73,10 @@ class BaseA2aEventAdapter(A2aEventAdapter):
         context = A2aExecutionContext(...)
 
         # Handle a text message
-        adapter.handle_events(
-            TextMessage(content="Processing request...", source="assistant"),
-            context
-        )
+        adapter.handle_events(TextMessage(content="Processing request...", source="assistant"), context)
 
         # Handle a multi-modal message with image
-        adapter.handle_events(
-            MultiModalMessage(content=["Result:", image_data], source="assistant"),
-            context
-        )
+        adapter.handle_events(MultiModalMessage(content=["Result:", image_data], source="assistant"), context)
         ```
     """
 
@@ -107,8 +104,12 @@ class BaseA2aEventAdapter(A2aEventAdapter):
             return
         if isinstance(message, TextMessage):
             text = message.to_text()
-            context.updater.update_status(state=TaskState.working,
-                                  message=context.updater.new_agent_message([Part(root=TextPart(text=text))], metadata= message.metadata or None))
+            context.updater.update_status(
+                state=TaskState.working,
+                message=context.updater.new_agent_message(
+                    [Part(root=TextPart(text=text))], metadata=message.metadata or None
+                ),
+            )
         if isinstance(message, MultiModalMessage):
             parts = []
             for content in message.content:
@@ -118,14 +119,17 @@ class BaseA2aEventAdapter(A2aEventAdapter):
                     parts.append(Part(root=TextPart(text=content)))
                 else:
                     raise AssertionError("Multimodal message content must be an Image or a string.")
-            context.updater.update_status(state=TaskState.working,
-                message=context.updater.new_agent_message(parts=parts,metadata=message.metadata))
+            context.updater.update_status(
+                state=TaskState.working,
+                message=context.updater.new_agent_message(parts=parts, metadata=message.metadata),
+            )
 
         if isinstance(message, StructuredMessage):
             data_part = DataPart(data=json.loads(str(message.to_model_message().content)))
-            context.updater.update_status(state=TaskState.working,
-                                  message=context.updater.new_agent_message(parts=[Part(root=data_part)],
-                                                                    metadata=message.metadata))
+            context.updater.update_status(
+                state=TaskState.working,
+                message=context.updater.new_agent_message(parts=[Part(root=data_part)], metadata=message.metadata),
+            )
         if isinstance(message, ModelClientStreamingChunkEvent):
             if not context.streaming_chunks_id:
                 context.streaming_chunks_id = str(uuid.uuid4())
@@ -148,8 +152,8 @@ class BaseA2aEventAdapter(A2aEventAdapter):
                     TaskArtifactUpdateEvent(
                         taskId=context.updater.task_id,
                         contextId=context.updater.context_id,
-                        lastChunk= True,
-                        append= True,
+                        lastChunk=True,
+                        append=True,
                         artifact=Artifact(
                             artifactId=context.streaming_chunks_id,
                             parts=[],

@@ -1,21 +1,43 @@
 import json
 import uuid
-from typing import Sequence, List, AsyncGenerator, Optional, Self, Mapping, Any, Union
+from typing import Any, AsyncGenerator, List, Mapping, Optional, Self, Sequence, Union
 
-from a2a.client import A2AClient
-from a2a.types import AgentCard, SendMessageRequest, MessageSendParams, Message, Role, TextPart, Part, DataPart, \
-    FilePart, FileWithBytes, JSONRPCErrorResponse, TaskState, SendStreamingMessageRequest, \
-    TaskArtifactUpdateEvent, TaskStatusUpdateEvent
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import BaseChatMessage, HandoffMessage, StructuredMessage, TextMessage, \
-    MultiModalMessage, BaseAgentEvent, BaseTextChatMessage
-from autogen_core import ComponentBase, CancellationToken, Image
+from autogen_agentchat.messages import (
+    BaseAgentEvent,
+    BaseChatMessage,
+    BaseTextChatMessage,
+    HandoffMessage,
+    MultiModalMessage,
+    StructuredMessage,
+    TextMessage,
+)
+from autogen_core import CancellationToken, ComponentBase, Image
 from httpx import AsyncClient
 from pydantic import BaseModel
+from slugify import slugify
+
+from a2a.client import A2AClient
+from a2a.types import (
+    AgentCard,
+    DataPart,
+    FilePart,
+    FileWithBytes,
+    JSONRPCErrorResponse,
+    Message,
+    MessageSendParams,
+    Part,
+    Role,
+    SendMessageRequest,
+    SendStreamingMessageRequest,
+    TaskArtifactUpdateEvent,
+    TaskState,
+    TaskStatusUpdateEvent,
+    TextPart,
+)
 
 from ._a2a_event_mapper import A2aEventMapper
-from slugify import slugify
 
 
 def get_index_of_user_message(messages: List[Message], user_message_params: MessageSendParams) -> int:
@@ -44,6 +66,7 @@ def get_index_of_user_message(messages: List[Message], user_message_params: Mess
             return i
     raise AssertionError("User message not found in the messages list.")
 
+
 class A2aHostedAgentState(BaseModel):
     task_id: str
 
@@ -57,6 +80,7 @@ class A2aHostedAgentConfig(BaseModel):
         http_kwargs (dict, optional): Additional HTTP client configuration
         handoff_message (str, optional): Template for handoff messages
     """
+
     agent_card: AgentCard
     event_mapper: A2aEventMapper = None
     http_kwargs: dict = {}
@@ -79,21 +103,16 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         ```python
         # Create an agent card
         card = AgentCard(
-            name="FoodAgent",
-            description="A food recipe assistant",
-            capabilities=AgentCapabilities(streaming=True)
+            name="FoodAgent", description="A food recipe assistant", capabilities=AgentCapabilities(streaming=True)
         )
 
         # Initialize the agent
-        agent = A2aHostedAgent(
-            agent_card=card,
-            event_mapper=A2aEventMapper("FoodAgent")
-        )
+        agent = A2aHostedAgent(agent_card=card, event_mapper=A2aEventMapper("FoodAgent"))
 
         # Use in conversation
-        response = await agent.on_messages([
-            TextMessage(content="Suggest a pasta recipe", source="user")
-        ], CancellationToken())
+        response = await agent.on_messages(
+            [TextMessage(content="Suggest a pasta recipe", source="user")], CancellationToken()
+        )
         ```
 
     Note:
@@ -102,13 +121,23 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         - Integrates with AutoGen's message and event system
     """
 
-    def __init__(self, agent_card: AgentCard, event_mapper: A2aEventMapper = None, http_kwargs: dict = None, handoff_message: str = None):
+    def __init__(
+        self,
+        agent_card: AgentCard,
+        event_mapper: A2aEventMapper = None,
+        http_kwargs: dict = None,
+        handoff_message: str = None,
+    ):
         super().__init__(name="A2aHostedAgent", description="A hosted agent for A2A operations.")
         self._default_http_kwargs = http_kwargs if http_kwargs is not None else dict()
         self._agent_card = agent_card
         self._task_id = str(uuid.uuid4())
         self._event_mapper = event_mapper if event_mapper is not None else A2aEventMapper(agent_card.name)
-        self._handoff_message = handoff_message if handoff_message is not None else "Transferred to {target}, adopting the role of {target} immediately."
+        self._handoff_message = (
+            handoff_message
+            if handoff_message is not None
+            else "Transferred to {target}, adopting the role of {target} immediately."
+        )
 
     @property
     def name(self) -> str:
@@ -150,10 +179,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
             params = agent._build_a2a_message([text_msg])
 
             # Multi-modal message conversion
-            multi_msg = MultiModalMessage(content=[
-                "Recipe:",
-                Image.from_file("recipe.jpg")
-            ], source="user")
+            multi_msg = MultiModalMessage(content=["Recipe:", Image.from_file("recipe.jpg")], source="user")
             params = agent._build_a2a_message([multi_msg])
             ```
 
@@ -163,12 +189,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
             - Images -> FilePart
             - Structured data -> DataPart
         """
-        message = Message(
-            messageId= str(uuid.uuid4()),
-            parts=list(),
-            role=Role.user,
-            taskId=self._task_id
-        )
+        message = Message(messageId=str(uuid.uuid4()), parts=list(), role=Role.user, taskId=self._task_id)
 
         for autogen_message in autogen_messages:
             if isinstance(autogen_message, BaseTextChatMessage):
@@ -189,17 +210,13 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
                 data_part = DataPart(data=json.loads(str(autogen_message.to_model_message().content)))
                 message.parts.append(Part(root=data_part))
 
-        return MessageSendParams(
-            message=message
-        )
-
+        return MessageSendParams(message=message)
 
     async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
         raise AssertionError("The stream should have returned the final result.")
-
 
     def _get_latest_handoff(self, messages: Sequence[BaseChatMessage]) -> Optional[HandoffMessage]:
         """Find the most recent HandoffMessage targeting this agent.
@@ -218,11 +235,13 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
 
         Example:
             ```python
-            handoff = agent._get_latest_handoff([
-                TextMessage(content="Hello", source="user"),
-                HandoffMessage(target="food_agent", source="user"),
-                TextMessage(content="Recipe?", source="user")
-            ])
+            handoff = agent._get_latest_handoff(
+                [
+                    TextMessage(content="Hello", source="user"),
+                    HandoffMessage(target="food_agent", source="user"),
+                    TextMessage(content="Recipe?", source="user"),
+                ]
+            )
             if handoff:
                 print(f"Found handoff from {handoff.source}")
             ```
@@ -281,10 +300,12 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
 
         yield Response(
             inner_messages=output_messages[:-1],  # Exclude the last message from inner messages
-            chat_message=output_messages[-1]  # Return the last message as the chat message
+            chat_message=output_messages[-1],  # Return the last message as the chat message
         )
 
-    async def call_agent(self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage= None) -> AsyncGenerator[Union[BaseAgentEvent, BaseChatMessage, Response], None]:
+    async def call_agent(
+        self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage = None
+    ) -> AsyncGenerator[Union[BaseAgentEvent, BaseChatMessage, Response], None]:
         """Make a non-streaming call to the remote A2A agent.
 
         Sends a message to the remote agent and processes its response in a single request.
@@ -318,13 +339,15 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
 
         async with AsyncClient(**self._default_http_kwargs) as httpx_client:
             a2a_client = A2AClient(httpx_client, self._agent_card)
-            response = await a2a_client.send_message(
-                request=SendMessageRequest(id=str(uuid.uuid4()), params=params))
+            response = await a2a_client.send_message(request=SendMessageRequest(id=str(uuid.uuid4()), params=params))
         if isinstance(response.root, JSONRPCErrorResponse):
-            raise Exception(f"Error in A2A response: {response.root.error.message}", response.root.error.code,
-                            response.root.error.data)
+            raise Exception(
+                f"Error in A2A response: {response.root.error.message}",
+                response.root.error.code,
+                response.root.error.data,
+            )
 
-        history = response.root.result.history[get_index_of_user_message(response.root.result.history, params) + 1:]
+        history = response.root.result.history[get_index_of_user_message(response.root.result.history, params) + 1 :]
 
         if response.root.result.status.state == TaskState.canceled:
             cancellation_token.cancel()
@@ -344,11 +367,15 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
             raise AssertionError("No agent messages found in the response.")
 
         if response.root.result.status.state == TaskState.input_required and handoff:
-            yield HandoffMessage(content=self._handoff_message.format(handoff.source), source=self.name, target=handoff.source) # Handoff to the last agent
+            yield HandoffMessage(
+                content=self._handoff_message.format(handoff.source), source=self.name, target=handoff.source
+            )  # Handoff to the last agent
 
         yield last_message
 
-    async def call_agent_stream(self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage= None) -> AsyncGenerator[Union[BaseAgentEvent | BaseChatMessage | Response], None]:
+    async def call_agent_stream(
+        self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage = None
+    ) -> AsyncGenerator[Union[BaseAgentEvent | BaseChatMessage | Response], None]:
         """Make a streaming call to the remote A2A agent.
 
         Sends a message to the remote agent and processes its response as a stream of events.
@@ -392,8 +419,11 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
 
             async for response in a2a_client.send_message_streaming(request):
                 if isinstance(response.root, JSONRPCErrorResponse):
-                    raise Exception(f"Error in A2A response: {response.root.error.message}", response.root.error.code,
-                                    response.root.error.data)
+                    raise Exception(
+                        f"Error in A2A response: {response.root.error.message}",
+                        response.root.error.code,
+                        response.root.error.data,
+                    )
                 if isinstance(response.root.result, TaskArtifactUpdateEvent):
                     # Handle the artifact update event
                     event = self._event_mapper.handle_artifact(response.root.result.artifact)
@@ -420,10 +450,13 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
             cancellation_token.cancel()
         if final_state == TaskState.failed:
             raise RuntimeError(
-                f"Task failed with error: {last_message.to_text() if last_message is not None else 'Unknown error'}")
+                f"Task failed with error: {last_message.to_text() if last_message is not None else 'Unknown error'}"
+            )
 
         if final_state == TaskState.input_required and handoff:
-            yield HandoffMessage(content=self._handoff_message.format(handoff.source), source=self.name, target=handoff.source) # Handoff to the last agent
+            yield HandoffMessage(
+                content=self._handoff_message.format(handoff.source), source=self.name, target=handoff.source
+            )  # Handoff to the last agent
 
         yield last_message
 
@@ -444,9 +477,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         self._task_id = str(uuid.uuid4())
 
     async def save_state(self) -> Mapping[str, Any]:
-        return A2aHostedAgentState(
-            task_id=self._task_id
-        ).model_dump()
+        return A2aHostedAgentState(task_id=self._task_id).model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """Restore agent from saved state."""
@@ -458,7 +489,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
             agent_card=self._agent_card,
             event_mapper=self._event_mapper,
             http_kwargs=self._default_http_kwargs,
-            handoff_message=self._handoff_message
+            handoff_message=self._handoff_message,
         )
 
     @classmethod
@@ -467,5 +498,6 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
             agent_card=config.agent_card,
             event_mapper=config.event_mapper or A2aEventMapper(config.agentCard),
             http_kwargs=config.http_kwargs or {},
-            handoff_message=config.handoff_message or "Transferred to {target}, adopting the role of {target} immediately."
+            handoff_message=config.handoff_message
+            or "Transferred to {target}, adopting the role of {target} immediately.",
         )

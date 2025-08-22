@@ -34,7 +34,7 @@ class A2aExecutionContext(BaseModel):
             task=current_task,
             updater=task_updater,
             user_proxy_agent=proxy_agent,
-            cancellation_token=CancellationToken()
+            cancellation_token=CancellationToken(),
         )
 
         # Access task updater
@@ -52,10 +52,17 @@ class A2aExecutionContext(BaseModel):
         This context is crucial for maintaining state and coordinating
         between different components of the A2A protocol implementation.
     """
+
     streaming_chunks_id: str | None = None
 
-    def __init__(self, request: RequestContext, task: Task, updater: TaskUpdater, user_proxy_agent: A2aExternalUserProxyAgent,
-                 cancellation_token: CancellationToken):
+    def __init__(
+        self,
+        request: RequestContext,
+        task: Task,
+        updater: TaskUpdater,
+        user_proxy_agent: A2aExternalUserProxyAgent,
+        cancellation_token: CancellationToken,
+    ):
         super().__init__(streaming_chunks_id=None)
         self._task = task
         self._updater = updater
@@ -74,9 +81,7 @@ class A2aExecutionContext(BaseModel):
             ```python
             context.updater.update_status(
                 state=TaskState.working,
-                message=context.updater.new_agent_message([
-                    Part(root=TextPart(text="Processing..."))
-                ])
+                message=context.updater.new_agent_message([Part(root=TextPart(text="Processing..."))]),
             )
             ```
 
@@ -207,4 +212,3 @@ class A2aExecutionContext(BaseModel):
             - Task parameters
         """
         return self._task
-

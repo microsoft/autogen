@@ -1,25 +1,23 @@
 from asyncio import CancelledError, iscoroutinefunction
-
-from typing import Callable, Awaitable, Union
+from typing import Awaitable, Callable, Union
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
-
 from a2a.server.tasks import TaskUpdater
-from a2a.types import TaskState, Task, TextPart, Part
+from a2a.types import Part, Task, TaskState, TextPart
 from a2a.utils import new_task
-from autogen_agentchat.base import TaskResult, ChatAgent, Team
-from autogen_agentchat.messages import UserInputRequestedEvent, TextMessage
+from autogen_agentchat.base import ChatAgent, TaskResult, Team
+from autogen_agentchat.messages import TextMessage, UserInputRequestedEvent
+from autogen_core import CacheStore, CancellationToken, InMemoryStore
 
-from autogen_core import CancellationToken, CacheStore, InMemoryStore
-
-from ._a2a_execution_context import A2aExecutionContext
 from ._a2a_event_adapter import A2aEventAdapter, BaseA2aEventAdapter
+from ._a2a_execution_context import A2aExecutionContext
 from ._a2a_external_user_proxy_agent import A2aExternalUserProxyAgent
 
 SyncGetAgentFuncType = Callable[[A2aExecutionContext], Union[ChatAgent, Team]]
 AsyncGetAgentFuncType = Callable[[A2aExecutionContext], Awaitable[Union[ChatAgent, Team]]]
 GetAgentFuncType = Union[SyncGetAgentFuncType, AsyncGetAgentFuncType]
+
 
 class A2aExecutor(AgentExecutor):
     """A2A protocol executor for AutoGen agents.
@@ -46,43 +44,37 @@ class A2aExecutor(AgentExecutor):
         from a2a.types import AgentCard, AgentCapabilities
         from autogen_ext.runtimes.a2a import A2aExecutor
 
+
         # Define agent creation function
         async def get_my_agent(context):
             agent = AssistantAgent(
-                name="MyAgent",
-                system_message="You are a helpful assistant",
-                model_client=llm_client
+                name="MyAgent", system_message="You are a helpful assistant", model_client=llm_client
             )
             return agent
+
 
         # Create executor with custom components
         executor = A2aExecutor(
             get_agent=get_my_agent,
             event_adapter=CustomEventAdapter(),  # Optional
-            state_store=RedisStateStore()  # Optional
+            state_store=RedisStateStore(),  # Optional
         )
 
         # Setup A2A server
         agent_card = AgentCard(
-            name='My A2A Agent',
-            description='A helpful assistant',
+            name="My A2A Agent",
+            description="A helpful assistant",
             capabilities=AgentCapabilities(streaming=True),
-            defaultInputModes=['text'],
-            defaultOutputModes=['text']
+            defaultInputModes=["text"],
+            defaultOutputModes=["text"],
         )
 
-        handler = DefaultRequestHandler(
-            agent_executor=executor,
-            task_store=InMemoryTaskStore()
-        )
+        handler = DefaultRequestHandler(agent_executor=executor, task_store=InMemoryTaskStore())
 
-        app = A2AStarletteApplication(
-            agent_card=agent_card,
-            http_handler=handler
-        ).build()
+        app = A2AStarletteApplication(agent_card=agent_card, http_handler=handler).build()
 
         # Run the server
-        uvicorn.run(app, host='0.0.0.0', port=8000)
+        uvicorn.run(app, host="0.0.0.0", port=8000)
         ```
 
     Customization Examples:
@@ -94,9 +86,9 @@ class A2aExecutor(AgentExecutor):
                     # Custom handling of text messages
                     context.updater.update_status(
                         state=TaskState.working,
-                        message=context.updater.new_agent_message([
-                            Part(root=TextPart(text=f"Processed: {message.content}"))
-                        ])
+                        message=context.updater.new_agent_message(
+                            [Part(root=TextPart(text=f"Processed: {message.content}"))]
+                        ),
                     )
         ```
 
@@ -107,7 +99,7 @@ class A2aExecutor(AgentExecutor):
                 # Custom input handling
                 result = await external_service.get_input(prompt)
                 return result
-        
+
             def build_context(self, request, task, updater, proxy, token):
                 # Use custom user proxy
                 proxy = CustomUserProxy()
@@ -133,18 +125,26 @@ class A2aExecutor(AgentExecutor):
         - Handles proper cleanup of resources
         - Manages agent state persistence
     """
-    def __init__(self, get_agent: GetAgentFuncType,
-                 event_adapter: A2aEventAdapter = BaseA2aEventAdapter(), state_store: CacheStore = None):
+
+    def __init__(
+        self, get_agent: GetAgentFuncType, event_adapter: A2aEventAdapter = None, state_store: CacheStore = None
+    ):
         super().__init__()
-        self._cancellation_tokens:dict[str, CancellationToken] = {}
+        self._cancellation_tokens: dict[str, CancellationToken] = {}
         self._state_store: CacheStore = state_store
         self._get_agent: GetAgentFuncType = get_agent
-        self._event_adapter: A2aEventAdapter = event_adapter
+        self._event_adapter: A2aEventAdapter = event_adapter if event_adapter else BaseA2aEventAdapter()
         if not self._state_store:
             self._state_store = InMemoryStore()
 
-
-    def build_context(self, request_context: RequestContext, task: Task, updater: TaskUpdater, user_proxy_agent: A2aExternalUserProxyAgent, cancellation_token: CancellationToken) -> A2aExecutionContext:
+    def build_context(
+        self,
+        request_context: RequestContext,
+        task: Task,
+        updater: TaskUpdater,
+        user_proxy_agent: A2aExternalUserProxyAgent,
+        cancellation_token: CancellationToken,
+    ) -> A2aExecutionContext:
         """Get the agent to execute the task."""
         return A2aExecutionContext(request_context, task, updater, user_proxy_agent, cancellation_token)
 
@@ -194,7 +194,9 @@ class A2aExecutor(AgentExecutor):
         agent = await self.get_stateful_agent(execution_context)
         try:
             updater.start_work()
-            async for message in agent.run_stream(task=TextMessage(content=query, source=user_proxy_agent.name), cancellation_token=cancellation_token):
+            async for message in agent.run_stream(
+                task=TextMessage(content=query, source=user_proxy_agent.name), cancellation_token=cancellation_token
+            ):
                 if isinstance(message, TaskResult):
                     updater.complete()
                 elif isinstance(message, UserInputRequestedEvent):
@@ -207,7 +209,11 @@ class A2aExecutor(AgentExecutor):
             else:
                 updater.update_status(state=TaskState.canceled, final=True)
         except Exception as e:
-            updater.update_status(state=TaskState.failed, final=True, message=updater.new_agent_message([Part(root=TextPart(text=str(e.args)))]))
+            updater.update_status(
+                state=TaskState.failed,
+                final=True,
+                message=updater.new_agent_message([Part(root=TextPart(text=str(e.args)))]),
+            )
         finally:
             self.clear_cancellation_data(task)
             self._state_store.set(task.id, await agent.save_state())

@@ -2,12 +2,20 @@ import base64
 import json
 from typing import Self
 
-from a2a.types import Message, Role, TextPart, AgentCard, DataPart, FilePart, FileWithBytes, FileWithUri, Artifact
-from autogen_agentchat.messages import BaseChatMessage, BaseAgentEvent, TextMessage, StructuredMessage, \
-    StructuredMessageFactory, MultiModalMessage, ModelClientStreamingChunkEvent
-from autogen_core import Image, ComponentBase
+from autogen_agentchat.messages import (
+    BaseAgentEvent,
+    BaseChatMessage,
+    ModelClientStreamingChunkEvent,
+    MultiModalMessage,
+    StructuredMessage,
+    StructuredMessageFactory,
+    TextMessage,
+)
+from autogen_core import ComponentBase, Image
 from pydantic import BaseModel
 from slugify import slugify
+
+from a2a.types import AgentCard, Artifact, DataPart, FilePart, FileWithBytes, FileWithUri, Message, Role, TextPart
 
 
 def convert_file_to_image(file_part: FilePart) -> Image:
@@ -75,9 +83,10 @@ def handle_file_part(file_part: FilePart) -> Image | str:
     """
     try:
         return convert_file_to_image(file_part)
-    except Exception as e:
+    except Exception:
         # If conversion to Image fails, try converting to string
         return convert_file_to_str(file_part)
+
 
 class A2aEventMapperConfig(BaseModel):
     agent_name: str
@@ -112,17 +121,27 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
             name: str
             ingredients: list[str]
 
+
         mapper = A2aEventMapper(
             agent_name="recipe_agent",
             output_content_type=RecipeResponse,
-            output_content_type_format="Recipe for {name}"
+            output_content_type_format="Recipe for {name}",
         )
         ```
     """
-    def __init__(self, agent_name: str, output_content_type: type[BaseModel] | None = None,
-                 output_content_type_format: str | None = None):
+
+    def __init__(
+        self,
+        agent_name: str,
+        output_content_type: type[BaseModel] | None = None,
+        output_content_type_format: str | None = None,
+    ):
         super().__init__()
-        self._config = A2aEventMapperConfig(agent_name=agent_name, output_content_type=output_content_type, output_content_type_format=output_content_type_format)
+        self._config = A2aEventMapperConfig(
+            agent_name=agent_name,
+            output_content_type=output_content_type,
+            output_content_type_format=output_content_type_format,
+        )
         self._agent_name = slugify(agent_name)
         self._output_content_type = output_content_type
         self._format_string = output_content_type_format
@@ -158,10 +177,7 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
             chat_msg = mapper.handle_message(data_msg)  # Returns StructuredMessage
 
             # Mixed content
-            mixed_msg = Message(parts=[
-                Part(root=TextPart(text="Recipe")),
-                Part(root=FilePart(file=image_file))
-            ])
+            mixed_msg = Message(parts=[Part(root=TextPart(text="Recipe")), Part(root=FilePart(file=image_file))])
             chat_msg = mapper.handle_message(mixed_msg)  # Returns MultiModalMessage
             ```
         """
@@ -177,7 +193,7 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
             return TextMessage(
                 content="\n".join(part.root.text for part in message.parts),
                 source=self._agent_name,
-                metadata=message.metadata or dict()
+                metadata=message.metadata or dict(),
             )
 
         is_only_data = all(isinstance(part.root, DataPart) for part in message.parts) and len(message.parts) == 1
@@ -188,7 +204,7 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
                     content=content,
                     source=self._agent_name,
                     format_string=self._format_string,
-                    metadata=message.metadata or dict()
+                    metadata=message.metadata or dict(),
                 )
         contents = []
         for part in message.parts:
@@ -200,13 +216,9 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
                 contents.append(handle_file_part(part.root))
             else:
                 raise ValueError(f"Unsupported part type: {type(part.root)}")
-        return MultiModalMessage(
-            source=self._agent_name,
-            content=contents,
-            metadata=message.metadata or dict()
-        )
+        return MultiModalMessage(source=self._agent_name, content=contents, metadata=message.metadata or dict())
 
-    def handle_artifact(self, artifact: Artifact) -> BaseAgentEvent | BaseChatMessage |None:
+    def handle_artifact(self, artifact: Artifact) -> BaseAgentEvent | BaseChatMessage | None:
         """Convert an A2A artifact to an AutoGen event or message.
 
         This method processes artifacts from A2A protocol and converts them into appropriate
@@ -238,12 +250,14 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
 
         has_file_parts = any(isinstance(part.root, FilePart) for part in artifact.parts)
         if has_file_parts:
-            return self.handle_message(Message(
-                parts=artifact.parts,
-                role=Role.agent,
-                messageId=artifact.artifactId,
-                metadata=artifact.metadata or dict()
-            ))
+            return self.handle_message(
+                Message(
+                    parts=artifact.parts,
+                    role=Role.agent,
+                    messageId=artifact.artifactId,
+                    metadata=artifact.metadata or dict(),
+                )
+            )
         content = []
 
         for part in artifact.parts:
@@ -254,9 +268,7 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
             else:
                 raise ValueError(f"Unsupported part type: {type(part.root)}")
         return ModelClientStreamingChunkEvent(
-            content="\n".join(content),
-            metadata=artifact.metadata or dict(),
-            source=self._agent_name
+            content="\n".join(content), metadata=artifact.metadata or dict(), source=self._agent_name
         )
 
     def _to_config(self) -> A2aEventMapperConfig:
