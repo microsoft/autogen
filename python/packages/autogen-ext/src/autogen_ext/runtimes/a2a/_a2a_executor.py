@@ -47,9 +47,7 @@ class A2aExecutor(AgentExecutor):
 
         # Define agent creation function
         async def get_my_agent(context):
-            agent = AssistantAgent(
-                name="MyAgent", system_message="You are a helpful assistant", model_client=llm_client
-            )
+            agent = AssistantAgent(name="MyAgent", system_message="You are a helpful assistant", model_client=llm_client)
             return agent
 
 

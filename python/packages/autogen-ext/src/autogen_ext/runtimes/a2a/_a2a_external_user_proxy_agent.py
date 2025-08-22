@@ -132,9 +132,7 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
 
                         # Show prompt and get input with timeout
                         print(prompt)
-                        result = await asyncio.wait_for(
-                            asyncio.get_event_loop().run_in_executor(None, input), timeout=30.0
-                        )
+                        result = await asyncio.wait_for(asyncio.get_event_loop().run_in_executor(None, input), timeout=30.0)
                         return result
                     except asyncio.TimeoutError:
                         self.is_cancelled_by_me = True
