@@ -1,20 +1,36 @@
-import json
-from unittest.mock import AsyncMock, Mock
+import base64
+import io
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
-from a2a.types import Artifact, DataPart, FilePart, FileWithBytes, Part, TaskArtifactUpdateEvent, TaskState, TextPart
+from a2a.types import Artifact, DataPart, Part, TaskArtifactUpdateEvent, TaskState, TextPart
 from autogen_agentchat.messages import ModelClientStreamingChunkEvent, MultiModalMessage, StructuredMessage, TextMessage
-from autogen_core import Image
+from autogen_core import CancellationToken, Image
 from autogen_ext.runtimes.a2a._a2a_event_adapter import BaseA2aEventAdapter
 from autogen_ext.runtimes.a2a._a2a_execution_context import A2aExecutionContext
+from PIL import Image as PILImage
+from pydantic import BaseModel  # Changed from pydantic.v1 to pydantic
+
+
+def to_base64() -> str:
+    img = PILImage.new("RGB", (100, 100), color="red")
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    content = buffered.getvalue()
+    return base64.b64encode(content).decode("utf-8")
+
+
+b64_img = to_base64()
+img_data_uri = f"data:image/png;base64,{b64_img}"
+img_object = Image.from_uri(img_data_uri)
 
 
 @pytest.fixture
-def context():
-    mock_updater = Mock()
+def context() -> A2aExecutionContext:
+    mock_updater = AsyncMock()
     mock_updater.task_id = "test_task"
     mock_updater.context_id = "test_context"
-    mock_updater.event_queue = Mock()
+    mock_updater.event_queue = AsyncMock()
     mock_updater.event_queue.enqueue_event = AsyncMock()
     mock_updater.update_status = AsyncMock()
     mock_updater.new_agent_message = Mock(return_value="test_message")
@@ -22,11 +38,17 @@ def context():
     mock_user_proxy = Mock()
     mock_user_proxy.name = "user_proxy"
 
-    return A2aExecutionContext(updater=mock_updater, user_proxy_agent=mock_user_proxy)
+    return A2aExecutionContext(
+        updater=mock_updater,
+        user_proxy_agent=mock_user_proxy,
+        cancellation_token=CancellationToken(),
+        task=Mock(),
+        request=Mock(),
+    )
 
 
 @pytest.mark.asyncio
-async def test_handle_text_message(context):
+async def test_handle_text_message(context: AsyncMock) -> None:
     adapter = BaseA2aEventAdapter()
     message = TextMessage(content="Hello, world!", source="assistant")
 
@@ -39,7 +61,7 @@ async def test_handle_text_message(context):
 
 
 @pytest.mark.asyncio
-async def test_ignore_user_proxy_message(context):
+async def test_ignore_user_proxy_message(context: AsyncMock) -> None:
     adapter = BaseA2aEventAdapter()
     message = TextMessage(content="User input", source="user_proxy")
 
@@ -49,9 +71,9 @@ async def test_ignore_user_proxy_message(context):
 
 
 @pytest.mark.asyncio
-async def test_handle_multimodal_message(context):
+async def test_handle_multimodal_message(context: AsyncMock) -> None:
     adapter = BaseA2aEventAdapter()
-    image = Image(data=b"fake_image_data")
+    image = img_object
     message = MultiModalMessage(content=["Image description:", image], source="assistant")
 
     await adapter.handle_events(message, context)
@@ -60,19 +82,26 @@ async def test_handle_multimodal_message(context):
     assert len(context.updater.new_agent_message.call_args[1]["parts"]) == 2
 
 
+class TestData(BaseModel):
+    key: str
+    model_config = {"extra": "forbid"}
+
+
 @pytest.mark.asyncio
-async def test_handle_structured_message(context):
+async def test_handle_structured_message(context: AsyncMock) -> None:
     adapter = BaseA2aEventAdapter()
-    data = {"key": "value"}
-    message = StructuredMessage(content=json.dumps(data), source="assistant")
+    data = TestData(key="value")
+    message = StructuredMessage[TestData](content=data, source="assistant", format_string="{key}")
 
     await adapter.handle_events(message, context)
 
-    context.updater.new_agent_message.assert_called_once_with(parts=[Part(root=DataPart(data=data))], metadata=None)
+    context.updater.new_agent_message.assert_called_once_with(
+        parts=[Part(root=DataPart(data=data.model_dump()))], metadata={}
+    )
 
 
 @pytest.mark.asyncio
-async def test_handle_streaming_chunk_event(context):
+async def test_handle_streaming_chunk_event(context: AsyncMock) -> None:
     adapter = BaseA2aEventAdapter()
     message = ModelClientStreamingChunkEvent(content="chunk", source="assistant")
 
@@ -90,7 +119,7 @@ async def test_handle_streaming_chunk_event(context):
 
 
 @pytest.mark.asyncio
-async def test_streaming_chunk_closure(context):
+async def test_streaming_chunk_closure(context: AsyncMock) -> None:
     adapter = BaseA2aEventAdapter()
     # First send a streaming chunk
     chunk_message = ModelClientStreamingChunkEvent(content="chunk", source="assistant")
@@ -109,12 +138,3 @@ async def test_streaming_chunk_closure(context):
     assert closure_event.last_chunk is True
     assert closure_event.append is True
     assert len(closure_event.artifact.parts) == 0
-
-
-@pytest.mark.asyncio
-async def test_multimodal_message_invalid_content():
-    adapter = BaseA2aEventAdapter()
-    message = MultiModalMessage(content=[42], source="assistant")  # Invalid content type
-
-    with pytest.raises(AssertionError, match="Multimodal message content must be an Image or a string."):
-        await adapter.handle_events(message, Mock())

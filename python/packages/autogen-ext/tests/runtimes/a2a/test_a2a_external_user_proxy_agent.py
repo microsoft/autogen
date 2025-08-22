@@ -7,12 +7,12 @@ from autogen_ext.runtimes.a2a._a2a_external_user_proxy_agent import (
 
 
 @pytest.fixture
-def agent():
+def agent() -> A2aExternalUserProxyAgent:
     return A2aExternalUserProxyAgent()
 
 
 @pytest.mark.asyncio
-async def test_initialization(agent):
+async def test_initialization(agent: A2aExternalUserProxyAgent) -> None:
     """Test basic initialization of A2aExternalUserProxyAgent."""
     assert agent.name == "ExternalUser"
     assert agent.is_cancelled_by_me is False
@@ -20,7 +20,7 @@ async def test_initialization(agent):
 
 
 @pytest.mark.asyncio
-async def test_cancel_for_user_input(agent):
+async def test_cancel_for_user_input(agent: A2aExternalUserProxyAgent) -> None:
     """Test cancel_for_user_input behavior."""
     token = CancellationToken()
     result = await agent.cancel_for_user_input("Test prompt", token)
@@ -31,7 +31,7 @@ async def test_cancel_for_user_input(agent):
 
 
 @pytest.mark.asyncio
-async def test_cancel_for_user_input_no_token():
+async def test_cancel_for_user_input_no_token() -> None:
     """Test cancel_for_user_input with no token raises error."""
     agent = A2aExternalUserProxyAgent()
     with pytest.raises(AssertionError, match="Cancellation token must be provided"):
@@ -39,7 +39,7 @@ async def test_cancel_for_user_input_no_token():
 
 
 @pytest.mark.asyncio
-async def test_reset(agent):
+async def test_reset(agent: A2aExternalUserProxyAgent) -> None:
     """Test reset functionality."""
     # First cancel to set is_cancelled_by_me to True
     token = CancellationToken()
@@ -52,7 +52,7 @@ async def test_reset(agent):
 
 
 @pytest.mark.asyncio
-async def test_save_and_load_state(agent):
+async def test_save_and_load_state(agent: A2aExternalUserProxyAgent) -> None:
     """Test state saving and loading."""
     # Set up initial state
     token = CancellationToken()
@@ -71,7 +71,7 @@ async def test_save_and_load_state(agent):
 
 
 @pytest.mark.asyncio
-async def test_from_config():
+async def test_from_config() -> None:
     """Test _from_config class method."""
     config = A2aExternalUserProxyAgentConfig()
     agent = A2aExternalUserProxyAgent._from_config(config)

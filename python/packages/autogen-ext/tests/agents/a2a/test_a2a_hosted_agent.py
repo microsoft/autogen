@@ -26,7 +26,6 @@ from a2a.types import (
 )
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
-    BaseAgentEvent,
     HandoffMessage,
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
