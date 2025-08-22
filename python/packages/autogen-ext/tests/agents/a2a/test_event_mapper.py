@@ -34,6 +34,7 @@ def to_base64(img: PILImage):
     content = buffered.getvalue()
     return base64.b64encode(content).decode("utf-8")
 
+
 img = PILImage.new("RGB", (100, 100), color="red")
 b64_img = to_base64(img)
 img_data_uri = f"data:image/png;base64,{b64_img}"
@@ -47,6 +48,7 @@ class MyPydanticModel(BaseModel):
 
 
 # --- Test Cases for Utility Functions ---
+
 
 def test_convert_file_to_image_file_with_bytes():
     """Test convert_file_to_image with FileWithBytes."""
@@ -132,6 +134,7 @@ def test_handle_file_part_both_conversions_fail(mock_convert_to_str, mock_conver
 
 # --- Test Cases for A2aEventMapper ---
 
+
 def test_a2a_event_mapper_init_basic():
     """Test A2aEventMapper initialization with basic parameters."""
     mapper = A2aEventMapper(agent_name="My-Agent")
@@ -144,9 +147,7 @@ def test_a2a_event_mapper_init_basic():
 def test_a2a_event_mapper_init_with_output_content_type():
     """Test A2aEventMapper initialization with output_content_type."""
     mapper = A2aEventMapper(
-        agent_name="Test-Agent",
-        output_content_type=MyPydanticModel,
-        output_content_type_format="{content.name}"
+        agent_name="Test-Agent", output_content_type=MyPydanticModel, output_content_type_format="{content.name}"
     )
     assert mapper._config.agent_name == "Test-Agent"
     assert mapper._agent_name == "test-agent"
@@ -179,7 +180,7 @@ def test_a2a_event_mapper_handle_message_all_text_parts():
         role=Role.agent,
         parts=[Part(root=TextPart(text="Part 1")), Part(root=TextPart(text="Part 2"))],
         metadata={"key": "value"},
-        messageId = str(uuid.uuid4())
+        messageId=str(uuid.uuid4()),
     )
     result = mapper.handle_message(message)
     assert isinstance(result, TextMessage)
@@ -191,16 +192,11 @@ def test_a2a_event_mapper_handle_message_all_text_parts():
 def test_a2a_event_mapper_handle_message_single_data_part_with_output_type():
     """Test handle_message with a single data part and configured output type."""
     mapper = A2aEventMapper(
-        agent_name="Agent",
-        output_content_type=MyPydanticModel,
-        output_content_type_format="{content.name}"
+        agent_name="Agent", output_content_type=MyPydanticModel, output_content_type_format="{content.name}"
     )
     json_data = {"name": "Test", "value": 123}
     message = Message(
-        role=Role.agent,
-        parts=[Part(root=DataPart(data=json_data))],
-        metadata={"id": "1"},
-        messageId = str(uuid.uuid4())
+        role=Role.agent, parts=[Part(root=DataPart(data=json_data))], metadata={"id": "1"}, messageId=str(uuid.uuid4())
     )
     result = mapper.handle_message(message)
     assert isinstance(result, StructuredMessage)
@@ -216,11 +212,7 @@ def test_a2a_event_mapper_handle_message_single_data_part_no_output_type():
     """Test handle_message with a single data part and no output type configured."""
     mapper = A2aEventMapper(agent_name="Agent")
     json_data = {"key": "value"}
-    message = Message(
-        role=Role.agent,
-        parts=[DataPart(data=json_data)],
-        messageId=str(uuid.uuid4())
-    )
+    message = Message(role=Role.agent, parts=[DataPart(data=json_data)], messageId=str(uuid.uuid4()))
     result = mapper.handle_message(message)
     assert isinstance(result, MultiModalMessage)
     assert len(result.content) == 1
@@ -236,12 +228,8 @@ def test_a2a_event_mapper_handle_message_mixed_parts_with_image_file():
 
     message = Message(
         role=Role.agent,
-        parts=[
-            TextPart(text="Hello"),
-            DataPart(data={"data_key": "data_value"}),
-            file_part
-        ],
-        messageId=str(uuid.uuid4())
+        parts=[TextPart(text="Hello"), DataPart(data={"data_key": "data_value"}), file_part],
+        messageId=str(uuid.uuid4()),
     )
     result = mapper.handle_message(message)
 
@@ -262,14 +250,7 @@ def test_a2a_event_mapper_handle_message_mixed_parts_with_string_file(mock_handl
     file_with_bytes = FileWithBytes(bytes="b64_string", mime_type="text/plain")
     file_part = FilePart(file=file_with_bytes)
 
-    message = Message(
-        role=Role.agent,
-        parts=[
-            TextPart(text="Introduction"),
-            file_part
-        ],
-        messageId=str(uuid.uuid4())
-    )
+    message = Message(role=Role.agent, parts=[TextPart(text="Introduction"), file_part], messageId=str(uuid.uuid4()))
     result = mapper.handle_message(message)
     assert isinstance(result, MultiModalMessage)
     assert len(result.content) == 2
@@ -295,11 +276,7 @@ def test_a2a_event_mapper_handle_artifact_with_file_parts(mock_handle_message):
 
     file_part = Part(root=FilePart(file=FileWithBytes(bytes="b64_data", mime_type="image/jpeg")))
     text_part = Part(root=TextPart(text="Some text"))
-    artifact = Artifact(
-        artifactId="art1",
-        parts=[text_part, file_part],
-        metadata={"test_meta": "artifact_value"}
-    )
+    artifact = Artifact(artifactId="art1", parts=[text_part, file_part], metadata={"test_meta": "artifact_value"})
 
     result = mapper.handle_artifact(artifact)
     assert result == mock_message_result
@@ -317,9 +294,7 @@ def test_a2a_event_mapper_handle_artifact_only_text_parts():
     """Test handle_artifact with only text parts."""
     mapper = A2aEventMapper(agent_name="Agent")
     artifact = Artifact(
-        artifactId="art2",
-        parts=[TextPart(text="Line one"), TextPart(text="Line two")],
-        metadata={"source": "artifact"}
+        artifactId="art2", parts=[TextPart(text="Line one"), TextPart(text="Line two")], metadata={"source": "artifact"}
     )
     result = mapper.handle_artifact(artifact)
     assert isinstance(result, ModelClientStreamingChunkEvent)
@@ -334,8 +309,7 @@ def test_a2a_event_mapper_handle_artifact_only_data_parts():
     json_data1 = {"id": 1}
     json_data2 = {"status": "ok"}
     artifact = Artifact(
-        artifactId="art3",
-        parts=[Part(root=DataPart(data=json_data1)), Part(root=DataPart(data=json_data2))]
+        artifactId="art3", parts=[Part(root=DataPart(data=json_data1)), Part(root=DataPart(data=json_data2))]
     )
     result = mapper.handle_artifact(artifact)
     assert isinstance(result, ModelClientStreamingChunkEvent)
@@ -349,12 +323,17 @@ def test_a2a_event_mapper_handle_artifact_mixed_text_and_data_parts_no_files():
     json_data = {"command": "execute"}
     artifact = Artifact(
         artifactId="art4",
-        parts=[Part(root=TextPart(text="Processing")), Part(root=DataPart(data=json_data)), Part(root=TextPart(text="Done"))]
+        parts=[
+            Part(root=TextPart(text="Processing")),
+            Part(root=DataPart(data=json_data)),
+            Part(root=TextPart(text="Done")),
+        ],
     )
     result = mapper.handle_artifact(artifact)
     assert isinstance(result, ModelClientStreamingChunkEvent)
     assert result.content == f"Processing\n{json.dumps(json_data)}\nDone"
     assert result.source == "agent"
+
 
 def test_a2a_event_mapper_to_config_basic():
     """Test _to_config method with basic initialization."""
@@ -369,9 +348,7 @@ def test_a2a_event_mapper_to_config_basic():
 def test_a2a_event_mapper_to_config_with_output_type():
     """Test _to_config method with output_content_type configured."""
     mapper = A2aEventMapper(
-        agent_name="ConfigAgent2",
-        output_content_type=MyPydanticModel,
-        output_content_type_format="format_str"
+        agent_name="ConfigAgent2", output_content_type=MyPydanticModel, output_content_type_format="format_str"
     )
     config = mapper._to_config()
     assert isinstance(config, A2aEventMapperConfig)
@@ -393,9 +370,7 @@ def test_a2a_event_mapper_from_config_basic():
 def test_a2a_event_mapper_from_config_with_output_type():
     """Test _from_config method with output_content_type in config."""
     config = A2aEventMapperConfig(
-        agent_name="Reconstructed-Agent2",
-        output_content_type=MyPydanticModel,
-        output_content_type_format="re_format"
+        agent_name="Reconstructed-Agent2", output_content_type=MyPydanticModel, output_content_type_format="re_format"
     )
     mapper = A2aEventMapper._from_config(config)
     assert isinstance(mapper, A2aEventMapper)
