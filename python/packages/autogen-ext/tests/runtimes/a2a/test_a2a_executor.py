@@ -65,6 +65,12 @@ def event_adapter() -> MagicMock:
 def state_store() -> MagicMock:
     return Mock(spec=CacheStore)
 
+@pytest.fixture
+def get_agent_sync() -> Callable[[A2aExecutionContext], Awaitable[ChatAgent]]:
+    async def _get_agent(_: A2aExecutionContext) -> ChatAgent:
+        return get_mock_agent()
+
+    return _get_agent
 
 @pytest.fixture
 def get_agent_async() -> Callable[[A2aExecutionContext], Awaitable[ChatAgent]]:
@@ -75,12 +81,12 @@ def get_agent_async() -> Callable[[A2aExecutionContext], Awaitable[ChatAgent]]:
 
 
 @pytest.fixture
-def executor(get_mock_agent: MagicMock, event_adapter: MagicMock, state_store: MagicMock) -> A2aExecutor:
+def executor(get_agent_sync: MagicMock, event_adapter: MagicMock, state_store: MagicMock) -> A2aExecutor:
     return A2aExecutor(get_agent=get_mock_agent, event_adapter=event_adapter, state_store=state_store)
 
 
 @pytest.mark.asyncio
-async def test_executor_initialization(get_mock_agent: MagicMock) -> None:
+async def test_executor_initialization(get_agent_sync: MagicMock) -> None:
     """Test executor initialization with different configurations."""
     # Test with minimal configuration
     executor = A2aExecutor(get_agent=get_mock_agent)
