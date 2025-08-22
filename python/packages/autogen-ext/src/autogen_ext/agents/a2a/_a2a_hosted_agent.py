@@ -298,9 +298,13 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
                 yield output_messages[-1]
             output_messages.append(message)
 
+        last_message = output_messages[-1]
+        if not isinstance(last_message, BaseChatMessage):
+            raise RuntimeError("Expected last message to be a BaseChatMessage")
+
         yield Response(
             inner_messages=output_messages[:-1],  # Exclude the last message from inner messages
-            chat_message=output_messages[-1],  # Return the last message as the chat message
+            chat_message=last_message,  # Return the last message as the chat message
         )
 
     async def call_agent(

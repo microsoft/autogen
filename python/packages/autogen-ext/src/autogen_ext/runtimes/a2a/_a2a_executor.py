@@ -167,10 +167,12 @@ class A2aExecutor(AgentExecutor):
         cancellation_token.cancel()
 
     async def get_stateful_agent(self, context: A2aExecutionContext) -> Union[ChatAgent, Team]:
-        if iscoroutinefunction(self._get_agent):
-            agent: Union[ChatAgent, Team] = await self._get_agent(context)
+        result = self._get_agent(context)
+        if isinstance(result, Awaitable):
+            agent = await result
         else:
-            agent = self._get_agent(context)
+            agent = result
+
         existing_state = self._state_store.get(context.task.id)
         if existing_state:
             await agent.load_state(existing_state)
