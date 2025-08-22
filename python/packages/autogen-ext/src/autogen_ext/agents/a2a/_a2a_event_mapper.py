@@ -11,6 +11,17 @@ from slugify import slugify
 
 
 def convert_file_to_image(file_part: FilePart) -> Image:
+    """Convert a FilePart to an AutoGen Image object.
+
+    Args:
+        file_part (FilePart): The file part containing image data
+
+    Returns:
+        Image: The converted AutoGen Image object
+
+    Raises:
+        ValueError: If the file type is not supported
+    """
     if isinstance(file_part.file, FileWithBytes):
         return Image.from_base64(file_part.file.bytes)
     elif isinstance(file_part.file, FileWithUri):
@@ -20,6 +31,17 @@ def convert_file_to_image(file_part: FilePart) -> Image:
 
 
 def convert_file_to_str(file_part: FilePart) -> str:
+    """Convert a FilePart to a string.
+
+    Args:
+        file_part (FilePart): The file part to convert
+
+    Returns:
+        str: The string representation of the file content
+
+    Raises:
+        ValueError: If the file type is not supported
+    """
     if isinstance(file_part.file, FileWithBytes):
         return base64.b64decode(file_part.file.bytes).decode(encoding="utf-8")
     elif isinstance(file_part.file, FileWithUri):
@@ -29,6 +51,28 @@ def convert_file_to_str(file_part: FilePart) -> str:
 
 
 def handle_file_part(file_part: FilePart) -> Image | str:
+    """Handle a FilePart by attempting to convert it to either an Image or string.
+
+    This function first tries to convert the file part to an Image object. If that fails,
+    it falls back to converting it to a string representation.
+
+    Args:
+        file_part (FilePart): The file part to handle
+
+    Returns:
+        Image | str: Either an AutoGen Image object or a string representation of the file
+
+    Example:
+        ```python
+        # For an image file
+        image_part = FilePart(file=FileWithBytes(bytes=image_data))
+        result = handle_file_part(image_part)  # Returns Image
+
+        # For a text file
+        text_part = FilePart(file=FileWithBytes(bytes=text_data))
+        result = handle_file_part(text_part)  # Returns str
+        ```
+    """
     try:
         return convert_file_to_image(file_part)
     except Exception as e:
@@ -42,8 +86,38 @@ class A2aEventMapperConfig(BaseModel):
 
 
 class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
-    """
-    A2aEventMapper is a class that provides methods to deserialize data.
+    """A2aEventMapper handles conversion between A2A messages and AutoGen chat messages.
+
+    This class provides functionality to:
+        - Convert A2A messages to AutoGen chat messages
+        - Handle different types of message parts (text, data, files)
+        - Support structured message formats
+        - Process artifacts and streaming events
+
+    Args:
+        agent_name (str): Name of the agent, used as source in generated messages
+        output_content_type (type[BaseModel] | None): Optional Pydantic model for structured output
+        output_content_type_format (str | None): Optional format string for structured messages
+
+    Example:
+        Basic usage:
+        ```python
+        mapper = A2aEventMapper(agent_name="food_agent")
+        chat_message = mapper.handle_message(a2a_message)
+        ```
+
+        With structured output:
+        ```python
+        class RecipeResponse(BaseModel):
+            name: str
+            ingredients: list[str]
+
+        mapper = A2aEventMapper(
+            agent_name="recipe_agent",
+            output_content_type=RecipeResponse,
+            output_content_type_format="Recipe for {name}"
+        )
+        ```
     """
     def __init__(self, agent_name: str, output_content_type: type[BaseModel] | None = None,
                  output_content_type_format: str | None = None):
@@ -59,9 +133,37 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
             )
 
     def handle_message(self, message: Message) -> BaseChatMessage | None:
-        """
-        Deserialize the given data.
-        This method is currently not implemented.
+        """Convert an A2A message to an AutoGen chat message.
+
+        This method handles different types of message parts and converts them into appropriate
+        AutoGen message types based on their content.
+
+        Args:
+            message (Message): The A2A message to convert
+
+        Returns:
+            BaseChatMessage | None: The converted AutoGen message, or None for user messages
+                - TextMessage: For messages containing only text parts
+                - StructuredMessage: For data parts when output_content_type is specified
+                - MultiModalMessage: For messages with mixed content types or files
+
+        Example:
+            ```python
+            # Text message
+            message = Message(parts=[Part(root=TextPart(text="Hello"))])
+            chat_msg = mapper.handle_message(message)  # Returns TextMessage
+
+            # Data message with structured output
+            data_msg = Message(parts=[Part(root=DataPart(data={"name": "Pizza"}))])
+            chat_msg = mapper.handle_message(data_msg)  # Returns StructuredMessage
+
+            # Mixed content
+            mixed_msg = Message(parts=[
+                Part(root=TextPart(text="Recipe")),
+                Part(root=FilePart(file=image_file))
+            ])
+            chat_msg = mapper.handle_message(mixed_msg)  # Returns MultiModalMessage
+            ```
         """
         if message.role == Role.user:
             # User messages are not deserialized, they are just passed through
@@ -105,9 +207,31 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
         )
 
     def handle_artifact(self, artifact: Artifact) -> BaseAgentEvent | BaseChatMessage |None:
-        """
-        Deserialize the given artifact data.
-        This method is currently not implemented.
+        """Convert an A2A artifact to an AutoGen event or message.
+
+        This method processes artifacts from A2A protocol and converts them into appropriate
+        AutoGen events or messages. It's particularly useful for handling streaming content
+        and file-based artifacts.
+
+        Args:
+            artifact (Artifact): The A2A artifact to convert
+
+        Returns:
+            BaseAgentEvent | BaseChatMessage | None: The converted AutoGen event/message
+                - ModelClientStreamingChunkEvent: For text/data streaming artifacts
+                - MultiModalMessage: For artifacts containing files
+                - None: If the artifact has no parts
+
+        Example:
+            ```python
+            # Streaming text artifact
+            artifact = Artifact(parts=[Part(root=TextPart(text="Processing..."))])
+            event = mapper.handle_artifact(artifact)  # Returns ModelClientStreamingChunkEvent
+
+            # File artifact
+            artifact = Artifact(parts=[Part(root=FilePart(file=image_file))])
+            msg = mapper.handle_artifact(artifact)  # Returns MultiModalMessage
+            ```
         """
         if not artifact.parts or len(artifact.parts) == 0:
             return None

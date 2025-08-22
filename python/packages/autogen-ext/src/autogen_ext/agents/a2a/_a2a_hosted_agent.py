@@ -19,6 +19,26 @@ from slugify import slugify
 
 
 def get_index_of_user_message(messages: List[Message], user_message_params: MessageSendParams) -> int:
+    """Find the index of a specific user message in a message list.
+
+    Args:
+        messages (List[Message]): List of messages to search through
+        user_message_params (MessageSendParams): Parameters containing the message to find
+
+    Returns:
+        int: Index of the user message in the list
+
+    Raises:
+        AssertionError: If the user message is not found in the list
+
+    Example:
+        ```python
+        messages = [Message(role=Role.user, messageId="123"), Message(role=Role.agent)]
+        params = MessageSendParams(message=Message(messageId="123"))
+        index = get_index_of_user_message(messages, params)
+        # index will be 0
+        ```
+    """
     for i, message in enumerate(messages):
         if message.role == Role.user and message.messageId == user_message_params.message.messageId:
             return i
@@ -29,13 +49,58 @@ class A2aHostedAgentState(BaseModel):
 
 
 class A2aHostedAgentConfig(BaseModel):
-    """Declarative configuration for the A2aHostedAgent."""
+    """Configuration model for the A2aHostedAgent.
+
+    Args:
+        agent_card (AgentCard): The agent card containing agent capabilities and metadata
+        event_mapper (A2aEventMapper, optional): Custom event mapper for message conversion
+        http_kwargs (dict, optional): Additional HTTP client configuration
+        handoff_message (str, optional): Template for handoff messages
+    """
     agent_card: AgentCard
     event_mapper: A2aEventMapper = None
     http_kwargs: dict = {}
     handoff_message: str = None
 
+
 class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
+    """A chat agent that interacts with remote A2A-compatible agents.
+
+    This agent enables communication with remote agents that implement the A2A protocol.
+    It handles message conversion, streaming responses, and agent handoffs.
+
+    Args:
+        agent_card (AgentCard): The agent's capabilities and metadata
+        event_mapper (A2aEventMapper, optional): Custom event mapper for message conversion
+        http_kwargs (dict, optional): Additional HTTP client configuration
+        handoff_message (str, optional): Template for handoff messages
+
+    Example:
+        ```python
+        # Create an agent card
+        card = AgentCard(
+            name="FoodAgent",
+            description="A food recipe assistant",
+            capabilities=AgentCapabilities(streaming=True)
+        )
+
+        # Initialize the agent
+        agent = A2aHostedAgent(
+            agent_card=card,
+            event_mapper=A2aEventMapper("FoodAgent")
+        )
+
+        # Use in conversation
+        response = await agent.on_messages([
+            TextMessage(content="Suggest a pasta recipe", source="user")
+        ], CancellationToken())
+        ```
+
+    Note:
+        - Supports both streaming and non-streaming responses
+        - Handles multi-modal messages (text, data, images)
+        - Integrates with AutoGen's message and event system
+    """
 
     def __init__(self, agent_card: AgentCard, event_mapper: A2aEventMapper = None, http_kwargs: dict = None, handoff_message: str = None):
         super().__init__(name="A2aHostedAgent", description="A hosted agent for A2A operations.")
@@ -67,9 +132,36 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         return tuple(message_types)
 
     def _build_a2a_message(self, autogen_messages: Sequence[BaseChatMessage]) -> MessageSendParams:
-        """
-        Build the A2A message from the autogen messages.
-        To be overridden by subclasses if any customization is needed in message send params.
+        """Convert AutoGen messages to A2A message format.
+
+        This method handles the conversion of various AutoGen message types to the A2A protocol format.
+        It can be overridden by subclasses for custom message formatting.
+
+        Args:
+            autogen_messages (Sequence[BaseChatMessage]): The AutoGen messages to convert
+
+        Returns:
+            MessageSendParams: The converted A2A message parameters
+
+        Example:
+            ```python
+            # Text message conversion
+            text_msg = TextMessage(content="Hello", source="user")
+            params = agent._build_a2a_message([text_msg])
+
+            # Multi-modal message conversion
+            multi_msg = MultiModalMessage(content=[
+                "Recipe:",
+                Image.from_file("recipe.jpg")
+            ], source="user")
+            params = agent._build_a2a_message([multi_msg])
+            ```
+
+        Note:
+            Supports conversion of:
+            - Text messages -> TextPart
+            - Images -> FilePart
+            - Structured data -> DataPart
         """
         message = Message(
             messageId= str(uuid.uuid4()),
@@ -110,7 +202,31 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
 
 
     def _get_latest_handoff(self, messages: Sequence[BaseChatMessage]) -> Optional[HandoffMessage]:
-        """Find the last HandoffMessage in the message sequence that addresses this agent."""
+        """Find the most recent HandoffMessage targeting this agent.
+
+        Searches through the message sequence in reverse order to find the last handoff
+        message that targets this agent.
+
+        Args:
+            messages (Sequence[BaseChatMessage]): The sequence of messages to search
+
+        Returns:
+            Optional[HandoffMessage]: The most recent handoff message, or None if none found
+
+        Raises:
+            AssertionError: If a handoff message targets a different agent
+
+        Example:
+            ```python
+            handoff = agent._get_latest_handoff([
+                TextMessage(content="Hello", source="user"),
+                HandoffMessage(target="food_agent", source="user"),
+                TextMessage(content="Recipe?", source="user")
+            ])
+            if handoff:
+                print(f"Found handoff from {handoff.source}")
+            ```
+        """
         for message in reversed(messages):
             if isinstance(message, HandoffMessage):
                 if message.target == self.name:
@@ -122,6 +238,33 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
     async def on_messages_stream(
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
+        """Process incoming messages and generate streaming responses.
+
+        This method handles the core interaction with the remote A2A agent, supporting
+        both streaming and non-streaming responses.
+
+        Args:
+            messages (Sequence[BaseChatMessage]): The messages to process
+            cancellation_token (CancellationToken): Token for cancelling the operation
+
+        Yields:
+            Union[BaseAgentEvent, BaseChatMessage, Response]: Stream of responses and events
+
+        Example:
+            ```python
+            messages = [TextMessage(content="Recipe for pasta?", source="user")]
+            async for response in agent.on_messages_stream(messages, CancellationToken()):
+                if isinstance(response, TextMessage):
+                    print(response.content)
+                elif isinstance(response, Response):
+                    print("Final response received")
+            ```
+
+        Note:
+            - Automatically detects and uses streaming if available
+            - Handles handoffs between agents
+            - Returns intermediate messages and final response
+        """
         handoff = self._get_latest_handoff(messages)
         params = self._build_a2a_message(messages)
 
@@ -142,7 +285,36 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         )
 
     async def call_agent(self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage= None) -> AsyncGenerator[Union[BaseAgentEvent, BaseChatMessage, Response], None]:
-        """Call the LLM with the given parameters."""
+        """Make a non-streaming call to the remote A2A agent.
+
+        Sends a message to the remote agent and processes its response in a single request.
+
+        Args:
+            params (MessageSendParams): The A2A message parameters
+            cancellation_token (CancellationToken): Token for cancelling the operation
+            handoff (HandoffMessage, optional): Handoff message if this is part of a handoff
+
+        Yields:
+            Union[BaseAgentEvent, BaseChatMessage, Response]: Agent messages and events
+
+        Raises:
+            Exception: If the A2A response contains an error
+            RuntimeError: If the task fails
+            AssertionError: If no agent messages are found
+
+        Example:
+            ```python
+            params = MessageSendParams(message=Message(...))
+            async for response in agent.call_agent(params, CancellationToken()):
+                if isinstance(response, TextMessage):
+                    print(f"Agent says: {response.content}")
+            ```
+
+        Note:
+            - Processes the entire conversation history
+            - Handles task state transitions
+            - Supports agent handoffs
+        """
 
         async with AsyncClient(**self._default_http_kwargs) as httpx_client:
             a2a_client = A2AClient(httpx_client, self._agent_card)
@@ -177,6 +349,39 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         yield last_message
 
     async def call_agent_stream(self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: HandoffMessage= None) -> AsyncGenerator[Union[BaseAgentEvent | BaseChatMessage | Response], None]:
+        """Make a streaming call to the remote A2A agent.
+
+        Sends a message to the remote agent and processes its response as a stream of events.
+
+        Args:
+            params (MessageSendParams): The A2A message parameters
+            cancellation_token (CancellationToken): Token for cancelling the operation
+            handoff (HandoffMessage, optional): Handoff message if this is part of a handoff
+
+        Yields:
+            Union[BaseAgentEvent, BaseChatMessage, Response]: Stream of agent messages and events
+
+        Raises:
+            RuntimeError: If streaming is not supported or task fails
+            Exception: If the A2A response contains an error
+            AssertionError: If no agent messages are found
+
+        Example:
+            ```python
+            params = MessageSendParams(message=Message(...))
+            async for event in agent.call_agent_stream(params, CancellationToken()):
+                if isinstance(event, ModelClientStreamingChunkEvent):
+                    print(f"Streaming chunk: {event.content}")
+                elif isinstance(event, TextMessage):
+                    print(f"Final response: {event.content}")
+            ```
+
+        Note:
+            - Processes real-time artifacts and status updates
+            - Supports task state transitions
+            - Handles streaming events and final responses
+            - Manages agent handoffs
+        """
         if not self._agent_card.capabilities.streaming:
             raise RuntimeError("Streaming is not supported by this agent.")
         final_state = None
@@ -223,7 +428,19 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         yield last_message
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
-        """Reset the agent state."""
+        """Reset the agent to its initial state.
+
+        This method generates a new task ID, effectively starting a fresh conversation.
+
+        Args:
+            cancellation_token (CancellationToken): Token for cancelling the operation
+
+        Example:
+            ```python
+            await agent.on_reset(CancellationToken())
+            # Agent now has a new task ID for the next conversation
+            ```
+        """
         self._task_id = str(uuid.uuid4())
 
     async def save_state(self) -> Mapping[str, Any]:

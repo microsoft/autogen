@@ -22,6 +22,117 @@ AsyncGetAgentFuncType = Callable[[A2aExecutionContext], Awaitable[Union[ChatAgen
 GetAgentFuncType = Union[SyncGetAgentFuncType, AsyncGetAgentFuncType]
 
 class A2aExecutor(AgentExecutor):
+    """A2A protocol executor for AutoGen agents.
+
+    This executor manages the lifecycle of AutoGen agents in an A2A protocol environment,
+    handling message processing, state management, and event adaptation.
+
+    The executor can be customized through several components:
+    1. Event Adapter: Controls how AutoGen messages are converted to A2A events
+    2. External User Agent: Handles user interaction and input
+    3. State Store: Manages persistence of agent state
+    4. Agent Factory: Creates agents for task execution
+
+    Args:
+        get_agent (GetAgentFuncType): Function that creates the AutoGen agent/team
+        event_adapter (A2aEventAdapter): Adapter for event conversion (default: BaseA2aEventAdapter)
+        state_store (CacheStore): Store for agent state persistence (default: InMemoryStore)
+
+    Example:
+        Basic setup with A2AStarletteApplication:
+        ```python
+        from a2a.server.apps import A2AStarletteApplication
+        from a2a.server.request_handlers import DefaultRequestHandler
+        from a2a.types import AgentCard, AgentCapabilities
+        from autogen_ext.runtimes.a2a import A2aExecutor
+
+        # Define agent creation function
+        async def get_my_agent(context):
+            agent = AssistantAgent(
+                name="MyAgent",
+                system_message="You are a helpful assistant",
+                model_client=llm_client
+            )
+            return agent
+
+        # Create executor with custom components
+        executor = A2aExecutor(
+            get_agent=get_my_agent,
+            event_adapter=CustomEventAdapter(),  # Optional
+            state_store=RedisStateStore()  # Optional
+        )
+
+        # Setup A2A server
+        agent_card = AgentCard(
+            name='My A2A Agent',
+            description='A helpful assistant',
+            capabilities=AgentCapabilities(streaming=True),
+            defaultInputModes=['text'],
+            defaultOutputModes=['text']
+        )
+
+        handler = DefaultRequestHandler(
+            agent_executor=executor,
+            task_store=InMemoryTaskStore()
+        )
+
+        app = A2AStarletteApplication(
+            agent_card=agent_card,
+            http_handler=handler
+        ).build()
+
+        # Run the server
+        uvicorn.run(app, host='0.0.0.0', port=8000)
+        ```
+
+    Customization Examples:
+        Custom Event Adapter:
+        ```python
+        class CustomEventAdapter(A2aEventAdapter):
+            def handle_events(self, message, context):
+                if isinstance(message, TextMessage):
+                    # Custom handling of text messages
+                    context.updater.update_status(
+                        state=TaskState.working,
+                        message=context.updater.new_agent_message([
+                            Part(root=TextPart(text=f"Processed: {message.content}"))
+                        ])
+                    )
+        ```
+
+        Custom User Proxy:
+        ```python
+        class CustomUserProxy(A2aExternalUserProxyAgent):
+            async def cancel_for_user_input(self, prompt, token):
+                # Custom input handling
+                result = await external_service.get_input(prompt)
+                return result
+        
+            def build_context(self, request, task, updater, proxy, token):
+                # Use custom user proxy
+                proxy = CustomUserProxy()
+                return A2aExecutionContext(request, task, updater, proxy, token)
+        ```
+
+        Custom State Store:
+        ```python
+        class RedisStateStore(CacheStore):
+            def __init__(self, redis_client):
+                self.redis = redis_client
+
+            def get(self, key: str) -> Any:
+                return json.loads(self.redis.get(key))
+
+            def set(self, key: str, value: Any):
+                self.redis.set(key, json.dumps(value))
+        ```
+
+    Note:
+        - The executor maintains task cancellation tokens
+        - Supports both sync and async agent factory functions
+        - Handles proper cleanup of resources
+        - Manages agent state persistence
+    """
     def __init__(self, get_agent: GetAgentFuncType,
                  event_adapter: A2aEventAdapter = BaseA2aEventAdapter(), state_store: CacheStore = None):
         super().__init__()
