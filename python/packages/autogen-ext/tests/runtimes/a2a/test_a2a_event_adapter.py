@@ -82,7 +82,7 @@ async def test_handle_multimodal_message(context: AsyncMock) -> None:
     assert len(context.updater.new_agent_message.call_args[1]["parts"]) == 2
 
 
-class TestData(BaseModel):
+class Data(BaseModel):
     key: str
     model_config = {"extra": "forbid"}
 
@@ -90,8 +90,8 @@ class TestData(BaseModel):
 @pytest.mark.asyncio
 async def test_handle_structured_message(context: AsyncMock) -> None:
     adapter = BaseA2aEventAdapter()
-    data = TestData(key="value")
-    message = StructuredMessage[TestData](content=data, source="assistant", format_string="{key}")
+    data = Data(key="value")
+    message = StructuredMessage[Data](content=data, source="assistant", format_string="{key}")
 
     await adapter.handle_events(message, context)
 
