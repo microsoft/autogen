@@ -31,27 +31,188 @@ jobs:
       matrix:
         version:
           [
-            # For main use the workflow target
-            { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.5.13", sphinx-release-override: "dev" },
-            { ref: "python-v0.6.1", dest-dir: stable, uv-version: "0.5.13", sphinx-release-override: "stable" },
-            { ref: "v0.4.0.post1", dest-dir: "0.4.0", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "v0.4.1", dest-dir: "0.4.1", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "v0.4.2", dest-dir: "0.4.2", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "v0.4.3", dest-dir: "0.4.3", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "v0.4.4", dest-dir: "0.4.4", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.4.5", dest-dir: "0.4.5", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.4.6", dest-dir: "0.4.6", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.4.7", dest-dir: "0.4.7", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.4.8", dest-dir: "0.4.8", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.4.9-website", dest-dir: "0.4.9", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.5.1", dest-dir: "0.5.1", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.5.2", dest-dir: "0.5.2", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.5.3", dest-dir: "0.5.3", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.5.4", dest-dir: "0.5.4", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.5.5", dest-dir: "0.5.5", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.5.6", dest-dir: "0.5.6", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.5.7", dest-dir: "0.5.7", uv-version: "0.5.13", sphinx-release-override: "" },
-            { ref: "python-v0.6.1", dest-dir: "0.6.1", uv-version: "0.5.13", sphinx-release-override: "" },
+            {
+              ref: "${{github.ref}}",
+              dest-dir: dev,
+              uv-version: "0.7.13",
+              sphinx-release-override: "dev",
+              poe-dir: ".",
+            },
+            {
+              ref: "python-v0.7.4",
+              dest-dir: stable,
+              uv-version: "0.7.13",
+              sphinx-release-override: "stable",
+              poe-dir: ".",
+            },
+            {
+              ref: "v0.4.0.post1",
+              dest-dir: "0.4.0",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "v0.4.1",
+              dest-dir: "0.4.1",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "v0.4.2",
+              dest-dir: "0.4.2",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "v0.4.3",
+              dest-dir: "0.4.3",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "v0.4.4",
+              dest-dir: "0.4.4",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.4.5",
+              dest-dir: "0.4.5",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.4.6",
+              dest-dir: "0.4.6",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.4.7",
+              dest-dir: "0.4.7",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.4.8",
+              dest-dir: "0.4.8",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.4.9-website",
+              dest-dir: "0.4.9",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.5.1",
+              dest-dir: "0.5.1",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.5.2",
+              dest-dir: "0.5.2",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.5.3",
+              dest-dir: "0.5.3",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.5.4",
+              dest-dir: "0.5.4",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.5.5",
+              dest-dir: "0.5.5",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.5.6",
+              dest-dir: "0.5.6",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.5.7",
+              dest-dir: "0.5.7",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.6.1",
+              dest-dir: "0.6.1",
+              uv-version: "0.5.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.6.2",
+              dest-dir: "0.6.2",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: "./packages/autogen-core",
+            },
+            {
+              ref: "python-v0.6.4",
+              dest-dir: "0.6.4",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
+            {
+              ref: "python-v0.7.1.post1",
+              dest-dir: "0.7.1",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
+            {
+              ref: "python-v0.7.2",
+              dest-dir: "0.7.2",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
+            {
+              ref: "python-v0.7.3",
+              dest-dir: "0.7.3",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
+            {
+              ref: "python-v0.7.4",
+              dest-dir: "0.7.4",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
           ]
     steps:
       - name: Checkout
@@ -67,11 +228,12 @@ jobs:
         with:
           python-version: "3.11"
       - run: |
-          uv sync --locked --all-extras
+          uv venv --python=3.11
           source .venv/bin/activate
-          poe --directory ./packages/autogen-core docs-build
+          uv sync --locked --all-extras
+          poe --directory ${{ matrix.version.poe-dir }} docs-build
           mkdir -p docs-staging/${{ matrix.version.dest-dir }}/
-          mv ./packages/autogen-core/docs/build/* docs-staging/${{ matrix.version.dest-dir }}/
+          mv ${{ matrix.version.poe-dir }}/docs/build/* docs-staging/${{ matrix.version.dest-dir }}/
         working-directory: ./python
         env:
           PY_DOCS_DIR: ${{ matrix.version.dest-dir }}/
@@ -95,7 +257,7 @@ jobs:
       - name: generate redirects
         run: |
           mkdir -p python/docs-staging/
-          python python/packages/autogen-core/docs/redirects/redirects.py python/docs-staging
+          python python/docs/redirects/redirects.py python/docs-staging
       - uses: actions/upload-artifact@v4
         with:
           path: "./python/docs-staging"
@@ -112,7 +274,6 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -241,7 +402,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: [build-02, build-04, build-04-dotnet, gen-redirects, gen-component-schema]
+    needs:
+      [build-02, build-04, build-04-dotnet, gen-redirects, gen-component-schema]
     if: ${{ needs.build-02.result == 'success' && needs.build-04.result == 'success' && needs.gen-redirects.result == 'success' && github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/download-artifact@v4

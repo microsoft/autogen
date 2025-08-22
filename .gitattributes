@@ -91,5 +91,5 @@ python/packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos/*.pyi linguist-
 python/packages/autogen-ext/tests/protos/*.py linguist-generated
 python/packages/autogen-ext/tests/protos/*.pyi linguist-generated
 docs/** linguist-documentation
-python/packages/autogen-core/docs/** linguist-documentation
+python/docs/** linguist-documentation
 dotnet/website/** linguist-documentation

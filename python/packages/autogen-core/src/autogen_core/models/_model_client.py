@@ -18,6 +18,7 @@ class ModelFamily:
 
     This namespace class holds constants for the model families that AutoGen understands. Other families definitely exist and can be represented by a string, however, AutoGen will treat them as unknown."""
 
+    GPT_5 = "gpt-5"
     GPT_41 = "gpt-41"
     GPT_45 = "gpt-45"
     GPT_4O = "gpt-4o"
@@ -53,6 +54,7 @@ class ModelFamily:
 
     ANY: TypeAlias = Literal[
         # openai_models
+        "gpt-5",
         "gpt-41",
         "gpt-45",
         "gpt-4o",
@@ -67,7 +69,7 @@ class ModelFamily:
         "gemini-1.5-pro",
         "gemini-2.0-flash",
         "gemini-2.5-pro",
-        "gemini-2.5-flash"
+        "gemini-2.5-flash",
         # anthropic_models
         "claude-3-haiku",
         "claude-3-sonnet",
@@ -121,6 +123,7 @@ class ModelFamily:
     @staticmethod
     def is_openai(family: str) -> bool:
         return family in (
+            ModelFamily.GPT_5,
             ModelFamily.GPT_45,
             ModelFamily.GPT_41,
             ModelFamily.GPT_4O,
@@ -211,8 +214,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        # None means do not override the default
-        # A value means to override the client default - often specified in the constructor
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -222,6 +224,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         Args:
             messages (Sequence[LLMMessage]): The messages to send to the model.
             tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
+            tool_choice (Tool | Literal["auto", "required", "none"], optional): A single Tool object to force the model to use, "auto" to let the model choose any available tool, "required" to force tool usage, or "none" to disable tool usage. Defaults to "auto".
             json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither.
                 Defaults to None. If set to a `Pydantic BaseModel <https://docs.pydantic.dev/latest/usage/models/#model>`_ type,
                 it will be used as the output type for structured output.
@@ -241,8 +244,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        # None means do not override the default
-        # A value means to override the client default - often specified in the constructor
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -252,6 +254,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         Args:
             messages (Sequence[LLMMessage]): The messages to send to the model.
             tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
+            tool_choice (Tool | Literal["auto", "required", "none"], optional): A single Tool object to force the model to use, "auto" to let the model choose any available tool, "required" to force tool usage, or "none" to disable tool usage. Defaults to "auto".
             json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither.
                 Defaults to None. If set to a `Pydantic BaseModel <https://docs.pydantic.dev/latest/usage/models/#model>`_ type,
                 it will be used as the output type for structured output.

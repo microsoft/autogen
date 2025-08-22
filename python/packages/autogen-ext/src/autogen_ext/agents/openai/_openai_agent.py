@@ -1,8 +1,19 @@
 import asyncio
-import json
 import logging
-import warnings
-from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional, Sequence, Type, TypedDict, Union, cast
+from typing import (
+    Any,
+    AsyncGenerator,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    cast,
+)
 
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
@@ -17,12 +28,12 @@ from autogen_agentchat.messages import (
     TextMessage,
     ToolCallSummaryMessage,
 )
-from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
+from autogen_core import CancellationToken, Component
 from autogen_core.models import UserMessage
-from autogen_core.tools import Tool
 from pydantic import BaseModel, Field
+from typing_extensions import NotRequired, TypedDict
 
-from openai import AsyncAzureOpenAI, AsyncOpenAI
+from openai import AsyncAzureOpenAI, AsyncOpenAI  # type: ignore
 
 # Number of characters to display when previewing image content in logs and UI
 # Base64 encoded images can be very long, so we truncate for readability
@@ -33,22 +44,101 @@ IMAGE_CONTENT_PREVIEW_LENGTH = 50
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-def _convert_tool_to_function_schema(tool: Tool) -> Dict[str, Any]:
-    schema = tool.schema
-    parameters: Dict[str, object] = {}
-    if "parameters" in schema:
-        parameters = {
-            "type": schema["parameters"]["type"],
-            "properties": schema["parameters"]["properties"],
-        }
-        if "required" in schema["parameters"]:
-            parameters["required"] = schema["parameters"]["required"]
+# TypedDict classes for built-in tool configurations
+class FileSearchToolConfig(TypedDict):
+    """Configuration for file_search tool."""
 
-    return {
-        "name": schema["name"],
-        "description": schema.get("description", ""),
-        "parameters": parameters,
-    }
+    type: Literal["file_search"]
+    vector_store_ids: List[str]  # required - The IDs of the vector stores to search
+    max_num_results: NotRequired[int]  # optional
+    ranking_options: NotRequired[Dict[str, Any]]  # optional
+    filters: NotRequired[Dict[str, Any]]  # optional
+
+
+class WebSearchToolConfig(TypedDict):
+    """Configuration for web_search_preview tool."""
+
+    type: Literal["web_search_preview"]
+    search_context_size: NotRequired[str]  # optional
+    user_location: NotRequired[Union[str, Dict[str, Any]]]  # optional - Can be string or structured location
+
+
+class ComputerUseToolConfig(TypedDict):
+    """Configuration for computer_use_preview tool."""
+
+    type: Literal["computer_use_preview"]
+    display_height: int  # required - Display height in pixels
+    display_width: int  # required - Display width in pixels
+    environment: str  # required - Environment type for computer use
+
+
+class MCPToolConfig(TypedDict):
+    """Configuration for mcp tool."""
+
+    type: Literal["mcp"]
+    server_label: str  # required - Label for the MCP server
+    server_url: str  # required - URL of the MCP server
+    allowed_tools: NotRequired[List[str]]  # optional - List of allowed tools
+    headers: NotRequired[Dict[str, str]]  # optional - HTTP headers for requests
+    require_approval: NotRequired[bool]  # optional - Whether to require user approval
+
+
+class CodeInterpreterToolConfig(TypedDict):
+    """Configuration for code_interpreter tool."""
+
+    type: Literal["code_interpreter"]
+    container: str | Dict[str, Any]  # required - Container configuration for code execution
+
+
+class ImageGenerationToolConfig(TypedDict):
+    """Configuration for image_generation tool."""
+
+    type: Literal["image_generation"]
+    background: NotRequired[str]  # optional - Background color or image
+    input_image_mask: NotRequired[str]  # optional - Mask for input image editing
+
+
+class LocalShellToolConfig(TypedDict):
+    """Configuration for local_shell tool.
+
+    WARNING: This tool is only supported with the 'codex-mini-latest' model
+    and is available exclusively through the Responses API.
+    """
+
+    type: Literal["local_shell"]
+    # Note: local_shell currently has no additional parameters in the API
+
+
+# Union type for all built-in tool configurations
+BuiltinToolConfig = Union[
+    FileSearchToolConfig,
+    WebSearchToolConfig,
+    ComputerUseToolConfig,
+    MCPToolConfig,
+    CodeInterpreterToolConfig,
+    ImageGenerationToolConfig,
+    LocalShellToolConfig,
+]
+
+
+# Define ImageMessage class early since it's used in _convert_message_to_openai_message
+class ImageMessage(BaseChatMessage):
+    """A message containing an image."""
+
+    content: str  # URL or base64 string
+
+    def to_model_message(self) -> UserMessage:
+        return UserMessage(content=self.content, source=self.source)
+
+    def to_model_text(self) -> str:
+        return "[image]"
+
+    def to_text(self) -> str:
+        # Truncate long image content (especially base64) for better readability
+        # While still showing enough of the URL or content to be identifiable
+        if len(self.content) > IMAGE_CONTENT_PREVIEW_LENGTH:
+            return f"[Image: {self.content[:IMAGE_CONTENT_PREVIEW_LENGTH]}...]"
+        return f"[Image: {self.content}]"
 
 
 class OpenAIMessageContent(TypedDict):
@@ -103,25 +193,25 @@ class OpenAIAgentState(BaseModel):
 
 
 class OpenAIAgentConfig(BaseModel):
+    """
+    Configuration model for OpenAI agent supporting OpenAI built-in tools only.
+
+    .. versionchanged:: v0.7.0
+        Added support for built-in tools in JSON configuration via _to_config and _from_config methods.
+        The tools field accepts built-in tool configurations (dict format) and built-in tool names (string format).
+        Custom tools are not supported.
+    """
+
     name: str
     description: str
     model: str
     instructions: str
-    tools: List[ComponentModel] | None = None
+    tools: List[Dict[str, Any] | str] | None = None
     temperature: Optional[float] = 1
     max_output_tokens: Optional[int] = None
     json_mode: bool = False
     store: bool = True
     truncation: str = "disabled"
-
-
-class FunctionExecutionResult(BaseModel):
-    """Result of a function execution."""
-
-    content: str
-    call_id: str
-    name: str
-    is_error: bool = False
 
 
 class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
@@ -137,36 +227,161 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
     This agent leverages the Responses API to generate responses with capabilities like:
 
-    * Custom function calling
     * Multi-turn conversations
+    * Built-in tool support (file_search, code_interpreter, web_search_preview, etc.)
+
+    Currently, custom tools are not supported.
+
+    .. versionchanged:: v0.7.0
+
+        Added support for built-in tool types like file_search, web_search_preview,
+        code_interpreter, computer_use_preview, image_generation, and mcp.
+        Added support for tool configurations with required and optional parameters.
+
+    Built-in tools are split into two categories:
+
+    **Tools that can use string format** (no required parameters):
+
+       - web_search_preview: Can be used as "web_search_preview" or with optional config
+         (user_location, search_context_size)
+       - image_generation: Can be used as "image_generation" or with optional config (background, input_image_mask)
+       - local_shell: Can be used as "local_shell" (WARNING: Only works with codex-mini-latest model)
+
+    **Tools that REQUIRE dict configuration** (have required parameters):
+
+       - file_search: MUST use dict with vector_store_ids (List[str])
+       - computer_use_preview: MUST use dict with display_height (int), display_width (int), environment (str)
+       - code_interpreter: MUST use dict with container (str)
+       - mcp: MUST use dict with server_label (str), server_url (str)
+
+       Using required-parameter tools in string format will raise a ValueError with helpful error messages.
+       The tools parameter type annotation only accepts string values for tools that don't require parameters.
+
+    Note:
+        Custom tools (autogen FunctionTool or other user-defined tools) are not supported by this agent.
+        Only OpenAI built-in tools provided via the Responses API are supported.
+
+
+    Args:
+        name (str): Name of the agent
+        description (str): Description of the agent's purpose
+        client (Union[AsyncOpenAI, AsyncAzureOpenAI]): OpenAI client instance
+        model (str): Model to use (e.g. "gpt-4.1")
+        instructions (str): System instructions for the agent
+        tools (Optional[Iterable[Union[str, BuiltinToolConfig]]]): Tools the agent can use.
+            Supported string values (no required parameters): "web_search_preview", "image_generation", "local_shell".
+            Dict values can provide configuration for built-in tools with parameters.
+            Required parameters for built-in tools:
+            - file_search: vector_store_ids (List[str])
+            - computer_use_preview: display_height (int), display_width (int), environment (str)
+            - code_interpreter: container (str)
+            - mcp: server_label (str), server_url (str)
+            Optional parameters for built-in tools:
+            - file_search: max_num_results (int), ranking_options (dict), filters (dict)
+            - web_search_preview: user_location (str or dict), search_context_size (int)
+            - image_generation: background (str), input_image_mask (str)
+            - mcp: allowed_tools (List[str]), headers (dict), require_approval (bool)
+            Special tools with model restrictions:
+            - local_shell: Only works with "codex-mini-latest" model (WARNING: Very limited support)
+            Custom tools are not supported.
+        temperature (Optional[float]): Temperature for response generation (default: 1)
+        max_output_tokens (Optional[int]): Maximum output tokens
+        json_mode (bool): Whether to use JSON mode (default: False)
+        store (bool): Whether to store conversations (default: True)
+        truncation (str): Truncation strategy (default: "disabled")
 
     Example:
 
+        Basic usage with built-in tools:
+
         .. code-block:: python
 
-            from openai import AsyncOpenAI
-            from autogen_core import CancellationToken
+            import asyncio
+
+            from autogen_agentchat.ui import Console
             from autogen_ext.agents.openai import OpenAIAgent
-            from autogen_agentchat.messages import TextMessage
+            from openai import AsyncOpenAI
 
 
             async def example():
-                cancellation_token = CancellationToken()
                 client = AsyncOpenAI()
                 agent = OpenAIAgent(
-                    name="Simple Agent",
+                    name="SimpleAgent",
                     description="A simple OpenAI agent using the Responses API",
                     client=client,
                     model="gpt-4.1",
                     instructions="You are a helpful assistant.",
+                    tools=["web_search_preview"],  # Only tools without required params
                 )
-                response = await agent.on_messages([TextMessage(source="user", content="Hello!")], cancellation_token)
-                print(response)
-
-        asyncio.run(example())
+                await Console(agent.run_stream(task="Search for recent AI developments"))
 
 
-    TODO: Add support for advanced features (vector store, multimodal, etc.) in future PRs.
+            asyncio.run(example())
+
+        Usage with configured built-in tools:
+
+        .. code-block:: python
+
+            import asyncio
+
+            from autogen_agentchat.ui import Console
+            from autogen_ext.agents.openai import OpenAIAgent
+            from openai import AsyncOpenAI
+
+
+            async def example_with_configs():
+                client = AsyncOpenAI()
+                # Configure tools with required and optional parameters
+                tools = [
+                    # {
+                    #     "type": "file_search",
+                    #     "vector_store_ids": ["vs_abc123"],  # required
+                    #     "max_num_results": 10,  # optional
+                    # },
+                    # {
+                    #     "type": "computer_use_preview",
+                    #     "display_height": 1024,  # required
+                    #     "display_width": 1280,  # required
+                    #     "environment": "linux",  # required
+                    # },
+                    {
+                        "type": "code_interpreter",
+                        "container": {"type": "auto"},  # required
+                    },
+                    # {
+                    #     "type": "mcp",
+                    #     "server_label": "my-mcp-server",  # required
+                    #     "server_url": "http://localhost:3000",  # required
+                    # },
+                    {
+                        "type": "web_search_preview",
+                        "user_location": {  # optional - structured location
+                            "type": "approximate",  # required: "approximate" or "exact"
+                            "country": "US",  # optional
+                            "region": "CA",  # optional
+                            "city": "San Francisco",  # optional
+                        },
+                        "search_context_size": "low",  # optional
+                    },
+                    # "image_generation",  # Simple tools can still use string format
+                ]
+
+                agent = OpenAIAgent(
+                    name="ConfiguredAgent",
+                    description="An agent with configured tools",
+                    client=client,
+                    model="gpt-4.1",
+                    instructions="You are a helpful assistant with specialized tools.",
+                    tools=tools,  # type: ignore
+                )
+                await Console(agent.run_stream(task="Search for recent AI developments"))
+
+
+            asyncio.run(example_with_configs())
+
+
+        Note:
+            Custom tools are not supported by OpenAIAgent. Use only built-in tools from the Responses API.
 
     """
 
@@ -180,7 +395,14 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         client: Union[AsyncOpenAI, AsyncAzureOpenAI],
         model: str,
         instructions: str,
-        tools: Optional[List[Tool]] = None,
+        tools: Optional[
+            Iterable[
+                Union[
+                    Literal["web_search_preview", "image_generation", "local_shell"],
+                    BuiltinToolConfig,
+                ]
+            ]
+        ] = None,
         temperature: Optional[float] = 1,
         max_output_tokens: Optional[int] = None,
         json_mode: bool = False,
@@ -199,248 +421,61 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         self._last_response_id: Optional[str] = None
         self._message_history: List[Dict[str, Any]] = []
         self._tools: List[Dict[str, Any]] = []
-        self._tool_map: Dict[str, Tool] = {}
         if tools is not None:
             for tool in tools:
-                function_schema: Dict[str, Any] = {
-                    "type": "function",
-                    "function": _convert_tool_to_function_schema(tool),
-                }
-                self._tools.append(function_schema)
-                self._tool_map[tool.name] = tool
+                if isinstance(tool, str):
+                    # Handle built-in tool types
+                    self._add_builtin_tool(tool)
+                elif isinstance(tool, dict) and "type" in tool:
+                    # Handle configured built-in tools
+                    self._tools.append(cast(dict[str, Any], tool))
+                else:
+                    raise ValueError(f"Unsupported tool type: {type(tool)}")
+
+    def _add_builtin_tool(self, tool_name: str) -> None:
+        """Add a built-in tool by name."""
+        # Skip if an identical tool has already been registered (idempotent behaviour)
+        if any(td.get("type") == tool_name for td in self._tools):
+            return  # Duplicate – ignore rather than raise to stay backward-compatible
+        # Only allow string format for tools that don't require parameters
+        if tool_name == "web_search_preview":
+            self._tools.append({"type": "web_search_preview"})
+        elif tool_name == "image_generation":
+            self._tools.append({"type": "image_generation"})
+        elif tool_name == "local_shell":
+            # Special handling for local_shell - very limited model support
+            if self._model != "codex-mini-latest":
+                raise ValueError(
+                    f"Tool 'local_shell' is only supported with model 'codex-mini-latest', "
+                    f"but current model is '{self._model}'. "
+                    f"This tool is available exclusively through the Responses API and has severe limitations. "
+                    f"Consider using autogen_ext.tools.code_execution.PythonCodeExecutionTool with "
+                    f"autogen_ext.code_executors.local.LocalCommandLineCodeExecutor for shell execution instead."
+                )
+            self._tools.append({"type": "local_shell"})
+        elif tool_name in ["file_search", "code_interpreter", "computer_use_preview", "mcp"]:
+            # These tools require specific parameters and must use dict configuration
+            raise ValueError(
+                f"Tool '{tool_name}' requires specific parameters and cannot be added using string format. "
+                f"Use dict configuration instead. Required parameters for {tool_name}: "
+                f"{self._get_required_params_help(tool_name)}"
+            )
+        else:
+            raise ValueError(f"Unsupported built-in tool type: {tool_name}")
+
+    def _get_required_params_help(self, tool_name: str) -> str:
+        """Get help text for required parameters of a tool."""
+        help_text = {
+            "file_search": "vector_store_ids (List[str])",
+            "code_interpreter": "container (str | dict)",
+            "computer_use_preview": "display_height (int), display_width (int), environment (str)",
+            "mcp": "server_label (str), server_url (str)",
+        }
+        return help_text.get(tool_name, "unknown parameters")
 
     def _convert_message_to_dict(self, message: OpenAIMessage) -> Dict[str, Any]:
         """Convert an OpenAIMessage to a Dict[str, Any]."""
         return dict(message)
-
-    async def list_assistants(
-        self: "OpenAIAgent",
-        after: Optional[str] = None,
-        before: Optional[str] = None,
-        limit: Optional[int] = 20,
-        order: Optional[str] = "desc",
-    ) -> Dict[str, Any]:  # noqa: D102
-        """
-        List all assistants using the OpenAI API.
-
-        Args:
-            after (Optional[str]): Cursor for pagination (fetch after this assistant ID).
-            before (Optional[str]): Cursor for pagination (fetch before this assistant ID).
-            limit (Optional[int]): Number of assistants to return (1-100, default 20).
-            order (Optional[str]): 'asc' or 'desc' by created_at (default 'desc').
-
-        Returns:
-            Dict[str, Any]: The OpenAI API response containing:
-                    - object: 'list'
-                    - data: List of assistant objects
-                    - first_id: str
-                    - last_id: str
-                    - has_more: bool
-
-        Example:
-            .. code-block:: python
-
-                import asyncio
-                from typing import Dict, Any
-                from autogen_ext.agents.openai import OpenAIAgent
-                from openai import AsyncOpenAI
-
-
-                async def example() -> None:
-                    client = AsyncOpenAI()
-                    agent = OpenAIAgent(
-                        name="test_agent",
-                        description="Test agent",
-                        client=client,
-                        model="gpt-4",
-                        instructions="You are a helpful assistant.",
-                    )
-                    assistants: Dict[str, Any] = await agent.list_assistants(limit=5)
-                    print(assistants)
-
-
-                asyncio.run(example())
-
-        """
-        params = {"limit": limit, "order": order}
-        if after:
-            params["after"] = after
-        if before:
-            params["before"] = before
-        if hasattr(self._client, "assistants"):
-            client_any = cast(Any, self._client)
-            response = await client_any.assistants.list(**params)
-            if hasattr(response, "model_dump"):
-                return cast(Dict[str, Any], response.model_dump())
-            return cast(Dict[str, Any], dict(response))
-        else:
-            raise NotImplementedError("The OpenAI client does not support listing assistants.")
-
-    async def retrieve_assistant(self: "OpenAIAgent", assistant_id: str) -> Dict[str, Any]:  # noqa: D102
-        """
-        Retrieve a single assistant by its ID using the OpenAI API.
-
-        Args:
-            assistant_id (str): The ID of the assistant to retrieve.
-
-        Returns:
-            Dict[str, Any]: The assistant object.
-
-        Example:
-            .. code-block:: python
-
-                import asyncio
-                from typing import Dict, Any
-                from autogen_ext.agents.openai import OpenAIAgent
-                from openai import AsyncOpenAI
-
-
-                async def example() -> None:
-                    client = AsyncOpenAI()
-                    agent = OpenAIAgent(
-                        name="test_agent",
-                        description="Test agent",
-                        client=client,
-                        model="gpt-4",
-                        instructions="You are a helpful assistant.",
-                    )
-                    assistant: Dict[str, Any] = await agent.retrieve_assistant("asst_abc123")
-                    print(assistant)
-
-
-                asyncio.run(example())
-
-        """
-        if hasattr(self._client, "assistants"):
-            client_any = cast(Any, self._client)
-            response = await client_any.assistants.retrieve(assistant_id=assistant_id)
-            if hasattr(response, "model_dump"):
-                return cast(Dict[str, Any], response.model_dump())
-            return cast(Dict[str, Any], dict(response))
-        else:
-            raise NotImplementedError("The OpenAI client does not support retrieving assistants.")
-
-    async def modify_assistant(
-        self: "OpenAIAgent",
-        assistant_id: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        instructions: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        model: Optional[str] = None,
-        reasoning_effort: Optional[str] = None,
-        response_format: Optional[str] = None,
-        temperature: Optional[float] = None,
-        tool_resources: Optional[Dict[str, Any]] = None,
-        tools: Optional[List[Any]] = None,
-        top_p: Optional[float] = None,
-        **kwargs: Any,
-    ) -> Dict[str, Any]:  # noqa: D102
-        """
-        Modify (update) an assistant by its ID using the OpenAI API.
-
-        Args:
-            assistant_id (str): The ID of the assistant to update.
-            name (Optional[str]): New name for the assistant.
-            description (Optional[str]): New description.
-            instructions (Optional[str]): New instructions.
-            metadata (Optional[dict]): New metadata.
-            model (Optional[str]): New model.
-            reasoning_effort (Optional[str]): New reasoning effort.
-            response_format (Optional[str]): New response format.
-            temperature (Optional[float]): New temperature.
-            tool_resources (Optional[dict]): New tool resources.
-            tools (Optional[list]): New tools.
-            top_p (Optional[float]): New top_p value.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            Dict[str, Any]: The updated assistant object.
-
-        Example:
-            .. code-block:: python
-
-                import asyncio
-                from typing import Dict, Any
-                from autogen_ext.agents.openai import OpenAIAgent
-                from openai import AsyncOpenAI
-
-
-                async def example() -> None:
-                    client = AsyncOpenAI()
-                    agent = OpenAIAgent(
-                        name="test_agent",
-                        description="Test agent",
-                        client=client,
-                        model="gpt-4",
-                        instructions="You are a helpful assistant.",
-                    )
-                    updated: Dict[str, Any] = await agent.modify_assistant(
-                        assistant_id="asst_123",
-                        instructions="You are an HR bot, and you have access to files to answer employee questions about company policies. Always response with info from either of the files.",
-                        tools=[{"type": "file_search"}],
-                        tool_resources={"file_search": {"vector_store_ids": []}},
-                    )
-                    print(updated)
-
-
-                asyncio.run(example())
-
-        """
-        params = {k: v for k, v in locals().items() if k not in {"self", "assistant_id", "kwargs"} and v is not None}
-        params.update(kwargs)
-        if hasattr(self._client, "assistants"):
-            client_any = cast(Any, self._client)
-            response = await client_any.assistants.update(assistant_id=assistant_id, **params)
-            if hasattr(response, "model_dump"):
-                return cast(Dict[str, Any], response.model_dump())
-            return cast(Dict[str, Any], dict(response))
-        else:
-            raise NotImplementedError("The OpenAI client does not support modifying assistants.")
-
-    async def delete_assistant(self: "OpenAIAgent", assistant_id: str) -> Dict[str, Any]:  # noqa: D102
-        """
-        Delete an assistant by its ID using the OpenAI API.
-
-        Args:
-            assistant_id (str): The ID of the assistant to delete.
-
-        Returns:
-            Dict[str, Any]: The deletion status object (e.g., {"id": ..., "object": "assistant.deleted", "deleted": true}).
-
-        Example:
-            .. code-block:: python
-
-                import asyncio
-                from typing import Dict, Any
-                from autogen_ext.agents.openai import OpenAIAgent
-                from openai import AsyncOpenAI
-
-
-                async def example() -> None:
-                    client = AsyncOpenAI()
-                    agent = OpenAIAgent(
-                        name="test_agent",
-                        description="Test agent",
-                        client=client,
-                        model="gpt-4",
-                        instructions="You are a helpful assistant.",
-                    )
-                    result: Dict[str, Any] = await agent.delete_assistant("asst_abc123")
-                    print(result)
-
-
-                asyncio.run(example())
-
-        """
-        if hasattr(self._client, "assistants"):
-            client_any = cast(Any, self._client)
-            response = await client_any.assistants.delete(assistant_id=assistant_id)
-            if hasattr(response, "model_dump"):
-                return cast(Dict[str, Any], response.model_dump())
-            return cast(Dict[str, Any], dict(response))
-        else:
-            raise NotImplementedError("The OpenAI client does not support deleting assistants.")
 
     @property
     def produced_message_types(
@@ -457,38 +492,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         """Return the types of messages that this agent can produce."""
         return [TextMessage, MultiModalMessage, StopMessage, ToolCallSummaryMessage, HandoffMessage]
 
-    async def _execute_tool_call(
-        self: "OpenAIAgent", tool_call: FunctionCall, cancellation_token: CancellationToken
-    ) -> FunctionExecutionResult:
-        tool_name = tool_call.name
-        if tool_name not in self._tool_map:
-            return FunctionExecutionResult(
-                content=f"Error: Tool '{tool_name}' is not available",
-                call_id=tool_call.id,
-                name=tool_name,
-                is_error=True,
-            )
-
-        tool = self._tool_map[tool_name]
-        try:
-            try:
-                arguments = json.loads(tool_call.arguments)
-            except json.JSONDecodeError as json_err:
-                return FunctionExecutionResult(
-                    content=f"Error: Invalid JSON in tool arguments - {str(json_err)}",
-                    call_id=tool_call.id,
-                    name=tool_name,
-                    is_error=True,
-                )
-
-            result = await tool.run_json(arguments, cancellation_token)
-            return FunctionExecutionResult(
-                content=tool.return_value_as_string(result), call_id=tool_call.id, name=tool_name, is_error=False
-            )
-        except Exception as e:
-            error_msg = f"Error: {str(e)}"
-            event_logger.warning(f"Tool execution error in {tool_name}: {error_msg}")
-            return FunctionExecutionResult(content=error_msg, call_id=tool_call.id, name=tool_name, is_error=True)
+    # Custom tool execution is not supported by this agent.
 
     def _build_api_parameters(self: "OpenAIAgent", messages: List[Dict[str, Any]]) -> Dict[str, Any]:
         has_system_message = any(msg.get("role") == "system" for msg in messages)
@@ -505,7 +509,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         if self._tools:
             api_params["tools"] = self._tools
         if self._json_mode:
-            api_params["response_format"] = {"type": "json_object"}
+            api_params["text"] = {"type": "json_object"}
         api_params["store"] = self._store
         api_params["truncation"] = self._truncation
         if self._last_response_id:
@@ -578,8 +582,10 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             content = getattr(response_obj, "output_text", None)
             response_id = getattr(response_obj, "id", None)
             self._last_response_id = response_id
-            self._message_history.append({"role": "assistant", "content": str(content) if content is not None else ""})
-            final_message = TextMessage(source=self.name, content=str(content) if content is not None else "")
+            # Use a readable placeholder when the API returns no content to aid debugging
+            content_str: str = str(content) if content is not None else "[no content returned]"
+            self._message_history.append({"role": "assistant", "content": content_str})
+            final_message = TextMessage(source=self.name, content=content_str)
             response = Response(chat_message=final_message, inner_messages=inner_messages)
             yield response
         except Exception as e:
@@ -605,41 +611,19 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         self._message_history = agent_state.history
 
     def _to_config(self: "OpenAIAgent") -> OpenAIAgentConfig:
-        """Convert the OpenAI agent to a declarative config."""
-        tool_configs: List[Dict[str, Any]] = []
-        for tool in self._tool_map.values():
-            try:
-                if hasattr(tool, "dump_component"):
-                    tool_any = cast(Any, tool)
-                    component_dict = tool_any.dump_component()
-                    tool_configs.append(component_dict)
-                else:
-                    tool_configs.append(
-                        {
-                            "provider": "autogen_core.tools.FunctionTool",
-                            "config": {
-                                "name": tool.name,
-                                "description": getattr(tool, "description", ""),
-                            },
-                        }
-                    )
-            except Exception as e:
-                warnings.warn(f"Error serializing tool: {e}", stacklevel=2)
-                tool_configs.append(
-                    {
-                        "provider": "autogen_core.tools.FunctionTool",
-                        "config": {
-                            "name": getattr(tool, "name", "unknown_tool"),
-                            "description": getattr(tool, "description", ""),
-                        },
-                    }
-                )
+        """Convert the OpenAI agent to a declarative config.
+
+        Serializes built-in tools to their appropriate configuration formats for JSON serialization.
+
+        Returns:
+            OpenAIAgentConfig: The configuration that can recreate this agent.
+        """
         return OpenAIAgentConfig(
             name=self.name,
             description=self.description,
             model=self._model,
             instructions=self._instructions,
-            tools=cast(List[ComponentModel], tool_configs),
+            tools=list(self._tools),
             temperature=self._temperature,
             max_output_tokens=self._max_output_tokens,
             json_mode=self._json_mode,
@@ -649,36 +633,19 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
 
     @classmethod
     def _from_config(cls: Type["OpenAIAgent"], config: OpenAIAgentConfig) -> "OpenAIAgent":
-        """Create an OpenAI agent from a declarative config."""
+        """Create an OpenAI agent from a declarative config.
+
+        Handles built-in tools (from string or dict configurations).
+
+            Args:
+                config: The configuration to load the agent from.
+
+            Returns:
+                OpenAIAgent: The reconstructed agent.
+        """
         from openai import AsyncOpenAI
 
         client = AsyncOpenAI()
-
-        tools: Optional[List[Tool]] = None
-        if config.tools:
-            tools_list: List[Tool] = []
-            for tool_config in config.tools:
-                try:
-                    provider = tool_config.provider
-                    module_name, class_name = provider.rsplit(".", 1)
-                    module = __import__(module_name, fromlist=[class_name])
-                    tool_cls = getattr(module, class_name)
-                    tool = tool_cls(**tool_config.config)
-                    tools_list.append(cast(Tool, tool))
-                except Exception as e:
-                    warnings.warn(f"Error loading tool: {e}", stacklevel=2)
-                    from autogen_core.tools import FunctionTool
-
-                    async def dummy_func(*args: Any, **kwargs: Any) -> str:
-                        return "Tool not fully restored"
-
-                    tool = FunctionTool(
-                        name=tool_config.config.get("name", "unknown_tool"),
-                        description=tool_config.config.get("description", ""),
-                        func=dummy_func,
-                    )
-                    tools_list.append(tool)
-            tools = tools_list
 
         return cls(
             name=config.name,
@@ -686,7 +653,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             client=client,
             model=config.model,
             instructions=config.instructions,
-            tools=tools,
+            tools=config.tools,  # type: ignore
             temperature=config.temperature,
             max_output_tokens=config.max_output_tokens,
             json_mode=config.json_mode,
@@ -694,22 +661,22 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             truncation=config.truncation,
         )
 
+    # Add public API wrappers for configuration and tools
+    def to_config(self) -> OpenAIAgentConfig:
+        """Public wrapper for the private _to_config method."""
+        return self._to_config()
 
-# Define our own ImageMessage since it's not available
-class ImageMessage(BaseChatMessage):
-    """A message containing an image."""
+    @classmethod
+    def from_config(cls, config: OpenAIAgentConfig) -> "OpenAIAgent":
+        """Public wrapper for the private _from_config classmethod."""
+        return cls._from_config(config)
 
-    content: str  # URL or base64 string
+    @property
+    def tools(self) -> list[Any]:
+        """Public access to the agent's tools."""
+        return self._tools
 
-    def to_model_message(self) -> UserMessage:
-        return UserMessage(content=self.content, source=self.source)
-
-    def to_model_text(self) -> str:
-        return "[image]"
-
-    def to_text(self) -> str:
-        # Truncate long image content (especially base64) for better readability
-        # While still showing enough of the URL or content to be identifiable
-        if len(self.content) > IMAGE_CONTENT_PREVIEW_LENGTH:
-            return f"[Image: {self.content[:IMAGE_CONTENT_PREVIEW_LENGTH]}...]"
-        return f"[Image: {self.content}]"
+    @property
+    def model(self) -> str:
+        """Public access to the agent's model."""
+        return self._model

@@ -40,15 +40,34 @@ from ._sequential_routed_agent import SequentialRoutedAgent
 class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     """The base class for group chat teams.
 
+    In a group chat team, participants share context by publishing their messages
+    to all other participants.
+
+    If an :class:`~autogen_agentchat.base.ChatAgent` is a participant,
+    the :class:`~autogen_agentchat.messages.BaseChatMessage` from the agent response's
+    :attr:`~autogen_agentchat.base.Response.chat_message` will be published
+    to other participants in the group chat.
+
+    If a :class:`~autogen_agentchat.base.Team` is a participant,
+    the :class:`~autogen_agentchat.messages.BaseChatMessage`
+    from the team result' :attr:`~autogen_agentchat.base.TaskResult.messages` will be published
+    to other participants in the group chat.
+
     To implement a group chat team, first create a subclass of :class:`BaseGroupChatManager` and then
     create a subclass of :class:`BaseGroupChat` that uses the group chat manager.
+
+    This base class provides the mapping between the agents of the AgentChat API
+    and the agent runtime of the Core API, and handles high-level features like
+    running, pausing, resuming, and resetting the team.
     """
 
     component_type = "team"
 
     def __init__(
         self,
-        participants: List[ChatAgent],
+        name: str,
+        description: str,
+        participants: List[ChatAgent | Team],
         group_chat_manager_name: str,
         group_chat_manager_class: type[SequentialRoutedAgent],
         termination_condition: TerminationCondition | None = None,
@@ -57,6 +76,8 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
     ):
+        self._name = name
+        self._description = description
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
@@ -71,14 +92,15 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 self._message_factory.register(message_type)
 
         for agent in participants:
-            for message_type in agent.produced_message_types:
-                try:
-                    is_registered = self._message_factory.is_registered(message_type)  # type: ignore[reportUnknownArgumentType]
-                    if issubclass(message_type, StructuredMessage) and not is_registered:
-                        self._message_factory.register(message_type)  # type: ignore[reportUnknownArgumentType]
-                except TypeError:
-                    # Not a class or not a valid subclassable type (skip)
-                    pass
+            if isinstance(agent, ChatAgent):
+                for message_type in agent.produced_message_types:
+                    try:
+                        is_registered = self._message_factory.is_registered(message_type)  # type: ignore[reportUnknownArgumentType]
+                        if issubclass(message_type, StructuredMessage) and not is_registered:
+                            self._message_factory.register(message_type)  # type: ignore[reportUnknownArgumentType]
+                    except TypeError:
+                        # Not a class or not a valid subclassable type (skip)
+                        pass
 
         # The team ID is a UUID that is used to identify the team and its participants
         # in the agent runtime. It is used to create unique topic types for each participant.
@@ -128,6 +150,16 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         # Flag to track if the team events should be emitted.
         self._emit_team_events = emit_team_events
 
+    @property
+    def name(self) -> str:
+        """The name of the group chat team."""
+        return self._name
+
+    @property
+    def description(self) -> str:
+        """A description of the group chat team."""
+        return self._description
+
     @abstractmethod
     def _create_group_chat_manager_factory(
         self,
@@ -147,7 +179,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self,
         parent_topic_type: str,
         output_topic_type: str,
-        agent: ChatAgent,
+        agent: ChatAgent | Team,
         message_factory: MessageFactory,
     ) -> Callable[[], ChatAgentContainer]:
         def _factory() -> ChatAgentContainer:
@@ -217,6 +249,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         *,
         task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
+        output_task_messages: bool = True,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
         :meth:`run_stream` to run the team and then returns the final result.
@@ -307,6 +340,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         async for message in self.run_stream(
             task=task,
             cancellation_token=cancellation_token,
+            output_task_messages=output_task_messages,
         ):
             if isinstance(message, TaskResult):
                 result = message
@@ -319,6 +353,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         *,
         task: str | BaseChatMessage | Sequence[BaseChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
+        output_task_messages: bool = True,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream. Once the
@@ -336,6 +371,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
                 To gracefully stop the team, use :class:`~autogen_agentchat.conditions.ExternalTermination` instead.
+            output_task_messages (bool): Whether to include task messages in the output stream. Defaults to True for backward compatibility.
 
         Returns:
             stream: an :class:`~collections.abc.AsyncGenerator` that yields :class:`~autogen_agentchat.messages.BaseAgentEvent`, :class:`~autogen_agentchat.messages.BaseChatMessage`, and the final result :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream.
@@ -416,7 +452,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             asyncio.run(main())
 
         """
-
         # Create the messages list if the task is a string or a chat message.
         messages: List[BaseChatMessage] | None = None
         if task is None:
@@ -497,14 +532,15 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             # The group chat manager will start the group chat by relaying the message to the participants
             # and the group chat manager.
             await self._runtime.send_message(
-                GroupChatStart(messages=messages),
+                GroupChatStart(messages=messages, output_task_messages=output_task_messages),
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
                 cancellation_token=cancellation_token,
             )
             # Collect the output messages in order.
             output_messages: List[BaseAgentEvent | BaseChatMessage] = []
             stop_reason: str | None = None
-            # Yield the messsages until the queue is empty.
+
+            # Yield the messages until the queue is empty.
             while True:
                 message_future = asyncio.ensure_future(self._output_message_queue.get())
                 if cancellation_token is not None:

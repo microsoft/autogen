@@ -15,6 +15,7 @@ from ._events import (
     GroupChatReset,
     GroupChatResume,
     GroupChatStart,
+    GroupChatTeamResponse,
     GroupChatTermination,
     SerializableException,
 )
@@ -52,6 +53,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             sequential_message_types=[
                 GroupChatStart,
                 GroupChatAgentResponse,
+                GroupChatTeamResponse,
                 GroupChatMessage,
                 GroupChatReset,
             ],
@@ -105,8 +107,11 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 GroupChatStart(messages=message.messages),
                 topic_id=DefaultTopicId(type=self._output_topic_type),
             )
-            for msg in message.messages:
-                await self._output_message_queue.put(msg)
+
+            # Only put messages in output queue if output_task_messages is True
+            if message.output_task_messages:
+                for msg in message.messages:
+                    await self._output_message_queue.put(msg)
 
             # Relay all messages at once to participants
             await self.publish_message(
@@ -127,20 +132,25 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         await self._transition_to_next_speakers(ctx.cancellation_token)
 
     @event
-    async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
+    async def handle_agent_response(
+        self, message: GroupChatAgentResponse | GroupChatTeamResponse, ctx: MessageContext
+    ) -> None:
         try:
             # Construct the detla from the agent response.
             delta: List[BaseAgentEvent | BaseChatMessage] = []
-            if message.agent_response.inner_messages is not None:
-                for inner_message in message.agent_response.inner_messages:
-                    delta.append(inner_message)
-            delta.append(message.agent_response.chat_message)
+            if isinstance(message, GroupChatAgentResponse):
+                if message.response.inner_messages is not None:
+                    for inner_message in message.response.inner_messages:
+                        delta.append(inner_message)
+                delta.append(message.response.chat_message)
+            else:
+                delta.extend(message.result.messages)
 
             # Append the messages to the message thread.
             await self.update_message_thread(delta)
 
             # Remove the agent from the active speakers list.
-            self._active_speakers.remove(message.agent_name)
+            self._active_speakers.remove(message.name)
             if len(self._active_speakers) > 0:
                 # If there are still active speakers, return without doing anything.
                 return
