@@ -62,7 +62,7 @@ def get_index_of_user_message(messages: List[Message], user_message_params: Mess
         ```
     """
     for i, message in enumerate(messages):
-        if message.role == Role.user and message.messageId == user_message_params.message.messageId:
+        if message.role == Role.user and message.message_id == user_message_params.message.message_id:
             return i
     raise AssertionError("User message not found in the messages list.")
 

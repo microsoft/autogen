@@ -71,9 +71,7 @@ def mock_agent_card() -> AgentCard:
 def mock_a2a_event_mapper() -> MagicMock:
     """A mock A2aEventMapper."""
     mapper = mock.MagicMock(spec=A2aEventMapper)
-    mapper.handle_message.side_effect = lambda msg: TextMessage(
-        content=f"Agent says: {msg.parts[0].root.text}", source="agent"
-    )
+    mapper.handle_message.side_effect = lambda msg: TextMessage(content=f"{msg.parts[0].root.text}", source="agent")
     mapper.handle_artifact.side_effect = lambda artifact: ModelClientStreamingChunkEvent(
         source="agent", metadata={"data": "test"}, content="hello"
     )

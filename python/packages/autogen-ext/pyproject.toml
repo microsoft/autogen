@@ -156,7 +156,7 @@ canvas = [
 ]
 
 a2a = [
-    "a2a-sdk~=0.2.5",
+    "a2a-sdk>=0.2.5",
     "python-slugify~=8.0.4"
 ]
 

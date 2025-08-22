@@ -293,7 +293,7 @@ def test_a2a_event_mapper_handle_artifact_with_file_parts(mock_handle_message: M
     assert result == mock_message_result
     mock_handle_message.assert_called_once()
     # Verify handle_message was called with a Message object constructed from the artifact
-    called_message = mock_handle_message.call_args[0][0]
+    called_message = mock_handle_message.call_args[0][1]
     assert isinstance(called_message, Message)
     assert called_message.parts == [text_part, file_part]
     assert called_message.role == Role.agent

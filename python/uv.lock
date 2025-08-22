@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12.4' and sys_platform == 'darwin'",
@@ -741,7 +741,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "a2a-sdk", marker = "extra == 'a2a'", specifier = "~=0.2.5" },
+    { name = "a2a-sdk", marker = "extra == 'a2a'", specifier = ">=0.2.5" },
     { name = "aiofiles", marker = "extra == 'openai'" },
     { name = "aiohttp", marker = "extra == 'docker-jupyter-executor'", specifier = ">=3.11.16" },
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.48" },

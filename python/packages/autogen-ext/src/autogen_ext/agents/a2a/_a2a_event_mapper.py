@@ -254,7 +254,7 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
                 Message(
                     parts=artifact.parts,
                     role=Role.agent,
-                    message_id=artifact.artifactId,
+                    message_id=artifact.artifact_id,
                     metadata=artifact.metadata or dict(),
                 )
             )
