@@ -24,7 +24,7 @@ async def test_cancel_for_user_input(agent):
     """Test cancel_for_user_input behavior."""
     token = CancellationToken()
     result = await agent.cancel_for_user_input("Test prompt", token)
-    
+
     assert agent.is_cancelled_by_me is True
     assert token.is_cancelled() is True
     assert "cancelled" in result.lower()
