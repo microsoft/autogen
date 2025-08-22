@@ -65,12 +65,14 @@ def event_adapter() -> MagicMock:
 def state_store() -> MagicMock:
     return Mock(spec=CacheStore)
 
+
 @pytest.fixture
 def get_agent_sync() -> Callable[[A2aExecutionContext], Awaitable[ChatAgent]]:
     async def _get_agent(_: A2aExecutionContext) -> ChatAgent:
         return get_mock_agent()
 
     return _get_agent
+
 
 @pytest.fixture
 def get_agent_async() -> Callable[[A2aExecutionContext], Awaitable[ChatAgent]]:
