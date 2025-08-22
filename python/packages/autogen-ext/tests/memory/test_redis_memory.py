@@ -152,7 +152,7 @@ def test_memory_config() -> None:
 @pytest.mark.asyncio
 @pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 @pytest.mark.parametrize("sequential", [True, False])
-async def test_create_memory(sequential) -> None:
+async def test_create_memory(sequential: bool) -> None:
     config = RedisMemoryConfig(index_name="semantic_agent")
     memory = RedisMemory(config=config)
 
