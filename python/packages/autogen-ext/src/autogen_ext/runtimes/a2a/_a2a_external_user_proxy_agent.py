@@ -73,6 +73,10 @@ class A2aExternalUserProxyAgent(UserProxyAgent):
         - Support async operations and timeouts
     """
 
+    component_version = 1
+    component_config_schema = A2aExternalUserProxyAgentConfig
+    component_provider_override = "autogen_ext.runtimes.a2a.A2aExternalUserProxyAgent"
+
     def __init__(self) -> None:
         super().__init__(
             "ExternalUser",

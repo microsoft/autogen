@@ -121,6 +121,10 @@ class A2aHostedAgent(BaseChatAgent, Component[A2aHostedAgentConfig]):
         - Integrates with AutoGen's message and event system
     """
 
+    component_version = 1
+    component_config_schema = A2aHostedAgentConfig
+    component_provider_override = "autogen_ext.agents.a2a.A2aHostedAgent"
+
     def __init__(
         self,
         agent_card: AgentCard,

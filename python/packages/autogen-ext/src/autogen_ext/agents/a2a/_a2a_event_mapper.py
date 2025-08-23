@@ -10,7 +10,7 @@ from autogen_agentchat.messages import (
     StructuredMessageFactory,
     TextMessage,
 )
-from autogen_core import ComponentBase, Image
+from autogen_core import Component, Image
 from pydantic import BaseModel
 from slugify import slugify
 from typing_extensions import List, Self
@@ -94,7 +94,7 @@ class A2aEventMapperConfig(BaseModel):
     output_content_type_format: str | None = None
 
 
-class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
+class A2aEventMapper(BaseModel, Component[A2aEventMapperConfig]):
     """A2aEventMapper handles conversion between A2A messages and AutoGen chat messages.
 
     This class provides functionality to:
@@ -129,6 +129,8 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
         )
         ```
     """
+
+    component_config_schema = A2aEventMapperConfig
 
     def __init__(
         self,
