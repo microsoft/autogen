@@ -1,6 +1,6 @@
 import base64
 import io
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from a2a.types import Artifact, DataPart, Part, TaskArtifactUpdateEvent, TaskState, TextPart

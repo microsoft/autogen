@@ -1,7 +1,7 @@
 import json
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Coroutine, Union
+from typing import List, Union
 
 from a2a.types import Artifact, DataPart, FilePart, FileWithBytes, Part, TaskArtifactUpdateEvent, TaskState, TextPart
 from autogen_agentchat.messages import (
@@ -116,7 +116,7 @@ class BaseA2aEventAdapter(A2aEventAdapter):
                 ),
             )
         if isinstance(message, MultiModalMessage):
-            parts = []
+            parts: List[Part] = []
             for content in message.content:
                 if isinstance(content, Image):
                     parts.append(Part(root=FilePart(file=FileWithBytes(bytes=content.to_base64()))))

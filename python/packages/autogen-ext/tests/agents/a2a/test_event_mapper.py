@@ -1,7 +1,9 @@
+# pyright: reportPrivateUsage=false
 import base64
 import io
 import json
 import uuid
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -203,9 +205,10 @@ def test_a2a_event_mapper_handle_message_single_data_part_with_output_type() -> 
     )
     result = mapper.handle_message(message)
     assert isinstance(result, StructuredMessage)
-    assert isinstance(result.content, MyPydanticModel)
-    assert result.content.name == "Test"
-    assert result.content.value == 123
+    content = cast(MyPydanticModel, result.content)  # pyright: ignore[reportUnknownMemberType]
+    assert isinstance(content, MyPydanticModel)
+    assert content.name == "Test"
+    assert content.value == 123
     assert result.source == "agent"
     assert result.format_string == "{content.name}"
     assert result.metadata == {"id": "1"}

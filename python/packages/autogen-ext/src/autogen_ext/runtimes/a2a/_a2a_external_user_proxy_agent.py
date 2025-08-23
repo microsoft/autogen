@@ -1,10 +1,10 @@
 from autogen_agentchat.agents import UserProxyAgent
-from autogen_core import CancellationToken, Component
-from pydantic import BaseModel
+from autogen_agentchat.agents._user_proxy_agent import UserProxyAgentConfig
+from autogen_core import CancellationToken
 from typing_extensions import Any, Mapping, Optional, Self
 
 
-class A2aExternalUserProxyAgentConfig(BaseModel):
+class A2aExternalUserProxyAgentConfig(UserProxyAgentConfig):
     """Configuration for A2aExternalUserProxyAgent.
 
     Attributes:
@@ -14,7 +14,7 @@ class A2aExternalUserProxyAgentConfig(BaseModel):
     is_cancelled_by_me: bool = False
 
 
-class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAgentConfig]):
+class A2aExternalUserProxyAgent(UserProxyAgent):
     """External user proxy agent for A2A protocol integration.
 
     This agent acts as a bridge between the A2A protocol and external user interactions.
@@ -201,7 +201,9 @@ class A2aExternalUserProxyAgent(UserProxyAgent, Component[A2aExternalUserProxyAg
             - Returns serializable state data
             - Used for agent persistence
         """
-        return A2aExternalUserProxyAgentConfig(is_cancelled_by_me=self.is_cancelled_by_me).model_dump()
+        return A2aExternalUserProxyAgentConfig(
+            is_cancelled_by_me=self.is_cancelled_by_me, name="ExternalUser"
+        ).model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """Restore the agent's state from saved data.

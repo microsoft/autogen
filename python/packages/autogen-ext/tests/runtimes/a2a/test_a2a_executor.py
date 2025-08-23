@@ -1,3 +1,4 @@
+# pyright: reportPrivateUsage=false
 import uuid
 from asyncio import CancelledError
 from typing import Any, AsyncGenerator, Awaitable, Callable, List, Optional
@@ -15,6 +16,20 @@ from autogen_ext.runtimes.a2a import A2aExecutionContext
 from autogen_ext.runtimes.a2a._a2a_event_adapter import A2aEventAdapter
 from autogen_ext.runtimes.a2a._a2a_executor import A2aExecutor
 from autogen_ext.runtimes.a2a._a2a_external_user_proxy_agent import A2aExternalUserProxyAgent
+
+
+def stub_executor_get_agent(agent: MagicMock) -> Callable[[A2aExecutionContext], ChatAgent]:
+    def _get_agent(_: A2aExecutionContext) -> ChatAgent:
+        return agent
+
+    return _get_agent
+
+
+def stub_executor_get_agent_async(agent: MagicMock) -> Callable[[A2aExecutionContext], Awaitable[ChatAgent]]:
+    async def _get_agent(_: A2aExecutionContext) -> ChatAgent:
+        return agent
+
+    return _get_agent
 
 
 def get_mock_agent(messages: Optional[List[TextMessage | TaskResult]] = None) -> MagicMock:
@@ -145,7 +160,21 @@ async def test_execute_success(executor: MagicMock, request_context: MagicMock, 
     """Test successful execution flow."""
     text = TextMessage(content="Processing...", source="assistant")
     mock_messages: List[TextMessage | TaskResult] = [text, TaskResult(messages=[text])]
-    executor._get_agent = lambda _: get_mock_agent(mock_messages)
+    executor._get_agent = stub_executor_get_agent(get_mock_agent(mock_messages))
+
+    await executor.execute(request_context, event_queue)
+
+    # Verify task completion was called
+    event_queue.enqueue_event.assert_called()
+    executor._event_adapter.handle_events.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_execute_success_async(executor: MagicMock, request_context: MagicMock, event_queue: MagicMock) -> None:
+    """Test successful execution flow."""
+    text = TextMessage(content="Processing...", source="assistant")
+    mock_messages: List[TextMessage | TaskResult] = [text, TaskResult(messages=[text])]
+    executor._get_agent = stub_executor_get_agent_async(get_mock_agent(mock_messages))
 
     await executor.execute(request_context, event_queue)
 
@@ -195,7 +224,7 @@ async def test_execute_with_cancellation(
 
     mock_agent = get_mock_agent()
     mock_agent.run_stream = mock_run_stream
-    executor._get_agent = lambda _: mock_agent
+    executor._get_agent = stub_executor_get_agent(mock_agent)
 
     await executor.execute(request_context, event_queue)
 
@@ -212,7 +241,7 @@ async def test_execute_with_error(executor: MagicMock, request_context: MagicMoc
 
     mock_agent = get_mock_agent()
     mock_agent.run_stream = mock_run_stream
-    executor._get_agent = lambda _: mock_agent
+    executor._get_agent = stub_executor_get_agent(mock_agent)
 
     await executor.execute(request_context, event_queue)
 
@@ -237,7 +266,7 @@ async def test_execute_with_error_while_processing(
 
     mock_agent = get_mock_agent()
     mock_agent.run_stream = mock_run_stream
-    executor._get_agent = lambda _: mock_agent
+    executor._get_agent = stub_executor_get_agent(mock_agent)
 
     await executor.execute(request_context, event_queue)
 
@@ -252,7 +281,7 @@ async def test_state_persistence(
 ) -> None:
     """Test agent state persistence."""
     mock_agent = get_mock_agent([TaskResult(messages=[])])
-    executor._get_agent = lambda _: mock_agent
+    executor._get_agent = stub_executor_get_agent(mock_agent)
 
     await executor.execute(request_context, event_queue)
 

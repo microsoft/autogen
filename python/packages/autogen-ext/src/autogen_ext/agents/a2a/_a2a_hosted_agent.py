@@ -12,7 +12,7 @@ from autogen_agentchat.messages import (
     StructuredMessage,
     TextMessage,
 )
-from autogen_core import CancellationToken, ComponentBase, Image
+from autogen_core import CancellationToken, Component, Image
 from httpx import AsyncClient
 from pydantic import BaseModel
 from slugify import slugify
@@ -87,7 +87,7 @@ class A2aHostedAgentConfig(BaseModel):
     handoff_message: Optional[str] = None
 
 
-class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
+class A2aHostedAgent(BaseChatAgent, Component[A2aHostedAgentConfig]):
     """A chat agent that interacts with remote A2A-compatible agents.
 
     This agent enables communication with remote agents that implement the A2A protocol.
@@ -129,7 +129,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         handoff_message: Optional[str] = None,
     ):
         super().__init__(name="A2aHostedAgent", description="A hosted agent for A2A operations.")
-        self._default_http_kwargs = http_kwargs if http_kwargs is not None else dict()
+        self._default_http_kwargs: Dict[str, Any] = http_kwargs if http_kwargs is not None else dict()
         self._agent_card = agent_card
         self._task_id = str(uuid.uuid4())
         self._event_mapper = event_mapper if event_mapper is not None else A2aEventMapper(agent_card.name)
@@ -381,7 +381,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
 
     async def call_agent_stream(
         self, params: MessageSendParams, cancellation_token: CancellationToken, handoff: Optional[HandoffMessage] = None
-    ) -> AsyncGenerator[Union[BaseAgentEvent | BaseChatMessage], None]:
+    ) -> AsyncGenerator[Union[BaseAgentEvent, BaseChatMessage], None]:
         """Make a streaming call to the remote A2A agent.
 
         Sends a message to the remote agent and processes its response as a stream of events.
@@ -455,9 +455,7 @@ class A2aHostedAgent(BaseChatAgent, ComponentBase[A2aHostedAgentConfig]):
         if final_state == TaskState.canceled:
             cancellation_token.cancel()
         if final_state == TaskState.failed:
-            raise RuntimeError(
-                f"Task failed with error: {last_message.to_text() if last_message is not None else 'Unknown error'}"
-            )
+            raise RuntimeError(f"Task failed with error: {last_message.to_text()}")
 
         if final_state == TaskState.input_required and handoff:
             yield HandoffMessage(

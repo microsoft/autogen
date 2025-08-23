@@ -1,3 +1,4 @@
+# pyright: reportPrivateUsage=false
 import json
 import uuid
 from typing import Any, List
@@ -38,6 +39,7 @@ from autogen_ext.agents.a2a._a2a_hosted_agent import (
     A2aHostedAgent,
     get_index_of_user_message,
 )
+from google.cloud.aiplatform.metadata.schema.system.artifact_schema import Artifact
 
 
 async def async_return(value: Any) -> Any:
@@ -71,10 +73,16 @@ def mock_agent_card() -> AgentCard:
 def mock_a2a_event_mapper() -> MagicMock:
     """A mock A2aEventMapper."""
     mapper = mock.MagicMock(spec=A2aEventMapper)
-    mapper.handle_message.side_effect = lambda msg: TextMessage(content=f"{msg.parts[0].root.text}", source="agent")
-    mapper.handle_artifact.side_effect = lambda artifact: ModelClientStreamingChunkEvent(
-        source="agent", metadata={"data": "test"}, content="hello"
-    )
+
+    def mock_handle_message(msg: Message) -> TextMessage:
+        return TextMessage(content=f"{msg.parts[0].root.text}", source="agent")
+
+    mapper.handle_message.side_effect = mock_handle_message
+
+    def mock_handle_artifact(artifact: Artifact) -> ModelClientStreamingChunkEvent:
+        return ModelClientStreamingChunkEvent(source="agent", metadata={"data": "test"}, content="hello")
+
+    mapper.handle_artifact.side_effect = mock_handle_artifact
     return mapper
 
 

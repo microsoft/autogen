@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from slugify import slugify
 from typing_extensions import List, Self
 
-from a2a.types import AgentCard, Artifact, DataPart, FilePart, FileWithBytes, FileWithUri, Message, Role, TextPart
+from a2a.types import Artifact, DataPart, FilePart, FileWithBytes, FileWithUri, Message, Role, TextPart
 
 
 def convert_file_to_image(file_part: FilePart) -> Image:
@@ -258,7 +258,7 @@ class A2aEventMapper(BaseModel, ComponentBase[A2aEventMapperConfig]):
                     metadata=artifact.metadata or dict(),
                 )
             )
-        content = []
+        content: List[str] = []
 
         for part in artifact.parts:
             if isinstance(part.root, TextPart):

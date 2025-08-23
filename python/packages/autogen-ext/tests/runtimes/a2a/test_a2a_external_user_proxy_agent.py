@@ -73,7 +73,7 @@ async def test_save_and_load_state(agent: A2aExternalUserProxyAgent) -> None:
 @pytest.mark.asyncio
 async def test_from_config() -> None:
     """Test _from_config class method."""
-    config = A2aExternalUserProxyAgentConfig()
-    agent = A2aExternalUserProxyAgent._from_config(config)
+    config = A2aExternalUserProxyAgentConfig(name="ExternalUser")
+    agent = A2aExternalUserProxyAgent._from_config(config)  # pyright: ignore[reportPrivateUsage]
     assert isinstance(agent, A2aExternalUserProxyAgent)
     assert agent.is_cancelled_by_me is False
