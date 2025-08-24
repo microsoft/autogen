@@ -834,3 +834,97 @@ def test_unknown_format_raises() -> None:
     converter = _JSONSchemaToPydantic()
     with pytest.raises(FormatNotSupportedError):
         converter.json_schema_to_pydantic(schema, "UnknownFormatModel")
+
+
+def test_unhashable_required_fields_handling() -> None:
+    """Test that schemas with unhashable items in required fields are handled gracefully."""
+    from autogen_core.utils._json_to_pydantic import schema_to_pydantic_model
+    
+    # Test 1: Direct schema with list in required field
+    schema_with_list_required = {
+        "type": "object",
+        "properties": {
+            "text": {"type": "string"},
+            "options": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["text", ["options"]]  # Problematic: nested list in required
+    }
+    
+    # Should not raise unhashable type error
+    model1 = schema_to_pydantic_model(schema_with_list_required, "TestUnhashableRequired1")
+    
+    # Check that only valid string fields are required
+    assert model1.model_fields["text"].is_required()
+    assert not model1.model_fields["options"].is_required()  # Filtered out due to being in nested list
+    
+    # Should be able to create instance
+    instance1 = model1(text="test")
+    assert instance1.text == "test"
+    assert instance1.options is None
+    
+    # Test 2: allOf schema with unhashable required items
+    schema_allof_unhashable = {
+        "type": "object",
+        "allOf": [
+            {
+                "type": "object",
+                "properties": {"param1": {"type": "string"}},
+                "required": ["param1"]
+            },
+            {
+                "type": "object", 
+                "properties": {"param2": {"type": "string"}},
+                "required": [["param2"]]  # Nested list in required
+            },
+            {
+                "type": "object",
+                "properties": {"param3": {"type": "integer"}},
+                "required": [{"nested": "param3"}]  # Dict in required
+            }
+        ]
+    }
+    
+    # Should not raise unhashable type error
+    model2 = schema_to_pydantic_model(schema_allof_unhashable, "TestUnhashableRequired2")
+    
+    # Only param1 should be required (others are filtered out)
+    assert model2.model_fields["param1"].is_required()
+    assert not model2.model_fields["param2"].is_required()
+    assert not model2.model_fields["param3"].is_required()
+    
+    # Should be able to create instance
+    instance2 = model2(param1="test")
+    assert instance2.param1 == "test"
+    
+    # Test 3: Nested allOf with unhashable items
+    schema_nested_allof = {
+        "type": "object",
+        "properties": {
+            "config": {
+                "type": "object",
+                "allOf": [
+                    {
+                        "type": "object",
+                        "properties": {"setting1": {"type": "string"}},
+                        "required": ["setting1"]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {"setting2": {"type": "boolean"}},
+                        "required": [42, "setting2", None]  # Mixed types in required
+                    }
+                ]
+            }
+        },
+        "required": ["config"]
+    }
+    
+    # Should not raise unhashable type error
+    model3 = schema_to_pydantic_model(schema_nested_allof, "TestUnhashableRequired3")
+    
+    # Root config should be required
+    assert model3.model_fields["config"].is_required()
+    
+    # Should be able to create instance
+    instance3 = model3(config={"setting1": "test", "setting2": True})
+    assert instance3.config is not None
