@@ -1,13 +1,13 @@
 import inspect
 from dataclasses import dataclass
 from functools import partial
-from typing import Annotated, List
+from typing import Annotated, Any, AsyncGenerator, List
 
 import pytest
 from autogen_core import CancellationToken
 from autogen_core._function_utils import get_typed_signature
 from autogen_core.tools import BaseTool, FunctionTool
-from autogen_core.tools._base import ToolSchema
+from autogen_core.tools._base import BaseCustomTool, BaseStreamTool, BaseToolWithState, ToolSchema
 from pydantic import BaseModel, Field, ValidationError, model_serializer
 from pydantic_core import PydanticUndefined
 
@@ -446,7 +446,7 @@ async def test_func_base_model_custom_dump_res() -> None:
     class MyResultCustomDump(BaseModel):
         result: str = Field(description="The other description.")
 
-        @model_serializer
+        @model_serializer(mode="plain")
         def ser_model(self) -> str:
             return "custom: " + self.result
 
@@ -589,3 +589,331 @@ async def test_func_tool_with_dataclass_conversion_failure() -> None:
 
     with pytest.raises(ValidationError, match="Field required"):
         await tool.run_json(test_input, CancellationToken())
+
+
+# Tests for BaseStreamTool
+class StreamArgs(BaseModel):
+    count: int = Field(description="Number of items to stream")
+
+
+class StreamResult(BaseModel):
+    final_count: int = Field(description="Final count")
+
+
+class StreamItem(BaseModel):
+    item: int = Field(description="Stream item")
+
+
+class SampleStreamTool(BaseStreamTool[StreamArgs, StreamItem, StreamResult]):
+    def __init__(self) -> None:
+        super().__init__(
+            args_type=StreamArgs,
+            return_type=StreamResult,
+            name="TestStreamTool",
+            description="A test stream tool",
+        )
+
+    async def run(self, args: StreamArgs, cancellation_token: CancellationToken) -> StreamResult:
+        return StreamResult(final_count=args.count)
+
+    async def run_stream(
+        self, args: StreamArgs, cancellation_token: CancellationToken
+    ) -> AsyncGenerator[StreamItem | StreamResult, None]:
+        for i in range(args.count):
+            yield StreamItem(item=i)
+        yield StreamResult(final_count=args.count)
+
+
+@pytest.mark.asyncio
+async def test_stream_tool_run_json_stream() -> None:
+    tool = SampleStreamTool()
+    results: list[Any] = []
+    async for result in tool.run_json_stream({"count": 3}, CancellationToken()):
+        results.append(result)
+
+    assert len(results) == 4  # 3 stream items + 1 final result
+    assert isinstance(results[0], StreamItem)
+    assert isinstance(results[1], StreamItem)
+    assert isinstance(results[2], StreamItem)
+    assert isinstance(results[3], StreamResult)
+    assert results[3].final_count == 3
+
+
+@pytest.mark.asyncio
+async def test_stream_tool_error_no_final_return() -> None:
+    class BadStreamTool(BaseStreamTool[StreamArgs, StreamItem, StreamResult]):
+        def __init__(self) -> None:
+            super().__init__(
+                args_type=StreamArgs,
+                return_type=StreamResult,
+                name="BadStreamTool",
+                description="A bad test stream tool",
+            )
+
+        async def run(self, args: StreamArgs, cancellation_token: CancellationToken) -> StreamResult:
+            return StreamResult(final_count=args.count)
+
+        async def run_stream(
+            self, args: StreamArgs, cancellation_token: CancellationToken
+        ) -> AsyncGenerator[StreamItem | StreamResult, None]:
+            # This doesn't yield anything - should raise assertion error
+            return
+            yield  # unreachable
+
+    tool = BadStreamTool()
+    with pytest.raises(AssertionError, match="The tool must yield a final return value"):
+        async for _result in tool.run_json_stream({"count": 1}, CancellationToken()):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_stream_tool_error_wrong_return_type() -> None:
+    class WrongReturnStreamTool(BaseStreamTool[StreamArgs, StreamItem, StreamResult]):
+        def __init__(self) -> None:
+            super().__init__(
+                args_type=StreamArgs,
+                return_type=StreamResult,
+                name="WrongReturnStreamTool",
+                description="A wrong return type stream tool",
+            )
+
+        async def run(self, args: StreamArgs, cancellation_token: CancellationToken) -> StreamResult:
+            return StreamResult(final_count=args.count)
+
+        async def run_stream(
+            self, args: StreamArgs, cancellation_token: CancellationToken
+        ) -> AsyncGenerator[StreamItem | StreamResult, None]:
+            yield StreamItem(item=0)
+            yield StreamItem(item=1)  # Wrong final type
+
+    tool = WrongReturnStreamTool()
+    with pytest.raises(TypeError, match="Expected return value of type StreamResult"):
+        async for _result in tool.run_json_stream({"count": 1}, CancellationToken()):
+            pass
+
+
+# Tests for BaseToolWithState
+class StateArgs(BaseModel):
+    value: str = Field(description="Value to store")
+
+
+class StateResult(BaseModel):
+    stored_value: str = Field(description="The stored value")
+
+
+class ToolState(BaseModel):
+    internal_value: str = Field(description="Internal state")
+
+
+class SampleToolWithState(BaseToolWithState[StateArgs, StateResult, ToolState]):
+    def __init__(self) -> None:
+        super().__init__(
+            args_type=StateArgs,
+            return_type=StateResult,
+            state_type=ToolState,
+            name="TestToolWithState",
+            description="A test tool with state",
+        )
+        self.state = ToolState(internal_value="initial")
+
+    async def run(self, args: StateArgs, cancellation_token: CancellationToken) -> StateResult:
+        self.state.internal_value = args.value
+        return StateResult(stored_value=self.state.internal_value)
+
+    def save_state(self) -> ToolState:
+        return self.state
+
+    def load_state(self, state: ToolState) -> None:
+        self.state = state
+
+    def state_type(self) -> type[ToolState]:
+        return ToolState
+
+
+@pytest.mark.asyncio
+async def test_tool_with_state_save_load() -> None:
+    tool = SampleToolWithState()
+
+    # Set some state
+    await tool.run_json({"value": "test_state"}, CancellationToken())
+
+    # Save state
+    saved_state = await tool.save_state_json()
+    assert saved_state == {"internal_value": "test_state"}
+
+    # Create new tool and load state
+    new_tool = SampleToolWithState()
+    await new_tool.load_state_json(saved_state)
+
+    # Verify state was loaded
+    assert new_tool.state.internal_value == "test_state"
+
+
+# Tests for BaseCustomTool
+
+
+class CustomResult(BaseModel):
+    processed: str = Field(description="Processed input")
+
+
+class SampleCustomTool(BaseCustomTool[CustomResult]):
+    def __init__(self) -> None:
+        super().__init__(
+            return_type=CustomResult,
+            name="SampleCustomTool",
+            description="A test custom tool",
+        )
+
+    async def run(self, input_text: str, cancellation_token: CancellationToken) -> CustomResult:
+        return CustomResult(processed=f"processed: {input_text}")
+
+
+@pytest.mark.asyncio
+async def test_custom_tool_run_freeform() -> None:
+    tool = SampleCustomTool()
+    result = await tool.run_freeform("test input", CancellationToken())
+
+    assert isinstance(result, CustomResult)
+    assert result.processed == "processed: test input"
+
+
+def test_custom_tool_schema() -> None:
+    tool = SampleCustomTool()
+    schema = tool.schema
+
+    assert schema["name"] == "SampleCustomTool"
+    assert schema.get("description") == "A test custom tool"
+    assert "format" not in schema
+
+
+def test_custom_tool_schema_with_format() -> None:
+    from autogen_core.tools._base import CustomToolFormat
+
+    format_spec = CustomToolFormat(type="grammar", syntax="lark", definition="start: WORD")
+
+    class CustomToolWithFormat(BaseCustomTool[BaseModel]):
+        def __init__(self) -> None:
+            from pydantic import BaseModel
+
+            class Result(BaseModel):
+                text: str
+
+            super().__init__(
+                return_type=Result,
+                name="FormattedTool",
+                description="Tool with format",
+                format=format_spec,
+            )
+
+        async def run(self, input_text: str, cancellation_token: CancellationToken) -> BaseModel:
+            from pydantic import BaseModel
+
+            class Result(BaseModel):
+                text: str
+
+            return Result(text=input_text)
+
+    tool = CustomToolWithFormat()
+    schema = tool.schema
+
+    assert schema["name"] == "FormattedTool"
+    assert schema.get("format") == format_spec
+
+
+def test_custom_tool_properties() -> None:
+    tool = SampleCustomTool()
+
+    assert tool.name == "SampleCustomTool"
+    assert tool.description == "A test custom tool"
+    assert tool.return_type() == CustomResult
+
+
+def test_custom_tool_return_value_as_string() -> None:
+    tool = SampleCustomTool()
+
+    # Test with BaseModel
+    result = CustomResult(processed="test")
+    assert tool.return_value_as_string(result) == '{"processed": "test"}'
+
+    # Test with non-BaseModel
+    assert tool.return_value_as_string("simple string") == "simple string"
+    assert tool.return_value_as_string(42) == "42"
+
+
+@pytest.mark.asyncio
+async def test_custom_tool_save_load_state() -> None:
+    tool = SampleCustomTool()
+
+    # Default implementations should return empty dict and do nothing
+    saved_state = await tool.save_state_json()
+    assert saved_state == {}
+
+    # Load should not raise error
+    await tool.load_state_json({"some": "state"})
+
+
+# Tests for strict mode validation errors
+def test_strict_mode_additional_properties_error() -> None:
+    from pydantic import ConfigDict
+
+    class StrictArgsWithAdditional(BaseModel):
+        model_config = ConfigDict(extra="allow")
+        required_field: str = Field(description="Required field")
+
+    class StrictToolWithAdditional(BaseTool[StrictArgsWithAdditional, MyResult]):
+        def __init__(self) -> None:
+            super().__init__(
+                args_type=StrictArgsWithAdditional,
+                return_type=MyResult,
+                name="StrictTestTool",
+                description="Tool with additional properties",
+                strict=True,
+            )
+
+        async def run(self, args: StrictArgsWithAdditional, cancellation_token: CancellationToken) -> MyResult:
+            return MyResult(result="value")
+
+    with pytest.raises(ValueError, match="Strict mode is enabled but additional argument is also enabled"):
+        tool = StrictToolWithAdditional()
+        _ = tool.schema
+
+
+# Test return_value_as_string edge cases
+def test_return_value_as_string_edge_cases() -> None:
+    tool = MyTool()
+
+    # Test with BaseModel that dumps to non-dict (custom serializer)
+    class NonDictModel(BaseModel):
+        value: str
+
+        @model_serializer(mode="plain")
+        def ser_model(self) -> str:
+            return self.value
+
+    model = NonDictModel(value="test")
+    assert tool.return_value_as_string(model) == "test"
+
+    # Test with None
+    assert tool.return_value_as_string(None) == "None"
+
+    # Test with list
+    assert tool.return_value_as_string([1, 2, 3]) == "[1, 2, 3]"
+
+
+# Test state_type method for regular BaseTool
+def test_base_tool_state_type() -> None:
+    tool = MyTool()
+    assert tool.state_type() is None
+
+
+# Test save/load state methods for regular BaseTool
+@pytest.mark.asyncio
+async def test_base_tool_default_state_methods() -> None:
+    tool = MyTool()
+
+    # Default save should return empty dict
+    saved_state = await tool.save_state_json()
+    assert saved_state == {}
+
+    # Default load should not raise error
+    await tool.load_state_json({"some": "state"})
