@@ -36,7 +36,7 @@ async def test_redis_memory_query_with_mock() -> None:
         memory = RedisMemory(config=config)
 
         mock_history.get_relevant.return_value = [
-            {"content": "test content", "tool_call_id": '{"foo": "bar", "mime_type": "text/plain"}'}
+            {"content": "test content", "metadata": '{"foo": "bar", "mime_type": "text/plain"}'}
         ]
         result = await memory.query("test")
         assert len(result.results) == 1

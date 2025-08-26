@@ -255,7 +255,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         metadata = {"mime_type": mime_type}
         metadata.update(content.metadata if content.metadata else {})
         self.message_history.add_message(
-            {"role": "user", "content": memory_content, "tool_call_id": serialize(metadata)}  # type: ignore[reportArgumentType]
+            {"role": "user", "content": memory_content, "metadata": serialize(metadata)}  # type: ignore[reportArgumentType]
         )
 
     async def query(
@@ -324,7 +324,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
 
         memories: List[MemoryContent] = []
         for result in results:  # type: ignore[reportUnkownVariableType]
-            metadata = deserialize(result["tool_call_id"])  # type: ignore[reportArgumentType]
+            metadata = deserialize(result["metadata"])  # type: ignore[reportArgumentType]
             mime_type = MemoryMimeType(metadata.pop("mime_type"))
             if mime_type in (MemoryMimeType.TEXT, MemoryMimeType.MARKDOWN):
                 memory_content = result["content"]  # type: ignore[reportArgumentType]
