@@ -10,7 +10,7 @@
 [![Blog](https://img.shields.io/badge/Blog-AutoGen-blue?logo=blogger)](https://devblogs.microsoft.com/autogen/)
 
 </div>
-
+\\\
 # AutoGen
 
 **AutoGen** is a framework for creating multi-agent AI applications that can act autonomously or work alongside humans.
