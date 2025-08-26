@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12.4' and sys_platform == 'darwin'",
@@ -469,7 +469,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.7.2"
+version = "0.7.4"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "autogen-core" },
@@ -480,7 +480,7 @@ requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autogen-core"
-version = "0.7.2"
+version = "0.7.4"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
@@ -573,7 +573,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.7.2"
+version = "0.7.4"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
@@ -889,7 +889,7 @@ requires-dist = [
     { name = "uvicorn", marker = "extra == 'web'" },
     { name = "websockets" },
 ]
-provides-extras = ["web", "database"]
+provides-extras = ["database", "web"]
 
 [[package]]
 name = "autograd"

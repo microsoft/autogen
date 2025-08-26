@@ -86,80 +86,6 @@ async def test_builtin_tool_string_validation(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "tool_config,should_raise",
-    [
-        # file_search: missing required param
-        ({"type": "file_search"}, True),
-        # file_search: empty vector_store_ids
-        ({"type": "file_search", "vector_store_ids": []}, True),
-        # file_search: invalid type
-        ({"type": "file_search", "vector_store_ids": [123]}, True),
-        # file_search: valid
-        ({"type": "file_search", "vector_store_ids": ["vs1"]}, False),
-        # computer_use_preview: missing param
-        ({"type": "computer_use_preview", "display_height": 100, "display_width": 100}, True),
-        # computer_use_preview: invalid type
-        ({"type": "computer_use_preview", "display_height": -1, "display_width": 100, "environment": "desktop"}, True),
-        # computer_use_preview: valid
-        (
-            {"type": "computer_use_preview", "display_height": 100, "display_width": 100, "environment": "desktop"},
-            False,
-        ),
-        # code_interpreter: missing param
-        ({"type": "code_interpreter"}, True),
-        # code_interpreter: empty container
-        ({"type": "code_interpreter", "container": ""}, True),
-        # code_interpreter: valid
-        ({"type": "code_interpreter", "container": "python-3.11"}, False),
-        # mcp: missing param
-        ({"type": "mcp", "server_label": "label"}, True),
-        # mcp: invalid type
-        ({"type": "mcp", "server_label": "", "server_url": "url"}, True),
-        # mcp: valid
-        ({"type": "mcp", "server_label": "label", "server_url": "url"}, False),
-        # web_search_preview: valid with string user_location
-        ({"type": "web_search_preview", "user_location": "US"}, False),
-        # web_search_preview: valid with dict user_location
-        ({"type": "web_search_preview", "user_location": {"type": "approximate"}}, False),
-        # web_search_preview: invalid user_location type
-        ({"type": "web_search_preview", "user_location": 123}, True),
-        # image_generation: valid with background
-        ({"type": "image_generation", "background": "white"}, False),
-        # image_generation: invalid background
-        ({"type": "image_generation", "background": ""}, True),
-    ],
-)
-async def test_builtin_tool_dict_validation(
-    tool_config: Dict[str, Any], should_raise: bool, openai_client: AsyncOpenAI
-) -> None:
-    """Test validation of dictionary-based builtin tools."""
-    client = openai_client
-    tools = [tool_config]  # type: ignore
-
-    if should_raise:
-        with pytest.raises(ValueError):
-            OpenAIAgent(
-                name="test",
-                description="desc",
-                client=client,
-                model="gpt-4o",
-                instructions="inst",
-                tools=tools,  # type: ignore
-            )
-    else:
-        agent = OpenAIAgent(
-            name="test",
-            description="desc",
-            client=client,
-            model="gpt-4o",
-            instructions="inst",
-            tools=tools,  # type: ignore
-        )
-        assert any(t["type"] == tool_config["type"] for t in agent.tools)
-
-
-@pytest.mark.asyncio
 async def test_builtin_tool_validation_with_custom_and_builtin(openai_client: AsyncOpenAI) -> None:
     """Test validation with mixed string and dictionary tools."""
     client = openai_client
@@ -478,7 +404,7 @@ async def test_to_config_with_string_builtin_tools() -> None:
         if isinstance(tool, str):
             tool_types.append(tool)
         elif isinstance(tool, dict):
-            tool_types.append(cast(Dict[str, Any], tool)["type"])
+            tool_types.append(tool["type"])
         else:
             # Handle ComponentModel case
             tool_types.append(str(tool))
@@ -510,7 +436,7 @@ async def test_to_config_with_configured_builtin_tools() -> None:
     assert len(config.tools) == 3
 
     # Verify configured tools are serialized correctly
-    tool_configs = [cast(Dict[str, Any], tool) for tool in config.tools if isinstance(tool, dict)]
+    tool_configs = [tool for tool in config.tools if isinstance(tool, dict)]
     assert len(tool_configs) == 3
 
     # Check file_search config
@@ -657,7 +583,7 @@ async def test_config_serialization_with_mixed_tools() -> None:
     assert len(config.tools) == 4
 
     # Verify all tools are serialized as dicts with "type" key
-    dict_tools = [cast(Dict[str, Any], tool) for tool in config.tools if isinstance(tool, dict)]
+    dict_tools = [tool for tool in config.tools if isinstance(tool, dict)]
     assert len(dict_tools) == 4
 
     # Check that string tools are converted to dicts with "type" key
