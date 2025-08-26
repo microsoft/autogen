@@ -99,6 +99,13 @@ async def semantic_memory(semantic_config: RedisMemoryConfig) -> AsyncGenerator[
     await memory.close()
 
 
+@pytest_asyncio.fixture  # type: ignore[reportUntypedFunctionDecorator]
+async def sequential_memory(sequential_config: RedisMemoryConfig) -> AsyncGenerator[RedisMemory]:
+    memory = RedisMemory(sequential_config)
+    yield memory
+    await memory.close()
+
+
 ## UNIT TESTS ##
 def test_memory_config() -> None:
     default_config = RedisMemoryConfig()
@@ -153,7 +160,7 @@ def test_memory_config() -> None:
 @pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 @pytest.mark.parametrize("sequential", [True, False])
 async def test_create_memory(sequential: bool) -> None:
-    config = RedisMemoryConfig(index_name="semantic_agent")
+    config = RedisMemoryConfig(index_name="semantic_agent", sequential=sequential)
     memory = RedisMemory(config=config)
 
     assert memory.message_history is not None
@@ -386,6 +393,11 @@ async def test_text_memory_type(semantic_memory: RedisMemory) -> None:
     assert len(results.results) > 0
     assert any("Simple text content" in str(r.content) for r in results.results)
 
+    # Query for text content with a MemoryContent object
+    results = await semantic_memory.query(MemoryContent(content="simple text content", mime_type=MemoryMimeType.TEXT))
+    assert len(results.results) > 0
+    assert any("Simple text content" in str(r.content) for r in results.results)
+
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
@@ -495,3 +507,49 @@ async def test_query_arguments(semantic_memory: RedisMemory) -> None:
     # setting 'sequential' to False results in default behaviour
     results = await semantic_memory.query("my favorite fruit are what?", sequential=False)
     assert len(results.results) == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
+async def test_sequential_memory_workflow(sequential_memory: RedisMemory) -> None:
+    await sequential_memory.clear()
+
+    await sequential_memory.add(MemoryContent(content="my favorite fruit are apples", mime_type=MemoryMimeType.TEXT))
+    await sequential_memory.add(
+        MemoryContent(
+            content="I read the encyclopedia britanica and my favorite section was on the Napoleonic Wars.",
+            mime_type=MemoryMimeType.TEXT,
+        )
+    )
+    await sequential_memory.add(
+        MemoryContent(content="Sharks have no idea that camels exist.", mime_type=MemoryMimeType.TEXT)
+    )
+    await sequential_memory.add(
+        MemoryContent(
+            content="Python is a popular programming language used for machine learning and AI applications.",
+            mime_type=MemoryMimeType.TEXT,
+        )
+    )
+    await sequential_memory.add(
+        MemoryContent(content="Fifth random and unrelated sentence", mime_type=MemoryMimeType.TEXT)
+    )
+
+    # default search returns last 5 memories
+    results = await sequential_memory.query("what fruits do I like?")
+    assert len(results.results) == 5
+
+    # limit search to 2 results
+    results = await sequential_memory.query("what fruits do I like?", top_k=2)
+    assert len(results.results) == 2
+
+    # sequential memory does not consider semantic similarity
+    results = await sequential_memory.query("How do I make peanut butter sandwiches?")
+    assert len(results.results) == 5
+
+    # seting 'sequential' to True in query method is redundant
+    results = await sequential_memory.query("fast sports cars", sequential=True)
+    assert len(results.results) == 5
+
+    # setting 'sequential' to False with a Sequential memory object raises an error
+    with pytest.raises(ValueError):
+        _ = await sequential_memory.query("my favorite fruit are what?", sequential=False)

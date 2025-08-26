@@ -289,8 +289,12 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         distance_threshold = kwargs.pop("distance_threshold", self.config.distance_threshold)
 
         # if sequential memory is requested skip prompt creation
-        sequential = bool(kwargs.pop("sequential", False))
-        if sequential or self.config.sequential:
+        sequential = bool(kwargs.pop("sequential", self.config.sequential))
+        if self.config.sequential and not sequential:
+            raise ValueError(
+                "Non-sequential queries cannot be run with an underlying sequential RedisMemory. Set sequential=False in RedisMemoryConfig to enable semantic memory querying."
+            )
+        elif sequential or self.config.sequential:
             results = self.message_history.get_recent(
                 top_k=top_k,
                 raw=False,
