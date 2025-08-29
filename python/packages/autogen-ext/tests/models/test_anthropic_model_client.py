@@ -21,6 +21,7 @@ from autogen_core.tools import FunctionTool
 from autogen_ext.models.anthropic import (
     AnthropicBedrockChatCompletionClient,
     AnthropicChatCompletionClient,
+    BaseAnthropicChatCompletionClient,
     BedrockInfo,
 )
 
@@ -1007,19 +1008,13 @@ async def test_anthropic_tool_choice_none_value_with_actual_api() -> None:
     assert isinstance(result.content, str)
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("provider", ["anthropic", "bedrock"])
-async def test_streaming_tool_usage_with_no_arguments(provider) -> None:
-    """
-    Test reading streaming tool usage response with no arguments.
-    In that case `input` in initial `tool_use` chunk is `{}` and subsequent `partial_json` chunks are empty.
-    """
+def get_client_or_skip(provider: str) -> BaseAnthropicChatCompletionClient:
     if provider == "anthropic":
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
             pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
 
-        client = AnthropicChatCompletionClient(
+        return AnthropicChatCompletionClient(
             model="claude-3-haiku-20240307",
             api_key=api_key,
         )
@@ -1031,13 +1026,28 @@ async def test_streaming_tool_usage_with_no_arguments(provider) -> None:
             pytest.skip("AWS credentials not found in environment variables")
 
         model = os.getenv("ANTHROPIC_BEDROCK_MODEL", "us.anthropic.claude-3-haiku-20240307-v1:0")
-        client = AnthropicBedrockChatCompletionClient(
+        return AnthropicBedrockChatCompletionClient(
             model=model,
-            bedrock_info=BedrockInfo(aws_access_key=access_key, aws_secret_key=secret_key, aws_region=region),
+            bedrock_info=BedrockInfo(
+                aws_access_key=access_key,
+                aws_secret_key=secret_key,
+                aws_region=region,
+                aws_session_token=os.getenv("AWS_SESSION_TOKEN", ""),
+            ),
             model_info=ModelInfo(
                 vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True
             ),
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider", ["anthropic", "bedrock"])
+async def test_streaming_tool_usage_with_no_arguments(provider: str) -> None:
+    """
+    Test reading streaming tool usage response with no arguments.
+    In that case `input` in initial `tool_use` chunk is `{}` and subsequent `partial_json` chunks are empty.
+    """
+    client = get_client_or_skip(provider)
 
     # Define tools
     ask_for_input_tool = FunctionTool(
@@ -1056,8 +1066,10 @@ async def test_streaming_tool_usage_with_no_arguments(provider) -> None:
         chunks.append(chunk)
 
     assert len(chunks) > 0
-    assert len(chunks[-1].content) == 1
-    content = chunks[-1].content[-1]
+    assert isinstance(chunks[-1], CreateResult)
+    result: CreateResult = chunks[-1]
+    assert len(result.content) == 1
+    content = result.content[-1]
     assert isinstance(content, FunctionCall)
     assert content.name == "ask_for_input"
     assert json.loads(content.arguments) is not None
@@ -1071,30 +1083,7 @@ async def test_streaming_tool_usage_with_arguments(provider: str) -> None:
     In that case `input` in initial `tool_use` chunk is `{}` but subsequent `partial_json` chunks make up the actual
     complete input value.
     """
-    if provider == "anthropic":
-        api_key = os.getenv("ANTHROPIC_API_KEY")
-        if not api_key:
-            pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
-
-        client = AnthropicChatCompletionClient(
-            model="claude-3-haiku-20240307",
-            api_key=api_key,
-        )
-    else:
-        access_key = os.getenv("AWS_ACCESS_KEY_ID")
-        secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-        region = os.getenv("AWS_REGION")
-        if not access_key or not secret_key or not region:
-            pytest.skip("AWS credentials not found in environment variables")
-
-        model = os.getenv("ANTHROPIC_BEDROCK_MODEL", "us.anthropic.claude-3-haiku-20240307-v1:0")
-        client = AnthropicBedrockChatCompletionClient(
-            model=model,
-            bedrock_info=BedrockInfo(aws_access_key=access_key, aws_secret_key=secret_key, aws_region=region),
-            model_info=ModelInfo(
-                vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True
-            ),
-        )
+    client = get_client_or_skip(provider)
 
     # Define tools
     add_numbers = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
@@ -1111,8 +1100,10 @@ async def test_streaming_tool_usage_with_arguments(provider: str) -> None:
         chunks.append(chunk)
 
     assert len(chunks) > 0
-    assert len(chunks[-1].content) == 1
-    content = chunks[-1].content[-1]
+    assert isinstance(chunks[-1], CreateResult)
+    result: CreateResult = chunks[-1]
+    assert len(result.content) == 1
+    content = result.content[-1]
     assert isinstance(content, FunctionCall)
     assert content.name == "add_numbers"
     assert json.loads(content.arguments) is not None
