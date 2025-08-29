@@ -49,6 +49,7 @@ class CreateArguments(TypedDict, total=False):
     top_p: Optional[float]
     user: str
     stream_options: Optional[StreamOptions]
+    parallel_tool_calls: Optional[bool]
 
 
 AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
@@ -63,6 +64,8 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     model_info: ModelInfo
     add_name_prefixes: bool
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
+    include_name_in_message: bool
+    """Whether to include the 'name' field in user message parameters. Defaults to True. Set to False for providers that don't support the 'name' field."""
     default_headers: Dict[str, str] | None
 
 
@@ -95,6 +98,7 @@ class CreateArgumentsConfigModel(BaseModel):
     top_p: float | None = None
     user: str | None = None
     stream_options: StreamOptions | None = None
+    parallel_tool_calls: bool | None = None
 
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
@@ -105,6 +109,7 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     model_capabilities: ModelCapabilities | None = None  # type: ignore
     model_info: ModelInfo | None = None
     add_name_prefixes: bool | None = None
+    include_name_in_message: bool | None = None
     default_headers: Dict[str, str] | None = None
 
 

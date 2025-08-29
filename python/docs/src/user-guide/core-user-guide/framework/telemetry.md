@@ -10,7 +10,7 @@ These are the components that are currently instrumented:
 
 ```{note}
 To disable the agent runtime telemetry, you can set the `trace_provider` to
-`opentelemetry.trace.NoOpTraceProvider` in the runtime constructor.
+`opentelemetry.trace.NoOpTracerProvider` in the runtime constructor.
 
 Additionally, you can set the environment variable `AUTOGEN_DISABLE_RUNTIME_TRACING` to `true` to disable the agent runtime telemetry if you don't have access to the runtime constructor. For example, if you are using `ComponentConfig`.
 ```

@@ -11,6 +11,7 @@ from pydantic import (
     BaseModel,
     EmailStr,
     Field,
+    Json,
     conbytes,
     confloat,
     conint,
@@ -82,6 +83,7 @@ FORMAT_MAPPING: Dict[str, Any] = {
     "binary": conbytes(strict=True),
     "password": str,
     "path": str,
+    "json": Json,
 }
 
 
@@ -172,7 +174,31 @@ class _JSONSchemaToPydantic:
                 json_type = s.get("type")
                 if json_type not in TYPE_MAPPING:
                     raise UnsupportedKeywordError(f"Unsupported or missing type `{json_type}` in union")
-                types.append(TYPE_MAPPING[json_type])
+
+                # Handle array types with items specification
+                if json_type == "array" and "items" in s:
+                    item_schema = s["items"]
+                    if "$ref" in item_schema:
+                        item_type = self.get_ref(item_schema["$ref"].split("/")[-1])
+                    else:
+                        item_type_name = item_schema.get("type")
+                        if item_type_name is None:
+                            item_type = str
+                        elif item_type_name not in TYPE_MAPPING:
+                            raise UnsupportedKeywordError(f"Unsupported item type `{item_type_name}` in union array")
+                        else:
+                            item_type = TYPE_MAPPING[item_type_name]
+
+                    constraints = {}
+                    if "minItems" in s:
+                        constraints["min_length"] = s["minItems"]
+                    if "maxItems" in s:
+                        constraints["max_length"] = s["maxItems"]
+
+                    array_type = conlist(item_type, **constraints) if constraints else List[item_type]  # type: ignore[valid-type]
+                    types.append(array_type)
+                else:
+                    types.append(TYPE_MAPPING[json_type])
         return types
 
     def _extract_field_type(self, key: str, value: Dict[str, Any], model_name: str, root_schema: Dict[str, Any]) -> Any:
@@ -230,7 +256,7 @@ class _JSONSchemaToPydantic:
             else:
                 item_type_name = item_schema.get("type")
                 if item_type_name is None:
-                    item_type = List[str]
+                    item_type = str
                 elif item_type_name not in TYPE_MAPPING:
                     raise UnsupportedKeywordError(
                         f"Unsupported or missing item type `{item_type_name}` for array field `{key}` in `{model_name}`"
