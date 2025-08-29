@@ -34,6 +34,7 @@ def _add_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
     return a + b
 
+
 def _ask_for_input() -> str:
     """Function that asks for user input. Used to test empty input handling, such as in `pass_to_user` tool."""
     return "Further input from user"
@@ -1032,11 +1033,7 @@ async def test_streaming_tool_usage_with_no_arguments(provider) -> None:
         model = os.getenv("ANTHROPIC_BEDROCK_MODEL", "us.anthropic.claude-3-haiku-20240307-v1:0")
         client = AnthropicBedrockChatCompletionClient(
             model=model,
-            bedrock_info=BedrockInfo(
-                aws_access_key=access_key,
-                aws_secret_key=secret_key,
-                aws_region=region
-            ),
+            bedrock_info=BedrockInfo(aws_access_key=access_key, aws_secret_key=secret_key, aws_region=region),
             model_info=ModelInfo(
                 vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True
             ),
@@ -1049,12 +1046,12 @@ async def test_streaming_tool_usage_with_no_arguments(provider) -> None:
 
     chunks: List[str | CreateResult] = []
     async for chunk in client.create_stream(
-            messages=[
-                SystemMessage(content="When user intent is unclear, ask for more input"),
-                UserMessage(content="Erm...", source="user"),
-            ],
-            tools=[ask_for_input_tool],
-            tool_choice="required",
+        messages=[
+            SystemMessage(content="When user intent is unclear, ask for more input"),
+            UserMessage(content="Erm...", source="user"),
+        ],
+        tools=[ask_for_input_tool],
+        tool_choice="required",
     ):
         chunks.append(chunk)
 
@@ -1093,11 +1090,7 @@ async def test_streaming_tool_usage_with_arguments(provider: str) -> None:
         model = os.getenv("ANTHROPIC_BEDROCK_MODEL", "us.anthropic.claude-3-haiku-20240307-v1:0")
         client = AnthropicBedrockChatCompletionClient(
             model=model,
-            bedrock_info=BedrockInfo(
-                aws_access_key=access_key,
-                aws_secret_key=secret_key,
-                aws_region=region
-            ),
+            bedrock_info=BedrockInfo(aws_access_key=access_key, aws_secret_key=secret_key, aws_region=region),
             model_info=ModelInfo(
                 vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True
             ),
@@ -1108,12 +1101,12 @@ async def test_streaming_tool_usage_with_arguments(provider: str) -> None:
 
     chunks: List[str | CreateResult] = []
     async for chunk in client.create_stream(
-            messages=[
-                SystemMessage(content="Use the tools to evaluate calculations"),
-                UserMessage(content="2 + 2", source="user"),
-            ],
-            tools=[add_numbers],
-            tool_choice="required",
+        messages=[
+            SystemMessage(content="Use the tools to evaluate calculations"),
+            UserMessage(content="2 + 2", source="user"),
+        ],
+        tools=[add_numbers],
+        tool_choice="required",
     ):
         chunks.append(chunk)
 

@@ -882,7 +882,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                         "id": chunk.content_block.id,
                         "name": chunk.content_block.name,
                         "input": json.dumps(chunk.content_block.input),
-                        "partial_json": "", # May be populated from deltas
+                        "partial_json": "",  # May be populated from deltas
                     }
 
             elif chunk.type == "content_block_delta":
