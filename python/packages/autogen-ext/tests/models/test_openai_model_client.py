@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar
+from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar, Optional
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
@@ -450,7 +450,17 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
     def tool2(test1: int, test2: List[int]) -> str:
         return str(test1) + str(test2)
 
-    tools = [FunctionTool(tool1, description="example tool 1"), FunctionTool(tool2, description="example tool 2")]
+    def tool3(
+            test1: Annotated[Optional[str], "example"] = None,
+            test2: Literal["1", "2"] = "2"
+    ) -> str:
+        return str(test1) + str(test2)
+
+    tools = [
+        FunctionTool(tool1, description="example tool 1"),
+        FunctionTool(tool2, description="example tool 2"),
+        FunctionTool(tool3, description="example tool 3")
+    ]
 
     mockcalculate_vision_tokens = MagicMock()
     monkeypatch.setattr("autogen_ext.models.openai._openai_client.calculate_vision_tokens", mockcalculate_vision_tokens)
@@ -459,6 +469,13 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
     assert num_tokens
 
     # Check that calculate_vision_tokens was called
+    mockcalculate_vision_tokens.assert_called_once()
+
+    # Check that tools are optional and do not affect non-vision token counting
+    mockcalculate_vision_tokens.reset_mock()
+    num_tokens = client.count_tokens(messages)
+    assert num_tokens
+
     mockcalculate_vision_tokens.assert_called_once()
 
     remaining_tokens = client.remaining_tokens(messages, tools=tools)
