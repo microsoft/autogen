@@ -393,6 +393,17 @@ def count_tokens_openai(
                         elif field == "description":
                             tool_tokens += 2
                             tool_tokens += len(encoding.encode(v["description"]))  # pyright: ignore
+                        elif field == "anyOf":
+                            tool_tokens -= 3
+                            for o in v["anyOf"]:
+                                tool_tokens += 3
+                                tool_tokens += len(encoding.encode(o["type"]))
+                        elif field == "default":
+                            tool_tokens += 2
+                            tool_tokens += len(encoding.encode(json.dumps(v["default"])))
+                        elif field == "title":
+                            tool_tokens += 2
+                            tool_tokens += len(encoding.encode(v["title"]))
                         elif field == "enum":
                             tool_tokens -= 3
                             for o in v["enum"]:  # pyright: ignore
