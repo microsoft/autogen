@@ -415,7 +415,9 @@ def count_tokens_openai(
                 if len(parameters["properties"]) == 0:  # pyright: ignore
                     tool_tokens -= 2
         num_tokens += tool_tokens
-    num_tokens += 12
+
+    if oai_tools:
+        num_tokens += 12
     return num_tokens
 
 
