@@ -465,17 +465,19 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
     mockcalculate_vision_tokens = MagicMock()
     monkeypatch.setattr("autogen_ext.models.openai._openai_client.calculate_vision_tokens", mockcalculate_vision_tokens)
 
-    num_tokens = client.count_tokens(messages, tools=tools)
+    # Test count_tokens without tools
+    num_tokens = client.count_tokens(messages)
     assert num_tokens
 
     # Check that calculate_vision_tokens was called
     mockcalculate_vision_tokens.assert_called_once()
-
-    # Check that tools are optional and do not affect non-vision token counting
     mockcalculate_vision_tokens.reset_mock()
-    num_tokens = client.count_tokens(messages)
+
+    # Test count_tokens with tools
+    num_tokens = client.count_tokens(messages, tools=tools)
     assert num_tokens
 
+    # Check that calculate_vision_tokens was called
     mockcalculate_vision_tokens.assert_called_once()
 
     remaining_tokens = client.remaining_tokens(messages, tools=tools)
