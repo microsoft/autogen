@@ -19,6 +19,8 @@ class ModelFamily:
     This namespace class holds constants for the model families that AutoGen understands. Other families definitely exist and can be represented by a string, however, AutoGen will treat them as unknown."""
 
     GPT_5 = "gpt-5"
+    GPT_5_MINI = "gpt-5-mini"
+    GPT_5_NANO = "gpt-5-nano"
     GPT_41 = "gpt-41"
     GPT_45 = "gpt-45"
     GPT_4O = "gpt-4o"
@@ -55,6 +57,8 @@ class ModelFamily:
     ANY: TypeAlias = Literal[
         # openai_models
         "gpt-5",
+        "gpt-5-mini",
+        "gpt-5-nano",
         "gpt-41",
         "gpt-45",
         "gpt-4o",

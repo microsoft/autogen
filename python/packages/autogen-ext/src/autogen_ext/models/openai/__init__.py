@@ -5,6 +5,11 @@ from ._openai_client import (
     BaseOpenAIChatCompletionClient,
     OpenAIChatCompletionClient,
 )
+from ._responses_client import (
+    AzureOpenAIResponsesAPIClient,
+    BaseOpenAIResponsesAPIClient,
+    OpenAIResponsesAPIClient,
+)
 from .config import (
     AzureOpenAIClientConfigurationConfigModel,
     BaseOpenAIClientConfigurationConfigModel,
@@ -16,6 +21,9 @@ __all__ = [
     "OpenAIChatCompletionClient",
     "AzureOpenAIChatCompletionClient",
     "BaseOpenAIChatCompletionClient",
+    "OpenAIResponsesAPIClient",
+    "AzureOpenAIResponsesAPIClient",
+    "BaseOpenAIResponsesAPIClient",
     "AzureOpenAIClientConfigurationConfigModel",
     "OpenAIClientConfigurationConfigModel",
     "BaseOpenAIClientConfigurationConfigModel",
