@@ -974,9 +974,11 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # --- NEW: If the model produced a hidden "thought," yield it as an event ---
         if model_result.thought:
-            thought_event = ThoughtEvent(content=model_result.thought, source=agent_name)
+            thought_event = ThoughtEvent(content=model_result.thought, source=agent_name, id=message_id)
             yield thought_event
             inner_messages.append(thought_event)
+            # Regenerate the message ID for correlation between streaming chunks and final message
+            message_id = str(uuid.uuid4())
 
         # Add the assistant message to the model context (including thought if present)
         await model_context.add_message(
@@ -1283,9 +1285,11 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             # Yield thought event if present
             if current_model_result.thought:
-                thought_event = ThoughtEvent(content=current_model_result.thought, source=agent_name)
+                thought_event = ThoughtEvent(content=current_model_result.thought, source=agent_name, id=message_id)
                 yield thought_event
                 inner_messages.append(thought_event)
+                # Regenerate the message ID for correlation between streaming chunks and final message
+                message_id = str(uuid.uuid4())
 
             # Add the assistant message to the model context (including thought if present)
             await model_context.add_message(

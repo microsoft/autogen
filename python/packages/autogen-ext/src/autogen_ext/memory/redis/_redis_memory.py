@@ -11,8 +11,9 @@ logger = logging.getLogger(__name__)
 
 try:
     from redis import Redis
-    from redisvl.extensions.message_history import SemanticMessageHistory
+    from redisvl.extensions.message_history import MessageHistory, SemanticMessageHistory
     from redisvl.utils.utils import deserialize, serialize
+    from redisvl.utils.vectorize import HFTextVectorizer
 except ImportError as e:
     raise ImportError("To use Redis Memory RedisVL must be installed. Run `pip install autogen-ext[redisvl]`") from e
 
@@ -29,14 +30,15 @@ class RedisMemoryConfig(BaseModel):
     redis_url: str = Field(default="redis://localhost:6379", description="url of the Redis instance")
     index_name: str = Field(default="chat_history", description="Name of the Redis collection")
     prefix: str = Field(default="memory", description="prefix of the Redis collection")
+    sequential: bool = Field(
+        default=False, description="ignore semantic similarity and simply return memories in sequential order"
+    )
     distance_metric: Literal["cosine", "ip", "l2"] = "cosine"
     algorithm: Literal["flat", "hnsw"] = "flat"
     top_k: int = Field(default=10, description="Number of results to return in queries")
     datatype: Literal["uint8", "int8", "float16", "float32", "float64", "bfloat16"] = "float32"
     distance_threshold: float = Field(default=0.7, description="Minimum similarity score threshold")
-    model_name: str | None = Field(
-        default="sentence-transformers/all-mpnet-base-v2", description="Embedding model name"
-    )
+    model_name: str = Field(default="sentence-transformers/all-mpnet-base-v2", description="Embedding model name")
 
 
 class RedisMemory(Memory, Component[RedisMemoryConfig]):
@@ -44,9 +46,9 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
     Store and retrieve memory using vector similarity search powered by RedisVL.
 
     `RedisMemory` provides a vector-based memory implementation that uses RedisVL for storing and
-    retrieving content based on semantic similarity. It enhances agents with the ability to recall
-    contextually relevant information during conversations by leveraging vector embeddings to find
-    similar content.
+    retrieving content based on semantic similarity or sequential order. It enhances agents with the
+    ability to recall relevant information during conversations by leveraging vector embeddings to
+    find similar content.
 
         This implementation requires the RedisVL extra to be installed. Install with:
 
@@ -175,7 +177,19 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         self.config = config or RedisMemoryConfig()
         client = Redis.from_url(url=self.config.redis_url)  # type: ignore[reportUknownMemberType]
 
-        self.message_history = SemanticMessageHistory(name=self.config.index_name, redis_client=client)
+        if self.config.sequential:
+            self.message_history = MessageHistory(
+                name=self.config.index_name, prefix=self.config.prefix, redis_client=client
+            )
+        else:
+            vectorizer = HFTextVectorizer(model=self.config.model_name, dtype=self.config.datatype)
+            self.message_history = SemanticMessageHistory(
+                name=self.config.index_name,
+                prefix=self.config.prefix,
+                vectorizer=vectorizer,
+                distance_threshold=self.config.distance_threshold,
+                redis_client=client,
+            )
 
     async def update_context(
         self,
@@ -203,7 +217,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         else:
             last_message = ""
 
-        query_results = await self.query(last_message)
+        query_results = await self.query(last_message, sequential=self.config.sequential)
 
         stringified_messages = "\n\n".join([str(m.content) for m in query_results.results])
 
@@ -216,10 +230,10 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
 
         .. note::
 
-            To perform semantic search over stored memories RedisMemory creates a vector embedding
-            from the content field of a MemoryContent object. This content is assumed to be text,
-            JSON, or Markdown, and is passed to the vector embedding model specified in
-            RedisMemoryConfig.
+            If RedisMemoryConfig is not set to 'sequential', to perform semantic search over stored
+            memories RedisMemory creates a vector embedding from the content field of a
+            MemoryContent object. This content is assumed to be text, JSON, or Markdown, and is
+            passed to the vector embedding model specified in RedisMemoryConfig.
 
         Args:
             content (MemoryContent): The memory content to store within Redis.
@@ -241,7 +255,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         metadata = {"mime_type": mime_type}
         metadata.update(content.metadata if content.metadata else {})
         self.message_history.add_message(
-            {"role": "user", "content": memory_content, "tool_call_id": serialize(metadata)}  # type: ignore[reportArgumentType]
+            {"role": "user", "content": memory_content, "metadata": serialize(metadata)}  # type: ignore[reportArgumentType]
         )
 
     async def query(
@@ -258,6 +272,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
             top_k (int): The maximum number of relevant memories to include. Defaults to 10.
             distance_threshold (float): The maximum distance in vector space to consider a memory
             semantically similar when performining cosine similarity search. Defaults to 0.7.
+            sequential (bool): Ignore semantic similarity and return the top_k most recent memories.
 
         Args:
             query (str | MemoryContent): query to perform vector similarity search with. If a
@@ -270,34 +285,46 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         Returns:
             memoryQueryResult: Object containing memories relevant to the provided query.
         """
-        # get the query string, or raise an error for unsupported MemoryContent types
-        if isinstance(query, str):
-            prompt = query
-        elif isinstance(query, MemoryContent):
-            if query.mime_type in (MemoryMimeType.TEXT, MemoryMimeType.MARKDOWN):
-                prompt = str(query.content)
-            elif query.mime_type == MemoryMimeType.JSON:
-                prompt = serialize(query.content)
-            else:
-                raise NotImplementedError(
-                    f"Error: {query.mime_type} is not supported. Only MemoryMimeType.TEXT, MemoryMimeType.JSON, MemoryMimeType.MARKDOWN are currently supported."
-                )
-        else:
-            raise TypeError("'query' must be either a string or MemoryContent")
-
         top_k = kwargs.pop("top_k", self.config.top_k)
         distance_threshold = kwargs.pop("distance_threshold", self.config.distance_threshold)
 
-        results = self.message_history.get_relevant(
-            prompt=prompt,  # type: ignore[reportArgumentType]
-            top_k=top_k,
-            distance_threshold=distance_threshold,
-            raw=False,
-        )
+        # if sequential memory is requested skip prompt creation
+        sequential = bool(kwargs.pop("sequential", self.config.sequential))
+        if self.config.sequential and not sequential:
+            raise ValueError(
+                "Non-sequential queries cannot be run with an underlying sequential RedisMemory. Set sequential=False in RedisMemoryConfig to enable semantic memory querying."
+            )
+        elif sequential or self.config.sequential:
+            results = self.message_history.get_recent(
+                top_k=top_k,
+                raw=False,
+            )
+        else:
+            # get the query string, or raise an error for unsupported MemoryContent types
+            if isinstance(query, str):
+                prompt = query
+            elif isinstance(query, MemoryContent):
+                if query.mime_type in (MemoryMimeType.TEXT, MemoryMimeType.MARKDOWN):
+                    prompt = str(query.content)
+                elif query.mime_type == MemoryMimeType.JSON:
+                    prompt = serialize(query.content)
+                else:
+                    raise NotImplementedError(
+                        f"Error: {query.mime_type} is not supported. Only MemoryMimeType.TEXT, MemoryMimeType.JSON, MemoryMimeType.MARKDOWN are currently supported."
+                    )
+            else:
+                raise TypeError("'query' must be either a string or MemoryContent")
+
+            results = self.message_history.get_relevant(  # type: ignore
+                prompt=prompt,  # type: ignore[reportArgumentType]
+                top_k=top_k,
+                distance_threshold=distance_threshold,
+                raw=False,
+            )
 
         memories: List[MemoryContent] = []
-        for result in results:
-            metadata = deserialize(result["tool_call_id"])  # type: ignore[reportArgumentType]
+        for result in results:  # type: ignore[reportUnkownVariableType]
+            metadata = deserialize(result["metadata"])  # type: ignore[reportArgumentType]
             mime_type = MemoryMimeType(metadata.pop("mime_type"))
             if mime_type in (MemoryMimeType.TEXT, MemoryMimeType.MARKDOWN):
                 memory_content = result["content"]  # type: ignore[reportArgumentType]
