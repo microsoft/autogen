@@ -128,6 +128,17 @@ class _JSONSchemaToPydantic:
 
         return self._model_cache[ref_name]
 
+    def _get_item_model_name(self, array_field_name: str, parent_model_name: str) -> str:
+        """Generate hash-based model names for array items to keep names short and unique."""
+        import hashlib
+        
+        # Create a short hash of the full path to ensure uniqueness
+        full_path = f"{parent_model_name}_{array_field_name}"
+        hash_suffix = hashlib.md5(full_path.encode()).hexdigest()[:6]
+        
+        # Use field name as-is with hash suffix
+        return f"{array_field_name}_{hash_suffix}"
+
     def _process_definitions(self, root_schema: Dict[str, Any]) -> None:
         if "$defs" in root_schema:
             for model_name in root_schema["$defs"]:
@@ -253,6 +264,11 @@ class _JSONSchemaToPydantic:
             item_schema = value.get("items", {"type": "string"})
             if "$ref" in item_schema:
                 item_type = self.get_ref(item_schema["$ref"].split("/")[-1])
+            elif item_schema.get("type") == "object" and "properties" in item_schema:
+                # Handle array items that are objects with properties - create a nested model
+                # Use hash-based naming to keep names short and unique
+                item_model_name = self._get_item_model_name(key, model_name)
+                item_type = self._json_schema_to_model(item_schema, item_model_name, root_schema)
             else:
                 item_type_name = item_schema.get("type")
                 if item_type_name is None:
