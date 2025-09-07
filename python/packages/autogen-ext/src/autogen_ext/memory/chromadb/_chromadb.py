@@ -6,12 +6,13 @@ from autogen_core import CancellationToken, Component, Image
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQueryResult, UpdateContextResult
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
-from chromadb import HttpClient, PersistentClient
+from chromadb import CloudClient, HttpClient, PersistentClient
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import Document, Metadata
 from typing_extensions import Self
 
 from ._chroma_configs import (
+    ChromaCloudVectorMemoryConfig,
     ChromaDBVectorMemoryConfig,
     CustomEmbeddingFunctionConfig,
     DefaultEmbeddingFunctionConfig,
@@ -54,9 +55,10 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
     Args:
         config (ChromaDBVectorMemoryConfig | None): Configuration for the ChromaDB memory.
             If None, defaults to a PersistentChromaDBVectorMemoryConfig with default values.
-            Two config types are supported:
+            Three config types are supported:
             * PersistentChromaDBVectorMemoryConfig: For local storage
             * HttpChromaDBVectorMemoryConfig: For connecting to a remote ChromaDB server
+            * ChromaCloudVectorMemoryConfig: For connecting to Chroma Cloud
 
     Example:
 
@@ -70,6 +72,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
             from autogen_core.memory import MemoryContent, MemoryMimeType
             from autogen_ext.memory.chromadb import (
                 ChromaDBVectorMemory,
+                ChromaCloudVectorMemoryConfig,
                 PersistentChromaDBVectorMemoryConfig,
                 SentenceTransformerEmbeddingFunctionConfig,
                 OpenAIEmbeddingFunctionConfig,
@@ -118,6 +121,19 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                     )
                 )
 
+                # Using Chroma Cloud
+                cloud_memory = ChromaDBVectorMemory(
+                    config=ChromaCloudVectorMemoryConfig(
+                        collection_name="cloud_memory",
+                        tenant="your-tenant",
+                        database="your-database",
+                        api_key=os.environ["CHROMA_API_KEY"],
+                        embedding_function_config=OpenAIEmbeddingFunctionConfig(
+                            api_key=os.environ["OPENAI_API_KEY"], model_name="text-embedding-3-small"
+                        ),
+                    )
+                )
+
                 # Add user preferences to memory
                 await openai_memory.add(
                     MemoryContent(
@@ -148,6 +164,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                 await default_memory.close()
                 await custom_memory.close()
                 await openai_memory.close()
+                await cloud_memory.close()
 
 
             asyncio.run(main())
@@ -259,6 +276,12 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                         settings=settings,
                         tenant=self._config.tenant,
                         database=self._config.database,
+                    )
+                elif isinstance(self._config, ChromaCloudVectorMemoryConfig):
+                    self._client = CloudClient(
+                        tenant=self._config.tenant,
+                        database=self._config.database,
+                        api_key=self._config.api_key,
                     )
                 else:
                     raise ValueError(f"Unsupported config type: {type(self._config)}")
