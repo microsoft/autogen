@@ -90,6 +90,7 @@ anthropic_message_params = {
     "tool_choice",
     "stream",
     "metadata",
+    "thinking",
 }
 disallowed_create_args = {"stream", "messages"}
 required_create_args: Set[str] = {"model"}
@@ -464,6 +465,9 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         self._create_args = create_args
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+        
+        # Store last used tools for anthropic API requirement  
+        self._last_used_tools: List[ToolParam] = []
 
     def _serialize_message(self, message: MessageParam) -> Dict[str, Any]:
         """Convert an Anthropic MessageParam to a JSON-serializable format."""
@@ -512,6 +516,33 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         messages = _messages
 
         return messages
+    
+    
+    def _get_thinking_config(self, extra_create_args: Mapping[str, Any]) -> Dict[str, Any]:
+        """
+        Get the thinking configuration for API calls
+        
+        Args:
+            extra_create_args: Extra arguments that may contain thinking config
+            
+        Returns:
+            dict: Thinking configuration to pass to API, or empty dict if not enabled
+        """
+        # Check if thinking is specified in extra_create_args (priority)
+        thinking_config = extra_create_args.get("thinking")
+        if thinking_config is None:
+            # Check if thinking is specified in base create_args
+            thinking_config = self._create_args.get("thinking")
+            
+        if thinking_config is None:
+            return {}
+        
+        # Pass through thinking config to API for validation
+        if isinstance(thinking_config, dict) and thinking_config.get("type") == "enabled":
+            return {"thinking": thinking_config}
+        
+        return {}
+    
 
     def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
         """
@@ -642,7 +673,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         for param in ["top_p", "top_k", "stop_sequences", "metadata"]:
             if param in create_args:
                 request_args[param] = create_args[param]
-
+        
+        # Add thinking configuration if available
+        thinking_config = self._get_thinking_config(extra_create_args)
+        if thinking_config:
+            request_args.update(thinking_config)
+        
         # Execute the request
         future: asyncio.Task[Message] = asyncio.ensure_future(self._client.messages.create(**request_args))  # type: ignore
 
@@ -673,15 +709,22 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         # Check if the response includes tool uses
         tool_uses = [block for block in result.content if getattr(block, "type", None) == "tool_use"]
+        
+        # Check for thinking blocks
+        thinking_blocks = [block for block in result.content if getattr(block, "type", None) == "thinking"]
 
         if tool_uses:
             # Handle tool use response
             content = []
 
-            # Check for text content that should be treated as thought
-            text_blocks: List[TextBlock] = [block for block in result.content if isinstance(block, TextBlock)]
-            if text_blocks:
-                thought = "".join([block.text for block in text_blocks])
+            # Extract thinking content
+            if thinking_blocks:
+                thought = "".join([getattr(block, "thinking", "") for block in thinking_blocks])
+            else:
+                # Fallback: text content before tool calls is treated as thought
+                text_blocks: List[TextBlock] = [block for block in result.content if isinstance(block, TextBlock)]
+                if text_blocks:
+                    thought = "".join([block.text for block in text_blocks])
 
             # Process tool use blocks
             for tool_use in tool_uses:
@@ -701,7 +744,14 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                     )
         else:
             # Handle text response
-            content = "".join([block.text if isinstance(block, TextBlock) else "" for block in result.content])
+            if thinking_blocks:
+                # Extract thinking content
+                thought = "".join([getattr(block, "thinking", "") for block in thinking_blocks])
+                # Get only text content for the main content field
+                content = "".join([block.text if isinstance(block, TextBlock) else "" for block in result.content])
+            else:
+                # No thinking blocks, just get text content
+                content = "".join([block.text if isinstance(block, TextBlock) else "" for block in result.content])
 
         # Create the final result
         response = CreateResult(
@@ -842,7 +892,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         for param in ["top_p", "top_k", "stop_sequences", "metadata"]:
             if param in create_args:
                 request_args[param] = create_args[param]
-
+        
+        # Add thinking configuration if available
+        thinking_config = self._get_thinking_config(extra_create_args)
+        if thinking_config:
+            request_args.update(thinking_config)
+        
         # Stream the response
         stream_future: asyncio.Task[AsyncStream[RawMessageStreamEvent]] = asyncio.ensure_future(
             cast(Coroutine[Any, Any, AsyncStream[RawMessageStreamEvent]], self._client.messages.create(**request_args))
@@ -854,6 +909,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         stream: AsyncStream[RawMessageStreamEvent] = cast(AsyncStream[RawMessageStreamEvent], await stream_future)  # type: ignore
 
         text_content: List[str] = []
+        thinking_content: List[str] = []
         tool_calls: Dict[str, Dict[str, Any]] = {}  # Track tool calls by ID
         current_tool_id: Optional[str] = None
         input_tokens: int = 0
@@ -884,6 +940,9 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                         "input": json.dumps(chunk.content_block.input),
                         "partial_json": "",  # May be populated from deltas
                     }
+                elif chunk.content_block.type == "thinking":
+                    # Start of a thinking block - no special handling needed for start
+                    pass
 
             elif chunk.type == "content_block_delta":
                 if hasattr(chunk.delta, "type") and chunk.delta.type == "text_delta":
@@ -892,7 +951,14 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                     text_content.append(delta_text)
                     if delta_text:
                         yield delta_text
-
+                elif hasattr(chunk.delta, "type") and chunk.delta.type == "thinking_delta":
+                    # Handle thinking content
+                    if hasattr(chunk.delta, "thinking"):
+                        delta_thinking = chunk.delta.thinking
+                        thinking_content.append(delta_thinking)
+                        # Optionally yield thinking content as it streams
+                        if delta_thinking:
+                            yield delta_thinking
                 # Handle tool input deltas - they come as InputJSONDelta
                 elif hasattr(chunk.delta, "type") and chunk.delta.type == "input_json_delta":
                     if current_tool_id is not None and hasattr(chunk.delta, "partial_json"):
@@ -935,8 +1001,11 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         if tool_calls:
             # We received tool calls
-            if text_content:
-                # Text before tool calls is treated as thought
+            # Extract thinking content
+            if thinking_content:
+                thought = "".join(thinking_content)
+            elif text_content:
+                # Fallback: text before tool calls is treated as thought
                 thought = "".join(text_content)
 
             # Convert tool calls to FunctionCall objects
@@ -961,8 +1030,14 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                     )
                 )
         else:
-            # Just text content
-            content = "".join(text_content)
+            # Just text content - no tool calls
+            if thinking_content:
+                # Extract thinking content
+                thought = "".join(thinking_content)
+                content = "".join(text_content)
+            else:
+                # No thinking content, just regular text
+                content = "".join(text_content)
 
         # Create the final result
         result = CreateResult(
