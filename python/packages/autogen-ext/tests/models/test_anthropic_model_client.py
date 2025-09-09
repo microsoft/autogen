@@ -1136,8 +1136,6 @@ def test_mock_thinking_config_validation() -> None:
     assert result == {}
 
     # Test thinking config from base create_args
-    from autogen_core.models import ModelInfo
-
     client_with_thinking = AnthropicChatCompletionClient(
         model="claude-sonnet-4-20250514",
         api_key="fake-key",
