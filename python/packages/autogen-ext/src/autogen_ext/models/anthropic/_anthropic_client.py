@@ -526,7 +526,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             extra_create_args: Extra arguments that may contain thinking config
             
         Returns:
-            dict: Thinking configuration to pass to API, or empty dict if not enabled
+            dict: Thinking configuration or empty dict if not provided
         """
         # Check if thinking is specified in extra_create_args (priority)
         thinking_config = extra_create_args.get("thinking")
@@ -537,11 +537,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         if thinking_config is None:
             return {}
         
-        # Pass through thinking config to API for validation
-        if isinstance(thinking_config, dict) and thinking_config.get("type") == "enabled":
-            return {"thinking": thinking_config}
-        
-        return {}
+        return {"thinking": thinking_config}
     
 
     def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:

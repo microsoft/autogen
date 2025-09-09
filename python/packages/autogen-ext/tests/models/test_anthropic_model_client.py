@@ -1110,13 +1110,13 @@ async def test_streaming_tool_usage_with_arguments(provider: str) -> None:
 
 
 def test_mock_thinking_config_validation() -> None:
-    """Test thinking configuration validation logic."""
+    """Test thinking configuration handling logic."""
     client = AnthropicChatCompletionClient(
         model="claude-3-haiku-20240307",  # Known model for basic validation
         api_key="fake-key"
     )
     
-    # Test valid thinking config
+    # Test valid enabled thinking config
     valid_config = {"thinking": {"type": "enabled", "budget_tokens": 2000}}
     result = client._get_thinking_config(valid_config)  # pyright: ignore[reportPrivateUsage]
     assert result == valid_config
@@ -1126,16 +1126,16 @@ def test_mock_thinking_config_validation() -> None:
     result = client._get_thinking_config(any_budget_config)  # pyright: ignore[reportPrivateUsage]
     assert result == any_budget_config
     
-    # Test disabled thinking config
+    # Test valid disabled thinking config
     disabled_config = {"thinking": {"type": "disabled"}}
     result = client._get_thinking_config(disabled_config)  # pyright: ignore[reportPrivateUsage]
-    assert result == {}
+    assert result == disabled_config
     
     # Test no thinking config
     result = client._get_thinking_config({})
     assert result == {}
     
-    # Test thinking config from base create_args (using claude-sonnet-4-20250514 as example)
+    # Test thinking config from base create_args
     from autogen_core.models import ModelInfo
     client_with_thinking = AnthropicChatCompletionClient(
         model="claude-sonnet-4-20250514",
