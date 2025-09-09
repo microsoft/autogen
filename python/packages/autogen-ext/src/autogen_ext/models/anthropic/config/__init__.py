@@ -9,6 +9,13 @@ class ResponseFormat(TypedDict):
     type: Literal["text", "json_object"]
 
 
+class ThinkingConfig(TypedDict, total=False):
+    """Configuration for thinking mode."""
+
+    type: Required[Literal["enabled", "disabled"]]
+    budget_tokens: Optional[int]  # Required if type is "enabled"
+
+
 class CreateArguments(TypedDict, total=False):
     model: str
     max_tokens: Optional[int]
@@ -18,6 +25,7 @@ class CreateArguments(TypedDict, total=False):
     stop_sequences: Optional[List[str]]
     response_format: Optional[ResponseFormat]
     metadata: Optional[Dict[str, str]]
+    thinking: Optional[ThinkingConfig]
 
 
 class BedrockInfo(TypedDict):
@@ -57,6 +65,13 @@ class AnthropicBedrockClientConfiguration(AnthropicClientConfiguration, total=Fa
 
 
 # Pydantic equivalents of the above TypedDicts
+class ThinkingConfigModel(BaseModel):
+    """Configuration for thinking mode."""
+
+    type: Literal["enabled", "disabled"]
+    budget_tokens: int | None = None  # Required if type is "enabled"
+
+
 class CreateArgumentsConfigModel(BaseModel):
     model: str
     max_tokens: int | None = 4096
@@ -66,6 +81,7 @@ class CreateArgumentsConfigModel(BaseModel):
     stop_sequences: List[str] | None = None
     response_format: ResponseFormat | None = None
     metadata: Dict[str, str] | None = None
+    thinking: ThinkingConfigModel | None = None
 
 
 class BaseAnthropicClientConfigurationConfigModel(CreateArgumentsConfigModel):
