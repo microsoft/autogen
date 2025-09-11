@@ -1,0 +1,7 @@
+{
+    "llm_provider": "openai",
+    "llm_config": {
+        "model": "gpt-4",
+        "api_key": "YOUR_OPENAI_API_KEY"
+    }
+}

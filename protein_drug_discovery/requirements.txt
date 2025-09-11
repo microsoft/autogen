@@ -1,0 +1,6 @@
+pyautogen
+requests
+beautifulsoup4
+python-dotenv
+pymed
+google-api-python-client
