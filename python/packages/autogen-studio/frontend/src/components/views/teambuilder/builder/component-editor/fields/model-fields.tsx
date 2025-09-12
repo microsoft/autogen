@@ -100,65 +100,55 @@ const ModelInfoEditor: React.FC<{
           label="Vision Support"
           tooltip="Enable vision support (image input capability)."
         >
-          <div className="w-16 pointer-events-none">
-            <Switch
-              checked={modelInfo.vision}
-              onChange={(checked) => updateField("vision", checked)}
-              className="pointer-events-auto"
-            />
-          </div>
+          <Switch
+            checked={modelInfo.vision}
+            onChange={(checked) => updateField("vision", checked)}
+            className="w-16"
+          />
         </InputWithTooltip>
 
         <InputWithTooltip
           label="Function Calling"
           tooltip="Enable function calling feature for external integrations."
         >
-          <div className="w-16 pointer-events-none">
-            <Switch
-              checked={modelInfo.function_calling}
-              onChange={(checked) => updateField("function_calling", checked)}
-              className="pointer-events-auto"
-            />
-          </div>
+          <Switch
+            checked={modelInfo.function_calling}
+            onChange={(checked) => updateField("function_calling", checked)}
+            className="w-16"
+          />
         </InputWithTooltip>
 
         <InputWithTooltip
           label="JSON Output"
           tooltip="Enable JSON output mode (distinct from structured output)."
         >
-          <div className="w-16 pointer-events-none">
-            <Switch
-              checked={modelInfo.json_output}
-              onChange={(checked) => updateField("json_output", checked)}
-              className="pointer-events-auto"
-            />
-          </div>
+          <Switch
+            checked={modelInfo.json_output}
+            onChange={(checked) => updateField("json_output", checked)}
+            className="w-16"
+          />
         </InputWithTooltip>
 
         <InputWithTooltip
           label="Structured Output"
           tooltip="Enable structured output mode (distinct from JSON output)."
         >
-          <div className="w-16 pointer-events-none">
-            <Switch
-              checked={modelInfo.structured_output}
-              onChange={(checked) => updateField("structured_output", checked)}
-              className="pointer-events-auto"
-            />
-          </div>
+          <Switch
+            checked={modelInfo.structured_output}
+            onChange={(checked) => updateField("structured_output", checked)}
+            className="w-16"
+          />
         </InputWithTooltip>
 
         <InputWithTooltip
           label="Multiple System Messages"
           tooltip="Enable support for multiple, non-consecutive system messages."
         >
-          <div className="w-16 pointer-events-none">
-            <Switch
-              checked={modelInfo.multiple_system_messages}
-              onChange={(checked) => updateField("multiple_system_messages", checked)}
-              className="pointer-events-auto"
-            />
-          </div>
+          <Switch
+            checked={modelInfo.multiple_system_messages}
+            onChange={(checked) => updateField("multiple_system_messages", checked)}
+            className="w-16"
+          />
         </InputWithTooltip>
       </div>
 
