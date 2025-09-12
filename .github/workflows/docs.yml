@@ -39,7 +39,7 @@ jobs:
               poe-dir: ".",
             },
             {
-              ref: "python-v0.6.4",
+              ref: "python-v0.7.4",
               dest-dir: stable,
               uv-version: "0.7.13",
               sphinx-release-override: "stable",
@@ -185,6 +185,34 @@ jobs:
               sphinx-release-override: "",
               poe-dir: ".",
             },
+            {
+              ref: "python-v0.7.1.post1",
+              dest-dir: "0.7.1",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
+            {
+              ref: "python-v0.7.2",
+              dest-dir: "0.7.2",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
+            {
+              ref: "python-v0.7.3",
+              dest-dir: "0.7.3",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
+            {
+              ref: "python-v0.7.4",
+              dest-dir: "0.7.4",
+              uv-version: "0.7.13",
+              sphinx-release-override: "",
+              poe-dir: ".",
+            },
           ]
     steps:
       - name: Checkout
@@ -200,8 +228,9 @@ jobs:
         with:
           python-version: "3.11"
       - run: |
-          uv sync --locked --all-extras
+          uv venv --python=3.11
           source .venv/bin/activate
+          uv sync --locked --all-extras
           poe --directory ${{ matrix.version.poe-dir }} docs-build
           mkdir -p docs-staging/${{ matrix.version.dest-dir }}/
           mv ${{ matrix.version.poe-dir }}/docs/build/* docs-staging/${{ matrix.version.dest-dir }}/

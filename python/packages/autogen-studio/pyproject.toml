@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "autogenstudio"
@@ -16,7 +16,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-
 
 dependencies = [
     "pydantic",
@@ -42,21 +41,19 @@ optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
 dynamic = ["version"]
 
-[tool.setuptools]
-include-package-data = true
+[tool.hatch.version]
+path = "autogenstudio/version.py"
 
+[tool.hatch.build.targets.wheel]
+packages = ["autogenstudio"]
 
-[tool.setuptools.dynamic]
-version = {attr = "autogenstudio.version.VERSION"}
-readme = {file = ["README.md"]}
-
-[tool.setuptools.packages.find]
-include = ["autogenstudio*"]
-exclude = ["*.tests*"]
-namespaces = false
-
-[tool.setuptools.package-data]
-"autogenstudio" = ["*.*"]
+[tool.hatch.build.targets.sdist]
+include = [
+    "autogenstudio/**",
+]
+exclude = [
+    "*.tests*",
+]
 
 [tool.pytest.ini_options]
 filterwarnings = [
