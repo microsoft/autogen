@@ -1,5 +1,5 @@
 import React from "react";
-import { GithubOutlined, WindowsOutlined } from "@ant-design/icons";
+import { GithubOutlined, WindowsOutlined, LoginOutlined } from "@ant-design/icons";
 
 export interface AuthProviderInfo {
   name: string;
@@ -36,7 +36,7 @@ export const getAuthProviderInfo = (authType: string): AuthProviderInfo => {
       return {
         name: "unknown",
         displayName: "External Provider",
-        icon: <GithubOutlined />, // fallback icon
+        icon: <LoginOutlined />, // generic auth icon
         color: "#1890ff",
         connectingText: "Connecting...",
         buttonText: "Sign in",
