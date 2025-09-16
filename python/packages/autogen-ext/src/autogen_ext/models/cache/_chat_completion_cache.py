@@ -232,7 +232,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                         cached_result = CreateResult.model_validate(parsed_data)
                     elif isinstance(parsed_data, list):
                         # Handle streaming results stored as JSON string
-                        reconstructed_list = []
+                        reconstructed_list : list[CreateResult | str] = []
                         for item in parsed_data:
                             if isinstance(item, dict):
                                 reconstructed_list.append(CreateResult.model_validate(item))

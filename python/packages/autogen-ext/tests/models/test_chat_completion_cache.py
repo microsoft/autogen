@@ -491,14 +491,16 @@ def test_check_cache_string_json_deserialization_success() -> None:
     _, prompts, system_prompt, replay_client, _ = get_test_data()
 
     # Create a JSON string representing a valid CreateResult
-    create_result_json = json.dumps({
-        "content": "response from string json",
-        "usage": {"prompt_tokens": 12, "completion_tokens": 6},
-        "cached": False,
-        "finish_reason": "stop",
-        "logprobs": None,
-        "thought": None
-    })
+    create_result_json = json.dumps(
+        {
+            "content": "response from string json",
+            "usage": {"prompt_tokens": 12, "completion_tokens": 6},
+            "cached": False,
+            "finish_reason": "stop",
+            "logprobs": None,
+            "thought": None,
+        }
+    )
 
     # Mock cache store that returns the JSON string (simulating Redis behavior)
     mock_store = MockCacheStore(return_value=cast(Any, create_result_json))
@@ -524,18 +526,20 @@ def test_check_cache_string_json_list_deserialization_success() -> None:
     _, prompts, system_prompt, replay_client, _ = get_test_data()
 
     # Create a JSON string representing a streaming result list
-    streaming_list_json = json.dumps([
-        "streaming chunk 1",
-        {
-            "content": "streaming response from json",
-            "usage": {"prompt_tokens": 8, "completion_tokens": 4},
-            "cached": False,
-            "finish_reason": "stop",
-            "logprobs": None,
-            "thought": None
-        },
-        "streaming chunk 2"
-    ])
+    streaming_list_json = json.dumps(
+        [
+            "streaming chunk 1",
+            {
+                "content": "streaming response from json",
+                "usage": {"prompt_tokens": 8, "completion_tokens": 4},
+                "cached": False,
+                "finish_reason": "stop",
+                "logprobs": None,
+                "thought": None,
+            },
+            "streaming chunk 2",
+        ]
+    )
 
     # Mock cache store that returns the JSON string (simulating Redis streaming)
     mock_store = MockCacheStore(return_value=cast(Any, streaming_list_json))
