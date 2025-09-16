@@ -94,7 +94,7 @@ openai_init_kwargs = set(inspect.getfullargspec(AsyncOpenAI.__init__).kwonlyargs
 aopenai_init_kwargs = set(inspect.getfullargspec(AsyncAzureOpenAI.__init__).kwonlyargs)
 
 create_kwargs = set(completion_create_params.CompletionCreateParamsBase.__annotations__.keys()) | set(
-    ("timeout", "stream")
+    ("timeout", "stream", "extra_body")
 )
 # Only single choice allowed
 disallowed_create_args = set(["stream", "messages", "function_call", "functions", "n"])
