@@ -49,6 +49,7 @@ WELL_KNOWN_PROVIDERS = {
     "AzureOpenAIChatCompletionClient": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
     "openai_chat_completion_client": "autogen_ext.models.openai.OpenAIChatCompletionClient",
     "OpenAIChatCompletionClient": "autogen_ext.models.openai.OpenAIChatCompletionClient",
+    "OllamaChatCompletionClient": "autogen_ext.models.ollama.OllamaChatCompletionClient",
 }
 
 
