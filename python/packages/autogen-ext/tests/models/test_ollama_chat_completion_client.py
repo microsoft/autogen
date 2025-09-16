@@ -1325,19 +1325,19 @@ def test_ollama_load_component() -> None:
         "config": {
             "model": "qwen3",
             "host": "http://1.2.3.4:30130",
-        }
+        },
     }
 
     # This should not raise an error anymore
     client = ChatCompletionClient.load_component(config)
-    
+
     # Verify we got the right type of client
     assert isinstance(client, OllamaChatCompletionClient)
-    assert client._model_name == "qwen3"
-    
+    assert client._model_name == "qwen3"  # type: ignore[reportPrivateUsage]
+
     # Test that the config was applied correctly
     create_args = client.get_create_args()
-    assert create_args["model"] == "qwen3"
+    assert create_args["model"] == "qwen3"  # type: ignore[reportPrivateUsage]
 
 
 def test_ollama_load_component_via_class() -> None:
@@ -1347,12 +1347,12 @@ def test_ollama_load_component_via_class() -> None:
         "config": {
             "model": "llama3.2",
             "host": "http://localhost:11434",
-        }
+        },
     }
 
     # Load via the specific class
     client = OllamaChatCompletionClient.load_component(config)
-    
+
     # Verify we got the right type and configuration
     assert isinstance(client, OllamaChatCompletionClient)
     assert client._model_name == "llama3.2"

@@ -367,24 +367,3 @@ def test_component_descriptions() -> None:
     assert ComponentWithDocstring("test").dump_component().description == "A component using just docstring."
     assert ComponentWithDescription("test").dump_component().description == "Explicit description"
     assert ComponentWithDescription("test").dump_component().label == "Custom Component"
-
-
-def test_ollama_in_well_known_providers() -> None:
-    """Test that OllamaChatCompletionClient is included in WELL_KNOWN_PROVIDERS."""
-    from autogen_core._component_config import WELL_KNOWN_PROVIDERS
-
-    # Verify OllamaChatCompletionClient is present
-    assert "OllamaChatCompletionClient" in WELL_KNOWN_PROVIDERS, "OllamaChatCompletionClient should be in WELL_KNOWN_PROVIDERS"
-    
-    # Verify correct path
-    expected_path = "autogen_ext.models.ollama.OllamaChatCompletionClient"
-    actual_path = WELL_KNOWN_PROVIDERS["OllamaChatCompletionClient"]
-    assert actual_path == expected_path, f"Expected {expected_path}, got {actual_path}"
-    
-    # Verify path can be properly parsed (this is what load_component does)
-    output = actual_path.rsplit(".", maxsplit=1)
-    assert len(output) == 2, f"Provider path should be splittable: {actual_path}"
-    
-    module_path, class_name = output
-    assert module_path == "autogen_ext.models.ollama"
-    assert class_name == "OllamaChatCompletionClient"
