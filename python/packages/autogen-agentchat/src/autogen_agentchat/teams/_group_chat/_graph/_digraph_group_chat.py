@@ -165,12 +165,13 @@ class DiGraph(BaseModel):
             visited.add(node_name)
             rec_stack.add(node_name)
             path.append(node_name)
+            cycle = False
 
             for edge in self.nodes[node_name].edges:
                 target = edge.target
                 if target not in visited:
                     if dfs(target):
-                        return True
+                        cycle = True
                 elif target in rec_stack:
                     # Found a cycle → extract the cycle
                     cycle_start_index = path.index(target)
@@ -182,11 +183,11 @@ class DiGraph(BaseModel):
                         raise ValueError(
                             f"Cycle detected without exit condition: {' -> '.join(cycle_nodes + cycle_nodes[:1])}"
                         )
-                    return True  # Found cycle, but it has an exit condition
+                    cycle = True  # Found cycle, but it has an exit condition
 
             rec_stack.remove(node_name)
             path.pop()
-            return False
+            return cycle
 
         has_cycle = False
         for node in self.nodes:
