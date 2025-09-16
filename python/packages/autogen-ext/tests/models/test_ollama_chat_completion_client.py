@@ -1355,4 +1355,4 @@ def test_ollama_load_component_via_class() -> None:
 
     # Verify we got the right type and configuration
     assert isinstance(client, OllamaChatCompletionClient)
-    assert client._model_name == "llama3.2"
+    assert client._model_name == "llama3.2"  # type: ignore[reportPrivateUsage]
