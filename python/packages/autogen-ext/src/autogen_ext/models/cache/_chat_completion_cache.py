@@ -236,8 +236,11 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                         for item in parsed_data:
                             if isinstance(item, dict):
                                 reconstructed_list_2.append(CreateResult.model_validate(item))
-                            else:
+                            elif isinstance(item, str):
                                 reconstructed_list_2.append(item)
+                            else:
+                                # If item is neither dict nor str, treat as cache miss
+                                return None, cache_key
                         cached_result = reconstructed_list_2
                     else:
                         # If parsed data is not dict or list, treat as cache miss
