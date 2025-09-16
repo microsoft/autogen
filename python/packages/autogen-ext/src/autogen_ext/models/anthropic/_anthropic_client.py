@@ -881,7 +881,8 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                     tool_calls[current_tool_id] = {
                         "id": chunk.content_block.id,
                         "name": chunk.content_block.name,
-                        "input": "",  # Will be populated from deltas
+                        "input": json.dumps(chunk.content_block.input),
+                        "partial_json": "",  # May be populated from deltas
                     }
 
             elif chunk.type == "content_block_delta":
@@ -896,10 +897,15 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                 elif hasattr(chunk.delta, "type") and chunk.delta.type == "input_json_delta":
                     if current_tool_id is not None and hasattr(chunk.delta, "partial_json"):
                         # Accumulate partial JSON for the current tool
-                        tool_calls[current_tool_id]["input"] += chunk.delta.partial_json
+                        tool_calls[current_tool_id]["partial_json"] += chunk.delta.partial_json
 
             elif chunk.type == "content_block_stop":
                 # End of a content block (could be text or tool)
+                if current_tool_id is not None:
+                    # If there was partial JSON accumulated, use it as the input
+                    if len(tool_calls[current_tool_id]["partial_json"]) > 0:
+                        tool_calls[current_tool_id]["input"] = tool_calls[current_tool_id]["partial_json"]
+                    del tool_calls[current_tool_id]["partial_json"]
                 current_tool_id = None
 
             elif chunk.type == "message_delta":
