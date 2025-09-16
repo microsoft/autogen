@@ -557,7 +557,6 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if finish_reason is None:
             raise ValueError("No stop reason found")
 
-
         content: Union[str, List[FunctionCall]]
 
         if len(content_deltas) > 1:
