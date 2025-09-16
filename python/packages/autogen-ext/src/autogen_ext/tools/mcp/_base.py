@@ -186,5 +186,5 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 return dumped
             else:
                 return {}
-
-        return json.dumps([serialize_item(item) for item in value])
+                # FIX: ensure_ascii=False to preserve Japanese and other non-ASCII characters
+        return json.dumps([serialize_item(item) for item in value], ensure_ascii=False)
