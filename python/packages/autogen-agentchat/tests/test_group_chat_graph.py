@@ -247,6 +247,54 @@ def test_cycle_detection_without_exit_condition() -> None:
         graph.has_cycles_with_exit()
 
 
+def test_cycle_detection_cleanup_bug() -> None:
+    """Test that cycle detection properly cleans up recursion state.
+    
+    This test reproduces the bug where the DFS algorithm in has_cycles_with_exit
+    didn't properly clean up rec_stack and path when returning early upon finding
+    a cycle with valid exit conditions. The bug could cause incorrect behavior
+    when processing subsequent unvisited nodes in graphs with multiple components.
+    """
+    
+    # Create a graph that exposes the cleanup bug:
+    # A -> B -> C -> A (cycle with condition)  
+    # A -> D (separate branch that could be affected by stale rec_stack/path)
+    # E (disconnected component that could be affected by cleanup issues)
+    graph = DiGraph(
+        nodes={
+            "A": DiGraphNode(name="A", edges=[
+                DiGraphEdge(target="B"),
+                DiGraphEdge(target="D")
+            ]),
+            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="C")]),
+            "C": DiGraphNode(name="C", edges=[DiGraphEdge(target="A", condition="loop")]),
+            "D": DiGraphNode(name="D", edges=[]),
+            "E": DiGraphNode(name="E", edges=[])  # Disconnected component
+        }
+    )
+    
+    # This should work correctly with the fix - proper cleanup ensures
+    # that processing node E is not affected by stale recursion state
+    # from processing the A->B->C->A cycle
+    result = graph.has_cycles_with_exit()
+    assert result == True  # Has valid cycles
+    
+    # Test with multiple cycles to ensure thorough cleanup
+    multi_cycle_graph = DiGraph(
+        nodes={
+            "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
+            "B": DiGraphNode(name="B", edges=[DiGraphEdge(target="A", condition="cycle1")]),
+            "C": DiGraphNode(name="C", edges=[DiGraphEdge(target="D")]),
+            "D": DiGraphNode(name="D", edges=[DiGraphEdge(target="C", condition="cycle2")]),
+            "E": DiGraphNode(name="E", edges=[DiGraphEdge(target="F")]),
+            "F": DiGraphNode(name="F", edges=[])
+        }
+    )
+    
+    result = multi_cycle_graph.has_cycles_with_exit()
+    assert result == True  # Has valid cycles
+
+
 def test_different_activation_groups_detection() -> None:
     """Test different activation groups."""
     graph = DiGraph(
