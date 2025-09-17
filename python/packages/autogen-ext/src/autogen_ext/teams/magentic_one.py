@@ -11,62 +11,18 @@ from autogen_core.models import ChatCompletionClient
 from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.code_executors import create_default_code_executor
 from autogen_ext.models.openai._openai_client import BaseOpenAIChatCompletionClient
 
-# Docker imports for default code executor
+# Docker imports for default code executor - needed for type hints and examples
 try:
-    import docker
-    from docker.errors import DockerException
-
     from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
-
-    _docker_available = True
 except ImportError:
-    docker = None  # type: ignore
-    DockerException = Exception  # type: ignore
     DockerCommandLineCodeExecutor = None  # type: ignore
-    _docker_available = False
 
 SyncInputFunc = Callable[[str], str]
 AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
 InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
-
-
-def _is_docker_available() -> bool:
-    """Check if Docker is available and running."""
-    if not _docker_available:
-        return False
-
-    try:
-        if docker is not None:
-            client = docker.from_env()
-            client.ping()  # type: ignore
-            return True
-    except DockerException:
-        return False
-
-    return False
-
-
-def _create_default_code_executor() -> CodeExecutor:
-    """Create the default code executor, preferring Docker if available."""
-    if _is_docker_available() and DockerCommandLineCodeExecutor is not None:
-        try:
-            return DockerCommandLineCodeExecutor()
-        except Exception:
-            # Fallback to local if Docker fails to initialize
-            pass
-
-    # Issue warning and use local executor if Docker is not available
-    warnings.warn(
-        "Docker is not available or not running. Using LocalCommandLineCodeExecutor instead of the recommended DockerCommandLineCodeExecutor. "
-        "For security, it is recommended to install Docker and ensure it's running before using MagenticOne. "
-        "To install Docker, visit: https://docs.docker.com/get-docker/",
-        UserWarning,
-        stacklevel=3,
-    )
-    return LocalCommandLineCodeExecutor()
 
 
 class MagenticOne(MagenticOneGroupChat):
@@ -256,7 +212,7 @@ class MagenticOne(MagenticOneGroupChat):
                 DeprecationWarning,
                 stacklevel=2,
             )
-            code_executor = _create_default_code_executor()
+            code_executor = create_default_code_executor()
 
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)

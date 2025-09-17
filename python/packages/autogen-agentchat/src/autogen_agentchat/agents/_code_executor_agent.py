@@ -454,6 +454,18 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         self._approval_func = approval_func
         self._approval_func_is_async = approval_func is not None and iscoroutinefunction(approval_func)
 
+        # Issue warning if no approval function is set
+        if approval_func is None:
+            import warnings
+
+            warnings.warn(
+                "No approval function set for CodeExecutorAgent. This means code will be executed automatically without human oversight. "
+                "For security, consider setting an approval_func to review and approve code before execution. "
+                "See the CodeExecutorAgent documentation for examples of approval functions.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         if supported_languages is not None:
             self._supported_languages = supported_languages
         else:

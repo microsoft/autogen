@@ -23,10 +23,9 @@ from autogen_core.code_executor import (
     FunctionWithRequirements,
     FunctionWithRequirementsStr,
 )
+from docker.types import DeviceRequest
 from pydantic import BaseModel
 from typing_extensions import Self
-
-from docker.types import DeviceRequest
 
 from .._common import (
     CommandLineCodeResult,
@@ -43,7 +42,6 @@ else:
 
 try:
     import asyncio_atexit
-
     import docker
     from docker.errors import DockerException, ImageNotFound, NotFound
     from docker.models.containers import Container
