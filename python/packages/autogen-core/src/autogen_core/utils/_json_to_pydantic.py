@@ -131,11 +131,11 @@ class _JSONSchemaToPydantic:
     def _get_item_model_name(self, array_field_name: str, parent_model_name: str) -> str:
         """Generate hash-based model names for array items to keep names short and unique."""
         import hashlib
-        
+
         # Create a short hash of the full path to ensure uniqueness
         full_path = f"{parent_model_name}_{array_field_name}"
         hash_suffix = hashlib.md5(full_path.encode()).hexdigest()[:6]
-        
+
         # Use field name as-is with hash suffix
         return f"{array_field_name}_{hash_suffix}"
 
