@@ -541,10 +541,52 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 raise ValueError("Model does not support JSON output.")
             if json_output is True:
                 # JSON mode.
-                create_args["response_format"] = ResponseFormatJSONObject(type="json_object")
+                # LMStudio compatibility: Check if we're using LMStudio by looking at base_url
+                # Try to get base_url from multiple sources
+                base_url = ""
+                if hasattr(self._client, 'base_url'):
+                    base_url = str(self._client.base_url)
+                elif hasattr(self._client, '_base_url'):
+                    base_url = str(self._client._base_url)
+                else:
+                    base_url = self._create_args.get("base_url", "")
+
+                is_lmstudio = "localhost:1234" in base_url or "127.0.0.1:1234" in base_url
+
+                if is_lmstudio:
+                    # LMStudio requires json_schema format instead of json_object
+                    create_args["response_format"] = {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "response",
+                            "description": "Response in JSON format",
+                            "schema": {
+                                "type": "object",
+                                "properties": {},
+                                "additionalProperties": True
+                            },
+                            "strict": False
+                        }
+                    }
+                else:
+                    # Standard OpenAI json_object format
+                    create_args["response_format"] = ResponseFormatJSONObject(type="json_object")
             elif json_output is False:
                 # Text mode.
-                create_args["response_format"] = ResponseFormatText(type="text")
+                # LMStudio compatibility: Don't set response_format for text mode
+                base_url = ""
+                if hasattr(self._client, 'base_url'):
+                    base_url = str(self._client.base_url)
+                elif hasattr(self._client, '_base_url'):
+                    base_url = str(self._client._base_url)
+                else:
+                    base_url = self._create_args.get("base_url", "")
+
+                is_lmstudio = "localhost:1234" in base_url or "127.0.0.1:1234" in base_url
+
+                if not is_lmstudio:
+                    # Only set text format for non-LMStudio servers
+                    create_args["response_format"] = ResponseFormatText(type="text")
             elif isinstance(json_output, type) and issubclass(json_output, BaseModel):
                 if self.model_info["structured_output"] is False:
                     raise ValueError("Model does not support structured output.")
