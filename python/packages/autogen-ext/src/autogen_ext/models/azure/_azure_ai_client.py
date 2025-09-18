@@ -523,6 +523,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             if choice and choice.finish_reason is not None:
                 if isinstance(choice.finish_reason, CompletionsFinishReason):
                     finish_reason = cast(FinishReasons, choice.finish_reason.value)
+                    # Handle special case for TOOL_CALLS finish reason
+                    if choice.finish_reason is CompletionsFinishReason.TOOL_CALLS:
+                        finish_reason = "function_calls"
                 else:
                     if choice.finish_reason in ["stop", "length", "function_calls", "content_filter", "unknown"]:
                         finish_reason = choice.finish_reason  # type: ignore
@@ -553,9 +556,6 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         if finish_reason is None:
             raise ValueError("No stop reason found")
-
-        if choice and choice.finish_reason is CompletionsFinishReason.TOOL_CALLS:
-            finish_reason = "function_calls"
 
         content: Union[str, List[FunctionCall]]
 
