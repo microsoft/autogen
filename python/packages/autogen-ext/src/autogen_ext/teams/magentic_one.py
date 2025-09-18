@@ -14,12 +14,6 @@ from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors import create_default_code_executor
 from autogen_ext.models.openai._openai_client import BaseOpenAIChatCompletionClient
 
-# Docker imports for default code executor - needed for type hints and examples
-try:
-    from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
-except ImportError:
-    DockerCommandLineCodeExecutor = None  # type: ignore
-
 SyncInputFunc = Callable[[str], str]
 AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
 InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
