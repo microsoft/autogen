@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar, Optional
+from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Optional, Tuple, TypeVar
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
@@ -450,16 +450,13 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
     def tool2(test1: int, test2: List[int]) -> str:
         return str(test1) + str(test2)
 
-    def tool3(
-            test1: Annotated[Optional[str], "example"] = None,
-            test2: Literal["1", "2"] = "2"
-    ) -> str:
+    def tool3(test1: Annotated[Optional[str], "example"] = None, test2: Literal["1", "2"] = "2") -> str:
         return str(test1) + str(test2)
 
     tools = [
         FunctionTool(tool1, description="example tool 1"),
         FunctionTool(tool2, description="example tool 2"),
-        FunctionTool(tool3, description="example tool 3")
+        FunctionTool(tool3, description="example tool 3"),
     ]
 
     mockcalculate_vision_tokens = MagicMock()
