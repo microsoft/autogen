@@ -393,6 +393,17 @@ def count_tokens_openai(
                         elif field == "description":
                             tool_tokens += 2
                             tool_tokens += len(encoding.encode(v["description"]))  # pyright: ignore
+                        elif field == "anyOf":
+                            tool_tokens -= 3
+                            for o in v["anyOf"]:  # type: ignore
+                                tool_tokens += 3
+                                tool_tokens += len(encoding.encode(str(o["type"])))  # pyright: ignore
+                        elif field == "default":
+                            tool_tokens += 2
+                            tool_tokens += len(encoding.encode(json.dumps(v["default"])))
+                        elif field == "title":
+                            tool_tokens += 2
+                            tool_tokens += len(encoding.encode(str(v["title"])))  # pyright: ignore
                         elif field == "enum":
                             tool_tokens -= 3
                             for o in v["enum"]:  # pyright: ignore
@@ -404,7 +415,9 @@ def count_tokens_openai(
                 if len(parameters["properties"]) == 0:  # pyright: ignore
                     tool_tokens -= 2
         num_tokens += tool_tokens
-    num_tokens += 12
+
+    if oai_tools:
+        num_tokens += 12
     return num_tokens
 
 
