@@ -159,6 +159,15 @@ $functions"""
         cleanup_temp_files: bool = True,
         virtual_env_context: Optional[SimpleNamespace] = None,
     ):
+        # Issue warning about using LocalCommandLineCodeExecutor
+        warnings.warn(
+            "Using LocalCommandLineCodeExecutor may execute code on the local machine which can be unsafe. "
+            "For security, it is recommended to use DockerCommandLineCodeExecutor instead. "
+            "To install Docker, visit: https://docs.docker.com/get-docker/",
+            UserWarning,
+            stacklevel=2,
+        )
+
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
         self._timeout = timeout

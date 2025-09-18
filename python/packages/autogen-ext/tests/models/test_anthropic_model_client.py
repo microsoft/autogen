@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 from typing import List, Sequence
@@ -20,6 +21,7 @@ from autogen_core.tools import FunctionTool
 from autogen_ext.models.anthropic import (
     AnthropicBedrockChatCompletionClient,
     AnthropicChatCompletionClient,
+    BaseAnthropicChatCompletionClient,
     BedrockInfo,
 )
 
@@ -32,6 +34,11 @@ def _pass_function(input: str) -> str:
 def _add_numbers(a: int, b: int) -> int:
     """Add two numbers together."""
     return a + b
+
+
+def _ask_for_input() -> str:
+    """Function that asks for user input. Used to test empty input handling, such as in `pass_to_user` tool."""
+    return "Further input from user"
 
 
 @pytest.mark.asyncio
@@ -999,3 +1006,251 @@ async def test_anthropic_tool_choice_none_value_with_actual_api() -> None:
 
     # Should get a text response, not tool calls
     assert isinstance(result.content, str)
+
+
+def get_client_or_skip(provider: str) -> BaseAnthropicChatCompletionClient:
+    if provider == "anthropic":
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+        return AnthropicChatCompletionClient(
+            model="claude-3-haiku-20240307",
+            api_key=api_key,
+        )
+    else:
+        access_key = os.getenv("AWS_ACCESS_KEY_ID")
+        secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+        region = os.getenv("AWS_REGION")
+        if not access_key or not secret_key or not region:
+            pytest.skip("AWS credentials not found in environment variables")
+
+        model = os.getenv("ANTHROPIC_BEDROCK_MODEL", "us.anthropic.claude-3-haiku-20240307-v1:0")
+        return AnthropicBedrockChatCompletionClient(
+            model=model,
+            bedrock_info=BedrockInfo(
+                aws_access_key=access_key,
+                aws_secret_key=secret_key,
+                aws_region=region,
+                aws_session_token=os.getenv("AWS_SESSION_TOKEN", ""),
+            ),
+            model_info=ModelInfo(
+                vision=False, function_calling=True, json_output=False, family="unknown", structured_output=True
+            ),
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider", ["anthropic", "bedrock"])
+async def test_streaming_tool_usage_with_no_arguments(provider: str) -> None:
+    """
+    Test reading streaming tool usage response with no arguments.
+    In that case `input` in initial `tool_use` chunk is `{}` and subsequent `partial_json` chunks are empty.
+    """
+    client = get_client_or_skip(provider)
+
+    # Define tools
+    ask_for_input_tool = FunctionTool(
+        _ask_for_input, description="Ask user for more input", name="ask_for_input", strict=True
+    )
+
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(
+        messages=[
+            SystemMessage(content="When user intent is unclear, ask for more input"),
+            UserMessage(content="Erm...", source="user"),
+        ],
+        tools=[ask_for_input_tool],
+        tool_choice="required",
+    ):
+        chunks.append(chunk)
+
+    assert len(chunks) > 0
+    assert isinstance(chunks[-1], CreateResult)
+    result: CreateResult = chunks[-1]
+    assert len(result.content) == 1
+    content = result.content[-1]
+    assert isinstance(content, FunctionCall)
+    assert content.name == "ask_for_input"
+    assert json.loads(content.arguments) is not None
+
+
+@pytest.mark.parametrize("provider", ["anthropic", "bedrock"])
+@pytest.mark.asyncio
+async def test_streaming_tool_usage_with_arguments(provider: str) -> None:
+    """
+    Test reading streaming tool usage response with arguments.
+    In that case `input` in initial `tool_use` chunk is `{}` but subsequent `partial_json` chunks make up the actual
+    complete input value.
+    """
+    client = get_client_or_skip(provider)
+
+    # Define tools
+    add_numbers = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(
+        messages=[
+            SystemMessage(content="Use the tools to evaluate calculations"),
+            UserMessage(content="2 + 2", source="user"),
+        ],
+        tools=[add_numbers],
+        tool_choice="required",
+    ):
+        chunks.append(chunk)
+
+    assert len(chunks) > 0
+    assert isinstance(chunks[-1], CreateResult)
+    result: CreateResult = chunks[-1]
+    assert len(result.content) == 1
+    content = result.content[-1]
+    assert isinstance(content, FunctionCall)
+    assert content.name == "add_numbers"
+    assert json.loads(content.arguments) is not None
+
+
+def test_mock_thinking_config_validation() -> None:
+    """Test thinking configuration handling logic."""
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",  # Known model for basic validation
+        api_key="fake-key",
+    )
+
+    # Test valid enabled thinking config
+    valid_config = {"thinking": {"type": "enabled", "budget_tokens": 2000}}
+    result = client._get_thinking_config(valid_config)  # pyright: ignore[reportPrivateUsage]
+    assert result == valid_config
+
+    # Test thinking config with any budget_tokens (API will validate)
+    any_budget_config = {"thinking": {"type": "enabled", "budget_tokens": 500}}
+    result = client._get_thinking_config(any_budget_config)  # pyright: ignore[reportPrivateUsage]
+    assert result == any_budget_config
+
+    # Test valid disabled thinking config
+    disabled_config = {"thinking": {"type": "disabled"}}
+    result = client._get_thinking_config(disabled_config)  # pyright: ignore[reportPrivateUsage]
+    assert result == disabled_config
+
+    # Test no thinking config
+    result = client._get_thinking_config({})  # pyright: ignore[reportPrivateUsage]
+    assert result == {}
+
+    # Test thinking config from base create_args
+    client_with_thinking = AnthropicChatCompletionClient(
+        model="claude-sonnet-4-20250514",
+        api_key="fake-key",
+        model_info={
+            "vision": True,
+            "function_calling": True,
+            "json_output": True,
+            "family": "anthropic",
+            "structured_output": True,
+        },
+        thinking={"type": "enabled", "budget_tokens": 3000},
+    )
+    result = client_with_thinking._get_thinking_config({})  # pyright: ignore[reportPrivateUsage]
+    assert result == {"thinking": {"type": "enabled", "budget_tokens": 3000}}
+
+    # Test extra_create_args takes priority over base create_args
+    override_config = {"thinking": {"type": "enabled", "budget_tokens": 4000}}
+    result = client_with_thinking._get_thinking_config(override_config)  # pyright: ignore[reportPrivateUsage]
+    assert result == override_config
+
+
+@pytest.mark.asyncio
+async def test_anthropic_thinking_mode_basic() -> None:
+    """Test basic thinking mode functionality."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-sonnet-4-20250514",  # Use a model that supports thinking
+        api_key=api_key,
+        temperature=0.7,  # Should be overridden to 1.0
+    )
+
+    messages = [UserMessage(content="Calculate 17 * 23 step by step.", source="test")]
+
+    # Test WITHOUT thinking mode
+    result_no_thinking = await client.create(messages)
+    assert isinstance(result_no_thinking.content, str)
+    assert result_no_thinking.thought is None
+
+    # Test WITH thinking mode
+    thinking_config = {"thinking": {"type": "enabled", "budget_tokens": 2000}}
+
+    result_with_thinking = await client.create(messages, extra_create_args=thinking_config)
+    assert isinstance(result_with_thinking.content, str)
+    # Should have thinking content
+    assert result_with_thinking.thought is not None
+    assert len(result_with_thinking.thought) > 10
+    # Main content should contain the final answer
+    assert "391" in result_with_thinking.content or "17" in result_with_thinking.content
+
+
+@pytest.mark.asyncio
+async def test_anthropic_thinking_mode_streaming() -> None:
+    """Test thinking mode with streaming."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-sonnet-4-20250514",  # Use a model that supports thinking
+        api_key=api_key,
+    )
+
+    messages = [UserMessage(content="What is 15 + 27? Think through it step by step.", source="test")]
+
+    thinking_config = {"thinking": {"type": "enabled", "budget_tokens": 1500}}
+
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(messages, extra_create_args=thinking_config):
+        chunks.append(chunk)
+
+    # Should have received chunks
+    assert len(chunks) > 1
+
+    # Final result should have thinking content
+    final_result = chunks[-1]
+    assert isinstance(final_result, CreateResult)
+    assert isinstance(final_result.content, str)
+    assert final_result.thought is not None
+    assert len(final_result.thought) > 10
+    # Should contain the answer
+    assert "42" in final_result.content
+
+
+@pytest.mark.asyncio
+async def test_anthropic_thinking_mode_with_tools() -> None:
+    """Test thinking mode combined with tool calling."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-sonnet-4-20250514",  # Use a model that supports thinking
+        api_key=api_key,
+    )
+
+    # Define tool
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+
+    messages = [
+        UserMessage(content="I need to add 25 and 17. Use the add tool after thinking about it.", source="test")
+    ]
+
+    thinking_config = {"thinking": {"type": "enabled", "budget_tokens": 2000}}
+
+    result = await client.create(messages, tools=[add_tool], extra_create_args=thinking_config)
+
+    # Should get tool calls
+    assert isinstance(result.content, list)
+    assert len(result.content) >= 1
+    assert isinstance(result.content[0], FunctionCall)
+    assert result.content[0].name == "add_numbers"
+
+    # Should have thinking content even with tool calls
+    assert result.thought is not None
+    assert len(result.thought) > 10

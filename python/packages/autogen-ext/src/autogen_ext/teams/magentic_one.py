@@ -1,7 +1,7 @@
 import warnings
 from typing import Awaitable, Callable, List, Optional, Union
 
-from autogen_agentchat.agents import CodeExecutorAgent, UserProxyAgent
+from autogen_agentchat.agents import ApprovalFuncType, CodeExecutorAgent, UserProxyAgent
 from autogen_agentchat.base import ChatAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_core import CancellationToken
@@ -11,7 +11,7 @@ from autogen_core.models import ChatCompletionClient
 from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.code_executors import create_default_code_executor
 from autogen_ext.models.openai._openai_client import BaseOpenAIChatCompletionClient
 
 SyncInputFunc = Callable[[str], str]
@@ -35,6 +35,9 @@ class MagenticOne(MagenticOneGroupChat):
     Args:
         client (ChatCompletionClient): The client used for model interactions.
         hil_mode (bool): Optional; If set to True, adds the UserProxyAgent to the list of agents.
+        input_func (InputFuncType | None): Optional; Function to use for user input in human-in-the-loop mode.
+        code_executor (CodeExecutor | None): Optional; Code executor to use. If None, will use Docker if available, otherwise local executor.
+        approval_func (ApprovalFuncType | None): Optional; Function to approve code execution before running. If None, code will execute without approval.
 
     .. warning::
         Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
@@ -77,7 +80,7 @@ class MagenticOne(MagenticOneGroupChat):
 
             async def example_usage():
                 client = OpenAIChatCompletionClient(model="gpt-4o")
-                m1 = MagenticOne(client=client)
+                m1 = MagenticOne(client=client)  # Uses DockerCommandLineCodeExecutor by default
                 task = "Write a Python script to fetch data from an API."
                 result = await Console(m1.run_stream(task=task))
                 print(result)
@@ -89,24 +92,88 @@ class MagenticOne(MagenticOneGroupChat):
 
         .. code-block:: python
 
-            # Enable human-in-the-loop mode
+            # Enable human-in-the-loop mode with explicit Docker executor and code approval
             import asyncio
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_ext.teams.magentic_one import MagenticOne
+            from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
             from autogen_agentchat.ui import Console
+            from autogen_agentchat.agents import ApprovalRequest, ApprovalResponse
+
+
+            def user_input_func(prompt: str) -> str:
+                \"\"\"Custom input function for user interaction.\"\"\"
+                return input(prompt)
+
+
+            def approval_func(request: ApprovalRequest) -> ApprovalResponse:
+                \"\"\"Simple approval function that requests user input.\"\"\"
+                print(f\"Code to execute:\\n{request.code}\")
+                user_input = input("Do you approve this code execution? (y/n): ").strip().lower()
+                if user_input == 'y':
+                    return ApprovalResponse(approved=True, reason=\"User approved the code execution\")
+                else:
+                    return ApprovalResponse(approved=False, reason=\"User denied the code execution\")
 
 
             async def example_usage_hil():
                 client = OpenAIChatCompletionClient(model="gpt-4o")
-                # to enable human-in-the-loop mode, set hil_mode=True
-                m1 = MagenticOne(client=client, hil_mode=True)
-                task = "Write a Python script to fetch data from an API."
-                result = await Console(m1.run_stream(task=task))
-                print(result)
+                # Explicitly specify Docker code executor for better security
+                async with DockerCommandLineCodeExecutor() as code_executor:
+                    m1 = MagenticOne(
+                        client=client,
+                        hil_mode=True,
+                        input_func=user_input_func,
+                        code_executor=code_executor,
+                        approval_func=approval_func
+                    )
+                    task = "Write a Python script to fetch data from an API."
+                    result = await Console(m1.run_stream(task=task))
+                    print(result)
 
 
             if __name__ == "__main__":
                 asyncio.run(example_usage_hil())
+
+
+        .. code-block:: python
+
+            # Enable code execution approval without human-in-the-loop mode
+            import asyncio
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.teams.magentic_one import MagenticOne
+            from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+            from autogen_agentchat.ui import Console
+            from autogen_agentchat.agents import ApprovalRequest, ApprovalResponse
+
+
+            def approval_func(request: ApprovalRequest) -> ApprovalResponse:
+                \"\"\"Simple approval function that requests user input.\"\"\"
+                print(f\"Code to execute:\\n{request.code}\")
+                user_input = input("Do you approve this code execution? (y/n): ").strip().lower()
+                if user_input == 'y':
+                    return ApprovalResponse(approved=True, reason=\"User approved the code execution\")
+                else:
+                    return ApprovalResponse(approved=False, reason=\"User denied the code execution\")
+
+
+            async def example_usage_with_approval():
+                client = OpenAIChatCompletionClient(model="gpt-4o")
+                # Use approval_func for code approval only (hil_mode=False)
+                async with DockerCommandLineCodeExecutor() as code_executor:
+                    m1 = MagenticOne(
+                        client=client,
+                        hil_mode=False,  # No human-in-the-loop for general conversation
+                        code_executor=code_executor,
+                        approval_func=approval_func  # But still ask for code execution approval
+                    )
+                    task = "Write a Python script to fetch data from an API."
+                    result = await Console(m1.run_stream(task=task))
+                    print(result)
+
+
+            if __name__ == "__main__":
+                asyncio.run(example_usage_with_approval())
 
     References:
         .. code-block:: bibtex
@@ -128,22 +195,24 @@ class MagenticOne(MagenticOneGroupChat):
         hil_mode: bool = False,
         input_func: InputFuncType | None = None,
         code_executor: CodeExecutor | None = None,
+        approval_func: ApprovalFuncType | None = None,
     ):
         self.client = client
         self._validate_client_capabilities(client)
 
         if code_executor is None:
             warnings.warn(
-                "Instantiating MagenticOne without a code_executor is deprecated. Provide a code_executor to clear this warning (e.g., code_executor=LocalCommandLineCodeExecutor() ).",
+                "Instantiating MagenticOne without a code_executor is deprecated. Provide a code_executor to clear this warning (e.g., code_executor=DockerCommandLineCodeExecutor() ).",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            code_executor = LocalCommandLineCodeExecutor()
+            code_executor = create_default_code_executor()
 
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)
         coder = MagenticOneCoderAgent("Coder", model_client=client)
-        executor = CodeExecutorAgent("ComputerTerminal", code_executor=code_executor)
+
+        executor = CodeExecutorAgent("ComputerTerminal", code_executor=code_executor, approval_func=approval_func)
 
         agents: List[ChatAgent] = [fs, ws, coder, executor]
         if hil_mode:

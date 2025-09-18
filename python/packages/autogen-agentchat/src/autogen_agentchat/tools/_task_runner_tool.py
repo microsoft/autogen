@@ -36,6 +36,7 @@ class TaskRunnerTool(BaseStreamTool[TaskRunnerToolArgs, BaseAgentEvent | BaseCha
             return_type=TaskResult,
             name=name,
             description=description,
+            strict=True,
         )
 
     async def run(self, args: TaskRunnerToolArgs, cancellation_token: CancellationToken) -> TaskResult:

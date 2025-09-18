@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar
+from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Optional, Tuple, TypeVar
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
@@ -33,14 +33,7 @@ from autogen_ext.models.openai._openai_client import (
 )
 from autogen_ext.models.openai._transformation import TransformerMap, get_transformer
 from autogen_ext.models.openai._transformation.registry import _find_model_family  # pyright: ignore[reportPrivateUsage]
-from openai.resources.beta.chat.completions import (  # type: ignore
-    AsyncChatCompletionStreamManager as BetaAsyncChatCompletionStreamManager,  # type: ignore
-)
-
-# type: ignore
-from openai.resources.beta.chat.completions import (
-    AsyncCompletions as BetaAsyncCompletions,
-)
+from openai.lib.streaming.chat import AsyncChatCompletionStreamManager
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import (
@@ -457,11 +450,27 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
     def tool2(test1: int, test2: List[int]) -> str:
         return str(test1) + str(test2)
 
-    tools = [FunctionTool(tool1, description="example tool 1"), FunctionTool(tool2, description="example tool 2")]
+    def tool3(test1: Annotated[Optional[str], "example"] = None, test2: Literal["1", "2"] = "2") -> str:
+        return str(test1) + str(test2)
+
+    tools = [
+        FunctionTool(tool1, description="example tool 1"),
+        FunctionTool(tool2, description="example tool 2"),
+        FunctionTool(tool3, description="example tool 3"),
+    ]
 
     mockcalculate_vision_tokens = MagicMock()
     monkeypatch.setattr("autogen_ext.models.openai._openai_client.calculate_vision_tokens", mockcalculate_vision_tokens)
 
+    # Test count_tokens without tools
+    num_tokens = client.count_tokens(messages)
+    assert num_tokens
+
+    # Check that calculate_vision_tokens was called
+    mockcalculate_vision_tokens.assert_called_once()
+    mockcalculate_vision_tokens.reset_mock()
+
+    # Test count_tokens with tools
     num_tokens = client.count_tokens(messages, tools=tools)
     assert num_tokens
 
@@ -745,7 +754,7 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         )
 
-    monkeypatch.setattr(BetaAsyncCompletions, "parse", _mock_parse)
+    monkeypatch.setattr(AsyncCompletions, "parse", _mock_parse)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -838,7 +847,7 @@ async def test_structured_output_with_tool_calls(monkeypatch: pytest.MonkeyPatch
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         )
 
-    monkeypatch.setattr(BetaAsyncCompletions, "parse", _mock_parse)
+    monkeypatch.setattr(AsyncCompletions, "parse", _mock_parse)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -912,7 +921,7 @@ async def test_structured_output_with_streaming(monkeypatch: pytest.MonkeyPatch)
         return _stream()
 
     # Mock the context manager __aenter__ method which returns the stream.
-    monkeypatch.setattr(BetaAsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
+    monkeypatch.setattr(AsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -1022,7 +1031,7 @@ async def test_structured_output_with_streaming_tool_calls(monkeypatch: pytest.M
         return _stream()
 
     # Mock the context manager __aenter__ method which returns the stream.
-    monkeypatch.setattr(BetaAsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
+    monkeypatch.setattr(AsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -2678,6 +2687,96 @@ async def test_mistral_remove_name() -> None:
     # when the model is gpt-4o, the name parameter is not removed
     params = to_oai_type(message, prepend_name=False, model="gpt-4o", model_family=ModelFamily.GPT_4O)
     assert ("name" in params[0]) is True
+
+
+@pytest.mark.asyncio
+async def test_include_name_in_message() -> None:
+    """Test that include_name_in_message parameter controls the name field."""
+
+    # Test with UserMessage
+    user_message = UserMessage(content="Hello, I am from Seattle.", source="Adam")
+
+    # Test with include_name_in_message=True (default)
+    result_with_name = to_oai_type(user_message, include_name_in_message=True)[0]
+    assert "name" in result_with_name
+    assert result_with_name["name"] == "Adam"  # type: ignore[typeddict-item]
+    assert result_with_name["role"] == "user"
+    assert result_with_name["content"] == "Hello, I am from Seattle."
+
+    # Test with include_name_in_message=False
+    result_without_name = to_oai_type(user_message, include_name_in_message=False)[0]
+    assert "name" not in result_without_name
+    assert result_without_name["role"] == "user"
+    assert result_without_name["content"] == "Hello, I am from Seattle."
+
+    # Test with AssistantMessage (should not have name field regardless)
+    assistant_message = AssistantMessage(content="Hello, how can I help you?", source="Assistant")
+
+    # Test with include_name_in_message=True
+    result_assistant_with_name = to_oai_type(assistant_message, include_name_in_message=True)[0]
+    assert "name" not in result_assistant_with_name
+    assert result_assistant_with_name["role"] == "assistant"
+
+    # Test with include_name_in_message=False
+    result_assistant_without_name = to_oai_type(assistant_message, include_name_in_message=False)[0]
+    assert "name" not in result_assistant_without_name
+    assert result_assistant_without_name["role"] == "assistant"
+
+    # Test with SystemMessage (should not have name field regardless)
+    system_message = SystemMessage(content="You are a helpful assistant.")
+    result_system_with_name = to_oai_type(system_message, include_name_in_message=True)[0]
+    result_system_without_name = to_oai_type(system_message, include_name_in_message=False)[0]
+    assert "name" not in result_system_with_name
+    assert "name" not in result_system_without_name
+    assert result_system_with_name["role"] == "system"
+    assert result_system_without_name["role"] == "system"
+
+    # Test default behavior (should include name when parameter not specified)
+    result_default = to_oai_type(user_message)[0]  # include_name_in_message defaults to True
+    assert "name" in result_default
+    assert result_default["name"] == "Adam"  # type: ignore[typeddict-item]
+
+
+@pytest.mark.asyncio
+async def test_include_name_with_different_models() -> None:
+    """Test that include_name_in_message works with different model families."""
+
+    user_message = UserMessage(content="Hello", source="User")
+
+    # Test with GPT-4o model (normally includes name)
+    result_gpt4o_with_name = to_oai_type(
+        user_message, model="gpt-4o", model_family=ModelFamily.GPT_4O, include_name_in_message=True
+    )[0]
+    result_gpt4o_without_name = to_oai_type(
+        user_message, model="gpt-4o", model_family=ModelFamily.GPT_4O, include_name_in_message=False
+    )[0]
+
+    assert "name" in result_gpt4o_with_name
+    assert "name" not in result_gpt4o_without_name
+
+    # Test with Mistral model (normally excludes name, but should still respect the parameter)
+    result_mistral_with_name = to_oai_type(
+        user_message, model="mistral-7b", model_family=ModelFamily.MISTRAL, include_name_in_message=True
+    )[0]
+    result_mistral_without_name = to_oai_type(
+        user_message, model="mistral-7b", model_family=ModelFamily.MISTRAL, include_name_in_message=False
+    )[0]
+
+    # Note: Mistral transformers are specifically built without _set_name, so they won't have name regardless
+    # But our parameter still controls the behavior consistently
+    assert "name" not in result_mistral_with_name  # Mistral design excludes names
+    assert "name" not in result_mistral_without_name
+
+    # Test with unknown model (uses default transformer)
+    result_unknown_with_name = to_oai_type(
+        user_message, model="some-custom-model", model_family=ModelFamily.UNKNOWN, include_name_in_message=True
+    )[0]
+    result_unknown_without_name = to_oai_type(
+        user_message, model="some-custom-model", model_family=ModelFamily.UNKNOWN, include_name_in_message=False
+    )[0]
+
+    assert "name" in result_unknown_with_name
+    assert "name" not in result_unknown_without_name
 
 
 @pytest.mark.asyncio

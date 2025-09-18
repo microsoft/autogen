@@ -11,6 +11,7 @@ from pydantic import (
     BaseModel,
     EmailStr,
     Field,
+    Json,
     conbytes,
     confloat,
     conint,
@@ -82,6 +83,7 @@ FORMAT_MAPPING: Dict[str, Any] = {
     "binary": conbytes(strict=True),
     "password": str,
     "path": str,
+    "json": Json,
 }
 
 
@@ -125,6 +127,17 @@ class _JSONSchemaToPydantic:
             return ForwardRef(ref_name)
 
         return self._model_cache[ref_name]
+
+    def _get_item_model_name(self, array_field_name: str, parent_model_name: str) -> str:
+        """Generate hash-based model names for array items to keep names short and unique."""
+        import hashlib
+
+        # Create a short hash of the full path to ensure uniqueness
+        full_path = f"{parent_model_name}_{array_field_name}"
+        hash_suffix = hashlib.md5(full_path.encode()).hexdigest()[:6]
+
+        # Use field name as-is with hash suffix
+        return f"{array_field_name}_{hash_suffix}"
 
     def _process_definitions(self, root_schema: Dict[str, Any]) -> None:
         if "$defs" in root_schema:
@@ -172,7 +185,31 @@ class _JSONSchemaToPydantic:
                 json_type = s.get("type")
                 if json_type not in TYPE_MAPPING:
                     raise UnsupportedKeywordError(f"Unsupported or missing type `{json_type}` in union")
-                types.append(TYPE_MAPPING[json_type])
+
+                # Handle array types with items specification
+                if json_type == "array" and "items" in s:
+                    item_schema = s["items"]
+                    if "$ref" in item_schema:
+                        item_type = self.get_ref(item_schema["$ref"].split("/")[-1])
+                    else:
+                        item_type_name = item_schema.get("type")
+                        if item_type_name is None:
+                            item_type = str
+                        elif item_type_name not in TYPE_MAPPING:
+                            raise UnsupportedKeywordError(f"Unsupported item type `{item_type_name}` in union array")
+                        else:
+                            item_type = TYPE_MAPPING[item_type_name]
+
+                    constraints = {}
+                    if "minItems" in s:
+                        constraints["min_length"] = s["minItems"]
+                    if "maxItems" in s:
+                        constraints["max_length"] = s["maxItems"]
+
+                    array_type = conlist(item_type, **constraints) if constraints else List[item_type]  # type: ignore[valid-type]
+                    types.append(array_type)
+                else:
+                    types.append(TYPE_MAPPING[json_type])
         return types
 
     def _extract_field_type(self, key: str, value: Dict[str, Any], model_name: str, root_schema: Dict[str, Any]) -> Any:
@@ -227,10 +264,15 @@ class _JSONSchemaToPydantic:
             item_schema = value.get("items", {"type": "string"})
             if "$ref" in item_schema:
                 item_type = self.get_ref(item_schema["$ref"].split("/")[-1])
+            elif item_schema.get("type") == "object" and "properties" in item_schema:
+                # Handle array items that are objects with properties - create a nested model
+                # Use hash-based naming to keep names short and unique
+                item_model_name = self._get_item_model_name(key, model_name)
+                item_type = self._json_schema_to_model(item_schema, item_model_name, root_schema)
             else:
                 item_type_name = item_schema.get("type")
                 if item_type_name is None:
-                    item_type = List[str]
+                    item_type = str
                 elif item_type_name not in TYPE_MAPPING:
                     raise UnsupportedKeywordError(
                         f"Unsupported or missing item type `{item_type_name}` for array field `{key}` in `{model_name}`"

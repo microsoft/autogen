@@ -1,11 +1,15 @@
 import logging
 import re
+from inspect import iscoroutinefunction
 from typing import (
     AsyncGenerator,
+    Awaitable,
+    Callable,
     List,
     Optional,
     Sequence,
     Union,
+    cast,
 )
 
 from autogen_core import CancellationToken, Component, ComponentModel
@@ -62,6 +66,26 @@ class RetryDecision(BaseModel):
     retry: bool
 
 
+class ApprovalRequest(BaseModel):
+    """Request for approval of code execution."""
+
+    code: str
+    context: List[LLMMessage]
+
+
+class ApprovalResponse(BaseModel):
+    """Response to approval request."""
+
+    approved: bool
+    reason: str
+
+
+# Type aliases for approval functions
+SyncApprovalFunc = Callable[[ApprovalRequest], ApprovalResponse]
+AsyncApprovalFunc = Callable[[ApprovalRequest], Awaitable[ApprovalResponse]]
+ApprovalFuncType = Union[SyncApprovalFunc, AsyncApprovalFunc]
+
+
 class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     """(Experimental) An agent that generates and executes code snippets based on user instructions.
 
@@ -113,6 +137,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             If the code execution fails after this number of retries, the agent will yield a reflection result.
         supported_languages (List[str], optional): List of programming languages that will be parsed and executed from agent response;
             others will be ignored. Defaults to DEFAULT_SUPPORTED_LANGUAGES.
+        approval_func (Optional[Union[Callable[[ApprovalRequest], ApprovalResponse], Callable[[ApprovalRequest], Awaitable[ApprovalResponse]]]], optional): A function that is called before each code execution to get approval.
+            The function takes an ApprovalRequest containing the code to be executed and the current context, and returns an ApprovalResponse.
+            The function can be either synchronous or asynchronous. If None (default), all code executions are automatically approved.
+            If set, the agent cannot be serialized using :meth:`~autogen_agentchat.agents.CodeExecutorAgent.dump_component`.
 
 
     .. note::
@@ -139,22 +167,44 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
     In this example, we show how to set up a `CodeExecutorAgent` agent that uses the
     :py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
-    to execute code snippets in a Docker container. The `work_dir` parameter indicates where all executed files are first saved locally before being executed in the Docker container.
+    to execute code snippets in a Docker container. The `work_dir` parameter indicates
+    where all executed files are first saved locally before being executed in the Docker container.
 
         .. code-block:: python
 
             import asyncio
-            from autogen_agentchat.agents import CodeExecutorAgent
+            from autogen_agentchat.agents import CodeExecutorAgent, ApprovalRequest, ApprovalResponse
             from autogen_agentchat.messages import TextMessage
             from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
             from autogen_core import CancellationToken
+
+
+            def simple_approval_func(request: ApprovalRequest) -> ApprovalResponse:
+                \"\"\"Simple approval function that requests user input for code execution approval.\"\"\"
+                print("Code execution approval requested:")
+                print("=" * 50)
+                print(request.code)
+                print("=" * 50)
+
+                while True:
+                    user_input = input("Do you want to execute this code? (y/n): ").strip().lower()
+                    if user_input in ['y', 'yes']:
+                        return ApprovalResponse(approved=True, reason='Approved by user')
+                    elif user_input in ['n', 'no']:
+                        return ApprovalResponse(approved=False, reason='Denied by user')
+                    else:
+                        print("Please enter 'y' for yes or 'n' for no.")
 
 
             async def run_code_executor_agent() -> None:
                 # Create a code executor agent that uses a Docker container to execute code.
                 code_executor = DockerCommandLineCodeExecutor(work_dir="coding")
                 await code_executor.start()
-                code_executor_agent = CodeExecutorAgent("code_executor", code_executor=code_executor)
+                code_executor_agent = CodeExecutorAgent(
+                    "code_executor",
+                    code_executor=code_executor,
+                    approval_func=simple_approval_func
+                )
 
                 # Run the agent with a given code snippet.
                 task = TextMessage(
@@ -198,7 +248,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 # Display the GPU information
                 task = TextMessage(
                     content='''Here is some code
-            ```bash
+            ```sh
             nvidia-smi
             ```
             ''',
@@ -222,12 +272,27 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-            from autogen_agentchat.agents import AssistantAgent, CodeExecutorAgent
+            from autogen_agentchat.agents import AssistantAgent, CodeExecutorAgent, ApprovalRequest, ApprovalResponse
             from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_agentchat.ui import Console
 
             termination_condition = MaxMessageTermination(3)
+
+
+            def group_chat_approval_func(request: ApprovalRequest) -> ApprovalResponse:
+                \"\"\"Approval function for group chat that allows basic Python operations.\"\"\"
+                # Allow common safe operations
+                safe_operations = ["print(", "import ", "def ", "class ", "if ", "for ", "while "]
+                if any(op in request.code for op in safe_operations):
+                    return ApprovalResponse(approved=True, reason='Safe Python operation')
+
+                # Deny file system operations in group chat
+                dangerous_operations = ["open(", "file(", "os.", "subprocess", "eval(", "exec("]
+                if any(op in request.code for op in dangerous_operations):
+                    return ApprovalResponse(approved=False, reason='File system or dangerous operation not allowed')
+
+                return ApprovalResponse(approved=True, reason='Operation approved')
 
 
             async def main() -> None:
@@ -239,7 +304,11 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 # start the execution container
                 await code_executor.start()
 
-                code_executor_agent = CodeExecutorAgent("code_executor_agent", code_executor=code_executor)
+                code_executor_agent = CodeExecutorAgent(
+                    "code_executor_agent",
+                    code_executor=code_executor,
+                    approval_func=group_chat_approval_func
+                )
                 coder_agent = AssistantAgent("coder_agent", model_client=model_client)
 
                 groupchat = RoundRobinGroupChat(
@@ -270,7 +339,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             ---------- code_executor_agent ----------
             Hello World!
 
-    In the following example, we show how to setup `CodeExecutorAgent` with `model_client` that can generate its own code without the help of any other agent and executing it in :py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
+    In the following example, we show how to setup `CodeExecutorAgent` with `model_client`
+    that can generate its own code without the help of any other agent and executing it in
+    :py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`.
+    It also demonstrates using a model-based approval function that reviews the code for safety before execution.
 
         .. code-block:: python
 
@@ -278,8 +350,9 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
             from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
             from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_core.models import SystemMessage, UserMessage
 
-            from autogen_agentchat.agents import CodeExecutorAgent
+            from autogen_agentchat.agents import CodeExecutorAgent, ApprovalRequest, ApprovalResponse
             from autogen_agentchat.conditions import TextMessageTermination
             from autogen_agentchat.ui import Console
 
@@ -289,6 +362,17 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             async def main() -> None:
                 model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
+                async def model_client_approval_func(request: ApprovalRequest) -> ApprovalResponse:
+                    instruction = "Approve or reject the code in the last message based on whether it is dangerous or not. Use the following JSON format for your response: {approved: true/false, reason: 'your reason here'}"
+                    response = await model_client.create(
+                        messages=[SystemMessage(content=instruction)]
+                        + request.context
+                        + [UserMessage(content=request.code, source="user")],
+                        json_output=ApprovalResponse,
+                    )
+                    assert isinstance(response.content, str)
+                    return ApprovalResponse.model_validate_json(response.content)
+
                 # define the Docker CLI Code Executor
                 code_executor = DockerCommandLineCodeExecutor(work_dir="coding")
 
@@ -296,7 +380,10 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 await code_executor.start()
 
                 code_executor_agent = CodeExecutorAgent(
-                    "code_executor_agent", code_executor=code_executor, model_client=model_client
+                    "code_executor_agent",
+                    code_executor=code_executor,
+                    model_client=model_client,
+                    approval_func=model_client_approval_func,
                 )
 
                 task = "Write python code to print Hello World!"
@@ -307,6 +394,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
 
             asyncio.run(main())
+
 
         .. code-block:: text
 
@@ -332,7 +420,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     DEFAULT_AGENT_DESCRIPTION = "A Code Execution Agent that generates and executes Python and shell scripts based on user instructions. It ensures correctness, efficiency, and minimal errors while gracefully handling edge cases."
     DEFAULT_SYSTEM_MESSAGE = "You are a Code Execution Agent. Your role is to generate and execute Python code and shell scripts based on user instructions, ensuring correctness, efficiency, and minimal errors. Handle edge cases gracefully. Python code should be provided in ```python code blocks, and sh shell scripts should be provided in ```sh code blocks for execution."
     NO_CODE_BLOCKS_FOUND_MESSAGE = "No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks)."
-    DEFAULT_SUPPORTED_LANGUAGES = ["python", "bash"]
+    DEFAULT_SUPPORTED_LANGUAGES = ["python", "sh"]
 
     component_config_schema = CodeExecutorAgentConfig
     component_provider_override = "autogen_agentchat.agents.CodeExecutorAgent"
@@ -350,6 +438,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         system_message: str | None = DEFAULT_SYSTEM_MESSAGE,
         sources: Sequence[str] | None = None,
         supported_languages: List[str] | None = None,
+        approval_func: Optional[ApprovalFuncType] = None,
     ) -> None:
         if description is None:
             if model_client is None:
@@ -362,6 +451,20 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         self._sources = sources
         self._model_client_stream = model_client_stream
         self._max_retries_on_error = max_retries_on_error
+        self._approval_func = approval_func
+        self._approval_func_is_async = approval_func is not None and iscoroutinefunction(approval_func)
+
+        # Issue warning if no approval function is set
+        if approval_func is None:
+            import warnings
+
+            warnings.warn(
+                "No approval function set for CodeExecutorAgent. This means code will be executed automatically without human oversight. "
+                "For security, consider setting an approval_func to review and approve code before execution. "
+                "See the CodeExecutorAgent documentation for examples of approval functions.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         if supported_languages is not None:
             self._supported_languages = supported_languages
@@ -584,6 +687,33 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     async def execute_code_block(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
     ) -> CodeResult:
+        # Check for approval before executing code blocks
+        if self._approval_func is not None:
+            # Combine all code blocks into a single string for approval
+            combined_code = "\n\n".join([f"```{block.language}\n{block.code}\n```" for block in code_blocks])
+
+            # Get the current context from model_context
+            context_messages = await self._model_context.get_messages()
+
+            # Create approval request
+            approval_request = ApprovalRequest(code=combined_code, context=context_messages)
+
+            # Get approval (handle both sync and async functions)
+            if self._approval_func_is_async:
+                # Cast to AsyncApprovalFunc for proper typing
+                async_func = cast(AsyncApprovalFunc, self._approval_func)
+                approval_response = await async_func(approval_request)
+            else:
+                # Cast to SyncApprovalFunc for proper typing
+                sync_func = cast(SyncApprovalFunc, self._approval_func)
+                approval_response = sync_func(approval_request)
+
+            # If not approved, return error result
+            if not approval_response.approved:
+                return CodeResult(
+                    exit_code=1, output=f"Code execution was not approved. Reason: {approval_response.reason}"
+                )
+
         # Execute the code blocks.
         result = await self._code_executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
 
@@ -611,6 +741,11 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         return code_blocks
 
     def _to_config(self) -> CodeExecutorAgentConfig:
+        if self._approval_func is not None:
+            raise ValueError(
+                "Cannot serialize CodeExecutorAgent with approval_func set. The approval function is not serializable."
+            )
+
         return CodeExecutorAgentConfig(
             name=self.name,
             model_client=(self._model_client.dump_component() if self._model_client is not None else None),
@@ -641,6 +776,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             model_client_stream=config.model_client_stream,
             model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
             supported_languages=config.supported_languages,
+            approval_func=None,  # approval_func cannot be serialized, so it's always None when loading from config
         )
 
     @staticmethod

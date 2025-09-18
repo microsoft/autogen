@@ -11,7 +11,7 @@ from autogen_core.utils._json_to_pydantic import (
     UnsupportedKeywordError,
     _JSONSchemaToPydantic,  # pyright: ignore[reportPrivateUsage]
 )
-from pydantic import BaseModel, EmailStr, Field, ValidationError
+from pydantic import BaseModel, EmailStr, Field, Json, ValidationError
 
 
 # ✅ Define Pydantic models for testing
@@ -44,6 +44,7 @@ class ComplexModel(BaseModel):
     user: User
     extra_info: Optional[Dict[str, Any]] = None  # Optional dictionary
     sub_items: List[Employee]  # List of Employees
+    json_string: Optional[Json[Any]] = None  # Optional JSON string
 
 
 @pytest.fixture
@@ -82,7 +83,7 @@ def sample_json_schema_complex() -> Dict[str, Any]:
         (sample_json_schema, "User", ["id", "name", "email", "age", "address"]),
         (sample_json_schema_recursive, "Employee", ["id", "name", "manager"]),
         (sample_json_schema_nested, "Department", ["name", "employees"]),
-        (sample_json_schema_complex, "ComplexModel", ["user", "extra_info", "sub_items"]),
+        (sample_json_schema_complex, "ComplexModel", ["user", "extra_info", "sub_items", "json_string"]),
     ],
 )
 def test_json_schema_to_pydantic(
@@ -160,6 +161,7 @@ def test_json_schema_to_pydantic(
                     {"id": str(uuid4()), "name": "Eve"},
                     {"id": str(uuid4()), "name": "David", "manager": {"id": str(uuid4()), "name": "Frank"}},
                 ],
+                "json_string": '{"foo": "bar"}',
             },
         ),
     ],
@@ -241,6 +243,7 @@ def test_valid_data_model(
                     {"id": "invalid-uuid", "name": "Eve"},  # Invalid UUID
                     {"id": str(uuid4()), "name": 123},  # Invalid name type
                 ],
+                "json_string": '{"foo": "bar"',  # Invalid JSON
             },
         ),
     ],
@@ -548,6 +551,82 @@ def test_oneof_with_discriminator(converter: _JSONSchemaToPydantic) -> None:
     assert model_schema["properties"]["pet"]["discriminator"]["propertyName"] == "pet_type"
 
 
+def test_anyof_array_with_item_constraints(converter: _JSONSchemaToPydantic) -> None:
+    """Test anyOf branch as array with items and min/max constraints."""
+    schema = {
+        "title": "ArrayOrString",
+        "type": "object",
+        "properties": {
+            "value": {
+                "anyOf": [
+                    {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "maxItems": 3,
+                    },
+                    {"type": "string"},
+                ]
+            }
+        },
+        "required": ["value"],
+    }
+
+    Model = converter.json_schema_to_pydantic(schema, "ArrayOrString")
+
+    m1 = Model(value="hello")
+    assert m1.value == "hello"  # type: ignore[attr-defined]
+
+    m2 = Model(value=["a", "b"])
+    assert m2.value == ["a", "b"]  # type: ignore[attr-defined]
+
+    with pytest.raises(ValidationError):
+        Model(value=["one", "two", "three", "four"])
+
+    with pytest.raises(ValidationError):
+        Model(value=[])
+
+
+def test_oneof_array_with_ref_items(converter: _JSONSchemaToPydantic) -> None:
+    """Test oneOf branch as array whose items are a $ref object."""
+    schema = {
+        "title": "RefArrayOrInt",
+        "type": "object",
+        "properties": {
+            "payload": {
+                "oneOf": [
+                    {
+                        "type": "array",
+                        "items": {"$ref": "#/$defs/Item"},
+                        "minItems": 1,
+                    },
+                    {"type": "integer"},
+                ]
+            }
+        },
+        "required": ["payload"],
+        "$defs": {
+            "Item": {
+                "type": "object",
+                "properties": {"name": {"type": "string"}, "count": {"type": "integer"}},
+                "required": ["name"],
+                "title": "Item",
+            }
+        },
+    }
+
+    Model = converter.json_schema_to_pydantic(schema, "RefArrayOrInt")
+
+    m1 = Model(payload=42)
+    assert m1.payload == 42  # type: ignore[attr-defined]
+
+    m2 = Model(payload=[{"name": "widget", "count": 5}, {"name": "gadget"}])
+    assert [it.name for it in m2.payload] == ["widget", "gadget"]  # type: ignore[attr-defined]
+
+    with pytest.raises(ValidationError):
+        Model(payload=[])
+
+
 def test_allof_merging_with_refs(converter: _JSONSchemaToPydantic) -> None:
     schema = {
         "title": "EmployeeWithDepartment",
@@ -755,3 +834,211 @@ def test_unknown_format_raises() -> None:
     converter = _JSONSchemaToPydantic()
     with pytest.raises(FormatNotSupportedError):
         converter.json_schema_to_pydantic(schema, "UnknownFormatModel")
+
+
+def test_array_items_with_object_schema_properties() -> None:
+    """Test that array items with object schemas create proper Pydantic models."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "users": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}, "email": {"type": "string"}, "age": {"type": "integer"}},
+                    "required": ["name", "email"],
+                },
+            }
+        },
+    }
+
+    converter = _JSONSchemaToPydantic()
+    Model = converter.json_schema_to_pydantic(schema, "UserListModel")
+
+    # Verify the users field has correct type annotation
+    users_field = Model.model_fields["users"]
+    from typing import Union, get_args, get_origin
+
+    # Extract inner type from Optional[List[...]]
+    actual_list_type = users_field.annotation
+    if get_origin(users_field.annotation) is Union:
+        union_args = get_args(users_field.annotation)
+        for arg in union_args:
+            if get_origin(arg) is list:
+                actual_list_type = arg
+                break
+
+    assert get_origin(actual_list_type) is list
+    inner_type = get_args(actual_list_type)[0]
+
+    # Verify array items are BaseModel subclasses, not dict
+    assert inner_type is not dict
+    assert hasattr(inner_type, "model_fields")
+
+    # Verify expected fields are present
+    expected_fields = {"name", "email", "age"}
+    actual_fields = set(inner_type.model_fields.keys())
+    assert expected_fields.issubset(actual_fields)
+
+    # Test instantiation and field access
+    test_data = {
+        "users": [
+            {"name": "Alice", "email": "alice@example.com", "age": 30},
+            {"name": "Bob", "email": "bob@example.com"},
+        ]
+    }
+
+    instance = Model(**test_data)
+    assert len(instance.users) == 2  # type: ignore[attr-defined]
+
+    first_user = instance.users[0]  # type: ignore[attr-defined]
+    assert hasattr(first_user, "model_fields")  # type: ignore[reportUnknownArgumentType]
+    assert not isinstance(first_user, dict)
+
+    # Test attribute access (BaseModel behavior)
+    assert first_user.name == "Alice"  # type: ignore[attr-defined]
+    assert first_user.email == "alice@example.com"  # type: ignore[attr-defined]
+    assert first_user.age == 30  # type: ignore[attr-defined]
+
+
+def test_nested_arrays_with_object_schemas() -> None:
+    """Test deeply nested arrays with object schemas create proper Pydantic models."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "companies": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "departments": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "employees": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {"type": "string"},
+                                                "role": {"type": "string"},
+                                                "skills": {"type": "array", "items": {"type": "string"}},
+                                            },
+                                            "required": ["name", "role"],
+                                        },
+                                    },
+                                },
+                                "required": ["name"],
+                            },
+                        },
+                    },
+                    "required": ["name"],
+                },
+            }
+        },
+    }
+
+    converter = _JSONSchemaToPydantic()
+    Model = converter.json_schema_to_pydantic(schema, "CompanyListModel")
+
+    # Verify companies field type annotation
+    companies_field = Model.model_fields["companies"]
+    from typing import Union, get_args, get_origin
+
+    # Extract companies inner type
+    actual_list_type = companies_field.annotation
+    if get_origin(companies_field.annotation) is Union:
+        union_args = get_args(companies_field.annotation)
+        for arg in union_args:
+            if get_origin(arg) is list:
+                actual_list_type = arg
+                break
+
+    assert get_origin(actual_list_type) is list
+    company_type = get_args(actual_list_type)[0]
+
+    # Verify companies are BaseModel subclasses
+    assert company_type is not dict
+    assert hasattr(company_type, "model_fields")
+    assert "name" in company_type.model_fields
+    assert "departments" in company_type.model_fields
+
+    # Verify departments field type annotation
+    departments_field = company_type.model_fields["departments"]
+    dept_list_type = departments_field.annotation
+    if get_origin(dept_list_type) is Union:
+        union_args = get_args(dept_list_type)
+        for arg in union_args:
+            if get_origin(arg) is list:
+                dept_list_type = arg
+                break
+
+    assert get_origin(dept_list_type) is list
+    department_type = get_args(dept_list_type)[0]
+
+    # Verify departments are BaseModel subclasses
+    assert department_type is not dict
+    assert hasattr(department_type, "model_fields")
+    assert "name" in department_type.model_fields
+    assert "employees" in department_type.model_fields
+
+    # Verify employees field type annotation
+    employees_field = department_type.model_fields["employees"]
+    emp_list_type = employees_field.annotation
+    if get_origin(emp_list_type) is Union:
+        union_args = get_args(emp_list_type)
+        for arg in union_args:
+            if get_origin(arg) is list:
+                emp_list_type = arg
+                break
+
+    assert get_origin(emp_list_type) is list
+    employee_type = get_args(emp_list_type)[0]
+
+    # Verify employees are BaseModel subclasses
+    assert employee_type is not dict
+    assert hasattr(employee_type, "model_fields")
+    expected_emp_fields = {"name", "role", "skills"}
+    actual_emp_fields = set(employee_type.model_fields.keys())
+    assert expected_emp_fields.issubset(actual_emp_fields)
+
+    # Test instantiation with nested data
+    test_data = {
+        "companies": [
+            {
+                "name": "TechCorp",
+                "departments": [
+                    {
+                        "name": "Engineering",
+                        "employees": [
+                            {"name": "Alice", "role": "Senior Developer", "skills": ["Python", "JavaScript", "Docker"]},
+                            {"name": "Bob", "role": "DevOps Engineer", "skills": ["Kubernetes", "AWS"]},
+                        ],
+                    },
+                    {"name": "Marketing", "employees": [{"name": "Carol", "role": "Marketing Manager"}]},
+                ],
+            }
+        ]
+    }
+
+    instance = Model(**test_data)
+    assert len(instance.companies) == 1  # type: ignore[attr-defined]
+
+    company = instance.companies[0]  # type: ignore[attr-defined]
+    assert hasattr(company, "model_fields")  # type: ignore[reportUnknownArgumentType]
+    assert company.name == "TechCorp"  # type: ignore[attr-defined]
+    assert len(company.departments) == 2  # type: ignore[attr-defined]
+
+    engineering_dept = company.departments[0]  # type: ignore[attr-defined]
+    assert hasattr(engineering_dept, "model_fields")  # type: ignore[reportUnknownArgumentType]
+    assert engineering_dept.name == "Engineering"  # type: ignore[attr-defined]
+    assert len(engineering_dept.employees) == 2  # type: ignore[attr-defined]
+
+    alice = engineering_dept.employees[0]  # type: ignore[attr-defined]
+    assert hasattr(alice, "model_fields")  # type: ignore[reportUnknownArgumentType]
+    assert alice.name == "Alice"  # type: ignore[attr-defined]
+    assert alice.role == "Senior Developer"  # type: ignore[attr-defined]
+    assert alice.skills == ["Python", "JavaScript", "Docker"]  # type: ignore[attr-defined]
