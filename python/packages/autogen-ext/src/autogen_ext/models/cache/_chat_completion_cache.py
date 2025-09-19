@@ -223,6 +223,31 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                 except ValidationError:
                     # If reconstruction fails, treat as cache miss
                     return None, cache_key
+            elif isinstance(cached_result, str):
+                # Handle case where cache store returns a string (e.g., Redis with decode errors)
+                try:
+                    # Try to parse the string as JSON and reconstruct CreateResult
+                    parsed_data = json.loads(cached_result)
+                    if isinstance(parsed_data, dict):
+                        cached_result = CreateResult.model_validate(parsed_data)
+                    elif isinstance(parsed_data, list):
+                        # Handle streaming results stored as JSON string
+                        reconstructed_list_2: list[CreateResult | str] = []
+                        for item in parsed_data:  # type: ignore[reportUnknownVariableType]
+                            if isinstance(item, dict):
+                                reconstructed_list_2.append(CreateResult.model_validate(item))
+                            elif isinstance(item, str):
+                                reconstructed_list_2.append(item)
+                            else:
+                                # If item is neither dict nor str, treat as cache miss
+                                return None, cache_key
+                        cached_result = reconstructed_list_2
+                    else:
+                        # If parsed data is not dict or list, treat as cache miss
+                        return None, cache_key
+                except (json.JSONDecodeError, ValidationError):
+                    # If JSON parsing or validation fails, treat as cache miss
+                    return None, cache_key
             # If it's already the right type (CreateResult or list), return as-is
             return cached_result, cache_key
 
