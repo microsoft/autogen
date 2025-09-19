@@ -315,6 +315,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         progress_ledger: Dict[str, Any] = {}
         assert self._max_json_retries > 0
         key_error: bool = False
+        key_e_msg: str = None
         for _ in range(self._max_json_retries):
             if self._model_client.model_info.get("structured_output", False):
                 response = await self._model_client.create(
@@ -355,6 +356,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 ]
 
                 key_error = False
+                key_e_msg = None
                 for key in required_keys:
                     if (
                         key not in progress_ledger
@@ -363,14 +365,17 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                         or "reason" not in progress_ledger[key]
                     ):
                         key_error = True
+                        key_e_msg = f"'{key}' does not exist in progress ledger or the corresponding value is invalid"
                         break
 
                 # Validate the next speaker if the task is not yet complete
                 if (
-                    not progress_ledger["is_request_satisfied"]["answer"]
+                    not key_error
+                    and not progress_ledger["is_request_satisfied"]["answer"]
                     and progress_ledger["next_speaker"]["answer"] not in self._participant_names
                 ):
                     key_error = True
+                    key_e_msg = f"next speaker ({progress_ledger['next_speaker']['answer']}) does not exist"
                     break
 
                 if not key_error:
@@ -378,10 +383,11 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 await self._log_message(f"Failed to parse ledger information, retrying: {ledger_str}")
             except (json.JSONDecodeError, TypeError):
                 key_error = True
+                key_e_msg = "invalid ledger format"
                 await self._log_message("Invalid ledger format encountered, retrying...")
                 continue
         if key_error:
-            raise ValueError("Failed to parse ledger information after multiple retries.")
+            raise ValueError(f"Failed to parse ledger information after multiple retries: {key_e_msg}")
         await self._log_message(f"Progress Ledger: {progress_ledger}")
 
         # Check for task completion
