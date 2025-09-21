@@ -1,0 +1,12 @@
+main_prompt: 
+  path: "./llm/prompts/situations/prompt-v1.md"
+
+additional_sections:
+  shots:
+    path: "./llm/prompts/situations/shots"
+    method: "fixed"
+    method_params:
+      shot_type: "json"
+      shot_names: 
+        - "shot-1.json"
+  numGeneratedExamples: 8
