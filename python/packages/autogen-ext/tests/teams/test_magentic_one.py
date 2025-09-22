@@ -115,7 +115,7 @@ def test_docker_availability_check() -> None:
     assert isinstance(result, bool)
 
 
-@patch("autogen_ext.teams.magentic_one._is_docker_available")
+@patch("autogen_ext.code_executors._is_docker_available")
 def test_magentic_one_falls_back_to_local_when_docker_unavailable(
     mock_docker_check: Mock, mock_chat_client: Mock
 ) -> None:
@@ -154,7 +154,7 @@ def test_magentic_one_falls_back_to_local_when_docker_unavailable(
         assert deprecated_warning_found, f"Deprecation warning not found in: {warning_messages}"
 
 
-@patch("autogen_ext.teams.magentic_one._is_docker_available")
+@patch("autogen_ext.code_executors._is_docker_available")
 def test_magentic_one_falls_back_to_local_with_approval_function(
     mock_docker_check: Mock, mock_chat_client: Mock
 ) -> None:

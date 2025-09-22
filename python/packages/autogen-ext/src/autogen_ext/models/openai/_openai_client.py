@@ -95,7 +95,7 @@ openai_init_kwargs = set(inspect.getfullargspec(AsyncOpenAI.__init__).kwonlyargs
 aopenai_init_kwargs = set(inspect.getfullargspec(AsyncAzureOpenAI.__init__).kwonlyargs)
 
 create_kwargs = set(completion_create_params.CompletionCreateParamsBase.__annotations__.keys()) | set(
-    ("timeout", "stream")
+    ("timeout", "stream", "extra_body")
 )
 # Only single choice allowed
 disallowed_create_args = set(["stream", "messages", "function_call", "functions", "n"])
@@ -394,6 +394,17 @@ def count_tokens_openai(
                         elif field == "description":
                             tool_tokens += 2
                             tool_tokens += len(encoding.encode(v["description"]))  # pyright: ignore
+                        elif field == "anyOf":
+                            tool_tokens -= 3
+                            for o in v["anyOf"]:  # type: ignore
+                                tool_tokens += 3
+                                tool_tokens += len(encoding.encode(str(o["type"])))  # pyright: ignore
+                        elif field == "default":
+                            tool_tokens += 2
+                            tool_tokens += len(encoding.encode(json.dumps(v["default"])))
+                        elif field == "title":
+                            tool_tokens += 2
+                            tool_tokens += len(encoding.encode(str(v["title"])))  # pyright: ignore
                         elif field == "enum":
                             tool_tokens -= 3
                             for o in v["enum"]:  # pyright: ignore
@@ -405,7 +416,9 @@ def count_tokens_openai(
                 if len(parameters["properties"]) == 0:  # pyright: ignore
                     tool_tokens -= 2
         num_tokens += tool_tokens
-    num_tokens += 12
+
+    if oai_tools:
+        num_tokens += 12
     return num_tokens
 
 
@@ -945,8 +958,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     is_reasoning = True
                 thought_deltas.append(reasoning_content)
                 yield reasoning_content
-            elif is_reasoning:
-                # Exit reasoning mode.
+            elif reasoning_content is None and is_reasoning:
+                # Exit reasoning mode only when reasoning_content is None (not when it's an empty string).
                 reasoning_content = "</think>"
                 thought_deltas.append(reasoning_content)
                 is_reasoning = False

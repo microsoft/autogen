@@ -1,4 +1,5 @@
 import copy
+import json
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import pytest
@@ -479,6 +480,128 @@ def test_check_cache_already_correct_type() -> None:
     assert cached_result is create_result  # Same object reference
     assert isinstance(cached_result, CreateResult)
     assert cached_result.content == "already correct type"
+    assert cache_key is not None
+
+
+def test_check_cache_string_json_deserialization_success() -> None:
+    """Test _check_cache when Redis cache returns a string containing valid JSON.
+    This tests the fix for the Redis string caching issue where Redis returns
+    string data instead of dict/CreateResult, causing cache misses.
+    """
+    _, prompts, system_prompt, replay_client, _ = get_test_data()
+
+    # Create a JSON string representing a valid CreateResult
+    create_result_json = json.dumps(
+        {
+            "content": "response from string json",
+            "usage": {"prompt_tokens": 12, "completion_tokens": 6},
+            "cached": False,
+            "finish_reason": "stop",
+            "logprobs": None,
+            "thought": None,
+        }
+    )
+
+    # Mock cache store that returns the JSON string (simulating Redis behavior)
+    mock_store = MockCacheStore(return_value=cast(Any, create_result_json))
+    cached_client = ChatCompletionCache(replay_client, mock_store)
+
+    # Test _check_cache method directly
+    messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
+    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})  # type: ignore
+
+    # Should successfully reconstruct the CreateResult from JSON string
+    assert cached_result is not None
+    assert isinstance(cached_result, CreateResult)
+    assert cached_result.content == "response from string json"
+    assert cached_result.usage.prompt_tokens == 12
+    assert cached_result.usage.completion_tokens == 6
+    assert cache_key is not None
+
+
+def test_check_cache_string_json_list_deserialization_success() -> None:
+    """Test _check_cache when Redis cache returns a string containing valid JSON list.
+    This tests the fix for streaming results stored as JSON strings in Redis.
+    """
+    _, prompts, system_prompt, replay_client, _ = get_test_data()
+
+    # Create a JSON string representing a streaming result list
+    streaming_list_json = json.dumps(
+        [
+            "streaming chunk 1",
+            {
+                "content": "streaming response from json",
+                "usage": {"prompt_tokens": 8, "completion_tokens": 4},
+                "cached": False,
+                "finish_reason": "stop",
+                "logprobs": None,
+                "thought": None,
+            },
+            "streaming chunk 2",
+        ]
+    )
+
+    # Mock cache store that returns the JSON string (simulating Redis streaming)
+    mock_store = MockCacheStore(return_value=cast(Any, streaming_list_json))
+    cached_client = ChatCompletionCache(replay_client, mock_store)
+
+    # Test _check_cache method directly
+    messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
+    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})  # type: ignore
+
+    # Should successfully reconstruct the list from JSON string
+    assert cached_result is not None
+    assert isinstance(cached_result, list)
+    assert len(cached_result) == 3
+    assert cached_result[0] == "streaming chunk 1"
+    assert isinstance(cached_result[1], CreateResult)
+    assert cached_result[1].content == "streaming response from json"
+    assert cached_result[2] == "streaming chunk 2"
+    assert cache_key is not None
+
+
+def test_check_cache_string_invalid_json_failure() -> None:
+    """Test _check_cache gracefully handles invalid JSON strings.
+    This ensures the system degrades gracefully when Redis returns corrupted
+    string data that cannot be parsed as JSON.
+    """
+    _, prompts, system_prompt, replay_client, _ = get_test_data()
+
+    # Create an invalid JSON string
+    invalid_json_string = '{"content": "test", invalid json}'
+
+    # Mock cache store that returns the invalid JSON string
+    mock_store = MockCacheStore(return_value=cast(Any, invalid_json_string))
+    cached_client = ChatCompletionCache(replay_client, mock_store)
+
+    # Test _check_cache method directly
+    messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
+    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})  # type: ignore
+
+    # Should return None (cache miss) when JSON parsing fails
+    assert cached_result is None
+    assert cache_key is not None
+
+
+def test_check_cache_string_invalid_data_failure() -> None:
+    """Test _check_cache gracefully handles JSON strings with invalid data structure.
+    This ensures the system handles JSON that parses but doesn't represent valid CreateResult data.
+    """
+    _, prompts, system_prompt, replay_client, _ = get_test_data()
+
+    # Create a JSON string that parses but has invalid structure
+    invalid_data_json = json.dumps({"invalid_structure": "not a CreateResult"})
+
+    # Mock cache store that returns the invalid data JSON string
+    mock_store = MockCacheStore(return_value=cast(Any, invalid_data_json))
+    cached_client = ChatCompletionCache(replay_client, mock_store)
+
+    # Test _check_cache method directly
+    messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
+    cached_result, cache_key = cached_client._check_cache(messages, [], None, {})  # type: ignore
+
+    # Should return None (cache miss) when validation fails
+    assert cached_result is None
     assert cache_key is not None
 
 

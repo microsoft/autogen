@@ -11,9 +11,10 @@ from typing import List, Optional, Union
 
 from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
-from autogen_ext.code_executors._common import silence_pip
 from pydantic import BaseModel
 from typing_extensions import Self
+
+from autogen_ext.code_executors._common import silence_pip
 
 from ._jupyter_server import JupyterClient, JupyterConnectable, JupyterConnectionInfo, JupyterKernelClient
 
