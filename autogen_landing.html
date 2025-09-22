@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoGen - Multi-Agent AI Framework</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #fff, #e0e0e0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #333;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        /* Demo Section */
+        .demo {
+            padding: 80px 0;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            color: white;
+        }
+
+        .demo h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .demo-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .agent-workflow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .agent {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 120px;
+            transition: all 0.3s;
+        }
+
+        .agent:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .arrow {
+            font-size: 2rem;
+            opacity: 0.7;
+        }
+
+        /* Code Section */
+        .code-section {
+            padding: 80px 0;
+            background: #2d3748;
+            color: white;
+        }
+
+        .code-container {
+            background: #1a202c;
+            border-radius: 10px;
+            padding: 2rem;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .code-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot.red { background: #ef4444; }
+        .dot.yellow { background: #f59e0b; }
+        .dot.green { background: #10b981; }
+
+        .code-title {
+            margin-left: 1rem;
+            color: #a0aec0;
+        }
+
+        pre {
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+        }
+
+        .code {
+            color: #e2e8f0;
+            line-height: 1.5;
+        }
+
+        .keyword { color: #f56565; }
+        .string { color: #68d391; }
+        .comment { color: #a0aec0; }
+
+        /* Footer */
+        footer {
+            background: #1a202c;
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-links a {
+            color: #a0aec0;
+            text-decoration: none;
+        }
+
+        /* Interactive Elements */
+        .interactive-demo {
+            margin: 2rem 0;
+        }
+
+        .demo-controls {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .demo-output {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            min-height: 100px;
+            font-family: monospace;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .agent-workflow {
+                flex-direction: column;
+            }
+
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav class="container">
+            <a href="#" class="logo">🤖 AutoGen</a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#demo">Demo</a></li>
+                <li><a href="#docs">Docs</a></li>
+                <li><a href="#github">GitHub</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>AutoGen</h1>
+            <p>The Multi-Agent AI Framework for Building Intelligent Applications</p>
+            <div class="cta-buttons">
+                <a href="#demo" class="btn btn-primary">Try Demo</a>
+                <a href="#docs" class="btn btn-secondary">Documentation</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2>Powerful Multi-Agent Capabilities</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🤝</div>
+                    <h3>Agent Collaboration</h3>
+                    <p>Multiple AI agents work together to solve complex problems, each bringing specialized skills and perspectives.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛠️</div>
+                    <h3>Tool Integration</h3>
+                    <p>Agents can use custom tools and functions, from calculators to web browsers to code execution environments.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Flexible Orchestration</h3>
+                    <p>Round-robin, selector-based, or custom group chat patterns to coordinate agent interactions.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3>Easy Configuration</h3>
+                    <p>JSON-based configuration system makes it simple to define agents, tools, and workflows.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>AutoGen Studio</h3>
+                    <p>No-code GUI for building and prototyping multi-agent applications with visual workflow designer.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔌</div>
+                    <h3>Extensible</h3>
+                    <p>Support for multiple LLM providers, custom extensions, and integration with external services.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section class="demo" id="demo">
+        <div class="container">
+            <h2>See AutoGen in Action</h2>
+            <div class="demo-container">
+                <h3>Travel Planning Team Workflow</h3>
+                <div class="agent-workflow">
+                    <div class="agent">
+                        <div class="feature-icon">🗺️</div>
+                        <h4>Planner</h4>
+                        <p>Creates itinerary</p>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="agent">
+                        <div class="feature-icon">🏛️</div>
+                        <h4>Local Expert</h4>
+                        <p>Adds local insights</p>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="agent">
+                        <div class="feature-icon">🗣️</div>
+                        <h4>Language Guide</h4>
+                        <p>Provides language tips</p>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="agent">
+                        <div class="feature-icon">📋</div>
+                        <h4>Summarizer</h4>
+                        <p>Final travel plan</p>
+                    </div>
+                </div>
+                
+                <div class="interactive-demo">
+                    <div class="demo-controls">
+                        <button class="btn btn-primary" onclick="runDemo()">Run Travel Demo</button>
+                        <button class="btn btn-secondary" onclick="clearDemo()">Clear</button>
+                    </div>
+                    <div class="demo-output" id="demoOutput">
+                        Click "Run Travel Demo" to see the agents collaborate on planning a trip to Tokyo!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Section -->
+    <section class="code-section" id="docs">
+        <div class="container">
+            <h2 style="color: white; text-align: center; margin-bottom: 2rem;">Simple to Get Started</h2>
+            <div class="code-container">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                    </div>
+                    <div class="code-title">hello_autogen.py</div>
+                </div>
+                <pre class="code">
+<span class="keyword">import</span> asyncio
+<span class="keyword">from</span> autogen_agentchat.agents <span class="keyword">import</span> AssistantAgent
+<span class="keyword">from</span> autogen_agentchat.teams <span class="keyword">import</span> RoundRobinGroupChat
+<span class="keyword">from</span> autogen_ext.models.openai <span class="keyword">import</span> OpenAIChatCompletionClient
+
+<span class="comment"># Create agents with specialized roles</span>
+planner = AssistantAgent(
+    <span class="string">"planner"</span>,
+    model_client=OpenAIChatCompletionClient(model=<span class="string">"gpt-4"</span>),
+    system_message=<span class="string">"You are a travel planner."</span>
+)
+
+local_expert = AssistantAgent(
+    <span class="string">"local_expert"</span>, 
+    model_client=OpenAIChatCompletionClient(model=<span class="string">"gpt-4"</span>),
+    system_message=<span class="string">"You provide local insights and tips."</span>
+)
+
+<span class="comment"># Create a team and run the workflow</span>
+team = RoundRobinGroupChat([planner, local_expert])
+result = <span class="keyword">await</span> team.run(task=<span class="string">"Plan a 3-day trip to Tokyo"</span>)
+print(result)
+                </pre>
+            </div>
+            
+            <div class="code-container">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                    </div>
+                    <div class="code-title">Installation</div>
+                </div>
+                <pre class="code">
+<span class="comment"># Install AutoGen packages</span>
+pip install -U <span class="string">"autogen-agentchat"</span> <span class="string">"autogen-ext[openai]"</span>
+
+<span class="comment"># Install AutoGen Studio for GUI</span>
+pip install -U <span class="string">"autogenstudio"</span>
+
+<span class="comment"># Run AutoGen Studio</span>
+autogenstudio ui --port 8080
+                </pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="https://github.com/microsoft/autogen">GitHub</a>
+                <a href="https://microsoft.github.io/autogen/">Documentation</a>
+                <a href="https://discord.gg/autogen">Discord</a>
+                <a href="https://twitter.com/pyautogen">Twitter</a>
+            </div>
+            <p>&copy; 2024 Microsoft AutoGen. Built with ❤️ for the AI community.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Interactive Demo
+        function runDemo() {
+            const output = document.getElementById('demoOutput');
+            const messages = [
+                "🗺️ Planner Agent: Creating a 3-day Tokyo itinerary...",
+                "   Day 1: Shibuya, Harajuku, Meiji Shrine",
+                "   Day 2: Asakusa, Tokyo Skytree, Ginza",
+                "   Day 3: Tsukiji, Imperial Palace, Akihabara",
+                "",
+                "🏛️ Local Expert: Adding authentic experiences...",
+                "   • Try ramen at Ichiran in Shibuya",
+                "   • Visit early morning tuna auction at Tsukiji",
+                "   • Experience traditional tea ceremony in Ueno",
+                "",
+                "🗣️ Language Guide: Essential Japanese phrases...",
+                "   • Arigatou gozaimasu (Thank you)",
+                "   • Sumimasen (Excuse me)",
+                "   • Eigo ga hanasemasu ka? (Do you speak English?)",
+                "",
+                "📋 Summarizer: Complete Tokyo travel plan ready!",
+                "   ✅ 3-day itinerary with cultural experiences",
+                "   ✅ Local food recommendations included",
+                "   ✅ Language tips for better communication",
+                "   🎌 Your Tokyo adventure awaits!"
+            ];
+            
+            output.innerHTML = '';
+            let i = 0;
+            
+            function addMessage() {
+                if (i < messages.length) {
+                    output.innerHTML += messages[i] + '\n';
+                    output.scrollTop = output.scrollHeight;
+                    i++;
+                    setTimeout(addMessage, 800);
+                }
+            }
+            
+            addMessage();
+        }
+        
+        function clearDemo() {
+            document.getElementById('demoOutput').innerHTML = 'Click "Run Travel Demo" to see the agents collaborate on planning a trip to Tokyo!';
+        }
+        
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Animation on scroll
+        function animateOnScroll() {
+            const elements = document.querySelectorAll('.feature-card');
+            elements.forEach(element => {
+                const elementTop = element.getBoundingClientRect().top;
+                const elementVisible = 150;
+                
+                if (elementTop < window.innerHeight - elementVisible) {
+                    element.classList.add('animate-on-scroll');
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', animateOnScroll);
+        
+        // Add some interactive hover effects
+        document.querySelectorAll('.agent').forEach(agent => {
+            agent.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.1) rotate(2deg)';
+            });
+            
+            agent.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1) rotate(0deg)';
+            });
+        });
+    </script>
+</body>
+</html>
