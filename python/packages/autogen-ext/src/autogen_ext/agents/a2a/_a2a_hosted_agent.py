@@ -161,7 +161,7 @@ class A2aHostedAgent(BaseChatAgent, Component[A2aHostedAgentConfig]):
 
     @property
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
-        return tuple(HandoffMessage, StructuredMessage, TextMessage, MultiModalMessage)
+        return HandoffMessage, StructuredMessage, TextMessage, MultiModalMessage
 
     def _build_a2a_message(self, autogen_messages: Sequence[BaseChatMessage]) -> MessageSendParams:
         """Convert AutoGen messages to A2A message format.
