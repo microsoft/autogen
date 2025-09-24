@@ -60,6 +60,6 @@ async def get_run(run_id: int, db=Depends(get_db)) -> Dict:
 @router.get("/{run_id}/messages")
 async def get_run_messages(run_id: int, db=Depends(get_db)) -> Dict:
     """Get all messages for a run"""
-    messages = db.get(Message, filters={"run_id": run_id}, order="created_at asc", return_json=False)
+    messages = db.get(Message, filters={"run_id": run_id}, order="asc", return_json=False)
 
     return {"status": True, "data": messages.data}
