@@ -17,15 +17,19 @@ flowchart LR
     direction TB
     WB[MCP Workbench]
     HS[MCP Session Host]
-    R["Roots (static or callable)"]
     
-    %% Abstract Elicitor
-    E{Elicitor Type}
+    %% Abstract components
+    subgraph Abstract_Components ["Abstract Components"]
+        R[RootsProvider]
+        S[Sampler]
+        E[Elicitor Type]
+    end
 
-    %% Concrete Elicitors
-    subgraph Elicitor_Subclasses ["Concrete Elicitors"]
-        GCAE[GroupChatAgentElicitor]
-        CCCE[ChatCompletionClientElicitor]
+    %% Concrete components
+    subgraph Component_Subclasses ["Concrete Components"]
+        CCCS[ChatCompletionClientSampler]
+        SE[StdioElicitor]
+        SRP[StaticRootsProvider]
     end
   end
 
@@ -35,52 +39,28 @@ flowchart LR
     MS[MCP Server]
   end
 
-  %% Agent runtime layer (distributed)
-  subgraph Agent_Runtime ["Agent Runtime"]
-    GC[GroupChat]
-  end
-
-  %% Target Agent layer (can be distributed)
-  subgraph Target_Agent ["Target Agent"]
-    TA{Target Agent}
-    %% Concrete Target Agents
-    subgraph Target_Agent_Subclasses ["Concrete Target Agents"]
-        UPA[UserProxyAgent]
-        AA[AssistantAgent]
-    end
-  end
-
   %% Chat Completion Client
   CCC[Chat Completion Client]
 
   %% Flows
   WB -->|tool call| MS
-  MS -.->|sampling/elicitation/roots| WB
+  MS -.->|sampling/elicitation/roots requests| WB
 
-  WB -->|sampling/elicitation/roots| HS
+  WB -->|sampling/elicitation/roots requests| HS
 
-  HS -->|roots| R
+  %% Sampling via Sampler
+  HS -->|sampling| S
+  S --> CCCS
+  CCCS -->|completion| CCC
 
-  %% Elicitation via abstract Elicitor
+  %% Elicitation via Elicitor
   HS -->|elicitation| E
-  E --> GCAE
-  E --> CCCE
+  E --> SE
+  SE -->|stdio| U["User"]
 
-  %% GroupChat branch
-  GCAE -->|elicitation| GC
-  GC  -->|elicitation| TA
-  TA  --> UPA
-  TA  --> AA
-
-  UPA -->|input| U["User"]
-  AA -->|completion| CCC
-
-
-  %% CCC branch
-  CCCE -->|completion| CCC
-
-  %% Sampling stays direct to CCC
-  HS -->|sampling| CCC
+  %% Roots via RootsProvider
+  HS -->|roots| R
+  R --> SRP
 ```
 
 ## Sequence Diagrams
@@ -110,6 +90,7 @@ sequenceDiagram
     participant Workbench as McpWorkbench
     participant Server as MCP Server
     participant Host as McpSessionHost
+    participant Sampler as ChatCompletionClientSampler
     participant ModelClient as ChatCompletionClient
 
     Assistant->>Workbench: call_tool(tool, args)
@@ -117,10 +98,10 @@ sequenceDiagram
     Note over Server: Tool execution requires text generation
     Server->>Workbench: sampling request
     Workbench->>Host: handle_sampling_request()
-    Host->>Host: convert MCP messages to AutoGen format
-    Host->>ModelClient: create(messages, extra_args)
-    ModelClient->>Host: response with content
-    Host->>Host: convert response to MCP format
+    Host->>Sampler: sample(params)
+    Sampler->>ModelClient: create(messages, extra_args)
+    ModelClient->>Sampler: response with content
+    Sampler->>Host: CreateMessageResult
     Host->>Workbench: CreateMessageResult
     Workbench->>Server: sampling response
     Server->>Workbench: tool result
@@ -131,15 +112,11 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    sequenceDiagram
     participant Assistant as AutoGen Assistant
     participant Workbench as McpWorkbench
     participant Server as MCP Server
     participant Host as McpSessionHost
-    participant Elicitor as GroupChatAgentElicitor
-    participant Runtime as AgentRuntime
-    participant TargetAgent as Target Agent
-    participant ModelClient as ChatCompletionClient
+    participant Elicitor as StdioElicitor
     participant User
 
     Assistant->>Workbench: call_tool(tool, args)
@@ -148,7 +125,8 @@ sequenceDiagram
     Server->>Workbench: ElicitRequest
     Workbench->>Host: handle_elicit_request()
     Host->>Elicitor: elicit(params)
-    Elicitor->>User: elicit request
+    Elicitor->>User: prompt via stdio
+    User->>Elicitor: response via stdio
     Elicitor->>Host: elicit result
     Host->>Workbench: elicit result
     Workbench->>Server: elicit result
@@ -164,18 +142,15 @@ sequenceDiagram
     participant Workbench as McpWorkbench
     participant Server as MCP Server
     participant Host as McpSessionHost
+    participant RootsProvider as StaticRootsProvider
 
     Assistant->>Workbench: call_tool(tool, args)
     Workbench->>Server: execute tool
     Note over Server: Tool needs to know available file system roots
     Server->>Workbench: list_roots request
     Workbench->>Host: handle_list_roots_request()
-    Host->>Host: check configured roots
-    alt Static roots configured
-        Host->>Host: return configured root list
-    else Callable roots configured
-        Host->>Host: execute callable to get roots
-    end
+    Host->>RootsProvider: list_roots()
+    RootsProvider->>Host: ListRootsResult with configured roots
     Host->>Workbench: ListRootsResult
     Workbench->>Server: roots response
     Server->>Workbench: tool result with root info
@@ -186,21 +161,26 @@ sequenceDiagram
 
 ### McpSessionHost
 
-The main host-side component that handles server-to-host requests and coordinates with AutoGen components:
+The main host-side component that handles server-to-host requests and coordinates with component providers:
 
-- **Model Client**: Handles sampling requests using any `ChatCompletionClient`
-- **Elicitor**: Routes elicitation requests to a ChatComletionClient or to AutoGen agents for user interaction
-- **Roots**: Provides file system access configuration
+- **Sampler**: Handles sampling requests via `Sampler`s (e.g. `ChatCompletionClientSampler`)
+- **Elicitor**: Handles elicitation requests via `Elicitor`s (e.g. `StdioElicitor`, `StreamElicitor`)
+- **RootsProvider**: Provides file system access configuration via `RootsProvider`s (e.g. `StaticRootsProvider`)
 
-### Elicitors
+### Component Types
 
-Elicitors handle structured prompting requests from MCP servers on the host side:
+#### Samplers
+Handle text generation requests from MCP servers:
+- **ChatCompletionClientSampler**: Routes sampling requests to any `ChatCompletionClient`
 
-#### GroupChatAgentElicitor
-Routes elicitation requests to specific agents within a group chat, allowing for interactive user input collection through AutoGen agents.
+#### Elicitors
+Handle structured prompting requests from MCP servers:
+- **StdioElicitor**: Interactive user prompting via standard input/output streams.
+- **StreamElicitor**: Base class for stream-based elicitation
 
-#### ChatCompletionClientElicitor
-Handles elicitation requests directly using a language model, suitable for automated structured responses.
+#### RootsProviders
+Manage file system root access for MCP servers:
+- **StaticRootsProvider**: Provides a static list of file system roots
 
 ## Usage
 
@@ -211,25 +191,31 @@ from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
-+ from autogen_ext.tools.mcp import GroupChatAgentElicitor, McpSessionHost
++ from autogen_ext.tools.mcp import (
++     ChatCompletionClientSampler,
++     McpSessionHost,
++     StaticRootsProvider,
++     StdioElicitor,
++ )
++ from pydantic import FileUrl
++ from mcp.types import Root
 
 # Setup model client
 model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
-# Create agents
-user_proxy = UserProxyAgent("user_proxy")
++ # Create components
++ sampler = ChatCompletionClientSampler(model_client)
++ elicitor = StdioElicitor()
++ roots = StaticRootsProvider([
++     Root(uri=FileUrl("file:///workspace"), name="Workspace"),
++     Root(uri=FileUrl("file:///docs"), name="Documentation"),
++ ])
 
-+ # Create elicitor targeting the user proxy
-+ elicitor = GroupChatAgentElicitor("user_proxy", model_client=model_client)
-
-+ # Create host with elicitation support
++ # Create host with all capabilities
 + host = McpSessionHost(
-+     model_client=model_client,  # For sampling requests
-+     elicitor=elicitor,         # For elicitation requests,
-+     roots=[
-+         mcp_types.Root(uri="file:///workspace", name="Workspace"),
-+         mcp_types.Root(uri="file:///docs", name="Documentation"),
-+     ]
++     sampler=sampler,    # For sampling requests
++     elicitor=elicitor,  # For elicitation requests
++     roots=roots,        # For roots requests
 + )
 
 # Setup MCP workbench
@@ -247,11 +233,4 @@ assistant = AssistantAgent(
     model_client=model_client,
     workbench=mcp_workbench,
 )
-
-# Create team and link elicitor
-team = RoundRobinGroupChat([assistant, user_proxy])
-+ # ⚠️ Critical: Must set_group_chat before team.run**  
-+ elicitor.set_group_chat(team)
-
-result = await team.run(task="...")
 ```
