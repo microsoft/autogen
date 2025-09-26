@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, List, Sequence, TypeVar
+from typing import List, Sequence
 
 from autogen_core import Component, ComponentBase
 from pydantic import BaseModel

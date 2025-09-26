@@ -114,6 +114,11 @@ class StdioElicitor(StreamElicitor, Component[StdioElicitorConfig]):
     def __init__(self, timeout: float | None = None) -> None:
         super().__init__(sys.stdin, sys.stdout, timeout)
 
+    @property
+    def timeout(self) -> float | None:
+        """Get the timeout value for elicitation operations."""
+        return self._timeout
+
     def _to_config(self) -> BaseModel:
         return StdioElicitorConfig(timeout=self._timeout)
 

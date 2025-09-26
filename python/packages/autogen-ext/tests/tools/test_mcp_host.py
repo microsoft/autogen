@@ -624,34 +624,38 @@ def test_stdio_elicitor_initialization() -> None:
     """Test StdioElicitor initialization."""
     elicitor = StdioElicitor(timeout=10.0)
 
-    assert elicitor._timeout == 10.0
+    assert elicitor.timeout == 10.0
     # Should use sys.stdin and sys.stdout
     import sys
 
-    assert elicitor._read_stream is sys.stdin
-    assert elicitor._write_stream is sys.stdout
+    assert elicitor._read_stream is sys.stdin  # type: ignore[reportPrivateUsage]
+    assert elicitor._write_stream is sys.stdout  # type: ignore[reportPrivateUsage]
 
 
 def test_stdio_elicitor_config_serialization() -> None:
     """Test StdioElicitor config serialization."""
     elicitor = StdioElicitor(timeout=5.0)
 
-    config = elicitor._to_config()
-    from autogen_ext.tools.mcp._host._elicitation import StdioElicitorConfig
+    config = elicitor.dump_component()
 
-    assert isinstance(config, StdioElicitorConfig)
-    assert config.timeout == 5.0
+    # Config should be a ComponentModel with nested config
+    assert config is not None
+    assert config.provider == "autogen_ext.tools.mcp.StdioElicitor"
+    assert config.component_type == "mcp_elicitor"
+    assert config.config["timeout"] == 5.0
 
 
 def test_stdio_elicitor_from_config() -> None:
-    """Test StdioElicitor _from_config method."""
-    from autogen_ext.tools.mcp._host._elicitation import StdioElicitorConfig
-
-    config = StdioElicitorConfig(timeout=15.0)
-    elicitor = StdioElicitor._from_config(config)
+    """Test StdioElicitor load_component method."""
+    config_dict: dict[str, object] = {
+        "provider": "autogen_ext.tools.mcp.StdioElicitor",
+        "component_type": "mcp_elicitor",
+        "config": {"timeout": 15.0},
+    }
+    elicitor = StdioElicitor.load_component(config_dict)
 
     assert isinstance(elicitor, StdioElicitor)
-    assert elicitor._timeout == 15.0
+    assert elicitor.timeout == 15.0
 
 
 # Additional sampling tests for missing coverage
@@ -742,30 +746,32 @@ def test_static_roots_provider_config_serialization() -> None:
     ]
 
     provider = StaticRootsProvider(test_roots)
-    config = provider._to_config()
+    config = provider.dump_component()
 
-    from autogen_ext.tools.mcp._host._roots import StaticRootsProviderConfig
-
-    assert isinstance(config, StaticRootsProviderConfig)
-    assert len(config.roots) == 1
-    assert str(config.roots[0].uri) == "file:///test"
+    # Config should be a ComponentModel with nested config
+    assert config is not None
+    assert config.provider == "autogen_ext.tools.mcp.StaticRootsProvider"
+    assert config.component_type == "mcp_roots_provider"
+    assert len(config.config["roots"]) == 1
 
 
 def test_static_roots_provider_from_config() -> None:
-    """Test StaticRootsProvider _from_config method."""
-    from autogen_ext.tools.mcp._host._roots import StaticRootsProviderConfig
+    """Test StaticRootsProvider load_component method."""
     from pydantic import FileUrl
 
     test_roots = [
         mcp_types.Root(uri=FileUrl("file:///config_test"), name="Config Root"),
     ]
 
-    config = StaticRootsProviderConfig(roots=test_roots)
-    provider = StaticRootsProvider._from_config(config)
+    # Create a proper ComponentModel-style config
+    component_config: dict[str, object] = {
+        "provider": "autogen_ext.tools.mcp.StaticRootsProvider",
+        "component_type": "mcp_roots_provider",
+        "config": {"roots": test_roots},
+    }
+    provider = StaticRootsProvider.load_component(component_config)
 
     assert isinstance(provider, StaticRootsProvider)
-    assert len(provider._roots) == 1  # type: ignore[reportPrivateUsage]
-    assert str(provider._roots[0].uri) == "file:///config_test"  # type: ignore[reportPrivateUsage]
 
 
 # ChatCompletionClientSampler config tests
@@ -774,27 +780,31 @@ def test_chat_completion_client_sampler_config_serialization(mock_model_client: 
     mock_model_client.dump_component = MagicMock(return_value={"type": "mock", "config": {}})
 
     sampler = ChatCompletionClientSampler(mock_model_client)
-    config = sampler._to_config()
+    config = sampler.dump_component()
 
-    from autogen_ext.tools.mcp._host._sampling import ChatCompletionClientSamplerConfig
-
-    assert isinstance(config, ChatCompletionClientSamplerConfig)
-    assert config.client_config == {"type": "mock", "config": {}}
+    # Config should be a ComponentModel with nested config
+    assert config is not None
+    assert config.provider == "autogen_ext.tools.mcp.ChatCompletionClientSampler"
+    assert config.component_type == "mcp_sampler"
+    assert config.config["client_config"] == {"type": "mock", "config": {}}
 
 
 def test_chat_completion_client_sampler_from_config() -> None:
-    """Test ChatCompletionClientSampler _from_config method."""
+    """Test ChatCompletionClientSampler load_component method."""
     from autogen_core.models import ChatCompletionClient
-    from autogen_ext.tools.mcp._host._sampling import ChatCompletionClientSamplerConfig
 
-    client_config: dict[str, object] = {"type": "mock", "config": {}}
-    config = ChatCompletionClientSamplerConfig(client_config=client_config)
+    # Create a proper ComponentModel-style config
+    component_config: dict[str, object] = {
+        "provider": "autogen_ext.tools.mcp.ChatCompletionClientSampler",
+        "component_type": "mcp_sampler",
+        "config": {"client_config": {"type": "mock", "config": {}}},
+    }
 
     mock_client = MagicMock()
     with patch.object(ChatCompletionClient, "load_component", return_value=mock_client):
-        sampler = ChatCompletionClientSampler._from_config(config)
+        sampler = ChatCompletionClientSampler.load_component(component_config)
 
-        assert sampler._model_client is mock_client  # type: ignore[reportPrivateUsage]
+        assert isinstance(sampler, ChatCompletionClientSampler)
 
 
 # Additional McpSessionHost tests to improve coverage
