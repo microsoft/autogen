@@ -36,7 +36,7 @@ class StreamElicitor(Elicitor):
         self._write_stream = write_stream
         self._timeout = timeout
 
-    def _write(self, text: str):
+    def _write(self, text: str) -> None:
         self._write_stream.writelines(text)
         self._write_stream.flush()
 
@@ -118,5 +118,5 @@ class StdioElicitor(StreamElicitor, Component[StdioElicitorConfig]):
         return StdioElicitorConfig(timeout=self._timeout)
 
     @classmethod
-    def _from_config(cls, config: StdioElicitorConfig):
+    def _from_config(cls, config: StdioElicitorConfig) -> "StdioElicitor":
         return StdioElicitor(timeout=config.timeout)

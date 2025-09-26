@@ -21,10 +21,6 @@ from autogen_ext.tools.mcp import StdioServerParams
 from autogen_ext.tools.mcp._actor import (
     McpSessionActor,
 )
-from autogen_ext.tools.mcp._host._utils import (
-    parse_sampling_content,  # pyright: ignore[reportPrivateUsage]
-    parse_sampling_message,  # pyright: ignore[reportPrivateUsage]
-)
 from mcp import types as mcp_types
 from mcp.shared.context import RequestContext
 
@@ -115,116 +111,6 @@ def mock_model_client_with_vision() -> MagicMock:
         )
     )
     return model_client
-
-
-def test_parse_sampling_content_unsupported_image_without_vision() -> None:
-    """Test _parse_sampling_content raises error for image content when model doesn't support vision (line 56)."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    image_content = mcp_types.ImageContent(
-        type="image",
-        data="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-        mimeType="image/png",
-    )
-
-    with pytest.raises(RuntimeError, match="model test-model does not support vision"):
-        parse_sampling_content(image_content, model_info)
-
-
-def test_parse_sampling_content_with_vision_support() -> None:
-    """Test _parse_sampling_content works with vision-enabled model."""
-    model_info: ModelInfo = {
-        "vision": True,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    image_content = mcp_types.ImageContent(
-        type="image",
-        data="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-        mimeType="image/png",
-    )
-
-    result = parse_sampling_content(image_content, model_info)
-    assert isinstance(result, Image)
-
-
-def test_parse_sampling_content_text() -> None:
-    """Test _parse_sampling_content with text content."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    text_content = mcp_types.TextContent(type="text", text="Hello world")
-
-    result = parse_sampling_content(text_content, model_info)
-    assert result == "Hello world"
-
-
-def test_parse_sampling_content_unknown_type() -> None:
-    """Test _parse_sampling_content raises error for unknown content type."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    # Create a mock content with unknown type
-    unknown_content = MagicMock()
-    unknown_content.type = "unknown"
-
-    with pytest.raises(ValueError, match="Unsupported content type"):
-        parse_sampling_content(unknown_content, model_info)
-
-
-def test_parse_sampling_message_unrecognized_role() -> None:
-    """Test _parse_sampling_message raises error for unrecognized role (lines 67-74)."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    # Create a mock message with invalid role by bypassing type checking
-    message = MagicMock()
-    message.role = "system"  # Invalid role that should trigger the error
-    message.content = mcp_types.TextContent(type="text", text="Hello")
-
-    with pytest.raises(ValueError, match="Unrecognized message role: system"):
-        parse_sampling_message(message, model_info)
-
-
-def test_parse_sampling_message_assistant_with_non_string_content() -> None:
-    """Test _parse_sampling_message with assistant message containing non-string content."""
-    model_info: ModelInfo = {
-        "vision": True,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    # Create image content for assistant message (which should fail)
-    image_content = mcp_types.ImageContent(
-        type="image",
-        data="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-        mimeType="image/png",
-    )
-    message = mcp_types.SamplingMessage(role="assistant", content=image_content)
-
-    # This should raise an AssertionError because assistant messages only support string content
-    with pytest.raises(AssertionError, match="Assistant messages only support string content"):
-        parse_sampling_message(message, model_info)
 
 
 @pytest.mark.asyncio
@@ -1245,23 +1131,6 @@ async def test_close_with_shutdown_await() -> None:
         actor.close = original_close  # type: ignore[method-assign]
 
 
-def test_parse_sampling_message_user_role() -> None:
-    """Test _parse_sampling_message with user role (line 69)."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    message = mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello user"))
-
-    result = parse_sampling_message(message, model_info)
-
-    assert isinstance(result, UserMessage)
-    assert result.content == ["Hello user"]
-
-
 @pytest.mark.asyncio
 async def test_call_tool_command_queuing() -> None:
     """Test call_tool command queuing (line 140)."""
@@ -1300,21 +1169,3 @@ async def test_call_tool_command_queuing() -> None:
 
     # Restore original queue
     actor._command_queue = original_queue  # type: ignore[reportPrivateUsage]
-
-
-def test_parse_sampling_message_user_role_branch() -> None:
-    """Test _parse_sampling_message with user role (line 69)."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    message = mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello user test"))
-
-    result = parse_sampling_message(message, model_info)
-
-    # This specifically tests the user role branch (line 69)
-    assert isinstance(result, UserMessage)
-    assert result.content == ["Hello user test"]

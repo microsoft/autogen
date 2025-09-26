@@ -179,5 +179,5 @@ class ChatCompletionClientSampler(Sampler, Component[ChatCompletionClientSampler
         return ChatCompletionClientSamplerConfig(client_config=self._model_client.dump_component())
 
     @classmethod
-    def _from_config(cls, config: ChatCompletionClientSamplerConfig):
+    def _from_config(cls, config: ChatCompletionClientSamplerConfig) -> "ChatCompletionClientSampler":
         return ChatCompletionClientSampler(model_client=ChatCompletionClient.load_component(config.client_config))

@@ -37,5 +37,5 @@ class StaticRootsProvider(RootsProvider, Component[StaticRootsProviderConfig]):
         return StaticRootsProviderConfig(roots=self._roots)
 
     @classmethod
-    def _from_config(cls, config: StaticRootsProviderConfig):
+    def _from_config(cls, config: StaticRootsProviderConfig) -> "StaticRootsProvider":
         return StaticRootsProvider(roots=config.roots)

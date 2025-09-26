@@ -488,7 +488,7 @@ async def test_stream_elicitor_basic_functionality() -> None:
     call_responses = ["accept\n", '{"response": "test"}\n']  # action then content for schema
     call_count = {"count": 0}
 
-    def mock_return(*args, **kwargs):
+    def mock_return(*args: Any, **kwargs: Any) -> str:
         result = call_responses[call_count["count"]]
         call_count["count"] += 1
         return result
@@ -540,7 +540,7 @@ async def test_stream_elicitor_with_timeout() -> None:
     call_responses = ["decline\n", "{}\n"]  # action then content for schema
     call_count = {"count": 0}
 
-    def mock_return(*args, **kwargs):
+    def mock_return(*args: Any, **kwargs: Any) -> str:
         result = call_responses[call_count["count"]]
         call_count["count"] += 1
         return result
@@ -573,7 +573,7 @@ async def test_stream_elicitor_with_schema() -> None:
 
     call_count = {"count": 0}
 
-    def side_effect(*args, **kwargs):
+    def side_effect(*args: Any, **kwargs: Any) -> str:
         # First call returns action, second returns JSON content
         if call_count["count"] == 0:
             call_count["count"] += 1
@@ -609,7 +609,7 @@ async def test_stream_elicitor_shorthand_mapping() -> None:
     call_responses = ["d\n", "{}\n"]  # action then content for schema
     call_count = {"count": 0}
 
-    def mock_return(*args, **kwargs):
+    def mock_return(*args: Any, **kwargs: Any) -> str:
         result = call_responses[call_count["count"]]
         call_count["count"] += 1
         return result
@@ -721,7 +721,7 @@ def test_parse_sampling_message_invalid_role() -> None:
 
     # Create a mock message object that bypasses Pydantic validation
     class MockMessage:
-        def __init__(self, role: str, content):
+        def __init__(self, role: str, content: Any):
             self.role = role
             self.content = content
 
@@ -729,7 +729,7 @@ def test_parse_sampling_message_invalid_role() -> None:
     message = MockMessage(role="invalid", content=text_content)
 
     with pytest.raises(ValueError, match="Unrecognized message role: invalid"):
-        parse_sampling_message(message)
+        parse_sampling_message(message)  # type: ignore[arg-type]
 
 
 # Additional roots provider tests
