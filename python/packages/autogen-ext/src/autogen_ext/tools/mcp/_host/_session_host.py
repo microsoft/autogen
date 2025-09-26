@@ -45,8 +45,7 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
     Example:
         Complete setup with MCP capabilities including sampling and elicitation::
 
-            from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
-            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_agentchat.agents import AssistantAgent
             from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_ext.tools.mcp import (
                 ChatCompletionClientSampler,

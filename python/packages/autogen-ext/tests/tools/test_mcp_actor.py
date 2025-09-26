@@ -10,12 +10,9 @@ from typing import Any, AsyncGenerator, Callable, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from autogen_core import Image
 from autogen_core.models import (
     CreateResult,
-    ModelInfo,
     RequestUsage,
-    UserMessage,
 )
 from autogen_ext.tools.mcp import StdioServerParams
 from autogen_ext.tools.mcp._actor import (
