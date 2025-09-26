@@ -1,24 +1,13 @@
-import inspect
-from typing import Any, Callable, Dict, Sequence
+from typing import Any, Dict
 
 from autogen_core import Component, ComponentBase, ComponentModel
-from autogen_core.models import (
-    ChatCompletionClient,
-    LLMMessage,
-    SystemMessage,
-)
 from pydantic import BaseModel
 
 from mcp import types as mcp_types
 
-from ._elicitors import Elicitor
-from ._utils import (
-    create_request_params_to_extra_create_args,
-    finish_reason_to_stop_reason,
-    parse_sampling_message,
-)
-
-RootsType = Sequence[mcp_types.Root] | Callable[[], Sequence[mcp_types.Root]]
+from ._elicitation import Elicitor
+from ._roots import RootsProvider
+from ._sampling import Sampler
 
 
 class McpSessionHostConfig(BaseModel):
@@ -27,13 +16,12 @@ class McpSessionHostConfig(BaseModel):
     Args:
         model_client: Optional chat completion client for sampling requests
         elicitor: Optional elicitor component for handling elicitation requests
-        roots: Optional list of file system roots (callable serialization not yet supported)
+        roots: Optional list of file system roots or roots provider
     """
 
-    model_client: ComponentModel | Dict[str, Any] | None
+    sampler: ComponentModel | Dict[str, Any] | None
     elicitor: ComponentModel | Dict[str, Any] | None
-    # TODO: How to support callable serialization?
-    roots: list[mcp_types.Root] | None
+    roots: ComponentModel | Dict[str, Any] | None
 
 
 class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
@@ -60,23 +48,36 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
             from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_ext.tools.mcp import GroupChatAgentElicitor, McpSessionHost, McpWorkbench, StdioServerParams
+            from autogen_ext.tools.mcp import (
+                ChatCompletionClientSampler,
+                McpSessionHost,
+                McpWorkbench,
+                StaticRootsProvider,
+                StdioElicitor,
+                StdioServerParams,
+            )
+            from pydantic import FileUrl
 
-            # Setup model client for sampling and elicitation formatting
+            from mcp.types import Root
+
+            # Setup model client for sampling
             model_client = OpenAIChatCompletionClient(model="gpt-4o")
+            sampler = ChatCompletionClientSampler(model_client)
 
-            # Create user proxy
-            user_proxy = UserProxyAgent("user_proxy")
+            # Create elicitor that prompts for user input over stdio
+            elicitor = StdioElicitor()
 
-            # Create elicitor targeting the user proxy for elicitation handling (could be any other agent)
-            elicitor = GroupChatAgentElicitor("user_proxy", model_client=model_client)
+            # Provide static roots in the host system
+            roots = StaticRootsProvider(
+                [Root(uri=FileUrl("file:///home"), name="Home"), Root(uri=FileUrl("file:///tmp"), name="Tmp")]
+            )
 
             # Create MCP session host with sampling, elicitation, and list_roots capabilities
             # If you want to support roots, import or define Root and FileUrl, then uncomment the roots line below
             host = McpSessionHost(
-                model_client=model_client,  # Support sampling via model client
+                sampler=sampler,  # Support sampling via model client
                 elicitor=elicitor,  # Support elicitation via user_proxy
-                # roots=[Root(uri=FileUrl("file:///home"), name="Home"), Root(uri=FileUrl("file:///tmp"), name="Tmp")],
+                roots=roots,
             )
 
             # Setup MCP workbench with your server
@@ -92,11 +93,7 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
                 workbench=mcp_workbench,
             )
 
-            # Create team and link elicitor
-            team = RoundRobinGroupChat([mcp_assistant, user_proxy])
-            elicitor.set_group_chat(team)  # Required for elicitation to work
-
-            # Now the MCP server can request sampling and elicitation from the host
+            # Now the AssistantAgent can support MCP servers that request sampling, elicitation, and roots!
     """
 
     component_type = "mcp_session_host"
@@ -105,19 +102,19 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
 
     def __init__(
         self,
-        model_client: ChatCompletionClient | None = None,
-        roots: RootsType | None = None,
+        sampler: Sampler | None = None,
+        roots: RootsProvider | None = None,
         elicitor: Elicitor | None = None,
     ):
         """Initialize the MCP session host.
 
         Args:
-            model_client: Optional chat completion client for handling sampling requests.
-            roots: Optional sequence of roots or callable returning roots for file system access.
+            sampler: Optional sampler handling sampling requests.
+            roots: Optional roots provider for returning roots for file system access.
             elicitor: Optional elicitor for handling elicitation requests.
         """
-        self._model_client = model_client
-        self._roots = list(roots) if isinstance(roots, Sequence) else roots
+        self._sampler = sampler
+        self._roots = roots
         self._elicitor = elicitor
 
     async def handle_sampling_request(
@@ -125,8 +122,8 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
     ) -> mcp_types.CreateMessageResult | mcp_types.ErrorData:
         """Handle a sampling request from MCP servers.
 
-        Converts MCP messages to AutoGen format and uses the configured model client
-        to generate a response. Handles both text and function call responses.
+        Converts MCP messages to AutoGen format and uses the configured sampler (if any)
+        to generate a response.
 
         Args:
             params: The sampling request containing message creation parameters.
@@ -134,44 +131,15 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
         Returns:
             A sampling response with the generated message or error data.
         """
-        if self._model_client is None:
+        if self._sampler is None:
             return mcp_types.ErrorData(
                 code=mcp_types.INVALID_REQUEST,
                 message="No model client available for sampling requests",
             )
 
         try:
-            # Convert MCP messages to AutoGen format using existing parser
-            autogen_messages: list[LLMMessage] = []
-
-            # Add system prompt if provided
-            if params.systemPrompt:
-                autogen_messages.append(SystemMessage(content=params.systemPrompt))
-
-            # Parse sampling messages
-            for msg in params.messages:
-                autogen_messages.append(parse_sampling_message(msg, model_info=self._model_client.model_info))
-
-            # Use the model client to generate a response
-            extra_create_args = create_request_params_to_extra_create_args(params)
-
-            response = await self._model_client.create(messages=autogen_messages, extra_create_args=extra_create_args)
-
-            # Extract text content from response
-            if isinstance(response.content, str):
-                response_text = response.content
-            else:
-                from pydantic_core import to_json
-
-                # Handle function calls - convert to string representation
-                response_text = to_json(response.content).decode()
-
-            return mcp_types.CreateMessageResult(
-                role="assistant",
-                content=mcp_types.TextContent(type="text", text=response_text),
-                model=self._model_client.model_info["family"],
-                stopReason=finish_reason_to_stop_reason(response.finish_reason),
-            )
+            response = await self._sampler.sample(params)
+            return response
         except Exception as e:
             return mcp_types.ErrorData(
                 code=mcp_types.INTERNAL_ERROR,
@@ -199,8 +167,7 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
             )
 
         try:
-            response = await self._elicitor.elicit(params)
-            return mcp_types.ElicitResult.model_validate(response)
+            return await self._elicitor.elicit(params)
         except Exception as e:
             return mcp_types.ErrorData(
                 code=mcp_types.INTERNAL_ERROR,
@@ -211,7 +178,6 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
         """Handle a list roots request from MCP servers.
 
         Returns the configured file system roots that are available for server access.
-        Supports both static root lists and callable root providers.
 
         Returns:
             A list roots response containing available roots or error data.
@@ -220,28 +186,21 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
             return mcp_types.ErrorData(code=mcp_types.INVALID_REQUEST, message="Host does not support listing roots")
         else:
             try:
-                if callable(self._roots):
-                    roots = self._roots()
-                    if inspect.isawaitable(roots):
-                        roots = await roots
-                else:
-                    roots = self._roots
-
-                return mcp_types.ListRootsResult(roots=list(roots))
+                return await self._roots.list_roots()
             except Exception as e:
                 return mcp_types.ErrorData(code=mcp_types.INTERNAL_ERROR, message=f"Caught error listing roots: {e}")
 
     def _to_config(self) -> BaseModel:
         return McpSessionHostConfig(
-            model_client=self._model_client.dump_component() if self._model_client else None,
+            sampler=self._sampler.dump_component() if self._sampler else None,
             elicitor=self._elicitor.dump_component() if self._elicitor else None,
-            roots=list(self._roots) if (self._roots and not callable(self._roots)) else None,
+            roots=self._roots.dump_component() if self._roots else None,
         )
 
     @classmethod
     def _from_config(cls, config: McpSessionHostConfig) -> "McpSessionHost":
         return cls(
-            model_client=ChatCompletionClient.load_component(config.model_client) if config.model_client else None,
+            sampler=Sampler.load_component(config.sampler) if config.sampler else None,
             elicitor=Elicitor.load_component(config.elicitor) if config.elicitor else None,
-            roots=config.roots,
+            roots=RootsProvider.load_component(config.roots) if config.roots else None,
         )

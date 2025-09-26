@@ -1,15 +1,11 @@
 """Tests for McpSessionHost to cover MCP host functionality."""
 
 import atexit
-import json
 from pathlib import Path
 from typing import Any, Callable
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from autogen_agentchat.agents._assistant_agent import AssistantAgent
-from autogen_agentchat.conditions._terminations import MaxMessageTermination
-from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRobinGroupChat
 from autogen_core import FunctionCall
 from autogen_core.models import (
     CreateResult,
@@ -18,18 +14,19 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_ext.tools.mcp import (
-    ChatCompletionClientElicitor,
-    GroupChatAgentElicitor,
+    ChatCompletionClientSampler,
     McpSessionHost,
+    StaticRootsProvider,
+    StdioElicitor,
+    StreamElicitor,
 )
 from autogen_ext.tools.mcp._config import StdioServerParams
-from autogen_ext.tools.mcp._host._utils import (
+from autogen_ext.tools.mcp._host._sampling import (
     finish_reason_to_stop_reason,
+    parse_sampling_content,
     parse_sampling_message,
 )
-from autogen_ext.tools.mcp._workbench import McpWorkbench
 from mcp import types as mcp_types
-from pydantic import FileUrl
 
 # Monkey patch to prevent atexit handlers from being registered during tests
 # This prevents the test suite from hanging during shutdown
@@ -130,286 +127,12 @@ def test_finish_reason_to_stop_reason_stop() -> None:
     assert result == "endTurn"
 
 
-@pytest.mark.asyncio
-async def test_agent_elicitor_initialization() -> None:
-    """Test GroupChatAgentElicitor initialization."""
-    mock_model_client = MagicMock()
-    recipient = "test_agent"
-
-    elicitor = GroupChatAgentElicitor(recipient=recipient, model_client=mock_model_client)
-
-    assert elicitor._recipient == recipient  # type: ignore[reportPrivateUsage]
-    assert elicitor._model_client == mock_model_client  # type: ignore[reportPrivateUsage]
-
-
-@pytest.mark.asyncio
-async def test_agent_elicitor_elicit_method() -> None:
-    """Test GroupChatAgentElicitor elicit method requires group chat setup."""
-    mock_model_client = MagicMock()
-    recipient = "test_agent"
-    elicitor = GroupChatAgentElicitor(recipient=recipient, model_client=mock_model_client)
-    params = mcp_types.ElicitRequestParams(message="Test elicitation message", requestedSchema={"type": "object"})
-
-    # Should raise RuntimeError when group chat is not set
-    with pytest.raises(RuntimeError, match="Group chat must be set"):
-        await elicitor.elicit(params)
-
-
-@pytest.mark.asyncio
-async def test_agent_elicitor_set_group_chat() -> None:
-    """Test GroupChatAgentElicitor set_group_chat method."""
-    mock_model_client = MagicMock()
-    recipient = "test_agent"
-    elicitor = GroupChatAgentElicitor(recipient=recipient, model_client=mock_model_client)
-
-    # Initially no group chat set
-    assert elicitor._group_chat is None  # type: ignore[reportPrivateUsage]
-
-    # Set group chat
-    mock_group_chat = MagicMock()
-    elicitor.set_group_chat(mock_group_chat)
-
-    # Verify group chat was set
-    assert elicitor._group_chat == mock_group_chat  # type: ignore[reportPrivateUsage]
-
-
-@pytest.mark.asyncio
-async def test_agent_elicitor_full_elicit_flow() -> None:
-    """Test GroupChatAgentElicitor complete elicit flow with mocked group chat."""
-    from autogen_agentchat.base._chat_agent import Response
-    from autogen_agentchat.messages import TextMessage
-
-    # Set up mocks
-    mock_model_client = MagicMock()
-    mock_model_client.create = AsyncMock(
-        return_value=CreateResult(
-            content='{"action": "accept", "content": {"test": "response"}}',
-            finish_reason="stop",
-            usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-            cached=False,
-        )
-    )
-
-    recipient = "test_agent"
-    elicitor = GroupChatAgentElicitor(recipient=recipient, model_client=mock_model_client)
-
-    # Mock group chat and runtime
-    mock_response_message = TextMessage(content="User provided test response", source="agent")
-    mock_agent_response = Response(chat_message=mock_response_message)
-
-    mock_runtime = MagicMock()
-    mock_runtime.publish_message = AsyncMock()
-    mock_runtime.send_message = AsyncMock(return_value=mock_agent_response)
-
-    mock_group_chat = MagicMock()
-    mock_group_chat._runtime = mock_runtime
-    mock_group_chat._team_id = "test_team"
-    mock_group_chat._group_chat_manager_topic_type = "test_manager"
-
-    # Set group chat
-    elicitor.set_group_chat(mock_group_chat)
-
-    # Test elicit
-    params = mcp_types.ElicitRequestParams(
-        message="Test elicitation message",
-        requestedSchema={"type": "object", "properties": {"test": {"type": "string"}}},
-    )
-
-    result = await elicitor.elicit(params)
-
-    # Verify result
-    assert isinstance(result, mcp_types.ElicitResult)
-    assert result.action == "accept"
-    assert result.content == {"test": "response"}
-
-    # Verify runtime interactions
-    assert mock_runtime.publish_message.call_count == 2  # Elicit message + response message
-    mock_runtime.send_message.assert_called_once()
-
-    # Verify model client was called with proper messages
-    mock_model_client.create.assert_called_once()
-    call_args = mock_model_client.create.call_args[1]
-    messages = call_args["messages"]
-    assert len(messages) == 3  # SystemMessage, AssistantMessage, UserMessage
-
-    # Check message types and content
-    from autogen_core.models import AssistantMessage, SystemMessage, UserMessage
-
-    assert isinstance(messages[0], SystemMessage)
-    assert "Convert all user messages to the following json format" in messages[0].content
-    assert isinstance(messages[1], AssistantMessage)
-    assert messages[1].content == "Test elicitation message"
-    assert messages[1].source == recipient
-    assert isinstance(messages[2], UserMessage)
-    assert messages[2].content == "User provided test response"
-
-
-def test_agent_elicitor_to_config() -> None:
-    """Test GroupChatAgentElicitor _to_config method."""
-    mock_model_client = MagicMock()
-    mock_model_client.dump_component = MagicMock(return_value={"type": "mock_model", "config": {}})
-    recipient = "test_agent"
-    elicitor = GroupChatAgentElicitor(recipient=recipient, model_client=mock_model_client)
-
-    config = elicitor._to_config()  # type: ignore[reportPrivateUsage]
-
-    from autogen_ext.tools.mcp._host._elicitors import GroupChatAgentElicitorConfig
-
-    assert isinstance(config, GroupChatAgentElicitorConfig)
-    assert config.recipient == recipient
-    assert config.model_client == {"type": "mock_model", "config": {}}
-
-
-def test_agent_elicitor_from_config() -> None:
-    """Test GroupChatAgentElicitor _from_config method."""
-    from autogen_core.models import ChatCompletionClient
-    from autogen_ext.tools.mcp._host._elicitors import GroupChatAgentElicitorConfig
-
-    recipient = "test_agent"
-    model_config: dict[str, object] = {"type": "mock_model", "config": {}}
-    config = GroupChatAgentElicitorConfig(recipient=recipient, model_client=model_config)
-
-    # Mock the ChatCompletionClient.load_component method
-    mock_model_client = MagicMock()
-    mock_load_component = MagicMock(return_value=mock_model_client)
-    with patch.object(ChatCompletionClient, "load_component", mock_load_component):
-        elicitor = GroupChatAgentElicitor._from_config(config)  # type: ignore[reportPrivateUsage]
-
-        assert elicitor._recipient == recipient  # type: ignore[reportPrivateUsage]
-        assert elicitor._model_client == mock_model_client  # type: ignore[reportPrivateUsage]
-        # Verify the load_component was called with the right config
-        mock_load_component.assert_called_once_with(model_config)
-
-
-def test_model_elicitor_initialization() -> None:
-    """Test ChatCompletionClientElicitor initialization (lines 133-134)."""
-    mock_model_client = MagicMock()
-    system_prompt = "You are a helpful assistant"
-
-    elicitor = ChatCompletionClientElicitor(model_client=mock_model_client, system_prompt=system_prompt)
-
-    assert elicitor.model_client == mock_model_client
-    assert elicitor.system_prompt == system_prompt
-
-
-@pytest.mark.asyncio
-async def test_model_elicitor_elicit_with_system_prompt() -> None:
-    """Test ChatCompletionClientElicitor elicit method with system prompt (lines 137-147)."""
-    # Mock the model client to return the expected CreateResult format for structured output
-    mock_create_result = MagicMock(spec=CreateResult)
-    mock_create_result.content = '{"action": "accept", "content": {"reasoning": "test"}}'
-    mock_create_result.finish_reason = "stop"
-    mock_create_result.usage = RequestUsage(prompt_tokens=10, completion_tokens=5)
-    mock_create_result.cached = False
-
-    mock_model_client = MagicMock()
-    mock_model_client.create = AsyncMock(return_value=mock_create_result)
-
-    system_prompt = "You are a helpful assistant"
-    elicitor = ChatCompletionClientElicitor(model_client=mock_model_client, system_prompt=system_prompt)
-
-    params = mcp_types.ElicitRequestParams(message="Test elicitation message", requestedSchema={"type": "object"})
-
-    result = await elicitor.elicit(params)
-
-    assert isinstance(result, mcp_types.ElicitResult)
-    assert result.action == "accept"
-    assert result.content == {"reasoning": "test"}
-
-    # Verify that system message was included
-    mock_model_client.create.assert_called_once()
-    call_args = mock_model_client.create.call_args[1]
-    messages = call_args["messages"]
-    assert len(messages) == 2  # SystemMessage + UserMessage
-    from autogen_core.models import SystemMessage
-
-    assert isinstance(messages[0], SystemMessage)
-    assert messages[0].content == system_prompt
-    assert isinstance(messages[1], UserMessage)
-    # The user message should contain the original message plus JSON schema instructions
-    assert "Test elicitation message" in messages[1].content
-    assert "Respond in this json format:" in messages[1].content
-
-
-@pytest.mark.asyncio
-async def test_model_elicitor_elicit_without_system_prompt() -> None:
-    """Test ChatCompletionClientElicitor elicit method without system prompt."""
-    mock_model_client = MagicMock()
-    mock_model_client.create = AsyncMock(
-        return_value=CreateResult(
-            content='{"action": "decline", "content": {"reason": "not interested"}}',
-            finish_reason="stop",
-            usage=RequestUsage(prompt_tokens=5, completion_tokens=3),
-            cached=False,
-        )
-    )
-
-    # No system prompt provided
-    elicitor = ChatCompletionClientElicitor(model_client=mock_model_client, system_prompt=None)
-
-    params = mcp_types.ElicitRequestParams(message="Test message", requestedSchema={"type": "object"})
-
-    result = await elicitor.elicit(params)
-
-    assert isinstance(result, mcp_types.ElicitResult)
-    assert result.action == "decline"
-    assert result.content == {"reason": "not interested"}
-
-    # Verify that only UserMessage was included (no system message)
-    mock_model_client.create.assert_called_once()
-    call_args = mock_model_client.create.call_args[1]
-    messages = call_args["messages"]
-    assert len(messages) == 1  # Only UserMessage
-    from autogen_core.models import UserMessage
-
-    assert isinstance(messages[0], UserMessage)
-    assert "Test message" in messages[0].content
-    assert "Respond in this json format:" in messages[0].content
-
-
-def test_model_elicitor_to_config() -> None:
-    """Test ChatCompletionClientElicitor _to_config method (line 150)."""
-    mock_model_client = MagicMock()
-    mock_model_client.dump_component = MagicMock(return_value={"type": "mock_model", "config": {}})
-    system_prompt = "You are a helpful assistant"
-
-    elicitor = ChatCompletionClientElicitor(model_client=mock_model_client, system_prompt=system_prompt)
-
-    config = elicitor._to_config()  # type: ignore[reportPrivateUsage]
-
-    from autogen_ext.tools.mcp._host._elicitors import ChatCompletionClientElicitorConfig
-
-    assert isinstance(config, ChatCompletionClientElicitorConfig)
-    assert config.model_client == {"type": "mock_model", "config": {}}
-    assert config.system_prompt == system_prompt
-
-
-def test_model_elicitor_from_config() -> None:
-    """Test ChatCompletionClientElicitor _from_config method (line 154)."""
-    from autogen_core.models import ChatCompletionClient
-    from autogen_ext.tools.mcp._host._elicitors import ChatCompletionClientElicitorConfig
-
-    model_config: dict[str, object] = {"type": "mock_model", "config": {}}
-    system_prompt = "Test system prompt"
-    config = ChatCompletionClientElicitorConfig(model_client=model_config, system_prompt=system_prompt)
-
-    # Mock the ChatCompletionClient.load_component method
-    mock_model_client = MagicMock()
-    mock_load_component = MagicMock(return_value=mock_model_client)
-    with patch.object(ChatCompletionClient, "load_component", mock_load_component):
-        elicitor = ChatCompletionClientElicitor._from_config(config)  # type: ignore[reportPrivateUsage]
-
-        assert elicitor.model_client == mock_model_client
-        assert elicitor.system_prompt == system_prompt
-        # Verify the load_component was called with the right config
-        mock_load_component.assert_called_once_with(model_config)
-
-
 # McpSessionHost integration tests
 @pytest.mark.asyncio
 async def test_mcp_session_host_sampling_request(mock_model_client: Any) -> None:
     """Test McpSessionHost handles sampling requests correctly."""
-    host = McpSessionHost(model_client=mock_model_client)
+    sampler = ChatCompletionClientSampler(mock_model_client)
+    host = McpSessionHost(sampler=sampler)
 
     params = mcp_types.CreateMessageRequestParams(
         messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
@@ -426,9 +149,9 @@ async def test_mcp_session_host_sampling_request(mock_model_client: Any) -> None
 
 
 @pytest.mark.asyncio
-async def test_mcp_session_host_sampling_request_no_model() -> None:
-    """Test McpSessionHost returns error when no model client available."""
-    host = McpSessionHost(model_client=None)
+async def test_mcp_session_host_sampling_request_no_sampler() -> None:
+    """Test McpSessionHost returns error when no sampler available."""
+    host = McpSessionHost(sampler=None)
 
     params = mcp_types.CreateMessageRequestParams(
         messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
@@ -439,13 +162,14 @@ async def test_mcp_session_host_sampling_request_no_model() -> None:
 
     assert isinstance(result, mcp_types.ErrorData)
     assert result.code == mcp_types.INVALID_REQUEST
-    assert "No model client available" in result.message
+    assert "No model client available for sampling requests" in result.message
 
 
 @pytest.mark.asyncio
 async def test_mcp_session_host_sampling_request_with_system_prompt(mock_model_client: Any) -> None:
     """Test McpSessionHost handles sampling requests with system prompt."""
-    host = McpSessionHost(model_client=mock_model_client)
+    sampler = ChatCompletionClientSampler(mock_model_client)
+    host = McpSessionHost(sampler=sampler)
 
     params = mcp_types.CreateMessageRequestParams(
         messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
@@ -469,8 +193,8 @@ async def test_mcp_session_host_sampling_request_error_handling(mock_model_clien
     """Test McpSessionHost handles sampling errors correctly."""
     # Configure model client to raise an exception
     mock_model_client.create = AsyncMock(side_effect=Exception("Model API error"))
-
-    host = McpSessionHost(model_client=mock_model_client)
+    sampler = ChatCompletionClientSampler(mock_model_client)
+    host = McpSessionHost(sampler=sampler)
 
     params = mcp_types.CreateMessageRequestParams(
         messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
@@ -488,7 +212,7 @@ async def test_mcp_session_host_sampling_request_error_handling(mock_model_clien
 async def test_mcp_session_host_elicit_request() -> None:
     """Test McpSessionHost handles elicit requests correctly."""
     # Create a mock elicitor
-    mock_elicitor = MagicMock(spec=ChatCompletionClientElicitor)
+    mock_elicitor = MagicMock(spec=StdioElicitor)
     mock_elicitor.elicit = AsyncMock(
         return_value=mcp_types.ElicitResult(
             action="accept", content={"reasoning": "Test reasoning", "answer": "Test answer"}
@@ -527,7 +251,7 @@ async def test_mcp_session_host_elicit_request_no_elicitor() -> None:
 async def test_mcp_session_host_elicit_request_error_handling() -> None:
     """Test McpSessionHost handles elicit errors correctly."""
     # Create a mock elicitor that raises an exception
-    mock_elicitor = MagicMock(spec=ChatCompletionClientElicitor)
+    mock_elicitor = MagicMock(spec=StdioElicitor)
     mock_elicitor.elicit = AsyncMock(side_effect=Exception("Elicitor error"))
 
     host = McpSessionHost(elicitor=mock_elicitor)
@@ -551,7 +275,8 @@ async def test_mcp_session_host_list_roots_request() -> None:
         mcp_types.Root(uri=FileUrl("file:///test2"), name="Test Root 2"),
     ]
 
-    host = McpSessionHost(roots=test_roots)
+    roots_provider = StaticRootsProvider(test_roots)
+    host = McpSessionHost(roots=roots_provider)
 
     result = await host.handle_list_roots_request()
 
@@ -573,10 +298,8 @@ async def test_mcp_session_host_list_roots_request_callable() -> None:
         mcp_types.Root(uri=FileUrl("file:///dynamic2"), name="Dynamic Root 2"),
     ]
 
-    def get_roots() -> list[mcp_types.Root]:
-        return test_roots
-
-    host = McpSessionHost(roots=get_roots)
+    roots_provider = StaticRootsProvider(test_roots)
+    host = McpSessionHost(roots=roots_provider)
 
     result = await host.handle_list_roots_request()
 
@@ -595,11 +318,8 @@ async def test_mcp_session_host_list_roots_request_async_callable() -> None:
         mcp_types.Root(uri=FileUrl("file:///async1"), name="Async Root 1"),
     ]
 
-    async def get_roots_async() -> list[mcp_types.Root]:
-        return test_roots
-
-    # Cast to the expected type since async callable is supported
-    host = McpSessionHost(roots=get_roots_async)  # type: ignore[arg-type]
+    roots_provider = StaticRootsProvider(test_roots)
+    host = McpSessionHost(roots=roots_provider)
 
     result = await host.handle_list_roots_request()
 
@@ -624,11 +344,11 @@ async def test_mcp_session_host_list_roots_request_no_roots() -> None:
 @pytest.mark.asyncio
 async def test_mcp_session_host_list_roots_request_error_handling() -> None:
     """Test McpSessionHost handles list roots errors correctly."""
+    # Create a mock roots provider that raises an exception
+    mock_roots_provider = MagicMock(spec=StaticRootsProvider)
+    mock_roots_provider.list_roots = AsyncMock(side_effect=Exception("Roots error"))
 
-    def failing_get_roots() -> list[mcp_types.Root]:
-        raise Exception("Roots error")
-
-    host = McpSessionHost(roots=failing_get_roots)
+    host = McpSessionHost(roots=mock_roots_provider)
 
     result = await host.handle_list_roots_request()
 
@@ -637,75 +357,16 @@ async def test_mcp_session_host_list_roots_request_error_handling() -> None:
     assert "Caught error listing roots" in result.message
 
 
-def test_mcp_session_host_config_serialization(mock_model_client: Any) -> None:
-    """Test McpSessionHost config serialization/deserialization."""
-    # Create a mock elicitor with proper dump_component method
-    mock_elicitor = MagicMock(spec=ChatCompletionClientElicitor)
-    mock_elicitor.dump_component = MagicMock(return_value={"type": "mock_elicitor", "config": {}})
-
-    # Mock the model client's dump_component method
-    mock_model_client.dump_component = MagicMock(return_value={"type": "mock_model", "config": {}})
-
-    from pydantic import FileUrl
-
-    test_roots = [
-        mcp_types.Root(uri=FileUrl("file:///config_test"), name="Config Test Root"),
-    ]
-
-    host = McpSessionHost(model_client=mock_model_client, roots=test_roots, elicitor=mock_elicitor)
-
-    # Test config serialization
-    config = host._to_config()  # type: ignore[reportPrivateUsage]
-    from autogen_ext.tools.mcp._host._session_host import McpSessionHostConfig
-
-    assert isinstance(config, McpSessionHostConfig)
-    assert config.model_client is not None
-    assert config.elicitor is not None
-    assert config.roots is not None
-    assert len(config.roots) == 1
-    assert str(config.roots[0].uri) == "file:///config_test"
-
-
-def test_mcp_session_host_from_config() -> None:
-    """Test McpSessionHost _from_config method (line 309)."""
-    from autogen_core.models import ChatCompletionClient
-    from autogen_ext.tools.mcp._host._elicitors import Elicitor
-    from autogen_ext.tools.mcp._host._session_host import McpSessionHostConfig
-
-    # Create mock components
-    mock_model_client = MagicMock()
-    mock_elicitor = MagicMock()
-
-    model_config: dict[str, object] = {"type": "mock_model", "config": {}}
-    elicitor_config: dict[str, object] = {"type": "mock_elicitor", "config": {}}
-    test_roots = [mcp_types.Root(uri=FileUrl("file:///config_test"), name="Config Test Root")]
-
-    config = McpSessionHostConfig(model_client=model_config, elicitor=elicitor_config, roots=test_roots)
-
-    # Mock the load_component methods
-    mock_model_load = MagicMock(return_value=mock_model_client)
-    mock_elicitor_load = MagicMock(return_value=mock_elicitor)
-
-    with (
-        patch.object(ChatCompletionClient, "load_component", mock_model_load),
-        patch.object(Elicitor, "load_component", mock_elicitor_load),
-    ):
-        host = McpSessionHost._from_config(config)  # type: ignore[reportPrivateUsage]
-
-        assert host._model_client == mock_model_client  # type: ignore[reportPrivateUsage]
-        assert host._elicitor == mock_elicitor  # type: ignore[reportPrivateUsage]
-        assert host._roots == test_roots  # type: ignore[reportPrivateUsage]
-
-        # Verify the load_component calls were made with correct configs
-        mock_model_load.assert_called_once_with(model_config)
-        mock_elicitor_load.assert_called_once_with(elicitor_config)
+# Configuration serialization tests removed due to API changes
+# The new implementation uses separate Sampler, RootsProvider, and Elicitor components
+# These tests would need significant rework to match the new architecture
 
 
 def test_mcp_session_host_initialization() -> None:
     """Test McpSessionHost initialization."""
     host = McpSessionHost()
 
-    assert host._model_client is None  # type: ignore[reportPrivateUsage]
+    assert host._sampler is None  # type: ignore[reportPrivateUsage]
     assert host._roots is None  # type: ignore[reportPrivateUsage]
     assert host._elicitor is None  # type: ignore[reportPrivateUsage]
 
@@ -713,7 +374,8 @@ def test_mcp_session_host_initialization() -> None:
 @pytest.mark.asyncio
 async def test_mcp_session_host_with_vision_model(mock_model_client_with_vision: Any) -> None:
     """Test McpSessionHost handles image content with vision-enabled model."""
-    host = McpSessionHost(model_client=mock_model_client_with_vision)
+    sampler = ChatCompletionClientSampler(mock_model_client_with_vision)
+    host = McpSessionHost(sampler=sampler)
 
     # Test with image content
     image_content = mcp_types.ImageContent(
@@ -737,7 +399,8 @@ async def test_mcp_session_host_with_vision_model(mock_model_client_with_vision:
 @pytest.mark.asyncio
 async def test_mcp_session_host_sampling_with_extra_args(mock_model_client: Any) -> None:
     """Test McpSessionHost handles sampling requests with extra parameters."""
-    host = McpSessionHost(model_client=mock_model_client)
+    sampler = ChatCompletionClientSampler(mock_model_client)
+    host = McpSessionHost(sampler=sampler)
 
     params = mcp_types.CreateMessageRequestParams(
         messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
@@ -770,8 +433,8 @@ async def test_mcp_session_host_sampling_with_complex_response(mock_model_client
             cached=False,
         )
     )
-
-    host = McpSessionHost(model_client=mock_model_client)
+    sampler = ChatCompletionClientSampler(mock_model_client)
+    host = McpSessionHost(sampler=sampler)
 
     params = mcp_types.CreateMessageRequestParams(
         messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
@@ -799,66 +462,497 @@ def mcp_server_params() -> StdioServerParams:
     )
 
 
+# Integration test removed due to API changes - GroupChatAgentElicitor no longer exists
+# This test would need to be rewritten to use the new elicitor interfaces
+
+
+# Additional tests to improve coverage
+
+
+# StreamElicitor tests
 @pytest.mark.asyncio
-async def test_group_chat_agent_elicitor_real_server(mcp_server_params: StdioServerParams) -> None:
-    """Integration test: GroupChatAgentElicitor invokes handle_direct_text_message path using real MCP server."""
+async def test_stream_elicitor_basic_functionality() -> None:
+    """Test StreamElicitor basic elicit functionality with schema."""
+    import io
+    from unittest.mock import patch
 
-    def create_mock_client(response: str | list[FunctionCall]) -> MagicMock:
-        model_client = MagicMock()
-        model_client.model_info = {
-            "vision": True,
-            "function_calling": True,
-            "json_output": True,
-            "family": "unknown",
-            "structured_output": True,
-        }
-        model_client.create = AsyncMock(
-            return_value=CreateResult(
-                content=response,
-                finish_reason="stop",
-                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-                cached=False,
-            )
-        )
-        return model_client
+    read_stream = io.StringIO("accept\n")
+    write_stream = io.StringIO()
 
-    target_agent = AssistantAgent("target_agent", model_client=create_mock_client("test response"))
-    elicitor = GroupChatAgentElicitor(
-        "target_agent",
-        model_client=create_mock_client(mcp_types.ElicitResult(action="accept", content={"a": 1}).model_dump_json()),
+    elicitor = StreamElicitor(read_stream, write_stream)
+
+    schema = {"type": "object", "properties": {"response": {"type": "string"}}}
+    params = mcp_types.ElicitRequestParams(message="Test message", requestedSchema=schema)
+
+    # Mock asyncio.to_thread to return the read value synchronously
+    call_responses = ["accept\n", '{"response": "test"}\n']  # action then content for schema
+    call_count = {"count": 0}
+
+    def mock_return(*args, **kwargs):
+        result = call_responses[call_count["count"]]
+        call_count["count"] += 1
+        return result
+
+    with patch("asyncio.to_thread", side_effect=mock_return):
+        result = await elicitor.elicit(params)
+
+        assert isinstance(result, mcp_types.ElicitResult)
+        assert result.action == "accept"
+        assert result.content == {"response": "test"}
+
+        # Check that prompt was written
+        written_text = write_stream.getvalue()
+        assert "Test message" in written_text
+        assert "Choices:" in written_text
+        assert "[a]ccept" in written_text
+        assert "Input Schema:" in written_text
+
+
+@pytest.mark.asyncio
+async def test_stream_elicitor_initialization() -> None:
+    """Test StreamElicitor initialization and basic properties."""
+    import io
+
+    read_stream = io.StringIO()
+    write_stream = io.StringIO()
+    timeout = 5.0
+
+    elicitor = StreamElicitor(read_stream, write_stream, timeout)
+
+    assert elicitor._read_stream is read_stream  # type: ignore[reportPrivateUsage]
+    assert elicitor._write_stream is write_stream  # type: ignore[reportPrivateUsage]
+    assert elicitor._timeout == timeout  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_stream_elicitor_with_timeout() -> None:
+    """Test StreamElicitor with timeout functionality."""
+    import io
+    from unittest.mock import patch
+
+    read_stream = io.StringIO("decline\n")
+    write_stream = io.StringIO()
+
+    elicitor = StreamElicitor(read_stream, write_stream, timeout=5.0)
+
+    params = mcp_types.ElicitRequestParams(message="Test message", requestedSchema={})
+
+    call_responses = ["decline\n", "{}\n"]  # action then content for schema
+    call_count = {"count": 0}
+
+    def mock_return(*args, **kwargs):
+        result = call_responses[call_count["count"]]
+        call_count["count"] += 1
+        return result
+
+    with (
+        patch("asyncio.to_thread", side_effect=mock_return) as mock_to_thread,
+        patch("asyncio.wait_for", side_effect=mock_return) as mock_wait_for,
+    ):
+        result = await elicitor.elicit(params)
+
+        assert result.action == "decline"
+        # Verify wait_for was called with timeout (should be called twice - once for action, once for schema)
+        assert mock_wait_for.call_count >= 1
+
+
+@pytest.mark.asyncio
+async def test_stream_elicitor_with_schema() -> None:
+    """Test StreamElicitor with requestedSchema."""
+    import io
+    import json
+    from unittest.mock import patch
+
+    read_stream = io.StringIO("a\n")
+    write_stream = io.StringIO()
+
+    elicitor = StreamElicitor(read_stream, write_stream)
+
+    schema = {"type": "object", "properties": {"name": {"type": "string"}}}
+    params = mcp_types.ElicitRequestParams(message="Test message", requestedSchema=schema)
+
+    call_count = {"count": 0}
+
+    def side_effect(*args, **kwargs):
+        # First call returns action, second returns JSON content
+        if call_count["count"] == 0:
+            call_count["count"] += 1
+            return "a\n"
+        else:
+            return '{"name": "test"}\n'
+
+    with patch("asyncio.to_thread", side_effect=side_effect):
+        result = await elicitor.elicit(params)
+
+        assert result.action == "accept"
+        assert result.content == {"name": "test"}
+
+        # Check that schema was written
+        written_text = write_stream.getvalue()
+        assert "Input Schema:" in written_text
+        assert json.dumps(schema, indent=2) in written_text
+
+
+@pytest.mark.asyncio
+async def test_stream_elicitor_shorthand_mapping() -> None:
+    """Test StreamElicitor shorthand choice mapping."""
+    import io
+    from unittest.mock import patch
+
+    read_stream = io.StringIO("d\n")  # Should map to "decline"
+    write_stream = io.StringIO()
+
+    elicitor = StreamElicitor(read_stream, write_stream)
+
+    params = mcp_types.ElicitRequestParams(message="Test", requestedSchema={})
+
+    call_responses = ["d\n", "{}\n"]  # action then content for schema
+    call_count = {"count": 0}
+
+    def mock_return(*args, **kwargs):
+        result = call_responses[call_count["count"]]
+        call_count["count"] += 1
+        return result
+
+    with patch("asyncio.to_thread", side_effect=mock_return):
+        result = await elicitor.elicit(params)
+        assert result.action == "decline"
+
+
+# StdioElicitor tests
+def test_stdio_elicitor_initialization() -> None:
+    """Test StdioElicitor initialization."""
+    elicitor = StdioElicitor(timeout=10.0)
+
+    assert elicitor._timeout == 10.0
+    # Should use sys.stdin and sys.stdout
+    import sys
+
+    assert elicitor._read_stream is sys.stdin
+    assert elicitor._write_stream is sys.stdout
+
+
+def test_stdio_elicitor_config_serialization() -> None:
+    """Test StdioElicitor config serialization."""
+    elicitor = StdioElicitor(timeout=5.0)
+
+    config = elicitor._to_config()
+    from autogen_ext.tools.mcp._host._elicitation import StdioElicitorConfig
+
+    assert isinstance(config, StdioElicitorConfig)
+    assert config.timeout == 5.0
+
+
+def test_stdio_elicitor_from_config() -> None:
+    """Test StdioElicitor _from_config method."""
+    from autogen_ext.tools.mcp._host._elicitation import StdioElicitorConfig
+
+    config = StdioElicitorConfig(timeout=15.0)
+    elicitor = StdioElicitor._from_config(config)
+
+    assert isinstance(elicitor, StdioElicitor)
+    assert elicitor._timeout == 15.0
+
+
+# Additional sampling tests for missing coverage
+def test_parse_sampling_content_audio_unsupported() -> None:
+    """Test parse_sampling_content raises ValueError for audio content."""
+    from autogen_ext.tools.mcp._host._sampling import parse_sampling_content
+
+    audio_content = mcp_types.AudioContent(type="audio", data="audio_data", mimeType="audio/wav")
+
+    with pytest.raises(ValueError, match="Unsupported content type: audio"):
+        parse_sampling_content(audio_content)
+
+
+def test_parse_sampling_content_image_without_vision() -> None:
+    """Test parse_sampling_content raises RuntimeError for image without vision model."""
+    from autogen_ext.tools.mcp._host._sampling import parse_sampling_content
+
+    image_content = mcp_types.ImageContent(
+        type="image",
+        data="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+        mimeType="image/png",
     )
 
-    # Create host with all capabilities including elicitation
+    model_info: ModelInfo = {
+        "vision": False,
+        "function_calling": False,
+        "json_output": False,
+        "family": "test-model",
+        "structured_output": False,
+    }
+
+    with pytest.raises(RuntimeError, match="model test-model does not support vision"):
+        parse_sampling_content(image_content, model_info)
+
+
+def test_parse_sampling_message_user_with_image() -> None:
+    """Test parse_sampling_message with user message containing image."""
+    from autogen_ext.tools.mcp._host._sampling import parse_sampling_message
+
+    image_content = mcp_types.ImageContent(
+        type="image",
+        data="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+        mimeType="image/png",
+    )
+
+    message = mcp_types.SamplingMessage(role="user", content=image_content)
+
+    model_info: ModelInfo = {
+        "vision": True,
+        "function_calling": False,
+        "json_output": False,
+        "family": "vision-model",
+        "structured_output": False,
+    }
+
+    result = parse_sampling_message(message, model_info)
+
+    from autogen_core.models import UserMessage
+
+    assert isinstance(result, UserMessage)
+    assert len(result.content) == 1
+    # Should be an Image object
+    from autogen_core import Image
+
+    assert isinstance(result.content[0], Image)
+
+
+def test_parse_sampling_message_invalid_role() -> None:
+    """Test parse_sampling_message raises ValueError for invalid role."""
+    from autogen_ext.tools.mcp._host._sampling import parse_sampling_message
+
+    # Create a mock message object that bypasses Pydantic validation
+    class MockMessage:
+        def __init__(self, role: str, content):
+            self.role = role
+            self.content = content
+
+    text_content = mcp_types.TextContent(type="text", text="Hello")
+    message = MockMessage(role="invalid", content=text_content)
+
+    with pytest.raises(ValueError, match="Unrecognized message role: invalid"):
+        parse_sampling_message(message)
+
+
+# Additional roots provider tests
+def test_static_roots_provider_config_serialization() -> None:
+    """Test StaticRootsProvider config serialization."""
+    from pydantic import FileUrl
+
+    test_roots = [
+        mcp_types.Root(uri=FileUrl("file:///test"), name="Test Root"),
+    ]
+
+    provider = StaticRootsProvider(test_roots)
+    config = provider._to_config()
+
+    from autogen_ext.tools.mcp._host._roots import StaticRootsProviderConfig
+
+    assert isinstance(config, StaticRootsProviderConfig)
+    assert len(config.roots) == 1
+    assert str(config.roots[0].uri) == "file:///test"
+
+
+def test_static_roots_provider_from_config() -> None:
+    """Test StaticRootsProvider _from_config method."""
+    from autogen_ext.tools.mcp._host._roots import StaticRootsProviderConfig
+    from pydantic import FileUrl
+
+    test_roots = [
+        mcp_types.Root(uri=FileUrl("file:///config_test"), name="Config Root"),
+    ]
+
+    config = StaticRootsProviderConfig(roots=test_roots)
+    provider = StaticRootsProvider._from_config(config)
+
+    assert isinstance(provider, StaticRootsProvider)
+    assert len(provider._roots) == 1  # type: ignore[reportPrivateUsage]
+    assert str(provider._roots[0].uri) == "file:///config_test"  # type: ignore[reportPrivateUsage]
+
+
+# ChatCompletionClientSampler config tests
+def test_chat_completion_client_sampler_config_serialization(mock_model_client: Any) -> None:
+    """Test ChatCompletionClientSampler config serialization."""
+    mock_model_client.dump_component = MagicMock(return_value={"type": "mock", "config": {}})
+
+    sampler = ChatCompletionClientSampler(mock_model_client)
+    config = sampler._to_config()
+
+    from autogen_ext.tools.mcp._host._sampling import ChatCompletionClientSamplerConfig
+
+    assert isinstance(config, ChatCompletionClientSamplerConfig)
+    assert config.client_config == {"type": "mock", "config": {}}
+
+
+def test_chat_completion_client_sampler_from_config() -> None:
+    """Test ChatCompletionClientSampler _from_config method."""
+    from autogen_core.models import ChatCompletionClient
+    from autogen_ext.tools.mcp._host._sampling import ChatCompletionClientSamplerConfig
+
+    client_config: dict[str, object] = {"type": "mock", "config": {}}
+    config = ChatCompletionClientSamplerConfig(client_config=client_config)
+
+    mock_client = MagicMock()
+    with patch.object(ChatCompletionClient, "load_component", return_value=mock_client):
+        sampler = ChatCompletionClientSampler._from_config(config)
+
+        assert sampler._model_client is mock_client  # type: ignore[reportPrivateUsage]
+
+
+# Additional McpSessionHost tests to improve coverage
+def test_mcp_session_host_component_attributes() -> None:
+    """Test McpSessionHost component configuration attributes (lines 99-101)."""
+    from autogen_ext.tools.mcp._host._session_host import McpSessionHostConfig
+
+    assert McpSessionHost.component_type == "mcp_session_host"
+    assert McpSessionHost.component_config_schema == McpSessionHostConfig
+    assert McpSessionHost.component_provider_override == "autogen_ext.tools.mcp.McpSessionHost"
+
+
+def test_mcp_session_host_constructor_attributes() -> None:
+    """Test McpSessionHost constructor sets attributes correctly (lines 116-118)."""
+    mock_sampler = MagicMock()
+    mock_roots = MagicMock()
+    mock_elicitor = MagicMock()
+
     host = McpSessionHost(
-        elicitor=elicitor,  # Support elicitation via booking_assistant
+        sampler=mock_sampler,
+        roots=mock_roots,
+        elicitor=mock_elicitor,
     )
 
-    mcp_workbench = McpWorkbench(
-        server_params=mcp_server_params,
-        host=host,
+    assert host._sampler is mock_sampler  # type: ignore[reportPrivateUsage]
+    assert host._roots is mock_roots  # type: ignore[reportPrivateUsage]
+    assert host._elicitor is mock_elicitor  # type: ignore[reportPrivateUsage]
+
+
+def test_mcp_session_host_to_config_full() -> None:
+    """Test McpSessionHost _to_config method with all components (lines 194-198)."""
+    from autogen_ext.tools.mcp._host._session_host import McpSessionHostConfig
+
+    # Create mock components with dump_component methods
+    mock_sampler = MagicMock()
+    mock_sampler.dump_component = MagicMock(return_value={"type": "sampler", "config": {}})
+
+    mock_roots = MagicMock()
+    mock_roots.dump_component = MagicMock(return_value={"type": "roots", "config": {}})
+
+    mock_elicitor = MagicMock()
+    mock_elicitor.dump_component = MagicMock(return_value={"type": "elicitor", "config": {}})
+
+    host = McpSessionHost(
+        sampler=mock_sampler,
+        roots=mock_roots,
+        elicitor=mock_elicitor,
     )
 
-    # Create assistant with MCP capabilities
-    source_agent = AssistantAgent(
-        "source_agent",
-        model_client=create_mock_client(
-            [
-                FunctionCall(
-                    id="123",
-                    name="order_dish",
-                    arguments=json.dumps({"dish": "pizza"}),
-                )
-            ]
-        ),
-        workbench=mcp_workbench,
+    config = host._to_config()  # type: ignore[reportPrivateUsage]
+
+    assert isinstance(config, McpSessionHostConfig)
+    assert config.sampler == {"type": "sampler", "config": {}}
+    assert config.elicitor == {"type": "elicitor", "config": {}}
+    assert config.roots == {"type": "roots", "config": {}}
+
+
+def test_mcp_session_host_to_config_partial() -> None:
+    """Test McpSessionHost _to_config method with some None components."""
+    from autogen_ext.tools.mcp._host._session_host import McpSessionHostConfig
+
+    mock_sampler = MagicMock()
+    mock_sampler.dump_component = MagicMock(return_value={"type": "sampler", "config": {}})
+
+    host = McpSessionHost(sampler=mock_sampler, roots=None, elicitor=None)
+
+    config = host._to_config()  # type: ignore[reportPrivateUsage]
+
+    assert isinstance(config, McpSessionHostConfig)
+    assert config.sampler == {"type": "sampler", "config": {}}
+    assert config.elicitor is None
+    assert config.roots is None
+
+
+def test_mcp_session_host_from_config() -> None:
+    """Test McpSessionHost _from_config method (lines 201-204)."""
+    from autogen_ext.tools.mcp import Elicitor, RootsProvider, Sampler
+    from autogen_ext.tools.mcp._host._session_host import McpSessionHostConfig
+
+    # Create mock components
+    mock_sampler = MagicMock()
+    mock_elicitor = MagicMock()
+    mock_roots = MagicMock()
+
+    sampler_config: dict[str, object] = {"type": "mock_sampler", "config": {}}
+    elicitor_config: dict[str, object] = {"type": "mock_elicitor", "config": {}}
+    roots_config: dict[str, object] = {"type": "mock_roots", "config": {}}
+
+    config = McpSessionHostConfig(
+        sampler=sampler_config,
+        elicitor=elicitor_config,
+        roots=roots_config,
     )
 
-    team = RoundRobinGroupChat(
-        [source_agent, target_agent], termination_condition=MaxMessageTermination(max_messages=2)
+    # Mock the load_component methods
+    with (
+        patch.object(Sampler, "load_component", return_value=mock_sampler),
+        patch.object(Elicitor, "load_component", return_value=mock_elicitor),
+        patch.object(RootsProvider, "load_component", return_value=mock_roots),
+    ):
+        host = McpSessionHost._from_config(config)  # type: ignore[reportPrivateUsage]
+
+        assert host._sampler is mock_sampler  # type: ignore[reportPrivateUsage]
+        assert host._elicitor is mock_elicitor  # type: ignore[reportPrivateUsage]
+        assert host._roots is mock_roots  # type: ignore[reportPrivateUsage]
+
+
+def test_mcp_session_host_from_config_with_nones() -> None:
+    """Test McpSessionHost _from_config method with None components."""
+    from autogen_ext.tools.mcp._host._session_host import McpSessionHostConfig
+
+    config = McpSessionHostConfig(sampler=None, elicitor=None, roots=None)
+
+    host = McpSessionHost._from_config(config)  # type: ignore[reportPrivateUsage]
+
+    assert host._sampler is None  # type: ignore[reportPrivateUsage]
+    assert host._elicitor is None  # type: ignore[reportPrivateUsage]
+    assert host._roots is None  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_mcp_session_host_sampling_with_sampler_exception() -> None:
+    """Test McpSessionHost handles sampler exceptions (lines 143-147)."""
+    mock_sampler = MagicMock()
+    mock_sampler.sample = AsyncMock(side_effect=RuntimeError("Sampler failed"))
+
+    host = McpSessionHost(sampler=mock_sampler)
+
+    params = mcp_types.CreateMessageRequestParams(
+        messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
+        maxTokens=100,
     )
 
-    elicitor.set_group_chat(team)
+    result = await host.handle_sampling_request(params)
 
-    result = await team.run(task="task")
+    assert isinstance(result, mcp_types.ErrorData)
+    assert result.code == mcp_types.INTERNAL_ERROR
+    assert "Sampling request failed" in result.message
+    assert "Sampler failed" in result.message
 
-    assert any(msg.source == target_agent.name for msg in result.messages)
+
+@pytest.mark.asyncio
+async def test_mcp_session_host_elicit_with_elicitor_exception() -> None:
+    """Test McpSessionHost handles elicitor exceptions (lines 169-172)."""
+    mock_elicitor = MagicMock()
+    mock_elicitor.elicit = AsyncMock(side_effect=ValueError("Elicitor failed"))
+
+    host = McpSessionHost(elicitor=mock_elicitor)
+
+    params = mcp_types.ElicitRequestParams(message="Test", requestedSchema={})
+
+    result = await host.handle_elicit_request(params)
+
+    assert isinstance(result, mcp_types.ErrorData)
+    assert result.code == mcp_types.INTERNAL_ERROR
+    assert "Elicitation request failed" in result.message
+    assert "Elicitor failed" in result.message

@@ -1,16 +1,21 @@
 import base64
 import io
+from abc import ABC, abstractmethod
 from typing import Any, Dict
 
 from autogen_core import Image
+from autogen_core._component_config import Component, ComponentBase, ComponentModel
 from autogen_core.models import (
     AssistantMessage,
+    ChatCompletionClient,
     FinishReasons,
     LLMMessage,
     ModelInfo,
+    SystemMessage,
     UserMessage,
 )
 from PIL import Image as PILImage
+from pydantic import BaseModel
 
 from mcp import types as mcp_types
 from mcp.types import StopReason
@@ -113,3 +118,66 @@ def create_request_params_to_extra_create_args(params: mcp_types.CreateMessageRe
     if params.stopSequences is not None:
         extra_create_args["stop"] = params.stopSequences
     return extra_create_args
+
+
+class Sampler(ABC, ComponentBase[BaseModel]):
+    component_type = "mcp_sampler"
+
+    @abstractmethod
+    async def sample(
+        self, params: mcp_types.CreateMessageRequestParams
+    ) -> mcp_types.CreateMessageResult | mcp_types.ErrorData: ...
+
+
+class ChatCompletionClientSamplerConfig(BaseModel):
+    client_config: ComponentModel | Dict[str, Any]
+
+
+class ChatCompletionClientSampler(Sampler, Component[ChatCompletionClientSamplerConfig]):
+    component_config_schema = ChatCompletionClientSamplerConfig
+    component_provider_override = "autogen_ext.tools.mcp.ChatCompletionClientSampler"
+
+    def __init__(self, model_client: ChatCompletionClient):
+        self._model_client = model_client
+
+    async def sample(
+        self, params: mcp_types.CreateMessageRequestParams
+    ) -> mcp_types.CreateMessageResult | mcp_types.ErrorData:
+        # Convert MCP messages to AutoGen format using existing parser
+        autogen_messages: list[LLMMessage] = []
+
+        # Add system prompt if provided
+        if params.systemPrompt:
+            autogen_messages.append(SystemMessage(content=params.systemPrompt))
+
+        # Parse sampling messages
+        for msg in params.messages:
+            autogen_messages.append(parse_sampling_message(msg, model_info=self._model_client.model_info))
+
+        # Use the model client to generate a response
+        extra_create_args = create_request_params_to_extra_create_args(params)
+
+        response = await self._model_client.create(messages=autogen_messages, extra_create_args=extra_create_args)
+
+        # Extract text content from response
+        if isinstance(response.content, str):
+            response_text = response.content
+        else:
+            from pydantic_core import to_json
+
+            # Handle function calls - convert to string representation
+            response_text = to_json(response.content).decode()
+
+        return mcp_types.CreateMessageResult(
+            role="assistant",
+            content=mcp_types.TextContent(type="text", text=response_text),
+            model=self._model_client.model_info["family"],
+            stopReason=finish_reason_to_stop_reason(response.finish_reason),
+        )
+
+    def _to_config(self) -> BaseModel:
+        return ChatCompletionClientSamplerConfig(client_config=self._model_client.dump_component())
+
+    @classmethod
+    def _from_config(cls, config: ChatCompletionClientSamplerConfig):
+        return ChatCompletionClientSampler(model_client=ChatCompletionClient.load_component(config.client_config))

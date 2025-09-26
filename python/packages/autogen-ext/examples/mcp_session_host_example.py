@@ -25,9 +25,11 @@ from autogen_agentchat.ui import Console
 from autogen_core.models import ChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.tools.mcp import (
-    GroupChatAgentElicitor,
+    ChatCompletionClientSampler,
     McpSessionHost,
     McpWorkbench,
+    StaticRootsProvider,
+    StdioElicitor,
     StdioServerParams,
 )
 from mcp.types import Root
@@ -92,10 +94,7 @@ async def interactive_mcp_demo(config_path: str | None = None):
         model_client = load_model_client_from_config(config_path)
     else:
         logger.info("⚙️ Setting up default OpenAI model client (gpt-4)...")
-        model_client = OpenAIChatCompletionClient(model="gpt-4")
-
-    # Create user proxy for interactive input and elicitation target
-    user_proxy = UserProxyAgent("user_proxy")
+        model_client = OpenAIChatCompletionClient(model="gpt-4o-mini")
 
     other_assistant = AssistantAgent(
         "booking_assistant",
@@ -103,17 +102,22 @@ async def interactive_mcp_demo(config_path: str | None = None):
         description="An AI assistant who helps a user book 5pm reservations.",
     )
 
+    sampler = ChatCompletionClientSampler(model_client)
+
     # Start runtime and create AgentElicitor that targets the UserProxy
-    logger.info("🎯 Creating GroupChatAgentElicitor...")
-    elicitor = GroupChatAgentElicitor("booking_assistant", model_client=model_client)
+    logger.info("🎯 Creating StdioElicitor...")
+    elicitor = StdioElicitor()
+
+    roots = StaticRootsProvider(
+        [Root(uri=FileUrl("file:///home"), name="Home"), Root(uri=FileUrl("file:///tmp"), name="Tmp")]
+    )
 
     # Create host with all capabilities including elicitation
     logger.info("🏠 Creating MCP session host with sampling, elicitation, and roots support...")
     host = McpSessionHost(
-        model_client=model_client,  # Support sampling via model clicent
+        sampler=sampler,  # Support sampling via model clicent
         elicitor=elicitor,  # Support elicitation via booking_assistant
-        # support roots in /home and /tmp
-        roots=[Root(uri=FileUrl("file:///home"), name="Home"), Root(uri=FileUrl("file:///tmp"), name="Tmp")],
+        roots=roots, # support roots in /home and /tmp
     )
 
     # Setup workbench with host
@@ -138,11 +142,8 @@ async def interactive_mcp_demo(config_path: str | None = None):
     # Create RoundRobinGroupChat with the agents
     logger.info("🔄 Setting up RoundRobinGroupChat...")
     team = RoundRobinGroupChat(
-        [assistant, other_assistant, user_proxy], termination_condition=MaxMessageTermination(max_messages=2)
+        [assistant, other_assistant], termination_condition=MaxMessageTermination(max_messages=2)
     )
-
-    # TODO: How to improve this dev experience? Or make it more automatic somehow...
-    elicitor.set_group_chat(team)
 
     # Run the team with the initial task
     tasks = ["Book a table for 2 at 7pm", "Generate a poem about computer protocols.", "ls /home", "ls /bin"]

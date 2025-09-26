@@ -148,19 +148,7 @@ sequenceDiagram
     Server->>Workbench: ElicitRequest
     Workbench->>Host: handle_elicit_request()
     Host->>Elicitor: elicit(params)
-    Elicitor->>Runtime: send_message(elicit_message, target_agent)
-    Runtime->>TargetAgent: process message
-    alt TargetAgent is UserProxy
-        TargetAgent->>User: request user input
-        User->>TargetAgent: user response
-    else TargetAgent is LLM Agent
-        TargetAgent->>ModelClient: request completion
-        ModelClient->>TargetAgent: generated completion
-    end
-    TargetAgent->>Runtime: Response
-    Runtime->>Elicitor: Response
-    Elicitor->>ModelClient: Request completion to convert Target Agent response to JSON.
-    ModelClient->>Elicitor: JSON formatted response
+    Elicitor->>User: elicit request
     Elicitor->>Host: elicit result
     Host->>Workbench: elicit result
     Workbench->>Server: elicit result
@@ -223,7 +211,7 @@ from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
-+ from autogen_ext.tools.mcp.host import GroupChatAgentElicitor, McpSessionHost
++ from autogen_ext.tools.mcp import GroupChatAgentElicitor, McpSessionHost
 
 # Setup model client
 model_client = OpenAIChatCompletionClient(model="gpt-4o")
