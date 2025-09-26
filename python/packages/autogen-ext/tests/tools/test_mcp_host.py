@@ -546,7 +546,7 @@ async def test_stream_elicitor_with_timeout() -> None:
         return result
 
     with (
-        patch("asyncio.to_thread", side_effect=mock_return) as mock_to_thread,
+        patch("asyncio.to_thread", side_effect=mock_return),
         patch("asyncio.wait_for", side_effect=mock_return) as mock_wait_for,
     ):
         result = await elicitor.elicit(params)
@@ -657,7 +657,6 @@ def test_stdio_elicitor_from_config() -> None:
 # Additional sampling tests for missing coverage
 def test_parse_sampling_content_audio_unsupported() -> None:
     """Test parse_sampling_content raises ValueError for audio content."""
-    from autogen_ext.tools.mcp._host._sampling import parse_sampling_content
 
     audio_content = mcp_types.AudioContent(type="audio", data="audio_data", mimeType="audio/wav")
 
@@ -667,7 +666,6 @@ def test_parse_sampling_content_audio_unsupported() -> None:
 
 def test_parse_sampling_content_image_without_vision() -> None:
     """Test parse_sampling_content raises RuntimeError for image without vision model."""
-    from autogen_ext.tools.mcp._host._sampling import parse_sampling_content
 
     image_content = mcp_types.ImageContent(
         type="image",
@@ -708,8 +706,6 @@ def test_parse_sampling_message_user_with_image() -> None:
     }
 
     result = parse_sampling_message(message, model_info)
-
-    from autogen_core.models import UserMessage
 
     assert isinstance(result, UserMessage)
     assert len(result.content) == 1
