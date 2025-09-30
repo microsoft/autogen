@@ -106,7 +106,7 @@ class CreateArgumentsConfigModel(BaseModel):
     stream_options: StreamOptions | None = None
     parallel_tool_calls: bool | None = None
     # Controls the amount of effort the model uses for reasoning (reasoning models only)
-    reasoning_effort: Literal["low", "medium", "high"] | None = None
+    reasoning_effort: Literal["minimal", "low", "medium", "high"] | None = None
 
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
