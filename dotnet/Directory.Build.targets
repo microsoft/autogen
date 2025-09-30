@@ -10,4 +10,23 @@
     <None Include="$(ReadMePath)" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <!-- Optional flag, defaults to false -->
+    <InstallMissingTools Condition="'$(InstallMissingTools)' == ''">false</InstallMissingTools>
+  </PropertyGroup>
+
+  <Target Name="CheckPrereqs" BeforeTargets="Build">
+    <Exec Condition=" '$(OS)' == 'Windows_NT' and '$(InstallMissingTools)' == 'true' "
+          Command="powershell -ExecutionPolicy Bypass -File $(MSBuildThisFileDirectory)eng\check-prereqs.ps1 -InstallMissing" />
+
+    <Exec Condition=" '$(OS)' == 'Windows_NT' and '$(InstallMissingTools)' != 'true' "
+          Command="powershell -ExecutionPolicy Bypass -File $(MSBuildThisFileDirectory)eng\check-prereqs.ps1" />
+
+    <Exec Condition=" '$(OS)' != 'Windows_NT' and '$(InstallMissingTools)' == 'true' "
+          Command="bash $(MSBuildThisFileDirectory)eng/check-prereqs.sh --install-missing" />
+
+    <Exec Condition=" '$(OS)' != 'Windows_NT' and '$(InstallMissingTools)' != 'true' "
+          Command="bash $(MSBuildThisFileDirectory)eng/check-prereqs.sh" />
+  </Target>
+
 </Project>
