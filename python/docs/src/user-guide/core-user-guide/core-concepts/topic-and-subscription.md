@@ -35,7 +35,7 @@ when publishing messages about new issues.
 Topic source is the unique identifier for a topic within a topic type.
 It is typically defined by application data.
 For example, the GitHub agent may use `"github.com/{repo_name}/issues/{issue_number}"`
-as the topic source to uniquely identifies the topic.
+as the topic source to uniquely identify the topic.
 Topic source allows the publisher to limit the scope of messages and create
 silos.
 
@@ -71,7 +71,7 @@ exact topic sources and agent keys.
 The mechanism is simple: any topic matching the type-based subscription's
 topic type will be mapped to an agent ID with the subscription's agent type
 and the agent key assigned to the value of the topic source.
-For Python API, use {py:class}`~autogen_core.components.TypeSubscription`.
+For the Python API, use {py:class}`~autogen_core.components.TypeSubscription`.
 
 ```{note}
 Type-Based Subscription = Topic Type --> Agent Type
