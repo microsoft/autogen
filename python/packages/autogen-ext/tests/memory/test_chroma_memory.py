@@ -5,6 +5,7 @@ from autogen_core.memory import MemoryContent, MemoryMimeType
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import UserMessage
 from autogen_ext.memory.chromadb import (
+    ChromaCloudVectorMemoryConfig,
     ChromaDBVectorMemory,
     CustomEmbeddingFunctionConfig,
     DefaultEmbeddingFunctionConfig,
@@ -272,6 +273,22 @@ def test_http_config(tmp_path: Path) -> None:
     assert config.port == 8000
     assert config.ssl is False
     assert config.headers == {"Authorization": "Bearer test-token"}
+
+
+@pytest.mark.asyncio
+def test_cloud_config(tmp_path: Path) -> None:
+    """Test ChromaCloud configuration."""
+    config = ChromaCloudVectorMemoryConfig(
+        collection_name="test_cloud",
+        api_key="test-token",
+        tenant="test-tenant",
+        database="test-database",
+    )
+
+    assert config.client_type == "cloud"
+    assert config.api_key == "test-token"
+    assert config.tenant == "test-tenant"
+    assert config.database == "test-database"
 
 
 # ============================================================================

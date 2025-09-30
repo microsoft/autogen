@@ -107,7 +107,7 @@ class ChromaDBVectorMemoryConfig(BaseModel):
        Added support for custom embedding functions via embedding_function_config.
     """
 
-    client_type: Literal["persistent", "http"]
+    client_type: Literal["persistent", "http", "cloud"]
     collection_name: str = Field(default="memory_store", description="Name of the ChromaDB collection")
     distance_metric: str = Field(default="cosine", description="Distance metric for similarity search")
     k: int = Field(default=3, description="Number of results to return in queries")
@@ -123,15 +123,22 @@ class ChromaDBVectorMemoryConfig(BaseModel):
 class PersistentChromaDBVectorMemoryConfig(ChromaDBVectorMemoryConfig):
     """Configuration for persistent ChromaDB memory."""
 
-    client_type: Literal["persistent", "http"] = "persistent"
+    client_type: Literal["persistent", "http", "cloud"] = "persistent"
     persistence_path: str = Field(default="./chroma_db", description="Path for persistent storage")
 
 
 class HttpChromaDBVectorMemoryConfig(ChromaDBVectorMemoryConfig):
     """Configuration for HTTP ChromaDB memory."""
 
-    client_type: Literal["persistent", "http"] = "http"
+    client_type: Literal["persistent", "http", "cloud"] = "http"
     host: str = Field(default="localhost", description="Host of the remote server")
     port: int = Field(default=8000, description="Port of the remote server")
     ssl: bool = Field(default=False, description="Whether to use HTTPS")
     headers: Dict[str, str] | None = Field(default=None, description="Headers to send to the server")
+
+
+class ChromaCloudVectorMemoryConfig(ChromaDBVectorMemoryConfig):
+    """Configuration for Chroma Cloud memory."""
+
+    client_type: Literal["persistent", "http", "cloud"] = "cloud"
+    api_key: str = Field(description="API key for Chroma Cloud authentication")

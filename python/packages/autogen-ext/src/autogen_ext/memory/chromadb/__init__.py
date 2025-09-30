@@ -1,4 +1,5 @@
 from ._chroma_configs import (
+    ChromaCloudVectorMemoryConfig,
     ChromaDBVectorMemoryConfig,
     CustomEmbeddingFunctionConfig,
     DefaultEmbeddingFunctionConfig,
@@ -12,6 +13,7 @@ from ._chromadb import ChromaDBVectorMemory
 __all__ = [
     "ChromaDBVectorMemory",
     "ChromaDBVectorMemoryConfig",
+    "ChromaCloudVectorMemoryConfig",
     "PersistentChromaDBVectorMemoryConfig",
     "HttpChromaDBVectorMemoryConfig",
     "DefaultEmbeddingFunctionConfig",
