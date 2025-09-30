@@ -1,6 +1,8 @@
 import os
 
 from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import Any
 
 from ..datamodel import Response
 from ..teammanager import TeamManager
@@ -20,8 +22,26 @@ async def predict(task: str):
             raise ValueError("AUTOGENSTUDIO_TEAM_FILE environment variable is not set")
 
         result_message = await team_manager.run(task=task, team_config=team_file_path)
-        response.data = result_message
+        response.data = force_model_dump(result_message)
     except Exception as e:
         response.message = str(e)
         response.status = False
     return response
+
+def force_model_dump(obj: Any) -> Any:
+    """
+    Force dump all fields of a Pydantic BaseModel, even when inherited
+    from ABCs as BaseAgentEvent and BaseChatMessage.
+    """
+    if isinstance(obj, BaseModel):
+        output = {}
+        for name, _field in obj.model_fields.items():
+            value = getattr(obj, name)
+            output[name] = force_model_dump(value)
+        return output
+    elif isinstance(obj, list):
+        return [force_model_dump(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: force_model_dump(v) for k, v in obj.items()}
+    else:
+        return obj
