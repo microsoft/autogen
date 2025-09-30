@@ -34,7 +34,8 @@ class AppInitializer:
         self.settings = settings
         self._app_path = Path(app_path)
         self._paths = self._init_paths()
-        self._create_directories()
+        # Create directories after paths are fully initialized, especially ui_root
+        # self._create_directories() # Moved to after _init_paths completes fully
         self._load_environment()
         logger.info(f"Initializing application data folder: {self.app_root} ")
 
@@ -50,14 +51,31 @@ class AppInitializer:
             return db_uri
         return self.settings.DATABASE_URI.replace("./", str(app_root) + "/")
 
+    def _get_ui_root(self) -> Path:
+        """Determine UI root directory"""
+        if ui_path_str := os.getenv("AUTOGENSTUDIO_UI_PATH"):
+            ui_path = Path(ui_path_str)
+            if ui_path.exists() and ui_path.is_dir():
+                logger.info(f"Using custom UI path from AUTOGENSTUDIO_UI_PATH: {ui_path}")
+                return ui_path
+            else:
+                logger.warning(
+                    f"AUTOGENSTUDIO_UI_PATH is set to '{ui_path_str}', but it's not a valid directory. "
+                    f"Falling back to default UI path."
+                )
+        default_ui_path = self._app_path / "ui"
+        logger.info(f"Using default UI path: {default_ui_path}")
+        return default_ui_path
+
     def _init_paths(self) -> _AppPaths:
         """Initialize and return AppPaths instance"""
         app_root = self._get_app_root()
+        ui_root = self._get_ui_root()  # Call the new method
         return _AppPaths(
             app_root=app_root,
             static_root=app_root / "files",
             user_files=app_root / "files" / "user",
-            ui_root=self._app_path / "ui",
+            ui_root=ui_root,
             config_dir=app_root / self.settings.CONFIG_DIR,
             database_uri=self._get_database_uri(app_root),
         )
@@ -65,9 +83,16 @@ class AppInitializer:
     def _create_directories(self) -> None:
         """Create all required directories"""
         self.app_root.mkdir(parents=True, exist_ok=True)
+        # Ensure ui_root is determined before creating directories
         dirs = [self.static_root, self.user_files, self.ui_root, self.config_dir]
         for path in dirs:
-            path.mkdir(parents=True, exist_ok=True)
+            # For ui_root, if it's the default path, it needs to be created.
+            # If it's a custom path, it should already exist, so we don't try to create it.
+            if path == self._app_path / "ui" or not (os.getenv("AUTOGENSTUDIO_UI_PATH") and Path(os.getenv("AUTOGENSTUDIO_UI_PATH")).exists()):
+                path.mkdir(parents=True, exist_ok=True)
+            elif not path.exists():
+                 logger.error(f"Custom UI directory {path} does not exist.")
+
 
     def _load_environment(self) -> None:
         """Load environment variables from .env file if it exists"""
