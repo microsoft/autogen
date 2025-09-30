@@ -241,6 +241,19 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
                         except Exception as e:
                             cmd["future"].set_exception(e)
         except Exception as e:
+            try:
+                while True:
+                    try:
+                        pending_cmd = self._command_queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
+                    fut = pending_cmd.get("future")
+                    if fut is not None and not fut.done():
+                        fut.set_exception(e)
+            except Exception:
+                # Best-effort draining only
+                pass
+
             if self._shutdown_future and not self._shutdown_future.done():
                 self._shutdown_future.set_exception(e)
             else:

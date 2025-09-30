@@ -14,7 +14,7 @@ from autogen_core.models import (
     CreateResult,
     RequestUsage,
 )
-from autogen_ext.tools.mcp import StdioServerParams
+from autogen_ext.tools.mcp import StdioServerParams, StreamableHttpServerParams
 from autogen_ext.tools.mcp._actor import (
     McpSessionActor,
 )
@@ -500,6 +500,90 @@ async def test_run_actor_session_exception() -> None:
         # Check that the actor is no longer active
         assert not actor._active  # type: ignore[reportPrivateUsage]
         assert actor._actor_task is None  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_run_actor_drains_queue_on_session_exception() -> None:
+    """Ensure pending command futures are failed when session creation raises.
+
+    Uses StreamableHttpServerParams with an invalid URL to trigger failure,
+    covering the queue-draining logic added in the referenced commit.
+    """
+    # Use an invalid local URL/port to force immediate connection failure
+    server_params = StreamableHttpServerParams(
+        url="http://127.0.0.1:1/invalid",  # very likely closed port
+        timeout=0.1,
+        sse_read_timeout=0.1,
+    )
+    actor = McpSessionActor(server_params)
+
+    # Prepare pending commands before the actor starts, so the outer except drains them
+    fut1: asyncio.Future[Any] = asyncio.Future()
+    fut2: asyncio.Future[Any] = asyncio.Future()
+    await actor._command_queue.put({"type": "list_tools", "future": fut1})  # type: ignore[reportPrivateUsage]
+    await actor._command_queue.put({"type": "call_tool", "name": "t", "args": {}, "future": fut2})  # type: ignore[reportPrivateUsage]
+
+    actor._active = True  # type: ignore[reportPrivateUsage]
+    task = asyncio.create_task(actor._run_actor())  # type: ignore[reportPrivateUsage]
+
+    # Wait for task to complete; it should handle the exception and drain the queue
+    try:
+        await asyncio.wait_for(task, timeout=2.0)
+    except asyncio.TimeoutError:
+        # If something goes wrong, ensure task cleanup for test stability
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    # Verify futures were failed by the draining logic
+    assert fut1.done()
+    assert fut1.exception() is not None
+
+    assert fut2.done()
+    assert fut2.exception() is not None
+
+
+@pytest.mark.asyncio
+async def test_run_actor_draining_swallows_internal_errors() -> None:
+    """draining errors during exception handling are swallowed.
+
+    We force `create_mcp_server_session` to raise so `_run_actor` enters the outer
+    exception handler, then make `get_nowait()` itself raise a non-QueueEmpty
+    exception. The inner `except Exception: pass` (best-effort draining) should
+    swallow it and continue to set the shutdown future exception instead of
+    crashing the task.
+    """
+    actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]))
+
+    # Replace the command queue with a mock that raises from get_nowait()
+    mock_q = MagicMock()
+    mock_q.get_nowait.side_effect = RuntimeError("drain failure")
+    actor._command_queue = mock_q  # type: ignore[reportPrivateUsage]
+
+    # Prepare a shutdown future to observe behavior after draining attempt
+    actor._shutdown_future = asyncio.Future()  # type: ignore[reportPrivateUsage]
+
+    with patch(
+        "autogen_ext.tools.mcp._actor.create_mcp_server_session",
+        side_effect=Exception("Session error"),
+    ):
+        actor._active = True  # type: ignore[reportPrivateUsage]
+        task = asyncio.create_task(actor._run_actor())  # type: ignore[reportPrivateUsage]
+
+        # The task should finish and set the shutdown future with the session error
+        try:
+            await asyncio.wait_for(task, timeout=1.0)
+        except asyncio.TimeoutError:
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+
+    # Draining raised internally, but should have been swallowed (lines 274-276)
+    mock_q.get_nowait.assert_called()  # type: ignore[reportPrivateUsage]
+    assert actor._shutdown_future.done()  # type: ignore[reportPrivateUsage]
+    exc = actor._shutdown_future.exception()  # type: ignore[reportPrivateUsage]
+    assert isinstance(exc, Exception)
+    assert "Session error" in str(exc)
 
 
 @pytest.mark.asyncio
