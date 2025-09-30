@@ -3281,7 +3281,7 @@ async def test_reasoning_effort_parameter() -> None:
         api_key="fake_key",
         reasoning_effort="low",
     )
-    assert openai_client._create_args["reasoning_effort"] == "low"
+    assert openai_client._create_args["reasoning_effort"] == "low"  # pyright: ignore[reportPrivateUsage]
 
     # Test Azure OpenAI client with reasoning_effort
     azure_client = AzureOpenAIChatCompletionClient(
@@ -3292,7 +3292,7 @@ async def test_reasoning_effort_parameter() -> None:
         api_key="fake_key",
         reasoning_effort="medium",
     )
-    assert azure_client._create_args["reasoning_effort"] == "medium"
+    assert azure_client._create_args["reasoning_effort"] == "medium"  # pyright: ignore[reportPrivateUsage]
 
     # Test load_component with reasoning_effort for OpenAI
     from autogen_core.models import ChatCompletionClient
@@ -3307,8 +3307,8 @@ async def test_reasoning_effort_parameter() -> None:
     }
 
     loaded_openai_client = ChatCompletionClient.load_component(openai_config)
-    assert loaded_openai_client._create_args["reasoning_effort"] == "high"
-    assert loaded_openai_client._raw_config["reasoning_effort"] == "high"
+    assert loaded_openai_client._create_args["reasoning_effort"] == "high"  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
+    assert loaded_openai_client._raw_config["reasoning_effort"] == "high"  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
 
     # Test load_component with reasoning_effort for Azure OpenAI
     azure_config = {
@@ -3324,13 +3324,13 @@ async def test_reasoning_effort_parameter() -> None:
     }
 
     loaded_azure_client = ChatCompletionClient.load_component(azure_config)
-    assert loaded_azure_client._create_args["reasoning_effort"] == "low"
-    assert loaded_azure_client._raw_config["reasoning_effort"] == "low"
+    assert loaded_azure_client._create_args["reasoning_effort"] == "low"  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
+    assert loaded_azure_client._raw_config["reasoning_effort"] == "low"  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
 
     # Test serialization and deserialization
     config_dict = openai_client.dump_component()
     reloaded_client = OpenAIChatCompletionClient.load_component(config_dict)
-    assert reloaded_client._create_args["reasoning_effort"] == "low"
+    assert reloaded_client._create_args["reasoning_effort"] == "low"  # pyright: ignore[reportPrivateUsage]
 
 
 @pytest.mark.asyncio
@@ -3342,9 +3342,9 @@ async def test_reasoning_effort_validation() -> None:
         client = OpenAIChatCompletionClient(
             model="gpt-5",
             api_key="fake_key",
-            reasoning_effort=valid_value,
+            reasoning_effort=valid_value,  # pyright: ignore[reportArgumentType]
         )
-        assert client._create_args["reasoning_effort"] == valid_value
+        assert client._create_args["reasoning_effort"] == valid_value  # pyright: ignore[reportPrivateUsage]
 
     # Test None value (should be included if explicitly set)
     client_with_none = OpenAIChatCompletionClient(
@@ -3353,14 +3353,14 @@ async def test_reasoning_effort_validation() -> None:
         reasoning_effort=None,
     )
     # When explicitly set to None, it will be included in create_args
-    assert client_with_none._create_args["reasoning_effort"] is None
+    assert client_with_none._create_args["reasoning_effort"] is None  # pyright: ignore[reportPrivateUsage]
 
     # Test not providing reasoning_effort (should not be in create_args)
     client_without_reasoning = OpenAIChatCompletionClient(
         model="gpt-5",
         api_key="fake_key",
     )
-    assert "reasoning_effort" not in client_without_reasoning._create_args
+    assert "reasoning_effort" not in client_without_reasoning._create_args  # pyright: ignore[reportPrivateUsage]
 
     # Test invalid value via load_component (Pydantic validation)
     from pydantic import ValidationError
