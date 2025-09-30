@@ -50,7 +50,7 @@ class CreateArguments(TypedDict, total=False):
     user: str
     stream_options: Optional[StreamOptions]
     parallel_tool_calls: Optional[bool]
-    reasoning_effort: Optional[Literal["low", "medium", "high"]]
+    reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]]
     """Controls the amount of effort the model uses for reasoning.
     Only applicable to reasoning models like o1 and o3-mini.
     - 'low': Faster responses with less reasoning
