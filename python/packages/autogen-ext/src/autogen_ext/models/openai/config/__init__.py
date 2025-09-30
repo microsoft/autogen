@@ -53,6 +53,7 @@ class CreateArguments(TypedDict, total=False):
     reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]]
     """Controls the amount of effort the model uses for reasoning.
     Only applicable to reasoning models like o1 and o3-mini.
+    - 'minimal': Fastest response with minimal reasoning
     - 'low': Faster responses with less reasoning
     - 'medium': Balanced reasoning and speed
     - 'high': More thorough reasoning, may take longer"""
