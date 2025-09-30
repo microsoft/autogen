@@ -50,6 +50,13 @@ class CreateArguments(TypedDict, total=False):
     user: str
     stream_options: Optional[StreamOptions]
     parallel_tool_calls: Optional[bool]
+    reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]]
+    """Controls the amount of effort the model uses for reasoning.
+    Only applicable to reasoning models like o1 and o3-mini.
+    - 'minimal': Fastest response with minimal reasoning
+    - 'low': Faster responses with less reasoning
+    - 'medium': Balanced reasoning and speed
+    - 'high': More thorough reasoning, may take longer"""
 
 
 AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
@@ -99,6 +106,8 @@ class CreateArgumentsConfigModel(BaseModel):
     user: str | None = None
     stream_options: StreamOptions | None = None
     parallel_tool_calls: bool | None = None
+    # Controls the amount of effort the model uses for reasoning (reasoning models only)
+    reasoning_effort: Literal["minimal", "low", "medium", "high"] | None = None
 
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
