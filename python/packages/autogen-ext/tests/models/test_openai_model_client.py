@@ -3307,8 +3307,8 @@ async def test_reasoning_effort_parameter() -> None:
     }
 
     loaded_openai_client = ChatCompletionClient.load_component(openai_config)
-    assert loaded_openai_client._create_args["reasoning_effort"] == "high"  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
-    assert loaded_openai_client._raw_config["reasoning_effort"] == "high"  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
+    assert loaded_openai_client._create_args["reasoning_effort"] == "high"  # type: ignore[attr-defined] # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
+    assert loaded_openai_client._raw_config["reasoning_effort"] == "high"  # type: ignore[attr-defined] # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
 
     # Test load_component with reasoning_effort for Azure OpenAI
     azure_config = {
@@ -3324,8 +3324,8 @@ async def test_reasoning_effort_parameter() -> None:
     }
 
     loaded_azure_client = ChatCompletionClient.load_component(azure_config)
-    assert loaded_azure_client._create_args["reasoning_effort"] == "low"  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
-    assert loaded_azure_client._raw_config["reasoning_effort"] == "low"  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
+    assert loaded_azure_client._create_args["reasoning_effort"] == "low"  # type: ignore[attr-defined] # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
+    assert loaded_azure_client._raw_config["reasoning_effort"] == "low"  # type: ignore[attr-defined] # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
 
     # Test serialization and deserialization
     config_dict = openai_client.dump_component()
@@ -3342,7 +3342,7 @@ async def test_reasoning_effort_validation() -> None:
         client = OpenAIChatCompletionClient(
             model="gpt-5",
             api_key="fake_key",
-            reasoning_effort=valid_value,  # pyright: ignore[reportArgumentType]
+            reasoning_effort=valid_value,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
         )
         assert client._create_args["reasoning_effort"] == valid_value  # pyright: ignore[reportPrivateUsage]
 
