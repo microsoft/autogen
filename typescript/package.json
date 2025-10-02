@@ -1,0 +1,27 @@
+{
+  "name": "autogen-typescript",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "docs": "typedoc && cp -r doc/* _site/"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.10.0",
+    "jest": "^29.7.0",
+    "reflect-metadata": "^0.2.1",
+    "ts-jest": "^29.2.6",
+    "typedoc": "^0.25.4",
+    "typedoc-plugin-markdown": "^3.17.1",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.2.1"
+  },
+  "overrides": {
+    "inflight": "npm:@isaacs/inflight@^1.0.1"
+  }
+}
