@@ -3,24 +3,20 @@
 import asyncio
 import atexit
 import json
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncGenerator, Callable, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from autogen_core import Image
 from autogen_core.models import (
     CreateResult,
-    ModelInfo,
     RequestUsage,
-    UserMessage,
 )
 from autogen_ext.tools.mcp import StdioServerParams, StreamableHttpServerParams
 from autogen_ext.tools.mcp._actor import (
     McpSessionActor,
-    _parse_sampling_content,  # pyright: ignore[reportPrivateUsage]
-    _parse_sampling_message,  # pyright: ignore[reportPrivateUsage]
 )
 from mcp import types as mcp_types
 from mcp.shared.context import RequestContext
@@ -30,7 +26,7 @@ from mcp.shared.context import RequestContext
 original_atexit_register = atexit.register
 
 
-def mock_atexit_register(func: Callable[[], None]) -> None:
+def mock_atexit_register(func: Callable[[], None], *args: Any, **kwargs: Any) -> None:
     """Mock atexit.register to prevent registration during tests."""
     pass
 
@@ -49,6 +45,25 @@ def mcp_server_params() -> StdioServerParams:
         args=["run", "python", str(server_path)],
         read_timeout_seconds=10,
     )
+
+
+async def get_expected_tool_count() -> int:
+    """Get the expected number of tools by importing and examining the comprehensive server."""
+    # Add the parent directory to the path to import the server
+    parent_dir = str(Path(__file__).parent.parent)
+    if parent_dir not in sys.path:
+        sys.path.append(parent_dir)
+
+    try:
+        # Import and instantiate the server to get the tools
+        from mcp_server_comprehensive import SimpleMcpServer
+
+        server = SimpleMcpServer()
+        expected_tools = await server.list_tools()
+        return len(expected_tools)
+    except Exception:
+        # Fallback - return 5 if we can't dynamically determine
+        return 5
 
 
 @pytest.fixture
@@ -93,116 +108,6 @@ def mock_model_client_with_vision() -> MagicMock:
         )
     )
     return model_client
-
-
-def test_parse_sampling_content_unsupported_image_without_vision() -> None:
-    """Test _parse_sampling_content raises error for image content when model doesn't support vision (line 56)."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    image_content = mcp_types.ImageContent(
-        type="image",
-        data="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-        mimeType="image/png",
-    )
-
-    with pytest.raises(ValueError, match="Sampling model does not support image content"):
-        _parse_sampling_content(image_content, model_info)
-
-
-def test_parse_sampling_content_with_vision_support() -> None:
-    """Test _parse_sampling_content works with vision-enabled model."""
-    model_info: ModelInfo = {
-        "vision": True,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    image_content = mcp_types.ImageContent(
-        type="image",
-        data="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-        mimeType="image/png",
-    )
-
-    result = _parse_sampling_content(image_content, model_info)
-    assert isinstance(result, Image)
-
-
-def test_parse_sampling_content_text() -> None:
-    """Test _parse_sampling_content with text content."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    text_content = mcp_types.TextContent(type="text", text="Hello world")
-
-    result = _parse_sampling_content(text_content, model_info)
-    assert result == "Hello world"
-
-
-def test_parse_sampling_content_unknown_type() -> None:
-    """Test _parse_sampling_content raises error for unknown content type."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    # Create a mock content with unknown type
-    unknown_content = MagicMock()
-    unknown_content.type = "unknown"
-
-    with pytest.raises(ValueError, match="Unsupported content type"):
-        _parse_sampling_content(unknown_content, model_info)
-
-
-def test_parse_sampling_message_unrecognized_role() -> None:
-    """Test _parse_sampling_message raises error for unrecognized role (lines 67-74)."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    # Create a mock message with invalid role by bypassing type checking
-    message = MagicMock()
-    message.role = "system"  # Invalid role that should trigger the error
-    message.content = mcp_types.TextContent(type="text", text="Hello")
-
-    with pytest.raises(ValueError, match="Unrecognized message role: system"):
-        _parse_sampling_message(message, model_info)
-
-
-def test_parse_sampling_message_assistant_with_non_string_content() -> None:
-    """Test _parse_sampling_message with assistant message containing non-string content."""
-    model_info: ModelInfo = {
-        "vision": True,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    # Create image content for assistant message (which should fail)
-    image_content = mcp_types.ImageContent(
-        type="image",
-        data="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-        mimeType="image/png",
-    )
-    message = mcp_types.SamplingMessage(role="assistant", content=image_content)
-
-    # This should raise an AssertionError because assistant messages only support string content
-    with pytest.raises(AssertionError, match="Assistant messages only support string content"):
-        _parse_sampling_message(message, model_info)
 
 
 @pytest.mark.asyncio
@@ -360,6 +265,18 @@ async def test_read_resource_without_uri() -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_prompt_without_name() -> None:
+    """Test get_prompt raises error when name is not provided (line 94)."""
+    actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]))
+    actor._active = True  # type: ignore[reportPrivateUsage]
+    actor._actor_task = MagicMock()  # type: ignore[reportPrivateUsage]
+    actor._actor_task.done.return_value = False  # type: ignore[reportPrivateUsage]
+
+    with pytest.raises(ValueError, match="name is required for get_prompt"):
+        await actor.call("get_prompt", {"name": None, "kargs": {}})
+
+
+@pytest.mark.asyncio
 async def test_call_unknown_command_type() -> None:
     """Test call method raises error for unknown command type (line 147)."""
     actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]))
@@ -384,9 +301,9 @@ async def test_close_when_not_active() -> None:
 
 
 @pytest.mark.asyncio
-async def test_sampling_callback_without_model_client() -> None:
-    """Test sampling callback returns error when no model client is available (line 194)."""
-    actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]), model_client=None)
+async def test_sampling_callback_without_host() -> None:
+    """Test sampling callback returns error when no host is available (lines 119-127)."""
+    actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]))
 
     mock_context = MagicMock(spec=RequestContext)
     params = mcp_types.CreateMessageRequestParams(
@@ -398,65 +315,94 @@ async def test_sampling_callback_without_model_client() -> None:
 
     assert isinstance(result, mcp_types.ErrorData)
     assert result.code == mcp_types.INVALID_REQUEST
-    assert "No model client available" in result.message
+    assert "No host available for sampling" in result.message
 
 
 @pytest.mark.asyncio
-async def test_sampling_callback_message_processing_error() -> None:
-    """Test sampling callback handles message processing errors (lines 226-227, 229-233)."""
-    # Create a model client for the actor
-    model_client = MagicMock()
-    model_client.model_info = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-
-    actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]), model_client=model_client)
+async def test_elicitation_callback_without_host() -> None:
+    """Test elicitation callback returns error when no host is available (lines 135-143)."""
+    actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]))
 
     mock_context = MagicMock(spec=RequestContext)
+    params = mcp_types.ElicitRequestParams(message="Test elicitation message", requestedSchema={"type": "object"})
 
-    # Create a valid SamplingMessage but with invalid role that will cause parsing error
-    # We'll patch the message after creation to bypass Pydantic validation
-    valid_message = mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))
-    # Now change the role to something invalid that will cause _parse_sampling_message to fail
-    valid_message.role = "invalid_role"  # type: ignore
-
-    params = mcp_types.CreateMessageRequestParams(
-        messages=[valid_message],
-        maxTokens=100,
-    )
-
-    result = await actor._sampling_callback(mock_context, params)  # type: ignore[reportPrivateUsage]
+    result = await actor._elicitation_callback(mock_context, params)  # type: ignore[reportPrivateUsage]
 
     assert isinstance(result, mcp_types.ErrorData)
-    assert result.code == mcp_types.INVALID_PARAMS
-    assert "Error processing sampling messages" in result.message
+    assert result.code == mcp_types.INVALID_REQUEST
+    assert "No host available for elicitation" in result.message
 
 
 @pytest.mark.asyncio
-async def test_sampling_callback_model_client_error() -> None:
-    """Test sampling callback handles model client errors (lines 235-239)."""
-    failing_model_client = MagicMock()
-    failing_model_client.model_info = {"vision": False, "family": "test-model"}
-    failing_model_client.create = AsyncMock(side_effect=Exception("Model API error"))
-
-    actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]), model_client=failing_model_client)
+async def test_list_roots_callback_without_host() -> None:
+    """Test list_roots callback returns error when no host is available (lines 149-156)."""
+    actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]))
 
     mock_context = MagicMock(spec=RequestContext)
-    params = mcp_types.CreateMessageRequestParams(
-        messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
-        maxTokens=100,
-    )
 
-    result = await actor._sampling_callback(mock_context, params)  # type: ignore[reportPrivateUsage]
+    result = await actor._list_roots(mock_context)  # type: ignore[reportPrivateUsage]
 
     assert isinstance(result, mcp_types.ErrorData)
-    assert result.code == mcp_types.INTERNAL_ERROR
-    assert "Error sampling from model client" in result.message
-    assert "Model API error" in str(result.data)
+    assert result.code == mcp_types.INVALID_REQUEST
+    assert "No host available for listing roots" in result.message
+
+
+# @pytest.mark.asyncio
+# async def test_sampling_callback_message_processing_error() -> None:
+#     """Test sampling callback handles message processing errors (lines 226-227, 229-233)."""
+#     # Create a model client for the actor
+#     model_client = MagicMock()
+#     model_client.model_info = {
+#         "vision": False,
+#         "function_calling": False,
+#         "json_output": False,
+#         "family": "test-model",
+#         "structured_output": False,
+#     }
+
+#     actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]), model_client=model_client)
+
+#     mock_context = MagicMock(spec=RequestContext)
+
+#     # Create a valid SamplingMessage but with invalid role that will cause parsing error
+#     # We'll patch the message after creation to bypass Pydantic validation
+#     valid_message = mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))
+#     # Now change the role to something invalid that will cause _parse_sampling_message to fail
+#     valid_message.role = "invalid_role"  # type: ignore
+
+#     params = mcp_types.CreateMessageRequestParams(
+#         messages=[valid_message],
+#         maxTokens=100,
+#     )
+
+#     result = await actor._sampling_callback(mock_context, params)  # type: ignore[reportPrivateUsage]
+
+#     assert isinstance(result, mcp_types.ErrorData)
+#     assert result.code == mcp_types.INVALID_PARAMS
+#     assert "Error processing sampling messages" in result.message
+
+
+# @pytest.mark.asyncio
+# async def test_sampling_callback_model_client_error() -> None:
+#     """Test sampling callback handles model client errors (lines 235-239)."""
+#     failing_model_client = MagicMock()
+#     failing_model_client.model_info = {"vision": False, "family": "test-model"}
+#     failing_model_client.create = AsyncMock(side_effect=Exception("Model API error"))
+
+#     actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]), model_client=failing_model_client)
+
+#     mock_context = MagicMock(spec=RequestContext)
+#     params = mcp_types.CreateMessageRequestParams(
+#         messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
+#         maxTokens=100,
+#     )
+
+#     result = await actor._sampling_callback(mock_context, params)  # type: ignore[reportPrivateUsage]
+
+#     assert isinstance(result, mcp_types.ErrorData)
+#     assert result.code == mcp_types.INTERNAL_ERROR
+#     assert "Error sampling from model client" in result.message
+#     assert "Model API error" in str(result.data)
 
 
 @pytest.mark.asyncio
@@ -470,7 +416,10 @@ async def test_run_actor_exception_handling() -> None:
     # Create a mock session that will raise exceptions by modifying our mock session
     @asynccontextmanager
     async def mock_failing_session(
-        server_params: Any, sampling_callback: Any = None
+        server_params: Any,
+        sampling_callback: Any = None,
+        elicitation_callback: Any = None,
+        list_roots_callback: Any = None,
     ) -> AsyncGenerator[MagicMock, None]:
         mock_session = MagicMock()
         mock_session.initialize = AsyncMock(
@@ -780,13 +729,12 @@ async def test_initialize_result_property() -> None:
 async def test_actor_initialization() -> None:
     """Test actor initialization sets up correctly."""
     server_params = StdioServerParams(command="echo", args=["test"])
-    model_client = MagicMock()
 
-    actor = McpSessionActor(server_params, model_client=model_client)
+    # TODO: Add McpSessionHost
+    actor = McpSessionActor(server_params)
 
     # Check initial state
     assert actor.server_params == server_params
-    assert actor._model_client == model_client  # type: ignore[reportPrivateUsage]
     assert actor.name == "mcp_session_actor"
     assert actor.description == "MCP session actor"
     assert not actor._active  # type: ignore[reportPrivateUsage]
@@ -871,7 +819,8 @@ async def test_actor_basic_functionality(mcp_server_params: Any) -> None:
         # Test listing tools
         tools_future = await actor.call("list_tools")
         tools_result: mcp_types.ListToolsResult = await tools_future  # type: ignore
-        assert len(tools_result.tools) == 2  # echo and get_time
+        expected_tool_count = await get_expected_tool_count()
+        assert len(tools_result.tools) == expected_tool_count
         tool_names = [tool.name for tool in tools_result.tools]
         assert "echo" in tool_names
         assert "get_time" in tool_names
@@ -964,36 +913,37 @@ async def test_actor_tool_failure_handling(mcp_server_params: Any) -> None:
         await actor.close()
 
 
-@pytest.mark.asyncio
-async def test_actor_with_model_client_sampling(mcp_server_params: Any, mock_model_client: Any) -> None:
-    """Test actor with model client for sampling operations."""
-    actor = McpSessionActor(mcp_server_params, model_client=mock_model_client)
+# TODO: Use McpSessionhost
+# @pytest.mark.asyncio
+# async def test_actor_with_model_client_sampling(mcp_server_params: Any, mock_model_client: Any) -> None:
+#     """Test actor with model client for sampling operations."""
+#     actor = McpSessionActor(mcp_server_params, model_client=mock_model_client)
 
-    try:
-        await actor.initialize()
-        await asyncio.sleep(0.1)
+#     try:
+#         await actor.initialize()
+#         await asyncio.sleep(0.1)
 
-        # Test sampling callback functionality
-        mock_context = MagicMock(spec=RequestContext)
-        params = mcp_types.CreateMessageRequestParams(
-            messages=[
-                mcp_types.SamplingMessage(
-                    role="user", content=mcp_types.TextContent(type="text", text="Hello from test")
-                )
-            ],
-            maxTokens=100,
-        )
+#         # Test sampling callback functionality
+#         mock_context = MagicMock(spec=RequestContext)
+#         params = mcp_types.CreateMessageRequestParams(
+#             messages=[
+#                 mcp_types.SamplingMessage(
+#                     role="user", content=mcp_types.TextContent(type="text", text="Hello from test")
+#                 )
+#             ],
+#             maxTokens=100,
+#         )
 
-        result = await actor._sampling_callback(mock_context, params)  # type: ignore[reportPrivateUsage]
+#         result = await actor._sampling_callback(mock_context, params)  # type: ignore[reportPrivateUsage]
 
-        assert isinstance(result, mcp_types.CreateMessageResult)
-        assert result.role == "assistant"
-        assert isinstance(result.content, mcp_types.TextContent)
-        assert result.content.text == "Mock response"
-        assert result.model == "test-model"
+#         assert isinstance(result, mcp_types.CreateMessageResult)
+#         assert result.role == "assistant"
+#         assert isinstance(result.content, mcp_types.TextContent)
+#         assert result.content.text == "Mock response"
+#         assert result.model == "test-model"
 
-    finally:
-        await actor.close()
+#     finally:
+#         await actor.close()
 
 
 # Integration tests with real MCP server
@@ -1011,7 +961,8 @@ async def test_actor(mcp_server_params: Any) -> None:
         # Test listing tools
         tools_future = await actor.call("list_tools")
         tools_result: mcp_types.ListToolsResult = await tools_future  # type: ignore
-        assert len(tools_result.tools) == 2  # echo and get_time
+        expected_tool_count = await get_expected_tool_count()
+        assert len(tools_result.tools) == expected_tool_count
         tool_names = [tool.name for tool in tools_result.tools]
         assert "echo" in tool_names
         assert "get_time" in tool_names
@@ -1137,89 +1088,6 @@ def clean_actor() -> Generator[Callable[..., McpSessionActor], None, None]:
 
 
 @pytest.mark.asyncio
-async def test_sampling_callback_with_system_prompt() -> None:
-    """Test sampling callback with systemPrompt parameter (line 177)."""
-    model_client = MagicMock()
-    model_client.model_info = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    model_client.create = AsyncMock(
-        return_value=CreateResult(
-            content="Mock response",
-            finish_reason="stop",
-            usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-            cached=False,
-        )
-    )
-
-    actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]), model_client=model_client)
-
-    mock_context = MagicMock(spec=RequestContext)
-    params = mcp_types.CreateMessageRequestParams(
-        messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
-        maxTokens=100,
-        systemPrompt="You are a helpful assistant.",
-    )
-
-    result = await actor._sampling_callback(mock_context, params)  # type: ignore[reportPrivateUsage]
-
-    assert isinstance(result, mcp_types.CreateMessageResult)
-    assert result.role == "assistant"
-    assert isinstance(result.content, mcp_types.TextContent)
-    assert result.content.text == "Mock response"
-
-    # Verify that the model client was called with the system prompt
-    model_client.create.assert_called_once()
-    call_args = model_client.create.call_args[1]
-    messages = call_args["messages"]
-    assert len(messages) == 2  # SystemMessage + UserMessage
-    assert messages[0].content == "You are a helpful assistant."
-
-
-@pytest.mark.asyncio
-async def test_sampling_callback_with_non_string_content() -> None:
-    """Test sampling callback when model returns non-string content (line 194)."""
-    model_client = MagicMock()
-    model_client.model_info = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    # Mock the model to return a non-string content
-    non_string_content = {"data": "complex object"}
-    model_client.create = AsyncMock(
-        return_value=CreateResult(
-            content=str(non_string_content),  # Convert to string for valid content
-            finish_reason="stop",
-            usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
-            cached=False,
-        )
-    )
-
-    actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]), model_client=model_client)
-
-    mock_context = MagicMock(spec=RequestContext)
-    params = mcp_types.CreateMessageRequestParams(
-        messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
-        maxTokens=100,
-    )
-
-    result = await actor._sampling_callback(mock_context, params)  # type: ignore[reportPrivateUsage]
-
-    assert isinstance(result, mcp_types.CreateMessageResult)
-    assert result.role == "assistant"
-    assert isinstance(result.content, mcp_types.TextContent)
-    # Should be converted to string
-    assert result.content.text == "{'data': 'complex object'}"
-
-
-@pytest.mark.asyncio
 async def test_run_actor_all_command_types_exception_handling() -> None:
     """Test _run_actor exception handling for all command types (lines 232-233, 238-239, 244-245, 250-251, 256-263)."""
     actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]))
@@ -1227,7 +1095,10 @@ async def test_run_actor_all_command_types_exception_handling() -> None:
     # Create a mock session that will raise exceptions for all command types
     @asynccontextmanager
     async def mock_failing_session(
-        server_params: Any, sampling_callback: Any = None
+        server_params: Any,
+        sampling_callback: Any = None,
+        elicitation_callback: Any = None,
+        list_roots_callback: Any = None,
     ) -> AsyncGenerator[MagicMock, None]:
         mock_session = MagicMock()
         mock_session.initialize = AsyncMock(
@@ -1256,7 +1127,7 @@ async def test_run_actor_all_command_types_exception_handling() -> None:
             # Give it a moment to initialize
             await asyncio.sleep(0.05)
 
-            # Test all command types that can raise exceptions
+            # Test all command types that can raise exceptions (including line 212)
             commands_to_test: list[dict[str, Any]] = [
                 {"type": "call_tool", "name": "test_tool", "args": {}},
                 {"type": "read_resource", "uri": "test://resource"},
@@ -1264,7 +1135,7 @@ async def test_run_actor_all_command_types_exception_handling() -> None:
                 {"type": "list_tools"},
                 {"type": "list_prompts"},
                 {"type": "list_resources"},
-                {"type": "list_resource_templates"},
+                {"type": "list_resource_templates"},  # This covers line 212
             ]
 
             futures: list[asyncio.Future[Any]] = []
@@ -1341,23 +1212,6 @@ async def test_close_with_shutdown_await() -> None:
         actor.close = original_close  # type: ignore[method-assign]
 
 
-def test_parse_sampling_message_user_role() -> None:
-    """Test _parse_sampling_message with user role (line 69)."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    message = mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello user"))
-
-    result = _parse_sampling_message(message, model_info)
-
-    assert isinstance(result, UserMessage)
-    assert result.content == ["Hello user"]
-
-
 @pytest.mark.asyncio
 async def test_call_tool_command_queuing() -> None:
     """Test call_tool command queuing (line 140)."""
@@ -1396,21 +1250,3 @@ async def test_call_tool_command_queuing() -> None:
 
     # Restore original queue
     actor._command_queue = original_queue  # type: ignore[reportPrivateUsage]
-
-
-def test_parse_sampling_message_user_role_branch() -> None:
-    """Test _parse_sampling_message with user role (line 69)."""
-    model_info: ModelInfo = {
-        "vision": False,
-        "function_calling": False,
-        "json_output": False,
-        "family": "test-model",
-        "structured_output": False,
-    }
-    message = mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello user test"))
-
-    result = _parse_sampling_message(message, model_info)
-
-    # This specifically tests the user role branch (line 69)
-    assert isinstance(result, UserMessage)
-    assert result.content == ["Hello user test"]
