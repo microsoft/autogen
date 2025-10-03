@@ -34,6 +34,7 @@ from autogen_ext.models.openai._openai_client import (
 from autogen_ext.models.openai._transformation import TransformerMap, get_transformer
 from autogen_ext.models.openai._transformation.registry import _find_model_family  # pyright: ignore[reportPrivateUsage]
 from openai.lib.streaming.chat import AsyncChatCompletionStreamManager
+
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import (

@@ -1,3 +1,11 @@
+[project]
+name = "autogen"
+version = "0.1.0"
+description = "AutoGen Python SDK"
+requires-python = ">=3.10"
+dependencies = []
+
+
 [dependency-groups]
 dev = [
     "pyright==1.1.389",
@@ -145,3 +153,5 @@ cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/tests/pro
 markers = [
     "grpc: tests invoking gRPC functionality",
 ]
+[tool.setuptools.packages.find]
+where = ["packages"]
