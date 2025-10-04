@@ -15,6 +15,10 @@
 
 **AutoGen** is a framework for creating multi-agent AI applications that can act autonomously or work alongside humans.
 
+> **Important:** if you are new to AutoGen, please checkout [Microsoft Agent Framework](https://github.com/microsoft/agent-framework).
+> AutoGen will still be maintained and continue to receive bug fixes and critical security patches.
+> Read our [announcement](https://github.com/microsoft/autogen/discussions/7066).
+
 ## Installation
 
 AutoGen requires **Python 3.10 or later**.
@@ -32,6 +36,8 @@ pip install -U "autogenstudio"
 ```
 
 ## Quickstart
+
+The following samples call OpenAI API, so you first need to create an account and export your key as `export OPENAI_API_KEY="sk-..."`.
 
 ### Hello World
 
