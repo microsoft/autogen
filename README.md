@@ -37,6 +37,8 @@ pip install -U "autogenstudio"
 
 ## Quickstart
 
+The following samples call OpenAI API, so you first need to create an account and export your key as `export OPENAI_API_KEY="sk-..."`.
+
 ### Hello World
 
 Create an assistant agent using OpenAI's GPT-4o model. See [other supported models](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html).
