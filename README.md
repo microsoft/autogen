@@ -224,3 +224,14 @@ or trademarks, whether by implication, estoppel, or otherwise.
     ↑ Back to Top ↑
   </a>
 </p>
+
+## RunLedger CI gate
+
+This repo includes a deterministic CI gate for tool-using agents:
+
+```bash
+runledger run evals/runledger --mode replay --baseline baselines/runledger-demo.json
+```
+
+It replays recorded tool calls and fails the PR on schema/tool/budget regressions.
+
