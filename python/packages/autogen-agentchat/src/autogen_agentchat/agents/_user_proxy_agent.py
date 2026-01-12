@@ -241,7 +241,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
         pass
 
     def _to_config(self) -> UserProxyAgentConfig:
-        # TODO: Add ability to serialie input_func
+        # TODO: Add ability to serialize input_func
         return UserProxyAgentConfig(name=self.name, description=self.description, input_func=None)
 
     @classmethod
