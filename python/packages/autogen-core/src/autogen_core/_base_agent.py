@@ -161,6 +161,13 @@ class BaseAgent(ABC, Agent):
     async def close(self) -> None:
         pass
 
+    @staticmethod
+    def _register_serializers(
+        runtime: AgentRuntime, handles_types: List[Tuple[Type[Any], List[MessageSerializer[Any]]]]
+    ) -> None:
+        for _message_type, serializer in handles_types:
+            runtime.add_message_serializer(serializer)
+
     async def register_instance(
         self,
         runtime: AgentRuntime,
@@ -205,9 +212,7 @@ class BaseAgent(ABC, Agent):
                 # We don't care if the subscription already exists
                 pass
 
-        # TODO: deduplication
-        for _message_type, serializer in self._handles_types():
-            runtime.add_message_serializer(serializer)
+        BaseAgent._register_serializers(runtime, self._handles_types())
 
         return agent_id
 
@@ -247,8 +252,6 @@ class BaseAgent(ABC, Agent):
                 )
             )
 
-        # TODO: deduplication
-        for _message_type, serializer in cls._handles_types():
-            runtime.add_message_serializer(serializer)
+        BaseAgent._register_serializers(runtime, cls._handles_types())
 
         return agent_type
