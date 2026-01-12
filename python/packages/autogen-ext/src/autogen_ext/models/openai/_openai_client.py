@@ -906,6 +906,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # Process the stream of chunks.
         async for chunk in chunks:
+            # Skip None chunks that can occur during heavy load or in compiled binaries.
+            # See: https://github.com/microsoft/autogen/issues/7130
+            if chunk is None:
+                continue
+
             if first_chunk:
                 first_chunk = False
                 # Emit the start event.
