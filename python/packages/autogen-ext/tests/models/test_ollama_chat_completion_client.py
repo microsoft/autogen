@@ -619,7 +619,7 @@ async def test_ollama_create_tools(model: str, ollama_client: OllamaChatCompleti
     assert create_result.finish_reason == "stop"
 
 
-@pytest.mark.skip("TODO: Does Ollama support structured outputs with tools?")
+# @pytest.mark.skip("TODO: Does Ollama support structured outputs with tools?")
 @pytest.mark.asyncio
 @pytest.mark.parametrize("model", ["llama3.2:1b"])
 async def test_ollama_create_structured_output_with_tools(
