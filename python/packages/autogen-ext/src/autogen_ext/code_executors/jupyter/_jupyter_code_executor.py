@@ -225,11 +225,11 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
                             case "text/plain":
                                 outputs.append(content)
                             case "image/png":
-                                path = self._save_image(content)
+                                path = self._save_image(content, "png")
                                 output_files.append(path)
                             case "image/jpeg":
-                                # TODO: Should this also be encoded? Images are encoded as both png and jpg
-                                pass
+                                path = self._save_image(content, "jpg")
+                                output_files.append(path)
                             case "text/html":
                                 path = self._save_html(content)
                                 output_files.append(path)
@@ -252,10 +252,10 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         self._client.nb.cells.pop()
         return output
 
-    def _save_image(self, image_data_base64: str) -> Path:
+    def _save_image(self, image_data_base64: str, extension: str = "png") -> Path:
         """Save image data to a file."""
         image_data = base64.b64decode(image_data_base64)
-        path = self._output_dir / f"{uuid.uuid4().hex}.png"
+        path = self._output_dir / f"{uuid.uuid4().hex}.{extension}"
         path.write_bytes(image_data)
         return path.absolute()
 
