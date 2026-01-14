@@ -901,6 +901,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         empty_chunk_warning_has_been_issued: bool = False
         empty_chunk_warning_threshold: int = 10
         empty_chunk_count = 0
+        none_chunk_count = 0
         first_chunk = True
         is_reasoning = False
 
@@ -909,6 +910,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # Skip None chunks that can occur during heavy load or in compiled binaries.
             # See: https://github.com/microsoft/autogen/issues/7130
             if chunk is None:
+                none_chunk_count += 1
+                if none_chunk_count == 1:
+                    trace_logger.warning(
+                        "Received None chunk in OpenAI stream. This may indicate heavy API load or issues with compiled binaries."
+                    )
                 continue
 
             if first_chunk:
