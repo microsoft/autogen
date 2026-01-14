@@ -1,12 +1,12 @@
-import json
-import hashlib
-import logging
 import asyncio
-import time
+import hashlib
+import json
+import logging
 import os
-from collections import deque, Counter
-from typing import Dict, Any, Optional, List
+import time
+from collections import Counter, deque
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Optional
 
 # ============================================================================
 # SOVEREIGN CONFIGURATION
@@ -40,8 +40,8 @@ class SovereignGraphGuard:
 
         # EXTENDED TRANSIENT KEYS
         self._transient_keys = {
-            '_lock', '_stop_event', 'client', 'socket', 'thread',
-            'lock', '_condition', '_loop', '_event_loop', 'executor', 'ssl_context'
+            "_lock", "_stop_event", "client", "socket", "thread",
+            "lock", "_condition", "_loop", "_event_loop", "executor", "ssl_context"
         }
         self._pre_transaction_snapshot: Optional[Dict[str, Any]] = None
 
@@ -70,7 +70,7 @@ class SovereignGraphGuard:
             return obj.get_state()
         elif isinstance(obj, dict):
             return {k: self._sanitize_state(v, depth+1) for k, v in obj.items()
-                    if k not in self._transient_keys and not k.startswith('_threading')}
+                    if k not in self._transient_keys and not k.startswith("_threading")}
         elif isinstance(obj, list) or isinstance(obj, tuple):
             return [self._sanitize_state(i, depth+1) for i in obj]
         elif isinstance(obj, deque):
@@ -91,15 +91,15 @@ class SovereignGraphGuard:
         if state_dict:
             safe_dict = {}
             for k, v in state_dict.items():
-                if k in self._transient_keys or k.startswith('_threading'): continue
-                if 'lock' in str(type(v)).lower(): continue
-                if 'condition' in str(type(v)).lower(): continue
+                if k in self._transient_keys or k.startswith("_threading"): continue
+                if "lock" in str(type(v)).lower(): continue
+                if "condition" in str(type(v)).lower(): continue
                 safe_dict[k] = self._sanitize_state(v, depth+1)
             return safe_dict
 
         # Atomic types or unknowns
         t_str = str(type(obj)).lower()
-        if 'lock' in t_str or 'condition' in t_str: return None
+        if "lock" in t_str or "condition" in t_str: return None
         try:
             json.dumps(obj)
             return obj
@@ -189,9 +189,21 @@ class SovereignGraphGuard:
                 os.fsync(f.fileno()) # IRON SEAL: Force physical disk write
             os.replace(tmp_path, self._state_path)
 
+            # POSIX Durability: Sync parent directory to ensure rename is persisted
+            if os.name == "posix":
+                try:
+                    parent_dir = os.path.dirname(os.path.abspath(self._state_path))
+                    fd = os.open(parent_dir, os.O_RDONLY)
+                    try:
+                        os.fsync(fd)
+                    finally:
+                        os.close(fd)
+                except (OSError, IOError) as e:
+                    logger.warning(f"⚠️ Directory sync failed: {e}")
+
         except Exception as e:
             logger.critical(f"🛑 PERSISTENCE FAILURE: {e}")
-            raise OperationalIschemiaError(f"CRITICAL: Failed to persist state: {e}")
+            raise OperationalIschemiaError(f"CRITICAL: Failed to persist state: {e}") from e
 
     def load_and_heal(self) -> None:
         """Ischemia Repair Protocol."""
