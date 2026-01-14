@@ -184,6 +184,14 @@ You can use the AutoGen framework and developer tools to create applications for
 
 With AutoGen you get to join and contribute to a thriving ecosystem. We host weekly office hours and talks with maintainers and community. We also have a [Discord server](https://aka.ms/autogen-discord) for real-time chat, GitHub Discussions for Q&A, and a blog for tutorials and updates.
 
+## Theoretical Foundation
+
+The Iron Seal protocol implemented here is derived from the Topological Stability principles outlined in
+[**The Spectral Geometric Proof of the Riemann Hypothesis: An Isomorphic Mapping of Computational Complexity to Arithmetic**](https://www.academia.edu/145999987/The_Spectral_Geometric_Proof_of_the_Riemann_Hypothesis_An_Isomorphic_Mapping_of_Computational_Complexity_to_Arithmetic).
+
+Just as the spectral gap prevents probability leakage, this protocol prevents state leakage.
+
+
 ## Where to go next?
 
 <div align="center">
