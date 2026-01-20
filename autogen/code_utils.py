@@ -84,18 +84,69 @@ def content_str(content: Union[str, List[Union[UserMessageTextContentPart, UserM
 
 
 def infer_lang(code: str) -> str:
-    """infer the language for the code.
-    TODO: make it robust.
-    """
-    if code.startswith("python ") or code.startswith("pip") or code.startswith("python3 "):
-        return "sh"
+    """Infer the language for the code based on syntax patterns.
 
-    # check if code is a valid python code
+    Args:
+        code (str): The code string to analyze.
+
+    Returns:
+        str: The inferred language - "python", "sh", or "unknown".
+    """
+    if not code:
+        return "python"
+
+    code = code.strip()
+
+    # Check for shebang line
+    if code.startswith("#!"):
+        first_line = code.split("\n")[0].lower()
+        if "python" in first_line:
+            return "python"
+        if "bash" in first_line or "/sh" in first_line:
+            return "sh"
+
+    # Shell command patterns - commands that indicate shell execution
+    shell_patterns = (
+        "python ",
+        "python3 ",
+        "pip ",
+        "pip3 ",
+        "cd ",
+        "ls ",
+        "mkdir ",
+        "rm ",
+        "cp ",
+        "mv ",
+        "chmod ",
+        "chown ",
+        "sudo ",
+        "apt ",
+        "apt-get ",
+        "brew ",
+        "npm ",
+        "yarn ",
+        "curl ",
+        "wget ",
+        "echo ",
+        "export ",
+        "source ",
+        "cat ",
+        "grep ",
+        "find ",
+        "tar ",
+        "unzip ",
+        "git ",
+    )
+    for pattern in shell_patterns:
+        if code.startswith(pattern):
+            return "sh"
+
+    # Check if code is a valid python code
     try:
         compile(code, "test", "exec")
         return "python"
     except SyntaxError:
-        # not a valid python code
+        # Not a valid python code
         return UNKNOWN
 
 

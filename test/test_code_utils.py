@@ -172,6 +172,18 @@ else:
 def test_infer_lang():
     assert infer_lang("print('hello world')") == "python"
     assert infer_lang("pip install autogen") == "sh"
+    assert infer_lang("pip3 install flaml") == "sh"
+    assert infer_lang("cd .") == "sh"
+    assert infer_lang("ls -l") == "sh"
+    assert infer_lang("#!/bin/bash\necho hello") == "sh"
+    assert infer_lang("#!/usr/bin/python\nprint('hello')") == "python"
+    assert infer_lang("") == "python"
+    assert infer_lang("  python script.py") == "sh"
+    assert infer_lang("apt-get install -y python3") == "sh"
+    assert infer_lang("curl https://example.com") == "sh"
+    assert infer_lang("grep -r 'hello' .") == "sh"
+    assert infer_lang("git status") == "sh"
+    assert infer_lang("npm install") == "sh"
 
     # test infer lang for unknown code/invalid code
     assert infer_lang("dummy text") == UNKNOWN
