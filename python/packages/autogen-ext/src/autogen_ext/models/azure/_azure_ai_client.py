@@ -547,9 +547,13 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                     if idx not in full_tool_calls:
                         full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
 
-                    full_tool_calls[idx].id += tool_call_chunk.id
-                    full_tool_calls[idx].name += tool_call_chunk.function.name
-                    full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
+                    if tool_call_chunk.id:
+                        full_tool_calls[idx].id += tool_call_chunk.id
+                    if tool_call_chunk.function:
+                        if tool_call_chunk.function.name:
+                            full_tool_calls[idx].name += tool_call_chunk.function.name
+                        if tool_call_chunk.function.arguments:
+                            full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
 
         if chunk and chunk.usage:
             prompt_tokens = chunk.usage.prompt_tokens
