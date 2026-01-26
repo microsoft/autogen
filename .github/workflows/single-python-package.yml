@@ -28,12 +28,12 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.ref }}
       # Require ref to be a tag
       - run: git show-ref --verify refs/tags/${{ github.event.inputs.ref }}
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - run: uv build --package ${{ github.event.inputs.package }} --out-dir dist/

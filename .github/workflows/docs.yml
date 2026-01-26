@@ -223,15 +223,15 @@ jobs:
           ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           lfs: "true"
           ref: ${{ matrix.version.ref }}
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           version: ${{ matrix.version.uv-version }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - run: |
@@ -246,7 +246,7 @@ jobs:
           PY_DOCS_DIR: ${{ matrix.version.dest-dir }}/
           PY_SWITCHER_VERSION: ${{ matrix.version.dest-dir }}
           SPHINX_RELEASE_OVERRIDE: ${{ matrix.version.sphinx-release-override }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           path: "./python/docs-staging"
           name: "${{ matrix.version.dest-dir }}-docs"
@@ -255,17 +255,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           lfs: "true"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: generate redirects
         run: |
           mkdir -p python/docs-staging/
           python python/docs/redirects/redirects.py python/docs-staging
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           path: "./python/docs-staging"
           name: "redirects"
@@ -274,14 +274,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           lfs: "true"
           ref: ${{ matrix.version.ref }}
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - run: |
@@ -290,7 +290,7 @@ jobs:
           mkdir -p docs-staging/schemas/
           gen-component-schema > docs-staging/schemas/component-schema-latest.json
         working-directory: ./python
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           path: "./python/docs-staging"
           name: "component-schema"
@@ -301,15 +301,15 @@ jobs:
       run:
         working-directory: website
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           lfs: true
           ref: "0.2"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 18.x
       - name: setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.9"
       - name: pydoc-markdown install
@@ -348,7 +348,7 @@ jobs:
           mkdir -p artifact/0.2/
           cp -r build/* artifact/0.2/
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           path: "website/artifact"
           name: "02-docs"
@@ -356,11 +356,11 @@ jobs:
   build-04-dotnet:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           lfs: true
       - name: Setup .NET 8.0
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: dotnet/global.json
       - run: dotnet tool update -g docfx
@@ -399,7 +399,7 @@ jobs:
                           file.write(html)
 
                       print(f'Clarity script inserted into {html_path}')
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           path: "build/"
           name: "dotnet-dev-docs"
@@ -413,7 +413,7 @@ jobs:
       [build-02, build-04, build-04-dotnet, gen-redirects, gen-component-schema]
     if: ${{ needs.build-02.result == 'success' && needs.build-04.result == 'success' && needs.gen-redirects.result == 'success' && github.ref == 'refs/heads/main' }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: artifacts
 
@@ -425,7 +425,7 @@ jobs:
           done
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: "./deploy"
       - name: Deploy to GitHub Pages

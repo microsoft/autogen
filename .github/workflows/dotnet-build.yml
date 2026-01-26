@@ -30,8 +30,8 @@ jobs:
     outputs:
       hasChanges: ${{ steps.filter.outputs.dotnet == 'true'}}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
@@ -62,13 +62,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         lfs: true
-    - uses: astral-sh/setup-uv@v5
+    - uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: "3.11"
     - run: uv sync --locked --all-extras
@@ -77,11 +77,11 @@ jobs:
       run: |
         source ${{ github.workspace }}/python/.venv/bin/activate
     - name: Setup .NET 8.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '8.0.x'
     - name: Setup .NET 9.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '9.0.x'
     - name: Restore dependencies
@@ -120,7 +120,7 @@ jobs:
         ls -R ${{ github.workspace }}/dotnet/coverage-report
     - name: Upload Merged Coverage Report
       if: matrix.os == 'ubuntu-latest'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: CodeCoverageReport
         path: ${{ github.workspace }}/dotnet/coverage-report/
@@ -147,13 +147,13 @@ jobs:
         working-directory: dotnet
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
           lfs: true
-    - uses: astral-sh/setup-uv@v5
+    - uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: "3.11"
     - run: uv sync --locked --all-extras
@@ -162,11 +162,11 @@ jobs:
       run: |
         source ${{ github.workspace }}/python/.venv/bin/activate
     - name: Setup .NET 8.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '8.0.x'
     - name: Setup .NET 9.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '9.0.x'
     - name: Install Temp Global.JSON
@@ -201,16 +201,16 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0 # fetching all
 
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '8.0.x'
     - name: Setup .NET 9.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '9.0.x'
 
@@ -227,11 +227,11 @@ jobs:
     if: success() && (github.ref == 'refs/heads/main')
     needs: aot-test
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         lfs: true
     - name: Set up Python 3.11
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.11
     - name: Install jupyter and ipykernel
@@ -242,20 +242,20 @@ jobs:
     - name: list available kernels
       run: |
         python -m jupyter kernelspec list
-    - uses: astral-sh/setup-uv@v5
+    - uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: "3.11"
 
     - name: Setup .NET 8.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '8.0.x'
         global-json-file: dotnet/global.json
     - name: Setup .NET 9.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '9.0.x'
     - name: Install dev certs
@@ -285,12 +285,12 @@ jobs:
         echo "ls output directory"
         ls -R ./output
     - name: Upload package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: nightly
         path: ./dotnet/output/nightly
     - name: Upload package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: release
         path: ./dotnet/output/release
@@ -304,17 +304,17 @@ jobs:
     needs: openai-test
     steps:
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '6.0.x'
         source-url: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
       env:
         NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v7
       with:
         name: nightly
         path: ./dotnet/output/nightly
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v7
       with:
         name: release
         path: ./dotnet/output/release
