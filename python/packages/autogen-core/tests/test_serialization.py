@@ -12,6 +12,7 @@ from autogen_core._serialization import (
     SerializationRegistry,
     try_get_known_serializers_for_type,
 )
+from autogen_core.models import UserMessage
 from PIL import Image as PILImage
 from protos.serialization_test_pb2 import NestingProtoMessage, ProtoMessage
 from pydantic import BaseModel
@@ -186,6 +187,24 @@ def test_image_type() -> None:
     assert deserialized.image.image.size == (100, 100)
     assert deserialized.image.image.mode == "RGB"
     assert deserialized.image.image == image.image
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        [Image(PILImage.new("RGB", (1, 1), color="red")), "Please describe this image"],
+        ["What is in this image?", Image(PILImage.new("RGB", (1, 1), color="blue"))],
+    ],
+)
+def test_user_message_round_trips_mixed_text_and_image_content(content: list[str | Image]) -> None:
+    message = UserMessage(content=content, source="user")
+
+    deserialized = UserMessage.model_validate_json(message.model_dump_json())
+
+    assert isinstance(deserialized.content, list)
+    assert len(deserialized.content) == 2
+    assert any(isinstance(item, Image) for item in deserialized.content)
+    assert any(isinstance(item, str) for item in deserialized.content)
 
 
 def test_type_name_for_protos() -> None:

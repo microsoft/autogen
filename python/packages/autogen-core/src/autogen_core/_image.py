@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, cast
 
 from PIL import Image as PILImage
-from pydantic import GetCoreSchemaHandler, ValidationInfo
+from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
 from typing_extensions import Literal
 
@@ -84,25 +84,27 @@ class Image:
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
-        # Custom validation
-        def validate(value: Any, validation_info: ValidationInfo) -> Image:
-            if isinstance(value, dict):
-                base_64 = cast(str | None, value.get("data"))  # type: ignore
-                if base_64 is None:
-                    raise ValueError("Expected 'data' key in the dictionary")
-                return cls.from_base64(base_64)
-            elif isinstance(value, cls):
-                return value
-            else:
-                raise TypeError(f"Expected dict or {cls.__name__} instance, got {type(value)}")
+        # Custom validation for dict input (from JSON deserialization)
+        def validate_from_dict(value: dict[str, Any]) -> Image:
+            base_64 = cast(str | None, value.get("data"))
+            if base_64 is None:
+                raise ValueError("Expected 'data' key in the dictionary")
+            return cls.from_base64(base_64)
 
         # Custom serialization
         def serialize(value: Image) -> dict[str, Any]:
             return {"data": value.to_base64()}
 
-        return core_schema.with_info_after_validator_function(
-            validate,
-            core_schema.any_schema(),  # Accept any type; adjust if needed
+        # Keep Image validation narrow so Union[str, Image] can fall through to
+        # the string branch instead of failing inside the Image validator.
+        return core_schema.union_schema(
+            [
+                core_schema.is_instance_schema(cls),
+                core_schema.no_info_after_validator_function(
+                    validate_from_dict,
+                    core_schema.dict_schema(),
+                ),
+            ],
             serialization=core_schema.plain_serializer_function_ser_schema(serialize),
         )
 
