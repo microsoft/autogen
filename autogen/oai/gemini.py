@@ -176,6 +176,9 @@ class GeminiClient:
         if n_response > 1:
             warnings.warn("Gemini only supports `n=1` for now. We only generate one response.", UserWarning)
 
+        ans = None
+        prompt_tokens = completion_tokens = 0
+
         if "vision" not in model_name:
             # A. create and call the chat model.
             gemini_messages = self._oai_messages_to_gemini_messages(messages)
@@ -214,7 +217,7 @@ class GeminiClient:
 
             prompt_tokens = model.count_tokens(chat.history[:-1]).total_tokens
             completion_tokens = model.count_tokens(ans).total_tokens
-        elif model_name == "gemini-pro-vision":
+        else:
             # B. handle the vision model
             if self.use_vertexai:
                 model = GenerativeModel(
