@@ -2229,6 +2229,7 @@ class ConversableAgent(LLMAgent):
         func = self._function_map.get(func_name, None)
 
         is_exec_success = False
+        arguments = None
         if func is not None:
             # Extract arguments from a json-like string and put it into a dict.
             input_string = self._format_json_str(func_call.get("arguments", "{}"))
@@ -2288,6 +2289,7 @@ class ConversableAgent(LLMAgent):
         func = self._function_map.get(func_name, None)
 
         is_exec_success = False
+        arguments = None
         if func is not None:
             # Extract arguments from a json-like string and put it into a dict.
             input_string = self._format_json_str(func_call.get("arguments", "{}"))
