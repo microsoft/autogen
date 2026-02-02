@@ -51,7 +51,7 @@ class TeamManager:
         if not path.exists():
             raise FileNotFoundError(f"Config file not found: {path}")
 
-        async with aiofiles.open(path) as f:
+        async with aiofiles.open(path, mode="r", encoding="utf-8") as f:
             content = await f.read()
             if path.suffix == ".json":
                 return json.loads(content)
