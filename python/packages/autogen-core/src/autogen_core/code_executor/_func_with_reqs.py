@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 import functools
 import inspect
 from dataclasses import dataclass, field
@@ -17,6 +18,29 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
+def _strip_first_decorator(code: str) -> str:
+    if not code.startswith("@"):
+        return code
+
+    # Preserve all decorators except the first one (with_requirements) even when
+    # the first decorator spans multiple lines.
+    try:
+        module = ast.parse(code)
+    except SyntaxError:
+        return code[code.index("\n") + 1 :]
+
+    if not module.body or not isinstance(module.body[0], (ast.FunctionDef, ast.AsyncFunctionDef)):
+        return code[code.index("\n") + 1 :]
+
+    function_node = module.body[0]
+    if len(function_node.decorator_list) == 1:
+        start_lineno = function_node.lineno
+    else:
+        start_lineno = function_node.decorator_list[1].lineno
+
+    return "\n".join(code.splitlines()[start_lineno - 1 :])
+
+
 def _to_code(func: Union[FunctionWithRequirements[T, P], Callable[P, T], FunctionWithRequirementsStr]) -> str:
     if isinstance(func, FunctionWithRequirementsStr):
         return func.func
@@ -25,10 +49,8 @@ def _to_code(func: Union[FunctionWithRequirements[T, P], Callable[P, T], Functio
         code = inspect.getsource(func.func)
     else:
         code = inspect.getsource(func)
-    # Strip the decorator
-    if code.startswith("@"):
-        code = code[code.index("\n") + 1 :]
-    return code
+
+    return _strip_first_decorator(code)
 
 
 @dataclass(frozen=True)
