@@ -1,7 +1,14 @@
 import asyncio
-from typing import List
+from collections.abc import AsyncGenerator
+from typing import Any, List
 
 import pytest
+from autogen_core import CancellationToken
+from autogen_core.code_executor import CodeBlock
+from autogen_core.models import ModelFamily, ModelInfo
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.models.replay import ReplayChatCompletionClient
+
 from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.agents._code_executor_agent import ApprovalFuncType, ApprovalRequest, ApprovalResponse
 from autogen_agentchat.base import Response
@@ -10,11 +17,6 @@ from autogen_agentchat.messages import (
     CodeGenerationEvent,
     TextMessage,
 )
-from autogen_core import CancellationToken
-from autogen_core.code_executor import CodeBlock
-from autogen_core.models import ModelFamily, ModelInfo
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
 @pytest.mark.asyncio
@@ -96,6 +98,48 @@ async def test_code_generation_and_execution_with_model_client() -> None:
     assert code_generation_event is not None, "Code generation event was not received"
     assert code_execution_event is not None, "Code execution event was not received"
     assert response is not None, "Response was not received"
+
+
+@pytest.mark.asyncio
+async def test_reflection_flow_uses_subclass_override() -> None:
+    class CustomCodeExecutorAgent(CodeExecutorAgent):
+        override_called = False
+
+        @classmethod
+        async def _reflect_on_code_block_results_flow(
+            cls, *args: Any, **kwargs: Any
+        ) -> AsyncGenerator[Response, None]:
+            cls.override_called = True
+            agent_name = kwargs["agent_name"]
+            inner_messages = kwargs["inner_messages"]
+            yield Response(
+                chat_message=TextMessage(content="Subclass reflection response", source=agent_name),
+                inner_messages=inner_messages,
+            )
+
+    model_client = ReplayChatCompletionClient(
+        [
+            "```python\nprint('hello from subclass test')\n```",
+        ]
+    )
+    agent = CustomCodeExecutorAgent(
+        name="custom_code_executor_agent",
+        code_executor=LocalCommandLineCodeExecutor(),
+        model_client=model_client,
+    )
+
+    messages = [TextMessage(content="Generate and run code", source="assistant")]
+
+    final_response: Response | None = None
+    async for message in agent.on_messages_stream(messages, CancellationToken()):
+        if isinstance(message, Response):
+            final_response = message
+
+    assert CustomCodeExecutorAgent.override_called is True
+    assert final_response is not None
+    assert isinstance(final_response.chat_message, TextMessage)
+    assert final_response.chat_message.content == "Subclass reflection response"
+    assert final_response.chat_message.source == "custom_code_executor_agent"
 
 
 @pytest.mark.asyncio

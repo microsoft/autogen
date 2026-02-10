@@ -664,7 +664,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             )
 
         # Always reflect on the execution result
-        async for reflection_response in CodeExecutorAgent._reflect_on_code_block_results_flow(
+        async for reflection_response in self._reflect_on_code_block_results_flow(
             system_messages=system_messages,
             model_client=model_client,
             model_client_stream=model_client_stream,
