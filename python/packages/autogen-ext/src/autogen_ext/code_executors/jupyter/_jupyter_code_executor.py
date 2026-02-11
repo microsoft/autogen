@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import re
+import shutil
 import sys
 import tempfile
 import uuid
@@ -14,7 +15,7 @@ from pydantic import BaseModel
 
 if sys.version_info >= (3, 11):
     from typing import Self
-else:
+else:  # pragma: no cover
     from typing_extensions import Self
 
 from contextlib import AbstractAsyncContextManager
@@ -25,7 +26,6 @@ from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
 from nbclient import NotebookClient
 from nbformat import NotebookNode
 from nbformat import v4 as nbformat
-from typing_extensions import Self
 
 from .._common import silence_pip
 
@@ -145,11 +145,15 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
-        self._output_dir: Path = Path(tempfile.mkdtemp()) if output_dir is None else Path(output_dir)
-        self._output_dir.mkdir(exist_ok=True, parents=True)
-
+        self._owns_output_dir = output_dir is None
         self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
-        self._temp_dir_path: Optional[Path] = None
+        if self._owns_output_dir:
+            self._temp_dir = tempfile.TemporaryDirectory()
+            self._output_dir = Path(self._temp_dir.name)
+        else:
+            assert output_dir is not None
+            self._output_dir = Path(output_dir)
+        self._output_dir.mkdir(exist_ok=True, parents=True)
 
         self._started = False
 
@@ -280,6 +284,11 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         if self._started:
             return
 
+        if self._owns_output_dir and self._temp_dir is None:
+            self._temp_dir = tempfile.TemporaryDirectory()
+            self._output_dir = Path(self._temp_dir.name)
+        self._output_dir.mkdir(exist_ok=True, parents=True)
+
         notebook: NotebookNode = nbformat.new_notebook()  # type: ignore
 
         self._client = NotebookClient(
@@ -306,6 +315,10 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
             self.kernel_context = None
 
         self._client = None
+        if self._owns_output_dir and self._temp_dir is not None:
+            temp_dir = self._temp_dir
+            self._temp_dir = None
+            shutil.rmtree(temp_dir.name, ignore_errors=True)
         self._started = False
 
     def _to_config(self) -> JupyterCodeExecutorConfig:

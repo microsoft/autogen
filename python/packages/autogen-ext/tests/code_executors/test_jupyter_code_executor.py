@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock
+
 from autogen_ext.code_executors.jupyter import JupyterCodeExecutor, JupyterCodeResult
 
 
@@ -225,3 +226,84 @@ async def test_runtime_error_not_started() -> None:
     code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
     with pytest.raises(RuntimeError, match="Executor must be started before executing cells"):
         await executor.execute_code_blocks(code_blocks, CancellationToken())
+
+
+@pytest.mark.asyncio
+async def test_default_output_dir_is_cleaned_on_stop() -> None:
+    executor = JupyterCodeExecutor()
+    await executor.start()
+    temp_output_dir = executor.output_dir
+    assert await asyncio.to_thread(temp_output_dir.exists)
+
+    await executor.stop()
+
+    assert not await asyncio.to_thread(temp_output_dir.exists)
+
+
+@pytest.mark.asyncio
+async def test_custom_output_dir_is_preserved_on_stop(tmp_path: Path) -> None:
+    executor = JupyterCodeExecutor(output_dir=tmp_path)
+    await executor.start()
+    assert await asyncio.to_thread(tmp_path.exists)
+
+    await executor.stop()
+
+    assert await asyncio.to_thread(tmp_path.exists)
+
+
+@pytest.mark.asyncio
+async def test_execute_code_with_unknown_mime_falls_back_to_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    async with JupyterCodeExecutor(output_dir=tmp_path) as executor:
+        await executor.start()
+
+        async def _fake_execute_cell(_cell: object) -> dict[str, object]:
+            return {
+                "outputs": [
+                    {
+                        "output_type": "display_data",
+                        "data": {"application/json": {"a": 1}},
+                    }
+                ]
+            }
+
+        monkeypatch.setattr(executor, "_execute_cell", _fake_execute_cell)
+        code_result = await executor.execute_code_blocks(
+            [CodeBlock(code="print('x')", language="python")], CancellationToken()
+        )
+        assert code_result == JupyterCodeResult(exit_code=0, output='{"a": 1}', output_files=[])
+
+        await executor.stop()
+
+
+@pytest.mark.asyncio
+async def test_execute_code_ignores_unknown_output_type(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    async with JupyterCodeExecutor(output_dir=tmp_path) as executor:
+        await executor.start()
+
+        async def _fake_execute_cell(_cell: object) -> dict[str, object]:
+            return {"outputs": [{"output_type": "unknown"}]}
+
+        monkeypatch.setattr(executor, "_execute_cell", _fake_execute_cell)
+        code_result = await executor.execute_code_blocks(
+            [CodeBlock(code="print('x')", language="python")], CancellationToken()
+        )
+        assert code_result == JupyterCodeResult(exit_code=0, output="", output_files=[])
+
+        await executor.stop()
+
+
+@pytest.mark.asyncio
+async def test_restart_recreates_default_output_dir() -> None:
+    executor = JupyterCodeExecutor()
+    await executor.start()
+    first_output_dir = executor.output_dir
+    assert await asyncio.to_thread(first_output_dir.exists)
+
+    await executor.restart()
+
+    second_output_dir = executor.output_dir
+    assert not await asyncio.to_thread(first_output_dir.exists)
+    assert await asyncio.to_thread(second_output_dir.exists)
+
+    await executor.stop()
+    assert not await asyncio.to_thread(second_output_dir.exists)
