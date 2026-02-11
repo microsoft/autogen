@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Sequence
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class ExecutionContext:
 
     session_id: str
     policy: GovernancePolicy
-    started_at: datetime = field(default_factory=datetime.utcnow)
+    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Counters
     message_count: int = 0
@@ -63,7 +63,7 @@ class ExecutionContext:
         self.events.append(
             {
                 "type": event_type,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": data,
             }
         )
