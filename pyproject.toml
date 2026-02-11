@@ -56,7 +56,6 @@ files = [
     "autogen/logger",
     "autogen/exception_utils.py",
     "autogen/coding",
-    "autogen/oai/openai_utils.py",
     "autogen/_pydantic.py",
     "autogen/function_utils.py",
     "autogen/io",
@@ -77,7 +76,7 @@ python_version = "3.8"
 ignore_missing_imports = true
 install_types = true
 non_interactive = true
-plugins = ["pydantic.mypy"]
+# plugins = ["pydantic.mypy"]
 
 # remove after all files in the repo are fixed
 follow_imports = "silent"

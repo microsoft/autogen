@@ -30,6 +30,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pydoc-markdown pyyaml termcolor
+          pip install docspec==2.2.1 docspec-python==2.2.1
           # Pin databind packages as version 4.5.0 is not compatible with pydoc-markdown.
           pip install databind.core==4.4.2 databind.json==4.4.2
       - name: pydoc-markdown run
