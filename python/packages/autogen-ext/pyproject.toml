@@ -157,6 +157,8 @@ canvas = [
 
 redisvl = ["redisvl>=0.6.0"]
 
+governance = ["agent-os-kernel>=0.1.0"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
 
