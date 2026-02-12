@@ -77,7 +77,7 @@ redis = [
 ]
 
 grpc = [
-    "grpcio~=1.70.0",
+    "grpcio~=1.78.0",
 ]
 
 jupyter-executor = [
