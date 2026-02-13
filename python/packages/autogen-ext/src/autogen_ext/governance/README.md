@@ -13,9 +13,7 @@ This extension provides kernel-level governance for AutoGen multi-agent conversa
 ## Installation
 
 ```bash
-pip install autogen-ext[governance]
-# or
-pip install agent-os-kernel
+pip install autogen-ext
 ```
 
 ## Quick Start
