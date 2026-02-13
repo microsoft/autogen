@@ -8,12 +8,13 @@ Covers: GovernancePolicy, ExecutionContext, PolicyViolationError,
         GovernedAgent, GovernedTeam.
 """
 
-import asyncio
+from __future__ import annotations
+
 import logging
 from dataclasses import fields
 from types import SimpleNamespace
-from typing import Any, Optional, Sequence
-from unittest.mock import AsyncMock, MagicMock
+from typing import Any, AsyncGenerator, Optional, Sequence
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -34,6 +35,7 @@ class FakeAgent:
 
     def __init__(self, name: str = "fake-agent"):
         self.name = name
+        self.description = f"A fake agent named {name}"
         self.on_messages = AsyncMock(return_value="ok")
         self.custom_attr = 42
 
@@ -41,13 +43,16 @@ class FakeAgent:
 class FakeStreamAgent:
     """Agent that supports on_messages_stream."""
 
-    def __init__(self, name: str = "stream-agent", chunks: list | None = None):
+    def __init__(self, name: str = "stream-agent", chunks: list[str] | None = None):
         self.name = name
+        self.description = f"A fake stream agent named {name}"
         self._chunks = chunks or ["chunk1", "chunk2"]
 
     async def on_messages_stream(
-        self, messages: Sequence[Any], cancellation_token: Optional[Any] = None
-    ):
+        self,
+        messages: Sequence[Any],
+        cancellation_token: Optional[Any] = None,
+    ) -> AsyncGenerator[Any, None]:
         for c in self._chunks:
             yield c
 
@@ -56,7 +61,7 @@ class FakeStreamAgent:
 
 
 class TestGovernancePolicy:
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         p = GovernancePolicy()
         assert p.max_messages == 100
         assert p.max_tool_calls == 50
@@ -69,7 +74,7 @@ class TestGovernancePolicy:
         assert p.approval_tools == []
         assert p.log_all_messages is True
 
-    def test_custom_values(self):
+    def test_custom_values(self) -> None:
         p = GovernancePolicy(
             max_messages=10,
             max_tool_calls=5,
@@ -85,7 +90,7 @@ class TestGovernancePolicy:
         assert p.allowed_tools == ["search"]
         assert p.max_message_length == 1000
 
-    def test_is_dataclass(self):
+    def test_is_dataclass(self) -> None:
         names = {f.name for f in fields(GovernancePolicy)}
         expected = {
             "max_messages",
@@ -106,7 +111,7 @@ class TestGovernancePolicy:
 
 
 class TestExecutionContext:
-    def test_creation(self):
+    def test_creation(self) -> None:
         p = GovernancePolicy()
         ctx = ExecutionContext(session_id="test-123", policy=p)
         assert ctx.session_id == "test-123"
@@ -114,7 +119,7 @@ class TestExecutionContext:
         assert ctx.tool_calls == 0
         assert ctx.events == []
 
-    def test_record_event(self):
+    def test_record_event(self) -> None:
         p = GovernancePolicy()
         ctx = ExecutionContext(session_id="s1", policy=p)
         ctx.record_event("test_event", {"key": "value"})
@@ -123,7 +128,7 @@ class TestExecutionContext:
         assert ctx.events[0]["data"] == {"key": "value"}
         assert "timestamp" in ctx.events[0]
 
-    def test_multiple_events(self):
+    def test_multiple_events(self) -> None:
         p = GovernancePolicy()
         ctx = ExecutionContext(session_id="s1", policy=p)
         for i in range(5):
@@ -136,7 +141,7 @@ class TestExecutionContext:
 
 
 class TestPolicyViolationError:
-    def test_basic(self):
+    def test_basic(self) -> None:
         e = PolicyViolationError("content_filter", "blocked pattern found")
         assert e.policy_name == "content_filter"
         assert e.description == "blocked pattern found"
@@ -144,11 +149,11 @@ class TestPolicyViolationError:
         assert "content_filter" in str(e)
         assert "blocked pattern found" in str(e)
 
-    def test_custom_severity(self):
+    def test_custom_severity(self) -> None:
         e = PolicyViolationError("rate_limit", "too many calls", severity="medium")
         assert e.severity == "medium"
 
-    def test_is_exception(self):
+    def test_is_exception(self) -> None:
         with pytest.raises(PolicyViolationError):
             raise PolicyViolationError("test", "test error")
 
@@ -157,84 +162,83 @@ class TestPolicyViolationError:
 
 
 class TestGovernedAgent:
-    def test_wraps_agent(self):
+    def test_wraps_agent(self) -> None:
         agent = FakeAgent("my-agent")
         ga = GovernedAgent(agent, GovernancePolicy())
         assert ga.name == "my-agent"
         assert ga.original is agent
 
-    def test_name_fallback(self):
+    def test_name_fallback(self) -> None:
         ga = GovernedAgent(object(), GovernancePolicy())
         assert ga.name == "unknown"
 
-    def test_getattr_forwarding(self):
+    def test_getattr_forwarding(self) -> None:
         agent = FakeAgent()
         ga = GovernedAgent(agent, GovernancePolicy())
         assert ga.custom_attr == 42
 
     # ── Content checks ────────────────────────────────────────────
 
-    def test_check_content_passes(self):
+    def test_check_content_passes(self) -> None:
         ga = GovernedAgent(FakeAgent(), GovernancePolicy())
-        ok, reason = ga._check_content("hello world")
+        ok, _ = ga.check_content("hello world")
         assert ok is True
-        assert reason == ""
 
-    def test_check_content_blocks_pattern(self):
+    def test_check_content_blocks_pattern(self) -> None:
         policy = GovernancePolicy(blocked_patterns=["DROP TABLE", "rm -rf"])
         ga = GovernedAgent(FakeAgent(), policy)
-        ok, reason = ga._check_content("please DROP TABLE users")
+        ok, reason = ga.check_content("please DROP TABLE users")
         assert ok is False
         assert "DROP TABLE" in reason
 
-    def test_check_content_case_insensitive(self):
+    def test_check_content_case_insensitive(self) -> None:
         policy = GovernancePolicy(blocked_patterns=["DROP TABLE"])
         ga = GovernedAgent(FakeAgent(), policy)
-        ok, reason = ga._check_content("drop table users")
+        ok, _ = ga.check_content("drop table users")
         assert ok is False
 
-    def test_check_content_max_length(self):
+    def test_check_content_max_length(self) -> None:
         policy = GovernancePolicy(max_message_length=10)
         ga = GovernedAgent(FakeAgent(), policy)
-        ok, reason = ga._check_content("a" * 11)
+        ok, reason = ga.check_content("a" * 11)
         assert ok is False
         assert "max length" in reason
 
     # ── Tool checks ───────────────────────────────────────────────
 
-    def test_check_tool_allowed(self):
+    def test_check_tool_allowed(self) -> None:
         ga = GovernedAgent(FakeAgent(), GovernancePolicy())
-        ok, reason = ga._check_tool("web_search")
+        ok, _ = ga.check_tool("web_search")
         assert ok is True
 
-    def test_check_tool_blocked(self):
+    def test_check_tool_blocked(self) -> None:
         policy = GovernancePolicy(blocked_tools=["shell_execute"])
         ga = GovernedAgent(FakeAgent(), policy)
-        ok, reason = ga._check_tool("shell_execute")
+        ok, reason = ga.check_tool("shell_execute")
         assert ok is False
         assert "blocked" in reason
 
-    def test_check_tool_allowlist(self):
+    def test_check_tool_allowlist(self) -> None:
         policy = GovernancePolicy(allowed_tools=["search", "read"])
         ga = GovernedAgent(FakeAgent(), policy)
-        ok, _ = ga._check_tool("search")
+        ok, _ = ga.check_tool("search")
         assert ok is True
-        ok, reason = ga._check_tool("shell")
+        ok, reason = ga.check_tool("shell")
         assert ok is False
         assert "not in allowed list" in reason
 
-    def test_check_tool_limit(self):
+    def test_check_tool_limit(self) -> None:
         policy = GovernancePolicy(max_tool_calls=2)
         ga = GovernedAgent(FakeAgent(), policy)
-        ga._context.tool_calls = 2
-        ok, reason = ga._check_tool("anything")
+        ga.context.tool_calls = 2
+        ok, reason = ga.check_tool("anything")
         assert ok is False
         assert "limit" in reason
 
     # ── on_messages ───────────────────────────────────────────────
 
     @pytest.mark.asyncio
-    async def test_on_messages_forwards(self):
+    async def test_on_messages_forwards(self) -> None:
         agent = FakeAgent()
         ga = GovernedAgent(agent, GovernancePolicy())
         msgs = [SimpleNamespace(content="hello")]
@@ -243,17 +247,17 @@ class TestGovernedAgent:
         agent.on_messages.assert_awaited_once_with(msgs, None)
 
     @pytest.mark.asyncio
-    async def test_on_messages_records_audit(self):
+    async def test_on_messages_records_audit(self) -> None:
         ga = GovernedAgent(FakeAgent(), GovernancePolicy())
         await ga.on_messages([SimpleNamespace(content="hi")])
-        assert ga._context.message_count == 1
-        assert len(ga._context.events) == 1
-        assert ga._context.events[0]["type"] == "messages_received"
+        assert ga.context.message_count == 1
+        assert len(ga.context.events) == 1
+        assert ga.context.events[0]["type"] == "messages_received"
 
     @pytest.mark.asyncio
-    async def test_on_messages_blocks_pattern(self):
+    async def test_on_messages_blocks_pattern(self) -> None:
         policy = GovernancePolicy(blocked_patterns=["rm -rf"])
-        violations = []
+        violations: list[PolicyViolationError] = []
         ga = GovernedAgent(FakeAgent(), policy, on_violation=violations.append)
         with pytest.raises(PolicyViolationError):
             await ga.on_messages([SimpleNamespace(content="run rm -rf /")])
@@ -261,7 +265,7 @@ class TestGovernedAgent:
         assert violations[0].policy_name == "content_filter"
 
     @pytest.mark.asyncio
-    async def test_on_messages_limit(self):
+    async def test_on_messages_limit(self) -> None:
         policy = GovernancePolicy(max_messages=1)
         ga = GovernedAgent(FakeAgent(), policy)
         await ga.on_messages([SimpleNamespace(content="first")])
@@ -269,14 +273,16 @@ class TestGovernedAgent:
             await ga.on_messages([SimpleNamespace(content="second")])
 
     @pytest.mark.asyncio
-    async def test_on_messages_no_on_messages_attr(self):
+    async def test_on_messages_no_on_messages_attr(self) -> None:
         """Agent without on_messages returns None."""
         ga = GovernedAgent(object(), GovernancePolicy())
         result = await ga.on_messages([SimpleNamespace(content="hi")])
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_on_messages_default_violation_handler(self, caplog):
+    async def test_on_messages_default_violation_handler(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """Default handler logs violations."""
         policy = GovernancePolicy(blocked_patterns=["bad"])
         ga = GovernedAgent(FakeAgent(), policy)
@@ -287,17 +293,17 @@ class TestGovernedAgent:
     # ── on_messages_stream ────────────────────────────────────────
 
     @pytest.mark.asyncio
-    async def test_on_messages_stream(self):
+    async def test_on_messages_stream(self) -> None:
         agent = FakeStreamAgent(chunks=["a", "b", "c"])
         ga = GovernedAgent(agent, GovernancePolicy())
         chunks = []
         async for c in ga.on_messages_stream([SimpleNamespace(content="hi")]):
             chunks.append(c)
         assert chunks == ["a", "b", "c"]
-        assert ga._context.message_count == 1
+        assert ga.context.message_count == 1
 
     @pytest.mark.asyncio
-    async def test_on_messages_stream_blocks(self):
+    async def test_on_messages_stream_blocks(self) -> None:
         policy = GovernancePolicy(blocked_patterns=["evil"])
         ga = GovernedAgent(FakeStreamAgent(), policy)
         with pytest.raises(PolicyViolationError):
@@ -305,7 +311,7 @@ class TestGovernedAgent:
                 pass
 
     @pytest.mark.asyncio
-    async def test_on_messages_stream_no_stream_attr(self):
+    async def test_on_messages_stream_no_stream_attr(self) -> None:
         """Agent without on_messages_stream yields nothing."""
         ga = GovernedAgent(object(), GovernancePolicy())
         chunks = []
@@ -318,47 +324,47 @@ class TestGovernedAgent:
 
 
 class TestGovernedTeam:
-    def test_wraps_agents(self):
+    def test_wraps_agents(self) -> None:
         agents = [FakeAgent("a1"), FakeAgent("a2")]
         team = GovernedTeam(agents=agents)
         assert len(team.agents) == 2
         assert team.agents[0].name == "a1"
         assert team.agents[1].name == "a2"
 
-    def test_default_policy(self):
+    def test_default_policy(self) -> None:
         team = GovernedTeam(agents=[FakeAgent()])
-        assert team._policy.max_messages == 100
+        assert team.policy.max_messages == 100
 
-    def test_custom_policy(self):
+    def test_custom_policy(self) -> None:
         policy = GovernancePolicy(max_messages=5)
         team = GovernedTeam(agents=[FakeAgent()], policy=policy)
-        assert team._policy.max_messages == 5
+        assert team.policy.max_messages == 5
 
     # ── Content check ─────────────────────────────────────────────
 
-    def test_check_content_passes(self):
+    def test_check_content_passes(self) -> None:
         team = GovernedTeam(agents=[FakeAgent()])
-        ok, reason = team._check_content("valid task")
+        ok, _ = team.check_content("valid task")
         assert ok is True
 
-    def test_check_content_blocks_pattern(self):
+    def test_check_content_blocks_pattern(self) -> None:
         policy = GovernancePolicy(blocked_patterns=["DELETE FROM"])
         team = GovernedTeam(agents=[FakeAgent()], policy=policy)
-        ok, reason = team._check_content("DELETE FROM users")
+        ok, _ = team.check_content("DELETE FROM users")
         assert ok is False
 
-    def test_check_content_max_length(self):
+    def test_check_content_max_length(self) -> None:
         policy = GovernancePolicy(max_message_length=5)
         team = GovernedTeam(agents=[FakeAgent()], policy=policy)
-        ok, reason = team._check_content("too long content")
+        ok, _ = team.check_content("too long content")
         assert ok is False
 
     # ── run ────────────────────────────────────────────────────────
 
     @pytest.mark.asyncio
-    async def test_run_blocks_bad_task(self):
+    async def test_run_blocks_bad_task(self) -> None:
         policy = GovernancePolicy(blocked_patterns=["rm -rf"])
-        violations = []
+        violations: list[PolicyViolationError] = []
         team = GovernedTeam(
             agents=[FakeAgent()],
             policy=policy,
@@ -369,16 +375,16 @@ class TestGovernedTeam:
         assert len(violations) == 1
 
     @pytest.mark.asyncio
-    async def test_run_records_audit(self):
+    async def test_run_records_audit(self) -> None:
         """run() records team_run_start even if autogen_agentchat unavailable."""
         team = GovernedTeam(agents=[FakeAgent()])
         # This will hit ImportError fallback for RoundRobinGroupChat
         await team.run("simple task")
-        events = [e for e in team._context.events if e["type"] == "team_run_start"]
+        events = [e for e in team.context.events if e["type"] == "team_run_start"]
         assert len(events) == 1
 
     @pytest.mark.asyncio
-    async def test_run_without_violation_handler(self):
+    async def test_run_without_violation_handler(self) -> None:
         """run() works when on_violation is None and content is blocked."""
         policy = GovernancePolicy(blocked_patterns=["bad"])
         team = GovernedTeam(agents=[FakeAgent()], policy=policy)
@@ -388,7 +394,7 @@ class TestGovernedTeam:
     # ── run_stream ────────────────────────────────────────────────
 
     @pytest.mark.asyncio
-    async def test_run_stream_blocks_bad_task(self):
+    async def test_run_stream_blocks_bad_task(self) -> None:
         policy = GovernancePolicy(blocked_patterns=["DROP"])
         team = GovernedTeam(agents=[FakeAgent()], policy=policy)
         with pytest.raises(PolicyViolationError):
@@ -396,7 +402,7 @@ class TestGovernedTeam:
                 pass
 
     @pytest.mark.asyncio
-    async def test_run_stream_without_violation_handler(self):
+    async def test_run_stream_without_violation_handler(self) -> None:
         policy = GovernancePolicy(blocked_patterns=["bad"])
         team = GovernedTeam(agents=[FakeAgent()], policy=policy)
         with pytest.raises(PolicyViolationError):
@@ -405,19 +411,19 @@ class TestGovernedTeam:
 
     # ── Audit & Stats ─────────────────────────────────────────────
 
-    def test_get_audit_log_empty(self):
+    def test_get_audit_log_empty(self) -> None:
         team = GovernedTeam(agents=[FakeAgent()])
         assert team.get_audit_log() == []
 
     @pytest.mark.asyncio
-    async def test_get_audit_log_combined(self):
-        team = GovernedTeam(agents=[FakeAgent(), FakeAgent()])
+    async def test_get_audit_log_combined(self) -> None:
+        team = GovernedTeam(agents=[FakeAgent("agent-1"), FakeAgent("agent-2")])
         # Trigger some events
         await team.run("task")
         log = team.get_audit_log()
         assert len(log) >= 1  # At least team_run_start
 
-    def test_get_stats(self):
+    def test_get_stats(self) -> None:
         agents = [FakeAgent("a1"), FakeAgent("a2")]
         policy = GovernancePolicy(
             max_messages=20,
@@ -434,7 +440,7 @@ class TestGovernedTeam:
         assert stats["policy"]["blocked_patterns_count"] == 1
 
     @pytest.mark.asyncio
-    async def test_get_stats_after_messages(self):
+    async def test_get_stats_after_messages(self) -> None:
         team = GovernedTeam(agents=[FakeAgent()])
         await team.run("task")
         stats = team.get_stats()
@@ -447,7 +453,7 @@ class TestGovernedTeam:
 
 class TestIntegration:
     @pytest.mark.asyncio
-    async def test_full_workflow(self):
+    async def test_full_workflow(self) -> None:
         """End-to-end: create policy → wrap agents → run → audit."""
         policy = GovernancePolicy(
             max_messages=50,
@@ -459,7 +465,7 @@ class TestIntegration:
         a1 = FakeAgent("analyst")
         a2 = FakeAgent("reviewer")
 
-        violations = []
+        violations: list[PolicyViolationError] = []
         team = GovernedTeam(
             agents=[a1, a2],
             policy=policy,
@@ -484,7 +490,7 @@ class TestIntegration:
         assert stats["agent_count"] == 2
 
     @pytest.mark.asyncio
-    async def test_multiple_patterns(self):
+    async def test_multiple_patterns(self) -> None:
         """All blocked patterns are enforced."""
         policy = GovernancePolicy(
             blocked_patterns=["DROP TABLE", "rm -rf", "DELETE FROM", "EXEC xp_"]

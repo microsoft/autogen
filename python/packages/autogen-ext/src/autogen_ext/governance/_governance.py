@@ -114,10 +114,18 @@ class GovernedAgent:
         """Get original unwrapped agent."""
         return self._agent
 
-    def _check_content(self, content: str) -> tuple[bool, str]:
+    @property
+    def context(self) -> ExecutionContext:
+        """Get execution context."""
+        return self._context
+
+    def check_content(self, content: str) -> tuple[bool, str]:
         """Check content against blocked patterns."""
         if len(content) > self._policy.max_message_length:
-            return False, f"Message exceeds max length ({len(content)} > {self._policy.max_message_length})"
+            return (
+                False,
+                f"Message exceeds max length ({len(content)} > {self._policy.max_message_length})",
+            )
 
         content_lower = content.lower()
         for pattern in self._policy.blocked_patterns:
@@ -126,7 +134,7 @@ class GovernedAgent:
 
         return True, ""
 
-    def _check_tool(self, tool_name: str) -> tuple[bool, str]:
+    def check_tool(self, tool_name: str) -> tuple[bool, str]:
         """Check if tool is allowed."""
         if tool_name in self._policy.blocked_tools:
             return False, f"Tool '{tool_name}' is blocked"
@@ -158,7 +166,7 @@ class GovernedAgent:
         for msg in messages:
             content = getattr(msg, "content", str(msg))
             if isinstance(content, str):
-                ok, reason = self._check_content(content)
+                ok, reason = self.check_content(content)
                 if not ok:
                     error = PolicyViolationError("content_filter", reason)
                     self._on_violation(error)
@@ -186,7 +194,7 @@ class GovernedAgent:
         for msg in messages:
             content = getattr(msg, "content", str(msg))
             if isinstance(content, str):
-                ok, reason = self._check_content(content)
+                ok, reason = self.check_content(content)
                 if not ok:
                     error = PolicyViolationError("content_filter", reason)
                     self._on_violation(error)
@@ -237,6 +245,16 @@ class GovernedTeam:
         """Get governed agents."""
         return self._governed_agents
 
+    @property
+    def context(self) -> ExecutionContext:
+        """Get execution context."""
+        return self._context
+
+    @property
+    def policy(self) -> GovernancePolicy:
+        """Get governance policy."""
+        return self._policy
+
     async def run(
         self,
         task: str,
@@ -244,7 +262,7 @@ class GovernedTeam:
     ) -> Any:
         """Run team with governance."""
         # Check task content
-        ok, reason = self._check_content(task)
+        ok, reason = self.check_content(task)
         if not ok:
             error = PolicyViolationError("content_filter", reason)
             if self._on_violation:
@@ -282,7 +300,7 @@ class GovernedTeam:
         cancellation_token: Optional[Any] = None,
     ) -> AsyncGenerator[Any, None]:
         """Run team with streaming and governance."""
-        ok, reason = self._check_content(task)
+        ok, reason = self.check_content(task)
         if not ok:
             error = PolicyViolationError("content_filter", reason)
             if self._on_violation:
@@ -304,10 +322,10 @@ class GovernedTeam:
         except ImportError:
             logger.warning("autogen_agentchat not available")
 
-    def _check_content(self, content: str) -> tuple[bool, str]:
+    def check_content(self, content: str) -> tuple[bool, str]:
         """Check content against policy."""
         if len(content) > self._policy.max_message_length:
-            return False, f"Content exceeds max length"
+            return False, "Content exceeds max length"
 
         content_lower = content.lower()
         for pattern in self._policy.blocked_patterns:
@@ -320,13 +338,13 @@ class GovernedTeam:
         """Get combined audit log from team and all agents."""
         events = list(self._context.events)
         for agent in self._governed_agents:
-            events.extend(agent._context.events)
+            events.extend(agent.context.events)
         return sorted(events, key=lambda e: e["timestamp"])
 
     def get_stats(self) -> Dict[str, Any]:
         """Get governance statistics."""
-        total_messages = sum(a._context.message_count for a in self._governed_agents)
-        total_tool_calls = sum(a._context.tool_calls for a in self._governed_agents)
+        total_messages = sum(a.context.message_count for a in self._governed_agents)
+        total_tool_calls = sum(a.context.tool_calls for a in self._governed_agents)
 
         return {
             "session_id": self._context.session_id,
