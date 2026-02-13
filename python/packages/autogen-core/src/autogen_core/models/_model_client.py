@@ -153,6 +153,20 @@ class ModelFamily:
             ModelFamily.PIXTRAL,
         )
 
+    @staticmethod
+    def is_r1(family: str) -> bool:
+        """Check if the model family is DeepSeek R1 (reasoning model)."""
+        return family == ModelFamily.R1
+
+    @staticmethod
+    def requires_strict_alternating_roles(family: str) -> bool:
+        """Check if the model family requires strict alternating user-assistant roles.
+
+        Some model APIs (DeepSeek R1, Mistral) reject message sequences with
+        consecutive messages from the same role. This method identifies such models.
+        """
+        return ModelFamily.is_r1(family) or ModelFamily.is_mistral(family)
+
 
 @deprecated("Use the ModelInfo class instead ModelCapabilities.")
 class ModelCapabilities(TypedDict, total=False):
@@ -180,6 +194,9 @@ class ModelInfo(TypedDict, total=False):
     """True if the model supports structured output, otherwise False. This is different to json_output."""
     multiple_system_messages: Optional[bool]
     """True if the model supports multiple, non-consecutive system messages, otherwise False."""
+    strict_alternating_roles: Optional[bool]
+    """True if the model requires strict alternating user-assistant roles. When True, consecutive
+    messages with the same role will be merged or interleaved with placeholder messages."""
 
 
 def validate_model_info(model_info: ModelInfo) -> None:

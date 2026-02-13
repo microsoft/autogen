@@ -33,6 +33,7 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
+    ModelFamily,
     SystemMessage,
 )
 from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, ToolResult, Workbench
@@ -57,7 +58,7 @@ from ..messages import (
     ToolCallSummaryMessage,
 )
 from ..state import AssistantAgentState
-from ..utils import remove_images
+from ..utils import ensure_alternating_roles, remove_images
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -1640,11 +1641,27 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     @staticmethod
     def _get_compatible_context(model_client: ChatCompletionClient, messages: List[LLMMessage]) -> Sequence[LLMMessage]:
-        """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
-        if model_client.model_info["vision"]:
-            return messages
-        else:
-            return remove_images(messages)
+        """Ensure that the messages are compatible with the underlying client.
+
+        This method applies necessary transformations to make messages compatible
+        with the specific model being used:
+        - Removes images for models without vision support
+        - Ensures alternating user-assistant roles for models that require it
+          (e.g., DeepSeek R1, Mistral)
+        """
+        result: List[LLMMessage] = list(messages)
+
+        # Remove images if model doesn't support vision
+        if not model_client.model_info["vision"]:
+            result = list(remove_images(result))
+
+        # Ensure alternating roles for models that require it
+        model_info = model_client.model_info
+        requires_alternation = model_info.get("strict_alternating_roles", False) or ModelFamily.requires_strict_alternating_roles(model_info["family"])
+        if requires_alternation:
+            result = list(ensure_alternating_roles(result))
+
+        return result
 
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
