@@ -24,6 +24,7 @@ from typing import (
     Union,
     cast,
 )
+from urllib.parse import urlparse
 
 import tiktoken
 from autogen_core import (
@@ -51,7 +52,7 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
-from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
+from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI, BadRequestError
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionChunk,
@@ -660,6 +661,33 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             create_args=create_args,
         )
 
+    def _uses_openai_hosted_endpoint(self) -> bool:
+        base_url = getattr(self._client, "base_url", None)
+        if base_url is None:
+            return True
+
+        host = getattr(base_url, "host", None)
+        if not isinstance(host, str) or not host:
+            parsed = urlparse(str(base_url))
+            host = parsed.hostname or ""
+
+        host = host.lower()
+        return host == "api.openai.com" or host.endswith(".openai.azure.com")
+
+    def _should_fallback_from_parse_error(self, error: BadRequestError) -> bool:
+        if self._uses_openai_hosted_endpoint():
+            return False
+
+        body = getattr(error, "body", None)
+        body_message = ""
+        if isinstance(body, dict):
+            err = body.get("error")
+            if isinstance(err, dict):
+                body_message = str(err.get("message", ""))
+
+        message = f"{error} {body_message}".lower()
+        return "response_format" in message and ("unavailable" in message or "unsupported" in message)
+
     async def create(
         self,
         messages: Sequence[LLMMessage],
@@ -678,6 +706,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             extra_create_args,
         )
         future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
+        using_beta_parse = create_params.response_format is not None
         if create_params.response_format is not None:
             # Use beta client if response_format is not None
             future = asyncio.ensure_future(
@@ -701,8 +730,34 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if cancellation_token is not None:
             cancellation_token.link_future(future)
-        result: Union[ParsedChatCompletion[BaseModel], ChatCompletion] = await future
-        if create_params.response_format is not None:
+        try:
+            result: Union[ParsedChatCompletion[BaseModel], ChatCompletion] = await future
+        except BadRequestError as error:
+            if using_beta_parse and self._should_fallback_from_parse_error(error):
+                warnings.warn(
+                    "Structured output parse is not supported by this non-OpenAI endpoint. "
+                    "Falling back to response_format=json_object.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                fallback_create_args = dict(create_params.create_args)
+                fallback_create_args["response_format"] = ResponseFormatJSONObject(type="json_object")
+                future = asyncio.ensure_future(
+                    self._client.chat.completions.create(
+                        messages=create_params.messages,
+                        stream=False,
+                        tools=(create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN),
+                        **fallback_create_args,
+                    )
+                )
+                if cancellation_token is not None:
+                    cancellation_token.link_future(future)
+                result = await future
+                using_beta_parse = False
+            else:
+                raise
+
+        if using_beta_parse:
             result = cast(ParsedChatCompletion[Any], result)
 
         # Handle the case where OpenAI API might return None for token counts

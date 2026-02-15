@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from enum import Enum
 from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Optional, Tuple, TypeVar
 from unittest.mock import AsyncMock, MagicMock
 
@@ -33,6 +34,7 @@ from autogen_ext.models.openai._openai_client import (
 )
 from autogen_ext.models.openai._transformation import TransformerMap, get_transformer
 from autogen_ext.models.openai._transformation.registry import _find_model_family  # pyright: ignore[reportPrivateUsage]
+from openai import BadRequestError
 from openai.lib.streaming.chat import AsyncChatCompletionStreamManager
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
@@ -802,6 +804,160 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
             messages=[UserMessage(content="I am happy.", source="user")],
             json_output=AgentResponse,
             extra_create_args={"response_format": AgentResponse},
+        )
+
+
+@pytest.mark.asyncio
+async def test_structured_output_falls_back_for_non_openai_parse_unsupported(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class CustomStatus(Enum):
+        TODO = "To Do"
+        SUCCESSFUL = "Successful"
+        FAILED = "Failed"
+
+    class StatusResponse(BaseModel):
+        status: CustomStatus = Field(description="The current status")
+
+    called_args: Dict[str, Any] = {}
+
+    async def _mock_parse(*args: Any, **kwargs: Any) -> ParsedChatCompletion[BaseModel]:
+        request = httpx.Request("POST", "https://api.deepseek.com/v1/chat/completions")
+        response = httpx.Response(
+            400,
+            request=request,
+            json={"error": {"message": "This response_format type is unavailable now"}},
+        )
+        raise BadRequestError(
+            "Error code: 400 - {'error': {'message': 'This response_format type is unavailable now'}}",
+            response=response,
+            body=response.json(),
+        )
+
+    async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion:
+        called_args["kwargs"] = kwargs
+        return ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content=json.dumps({"status": "Successful"}),
+                        role="assistant",
+                    ),
+                )
+            ],
+            created=0,
+            model="deepseek-chat",
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+        )
+
+    monkeypatch.setattr(AsyncCompletions, "parse", _mock_parse)
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
+
+    model_client = OpenAIChatCompletionClient(
+        model="deepseek-chat",
+        base_url="https://api.deepseek.com/v1",
+        api_key="",
+        model_info=ModelInfo(
+            vision=False,
+            function_calling=False,
+            json_output=True,
+            family="unknown",
+            structured_output=True,
+        ),
+        response_format=StatusResponse,
+    )
+
+    cancellation_token = CancellationToken()
+
+    with pytest.warns(UserWarning, match="Falling back to response_format=json_object"):
+        create_result = await model_client.create(
+            messages=[UserMessage(content="Return current status", source="user")],
+            cancellation_token=cancellation_token,
+        )
+
+    assert isinstance(create_result.content, str)
+    assert json.loads(create_result.content)["status"] == "Successful"
+    assert called_args["kwargs"]["response_format"] == {"type": "json_object"}
+
+
+def test_parse_fallback_endpoint_detection_branches() -> None:
+    class UrlWithoutHost:
+        def __str__(self) -> str:
+            return "https://api.deepseek.com/v1"
+
+    class UrlOpenAI:
+        def __str__(self) -> str:
+            return "https://api.openai.com/v1"
+
+    class StubClient:
+        def __init__(self, base_url: Any) -> None:
+            self.base_url = base_url
+
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4.1-nano-2025-04-14",
+        api_key="",
+    )
+
+    request = httpx.Request("POST", "https://api.deepseek.com/v1/chat/completions")
+    response = httpx.Response(
+        400,
+        request=request,
+        json={"error": {"message": "This response_format type is unavailable now"}},
+    )
+    error = BadRequestError(
+        "Error code: 400 - {'error': {'message': 'This response_format type is unavailable now'}}",
+        response=response,
+        body=response.json(),
+    )
+
+    model_client._client = StubClient(None)  # type: ignore[attr-defined]
+    assert model_client._uses_openai_hosted_endpoint() is True
+    assert model_client._should_fallback_from_parse_error(error) is False
+
+    model_client._client = StubClient(UrlWithoutHost())  # type: ignore[attr-defined]
+    assert model_client._uses_openai_hosted_endpoint() is False
+    assert model_client._should_fallback_from_parse_error(error) is True
+
+    model_client._client = StubClient(UrlOpenAI())  # type: ignore[attr-defined]
+    assert model_client._uses_openai_hosted_endpoint() is True
+    assert model_client._should_fallback_from_parse_error(error) is False
+
+
+@pytest.mark.asyncio
+async def test_structured_output_parse_error_reraises_on_openai_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class StatusResponse(BaseModel):
+        status: str
+
+    async def _mock_parse(*args: Any, **kwargs: Any) -> ParsedChatCompletion[BaseModel]:
+        request = httpx.Request("POST", "https://api.openai.com/v1/chat/completions")
+        response = httpx.Response(
+            400,
+            request=request,
+            json={"error": {"message": "This response_format type is unavailable now"}},
+        )
+        raise BadRequestError(
+            "Error code: 400 - {'error': {'message': 'This response_format type is unavailable now'}}",
+            response=response,
+            body=response.json(),
+        )
+
+    monkeypatch.setattr(AsyncCompletions, "parse", _mock_parse)
+
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4.1-nano-2025-04-14",
+        api_key="",
+        response_format=StatusResponse,
+    )
+
+    with pytest.raises(BadRequestError):
+        await model_client.create(
+            messages=[UserMessage(content="Return current status", source="user")],
         )
 
 
