@@ -66,6 +66,24 @@ worker_runtime = GrpcWorkerAgentRuntime(tracer_provider=tracer_provider)
 
 And that's it! Your application is now instrumented with open telemetry. You can now view your telemetry data in your telemetry backend.
 
+### Using with Comet Opik
+
+You can send AutoGen traces to [Comet Opik](https://www.comet.com/docs/opik/) by configuring your OTLP exporter with your Opik project endpoint and headers.
+
+```python
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+processor = BatchSpanProcessor(
+    OTLPSpanExporter(
+        endpoint="<opik_otlp_endpoint>",
+        headers={"Authorization": "<opik_otlp_headers>"},
+    )
+)
+tracer_provider.add_span_processor(processor)
+```
+
+Get these values from your Opik project settings.
+
 ### Existing instrumentation
 
 If you have open telemetry already set up in your application, you can pass the tracer provider to the runtime when creating it:
