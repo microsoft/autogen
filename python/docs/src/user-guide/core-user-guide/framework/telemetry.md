@@ -68,7 +68,7 @@ And that's it! Your application is now instrumented with open telemetry. You can
 
 ### Using with Comet Opik
 
-You can send AutoGen traces to [Comet Opik](https://www.comet.com/docs/opik/) by configuring your OTLP exporter with your Opik project endpoint and headers.
+You can send AutoGen traces to [Comet Opik](https://www.comet.com/docs/opik/integrations/autogen) by configuring your OTLP exporter with your Opik project endpoint and headers.
 
 ```python
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
