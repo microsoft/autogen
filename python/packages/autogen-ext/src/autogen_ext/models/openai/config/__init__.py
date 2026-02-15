@@ -1,9 +1,12 @@
-from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
 from pydantic import BaseModel, SecretStr
 from typing_extensions import Required, TypedDict
+
+if TYPE_CHECKING:
+    import httpx
 
 
 class JSONSchema(TypedDict, total=False):
@@ -74,6 +77,7 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     include_name_in_message: bool
     """Whether to include the 'name' field in user message parameters. Defaults to True. Set to False for providers that don't support the 'name' field."""
     default_headers: Dict[str, str] | None
+    http_client: "httpx.AsyncClient | None"
 
 
 # See OpenAI docs for explanation of these parameters
@@ -120,6 +124,8 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     add_name_prefixes: bool | None = None
     include_name_in_message: bool | None = None
     default_headers: Dict[str, str] | None = None
+    # Non-serializable runtime object. Accepted in in-memory config paths only.
+    http_client: Any = None
 
 
 # See OpenAI docs for explanation of these parameters

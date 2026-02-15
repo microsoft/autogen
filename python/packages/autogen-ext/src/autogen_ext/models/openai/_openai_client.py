@@ -1504,6 +1504,8 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
     def _to_config(self) -> OpenAIClientConfigurationConfigModel:
         copied_config = self._raw_config.copy()
+        if copied_config.get("http_client") is not None:
+            raise ValueError("http_client cannot be component serialized")
         return OpenAIClientConfigurationConfigModel(**copied_config)
 
     @classmethod
@@ -1722,6 +1724,8 @@ class AzureOpenAIChatCompletionClient(
         from ...auth.azure import AzureTokenProvider
 
         copied_config = self._raw_config.copy()
+        if copied_config.get("http_client") is not None:
+            raise ValueError("http_client cannot be component serialized")
         if "azure_ad_token_provider" in copied_config:
             if not isinstance(copied_config["azure_ad_token_provider"], AzureTokenProvider):
                 raise ValueError("azure_ad_token_provider must be a AzureTokenProvider to be component serialized")

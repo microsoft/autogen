@@ -206,6 +206,22 @@ async def test_openai_chat_completion_client_serialization() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_serialization_raises_with_http_client() -> None:
+    runtime_http_client = httpx.AsyncClient(trust_env=False, verify=False)
+    try:
+        client = OpenAIChatCompletionClient(
+            model="gpt-4.1-nano",
+            api_key="api_key",
+            http_client=runtime_http_client,
+        )
+
+        with pytest.raises(ValueError, match="http_client cannot be component serialized"):
+            client.dump_component()
+    finally:
+        await runtime_http_client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_openai_chat_completion_client_raise_on_unknown_model() -> None:
     with pytest.raises(ValueError, match="model_info is required"):
         _ = OpenAIChatCompletionClient(model="unknown", api_key="api_key")
@@ -248,6 +264,32 @@ async def test_azure_openai_chat_completion_client() -> None:
         },
     )
     assert client
+
+
+@pytest.mark.asyncio
+async def test_azure_openai_chat_completion_client_serialization_raises_with_http_client() -> None:
+    runtime_http_client = httpx.AsyncClient(trust_env=False, verify=False)
+    try:
+        client = AzureOpenAIChatCompletionClient(
+            azure_deployment="gpt-4o-1",
+            model="gpt-4o",
+            api_key="api_key",
+            api_version="2020-08-04",
+            azure_endpoint="https://dummy.com",
+            http_client=runtime_http_client,
+            model_info={
+                "vision": True,
+                "function_calling": True,
+                "json_output": True,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": True,
+            },
+        )
+
+        with pytest.raises(ValueError, match="http_client cannot be component serialized"):
+            client.dump_component()
+    finally:
+        await runtime_http_client.aclose()
 
 
 @pytest.mark.asyncio
