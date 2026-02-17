@@ -162,7 +162,20 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
 
         # Determine args_type
         if self._langchain_tool.args_schema:  # pyright: ignore
-            args_type = self._langchain_tool.args_schema  # pyright: ignore
+            # Use the tool's args property (which filters out internal fields like
+            # run_manager and callbacks) to rebuild a clean pydantic model.
+            # This avoids schema generation errors for types like
+            # CallbackManagerForToolRun that pydantic cannot handle.
+            schema_cls = self._langchain_tool.args_schema  # pyright: ignore
+            filtered_field_names = set(self._langchain_tool.args.keys())
+            filtered_fields: Dict[str, Any] = {}
+            for field_name, field_info in schema_cls.model_fields.items():
+                if field_name in filtered_field_names:
+                    filtered_fields[field_name] = (field_info.annotation, field_info)
+            if filtered_fields:
+                args_type = create_model(f"{name}Args", **filtered_fields)  # type: ignore
+            else:
+                args_type = schema_cls
         else:
             # Infer args_type from the callable's signature
             sig = inspect.signature(cast(Callable[..., Any], self._callable))  # type: ignore
