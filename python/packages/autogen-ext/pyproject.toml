@@ -41,6 +41,7 @@ llama-cpp = [
     "llama-cpp-python>=0.3.8",
 ]
 
+camb = ["camb-sdk>=1.0.0"]
 graphrag = ["graphrag>=2.3.0"]
 chromadb = ["chromadb>=1.0.0"]
 mem0 = ["mem0ai>=0.1.98"]
