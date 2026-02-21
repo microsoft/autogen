@@ -145,11 +145,14 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
-        self._output_dir: Path = Path(tempfile.mkdtemp()) if output_dir is None else Path(output_dir)
-        self._output_dir.mkdir(exist_ok=True, parents=True)
-
         self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
-        self._temp_dir_path: Optional[Path] = None
+
+        if output_dir is None:
+            self._temp_dir = tempfile.TemporaryDirectory()
+            self._output_dir: Path = Path(self._temp_dir.name)
+        else:
+            self._output_dir: Path = Path(output_dir)
+        self._output_dir.mkdir(exist_ok=True, parents=True)
 
         self._started = False
 
@@ -307,6 +310,11 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
 
         self._client = None
         self._started = False
+
+        # Clean up temporary directory if one was created
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+            self._temp_dir = None
 
     def _to_config(self) -> JupyterCodeExecutorConfig:
         """Convert current instance to config object"""
