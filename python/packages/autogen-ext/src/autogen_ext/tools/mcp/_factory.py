@@ -1,6 +1,12 @@
 from mcp import ClientSession
 
-from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
+from ._config import (
+    McpServerParams,
+    SseServerParams,
+    StdioServerParams,
+    StreamableHttpServerParams,
+    validate_mcp_trust_policy,
+)
 from ._session import create_mcp_server_session
 from ._sse import SseMcpToolAdapter
 from ._stdio import StdioMcpToolAdapter
@@ -10,6 +16,8 @@ from ._streamable_http import StreamableHttpMcpToolAdapter
 async def mcp_server_tools(
     server_params: McpServerParams,
     session: ClientSession | None = None,
+    strict_mode: bool = False,
+    allow_untrusted: bool = False,
 ) -> list[StdioMcpToolAdapter | SseMcpToolAdapter | StreamableHttpMcpToolAdapter]:
     """Creates a list of MCP tool adapters that can be used with AutoGen agents.
 
@@ -194,6 +202,12 @@ async def mcp_server_tools(
 
     For more examples and detailed usage, see the samples directory in the package repository.
     """
+    validate_mcp_trust_policy(
+        server_params,
+        strict_mode=strict_mode,
+        allow_untrusted=allow_untrusted,
+    )
+
     if session is None:
         async with create_mcp_server_session(server_params) as temp_session:
             await temp_session.initialize()
