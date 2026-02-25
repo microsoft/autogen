@@ -245,6 +245,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         self._running = False
         self._pending_requests: Dict[str, Future[Any]] = {}
         self._pending_requests_lock = asyncio.Lock()
+        self._request_id_prefix = str(uuid.uuid4())
         self._next_request_id = 0
         self._host_connection: HostConnection | None = None
         self._background_tasks: Set[Task[Any]] = set()
@@ -507,7 +508,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
     async def _get_new_request_id(self) -> str:
         async with self._pending_requests_lock:
             self._next_request_id += 1
-            return str(self._next_request_id)
+            return f"{self._request_id_prefix}-{self._next_request_id}"
 
     async def _process_request(self, request: agent_worker_pb2.RpcRequest) -> None:
         assert self._host_connection is not None
