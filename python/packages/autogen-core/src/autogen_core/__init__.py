@@ -43,6 +43,7 @@ from ._intervention import (
     DropMessage,
     InterventionHandler,
 )
+from ._validation_intervention import JSONValidationIntervention
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
 from ._routed_agent import RoutedAgent, event, message_handler, rpc
@@ -139,6 +140,7 @@ __all__ = [
     "InterventionHandler",
     "DefaultInterventionHandler",
     "CostInterventionHandler",
+    "JSONValidationIntervention",
     "trace_create_agent_span",
     "trace_invoke_agent_span",
     "trace_tool_span",
