@@ -748,21 +748,21 @@ Match roles in the role set to each expert in expert set.
                         .message.content
                     )
                     if perferred_agent_name in self.agent_procs_assign.keys():
+                        preferred_agent = self.agent_procs_assign[perferred_agent_name][0]
+
                         autogen.agentchat.register_function(
                             func["function"],
-                            caller=self.agent_procs_assign[perferred_agent_name][0],
+                            caller=preferred_agent,
                             executor=agent_list[0],
                             name=func["name"],
                             description=func["description"],
                         )
 
-                        agents_current_system_message = [
-                            agent["system_message"] for agent in agent_configs if agent["name"] == perferred_agent_name
-                        ][0]
-
-                        self.agent_procs_assign[perferred_agent_name][0].update_system_message(
+                        # Read the live agent's system message (preserves GROUP_CHAT_DESCRIPTION
+                        # and prior function registrations). Fix for github.com/microsoft/autogen/issues/5037
+                        preferred_agent.update_system_message(
                             self.UPDATED_AGENT_SYSTEM_MESSAGE.format(
-                                agent_system_message=agents_current_system_message,
+                                agent_system_message=preferred_agent.system_message,
                                 function_name=func["name"],
                                 function_description=func["description"],
                             )
