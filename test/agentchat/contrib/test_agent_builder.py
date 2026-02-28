@@ -321,6 +321,125 @@ def test_clear_agent():
     assert len(builder.agent_procs_assign) == 0
 
 
+def test_multi_function_system_message_preserved():
+    """Regression test for https://github.com/microsoft/autogen/issues/5037
+
+    When multiple functions are registered to a single agent, the system message
+    must accumulate ALL function descriptions and preserve the GROUP_CHAT_DESCRIPTION
+    wrapper (including TERMINATE instructions). Before the fix, each iteration
+    overwrote the system message from the static agent_configs dict, losing all
+    previously registered functions and the GROUP_CHAT_DESCRIPTION.
+    """
+    # --- Setup: fake config list so AgentBuilder.__init__ doesn't need real API keys ---
+    fake_config_list = [{"model": "gpt-4", "api_key": "fake-key-for-testing"}]
+
+    with patch("autogen.config_list_from_json", return_value=fake_config_list):
+        builder = AgentBuilder(
+            config_file_or_env="FAKE_CONFIG",
+            builder_model="gpt-4",
+            agent_model="gpt-4",
+        )
+
+    # --- Populate cached_configs as build() would ---
+    builder.cached_configs = {
+        "building_task": "Test task for regression",
+        "agent_configs": [
+            {
+                "name": "Test_Agent",
+                "model": ["gpt-4"],
+                "tags": [],
+                "system_message": "You are a test agent that handles multiple tools.",
+                "description": "A test agent for function registration.",
+            },
+        ],
+        "coding": True,
+        "default_llm_config": {"temperature": 0, "config_list": fake_config_list},
+        "code_execution_config": {
+            "last_n_messages": 1,
+            "work_dir": "test_groupchat",
+            "use_docker": False,
+            "timeout": 10,
+        },
+    }
+
+    # --- Define 3 dummy functions to register to the same agent ---
+    def send_email(to: str, body: str) -> str:
+        return "sent"
+
+    def get_user_email(user_id: str) -> str:
+        return "user@example.com"
+
+    def open_browser(url: str) -> str:
+        return "opened"
+
+    list_of_functions = [
+        {"name": "send_email", "description": "Send an email to a recipient", "function": send_email},
+        {"name": "get_user_email", "description": "Look up a user email address", "function": get_user_email},
+        {"name": "open_browser", "description": "Open a URL in a web browser", "function": open_browser},
+    ]
+
+    # --- Mock builder_model.create to always assign functions to Test_Agent ---
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock()]
+    mock_response.choices[0].message.content = "Test_Agent"
+    builder.builder_model = MagicMock()
+    builder.builder_model.create.return_value = mock_response
+
+    # --- Mock config_list_from_json for _create_agent's internal call ---
+    with patch("autogen.config_list_from_json", return_value=fake_config_list):
+        agent_list, cached_configs = builder._build_agents(
+            use_oai_assistant=False,
+            list_of_functions=list_of_functions,
+        )
+
+    # --- Find Test_Agent in the built agents ---
+    test_agent = None
+    for agent in agent_list:
+        if agent.name == "Test_Agent":
+            test_agent = agent
+            break
+    assert test_agent is not None, "Test_Agent not found in agent_list"
+
+    sys_msg = test_agent.system_message
+
+    # Verify ALL function descriptions are preserved (not just the last one)
+    assert "send_email" in sys_msg, (
+        f"send_email lost from system message after multi-function registration.\n"
+        f"System message:\n{sys_msg}"
+    )
+    assert "Send an email to a recipient" in sys_msg, (
+        "send_email description lost from system message"
+    )
+    assert "get_user_email" in sys_msg, (
+        f"get_user_email lost from system message after multi-function registration.\n"
+        f"System message:\n{sys_msg}"
+    )
+    assert "Look up a user email address" in sys_msg, (
+        "get_user_email description lost from system message"
+    )
+    assert "open_browser" in sys_msg, (
+        f"open_browser lost from system message after multi-function registration.\n"
+        f"System message:\n{sys_msg}"
+    )
+    assert "Open a URL in a web browser" in sys_msg, (
+        "open_browser description lost from system message"
+    )
+
+    # Verify GROUP_CHAT_DESCRIPTION wrapper is preserved (TERMINATE instruction)
+    assert "TERMINATE" in sys_msg, (
+        f"TERMINATE instruction lost from system message after function registration.\n"
+        f"System message:\n{sys_msg}"
+    )
+
+    # Verify GROUP_CHAT_DESCRIPTION structural elements
+    assert "Group chat instruction" in sys_msg, (
+        "GROUP_CHAT_DESCRIPTION header lost from system message"
+    )
+    assert "Test_Agent" in sys_msg, (
+        "Agent role name lost from GROUP_CHAT_DESCRIPTION"
+    )
+
+
 if __name__ == "__main__":
     test_build()
     test_build_assistant_with_function_calling()
@@ -329,3 +448,4 @@ if __name__ == "__main__":
     test_save()
     test_load()
     test_clear_agent()
+    test_multi_function_system_message_preserved()
