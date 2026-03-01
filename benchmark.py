@@ -5,6 +5,8 @@ import subprocess
 
 client = anthropic.Anthropic()
 
+REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 TOOLS = [
     {
         "name": "read_file",
@@ -56,7 +58,7 @@ def execute_tool(tool_name, tool_input):
             return f"Error: {e}"
     elif tool_name == "glob_files":
         pattern = tool_input["pattern"]
-        base = tool_input.get("base_dir", "/src/totto/autogen")
+        base = tool_input.get("base_dir", REPO_ROOT)
         if not pattern.startswith("/"):
             pattern = os.path.join(base, pattern)
         matches = glob_module.glob(pattern, recursive=True)
@@ -101,14 +103,14 @@ def run_agent(system_prompt, query, max_turns=20):
         messages.append({"role": "user", "content": tool_results})
     return "", tool_count
 
-BASELINE_PROMPT = """You are a helpful assistant answering questions about the AutoGen framework.
-The repository is at /src/totto/autogen.
+BASELINE_PROMPT = f"""You are a helpful assistant answering questions about the AutoGen framework.
+The repository is at {REPO_ROOT}.
 Use the available tools to read files and find the answer.
 Start by exploring the repository structure to understand where to find information."""
 
-KCP_PROMPT = """You are a helpful assistant answering questions about the AutoGen framework.
-The repository is at /src/totto/autogen.
-IMPORTANT: First read /src/totto/autogen/knowledge.yaml to understand the repository structure.
+KCP_PROMPT = f"""You are a helpful assistant answering questions about the AutoGen framework.
+The repository is at {REPO_ROOT}.
+IMPORTANT: First read {REPO_ROOT}/knowledge.yaml to understand the repository structure.
 Match the question to the triggers in knowledge.yaml and read only the files pointed to by matching units.
 If a unit has summary_available: true, read the summary_unit file first (it's much smaller)."""
 
