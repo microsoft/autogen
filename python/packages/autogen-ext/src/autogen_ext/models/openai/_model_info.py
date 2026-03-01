@@ -46,6 +46,16 @@ _MODEL_POINTERS = {
     "llama-3.3-70b": "Llama-3.3-70B-Instruct",
     "llama-4-scout": "Llama-4-Scout-17B-16E-Instruct-FP8",
     "llama-4-maverick": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+    # Mistral models
+    "mistral-large-latest": "mistral-large-2411",
+    "mistral-small-latest": "mistral-small-2503",
+    "codestral-latest": "codestral-2501",
+    "mistral-embed": "mistral-embed",
+    "pixtral-large-latest": "pixtral-large-2411",
+    "pixtral-12b-2409": "pixtral-12b-2409",
+    "open-mistral-nemo": "open-mistral-nemo-2407",
+    "ministral-8b-latest": "ministral-8b-2410",
+    "open-codestral-mamba": "open-codestral-mamba",
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
@@ -441,6 +451,79 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": True,
         "multiple_system_messages": True,
     },
+    # Mistral models
+    "mistral-large-2411": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "mistral-small-2503": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "codestral-2501": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.CODESRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "mistral-embed": {
+        "vision": False,
+        "function_calling": False,
+        "json_output": False,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
+    "pixtral-large-2411": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.PIXTRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "pixtral-12b-2409": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.PIXTRAL,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
+    "open-mistral-nemo-2407": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
+    "ministral-8b-2410": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MINISTRAL,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
+    "open-codestral-mamba": {
+        "vision": False,
+        "function_calling": False,
+        "json_output": True,
+        "family": ModelFamily.OPEN_CODESRAL_MAMBA,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
@@ -491,11 +574,29 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "Llama-3.3-70B-Instruct": 128000,
     "Llama-4-Scout-17B-16E-Instruct-FP8": 128000,
     "Llama-4-Maverick-17B-128E-Instruct-FP8": 128000,
+    # Mistral models
+    "mistral-large-2411": 128000,
+    "mistral-small-2503": 32000,
+    "codestral-2501": 256000,
+    "mistral-embed": 8192,
+    "pixtral-large-2411": 128000,
+    "pixtral-12b-2409": 128000,
+    "open-mistral-nemo-2407": 128000,
+    "ministral-8b-2410": 128000,
+    "open-codestral-mamba": 256000,
 }
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1/"
 LLAMA_API_BASE_URL = "https://api.llama.com/compat/v1/"
+MISTRAL_API_BASE_URL = "https://api.mistral.ai/v1/"
+
+_MISTRAL_MODEL_PREFIXES = ("mistral-", "codestral-", "pixtral-", "ministral-", "open-mistral-", "open-codestral-")
+
+
+def is_mistral_model(model: str) -> bool:
+    """Check if a model name corresponds to a Mistral AI model."""
+    return model.startswith(_MISTRAL_MODEL_PREFIXES)
 
 
 def resolve_model(model: str) -> str:
