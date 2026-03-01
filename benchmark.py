@@ -72,8 +72,11 @@ def execute_tool(tool_name, tool_input):
             return f"Error: {e}"
     elif tool_name == "glob_files":
         pattern = tool_input["pattern"]
+        base = tool_input.get("base_dir", REPO_ROOT)
+        if not _within_repo(base):
+            base = REPO_ROOT
         if not pattern.startswith("/"):
-            pattern = os.path.join(REPO_ROOT, pattern)
+            pattern = os.path.join(base, pattern)
         matches = [m for m in glob_module.glob(pattern, recursive=True) if _within_repo(m)]
         return "\n".join(matches[:20]) if matches else "No files found"
     elif tool_name == "grep_content":
@@ -83,7 +86,7 @@ def execute_tool(tool_name, tool_input):
             return "Error: access denied — path is outside the repository"
         try:
             result = subprocess.run(
-                ["grep", "-r", "-l", "-m", "5", pattern, path],
+                ["grep", "-r", "-l", "-m", "5", "-e", pattern, path],
                 capture_output=True, text=True, timeout=10
             )
             return result.stdout[:2000] if result.stdout else "No matches"
