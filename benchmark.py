@@ -48,6 +48,8 @@ TOOLS = [
 def execute_tool(tool_name, tool_input):
     if tool_name == "read_file":
         path = tool_input["path"]
+        if not os.path.realpath(path).startswith(os.path.realpath(REPO_ROOT)):
+            return "Error: access denied — path is outside the repository"
         try:
             with open(path, 'r', encoding='utf-8', errors='replace') as f:
                 content = f.read()
@@ -66,6 +68,8 @@ def execute_tool(tool_name, tool_input):
     elif tool_name == "grep_content":
         pattern = tool_input["pattern"]
         path = tool_input["path"]
+        if not os.path.realpath(path).startswith(os.path.realpath(REPO_ROOT)):
+            return "Error: access denied — path is outside the repository"
         try:
             result = subprocess.run(
                 ["grep", "-r", "-l", "-m", "5", pattern, path],
