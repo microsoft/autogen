@@ -1,0 +1,35 @@
+# AutoGen
+
+> AutoGen is an open-source framework for building multi-agent AI applications.
+> It provides tools for creating agents that can collaborate, use tools, and solve
+> complex tasks through structured conversations.
+
+## AgentChat
+
+High-level API for building multi-agent applications
+
+- [AgentChat](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html)
+- [Custom Agents](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/custom-agents.html)
+- [Company Research](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/examples/company-research.html)
+- [Examples](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/examples/index.html)
+- [Literature Review](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/examples/literature-review.html)
+- [Travel Planning](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/examples/travel-planning.html)
+- [GraphFlow (Workflows)](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/graph-flow.html)
+- [Installation](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/installation.html)
+- [Logging](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/logging.html)
+- [Magentic-One](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/magentic-one.html)
+- [Initialize user memory](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/memory.html)
+- [Migration Guide for v0.2 to v0.4](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html)
+- [Quickstart](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/quickstart.html)
+- [Selector Group Chat](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/selector-group-chat.html)
+- [Serializing Components](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/serialize-components.html)
+- [Swarm](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/swarm.html)
+- [Tracing and Observability](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tracing.html)
+- [Agents](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/agents.html)
+- [Human-in-the-Loop](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/human-in-the-loop.html)
+- [Introduction](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/index.html)
+- [Messages](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/messages.html)
+- [Models](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html)
+- [Managing State](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/state.html)
+- [Teams](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html)
+- [Termination](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/termination.html)
