@@ -8,13 +8,14 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from autogen_core import Image
 from autogen_core.tools import ImageResultContent, TextResultContent
-from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 from mcp.types import (
     CallToolResult,
     EmbeddedResource,
     ImageContent,
     TextContent,
 )
+
+from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 
 
 @pytest.fixture
@@ -41,6 +42,47 @@ async def test_list_tools_actor_none_after_start(sample_server_params: StdioServ
 
         with pytest.raises(RuntimeError, match="Actor is not initialized. Please check the server connection."):
             await workbench.list_tools()
+
+
+@pytest.mark.asyncio
+async def test_list_tools_formats_playwright_dependency_hint_on_startup_error() -> None:
+    """Test startup errors for Playwright MCP include actionable dependency guidance."""
+    workbench = McpWorkbench(
+        server_params=StdioServerParams(command="npx", args=["@playwright/mcp@latest", "--headless"])
+    )
+    mock_actor = AsyncMock()
+    workbench._actor = mock_actor  # type: ignore[reportPrivateUsage]
+
+    mock_actor.call.side_effect = RuntimeError(
+        "MCP actor task crashed", FileNotFoundError("[Errno 2] No such file or directory: 'npx'")
+    )
+
+    with pytest.raises(RuntimeError) as exc_info:
+        await workbench.list_tools()
+
+    message = str(exc_info.value)
+    assert "npm install -g @playwright/mcp@latest" in message
+    assert "Failed to connect to MCP stdio server using command: npx @playwright/mcp@latest --headless" in message
+
+
+@pytest.mark.asyncio
+async def test_list_tools_formats_missing_stdio_command_on_startup_error() -> None:
+    """Test startup errors include command-not-found guidance for stdio servers."""
+    workbench = McpWorkbench(server_params=StdioServerParams(command="missing-mcp-command", args=["--help"]))
+    mock_actor = AsyncMock()
+    workbench._actor = mock_actor  # type: ignore[reportPrivateUsage]
+
+    mock_actor.call.side_effect = RuntimeError(
+        "MCP actor task crashed",
+        FileNotFoundError("[Errno 2] No such file or directory: 'missing-mcp-command'"),
+    )
+
+    with pytest.raises(RuntimeError) as exc_info:
+        await workbench.list_tools()
+
+    message = str(exc_info.value)
+    assert "Command 'missing-mcp-command' was not found in PATH." in message
+    assert "Verify this command works locally before running AutoGen" in message
 
 
 @pytest.mark.asyncio
