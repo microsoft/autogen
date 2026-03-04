@@ -50,6 +50,7 @@ components/model-context
 components/tools
 components/workbench
 components/command-line-code-executors
+components/user-defined-functions
 ```
 
 ```{toctree}
