@@ -14,6 +14,7 @@ myst:
 installation
 discover
 create-your-own
+tool-guide
 ```
 
 ```{toctree}
@@ -54,5 +55,12 @@ Discover community extensions and samples
 :link-alt: Create your own: Create your own extension
 
 Create your own extension
+:::
+
+:::{grid-item-card} {fas}`wrench;pst-color-primary` Tool Guide
+:link: ./tool-guide.html
+:link-alt: Tool Guide: Use FunctionTool, built-in tools, and custom BaseTool implementations
+
+Use FunctionTool, built-in tools, and custom BaseTool implementations
 :::
 ::::
