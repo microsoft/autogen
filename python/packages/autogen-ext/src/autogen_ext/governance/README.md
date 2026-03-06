@@ -1,6 +1,6 @@
 # Agent-OS Governance Extension for AutoGen
 
-This extension provides kernel-level governance for AutoGen multi-agent conversations using [Agent-OS](https://github.com/imran-siddique/agent-os).
+This extension provides kernel-level governance for AutoGen multi-agent conversations using [Agent-OS](https://github.com/microsoft/agent-governance-toolkit).
 
 ## Features
 
@@ -116,6 +116,6 @@ result = await kernel.execute(run_team, "Analyze data")
 
 ## Links
 
-- [Agent-OS GitHub](https://github.com/imran-siddique/agent-os)
+- [Agent-OS GitHub](https://github.com/microsoft/agent-governance-toolkit)
 - [AutoGen Documentation](https://microsoft.github.io/autogen/)
-- [Governance Best Practices](https://github.com/imran-siddique/agent-os/blob/main/docs/governance.md)
+- [Governance Best Practices](https://github.com/microsoft/agent-governance-toolkit/blob/main/docs/governance.md)
