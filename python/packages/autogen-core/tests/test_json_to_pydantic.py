@@ -1042,3 +1042,103 @@ def test_nested_arrays_with_object_schemas() -> None:
     assert alice.name == "Alice"  # type: ignore[attr-defined]
     assert alice.role == "Senior Developer"  # type: ignore[attr-defined]
     assert alice.skills == ["Python", "JavaScript", "Docker"]  # type: ignore[attr-defined]
+
+
+def test_array_type_alias_in_defs(converter: _JSONSchemaToPydantic) -> None:
+    """Test that $defs entries with 'type': 'array' are preserved correctly.
+
+    Regression test for https://github.com/microsoft/autogen/issues/7203.
+    When Pydantic v2 generates a JSON schema for a type alias like
+    ``type TaskData = list[str]``, the $defs entry has ``"type": "array"``
+    with no ``properties``. Previously this was converted to an empty object model.
+    """
+    schema: Dict[str, Any] = {
+        "$defs": {
+            "TaskData": {
+                "items": {"type": "string"},
+                "type": "array",
+            }
+        },
+        "properties": {
+            "task_data": {
+                "$ref": "#/$defs/TaskData",
+                "description": "The task Data",
+            }
+        },
+        "required": ["task_data"],
+        "title": "ToolCallSchema",
+        "type": "object",
+    }
+
+    Model = converter.json_schema_to_pydantic(schema, "ToolCallSchema")
+
+    # The reconstructed schema should preserve the array type in $defs
+    reconstructed = Model.model_json_schema()
+    assert "TaskData" in reconstructed.get("$defs", {}), "TaskData should appear in $defs"
+    task_data_def = reconstructed["$defs"]["TaskData"]
+    # The definition must describe an array, not an empty object
+    assert task_data_def.get("type") == "array", (
+        f"TaskData should have type 'array', got {task_data_def!r}"
+    )
+    assert "items" in task_data_def, "TaskData should have 'items' key"
+
+    # Validate that the model accepts list data correctly
+    instance = Model(task_data=["hello", "world"])
+    dumped = instance.model_dump()
+    assert dumped["task_data"] == ["hello", "world"]
+
+
+def test_integer_type_alias_in_defs(converter: _JSONSchemaToPydantic) -> None:
+    """Test that $defs entries with non-object primitive types are preserved."""
+    schema: Dict[str, Any] = {
+        "$defs": {
+            "PositiveCount": {
+                "type": "integer",
+                "minimum": 0,
+            }
+        },
+        "properties": {
+            "count": {
+                "$ref": "#/$defs/PositiveCount",
+            }
+        },
+        "required": ["count"],
+        "title": "CounterSchema",
+        "type": "object",
+    }
+
+    Model = converter.json_schema_to_pydantic(schema, "CounterSchema")
+    instance = Model(count=5)
+    assert instance.model_dump()["count"] == 5
+
+
+def test_array_of_objects_type_alias_in_defs(converter: _JSONSchemaToPydantic) -> None:
+    """Test $defs array with object items."""
+    schema: Dict[str, Any] = {
+        "$defs": {
+            "PersonList": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                    },
+                    "required": ["name"],
+                },
+            }
+        },
+        "properties": {
+            "people": {
+                "$ref": "#/$defs/PersonList",
+            }
+        },
+        "required": ["people"],
+        "title": "TeamSchema",
+        "type": "object",
+    }
+
+    Model = converter.json_schema_to_pydantic(schema, "TeamSchema")
+    instance = Model(people=[{"name": "Alice"}, {"name": "Bob"}])
+    dumped = instance.model_dump()
+    assert len(dumped["people"]) == 2
+    assert dumped["people"][0]["name"] == "Alice"
