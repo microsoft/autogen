@@ -118,3 +118,54 @@ async def test_error_handling() -> None:
     with pytest.raises(RuntimeError) as exc_info:
         await agent.on_messages(messages, CancellationToken())
     assert "Failed to get user input" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_websocket_exception_propagation() -> None:
+    """Test that WebSocket-related exceptions are properly propagated instead of being wrapped in RuntimeError"""
+
+    class MockWebSocketDisconnect(Exception):
+        """Mock WebSocketDisconnect exception to simulate FastAPI's WebSocketDisconnect"""
+        def __init__(self, code: int = 1000, reason: str = ""):
+            self.code = code
+            self.reason = reason
+            super().__init__(f"WebSocket disconnected with code {code}: {reason}")
+
+    class MockConnectionClosedError(Exception):
+        """Mock ConnectionClosedError exception to simulate websockets library exception"""
+        pass
+
+    def websocket_disconnect_input(_: str) -> str:
+        # Simulate WebSocketDisconnect by creating an exception with the right class name
+        exc = MockWebSocketDisconnect(1000, "Client disconnected")
+        exc.__class__.__name__ = "WebSocketDisconnect"
+        raise exc
+
+    def connection_closed_input(_: str) -> str:
+        # Simulate ConnectionClosedError by creating an exception with the right class name
+        exc = MockConnectionClosedError("Connection closed")
+        exc.__class__.__name__ = "ConnectionClosedError"
+        raise exc
+
+    agent = UserProxyAgent(name="test_user", input_func=websocket_disconnect_input)
+    messages = [TextMessage(content="test prompt", source="assistant")]
+
+    # WebSocketDisconnect should be propagated, not wrapped in RuntimeError
+    with pytest.raises(MockWebSocketDisconnect):
+        await agent.on_messages(messages, CancellationToken())
+
+    agent2 = UserProxyAgent(name="test_user", input_func=connection_closed_input)
+    
+    # ConnectionClosedError should be propagated, not wrapped in RuntimeError
+    with pytest.raises(MockConnectionClosedError):
+        await agent2.on_messages(messages, CancellationToken())
+
+    # Test that other exceptions are still wrapped in RuntimeError
+    def other_exception_input(_: str) -> str:
+        raise ValueError("Some other error")
+
+    agent3 = UserProxyAgent(name="test_user", input_func=other_exception_input)
+    
+    with pytest.raises(RuntimeError) as exc_info:
+        await agent3.on_messages(messages, CancellationToken())
+    assert "Failed to get user input" in str(exc_info.value)
