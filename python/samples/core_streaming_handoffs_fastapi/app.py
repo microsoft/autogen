@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         os.makedirs(chat_history_dir)
 
     # Get model client from config.
-    async with aiofiles.open("model_config.yaml", "r") as file:
+    async with aiofiles.open("model_config.yaml", "r", encoding="utf-8") as file:
         model_config = yaml.safe_load(await file.read())
     model_client = ChatCompletionClient.load_component(model_config)
 
@@ -224,7 +224,7 @@ async def chat_completions_stream(request: Request):
     if os.path.exists(chat_history_file):
         context = BufferedChatCompletionContext(buffer_size=15)
         try:
-            async with aiofiles.open(chat_history_file, "r") as f:
+            async with aiofiles.open(chat_history_file, "r", encoding="utf-8") as f:
                 content = await f.read()
                 if content: # Check if file is not empty
                     chat_history = json.loads(content)

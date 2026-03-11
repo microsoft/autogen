@@ -40,7 +40,7 @@ history_path = "agent_history.json"
 async def get_agent() -> AssistantAgent:
     """Get the assistant agent, load state from file."""
     # Get model client from config.
-    async with aiofiles.open(model_config_path, "r") as file:
+    async with aiofiles.open(model_config_path, "r", encoding="utf-8") as file:
         model_config = yaml.safe_load(await file.read())
     model_client = ChatCompletionClient.load_component(model_config)
     # Create the assistant agent.
@@ -52,7 +52,7 @@ async def get_agent() -> AssistantAgent:
     # Load state from file.
     if not os.path.exists(state_path):
         return agent  # Return agent without loading state.
-    async with aiofiles.open(state_path, "r") as file:
+    async with aiofiles.open(state_path, "r", encoding="utf-8") as file:
         state = json.loads(await file.read())
     await agent.load_state(state)
     return agent
@@ -62,7 +62,7 @@ async def get_history() -> list[dict[str, Any]]:
     """Get chat history from file."""
     if not os.path.exists(history_path):
         return []
-    async with aiofiles.open(history_path, "r") as file:
+    async with aiofiles.open(history_path, "r", encoding="utf-8") as file:
         return json.loads(await file.read())
 
 
@@ -83,14 +83,14 @@ async def chat(request: TextMessage) -> TextMessage:
 
         # Save agent state to file.
         state = await agent.save_state()
-        async with aiofiles.open(state_path, "w") as file:
+        async with aiofiles.open(state_path, "w", encoding="utf-8") as file:
             await file.write(json.dumps(state))
 
         # Save chat history to file.
         history = await get_history()
         history.append(request.model_dump())
         history.append(response.chat_message.model_dump())
-        async with aiofiles.open(history_path, "w") as file:
+        async with aiofiles.open(history_path, "w", encoding="utf-8") as file:
             await file.write(json.dumps(history))
 
         assert isinstance(response.chat_message, TextMessage)
