@@ -19,7 +19,7 @@ def prepend_line_numbers(lines: List[str]) -> List[str]:
 
 
 def load_log_file(path: str, prepend_numbers: bool = False) -> Document:
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
     if prepend_numbers:
         lines = prepend_line_numbers(lines)

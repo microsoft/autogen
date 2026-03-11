@@ -18,7 +18,7 @@ def sample_team_file(tmp_path: Path) -> str:
         "agents": []
     }
     team_file = tmp_path / "test_team.json"
-    with open(team_file, 'w') as f:
+    with open(team_file, 'w', encoding="utf-8") as f:
         json.dump(team_data, f)
     return str(team_file)
 
@@ -35,7 +35,7 @@ def sample_team_object() -> Dict[str, Union[str, List[Any]]]:
 
 def load_team_from_file(file_path: str) -> Dict[str, Any]:
     """Helper function to load team data from file"""
-    with open(file_path, 'r') as f:
+    with open(file_path, 'r', encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -101,7 +101,7 @@ def test_setup_environment(sample_team_file: str) -> None:
     
     # Read the environment file to verify contents
     env_vars = {}
-    with open(env_file_path, 'r') as f:
+    with open(env_file_path, 'r', encoding="utf-8") as f:
         for line in f:
             if '=' in line:
                 key, value = line.strip().split('=', 1)
@@ -272,7 +272,7 @@ def test_init_with_path_object(tmp_path: Path) -> None:
         "agents": []
     }
     team_file = tmp_path / "path_team.json"
-    with open(team_file, 'w') as f:
+    with open(team_file, 'w', encoding="utf-8") as f:
         json.dump(team_data, f)
     
     # Use Path object instead of string

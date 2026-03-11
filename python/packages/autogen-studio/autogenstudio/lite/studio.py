@@ -151,7 +151,7 @@ class LiteStudio:
         }
 
         env_file_path = self._get_env_file_path()
-        with open(env_file_path, "w") as temp_env:
+        with open(env_file_path, "w", encoding="utf-8") as temp_env:
             for key, value in env_vars.items():
                 temp_env.write(f"{key}={value}\n")
 
