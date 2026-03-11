@@ -26,10 +26,40 @@ def _to_code(func: Union[FunctionWithRequirements[T, P], Callable[P, T], Functio
         return func.func
 
     code = inspect.getsource(func)
-    # Strip the decorator
-    if code.startswith("@"):
-        code = code[code.index("\n") + 1 :]
+    # Strip the @with_requirements decorator, which may span multiple lines.
+    # Preserve any other decorators (e.g., @retry).
+    code = _strip_with_requirements_decorator(code)
     return code
+
+
+def _strip_with_requirements_decorator(code: str) -> str:
+    """Remove the @with_requirements(...) decorator from source code.
+
+    Handles multiline decorator arguments by tracking parenthesis depth.
+    Preserves all other decorators.
+    """
+    lines = code.split("\n")
+    result_lines: list[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.lstrip()
+        if stripped.startswith("@with_requirements"):
+            # Track parenthesis depth to find the end of the decorator
+            paren_depth = 0
+            while i < len(lines):
+                for ch in lines[i]:
+                    if ch == "(":
+                        paren_depth += 1
+                    elif ch == ")":
+                        paren_depth -= 1
+                i += 1
+                if paren_depth <= 0:
+                    break
+        else:
+            result_lines.append(lines[i])
+            i += 1
+    return "\n".join(result_lines)
 
 
 def _import_to_str(im: Import) -> str:
