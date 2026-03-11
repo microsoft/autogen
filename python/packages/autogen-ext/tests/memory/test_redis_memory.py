@@ -71,6 +71,26 @@ async def test_redis_memory_close_with_mock() -> None:
         mock_history.delete.assert_called_once()
 
 
+@pytest.mark.asyncio
+async def test_redis_memory_query_empty_string_with_mock() -> None:
+    with patch("autogen_ext.memory.redis._redis_memory.SemanticMessageHistory") as MockHistory:
+        mock_history = MagicMock()
+        MockHistory.return_value = mock_history
+
+        config = RedisMemoryConfig()
+        memory = RedisMemory(config=config)
+
+        # Empty string should return empty results without calling the vectorizer
+        result = await memory.query("")
+        assert result.results == []
+        mock_history.get_relevant.assert_not_called()
+
+        # Whitespace-only string should also return empty results
+        result = await memory.query("   ")
+        assert result.results == []
+        mock_history.get_relevant.assert_not_called()
+
+
 def redis_available() -> bool:
     try:
         client = Redis.from_url("redis://localhost:6379")  # type: ignore[reportUnkownMemberType]

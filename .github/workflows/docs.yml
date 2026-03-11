@@ -363,7 +363,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: dotnet/global.json
-      - run: dotnet tool update -g docfx
+      - run: dotnet tool update -g docfx --version 2.67.5
       - run: |
           docfx docs/dotnet/docfx.json
           mkdir -p build/dotnet/
