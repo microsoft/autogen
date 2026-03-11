@@ -184,6 +184,7 @@ You can use the AutoGen framework and developer tools to create applications for
 
 With AutoGen you get to join and contribute to a thriving ecosystem. We host weekly office hours and talks with maintainers and community. We also have a [Discord server](https://aka.ms/autogen-discord) for real-time chat, GitHub Discussions for Q&A, and a blog for tutorials and updates.
 
+
 ## Where to go next?
 
 <div align="center">
