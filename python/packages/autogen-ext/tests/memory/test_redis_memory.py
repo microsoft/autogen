@@ -465,8 +465,9 @@ async def test_markdown_memory_type(semantic_memory: RedisMemory) -> None:
     results = await semantic_memory.query("how can I make itemized lists, or italicize text with asterisks?")
     assert results.results[0].content == markdown_data
 
-    # test we can query with markdown interpreted as a text string also
+    # empty query should return empty results without error
     results = await semantic_memory.query("")
+    assert results.results == []
 
     # we can also if the markdown is within a MemoryContent container
     results = await semantic_memory.query(
