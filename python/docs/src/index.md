@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    "description lang=en": |
+    'description lang=en': |
       Top-level documentation for AutoGen, a framework for developing applications using AI agents
 html_theme.sidebar_secondary.remove: false
 sd_hide_title: true
@@ -51,7 +51,7 @@ A framework for building AI agents and applications
 :margin: 2 0 0 0
 :columns: 12 12 12 12
 
-An web-based UI for prototyping with agents without writing code.
+A web-based UI for prototyping with agents without writing code.
 Built on AgentChat.
 
 ```bash
@@ -117,9 +117,9 @@ Get Started
 
 An event-driven programming framework for building scalable multi-agent AI systems. Example scenarios:
 
-* Deterministic and dynamic agentic workflows for business processes.
-* Research on multi-agent collaboration.
-* Distributed agents for multi-language applications.
+- Deterministic and dynamic agentic workflows for business processes.
+- Research on multi-agent collaboration.
+- Distributed agents for multi-language applications.
 
 _Start here if you are getting serious about building multi-agent systems._
 
@@ -141,10 +141,10 @@ Get Started
 Implementations of Core and AgentChat components that interface with external services or other libraries.
 You can find and use community extensions or create your own. Examples of built-in extensions:
 
-* {py:class}`~autogen_ext.tools.mcp.McpWorkbench` for using Model-Context Protocol (MCP) servers.
-* {py:class}`~autogen_ext.agents.openai.OpenAIAssistantAgent` for using Assistant API.
-* {py:class}`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` for running model-generated code in a Docker container.
-* {py:class}`~autogen_ext.runtimes.grpc.GrpcWorkerAgentRuntime` for distributed agents.
+- {py:class}`~autogen_ext.tools.mcp.McpWorkbench` for using Model-Context Protocol (MCP) servers.
+- {py:class}`~autogen_ext.agents.openai.OpenAIAssistantAgent` for using Assistant API.
+- {py:class}`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` for running model-generated code in a Docker container.
+- {py:class}`~autogen_ext.runtimes.grpc.GrpcWorkerAgentRuntime` for distributed agents.
 
 +++
 
