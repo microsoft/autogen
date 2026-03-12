@@ -194,7 +194,7 @@ else:
         """
         Generates content for alembic.ini file.
         """
-        engine_url = str(self.engine.url).replace("%", "%%")
+        engine_url = self.engine.url.render_as_string(hide_password=False).replace("%", "%%")
         return f"""
 [alembic]
 script_location = {self.alembic_dir}
