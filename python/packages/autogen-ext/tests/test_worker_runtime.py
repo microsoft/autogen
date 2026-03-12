@@ -34,6 +34,21 @@ from autogen_test_utils import (
 from .protos.serialization_test_pb2 import ProtoMessage
 
 
+@pytest.mark.asyncio
+async def test_request_ids_are_collision_resistant_per_runtime() -> None:
+    runtime = GrpcWorkerAgentRuntime(host_address="localhost:50050")
+
+    request_id_1 = await runtime._get_new_request_id()
+    request_id_2 = await runtime._get_new_request_id()
+
+    prefix_1, sequence_1 = request_id_1.rsplit("-", 1)
+    prefix_2, sequence_2 = request_id_2.rsplit("-", 1)
+
+    assert prefix_1 == prefix_2
+    assert sequence_1 == "1"
+    assert sequence_2 == "2"
+
+
 @pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_agent_types_must_be_unique_single_worker() -> None:
