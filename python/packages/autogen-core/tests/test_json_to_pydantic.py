@@ -1042,3 +1042,115 @@ def test_nested_arrays_with_object_schemas() -> None:
     assert alice.name == "Alice"  # type: ignore[attr-defined]
     assert alice.role == "Senior Developer"  # type: ignore[attr-defined]
     assert alice.skills == ["Python", "JavaScript", "Docker"]  # type: ignore[attr-defined]
+
+
+def test_defs_array_type_preserved() -> None:
+    """Test that $defs with array types are preserved correctly.
+
+    Regression test for issue #7203: schema_to_pydantic_model was converting
+    array type definitions in $defs to empty object models.
+
+    See: https://github.com/microsoft/autogen/issues/7203
+    """
+    from autogen_core.utils import schema_to_pydantic_model
+
+    # This is the exact schema from the issue report
+    type_alias_schema = {
+        "$defs": {
+            "TaskData": {
+                "items": {"type": "string"},
+                "type": "array",
+            }
+        },
+        "properties": {
+            "task_data": {
+                "$ref": "#/$defs/TaskData",
+                "description": "The task Data",
+            }
+        },
+        "required": ["task_data"],
+        "title": "ToolCallSchema",
+        "type": "object",
+    }
+
+    Model = schema_to_pydantic_model(type_alias_schema, "ToolCallSchema")
+
+    # Test that the model works with array data
+    instance = Model(task_data=["item1", "item2", "item3"])
+    assert instance.task_data == ["item1", "item2", "item3"]  # type: ignore[attr-defined]
+
+    # Verify the schema preserves array type
+    generated_schema = Model.model_json_schema()
+    task_data_prop = generated_schema["properties"]["task_data"]
+
+    # The generated schema should reference an array type, not an empty object
+    # It may inline the type or use $ref, but should be array-like
+    if "$ref" in task_data_prop:
+        ref_key = task_data_prop["$ref"].split("/")[-1]
+        ref_def = generated_schema.get("$defs", {}).get(ref_key, {})
+        # Should NOT be an empty object
+        assert ref_def.get("type") != "object" or ref_def.get("properties") != {}
+    else:
+        # If inlined, should be array type
+        assert task_data_prop.get("type") == "array" or "items" in task_data_prop
+
+
+def test_defs_primitive_type_preserved() -> None:
+    """Test that $defs with primitive types (string, integer, etc.) are handled."""
+    from autogen_core.utils import schema_to_pydantic_model
+
+    schema = {
+        "$defs": {
+            "UserId": {"type": "string"},
+            "Count": {"type": "integer"},
+        },
+        "properties": {
+            "user_id": {"$ref": "#/$defs/UserId"},
+            "count": {"$ref": "#/$defs/Count"},
+        },
+        "required": ["user_id", "count"],
+        "title": "SimpleModel",
+        "type": "object",
+    }
+
+    Model = schema_to_pydantic_model(schema, "SimpleModel")
+
+    # Test that the model works
+    instance = Model(user_id="user123", count=42)
+    assert instance.user_id == "user123"  # type: ignore[attr-defined]
+    assert instance.count == 42  # type: ignore[attr-defined]
+
+
+def test_defs_array_with_constraints() -> None:
+    """Test that $defs array types with constraints are preserved."""
+    from autogen_core.utils import schema_to_pydantic_model
+
+    schema = {
+        "$defs": {
+            "TagList": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 1,
+                "maxItems": 5,
+            }
+        },
+        "properties": {
+            "tags": {"$ref": "#/$defs/TagList"},
+        },
+        "required": ["tags"],
+        "title": "TaggedItem",
+        "type": "object",
+    }
+
+    Model = schema_to_pydantic_model(schema, "TaggedItem")
+
+    # Test valid data
+    instance = Model(tags=["python", "autogen"])
+    assert instance.tags == ["python", "autogen"]  # type: ignore[attr-defined]
+
+    # Test constraints are enforced
+    with pytest.raises(ValidationError):
+        Model(tags=[])  # minItems = 1
+
+    with pytest.raises(ValidationError):
+        Model(tags=["a", "b", "c", "d", "e", "f"])  # maxItems = 5
