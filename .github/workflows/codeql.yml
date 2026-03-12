@@ -59,10 +59,10 @@ jobs:
         # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.11
     - name: Install jupyter and ipykernel
@@ -73,7 +73,7 @@ jobs:
     - name: list available kernels
       run: |
         python -m jupyter kernelspec list
-    - uses: astral-sh/setup-uv@v5
+    - uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
     - run: uv sync --locked --all-extras
@@ -102,12 +102,12 @@ jobs:
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
     - if: matrix.build-mode == 'manual'
       name: Setup .NET 8.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '8.0.x'
     - if: matrix.build-mode == 'manual'
       name: Setup .NET 9.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '9.0.x'
     - if: matrix.build-mode == 'manual'
