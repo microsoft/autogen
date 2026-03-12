@@ -237,7 +237,7 @@ jobs:
       - run: |
           uv venv --python=3.11
           source .venv/bin/activate
-          uv sync --locked --all-extras
+          uv sync --locked
           poe --directory ${{ matrix.version.poe-dir }} docs-build
           mkdir -p docs-staging/${{ matrix.version.dest-dir }}/
           mv ${{ matrix.version.poe-dir }}/docs/build/* docs-staging/${{ matrix.version.dest-dir }}/
@@ -363,7 +363,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: dotnet/global.json
-      - run: dotnet tool update -g docfx
+      - run: dotnet tool update -g docfx --version 2.67.5
       - run: |
           docfx docs/dotnet/docfx.json
           mkdir -p build/dotnet/

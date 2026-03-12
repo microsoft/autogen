@@ -1,319 +1,82 @@
-import React, { useCallback, useRef, useState } from "react";
-import { Input, Switch, Select, Button, Space, Collapse } from "antd";
-import { PlusCircle, MinusCircle, User, Settings, Code } from "lucide-react";
+import React from "react";
+import { Alert } from "antd";
+import { AlertTriangle } from "lucide-react";
 import {
   Component,
   ComponentConfig,
-  Import,
 } from "../../../../../types/datamodel";
 import { isFunctionTool } from "../../../../../types/guards";
-import { MonacoEditor } from "../../../../monaco";
-
-const { TextArea } = Input;
-const { Option } = Select;
 
 interface ToolFieldsProps {
   component: Component<ComponentConfig>;
   onChange: (updates: Partial<Component<ComponentConfig>>) => void;
 }
 
-interface ImportState {
-  module: string;
-  imports: string;
-}
-
+/**
+ * ToolFields component - displays a deprecation warning for FunctionTool.
+ *
+ * FunctionTool has been deprecated due to security concerns:
+ * - FunctionTool uses exec() to execute user-provided Python code
+ * - This creates a Remote Code Execution (RCE) vulnerability
+ * - The /api/validate/ endpoint could be exploited via drive-by attacks
+ *
+ * Users should migrate to MCP Workbenches for custom tool functionality.
+ * MCP provides better security through process isolation.
+ */
 export const ToolFields: React.FC<ToolFieldsProps> = ({
   component,
   onChange,
 }) => {
   if (!isFunctionTool(component)) return null;
 
-  const editorRef = useRef(null);
-  const [showAddImport, setShowAddImport] = useState(false);
-  const [importType, setImportType] = useState<"direct" | "fromModule">(
-    "direct"
-  );
-  const [directImport, setDirectImport] = useState("");
-  const [moduleImport, setModuleImport] = useState<ImportState>({
-    module: "",
-    imports: "",
-  });
-
-  const handleComponentUpdate = useCallback(
-    (updates: Partial<Component<ComponentConfig>>) => {
-      onChange({
-        ...component,
-        ...updates,
-        config: {
-          ...component.config,
-          ...(updates.config || {}),
-        },
-      });
-    },
-    [component, onChange]
-  );
-
-  const formatImport = (imp: Import): string => {
-    if (!imp) return "";
-    if (typeof imp === "string") {
-      return imp;
-    }
-    return `from ${imp.module} import ${imp.imports.join(", ")}`;
-  };
-
-  const handleAddImport = () => {
-    const currentImports = [...(component.config.global_imports || [])];
-
-    if (importType === "direct" && directImport) {
-      currentImports.push(directImport);
-      setDirectImport("");
-    } else if (
-      importType === "fromModule" &&
-      moduleImport.module &&
-      moduleImport.imports
-    ) {
-      currentImports.push({
-        module: moduleImport.module,
-        imports: moduleImport.imports
-          .split(",")
-          .map((i) => i.trim())
-          .filter((i) => i),
-      });
-      setModuleImport({ module: "", imports: "" });
-    }
-
-    handleComponentUpdate({
-      config: {
-        ...component.config,
-        global_imports: currentImports,
-      },
-    });
-    setShowAddImport(false);
-  };
-
-  const handleRemoveImport = (index: number) => {
-    const newImports = [...(component.config.global_imports || [])];
-    newImports.splice(index, 1);
-    handleComponentUpdate({
-      config: {
-        ...component.config,
-        global_imports: newImports,
-      },
-    });
-  };
-
   return (
-    <Collapse
-      defaultActiveKey={["details", "configuration"]}
-      className="border-0"
-      expandIconPosition="end"
-      items={[
-        {
-          key: "details",
-          label: (
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-blue-500" />
-              <span className="font-medium">Component Details</span>
+    <div className="space-y-4 p-4">
+      <Alert
+        message="FunctionTool Deprecated"
+        description={
+          <div className="space-y-2">
+            <p>
+              <strong>FunctionTool has been deprecated due to security concerns.</strong>
+            </p>
+            <p>
+              FunctionTool executes arbitrary Python code, which creates security
+              vulnerabilities. This component type is no longer supported for new
+              configurations.
+            </p>
+            <p>
+              <strong>Recommended alternative:</strong> Use an{" "}
+              <span className="font-mono bg-gray-100 px-1 rounded">MCP Workbench</span>{" "}
+              instead. MCP (Model Context Protocol) servers provide the same tool
+              functionality with better security through process isolation.
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              Existing FunctionTool configurations in the gallery will continue to
+              work, but creating or editing FunctionTool source code is no longer
+              available in the UI.
+            </p>
+          </div>
+        }
+        type="warning"
+        showIcon
+        icon={<AlertTriangle className="w-5 h-5" />}
+      />
+
+      {/* Show read-only info about the existing tool */}
+      {component.config.name && (
+        <div className="bg-gray-50 rounded p-3 space-y-2">
+          <div>
+            <span className="text-sm font-medium text-gray-500">Tool Name:</span>
+            <span className="ml-2 text-sm">{component.config.name}</span>
+          </div>
+          {component.config.description && (
+            <div>
+              <span className="text-sm font-medium text-gray-500">Description:</span>
+              <span className="ml-2 text-sm">{component.config.description}</span>
             </div>
-          ),
-          children: (
-            <div className="space-y-4">
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">Name</span>
-                <Input
-                  value={component.label || ""}
-                  onChange={(e) =>
-                    handleComponentUpdate({ label: e.target.value })
-                  }
-                  placeholder="Tool name"
-                  className="mt-1"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">
-                  Description
-                </span>
-                <TextArea
-                  value={component.description || ""}
-                  onChange={(e) =>
-                    handleComponentUpdate({ description: e.target.value })
-                  }
-                  placeholder="Tool description"
-                  rows={4}
-                  className="mt-1"
-                />
-              </label>
-            </div>
-          ),
-        },
-        {
-          key: "configuration",
-          label: (
-            <div className="flex items-center gap-2">
-              <Settings className="w-4 h-4 text-green-500" />
-              <span className="font-medium">Tool Configuration</span>
-            </div>
-          ),
-          children: (
-            <div className="space-y-4">
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">
-                  Function Name
-                </span>
-                <Input
-                  value={component.config.name || ""}
-                  onChange={(e) =>
-                    handleComponentUpdate({
-                      config: { ...component.config, name: e.target.value },
-                    })
-                  }
-                  placeholder="Function name"
-                  className="mt-1"
-                />
-              </label>
-
-              <div className="space-y-2">
-                <span className="text-sm font-medium text-gray-700">
-                  Global Imports
-                </span>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {(component.config.global_imports || []).map((imp, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 bg-tertiary rounded px-2 py-1"
-                    >
-                      <span className="text-sm">{formatImport(imp)}</span>
-                      <Button
-                        type="text"
-                        size="small"
-                        className="flex items-center justify-center h-6 w-6 p-0"
-                        onClick={() => handleRemoveImport(index)}
-                        icon={<MinusCircle className="h-4 w-4" />}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {showAddImport ? (
-                  <div className="border rounded p-3 space-y-3">
-                    <Select
-                      value={importType}
-                      onChange={setImportType}
-                      style={{ width: 200 }}
-                    >
-                      <Option value="direct">Direct Import</Option>
-                      <Option value="fromModule">From Module Import</Option>
-                    </Select>
-
-                    {importType === "direct" ? (
-                      <Space>
-                        <Input
-                          placeholder="Package name (e.g., os)"
-                          className="w-64"
-                          value={directImport}
-                          onChange={(e) => setDirectImport(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && directImport) {
-                              handleAddImport();
-                            }
-                          }}
-                        />
-                        <Button
-                          onClick={handleAddImport}
-                          disabled={!directImport}
-                        >
-                          Add
-                        </Button>
-                      </Space>
-                    ) : (
-                      <Space direction="vertical" className="w-full">
-                        <Input
-                          placeholder="Module name (e.g., typing)"
-                          className="w-64"
-                          value={moduleImport.module}
-                          onChange={(e) =>
-                            setModuleImport((prev) => ({
-                              ...prev,
-                              module: e.target.value,
-                            }))
-                          }
-                        />
-                        <Space className="w-full">
-                          <Input
-                            placeholder="Import names (comma-separated)"
-                            className="w-64"
-                            value={moduleImport.imports}
-                            onChange={(e) =>
-                              setModuleImport((prev) => ({
-                                ...prev,
-                                imports: e.target.value,
-                              }))
-                            }
-                          />
-                          <Button
-                            onClick={handleAddImport}
-                            disabled={
-                              !moduleImport.module || !moduleImport.imports
-                            }
-                          >
-                            Add
-                          </Button>
-                        </Space>
-                      </Space>
-                    )}
-                  </div>
-                ) : (
-                  <Button
-                    type="dashed"
-                    onClick={() => setShowAddImport(true)}
-                    className="w-full"
-                  >
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Add Import
-                  </Button>
-                )}
-              </div>
-
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">
-                  Source Code
-                </span>
-                <div className="mt-1 h-96">
-                  <MonacoEditor
-                    value={component.config.source_code || ""}
-                    editorRef={editorRef}
-                    language="python"
-                    onChange={(value) =>
-                      handleComponentUpdate({
-                        config: { ...component.config, source_code: value },
-                      })
-                    }
-                  />
-                </div>
-              </label>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">
-                  Has Cancellation Support
-                </span>
-                <Switch
-                  checked={component.config.has_cancellation_support || false}
-                  onChange={(checked) =>
-                    handleComponentUpdate({
-                      config: {
-                        ...component.config,
-                        has_cancellation_support: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-            </div>
-          ),
-        },
-      ]}
-    />
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
