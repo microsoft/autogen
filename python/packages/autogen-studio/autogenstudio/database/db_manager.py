@@ -174,6 +174,7 @@ class DatabaseManager:
             Response: Contains status, message and data (either dict or SQLModel based on return_json)
         """
         status = True
+        status_message = ""
         model_class = type(model)
         existing_model = None
 
@@ -194,13 +195,16 @@ class DatabaseManager:
                 session.rollback()
                 logger.error("Error while updating/creating " + str(model_class.__name__) + ": " + str(e))
                 status = False
+                status_message = f"Error while updating/creating {model_class.__name__}"
+            else:
+                status_message = (
+                    f"{model_class.__name__} Updated Successfully"
+                    if existing_model
+                    else f"{model_class.__name__} Created Successfully"
+                )
 
         return Response(
-            message=(
-                f"{model_class.__name__} Updated Successfully"
-                if existing_model
-                else f"{model_class.__name__} Created Successfully"
-            ),
+            message=status_message,
             status=status,
             data=model.model_dump() if return_json else model,
         )
