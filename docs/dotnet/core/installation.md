@@ -31,7 +31,7 @@ The *Core* and *Contracts* packages will give you what you need for writing and 
 
 ```sh
 dotnet add package Microsoft.AutoGen.AgentChat --version 0.4.0-dev-1
-dotnet add package Microsoft.AutoGen.Agents --version 0.4.0-dev-1
+Note: The Microsoft.AutoGen.Agents package is not currently available on NuGet. This feature is planned for a future release.
 dotnet add package Microsoft.AutoGen.Extensions --version 0.4.0-dev-1
 ```
 
