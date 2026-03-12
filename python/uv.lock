@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12.4' and sys_platform == 'darwin'",
@@ -778,7 +778,7 @@ requires-dist = [
     { name = "neo4j", marker = "extra == 'mem0-local'", specifier = ">=5.25.0" },
     { name = "ollama", marker = "extra == 'ollama'", specifier = ">=0.4.7" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.93" },
-    { name = "openai-whisper", marker = "extra == 'video-surfer'" },
+    { name = "openai-whisper", marker = "extra == 'video-surfer'", specifier = ">=20250625" },
     { name = "opencv-python", marker = "extra == 'video-surfer'", specifier = ">=4.5" },
     { name = "pillow", marker = "extra == 'magentic-one'", specifier = ">=11.0.0" },
     { name = "pillow", marker = "extra == 'web-surfer'", specifier = ">=11.0.0" },
@@ -5239,7 +5239,7 @@ wheels = [
 
 [[package]]
 name = "openai-whisper"
-version = "20240930"
+version = "20250625"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "more-itertools" },
@@ -5250,7 +5250,7 @@ dependencies = [
     { name = "tqdm" },
     { name = "triton", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux') or sys_platform == 'linux2'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f5/77/952ca71515f81919bd8a6a4a3f89a27b09e73880cebf90957eda8f2f8545/openai-whisper-20240930.tar.gz", hash = "sha256:b7178e9c1615576807a300024f4daa6353f7e1a815dac5e38c33f1ef055dd2d2", size = 800544, upload-time = "2024-09-30T18:21:22.596Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/8e/d36f8880bcf18ec026a55807d02fe4c7357da9f25aebd92f85178000c0dc/openai_whisper-20250625.tar.gz", hash = "sha256:37a91a3921809d9f44748ffc73c0a55c9f366c85a3ef5c2ae0cc09540432eb96", size = 803191, upload-time = "2025-06-26T01:06:13.34Z" }
 
 [[package]]
 name = "openapi-core"
