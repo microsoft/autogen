@@ -13,6 +13,11 @@ from autogen_ext.teams.magentic_one import MagenticOne
 from autogen_ext.ui import RichConsole
 
 DEFAULT_CONFIG_FILE = "config.yaml"
+EXIT_SUCCESS = 0
+EXIT_USAGE = 2
+EXIT_CONFIG = 3
+EXIT_RUNTIME = 4
+
 DEFAULT_CONFIG_CONTENTS = """# config.yaml
 #
 
@@ -85,25 +90,31 @@ def main() -> None:
 
     if args.sample_config:
         sys.stdout.write(DEFAULT_CONFIG_CONTENTS + "\n")
-        return
+        raise SystemExit(EXIT_SUCCESS)
 
     # We're not printing a sample, so we need a task
     if args.task is None:
-        parser.print_usage()
-        return
+        parser.error("task is required unless --sample-config is set")
 
     # Load the configuration
     config: Dict[str, Any] = {}
 
-    if args.config is None:
-        if os.path.isfile(DEFAULT_CONFIG_FILE):
-            with open(DEFAULT_CONFIG_FILE, "r") as f:
-                config = yaml.safe_load(f)
+    try:
+        if args.config is None:
+            if os.path.isfile(DEFAULT_CONFIG_FILE):
+                with open(DEFAULT_CONFIG_FILE, "r") as f:
+                    config = yaml.safe_load(f)
+            else:
+                config = yaml.safe_load(DEFAULT_CONFIG_CONTENTS)
         else:
-            config = yaml.safe_load(DEFAULT_CONFIG_CONTENTS)
-    else:
-        with open(args.config if isinstance(args.config, str) else args.config[0], "r") as f:
-            config = yaml.safe_load(f)
+            with open(args.config if isinstance(args.config, str) else args.config[0], "r") as f:
+                config = yaml.safe_load(f)
+
+        if not isinstance(config, dict) or "client" not in config:
+            raise ValueError("configuration must contain a top-level 'client' section")
+    except (FileNotFoundError, PermissionError, yaml.YAMLError, ValueError) as exc:
+        sys.stderr.write(f"Configuration error: {exc}\n")
+        raise SystemExit(EXIT_CONFIG) from exc
 
     # Run the task
     async def run_task(task: str, hil_mode: bool, use_rich_console: bool) -> None:
@@ -126,7 +137,13 @@ def main() -> None:
         await client.close()
 
     task = args.task if isinstance(args.task, str) else args.task[0]
-    asyncio.run(run_task(task, not args.no_hil, args.rich))
+    try:
+        asyncio.run(run_task(task, not args.no_hil, args.rich))
+    except KeyboardInterrupt:
+        raise
+    except Exception as exc:
+        sys.stderr.write(f"Runtime error: {exc}\n")
+        raise SystemExit(EXIT_RUNTIME) from exc
 
 
 if __name__ == "__main__":

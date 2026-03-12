@@ -9,6 +9,10 @@ from typing_extensions import Annotated
 from .version import VERSION
 
 app = typer.Typer()
+EXIT_SUCCESS = 0
+EXIT_USAGE = 2
+EXIT_CONFIG = 3
+EXIT_RUNTIME = 4
 
 # Ignore deprecation warnings from websockets
 warnings.filterwarnings("ignore", message="websockets.legacy is deprecated*")
@@ -62,7 +66,7 @@ def ui(
     if auth_config:
         if not os.path.exists(auth_config):
             typer.echo(f"Error: Auth config file not found: {auth_config}", err=True)
-            raise typer.Exit(1)
+            raise typer.Exit(code=EXIT_CONFIG)
         env_vars["AUTOGENSTUDIO_AUTH_CONFIG"] = auth_config
     if upgrade_database:
         env_vars["AUTOGENSTUDIO_UPGRADE_DATABASE"] = "1"
@@ -73,15 +77,21 @@ def ui(
         for key, value in env_vars.items():
             temp_env.write(f"{key}={value}\n")
 
-    uvicorn.run(
-        "autogenstudio.web.app:app",
-        host=host,
-        port=port,
-        workers=workers,
-        reload=reload,
-        reload_excludes=["**/alembic/*", "**/alembic.ini", "**/versions/*"] if reload else None,
-        env_file=env_file_path,
-    )
+    try:
+        uvicorn.run(
+            "autogenstudio.web.app:app",
+            host=host,
+            port=port,
+            workers=workers,
+            reload=reload,
+            reload_excludes=["**/alembic/*", "**/alembic.ini", "**/versions/*"] if reload else None,
+            env_file=env_file_path,
+        )
+    except KeyboardInterrupt:
+        raise
+    except Exception as exc:
+        typer.echo(f"Runtime error: {exc}", err=True)
+        raise typer.Exit(code=EXIT_RUNTIME) from exc
 
 
 @app.command()
@@ -111,15 +121,22 @@ def serve(
 
     # validate the team file
     if not os.path.exists(team):
-        raise ValueError(f"Team file not found: {team}")
+        typer.echo(f"Error: Team file not found: {team}", err=True)
+        raise typer.Exit(code=EXIT_CONFIG)
 
-    uvicorn.run(
-        "autogenstudio.web.serve:app",
-        host=host,
-        port=port,
-        workers=workers,
-        reload=reload,
-    )
+    try:
+        uvicorn.run(
+            "autogenstudio.web.serve:app",
+            host=host,
+            port=port,
+            workers=workers,
+            reload=reload,
+        )
+    except KeyboardInterrupt:
+        raise
+    except Exception as exc:
+        typer.echo(f"Runtime error: {exc}", err=True)
+        raise typer.Exit(code=EXIT_RUNTIME) from exc
 
 
 @app.command()
@@ -158,6 +175,9 @@ def lite(
         studio.start()  # Blocking call for CLI
     except KeyboardInterrupt:
         studio.stop()
+    except Exception as exc:
+        typer.echo(f"Runtime error: {exc}", err=True)
+        raise typer.Exit(code=EXIT_RUNTIME) from exc
 
 
 def run():
