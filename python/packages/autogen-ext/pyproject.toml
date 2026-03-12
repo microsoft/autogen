@@ -20,6 +20,7 @@ dependencies = [
 
 [project.optional-dependencies]
 anthropic = ["anthropic>=0.48"]
+cohere = ["cohere>=5.11.0"]
 langchain = ["langchain_core~= 0.3.3"]
 azure = [
     "azure-ai-inference>=1.0.0b9",
