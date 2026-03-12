@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import pytest
 from autogen_ext.agents.web_surfer.playwright_controller import PlaywrightController
 from playwright.async_api import async_playwright
@@ -76,3 +78,27 @@ async def test_playwright_controller_fill_id() -> None:
         controller = PlaywrightController()
         await controller.fill_id(page, input_box_id, "test input")
         assert await page.evaluate("document.getElementById('input-box').value") == "test input"
+
+
+def test_playwright_controller_uses_utf8_encoding(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Ensure that the page_script.js file is always read using UTF-8 encoding so that
+    # non-ASCII content does not trigger UnicodeDecodeError on Windows or other
+    # non-UTF-8 default locales.
+    import autogen_ext.agents.web_surfer.playwright_controller as pc_mod
+
+    calls: Dict[str, Any] = {}
+
+    import builtins
+
+    real_open = builtins.open  # type: ignore[assignment]
+
+    def fake_open(file: Any, mode: str = "r", *args: Any, **kwargs: Any):  # type: ignore[override]
+        if isinstance(file, str) and file.endswith("page_script.js") and "r" in mode:
+            calls["encoding"] = kwargs.get("encoding")
+        return real_open(file, mode, *args, **kwargs)
+
+    monkeypatch.setattr(pc_mod, "open", fake_open, raising=False)
+
+    pc_mod.PlaywrightController()
+
+    assert calls.get("encoding") == "utf-8"
