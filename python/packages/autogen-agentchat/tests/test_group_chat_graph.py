@@ -574,6 +574,35 @@ async def test_digraph_group_chat_parallel_join_all(runtime: AgentRuntime | None
 
 
 @pytest.mark.asyncio
+async def test_digraph_group_chat_multi_source_bypass_max_turns(runtime: AgentRuntime | None) -> None:
+    agent_p = _EchoAgent("P", description="Echo agent P")
+    agent_u = _EchoAgent("U", description="Echo agent U")
+    agent_e = _EchoAgent("E", description="Echo agent E")
+
+    graph = DiGraph(
+        nodes={
+            "P": DiGraphNode(name="P", edges=[DiGraphEdge(target="U"), DiGraphEdge(target="E")]),
+            "U": DiGraphNode(name="U", edges=[DiGraphEdge(target="E")]),
+            "E": DiGraphNode(name="E", edges=[]),
+        }
+    )
+
+    team = GraphFlow(
+        participants=[agent_p, agent_u, agent_e],
+        graph=graph,
+        runtime=runtime,
+        max_turns=2,
+    )
+
+    result: TaskResult = await team.run(task="Start")
+    assert len(result.messages) == 4
+    assert result.messages[0].source == "user"
+    assert result.messages[1].source == "P"
+    assert set(m.source for m in result.messages[2:]) == {"U", "E"}
+    assert result.stop_reason is not None
+
+
+@pytest.mark.asyncio
 async def test_digraph_group_chat_parallel_join_any(runtime: AgentRuntime | None) -> None:
     agent_a = _EchoAgent("A", description="Echo agent A")
     agent_b = _EchoAgent("B", description="Echo agent B")
