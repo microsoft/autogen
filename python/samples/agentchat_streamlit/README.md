@@ -18,7 +18,7 @@ pip install "autogen-ext[openai,azure]"
 # pip install "autogen-ext[openai]" for OpenAI models
 ```
 
-Create a new file named `model_config.yml` in the the same directory as the script
+Create a new file named `model_config.yml` in the same directory as the script
 to configure the model you want to use.
 
 For example, to use `gpt-4o-mini` model from Azure OpenAI, you can use the following configuration:
