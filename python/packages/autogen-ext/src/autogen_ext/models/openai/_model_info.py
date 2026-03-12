@@ -46,6 +46,12 @@ _MODEL_POINTERS = {
     "llama-3.3-70b": "Llama-3.3-70B-Instruct",
     "llama-4-scout": "Llama-4-Scout-17B-16E-Instruct-FP8",
     "llama-4-maverick": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+    # Mistral models
+    "mistral-large-latest": "mistral-large-2411",
+    "mistral-small-latest": "mistral-small-2503",
+    "codestral-latest": "codestral-2501",
+    "mistral-medium-latest": "mistral-medium-2505",
+    "pixtral-large-latest": "pixtral-large-2411",
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
@@ -345,6 +351,47 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": True,
         "multiple_system_messages": False,
     },
+    # Mistral models
+    "mistral-large-2411": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "mistral-small-2503": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "codestral-2501": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "mistral-medium-2505": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "pixtral-large-2411": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
     "claude-3-haiku-20240307": {
         "vision": True,
         "function_calling": True,
@@ -479,6 +526,12 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gemini-2.0-flash-lite-preview-02-05": 1048576,
     "gemini-2.5-pro-preview-03-25": 2097152,
     "gemini-2.5-flash": 1048576,
+    # Mistral models
+    "mistral-large-2411": 131072,
+    "mistral-small-2503": 131072,
+    "codestral-2501": 262144,
+    "mistral-medium-2505": 131072,
+    "pixtral-large-2411": 131072,
     "claude-3-haiku-20240307": 50000,
     "claude-3-sonnet-20240229": 200000,
     "claude-3-opus-20240229": 200000,
@@ -496,6 +549,7 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1/"
 LLAMA_API_BASE_URL = "https://api.llama.com/compat/v1/"
+MISTRAL_OPENAI_BASE_URL = "https://api.mistral.ai/v1"
 
 
 def resolve_model(model: str) -> str:
