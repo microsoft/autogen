@@ -25,7 +25,7 @@ warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWa
 async def main() -> None:
 
     # Load model configuration and create the model client.
-    with open("config.yaml", "r") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     orchestrator_client = ChatCompletionClient.load_component(config["orchestrator_client"])
