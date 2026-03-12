@@ -302,6 +302,36 @@ async def test_adapter_from_factory(
 
 
 @pytest.mark.asyncio
+async def test_mcp_server_tools_strict_mode_rejects_untrusted(sample_server_params: StdioServerParams) -> None:
+    """Factory should fail closed for untrusted configs in strict mode."""
+    with pytest.raises(ValueError, match="Strict MCP trust mode rejected untrusted server configuration"):
+        await mcp_server_tools(server_params=sample_server_params, strict_mode=True)
+
+
+@pytest.mark.asyncio
+async def test_mcp_server_tools_strict_mode_allows_explicit_opt_in(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Factory should allow explicit untrusted opt-in in strict mode."""
+    mock_context = AsyncMock()
+    mock_context.__aenter__.return_value = mock_session
+    monkeypatch.setattr(
+        "autogen_ext.tools.mcp._factory.create_mcp_server_session",
+        lambda *args, **kwargs: mock_context,  # type: ignore
+    )
+    mock_session.list_tools.return_value.tools = [sample_tool]
+    tools = await mcp_server_tools(
+        server_params=sample_server_params,
+        strict_mode=True,
+        allow_untrusted=True,
+    )
+    assert len(tools) == 1
+
+
+@pytest.mark.asyncio
 async def test_adapter_from_factory_existing_session(
     sample_tool: Tool,
     sample_server_params: StdioServerParams,

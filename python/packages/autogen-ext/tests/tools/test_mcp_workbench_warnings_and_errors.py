@@ -29,6 +29,31 @@ def mock_actor() -> AsyncMock:
     return AsyncMock()
 
 
+def test_strict_mode_rejects_untrusted_server_params(sample_server_params: StdioServerParams) -> None:
+    """Strict mode should fail closed unless trust is explicit."""
+    with pytest.raises(ValueError, match="Strict MCP trust mode rejected untrusted server configuration"):
+        McpWorkbench(server_params=sample_server_params, strict_mode=True)
+
+
+def test_strict_mode_allows_explicit_trust() -> None:
+    """Strict mode should allow server params marked as trusted."""
+    workbench = McpWorkbench(
+        server_params=StdioServerParams(command="echo", args=["test"], trusted=True),
+        strict_mode=True,
+    )
+    assert isinstance(workbench, McpWorkbench)
+
+
+def test_strict_mode_allows_explicit_untrusted_opt_in(sample_server_params: StdioServerParams) -> None:
+    """Strict mode should allow explicit untrusted opt-in."""
+    workbench = McpWorkbench(
+        server_params=sample_server_params,
+        strict_mode=True,
+        allow_untrusted=True,
+    )
+    assert isinstance(workbench, McpWorkbench)
+
+
 @pytest.mark.asyncio
 async def test_list_tools_actor_none_after_start(sample_server_params: StdioServerParams) -> None:
     """Test list_tools when actor is None after start attempt - covers line 274."""
