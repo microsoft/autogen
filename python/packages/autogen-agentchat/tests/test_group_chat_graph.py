@@ -843,6 +843,57 @@ async def test_digraph_group_chat_loop_with_self_cycle(runtime: AgentRuntime | N
 
 
 @pytest.mark.asyncio
+async def test_digraph_group_chat_loop_termination_is_deterministic(
+    runtime: AgentRuntime | None,
+) -> None:
+    async def _run_once(label: str):
+        agent_a_name = f"A_{label}"
+        agent_b_name = f"B_{label}"
+        agent_c_name = f"C_{label}"
+
+        agent_a = _EchoAgent(agent_a_name, description="Echo agent A")
+        agent_c = _EchoAgent(agent_c_name, description="Echo agent C")
+        model_client = ReplayChatCompletionClient(
+            chat_completions=["loop", "loop", "exit"]
+        )
+        agent_b = AssistantAgent(
+            agent_b_name, description="Decision agent B", model_client=model_client
+        )
+
+        graph = DiGraph(
+            nodes={
+                agent_a_name: DiGraphNode(
+                    name=agent_a_name, edges=[DiGraphEdge(target=agent_b_name)]
+                ),
+                agent_b_name: DiGraphNode(
+                    name=agent_b_name,
+                    edges=[
+                        DiGraphEdge(target=agent_c_name, condition="exit"),
+                        DiGraphEdge(target=agent_a_name, condition="loop"),
+                    ],
+                ),
+                agent_c_name: DiGraphNode(name=agent_c_name, edges=[]),
+            },
+            default_start_node=agent_a_name,
+        )
+
+        team = GraphFlow(
+            participants=[agent_a, agent_b, agent_c],
+            graph=graph,
+            runtime=runtime,
+            termination_condition=MaxMessageTermination(20),
+        )
+        return await team.run(task="Start")
+
+    first = await _run_once("first")
+    second = await _run_once("second")
+
+    assert first.stop_reason == second.stop_reason
+    assert len(first.messages) == len(second.messages)
+    assert first.messages[-1].content == second.messages[-1].content
+
+
+@pytest.mark.asyncio
 async def test_digraph_group_chat_loop_with_two_cycles(runtime: AgentRuntime | None) -> None:
     # Agents A and C: Echo Agents
     agent_a = _EchoAgent("A", description="Echo agent A")
