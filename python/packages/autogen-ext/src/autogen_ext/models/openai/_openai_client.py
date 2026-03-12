@@ -51,25 +51,28 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
-from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
-from openai.types.chat import (
-    ChatCompletion,
-    ChatCompletionChunk,
-    ChatCompletionContentPartParam,
-    ChatCompletionMessageParam,
-    ChatCompletionRole,
-    ChatCompletionToolParam,
-    ParsedChatCompletion,
-    ParsedChoice,
-    completion_create_params,
-)
-from openai.types.chat.chat_completion import Choice
-from openai.types.shared_params import (
-    FunctionDefinition,
-    FunctionParameters,
-    ResponseFormatJSONObject,
-    ResponseFormatText,
-)
+try:
+    from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
+    from openai.types.chat import (
+        ChatCompletion,
+        ChatCompletionChunk,
+        ChatCompletionContentPartParam,
+        ChatCompletionMessageParam,
+        ChatCompletionRole,
+        ChatCompletionToolParam,
+        ParsedChatCompletion,
+        ParsedChoice,
+        completion_create_params,
+    )
+    from openai.types.chat.chat_completion import Choice
+    from openai.types.shared_params import (
+        FunctionDefinition,
+        FunctionParameters,
+        ResponseFormatJSONObject,
+        ResponseFormatText,
+    )
+except ImportError as e:
+    raise ImportError("Please install openai using `pip install autogen-ext[openai]`") from e
 from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
