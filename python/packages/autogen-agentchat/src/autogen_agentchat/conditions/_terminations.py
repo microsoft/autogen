@@ -556,6 +556,86 @@ class TextMessageTermination(TerminationCondition, Component[TextMessageTerminat
         return cls(source=config.source)
 
 
+class NoHandoffTerminationConfig(BaseModel):
+    """Configuration for the :class:`NoHandoffTermination` termination condition."""
+
+    source: str | None = None
+    """The source of the text message to check for no-handoff termination."""
+
+
+class NoHandoffTermination(TerminationCondition, Component[NoHandoffTerminationConfig]):
+    """Terminate the conversation if a :class:`~autogen_agentchat.messages.TextMessage` is received
+    without a :class:`~autogen_agentchat.messages.HandoffMessage`.
+
+    This termination condition is designed for :class:`~autogen_agentchat.teams.Swarm` teams where
+    agents are expected to always hand off to another agent. If an agent produces a
+    :class:`~autogen_agentchat.messages.TextMessage` without also producing a
+    :class:`~autogen_agentchat.messages.HandoffMessage` in the same response, it indicates
+    the agent has finished without handing off, which would otherwise cause it to remain
+    as the current speaker indefinitely.
+
+    Args:
+        source (str | None, optional): The source name to match against incoming text messages.
+            If None, matches any source. Defaults to None.
+
+    Raises:
+        TerminatedException: If the termination condition has already been reached.
+
+    Example:
+
+        .. code-block:: python
+
+            from autogen_agentchat.conditions import NoHandoffTermination
+
+            # Terminate if any agent produces text without handoff.
+            termination = NoHandoffTermination()
+
+            # Terminate only if "Alice" produces text without handoff.
+            termination = NoHandoffTermination(source="Alice")
+    """
+
+    component_config_schema = NoHandoffTerminationConfig
+    component_provider_override = "autogen_agentchat.conditions.NoHandoffTermination"
+
+    def __init__(self, source: str | None = None) -> None:
+        self._terminated = False
+        self._source = source
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+        has_text_message = False
+        text_source = ""
+        has_handoff = False
+        for message in messages:
+            if isinstance(message, HandoffMessage):
+                has_handoff = True
+            if isinstance(message, TextMessage) and (self._source is None or message.source == self._source):
+                has_text_message = True
+                text_source = message.source
+        if has_text_message and not has_handoff:
+            self._terminated = True
+            return StopMessage(
+                content=f"Text message received from '{text_source}' without a handoff.",
+                source="NoHandoffTermination",
+            )
+        return None
+
+    async def reset(self) -> None:
+        self._terminated = False
+
+    def _to_config(self) -> NoHandoffTerminationConfig:
+        return NoHandoffTerminationConfig(source=self._source)
+
+    @classmethod
+    def _from_config(cls, config: NoHandoffTerminationConfig) -> Self:
+        return cls(source=config.source)
+
+
 class FunctionCallTerminationConfig(BaseModel):
     """Configuration for the :class:`FunctionCallTermination` termination condition."""
 
