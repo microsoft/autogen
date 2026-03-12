@@ -52,6 +52,35 @@ WELL_KNOWN_PROVIDERS = {
     "OllamaChatCompletionClient": "autogen_ext.models.ollama.OllamaChatCompletionClient",
 }
 
+_TRUSTED_PROVIDER_NAMESPACES: tuple[str, ...] = (
+    "autogen_core.",
+    "autogen_agentchat.",
+    "autogen_ext.",
+    "autogen_studio.",
+    "autogenstudio.",
+)
+
+
+def _get_trusted_namespaces() -> tuple[str, ...]:
+    """Return the set of trusted provider namespaces.
+
+    The default set covers all first-party AutoGen packages. Additional namespaces
+    can be added at runtime by setting the ``AUTOGEN_ALLOWED_PROVIDER_NAMESPACES``
+    environment variable to a comma-separated list of package prefixes
+    (e.g. ``mycompany_agents,mypackage``).
+    """
+    import os
+
+    extra = os.environ.get("AUTOGEN_ALLOWED_PROVIDER_NAMESPACES", "")
+    if extra:
+        extras = tuple(
+            ns.strip() if ns.strip().endswith(".") else ns.strip() + "."
+            for ns in extra.split(",")
+            if ns.strip()
+        )
+        return _TRUSTED_PROVIDER_NAMESPACES + extras
+    return _TRUSTED_PROVIDER_NAMESPACES
+
 
 class ComponentFromConfig(Generic[FromConfigT]):
     @classmethod
@@ -224,6 +253,18 @@ class ComponentLoader:
             raise ValueError("Invalid")
 
         module_path, class_name = output
+
+        trusted = _get_trusted_namespaces()
+        if not any(module_path.startswith(ns) or module_path == ns.rstrip(".") for ns in trusted):
+            raise ValueError(
+                f"Provider module '{module_path}' is not in a trusted namespace. "
+                f"Allowed namespaces by default: autogen_core, autogen_agentchat, autogen_ext, "
+                f"autogen_studio, autogenstudio. "
+                f"To allow additional namespaces, set the AUTOGEN_ALLOWED_PROVIDER_NAMESPACES "
+                f"environment variable to a comma-separated list "
+                f"(e.g. AUTOGEN_ALLOWED_PROVIDER_NAMESPACES=mycompany_agents,mypackage)."
+            )
+
         module = importlib.import_module(module_path)
         component_class = module.__getattribute__(class_name)
 

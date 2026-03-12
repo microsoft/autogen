@@ -367,3 +367,21 @@ def test_component_descriptions() -> None:
     assert ComponentWithDocstring("test").dump_component().description == "A component using just docstring."
     assert ComponentWithDescription("test").dump_component().description == "Explicit description"
     assert ComponentWithDescription("test").dump_component().label == "Custom Component"
+
+
+def test_untrusted_provider_rejected() -> None:
+    """load_component must reject providers outside trusted namespaces."""
+    import os
+
+    bad_model = ComponentModel(provider="os.path.join", config={})
+    with pytest.raises(ValueError, match="not in a trusted namespace"):
+        ComponentLoader.load_component(bad_model, object)  # type: ignore
+
+
+def test_trusted_provider_via_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
+    """AUTOGEN_ALLOWED_PROVIDER_NAMESPACES extends the allowed namespace list."""
+    monkeypatch.setenv("AUTOGEN_ALLOWED_PROVIDER_NAMESPACES", "mycompany_agents")
+    from autogen_core._component_config import _get_trusted_namespaces  # type: ignore
+
+    namespaces = _get_trusted_namespaces()
+    assert "mycompany_agents." in namespaces
