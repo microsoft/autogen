@@ -288,6 +288,10 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
         top_k = kwargs.pop("top_k", self.config.top_k)
         distance_threshold = kwargs.pop("distance_threshold", self.config.distance_threshold)
 
+        # return empty results for empty/whitespace queries
+        if isinstance(query, str) and not query.strip():
+            return MemoryQueryResult(results=[])
+
         # if sequential memory is requested skip prompt creation
         sequential = bool(kwargs.pop("sequential", self.config.sequential))
         if self.config.sequential and not sequential:
