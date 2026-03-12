@@ -11,7 +11,7 @@ myst:
 
 AutoGen Studio offers an experimental authentication feature to enable personalized experiences (multiple users). Currently, only GitHub authentication is supported. You can extend the base authentication class to add support for other authentication methods.
 
-By default authenticatio is disabled and only enabled when you pass in the `--auth-config` argument when running the application.
+By default authentication is disabled and only enabled when you pass in the `--auth-config` argument when running the application.
 
 ### Enable GitHub Authentication
 
