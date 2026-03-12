@@ -115,6 +115,14 @@ class ValidationService:
         """Validate that the component can be instantiated"""
         try:
             model = component.model_copy(deep=True)
+
+            # SECURITY: Skip instantiation for FunctionTool to prevent arbitrary code execution.
+            # FunctionTool._from_config() uses exec() on user-provided source_code, which is an RCE vector.
+            # Schema validation is sufficient for FunctionTool - we validate the config structure without
+            # actually executing the code. This blocks drive-by attacks via the /api/validate/ endpoint.
+            if "FunctionTool" in model.provider:
+                return None
+
             # Attempt to load the component
             module_path, class_name = model.provider.rsplit(".", maxsplit=1)
             module = importlib.import_module(module_path)

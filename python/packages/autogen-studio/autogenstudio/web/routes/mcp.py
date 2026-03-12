@@ -1,8 +1,6 @@
-import base64
-import json
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 from autogen_ext.tools.mcp._config import (
     McpServerParams,
@@ -31,6 +29,11 @@ router = APIRouter()
 
 # Global session tracking for status endpoint
 active_sessions: Dict[str, Dict[str, Any]] = {}
+
+# Server-side storage for pending MCP session parameters.
+# Params are registered via POST /ws/connect and consumed (popped) when the WebSocket connects.
+# This prevents attackers from injecting arbitrary server_params via the WebSocket query string.
+pending_session_params: Dict[str, Union[StdioServerParams, SseServerParams, StreamableHttpServerParams]] = {}
 
 
 class CreateWebSocketConnectionRequest(BaseModel):
@@ -129,35 +132,19 @@ async def create_mcp_session(bridge: MCPWebSocketBridge, server_params: McpServe
 
 @router.websocket("/ws/{session_id}")
 async def mcp_websocket(websocket: WebSocket, session_id: str):
-    """Main WebSocket endpoint - now a thin layer"""
+    """Main WebSocket endpoint - looks up server params from server-side storage"""
+    # Look up pre-registered server params (one-time use)
+    server_params = pending_session_params.pop(session_id, None)
+    if server_params is None:
+        await websocket.close(code=4004, reason="Unknown or expired session")
+        return
+
     await websocket.accept()
     logger.info(f"MCP WebSocket connection established for session {session_id}")
 
     bridge = None
 
     try:
-        # Parse server parameters
-        query_params = dict(websocket.query_params)
-        server_params_encoded = query_params.get("server_params")
-
-        if not server_params_encoded:
-            await websocket.close(code=4000, reason="Missing server_params")
-            return
-
-        decoded_params = base64.b64decode(server_params_encoded).decode("utf-8")
-        server_params_dict = json.loads(decoded_params)
-
-        # Create appropriate server params object
-        if server_params_dict.get("type") == "StdioServerParams":
-            server_params = StdioServerParams(**server_params_dict)
-        elif server_params_dict.get("type") == "SseServerParams":
-            server_params = SseServerParams(**server_params_dict)
-        elif server_params_dict.get("type") == "StreamableHttpServerParams":
-            server_params = StreamableHttpServerParams(**server_params_dict)
-        else:
-            await websocket.close(code=4000, reason="Invalid server parameters")
-            return
-
         # Create bridge and run MCP session
         bridge = MCPWebSocketBridge(websocket, session_id)
         await create_mcp_session(bridge, server_params, session_id)
@@ -197,18 +184,18 @@ async def mcp_websocket(websocket: WebSocket, session_id: str):
 
 @router.post("/ws/connect")
 async def create_mcp_websocket_connection(request: CreateWebSocketConnectionRequest):
-    """Create WebSocket connection URL"""
+    """Register server params and return a WebSocket URL with session_id only"""
     try:
         session_id = str(uuid.uuid4())
 
-        server_params_json = json.dumps(serialize_for_json(request.server_params.model_dump()))
-        server_params_encoded = base64.b64encode(server_params_json.encode("utf-8")).decode("utf-8")
+        # Store params server-side — WebSocket handler will pop them on connect
+        pending_session_params[session_id] = request.server_params
 
         return {
             "status": True,
             "message": "WebSocket connection URL created",
             "session_id": session_id,
-            "websocket_url": f"/api/mcp/ws/{session_id}?server_params={server_params_encoded}",
+            "websocket_url": f"/api/mcp/ws/{session_id}",
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
