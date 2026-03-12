@@ -155,6 +155,11 @@ canvas = [
     "unidiff>=0.7.5",
 ]
 
+a2a = [
+    "a2a-sdk>=0.2.5",
+    "python-slugify~=8.0.4"
+]
+
 redisvl = ["redisvl>=0.6.0"]
 
 [tool.hatch.build.targets.wheel]
