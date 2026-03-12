@@ -5,7 +5,7 @@ from asyncio import Task
 from inspect import getfullargspec
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union, cast
 
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, Image
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, FunctionCall, Image
 from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
@@ -54,12 +54,14 @@ from azure.ai.inference.models import (
 from azure.ai.inference.models import (
     UserMessage as AzureUserMessage,
 )
-from pydantic import BaseModel
+from azure.core.credentials import AzureKeyCredential
+from pydantic import BaseModel, SecretStr
 from typing_extensions import AsyncGenerator, Unpack
 
 from autogen_ext.models.azure.config import (
     GITHUB_MODELS_ENDPOINT,
     AzureAIChatCompletionClientConfig,
+    AzureAIChatCompletionClientConfigModel,
 )
 
 from .._utils.parse_r1_content import parse_r1_content
@@ -178,7 +180,7 @@ def assert_valid_name(name: str) -> str:
     return name
 
 
-class AzureAIChatCompletionClient(ChatCompletionClient):
+class AzureAIChatCompletionClient(ChatCompletionClient, Component[AzureAIChatCompletionClientConfigModel]):
     """
     Chat completion client for models hosted on Azure AI Foundry or GitHub Models.
     See `here <https://learn.microsoft.com/en-us/azure/ai-studio/reference/reference-model-inference-chat-completions>`_ for more info.
@@ -287,7 +289,12 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
     """
 
+    component_type = "model"
+    component_config_schema = AzureAIChatCompletionClientConfigModel
+    component_provider_override = "autogen_ext.models.azure.AzureAIChatCompletionClient"
+
     def __init__(self, **kwargs: Unpack[AzureAIChatCompletionClientConfig]):
+        self._raw_config: Dict[str, Any] = dict(kwargs).copy()
         config = self._validate_config(kwargs)  # type: ignore
         self._model_info = config["model_info"]  # type: ignore
         self._client = self._create_client(config)
@@ -599,6 +606,35 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         self.add_usage(usage)
 
         yield result
+
+    def _to_config(self) -> AzureAIChatCompletionClientConfigModel:
+        copied_config: Dict[str, Any] = {}
+        for k, v in self._raw_config.items():
+            if k == "credential":
+                if isinstance(v, AzureKeyCredential):
+                    copied_config["api_key"] = v.key
+                else:
+                    raise ValueError(
+                        "Only AzureKeyCredential is supported for component serialization. "
+                        "AsyncTokenCredential cannot be serialized."
+                    )
+            elif k in ("tools", "tool_choice"):
+                # These are runtime-only Azure SDK objects, skip them.
+                continue
+            else:
+                copied_config[k] = v
+        return AzureAIChatCompletionClientConfigModel(**copied_config)
+
+    @classmethod
+    def _from_config(cls, config: AzureAIChatCompletionClientConfigModel) -> "AzureAIChatCompletionClient":
+        copied_config = config.model_copy().model_dump(exclude_none=True)
+        if "api_key" in copied_config:
+            api_key = (
+                config.api_key.get_secret_value() if isinstance(config.api_key, SecretStr) else copied_config["api_key"]
+            )
+            copied_config["credential"] = AzureKeyCredential(api_key)
+            del copied_config["api_key"]
+        return cls(**copied_config)
 
     async def close(self) -> None:
         await self._client.close()
