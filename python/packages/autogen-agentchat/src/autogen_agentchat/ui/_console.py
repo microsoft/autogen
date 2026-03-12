@@ -178,7 +178,9 @@ async def Console(
                 )
             if isinstance(message, ModelClientStreamingChunkEvent):
                 await aprint(message.to_text(), end="", flush=True)
-                streaming_chunks.append(message.content)
+                if message.content is not None:
+                    streaming_chunks.append(message.content)
+
             else:
                 if streaming_chunks:
                     streaming_chunks.clear()
