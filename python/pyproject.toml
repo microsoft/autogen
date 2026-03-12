@@ -20,7 +20,6 @@ dev = [
     "tomli-w",
     "chainlit",
     "streamlit",
-    
     # Documentation
     "myst-nb==1.1.2",
     "pydata-sphinx-theme==0.16.0",
@@ -35,6 +34,10 @@ dev = [
     "diskcache",
     "redis",
     "sphinx-autobuild",
+    "sentence-transformers>=3.4.0",
+    "langchain-neo4j>=0.4.0",
+    "rank-bm25>=0.2.2",
+    "ollama>=0.4.7",
 ]
 
 [tool.uv]
