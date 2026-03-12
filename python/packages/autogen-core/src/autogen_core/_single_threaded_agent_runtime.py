@@ -44,7 +44,7 @@ from ._serialization import JSON_DATA_CONTENT_TYPE, MessageSerializer, Serializa
 from ._subscription import Subscription
 from ._telemetry import EnvelopeMetadata, MessageRuntimeTracingConfig, TraceHelper, get_telemetry_envelope_metadata
 from ._topic import TopicId
-from .exceptions import MessageDroppedException
+from .exceptions import MessageDroppedException, RecipientNotFoundError
 
 logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
@@ -362,7 +362,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         ):
             future = asyncio.get_event_loop().create_future()
             if recipient.type not in self._known_agent_names:
-                future.set_exception(Exception("Recipient not found"))
+                future.set_exception(RecipientNotFoundError(f"Recipient not found for {recipient}"))
                 return await future
 
             content = message.__dict__ if hasattr(message, "__dict__") else message
