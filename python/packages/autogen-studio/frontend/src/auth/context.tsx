@@ -8,6 +8,7 @@ import {
   isValidMessageOrigin,
   isValidUserObject,
 } from "../components/utils/security-utils";
+import { getAuthProviderInfo } from "./utils";
 
 interface AuthContextType {
   user: User | null;
@@ -111,13 +112,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Update user state
         setUser(data.user);
 
-        // Show success message
-        message.success("Successfully logged in");
+        // Show success message with provider name
+        const providerInfo = getAuthProviderInfo(data.user.provider || authType);
+        message.success(`Successfully signed in with ${providerInfo.displayName}`);
 
         // Redirect to home
         navigate(sanitizeRedirectUrl("/"));
       } else if (data.type === "auth-error") {
-        message.error(`Authentication failed: ${data.error}`);
+        const providerInfo = getAuthProviderInfo(authType);
+        message.error(`${providerInfo.displayName} authentication failed: ${data.error}`);
       }
     };
 
