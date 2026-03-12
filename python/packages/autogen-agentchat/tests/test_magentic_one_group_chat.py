@@ -219,3 +219,58 @@ async def test_magentic_one_group_chat_with_stalls(runtime: AgentRuntime | None)
     assert isinstance(result.messages[4], TextMessage)
     assert result.messages[4].content.startswith("\nWe are working to address the following user request:")
     assert result.stop_reason is not None and result.stop_reason == "test"
+
+
+@pytest.mark.asyncio
+async def test_magentic_one_group_chat_response_key_error(runtime: AgentRuntime | None) -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _EchoAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    agent_4 = _EchoAgent("agent_4", description="echo agent 4")
+
+    async def mock_response(data: str) -> None:
+        model_client = ReplayChatCompletionClient(
+            chat_completions=["test", "test", *[json.dumps({})] * 9, data],
+        )
+        team = MagenticOneGroupChat(
+            participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client, runtime=runtime
+        )
+        await team.run(task="Write a program that prints 'Hello, world!'")
+
+    with pytest.raises(ValueError) as error_info:
+        await mock_response(json.dumps({}))
+    assert "is_request_satisfied" in str(error_info.value)
+
+    with pytest.raises(ValueError) as error_info:
+        await mock_response(json.dumps({"is_request_satisfied": ""}))
+    assert "is_request_satisfied" in str(error_info.value)
+
+    with pytest.raises(ValueError) as error_info:
+        await mock_response(json.dumps({"is_request_satisfied": {"answer": True}}))
+    assert "is_request_satisfied" in str(error_info.value)
+
+    with pytest.raises(ValueError) as error_info:
+        await mock_response(json.dumps({"is_request_satisfied": {"reason": "test"}}))
+    assert "is_request_satisfied" in str(error_info.value)
+
+    with pytest.raises(ValueError) as error_info:
+        await mock_response(json.dumps({"is_request_satisfied": {"answer": True, "reason": "test"}}))
+    assert "is_progress_being_made" in str(error_info.value)
+
+    with pytest.raises(ValueError) as error_info:
+        await mock_response(
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": False, "reason": "test"},
+                    "is_progress_being_made": {"answer": False, "reason": "test"},
+                    "is_in_loop": {"answer": True, "reason": "test"},
+                    "instruction_or_question": {"answer": "Stalling", "reason": "test"},
+                    "next_speaker": {"answer": "agent_0", "reason": "test"},
+                }
+            )
+        )
+    assert "agent_0" in str(error_info.value)
+
+    with pytest.raises(ValueError) as error_info:
+        await mock_response(json.dumps('{"is_request_satisfied":}'))
+    assert "invalid ledger format" in str(error_info.value)
