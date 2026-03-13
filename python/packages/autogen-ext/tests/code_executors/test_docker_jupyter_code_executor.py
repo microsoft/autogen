@@ -13,6 +13,8 @@ from autogen_ext.code_executors.docker_jupyter import (
     DockerJupyterServer,
 )
 
+pytestmark = pytest.mark.docker
+
 
 def docker_tests_enabled() -> bool:
     if os.environ.get("SKIP_DOCKER", "unset").lower() == "true":
