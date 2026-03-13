@@ -236,12 +236,12 @@ def build_python_functions_file(
         if isinstance(func, (FunctionWithRequirements, FunctionWithRequirementsStr)):
             global_imports.update(func.global_imports)
 
-    content = "\n".join(map(_import_to_str, global_imports)) + "\n\n"
+    parts: list[str] = []
+    if global_imports:
+        parts.append("\n".join(sorted(map(_import_to_str, global_imports))))
+    parts.extend(_to_code(func) for func in funcs)
 
-    for func in funcs:
-        content += _to_code(func) + "\n\n"
-
-    return content
+    return "\n\n".join(parts) + "\n"
 
 
 def to_stub(func: Union[Callable[..., Any], FunctionWithRequirementsStr]) -> str:
