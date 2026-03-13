@@ -474,12 +474,11 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             raise ValueError(f"Unsupported server params type: {type(self._server_params)}")
 
     async def stop(self) -> None:
-        if self._actor:
-            # Close the actor
-            await self._actor.close()
-            self._actor = None
-        else:
-            raise RuntimeError("McpWorkbench is not started. Call start() first.")
+        if self._actor is None:
+            return  # Already stopped or never started - idempotent
+        # Close the actor
+        await self._actor.close()
+        self._actor = None
 
     async def reset(self) -> None:
         pass
