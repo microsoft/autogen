@@ -14,6 +14,8 @@ from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 
+pytestmark = pytest.mark.docker
+
 
 def docker_tests_enabled() -> bool:
     if os.environ.get("SKIP_DOCKER", "unset").lower() == "true":
