@@ -232,10 +232,24 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             **Limitation**: The callable is *not serializable*; values provided via YAML/JSON configs are ignored.
 
+        tool_call_error_function (Callable[[Exception, FunctionCall], str | None] | None, optional):
+            Callable that handles exceptions raised during tool execution. When provided,
+            tool exceptions are no longer silently caught and stringified. Instead, the callable
+            receives the exception and the FunctionCall, and should return:
+
+            - A ``str``: used as the error content in the ``FunctionExecutionResult`` (the error is handled).
+            - ``None``: the exception is re-raised and propagates up the call stack (the error is fatal).
+
+            This allows fine-grained control over which errors are recoverable and which should
+            halt execution. When not set (default), all tool errors are caught and their string
+            representation is passed to the model.
+
+            **Limitation**: The callable is *not serializable*; values provided via YAML/JSON configs are ignored.
+
     .. note::
 
-        `tool_call_summary_formatter` is intended for in-code use only. It cannot currently be saved or restored via
-        configuration files.
+        `tool_call_summary_formatter` and `tool_call_error_function` are intended for in-code use only.
+        They cannot currently be saved or restored via configuration files.
 
         memory (Sequence[Memory] | None, optional): The memory store to use for the agent. Defaults to `None`.
         metadata (Dict[str, str] | None, optional): Optional metadata for tracking.
@@ -739,6 +753,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         max_tool_iterations: int = 1,
         tool_call_summary_format: str = "{result}",
         tool_call_summary_formatter: Callable[[FunctionCall, FunctionExecutionResult], str] | None = None,
+        tool_call_error_function: Callable[[Exception, FunctionCall], str | None] | None = None,
         output_content_type: type[BaseModel] | None = None,
         output_content_type_format: str | None = None,
         memory: Sequence[Memory] | None = None,
@@ -832,7 +847,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             else:
                 self._workbench = [workbench]
         else:
-            self._workbench = [StaticStreamWorkbench(self._tools)]
+            self._workbench = [StaticStreamWorkbench(self._tools, raise_on_error=tool_call_error_function is not None)]
 
         if model_context is not None:
             self._model_context = model_context
@@ -856,6 +871,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         self._tool_call_summary_format = tool_call_summary_format
         self._tool_call_summary_formatter = tool_call_summary_formatter
+        self._tool_call_error_function = tool_call_error_function
         self._is_running = False
 
     @property
@@ -1007,6 +1023,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             output_content_type=output_content_type,
             message_id=message_id,
             format_string=self._output_content_type_format,
+            tool_call_error_function=self._tool_call_error_function,
         ):
             yield output_event
 
@@ -1135,6 +1152,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         output_content_type: type[BaseModel] | None,
         message_id: str,
         format_string: str | None = None,
+        tool_call_error_function: Callable[[Exception, FunctionCall], str | None] | None = None,
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """
         Handle final or partial responses from model_result, including tool calls, handoffs,
@@ -1197,19 +1215,25 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 function_calls: List[FunctionCall],
                 stream_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | None],
             ) -> List[Tuple[FunctionCall, FunctionExecutionResult]]:
-                results = await asyncio.gather(
-                    *[
-                        cls._execute_tool_call(
-                            tool_call=call,
-                            workbench=workbench,
-                            handoff_tools=handoff_tools,
-                            agent_name=agent_name,
-                            cancellation_token=cancellation_token,
-                            stream=stream_queue,
-                        )
-                        for call in function_calls
-                    ]
-                )
+                try:
+                    results = await asyncio.gather(
+                        *[
+                            cls._execute_tool_call(
+                                tool_call=call,
+                                workbench=workbench,
+                                handoff_tools=handoff_tools,
+                                agent_name=agent_name,
+                                cancellation_token=cancellation_token,
+                                stream=stream_queue,
+                                tool_call_error_function=tool_call_error_function,
+                            )
+                            for call in function_calls
+                        ]
+                    )
+                except Exception:
+                    # Ensure the stream gets the sentinel so the consumer loop doesn't hang.
+                    stream_queue.put_nowait(None)
+                    raise
                 # Signal the end of streaming by putting None in the queue.
                 stream_queue.put_nowait(None)
                 return results
@@ -1540,8 +1564,17 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         agent_name: str,
         cancellation_token: CancellationToken,
         stream: asyncio.Queue[BaseAgentEvent | BaseChatMessage | None],
+        tool_call_error_function: Callable[[Exception, FunctionCall], str | None] | None = None,
     ) -> Tuple[FunctionCall, FunctionExecutionResult]:
-        """Execute a single tool call and return the result."""
+        """Execute a single tool call and return the result.
+
+        Args:
+            tool_call_error_function: Optional callable that handles tool execution errors.
+                When provided, the workbench is expected to raise exceptions (raise_on_error=True).
+                The callable receives the exception and the FunctionCall, and should return:
+                - A string: used as the error content in FunctionExecutionResult (error is handled).
+                - None: the exception is re-raised (error is fatal).
+        """
         # Load the arguments from the tool call.
         try:
             arguments = json.loads(tool_call.arguments)
@@ -1577,32 +1610,48 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         for wb in workbench:
             tools = await wb.list_tools()
             if any(t["name"] == tool_call.name for t in tools):
-                if isinstance(wb, StaticStreamWorkbench):
-                    tool_result: ToolResult | None = None
-                    async for event in wb.call_tool_stream(
-                        name=tool_call.name,
-                        arguments=arguments,
-                        cancellation_token=cancellation_token,
-                        call_id=tool_call.id,
-                    ):
-                        if isinstance(event, ToolResult):
-                            tool_result = event
-                        elif isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
-                            await stream.put(event)
-                        else:
-                            warnings.warn(
-                                f"Unexpected event type: {type(event)} in tool call streaming.",
-                                UserWarning,
-                                stacklevel=2,
-                            )
-                    assert isinstance(tool_result, ToolResult), "Tool result should not be None in streaming mode."
-                else:
-                    tool_result = await wb.call_tool(
-                        name=tool_call.name,
-                        arguments=arguments,
-                        cancellation_token=cancellation_token,
-                        call_id=tool_call.id,
-                    )
+                try:
+                    if isinstance(wb, StaticStreamWorkbench):
+                        tool_result: ToolResult | None = None
+                        async for event in wb.call_tool_stream(
+                            name=tool_call.name,
+                            arguments=arguments,
+                            cancellation_token=cancellation_token,
+                            call_id=tool_call.id,
+                        ):
+                            if isinstance(event, ToolResult):
+                                tool_result = event
+                            elif isinstance(event, BaseAgentEvent) or isinstance(event, BaseChatMessage):
+                                await stream.put(event)
+                            else:
+                                warnings.warn(
+                                    f"Unexpected event type: {type(event)} in tool call streaming.",
+                                    UserWarning,
+                                    stacklevel=2,
+                                )
+                        assert isinstance(tool_result, ToolResult), "Tool result should not be None in streaming mode."
+                    else:
+                        tool_result = await wb.call_tool(
+                            name=tool_call.name,
+                            arguments=arguments,
+                            cancellation_token=cancellation_token,
+                            call_id=tool_call.id,
+                        )
+                except Exception as e:
+                    if tool_call_error_function is not None:
+                        error_result = tool_call_error_function(e, tool_call)
+                        if error_result is None:
+                            raise
+                        return (
+                            tool_call,
+                            FunctionExecutionResult(
+                                content=error_result,
+                                call_id=tool_call.id,
+                                is_error=True,
+                                name=tool_call.name,
+                            ),
+                        )
+                    raise
                 return (
                     tool_call,
                     FunctionExecutionResult(
