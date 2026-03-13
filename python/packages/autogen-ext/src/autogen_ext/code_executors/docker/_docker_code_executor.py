@@ -439,10 +439,6 @@ $functions"""
         if not self._running:
             return
 
-        if self._temp_dir is not None:
-            self._temp_dir.cleanup()
-            self._temp_dir = None
-
         client = docker.from_env()
         try:
             try:
@@ -491,6 +487,10 @@ $functions"""
         finally:
             self._running = False
             self._cancellation_futures.clear()
+            # Clean up the temporary directory after container stop
+            if self._temp_dir is not None:
+                self._temp_dir.cleanup()
+                self._temp_dir = None
 
     async def start(self) -> None:
         """(Experimental) Start the code executor.
