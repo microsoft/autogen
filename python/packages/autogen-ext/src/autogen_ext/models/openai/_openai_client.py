@@ -1481,6 +1481,10 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             if "api_key" not in copied_args and "LLAMA_API_KEY" in os.environ:
                 copied_args["api_key"] = os.environ["LLAMA_API_KEY"]
 
+        # Add default timeout of 60 seconds to prevent indefinite hangs
+        if "timeout" not in copied_args:
+            copied_args["timeout"] = 60.0
+
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
 
@@ -1696,6 +1700,10 @@ class AzureOpenAIChatCompletionClient(
         include_name_in_message: bool = True
         if "include_name_in_message" in kwargs:
             include_name_in_message = kwargs["include_name_in_message"]
+
+        # Add default timeout of 60 seconds to prevent indefinite hangs
+        if "timeout" not in copied_args:
+            copied_args["timeout"] = 60.0
 
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
