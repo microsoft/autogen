@@ -3378,3 +3378,50 @@ async def test_reasoning_effort_validation() -> None:
         }
 
         ChatCompletionClient.load_component(config)
+
+
+@pytest.mark.asyncio
+async def test_extra_body_load_component() -> None:
+    """Test that extra_body survives load_component() round-trip (issue #7418)."""
+    from autogen_core.models import ChatCompletionClient
+
+    # Direct instantiation should work (baseline)
+    client = OpenAIChatCompletionClient(
+        model="gpt-4o",
+        api_key="fake_key",
+        extra_body={"enable_thinking": False},
+    )
+    assert client._create_args["extra_body"] == {"enable_thinking": False}  # pyright: ignore[reportPrivateUsage]
+
+    # load_component should preserve extra_body
+    openai_config = {
+        "provider": "OpenAIChatCompletionClient",
+        "config": {
+            "model": "gpt-4o",
+            "api_key": "fake_key",
+            "extra_body": {"enable_thinking": False},
+        },
+    }
+    loaded_client = ChatCompletionClient.load_component(openai_config)
+    assert loaded_client._create_args["extra_body"] == {"enable_thinking": False}  # type: ignore[attr-defined] # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
+    assert loaded_client._raw_config["extra_body"] == {"enable_thinking": False}  # type: ignore[attr-defined] # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
+
+    # dump_component -> load_component round-trip
+    config_dict = client.dump_component()
+    reloaded_client = OpenAIChatCompletionClient.load_component(config_dict)
+    assert reloaded_client._create_args["extra_body"] == {"enable_thinking": False}  # pyright: ignore[reportPrivateUsage]
+
+    # Azure variant
+    azure_config = {
+        "provider": "AzureOpenAIChatCompletionClient",
+        "config": {
+            "model": "gpt-4o",
+            "azure_endpoint": "https://fake.openai.azure.com",
+            "azure_deployment": "gpt-4o",
+            "api_version": "2024-06-01",
+            "api_key": "fake_key",
+            "extra_body": {"enable_thinking": False},
+        },
+    }
+    loaded_azure = ChatCompletionClient.load_component(azure_config)
+    assert loaded_azure._create_args["extra_body"] == {"enable_thinking": False}  # type: ignore[attr-defined] # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
