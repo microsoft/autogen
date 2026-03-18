@@ -559,17 +559,22 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         content: Union[str, List[FunctionCall]]
 
-        if len(content_deltas) > 1:
-            content = "".join(content_deltas)
+        if full_tool_calls:
+            # This is a tool call response.
+            content = list(full_tool_calls.values())
+            if content_deltas:
+                # Store any text alongside tool calls as thoughts.
+                thought = "".join(content_deltas)
+        else:
+            # This is a text response.
+            if content_deltas:
+                content = "".join(content_deltas)
+            else:
+                content = ""
             if chunk and chunk.usage:
                 completion_tokens = chunk.usage.completion_tokens
             else:
                 completion_tokens = 0
-        else:
-            content = list(full_tool_calls.values())
-
-            if len(content_deltas) > 0:
-                thought = "".join(content_deltas)
 
         usage = RequestUsage(
             completion_tokens=completion_tokens,
