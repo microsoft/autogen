@@ -44,6 +44,8 @@ _MODEL_POINTERS = {
     # MiniMax models
     "minimax-m2.5": "MiniMax-M2.5",
     "minimax-m2.5-highspeed": "MiniMax-M2.5-highspeed",
+    "minimax-m2.7": "MiniMax-M2.7",
+    "minimax-m2.7-highspeed": "MiniMax-M2.7-highspeed",
     # Llama models
     "llama-3.3-8b": "Llama-3.3-8B-Instruct",
     "llama-3.3-70b": "Llama-3.3-70B-Instruct",
@@ -428,6 +430,22 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": True,
         "multiple_system_messages": True,
     },
+    "MiniMax-M2.7": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MINIMAX_M2_7,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+    "MiniMax-M2.7-highspeed": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MINIMAX_M2_7,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
     "Llama-3.3-8B-Instruct": {
         "vision": False,
         "function_calling": True,
@@ -508,6 +526,8 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "claude-opus-4-20250514": 200000,
     "MiniMax-M2.5": 204800,
     "MiniMax-M2.5-highspeed": 204800,
+    "MiniMax-M2.7": 204800,
+    "MiniMax-M2.7-highspeed": 204800,
     "Llama-3.3-8B-Instruct": 128000,
     "Llama-3.3-70B-Instruct": 128000,
     "Llama-4-Scout-17B-16E-Instruct-FP8": 128000,
