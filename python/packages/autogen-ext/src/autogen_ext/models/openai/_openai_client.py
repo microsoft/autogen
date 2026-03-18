@@ -141,6 +141,9 @@ def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
         raise ValueError(f"Required create args are missing: {required_create_args - create_args_keys}")
     if disallowed_create_args.intersection(create_args_keys):
         raise ValueError(f"Disallowed create args are present: {disallowed_create_args.intersection(create_args_keys)}")
+    # Add default timeout of 60s to prevent indefinite hangs on network issues
+    if "timeout" not in create_args_keys:
+        create_args["timeout"] = 60.0
     return create_args
 
 
