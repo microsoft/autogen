@@ -170,7 +170,7 @@ class EmbeddingProviderMixin:
                 ) from None
 
             if api_key:
-                azure_client = AsyncAzureOpenAI(api_key=api_key, api_version=api_version, azure_endpoint=endpoint)
+                azure_client = AsyncAzureOpenAI(api_key=api_key, api_version=api_version, azure_endpoint=endpoint, timeout=60.0)
             else:
 
                 def get_token() -> str:
@@ -181,7 +181,7 @@ class EmbeddingProviderMixin:
                     return token.token
 
                 azure_client = AsyncAzureOpenAI(
-                    azure_ad_token_provider=get_token, api_version=api_version, azure_endpoint=endpoint
+                    azure_ad_token_provider=get_token, api_version=api_version, azure_endpoint=endpoint, timeout=60.0
                 )
 
             try:
@@ -200,7 +200,7 @@ class EmbeddingProviderMixin:
                 ) from None
 
             api_key = getattr(search_config, "openai_api_key", None)
-            openai_client = AsyncOpenAI(api_key=api_key)
+            openai_client = AsyncOpenAI(api_key=api_key, timeout=60.0)
 
             try:
                 response = await openai_client.embeddings.create(model=embedding_model, input=query)
