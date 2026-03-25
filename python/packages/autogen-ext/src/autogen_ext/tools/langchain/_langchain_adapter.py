@@ -109,7 +109,7 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
                 db = SQLDatabase(engine)
 
                 # Create the toolkit.
-                llm = ChatOpenAI(temperature=0)
+                llm = ChatOpenAI(temperature=0, request_timeout=60, max_retries=3)
                 toolkit = SQLDatabaseToolkit(db=db, llm=llm)
 
                 # Create the LangChain tool adapter for every tool in the toolkit.

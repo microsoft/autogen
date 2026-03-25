@@ -63,7 +63,7 @@ def get_log_summary(input_path: str) -> str:
     """
     Generate a single sentence of summary for the given log file.
     """
-    client = OpenAI(timeout=60.0)
+    client = OpenAI(timeout=60.0, max_retries=3)
 
     text = load_log_file(input_path, prepend_numbers=False).text
 

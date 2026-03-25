@@ -23,7 +23,7 @@ class OAIQualitativeCoder(BaseQualitativeCoder):
     DEFAULT_MODEL = "gpt-4o"
 
     def __init__(self, cache_dir: str = ".cache", model: str = DEFAULT_MODEL, cache_enabled: bool = False) -> None:
-        self.client = OpenAI(timeout=60.0)
+        self.client = OpenAI(timeout=60.0, max_retries=3)
         self.cache_dir = cache_dir
         self.model = model
         self.cache_enabled = cache_enabled
