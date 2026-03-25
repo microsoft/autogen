@@ -74,9 +74,7 @@ def _get_trusted_namespaces() -> tuple[str, ...]:
     extra = os.environ.get("AUTOGEN_ALLOWED_PROVIDER_NAMESPACES", "")
     if extra:
         extras = tuple(
-            ns.strip() if ns.strip().endswith(".") else ns.strip() + "."
-            for ns in extra.split(",")
-            if ns.strip()
+            ns.strip() if ns.strip().endswith(".") else ns.strip() + "." for ns in extra.split(",") if ns.strip()
         )
         return _TRUSTED_PROVIDER_NAMESPACES + extras
     return _TRUSTED_PROVIDER_NAMESPACES

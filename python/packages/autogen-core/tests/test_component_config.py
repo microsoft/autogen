@@ -371,8 +371,6 @@ def test_component_descriptions() -> None:
 
 def test_untrusted_provider_rejected() -> None:
     """load_component must reject providers outside trusted namespaces."""
-    import os
-
     bad_model = ComponentModel(provider="os.path.join", config={})
     with pytest.raises(ValueError, match="not in a trusted namespace"):
         ComponentLoader.load_component(bad_model, object)  # type: ignore
