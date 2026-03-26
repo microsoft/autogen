@@ -645,7 +645,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         """
         from openai import AsyncOpenAI
 
-        client = AsyncOpenAI()
+        client = AsyncOpenAI(timeout=60.0, max_retries=3)
 
         return cls(
             name=config.name,

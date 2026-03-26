@@ -32,7 +32,7 @@ skip_if_no_real_openai_key = pytest.mark.skipif(
 @pytest.fixture
 def openai_client() -> AsyncOpenAI:
     """Provides an AsyncOpenAI client using the test API key."""
-    return AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+    return AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY", ""), timeout=60.0, max_retries=3)
 
 
 @pytest.fixture
@@ -107,7 +107,7 @@ async def test_builtin_tool_validation_with_custom_and_builtin(openai_client: As
 async def test_integration_with_openai_api() -> None:
     """Test basic integration with OpenAI API."""
     api_key = os.getenv("OPENAI_API_KEY")
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=3)
     tools = ["web_search_preview"]  # type: ignore
     agent = OpenAIAgent(
         name="integration",
@@ -133,7 +133,7 @@ async def test_integration_with_openai_api() -> None:
 async def test_integration_web_search_preview_tool() -> None:
     """Test web_search_preview tool with actual API call."""
     api_key = os.getenv("OPENAI_API_KEY")
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=3)
     tools = ["web_search_preview"]  # type: ignore
     agent = OpenAIAgent(
         name="web_search_test",
@@ -161,7 +161,7 @@ async def test_integration_web_search_preview_tool() -> None:
 async def test_integration_image_generation_tool() -> None:
     """Test image_generation tool with actual API call."""
     api_key = os.getenv("OPENAI_API_KEY")
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=3)
     tools = ["image_generation"]  # type: ignore
     agent = OpenAIAgent(
         name="image_gen_test",
@@ -189,7 +189,7 @@ async def test_integration_image_generation_tool() -> None:
 async def test_integration_configured_web_search_tool() -> None:
     """Test web_search_preview tool with configuration using actual API call."""
     api_key = os.getenv("OPENAI_API_KEY")
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=3)
     tools = [{"type": "web_search_preview", "user_location": "US", "search_context_size": 5}]  # type: ignore
     agent = OpenAIAgent(
         name="configured_web_search_test",
@@ -217,7 +217,7 @@ async def test_integration_configured_web_search_tool() -> None:
 async def test_integration_configured_image_generation_tool() -> None:
     """Test image_generation tool with configuration using actual API call."""
     api_key = os.getenv("OPENAI_API_KEY")
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=3)
     tools = [{"type": "image_generation", "background": "white"}]  # type: ignore
     agent = OpenAIAgent(
         name="configured_image_gen_test",
@@ -245,7 +245,7 @@ async def test_integration_configured_image_generation_tool() -> None:
 async def test_integration_multiple_builtin_tools() -> None:
     """Test multiple builtin tools together with actual API call."""
     api_key = os.getenv("OPENAI_API_KEY")
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=3)
     tools = ["web_search_preview", "image_generation"]  # type: ignore
     agent = OpenAIAgent(
         name="multi_tool_test",
@@ -284,7 +284,7 @@ async def test_integration_file_search_tool_with_vector_store() -> None:
     if not vector_store_id:
         pytest.skip("OPENAI_VECTOR_STORE_ID not set; skipping file_search integration test.")
 
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=3)
     tools = [{"type": "file_search", "vector_store_ids": [vector_store_id]}]  # type: ignore
     agent = OpenAIAgent(
         name="file_search_test",
@@ -312,7 +312,7 @@ async def test_integration_file_search_tool_with_vector_store() -> None:
 async def test_integration_code_interpreter_tool() -> None:
     """Test code_interpreter tool with actual API call."""
     api_key = os.getenv("OPENAI_API_KEY")
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=3)
     tools = [{"type": "code_interpreter", "container": "python-3.11"}]  # type: ignore
     agent = OpenAIAgent(
         name="code_interpreter_test",
@@ -340,7 +340,7 @@ async def test_integration_code_interpreter_tool() -> None:
 async def test_integration_streaming_with_builtin_tools() -> None:
     """Test streaming responses with builtin tools."""
     api_key = os.getenv("OPENAI_API_KEY")
-    client = AsyncOpenAI(api_key=api_key)
+    client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=3)
     tools = ["web_search_preview"]  # type: ignore
     agent = OpenAIAgent(
         name="streaming_test",
@@ -379,7 +379,7 @@ async def test_integration_streaming_with_builtin_tools() -> None:
 @pytest.mark.asyncio
 async def test_to_config_with_string_builtin_tools() -> None:
     """Test _to_config with string-based builtin tools."""
-    client = AsyncOpenAI()
+    client = AsyncOpenAI(timeout=60.0, max_retries=3)
     tools = ["web_search_preview", "image_generation"]  # type: ignore
     agent = OpenAIAgent(
         name="config_test",
@@ -415,7 +415,7 @@ async def test_to_config_with_string_builtin_tools() -> None:
 @pytest.mark.asyncio
 async def test_to_config_with_configured_builtin_tools() -> None:
     """Test _to_config with configured builtin tools."""
-    client = AsyncOpenAI()
+    client = AsyncOpenAI(timeout=60.0, max_retries=3)
     tools = [
         {"type": "file_search", "vector_store_ids": ["vs1", "vs2"], "max_num_results": 10},  # type: ignore
         {"type": "web_search_preview", "user_location": "US", "search_context_size": 5},  # type: ignore
@@ -514,7 +514,7 @@ async def test_from_config_with_configured_builtin_tools() -> None:
 @pytest.mark.asyncio
 async def test_round_trip_config_serialization() -> None:
     """Test round-trip serialization: agent -> config -> agent."""
-    client = AsyncOpenAI()
+    client = AsyncOpenAI(timeout=60.0, max_retries=3)
     original_tools = [
         "web_search_preview",
         {"type": "file_search", "vector_store_ids": ["vs1"]},  # type: ignore
@@ -561,7 +561,7 @@ async def test_round_trip_config_serialization() -> None:
 @pytest.mark.asyncio
 async def test_config_serialization_with_mixed_tools() -> None:
     """Test config serialization with mixed string and configured tools."""
-    client = AsyncOpenAI()
+    client = AsyncOpenAI(timeout=60.0, max_retries=3)
     tools = [
         "web_search_preview",  # string tool
         {"type": "file_search", "vector_store_ids": ["vs1"]},  # type: ignore
@@ -604,7 +604,7 @@ async def test_config_serialization_with_mixed_tools() -> None:
 @pytest.mark.asyncio
 async def test_config_serialization_with_local_shell() -> None:
     """Test config serialization with local_shell tool (model-restricted)."""
-    client = AsyncOpenAI()
+    client = AsyncOpenAI(timeout=60.0, max_retries=3)
     tools = ["local_shell"]  # type: ignore
 
     agent = OpenAIAgent(
@@ -633,7 +633,7 @@ async def test_config_serialization_with_local_shell() -> None:
 @pytest.mark.asyncio
 async def test_config_serialization_with_complex_web_search() -> None:
     """Test config serialization with complex web_search_preview configuration."""
-    client = AsyncOpenAI()
+    client = AsyncOpenAI(timeout=60.0, max_retries=3)
     tools = [
         {
             "type": "web_search_preview",

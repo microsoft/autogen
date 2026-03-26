@@ -163,7 +163,7 @@ def client(request: pytest.FixtureRequest) -> AsyncOpenAI:
         # Check for OpenAI credentials in environment variables.
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if openai_api_key:
-            return AsyncOpenAI(api_key=openai_api_key)
+            return AsyncOpenAI(api_key=openai_api_key, timeout=60.0, max_retries=3)
         else:
             pytest.skip("OPENAI_API_KEY not set in environment variables.")
 
@@ -186,7 +186,7 @@ def client(request: pytest.FixtureRequest) -> AsyncOpenAI:
 
     if azure_endpoint and api_key:
         # Use Azure OpenAI with API key authentication.
-        return AsyncAzureOpenAI(azure_endpoint=azure_endpoint, api_version=api_version, api_key=api_key)
+        return AsyncAzureOpenAI(azure_endpoint=azure_endpoint, api_version=api_version, api_key=api_key, timeout=60.0, max_retries=3)
 
     pytest.skip("AZURE_OPENAI_ENDPOINT not set in environment variables.")
 
