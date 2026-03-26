@@ -18,7 +18,6 @@ import asyncio
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import TextMessage
-from autogen_agentchat.ui import Console
 from autogen_core import CancellationToken
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.tools.crw import CrwCrawlTool, CrwMapTool, CrwScrapeTool

@@ -11,7 +11,7 @@ See https://github.com/nicholasgasior/crw for more information.
 """
 
 import asyncio
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 import httpx
 from autogen_core import CancellationToken
@@ -117,7 +117,7 @@ class CrwScrapeTool(BaseTool[ScrapeArgs, ScrapeResult]):
             ScrapeArgs,
             ScrapeResult,
             "scrape_url",
-            "Scrape a URL and return its content as markdown. Powered by CRW web scraper.",
+            "Scrape a URL and return its content (markdown, HTML, plain text, and links). Powered by the CRW web scraper.",
         )
 
     def _headers(self) -> dict[str, str]:
@@ -270,6 +270,8 @@ class CrwCrawlTool(BaseTool[CrawlArgs, CrawlResult]):
             "formats": args.formats,
         }
 
+        max_polls = int(self._timeout / args.poll_interval) if args.poll_interval > 0 else 150
+
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
                 resp = await client.post(
@@ -280,14 +282,24 @@ class CrwCrawlTool(BaseTool[CrawlArgs, CrawlResult]):
                 resp.raise_for_status()
                 body = resp.json()
 
-            job_id = body.get("id")
-            if not args.poll:
-                return CrawlResult(success=True, job_id=job_id, status="scraping")
+                success_flag = body.get("success", True)
+                job_id = body.get("id")
+                if not success_flag or not job_id:
+                    return CrawlResult(
+                        success=False,
+                        job_id=job_id,
+                        status=body.get("status"),
+                        error=body.get("error") or "Failed to start crawl job.",
+                    )
 
-            # Poll until completion
-            while True:
-                await asyncio.sleep(args.poll_interval)
-                async with httpx.AsyncClient(timeout=self._timeout) as client:
+                if not args.poll:
+                    return CrawlResult(success=True, job_id=job_id, status="scraping")
+
+                # Poll until completion
+                for _ in range(max_polls):
+                    cancellation_token.throw_if_cancellation_requested()
+                    await asyncio.sleep(args.poll_interval)
+
                     status_resp = await client.get(
                         f"{self._base_url}/v1/crawl/{job_id}",
                         headers=self._headers(),
@@ -295,26 +307,33 @@ class CrwCrawlTool(BaseTool[CrawlArgs, CrawlResult]):
                     status_resp.raise_for_status()
                     status_body = status_resp.json()
 
-                status = status_body.get("status", "")
-                if status in ("completed", "failed"):
-                    pages = [
-                        CrawlPageResult(
-                            markdown=p.get("markdown"),
-                            title=p.get("metadata", {}).get("title"),
-                            source_url=p.get("metadata", {}).get("sourceURL"),
-                            status_code=p.get("metadata", {}).get("statusCode"),
+                    status = status_body.get("status", "")
+                    if status in ("completed", "failed"):
+                        pages = [
+                            CrawlPageResult(
+                                markdown=p.get("markdown"),
+                                title=p.get("metadata", {}).get("title"),
+                                source_url=p.get("metadata", {}).get("sourceURL"),
+                                status_code=p.get("metadata", {}).get("statusCode"),
+                            )
+                            for p in status_body.get("data", [])
+                        ]
+                        return CrawlResult(
+                            success=status == "completed",
+                            job_id=job_id,
+                            status=status,
+                            total=status_body.get("total"),
+                            completed=status_body.get("completed"),
+                            pages=pages,
+                            error=status_body.get("error") if status == "failed" else None,
                         )
-                        for p in status_body.get("data", [])
-                    ]
-                    return CrawlResult(
-                        success=status == "completed",
-                        job_id=job_id,
-                        status=status,
-                        total=status_body.get("total"),
-                        completed=status_body.get("completed"),
-                        pages=pages,
-                        error=status_body.get("error") if status == "failed" else None,
-                    )
+
+                return CrawlResult(
+                    success=False,
+                    job_id=job_id,
+                    status="timeout",
+                    error=f"Crawl did not complete within {max_polls} polls.",
+                )
         except Exception as e:
             return CrawlResult(success=False, error=str(e))
 

@@ -7,7 +7,7 @@ CRW is an open-source web scraper for AI agents — a single Rust binary with a 
 ## Tools
 
 | Tool | Function | CRW Endpoint |
-|------|----------|-------------|
+|------|----------|--------------|
 | `CrwScrapeTool` | Scrape a single URL | `POST /v1/scrape` |
 | `CrwCrawlTool` | Crawl a website (multi-page) | `POST /v1/crawl` + `GET /v1/crawl/{id}` |
 | `CrwMapTool` | Discover all links on a site | `POST /v1/map` |
