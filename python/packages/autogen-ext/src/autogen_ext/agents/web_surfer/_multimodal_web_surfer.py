@@ -48,6 +48,7 @@ from ._prompts import (
     WEB_SURFER_QA_SYSTEM_MESSAGE,
     WEB_SURFER_TOOL_PROMPT_MM,
     WEB_SURFER_TOOL_PROMPT_TEXT,
+    _sanitize_page_metadata,
 )
 from ._set_of_mark import add_set_of_mark
 from ._tool_definitions import (
@@ -555,7 +556,8 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
         state_description = "Your " + await self._get_state_description()
         tool_names = "\n".join([t["name"] for t in tools])
-        page_title = await self._page.title()
+        page_title = _sanitize_page_metadata(await self._page.title())
+        page_url = _sanitize_page_metadata(self._page.url, max_length=500)
 
         prompt_message = None
         if self._model_client.model_info["vision"]:
@@ -566,7 +568,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 focused_hint=focused_hint,
                 tool_names=tool_names,
                 title=page_title,
-                url=self._page.url,
+                url=page_url,
             ).strip()
 
             # Scale the screenshot for the MLM, and close the original
@@ -588,7 +590,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 focused_hint=focused_hint,
                 tool_names=tool_names,
                 title=page_title,
-                url=self._page.url,
+                url=page_url,
             ).strip()
 
             # Create the message
@@ -835,8 +837,9 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         visible_text = await self._playwright_controller.get_visible_text(self._page)
 
         # Return the complete observation
-        page_title = await self._page.title()
-        message_content = f"web browser is open to the page [{page_title}]({self._page.url}).\nThe viewport shows {percent_visible}% of the webpage, and is positioned {position_text}\n"
+        page_title = _sanitize_page_metadata(await self._page.title())
+        page_url = _sanitize_page_metadata(self._page.url, max_length=500)
+        message_content = f"web browser is open to the page <page_title>{page_title}</page_title> (<page_url>{page_url}</page_url>).\nThe viewport shows {percent_visible}% of the webpage, and is positioned {position_text}\n"
         message_content += f"The following text is visible in the viewport:\n\n{visible_text}"
         return message_content
 
@@ -885,6 +888,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             title = await self._page.title()
         except Exception:
             pass
+        title = _sanitize_page_metadata(title)
 
         # Take a screenshot and scale it
         screenshot = Image.open(io.BytesIO(await self._page.screenshot()))
