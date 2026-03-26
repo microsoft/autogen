@@ -257,7 +257,9 @@ class ComponentLoader:
         # Also allow test modules (pytest convention) to load components
         module_name = module_path.rsplit(".", maxsplit=1)[-1]
         is_test_module = module_name.startswith("test_") or module_path.startswith("test_")
-        if not is_test_module and not any(module_path.startswith(ns) or module_path == ns.rstrip(".") for ns in trusted):
+        if not is_test_module and not any(
+            module_path.startswith(ns) or module_path == ns.rstrip(".") for ns in trusted
+        ):
             raise ValueError(
                 f"Provider module '{module_path}' is not in a trusted namespace. "
                 f"Allowed namespaces by default: autogen_core, autogen_agentchat, autogen_ext, "
