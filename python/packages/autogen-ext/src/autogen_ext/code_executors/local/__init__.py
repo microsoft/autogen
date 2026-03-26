@@ -30,6 +30,8 @@ from .._common import (
 
 __all__ = ("LocalCommandLineCodeExecutor",)
 
+logger = logging.getLogger(__name__)
+
 A = ParamSpec("A")
 
 
@@ -160,13 +162,18 @@ $functions"""
         virtual_env_context: Optional[SimpleNamespace] = None,
     ):
         # Issue warning about using LocalCommandLineCodeExecutor
+        _warning_message = (
+            "LocalCommandLineCodeExecutor executes LLM-generated code directly on your machine "
+            "without sandboxing. This can be dangerous if used with untrusted input. "
+            "Consider using DockerCommandLineCodeExecutor for production use. "
+            "See https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/code-executors.html"
+        )
         warnings.warn(
-            "Using LocalCommandLineCodeExecutor may execute code on the local machine which can be unsafe. "
-            "For security, it is recommended to use DockerCommandLineCodeExecutor instead. "
-            "To install Docker, visit: https://docs.docker.com/get-docker/",
-            UserWarning,
+            _warning_message,
+            DeprecationWarning,
             stacklevel=2,
         )
+        logger.warning(_warning_message)
 
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")

@@ -205,6 +205,11 @@ with open("hello.txt", "w") as f:
         assert not hello_file.exists()
 
 
+def test_local_commandline_code_executor_unsandboxed_warning() -> None:
+    with pytest.warns(DeprecationWarning, match=r".*without sandboxing.*"):
+        LocalCommandLineCodeExecutor()
+
+
 @pytest.mark.asyncio
 async def test_local_commandline_code_executor_restart() -> None:
     executor = LocalCommandLineCodeExecutor()
