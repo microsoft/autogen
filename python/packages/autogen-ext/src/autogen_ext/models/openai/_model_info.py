@@ -46,6 +46,11 @@ _MODEL_POINTERS = {
     "llama-3.3-70b": "Llama-3.3-70B-Instruct",
     "llama-4-scout": "Llama-4-Scout-17B-16E-Instruct-FP8",
     "llama-4-maverick": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+    # Mistral models
+    "mistral-large-latest": "mistral-large-2411",
+    "mistral-small-latest": "mistral-small-2501",
+    "codestral-latest": "codestral-2501",
+    "mistral-nemo": "open-mistral-nemo-2407",
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
@@ -441,6 +446,39 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": True,
         "multiple_system_messages": True,
     },
+    # Mistral models
+    "mistral-large-2411": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": False,
+        "multiple_system_messages": True,
+    },
+    "mistral-small-2501": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": False,
+        "multiple_system_messages": True,
+    },
+    "codestral-2501": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": False,
+        "multiple_system_messages": True,
+    },
+    "open-mistral-nemo-2407": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": False,
+        "multiple_system_messages": True,
+    },
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
@@ -491,11 +529,16 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "Llama-3.3-70B-Instruct": 128000,
     "Llama-4-Scout-17B-16E-Instruct-FP8": 128000,
     "Llama-4-Maverick-17B-128E-Instruct-FP8": 128000,
+    "mistral-large-2411": 131072,
+    "mistral-small-2501": 32768,
+    "codestral-2501": 256000,
+    "open-mistral-nemo-2407": 131072,
 }
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1/"
 LLAMA_API_BASE_URL = "https://api.llama.com/compat/v1/"
+MISTRAL_API_BASE_URL = "https://api.mistral.ai/v1/"
 
 
 def resolve_model(model: str) -> str:
@@ -528,3 +571,4 @@ def get_info(model: str) -> ModelInfo:
 def get_token_limit(model: str) -> int:
     resolved_model = resolve_model(model)
     return _MODEL_TOKEN_LIMITS[resolved_model]
+
