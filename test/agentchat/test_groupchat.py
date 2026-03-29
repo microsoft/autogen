@@ -11,7 +11,7 @@ from unittest import mock
 import pytest
 
 import autogen
-from autogen import Agent, AssistantAgent, GroupChat, GroupChatManager
+from autogen import Agent, AssistantAgent, ConversableAgent, GroupChat, GroupChatManager
 from autogen.agentchat.contrib.capabilities import transform_messages, transforms
 from autogen.exception_utils import AgentNameConflict, UndefinedNextAgent
 
@@ -2154,6 +2154,57 @@ def test_select_speaker_transform_messages():
     )
 
     assert groupchat_none._speaker_selection_transforms is None
+
+
+@pytest.mark.asyncio
+async def test_a_initiate_chat_last_message_not_missing():
+    """
+    Regression test for https://github.com/microsoft/autogen/issues/3561
+    Last message was missing from chat history when using a_initiate_chat
+    with multiple speakers in a GroupChat.
+    """
+    MAX_ROUND = 6
+
+    agent1 = ConversableAgent(
+        "agent1",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="Reply from agent1",
+    )
+    agent2 = ConversableAgent(
+        "agent2",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="Reply from agent2",
+    )
+    agent3 = ConversableAgent(
+        "agent3",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="Reply from agent3",
+    )
+
+    groupchat = GroupChat(
+        agents=[agent1, agent2, agent3],
+        messages=[],
+        max_round=MAX_ROUND,
+    )
+    manager = GroupChatManager(groupchat=groupchat, llm_config=False)
+
+    # Run async version
+    async_result = await agent1.a_initiate_chat(
+        manager,
+        message="Start",
+    )
+
+    # Chat history must contain MAX_ROUND messages — none should be missing
+    assert len(async_result.chat_history) == MAX_ROUND, (
+        f"Expected {MAX_ROUND} messages in async chat history, "
+        f"got {len(async_result.chat_history)}. Last message is missing!"
+    )
 
 
 if __name__ == "__main__":
