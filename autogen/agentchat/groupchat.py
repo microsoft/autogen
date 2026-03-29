@@ -1238,20 +1238,17 @@ class GroupChatManager(ConversableAgent):
                 a.previous_cache = a.client_cache
                 a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
+            # track the last speaker
+            self._last_speaker = speaker
             groupchat.append(message, speaker)
-
-            if self._is_termination_msg(message):
-                # The conversation is over
-                break
-
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
                 if agent != speaker:
                     await self.a_send(message, agent, request_reply=False, silent=True)
-            if i == groupchat.max_round - 1:
-                # the last round
+            if self._is_termination_msg(message) or i == groupchat.max_round - 1:
+                # The conversation is over or it's the last round
                 break
-            try:
+           try:
                 # select the next speaker
                 speaker = await groupchat.a_select_speaker(speaker, self)
                 # let the speaker speak
