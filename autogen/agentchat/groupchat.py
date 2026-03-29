@@ -1248,7 +1248,7 @@ class GroupChatManager(ConversableAgent):
             if self._is_termination_msg(message) or i == groupchat.max_round - 1:
                 # The conversation is over or it's the last round
                 break
-           try:
+            try:
                 # select the next speaker
                 speaker = await groupchat.a_select_speaker(speaker, self)
                 # let the speaker speak
