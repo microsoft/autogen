@@ -1944,3 +1944,60 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
 
     # Content-based verification instead of index-based
     # Note: The streaming test verifies the streaming behavior, not the final result content
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_get_current_conversation(runtime: AgentRuntime | None) -> None:
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    termination = MaxMessageTermination(5)
+    team = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=termination,
+        runtime=runtime,
+    )
+    result = await team.run(task="Hello")
+
+    # Get the conversation history.
+    conversation = await team.get_current_conversation()
+
+    # The conversation should contain the same messages as the result.
+    assert len(conversation) == len(result.messages)
+    for conv_msg, result_msg in zip(conversation, result.messages, strict=True):
+        assert compare_messages(conv_msg, result_msg)
+
+    # Verify the conversation content.
+    assert isinstance(conversation[0], TextMessage)
+    assert conversation[0].content == "Hello"
+    assert conversation[0].source == "user"
+
+    # Run a second time (continuing) and verify the conversation grows.
+    result2 = await team.run()
+    conversation2 = await team.get_current_conversation()
+    assert len(conversation2) == len(conversation) + len(result2.messages)
+
+
+@pytest.mark.asyncio
+async def test_get_current_conversation_not_initialized() -> None:
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    team = RoundRobinGroupChat(participants=[agent1])
+    with pytest.raises(RuntimeError, match="not been initialized"):
+        await team.get_current_conversation()
+
+
+@pytest.mark.asyncio
+async def test_get_current_conversation_after_reset(runtime: AgentRuntime | None) -> None:
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    termination = MaxMessageTermination(3)
+    team = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=termination,
+        runtime=runtime,
+    )
+    await team.run(task="Hello")
+
+    # Reset and verify conversation is empty.
+    await team.reset()
+    conversation = await team.get_current_conversation()
+    assert len(conversation) == 0

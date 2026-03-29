@@ -83,6 +83,11 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._emit_team_events = emit_team_events
         self._active_speakers: List[str] = []
 
+    @property
+    def message_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """The current message thread of the group chat."""
+        return list(self._message_thread)
+
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle the start of a group chat by selecting a speaker to start the conversation."""
