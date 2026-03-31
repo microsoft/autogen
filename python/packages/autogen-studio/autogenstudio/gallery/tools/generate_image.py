@@ -25,7 +25,7 @@ async def generate_image(
         List[str]: Paths to the generated image files
     """
     # Initialize the OpenAI client
-    client = OpenAI()
+    client = OpenAI(timeout=60.0, max_retries=3)
 
     # Generate images using DALL-E 3
     response = client.images.generate(model="dall-e-3", prompt=query, n=1, response_format="b64_json", size=image_size)
