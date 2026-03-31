@@ -28,7 +28,8 @@ try:
     from chromadb.api import ClientAPI
 except ImportError as e:
     raise ImportError(
-        "To use the ChromaDBVectorMemory the chromadb extra must be installed. Run `pip install autogen-ext[chromadb]`"
+        f"To use the ChromaDBVectorMemory the chromadb extra must be installed. Original error: {e}\n"
+        "Run `pip install autogen-ext[chromadb]`"
     ) from e
 
 
