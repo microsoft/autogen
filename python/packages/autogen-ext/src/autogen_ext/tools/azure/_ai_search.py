@@ -200,7 +200,7 @@ class EmbeddingProviderMixin:
                 ) from None
 
             api_key = getattr(search_config, "openai_api_key", None)
-            openai_client = AsyncOpenAI(api_key=api_key)
+            openai_client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=3)
 
             try:
                 response = await openai_client.embeddings.create(model=embedding_model, input=query)
