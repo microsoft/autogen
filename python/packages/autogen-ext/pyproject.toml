@@ -157,6 +157,8 @@ canvas = [
 
 redisvl = ["redisvl>=0.6.0"]
 
+mnemopay = ["mcp>=1.11.0"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
 
