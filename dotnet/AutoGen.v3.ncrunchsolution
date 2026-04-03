@@ -1,8 +1,0 @@
-﻿<SolutionConfiguration>
-  <Settings>
-    <AllowParallelTestExecution>True</AllowParallelTestExecution>
-    <EnableRDI>True</EnableRDI>
-    <RdiConfigured>True</RdiConfigured>
-    <SolutionConfigured>True</SolutionConfigured>
-  </Settings>
-</SolutionConfiguration>

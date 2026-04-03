@@ -1,8 +1,0 @@
-- name: Core
-  href: core/
-
-- name: API Reference
-  href: api/
-
-- name: Python⤴
-  href: https://microsoft.github.io/autogen/

@@ -1,7 +1,0 @@
-# Suppressing errors for Test projects under test folder
-[*.cs]
-dotnet_diagnostic.CA2007.severity = none # Do not directly await a Task
-dotnet_diagnostic.VSTHRD111.severity = none # Use .ConfigureAwait(bool) is hidden by default, set to none to prevent IDE from changing on autosave
-dotnet_diagnostic.CS1591.severity = none # Missing XML comment for publicly visible type or member
-dotnet_diagnostic.CS1998.severity = none # Async method lacks 'await' operators and will run synchronously
-dotnet_diagnostic.IDE1006.severity = warning # Naming rule violations

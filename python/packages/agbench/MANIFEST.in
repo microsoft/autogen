@@ -1,4 +1,0 @@
-recursive-exclude  scenarios *
-recursive-exclude  results *
-recursive-exclude  tests *
-recursive-exclude  utils *
