@@ -229,35 +229,9 @@ export const MODEL_TEMPLATES: ComponentTemplate<ModelConfig>[] = [
 ];
 
 // Tool Templates
+// NOTE: FunctionTool has been removed due to security concerns (arbitrary code execution via exec()).
+// Use MCP Workbenches instead for custom tool functionality.
 export const TOOL_TEMPLATES: ComponentTemplate<ToolConfig>[] = [
-  {
-    id: "function-tool",
-    label: "Function Tool",
-    description: "A custom Python function that can be called by agents",
-    provider: PROVIDERS.FUNCTION_TOOL,
-    component_type: "tool",
-    version: 1,
-    component_version: 1,
-    config: {
-      name: "my_function",
-      description: "A custom function that performs a specific task",
-      source_code: `def my_function(input_text: str) -> str:
-    """
-    A template function that processes input text.
-    
-    Args:
-        input_text: The text to process
-    
-    Returns:
-        Processed text result
-    """
-    # Replace this with your custom function logic
-    result = f"Processed: {input_text}"
-    return result`,
-      global_imports: [],
-      has_cancellation_support: false,
-    } as FunctionToolConfig,
-  },
   {
     id: "code-execution-tool",
     label: "Code Execution Tool",

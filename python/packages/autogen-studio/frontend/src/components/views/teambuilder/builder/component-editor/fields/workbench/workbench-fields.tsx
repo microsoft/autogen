@@ -143,32 +143,8 @@ export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
   if (isStaticWorkbench(component)) {
     const staticConfig = component.config as StaticWorkbenchConfig;
 
-    const handleAddTool = () => {
-      const newTool: Component<FunctionToolConfig> = {
-        provider: "autogen_core.tools.FunctionTool",
-        component_type: "tool",
-        version: 1,
-        component_version: 1,
-        label: "New Tool",
-        description: "A new tool",
-        config: {
-          source_code:
-            'def new_tool():\n    """A new tool function"""\n    return "Hello from new tool"',
-          name: "new_tool",
-          description: "A new tool",
-          global_imports: [],
-          has_cancellation_support: false,
-        },
-      };
-
-      const updatedTools = [...(staticConfig.tools || []), newTool];
-      handleComponentUpdate({
-        config: {
-          ...staticConfig,
-          tools: updatedTools,
-        },
-      });
-    };
+    // NOTE: handleAddTool removed - FunctionTool creation is deprecated due to security concerns
+    // (arbitrary code execution via exec()). Users should use MCP Workbenches instead.
 
     const handleUpdateTool = (
       index: number,
@@ -321,21 +297,11 @@ export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
                 ),
                 children: (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-secondary">
-                        <Package className="w-4 h-4" />
-                        <span>
-                          Tools: {staticConfig.tools?.length || 0} configured
-                        </span>
-                      </div>
-                      <Button
-                        type="primary"
-                        size="small"
-                        onClick={handleAddTool}
-                        icon={<PlusCircle className="h-4 w-4" />}
-                      >
-                        Add Tool
-                      </Button>
+                    <div className="flex items-center gap-2 text-sm text-secondary">
+                      <Package className="w-4 h-4" />
+                      <span>
+                        Tools: {staticConfig.tools?.length || 0} configured
+                      </span>
                     </div>
 
                     {staticConfig.tools && staticConfig.tools.length > 0 ? (
@@ -387,10 +353,10 @@ export const WorkbenchFields: React.FC<WorkbenchFieldsProps> = ({
                     ) : (
                       <div className="text-center text-gray-500 py-8 border-2 border-dashed border-gray-200 rounded-lg">
                         <Package className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                        <p className="mb-4">No tools configured</p>
-                        <Button type="dashed" onClick={handleAddTool}>
-                          Add Your First Tool
-                        </Button>
+                        <p className="mb-2">No tools configured</p>
+                        <p className="text-xs text-gray-400">
+                          Use MCP Workbenches for custom tool functionality
+                        </p>
                       </div>
                     )}
 

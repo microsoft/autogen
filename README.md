@@ -152,6 +152,12 @@ For more advanced multi-agent orchestrations and workflows, read
 
 Use AutoGen Studio to prototype and run multi-agent workflows without writing code.
 
+> **Caution**: AutoGen Studio is meant to help you rapidly prototype multi-agent workflows and
+> demonstrate an example of end user interfaces built with AutoGen. It is **not meant to be a
+> production-ready app**. Developers are encouraged to use the AutoGen framework to build their own
+> applications, implementing authentication, security and other features required for deployed
+> applications. See the [security note](https://microsoft.github.io/autogen/dev/user-guide/autogenstudio-user-guide/index.html#a-note-on-security) for more details.
+
 ```bash
 # Run AutoGen Studio on http://localhost:8080
 autogenstudio ui --port 8080 --appdir ./my-app
