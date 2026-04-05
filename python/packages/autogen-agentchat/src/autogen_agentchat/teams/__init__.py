@@ -4,6 +4,7 @@ Each team inherits from the BaseGroupChat class.
 """
 
 from ._group_chat._base_group_chat import BaseGroupChat
+from ._group_chat._message_store import ListMessageStore, MessageStore
 from ._group_chat._graph import (
     DiGraph,
     DiGraphBuilder,
@@ -18,6 +19,8 @@ from ._group_chat._swarm_group_chat import Swarm
 
 __all__ = [
     "BaseGroupChat",
+    "MessageStore",
+    "ListMessageStore",
     "RoundRobinGroupChat",
     "SelectorGroupChat",
     "Swarm",
