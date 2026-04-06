@@ -84,7 +84,7 @@ agent = AssistantAgent(
 )
 ```
 
-A system message alone is insufficient. The disclosure must appear in your application's UI before or at the start of interaction, not just in the agent's prompt.
+A system message alone may be insufficient for embedded AI features. The disclosure should appear in your application's UI before or at the start of interaction. For dedicated AI platforms where the context makes AI interaction obvious, the platform's nature may satisfy Article 50(1) without additional per-interaction disclosure.
 
 ---
 
