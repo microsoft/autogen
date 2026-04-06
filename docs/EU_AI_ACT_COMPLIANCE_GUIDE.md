@@ -86,29 +86,6 @@ agent = AssistantAgent(
 
 A system message alone is insufficient. The disclosure must appear in your application's UI before or at the start of interaction, not just in the agent's prompt.
 
-## 6. Tooling: Automated Compliance Checking
-
-Manual compliance tracking across multi-agent systems does not scale. `ai-trace-auditor` audits trace files against EU AI Act requirements:
-
-```bash
-pip install ai-trace-auditor
-aitrace audit autogen_traces.jsonl --framework eu-ai-act
-```
-
-This checks Article 12 completeness, flags logging gaps, and generates evidence packs for audit review. Supports AutoGen traces, OpenTelemetry, Langfuse, and raw JSONL.
-
-For CI integration:
-
-```yaml
-# .github/workflows/compliance.yml
-- name: EU AI Act audit
-  run: |
-    pip install ai-trace-auditor
-    aitrace audit traces/ --framework eu-ai-act --exit-code
-```
-
-A failing audit blocks the merge. Compliance evidence generates automatically, not after the fact.
-
 ---
 
 **Further reading:** [EU AI Act full text](https://artificialintelligenceact.eu/) | [Annex III high-risk categories](https://artificialintelligenceact.eu/annex/3/) | [AutoGen tracing documentation](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tracing.html)
