@@ -262,7 +262,7 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
     def _save_html(self, html_data: str) -> Path:
         """Save HTML data to a file."""
         path = self._output_dir / f"{uuid.uuid4().hex}.html"
-        path.write_text(html_data)
+        path.write_text(html_data, encoding="utf-8")
         return path.absolute()
 
     async def restart(self) -> None:
