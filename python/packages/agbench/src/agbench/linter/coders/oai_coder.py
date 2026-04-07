@@ -41,7 +41,7 @@ class OAIQualitativeCoder(BaseQualitativeCoder):
             if not os.path.exists(self.cache_dir):
                 os.makedirs(self.cache_dir)
             if cache_file and os.path.exists(cache_file):
-                with open(cache_file, "r") as f:
+                with open(cache_file, "r", encoding="utf-8") as f:
                     cached_coded_doc_json = f.read()
                     return CodedDocument.from_json(cached_coded_doc_json)
 
@@ -203,6 +203,6 @@ the context of the example.
             raise ValueError("Error in coding document with OpenAI")
 
         if self.cache_enabled and cache_file:
-            with open(cache_file, "w") as f:
+            with open(cache_file, "w", encoding="utf-8") as f:
                 f.write(coded_document.model_dump_json(indent=4))
         return coded_document
