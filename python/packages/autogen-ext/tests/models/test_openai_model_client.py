@@ -1671,6 +1671,104 @@ async def test_tool_calling_with_stream(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 @pytest.mark.asyncio
+async def test_tool_calling_with_stream_gemini_style_arguments(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test fix for Gemini-style streaming where each chunk carries a complete JSON object.
+
+    Some providers (e.g. Gemini) emit a full JSON object per streaming chunk rather than
+    incremental argument deltas.  Simple string concatenation produces invalid JSON such as
+    ``{}{"input": "task"}`` which later fails to parse.  The client must detect and recover
+    from this by keeping only the last valid complete JSON object.
+
+    Regression test for: https://github.com/microsoft/autogen/issues/6843
+    """
+
+    async def _mock_create_stream_gemini(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
+        model = resolve_model(kwargs.get("model", "gpt-4o"))
+        # Simulate Gemini behavior: first chunk has empty-object arguments,
+        # subsequent chunk has the actual arguments — both are valid standalone JSON.
+        chunks = [
+            # First tool-call chunk: empty arguments placeholder
+            MockChunkDefinition(
+                chunk_choice=ChunkChoice(
+                    finish_reason=None,
+                    index=0,
+                    delta=ChoiceDelta(
+                        content=None,
+                        role="assistant",
+                        tool_calls=[
+                            ChoiceDeltaToolCall(
+                                index=0,
+                                id="1",
+                                type="function",
+                                function=ChoiceDeltaToolCallFunction(
+                                    name="_pass_function",
+                                    arguments="{}",
+                                ),
+                            )
+                        ],
+                    ),
+                ),
+                usage=None,
+            ),
+            # Second tool-call chunk: actual arguments (Gemini sends full JSON again)
+            MockChunkDefinition(
+                chunk_choice=ChunkChoice(
+                    finish_reason="tool_calls",
+                    index=0,
+                    delta=ChoiceDelta(
+                        content=None,
+                        role="assistant",
+                        tool_calls=[
+                            ChoiceDeltaToolCall(
+                                index=0,
+                                id="",
+                                type="function",
+                                function=ChoiceDeltaToolCallFunction(
+                                    name="",
+                                    arguments=json.dumps({"input": "task"}),
+                                ),
+                            )
+                        ],
+                    ),
+                ),
+                usage=None,
+            ),
+        ]
+        for chunk in chunks:
+            await asyncio.sleep(0.1)
+            yield ChatCompletionChunk(
+                id="id",
+                choices=[chunk.chunk_choice],
+                created=0,
+                model=model,
+                object="chat.completion.chunk",
+                usage=chunk.usage,
+            )
+
+    async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
+        stream = kwargs.get("stream", False)
+        if not stream:
+            raise ValueError("Stream is not False")
+        return _mock_create_stream_gemini(*args, **kwargs)
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
+
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", api_key="")
+    pass_tool = FunctionTool(_pass_function, description="pass tool.")
+    stream = model_client.create_stream(messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool])
+    result_chunks: List[str | CreateResult] = []
+    async for chunk in stream:
+        result_chunks.append(chunk)
+
+    final = result_chunks[-1]
+    assert isinstance(final, CreateResult)
+    # The concatenated raw string would be `{}{"input": "task"}` (invalid JSON).
+    # After recovery the arguments must be the last valid complete JSON object.
+    assert final.content == [FunctionCall(id="1", arguments='{"input": "task"}', name="_pass_function")]
+    assert final.finish_reason == "function_calls"
+
+
+@pytest.mark.asyncio
 async def test_tool_calls_assistant_message_content_field(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that AssistantMessage with tool calls includes required content field.
 
