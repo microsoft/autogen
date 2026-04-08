@@ -16,6 +16,10 @@ programming model provides more flexibility and control over the underlying comp
 AgentChat provides intuitive defaults, such as **Agents** with preset
 behaviors and **Teams** with predefined [multi-agent design patterns](../core-user-guide/design-patterns/intro.md).
 
+```{note}
+For a consolidated tools reference (FunctionTool, built-in tools, and custom BaseTool), see the [Tool Guide](../extensions-user-guide/tool-guide.md).
+```
+
 ::::{grid} 2 2 2 2
 :gutter: 3
 
