@@ -9,6 +9,7 @@ from autogen_agentchat.conditions import (
     FunctionCallTermination,
     HandoffTermination,
     MaxMessageTermination,
+    NoHandoffTermination,
     SourceMatchTermination,
     StopMessageTermination,
     TextMentionTermination,
@@ -108,6 +109,82 @@ async def test_text_message_termination() -> None:
     await termination.reset()
     assert await termination([TextMessage(content="Hello", source="agent")]) is not None
     assert termination.terminated
+
+
+@pytest.mark.asyncio
+async def test_no_handoff_termination() -> None:
+    termination = NoHandoffTermination()
+    # Empty messages: no termination.
+    assert await termination([]) is None
+    await termination.reset()
+    # Only a HandoffMessage: no termination (no TextMessage without handoff).
+    assert await termination([HandoffMessage(target="agent2", source="agent1", content="Handing off")]) is None
+    await termination.reset()
+    # Only a TextMessage (no HandoffMessage): should terminate.
+    result = await termination([TextMessage(content="Hello", source="agent1")])
+    assert result is not None
+    assert isinstance(result, StopMessage)
+    assert "without a handoff" in result.content
+    assert termination.terminated
+    await termination.reset()
+    # TextMessage + HandoffMessage together: no termination (handoff present).
+    assert (
+        await termination(
+            [
+                TextMessage(content="Let me hand this off", source="agent1"),
+                HandoffMessage(target="agent2", source="agent1", content="Here you go"),
+            ]
+        )
+        is None
+    )
+    assert not termination.terminated
+    await termination.reset()
+    # HandoffMessage + TextMessage together: no termination (handoff present).
+    assert (
+        await termination(
+            [
+                HandoffMessage(target="agent2", source="agent1", content="Here you go"),
+                TextMessage(content="Additional info", source="agent1"),
+            ]
+        )
+        is None
+    )
+    assert not termination.terminated
+    await termination.reset()
+    # StopMessage only (not a TextMessage): no termination.
+    assert await termination([StopMessage(content="Stop", source="agent1")]) is None
+    await termination.reset()
+    # TerminatedException after already terminated.
+    assert await termination([TextMessage(content="Hello", source="agent1")]) is not None
+    assert termination.terminated
+    with pytest.raises(TerminatedException):
+        await termination([TextMessage(content="Again", source="agent1")])
+    await termination.reset()
+
+    # With source filter: only match specific source.
+    termination = NoHandoffTermination(source="Alice")
+    assert await termination([]) is None
+    await termination.reset()
+    # TextMessage from wrong source: no termination.
+    assert await termination([TextMessage(content="Hello", source="Bob")]) is None
+    assert not termination.terminated
+    await termination.reset()
+    # TextMessage from correct source without handoff: should terminate.
+    result = await termination([TextMessage(content="Hello", source="Alice")])
+    assert result is not None
+    assert termination.terminated
+    await termination.reset()
+    # TextMessage from correct source WITH handoff: no termination.
+    assert (
+        await termination(
+            [
+                TextMessage(content="Hello", source="Alice"),
+                HandoffMessage(target="Bob", source="Alice", content="Over to you"),
+            ]
+        )
+        is None
+    )
+    assert not termination.terminated
 
 
 @pytest.mark.asyncio
