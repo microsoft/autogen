@@ -1047,7 +1047,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
             # Set thoughts if we have any reasoning content.
             if thought_deltas:
-                thought = "".join(thought_deltas).lstrip("<think>").rstrip("</think>")
+                thought = "".join(thought_deltas).removeprefix("<think>").removesuffix("</think>")
 
             # This is for local R1 models whose reasoning content is within the content string.
             if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1 and thought is None:
