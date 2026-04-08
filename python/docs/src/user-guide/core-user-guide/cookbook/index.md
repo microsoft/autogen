@@ -19,4 +19,5 @@ instrumenting
 topic-subscription-scenarios
 structured-output-agent
 llm-usage-logger
+asqav-audit-trail-with-intervention
 ```
