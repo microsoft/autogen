@@ -42,6 +42,7 @@ extensions = [
     "sphinx_design",
     "sphinx_copybutton",
     "_extension.gallery_directive",
+    "_extension.llms_txt",
     "myst_nb",
     "sphinxcontrib.autodoc_pydantic",
     "_extension.code_lint",
@@ -77,6 +78,27 @@ if (switcher_version := os.getenv("PY_SWITCHER_VERSION")) is None:
     switcher_version = "dev"
 
 html_baseurl = f"/autogen/{path}/"
+
+# -- llms_txt extension settings --------------------------------------------
+# Absolute base URL for llms.txt links (html_baseurl is root-relative).
+llms_txt_base_url = f"https://microsoft.github.io/autogen/{path}"
+
+# Documentation sections included in llms.txt, in display order.
+# Each key is a section heading; the value is the docname path prefix.
+llms_txt_sections = {
+    "AutoGen Studio": "user-guide/autogenstudio-user-guide",
+    "AgentChat": "user-guide/agentchat-user-guide",
+    "Core": "user-guide/core-user-guide",
+    "Extensions": "user-guide/extensions-user-guide",
+}
+
+# One-paragraph description written as the blockquote in llms.txt.
+# Falls back to the Sphinx ``project`` value when not set.
+llms_txt_description = (
+    "AutoGen is an open-source framework for building AI agents and multi-agent applications. "
+    "It offers packages for conversational agents (AgentChat), event-driven multi-agent systems (Core), "
+    "a no-code web UI for prototyping (AutoGen Studio), and community-contributed extensions."
+)
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
