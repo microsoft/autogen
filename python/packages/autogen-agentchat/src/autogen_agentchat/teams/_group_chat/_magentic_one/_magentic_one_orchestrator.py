@@ -142,52 +142,60 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             await self._signal_termination(early_stop_message)
             # Stop the group chat.
             return
-        assert message is not None and message.messages is not None
-
-        # Validate the group state given all the messages.
+        # Validate the group state given all start messages.
         await self.validate_group_state(message.messages)
 
-        # Log the message to the output topic.
-        await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
-        # Log the message to the output queue.
-        for msg in message.messages:
-            await self._output_message_queue.put(msg)
+        if message.messages is not None:
+            # Log the start message to the output topic.
+            await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
+            # Log the user-provided task/feedback messages to the output queue.
+            if message.output_task_messages:
+                for msg in message.messages:
+                    await self._output_message_queue.put(msg)
 
-        # Outer Loop for first time
-        # Create the initial task ledger
-        #################################
-        # Combine all message contents for task
-        self._task = " ".join([msg.to_model_text() for msg in message.messages])
-        planning_conversation: List[LLMMessage] = []
+            # If this is not the first run, preserve the task and append feedback to the existing thread.
+            if self._task != "":
+                await self.update_message_thread(message.messages)
 
-        # 1. GATHER FACTS
-        # create a closed book task and generate a response and update the chat history
-        planning_conversation.append(
-            UserMessage(content=self._get_task_ledger_facts_prompt(self._task), source=self._name)
-        )
-        response = await self._model_client.create(
-            self._get_compatible_context(planning_conversation), cancellation_token=ctx.cancellation_token
-        )
+        # First run requires a task to initialize the task ledger.
+        if self._task == "":
+            if message.messages is None:
+                raise ValueError("MagenticOneGroupChat requires a task message when starting a new conversation.")
 
-        assert isinstance(response.content, str)
-        self._facts = response.content
-        planning_conversation.append(AssistantMessage(content=self._facts, source=self._name))
+            # Outer loop for first run: create the initial task ledger.
+            self._task = " ".join([msg.to_model_text() for msg in message.messages])
+            planning_conversation: List[LLMMessage] = []
 
-        # 2. CREATE A PLAN
-        ## plan based on available information
-        planning_conversation.append(
-            UserMessage(content=self._get_task_ledger_plan_prompt(self._team_description), source=self._name)
-        )
-        response = await self._model_client.create(
-            self._get_compatible_context(planning_conversation), cancellation_token=ctx.cancellation_token
-        )
+            # 1. Gather facts.
+            planning_conversation.append(
+                UserMessage(content=self._get_task_ledger_facts_prompt(self._task), source=self._name)
+            )
+            response = await self._model_client.create(
+                self._get_compatible_context(planning_conversation), cancellation_token=ctx.cancellation_token
+            )
 
-        assert isinstance(response.content, str)
-        self._plan = response.content
+            assert isinstance(response.content, str)
+            self._facts = response.content
+            planning_conversation.append(AssistantMessage(content=self._facts, source=self._name))
 
-        # Kick things off
-        self._n_stalls = 0
-        await self._reenter_outer_loop(ctx.cancellation_token)
+            # 2. Create a plan.
+            planning_conversation.append(
+                UserMessage(content=self._get_task_ledger_plan_prompt(self._team_description), source=self._name)
+            )
+            response = await self._model_client.create(
+                self._get_compatible_context(planning_conversation), cancellation_token=ctx.cancellation_token
+            )
+
+            assert isinstance(response.content, str)
+            self._plan = response.content
+
+            # Kick off the first inner-loop round from the initial task ledger.
+            self._n_stalls = 0
+            await self._reenter_outer_loop(ctx.cancellation_token)
+            return
+
+        # Resume orchestration with preserved context.
+        await self._orchestrate_step(ctx.cancellation_token)
 
     @event
     async def handle_agent_response(  # type: ignore

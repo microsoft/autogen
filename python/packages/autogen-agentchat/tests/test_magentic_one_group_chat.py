@@ -10,8 +10,10 @@ from autogen_agentchat.agents import (
     BaseChatAgent,
 )
 from autogen_agentchat.base import Response
+from autogen_agentchat.conditions import HandoffTermination
 from autogen_agentchat.messages import (
     BaseChatMessage,
+    HandoffMessage,
     TextMessage,
 )
 from autogen_agentchat.teams import (
@@ -54,6 +56,21 @@ class _EchoAgent(BaseChatAgent):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
+
+
+class _UserHandoffAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str) -> None:
+        super().__init__(name, description)
+
+    @property
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+        return (HandoffMessage,)
+
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
+        return Response(chat_message=HandoffMessage(content="Transfer to user.", target="user", source=self.name))
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        pass
 
 
 @pytest_asyncio.fixture(params=["single_threaded", "embedded"])  # type: ignore
@@ -219,3 +236,58 @@ async def test_magentic_one_group_chat_with_stalls(runtime: AgentRuntime | None)
     assert isinstance(result.messages[4], TextMessage)
     assert result.messages[4].content.startswith("\nWe are working to address the following user request:")
     assert result.stop_reason is not None and result.stop_reason == "test"
+
+
+@pytest.mark.asyncio
+async def test_magentic_one_handoff_resume_preserves_context(runtime: AgentRuntime | None) -> None:
+    agent = _UserHandoffAgent("agent_1", description="handoff agent")
+    model_client = ReplayChatCompletionClient(
+        chat_completions=[
+            "No facts",
+            "No plan",
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": False, "reason": "needs user input"},
+                    "is_progress_being_made": {"answer": True, "reason": "waiting for user"},
+                    "is_in_loop": {"answer": False, "reason": "not looping"},
+                    "instruction_or_question": {"answer": "Please provide the missing detail.", "reason": "ask user"},
+                    "next_speaker": {"answer": "agent_1", "reason": "single agent"},
+                }
+            ),
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": False, "reason": "needs user input"},
+                    "is_progress_being_made": {"answer": True, "reason": "waiting for user"},
+                    "is_in_loop": {"answer": False, "reason": "not looping"},
+                    "instruction_or_question": {"answer": "Use the user's follow-up detail.", "reason": "continue"},
+                    "next_speaker": {"answer": "agent_1", "reason": "single agent"},
+                }
+            ),
+        ]
+    )
+    termination = HandoffTermination(target="user")
+    team = MagenticOneGroupChat(participants=[agent], model_client=model_client, termination_condition=termination, runtime=runtime)
+
+    result = await team.run(task="Pick a color for the logo.")
+    assert isinstance(result.messages[-1], HandoffMessage)
+    assert result.stop_reason is not None and "Handoff to user" in result.stop_reason
+
+    manager = await team._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team._group_chat_manager_name}_{team._team_id}", team._team_id),  # pyright: ignore
+        MagenticOneOrchestrator,  # pyright: ignore
+    )  # pyright: ignore
+    assert manager._task == "Pick a color for the logo."  # pyright: ignore
+
+    result = await team.run(task="Green")
+    assert isinstance(result.messages[-1], HandoffMessage)
+    assert result.stop_reason is not None and "Handoff to user" in result.stop_reason
+
+    manager = await team._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team._group_chat_manager_name}_{team._team_id}", team._team_id),  # pyright: ignore
+        MagenticOneOrchestrator,  # pyright: ignore
+    )  # pyright: ignore
+    assert manager._task == "Pick a color for the logo."  # pyright: ignore
+    assert any(
+        isinstance(msg, TextMessage) and msg.source == "user" and msg.content == "Green"
+        for msg in manager._message_thread  # pyright: ignore
+    )
