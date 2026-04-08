@@ -33,6 +33,7 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
+    ModelFamily,
     SystemMessage,
 )
 from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, ToolResult, Workbench
@@ -57,7 +58,7 @@ from ..messages import (
     ToolCallSummaryMessage,
 )
 from ..state import AssistantAgentState
-from ..utils import remove_images
+from ..utils import ensure_alternating_roles, remove_images
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -1640,11 +1641,32 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     @staticmethod
     def _get_compatible_context(model_client: ChatCompletionClient, messages: List[LLMMessage]) -> Sequence[LLMMessage]:
-        """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
-        if model_client.model_info["vision"]:
-            return messages
-        else:
-            return remove_images(messages)
+        """Ensure that the messages are compatible with the underlying client.
+
+        Applies the following transformations in order:
+
+        1. Remove images for models that do not support vision input.
+        2. Merge consecutive same-role messages for models that require strictly
+           alternating user-assistant roles (e.g. DeepSeek R1, Mistral).  The
+           check respects both the explicit ``strict_alternating_roles`` field in
+           :py:class:`~autogen_core.models.ModelInfo` and the family-based
+           heuristic provided by
+           :py:meth:`~autogen_core.models.ModelFamily.requires_strict_alternating_roles`.
+        """
+        result: List[LLMMessage] = list(messages)
+
+        if not model_client.model_info["vision"]:
+            result = list(remove_images(result))
+
+        model_info = model_client.model_info
+        needs_alternation: bool = model_info.get(
+            "strict_alternating_roles",
+            ModelFamily.requires_strict_alternating_roles(model_info["family"]),
+        )
+        if needs_alternation:
+            result = ensure_alternating_roles(result)
+
+        return result
 
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
