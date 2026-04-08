@@ -14,6 +14,7 @@ from autogen_agentchat.messages import (
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
     StopMessage,
+    ThoughtEvent,
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
@@ -134,6 +135,7 @@ class WebSocketManager:
                                 TextMessage,
                                 MultiModalMessage,
                                 StopMessage,
+                                ThoughtEvent,
                                 HandoffMessage,
                                 ToolCallRequestEvent,
                                 ToolCallExecutionEvent,
@@ -384,6 +386,7 @@ class WebSocketManager:
                 (
                     TextMessage,
                     StopMessage,
+                    ThoughtEvent,
                     HandoffMessage,
                     ToolCallRequestEvent,
                     ToolCallExecutionEvent,
