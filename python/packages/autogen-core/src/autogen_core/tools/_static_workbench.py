@@ -33,16 +33,23 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
             names to override configurations for name and/or description. This allows
             customizing how tools appear to consumers while maintaining the underlying
             tool functionality.
+        raise_on_error (bool): If True, exceptions from tool execution will be
+            re-raised instead of being caught and converted to error results.
+            Defaults to False.
     """
 
     component_provider_override = "autogen_core.tools.StaticWorkbench"
     component_config_schema = StaticWorkbenchConfig
 
     def __init__(
-        self, tools: List[BaseTool[Any, Any]], tool_overrides: Optional[Dict[str, ToolOverride]] = None
+        self,
+        tools: List[BaseTool[Any, Any]],
+        tool_overrides: Optional[Dict[str, ToolOverride]] = None,
+        raise_on_error: bool = False,
     ) -> None:
         self._tools = tools
         self._tool_overrides = tool_overrides or {}
+        self._raise_on_error = raise_on_error
 
         # Build reverse mapping from override names to original names for call_tool
         self._override_name_to_original: Dict[str, str] = {}
@@ -119,6 +126,8 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
             is_error = False
             result_str = tool.return_value_as_string(actual_tool_output)
         except Exception as e:
+            if self._raise_on_error:
+                raise
             result_str = self._format_errors(e)
             is_error = True
         return ToolResult(name=name, result=[TextResultContent(content=result_str)], is_error=is_error)
@@ -205,6 +214,8 @@ class StaticStreamWorkbench(StaticWorkbench, StreamWorkbench):
                         previous_result = result
                     actual_tool_output = previous_result
                 except Exception as e:
+                    if self._raise_on_error:
+                        raise
                     # If there was a previous result before the exception, yield it first
                     if previous_result is not None:
                         yield previous_result
@@ -220,6 +231,8 @@ class StaticStreamWorkbench(StaticWorkbench, StreamWorkbench):
             is_error = False
             result_str = tool.return_value_as_string(actual_tool_output)
         except Exception as e:
+            if self._raise_on_error:
+                raise
             result_str = self._format_errors(e)
             is_error = True
         yield ToolResult(name=tool.name, result=[TextResultContent(content=result_str)], is_error=is_error)

@@ -95,6 +95,18 @@ def _echo_function(input: str) -> str:
     return input
 
 
+def _pass_fail_tool(input: str) -> str:
+    """A tool that always raises a RuntimeError for testing error handling.
+
+    Args:
+        input: Input string (unused)
+
+    Returns:
+        Never returns - always raises RuntimeError
+    """
+    raise RuntimeError("pass fail tool")
+
+
 class MockMemory(Memory):
     """Mock memory implementation for testing.
 
@@ -3560,3 +3572,107 @@ class TestAnthropicIntegration:
         usage = client.total_usage()
         assert usage.prompt_tokens > 0
         assert usage.completion_tokens > 0
+
+
+class TestToolCallErrorFunction:
+    """Tests for the tool_call_error_function parameter of AssistantAgent."""
+
+    @pytest.mark.asyncio
+    async def test_tool_error_raises_when_function_returns_none(self) -> None:
+        """When tool_call_error_function returns None, the exception should be re-raised."""
+        model_client = ReplayChatCompletionClient(
+            [
+                CreateResult(
+                    finish_reason="function_calls",
+                    content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_fail_tool")],
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+            ]
+        )
+        model_client._model_info["function_calling"] = True  # pyright: ignore
+
+        def error_handler(e: Exception, call: FunctionCall) -> str | None:
+            return None  # Signal to re-raise
+
+        agent = AssistantAgent(
+            name="test_agent",
+            model_client=model_client,
+            tools=[_pass_fail_tool],
+            tool_call_error_function=error_handler,
+        )
+
+        with pytest.raises(RuntimeError, match="pass fail tool"):
+            await agent.run(task="test")
+
+    @pytest.mark.asyncio
+    async def test_tool_error_handled_when_function_returns_string(self) -> None:
+        """When tool_call_error_function returns a string, it should be used as error content."""
+        model_client = ReplayChatCompletionClient(
+            [
+                CreateResult(
+                    finish_reason="function_calls",
+                    content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_fail_tool")],
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+                CreateResult(
+                    finish_reason="stop",
+                    content="handled the error",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+            ]
+        )
+        model_client._model_info["function_calling"] = True  # pyright: ignore
+
+        def error_handler(e: Exception, call: FunctionCall) -> str | None:
+            return f"Custom error: {e}"
+
+        agent = AssistantAgent(
+            name="test_agent",
+            model_client=model_client,
+            tools=[_pass_fail_tool],
+            tool_call_error_function=error_handler,
+        )
+
+        result = await agent.run(task="test")
+        # The error should have been handled and returned as content
+        tool_call_results = [m for m in result.messages if isinstance(m, ToolCallExecutionEvent)]
+        assert len(tool_call_results) == 1
+        assert tool_call_results[0].content[0].is_error is True
+        assert "Custom error" in tool_call_results[0].content[0].content
+
+    @pytest.mark.asyncio
+    async def test_default_behavior_without_error_function(self) -> None:
+        """Without tool_call_error_function, errors should be stringified as before."""
+        model_client = ReplayChatCompletionClient(
+            [
+                CreateResult(
+                    finish_reason="function_calls",
+                    content=[FunctionCall(id="1", arguments=json.dumps({"input": "task"}), name="_pass_fail_tool")],
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+                CreateResult(
+                    finish_reason="stop",
+                    content="ok",
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+            ]
+        )
+        model_client._model_info["function_calling"] = True  # pyright: ignore
+
+        agent = AssistantAgent(
+            name="test_agent",
+            model_client=model_client,
+            tools=[_pass_fail_tool],
+        )
+
+        # Should not raise - errors are stringified by default
+        result = await agent.run(task="test")
+        tool_call_results = [m for m in result.messages if isinstance(m, ToolCallExecutionEvent)]
+        assert len(tool_call_results) == 1
+        assert tool_call_results[0].content[0].is_error is True
+        assert "pass fail tool" in tool_call_results[0].content[0].content
