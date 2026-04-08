@@ -630,6 +630,15 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         converted_tools = convert_tools(tools)
 
+        # Guardrail: structured output (Pydantic model) cannot be combined with tool calling.
+        # TODO: long-term, this could be a dedicated configuration error type (e.g. IncompatibleModelConfigurationError).
+        if response_format_value is not None and len(converted_tools) > 0:
+            raise ValueError(
+                "Cannot use structured output (output_content_type) together with function tools. "
+                "The OpenAI structured output API does not support tool calling in this mode. "
+                "Either remove output_content_type or remove tools."
+            )
+
         # Process tool_choice parameter
         if isinstance(tool_choice, Tool):
             if len(tools) == 0:

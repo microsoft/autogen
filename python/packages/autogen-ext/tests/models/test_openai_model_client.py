@@ -78,6 +78,12 @@ class MyArgs(BaseModel):
     query: str = Field(description="The description.")
 
 
+class Weather(BaseModel):
+    """Minimal Pydantic model for structured-output guardrail tests (issue #7132)."""
+
+    city: str = Field(description="City name.")
+
+
 class MockChunkDefinition(BaseModel):
     # defining elements for diffentiating mocking chunks
     chunk_choice: ChunkChoice
@@ -2506,6 +2512,74 @@ async def test_single_system_message_for_gemini_model() -> None:
     system_messages = [msg for msg in oai_messages if msg["role"] == "system"]
     assert len(system_messages) == 1
     assert system_messages[0]["content"] == "I am the only system message"
+
+
+# --- Issue #7132: guardrail for structured output + tools ---
+
+
+def _dummy_tool_for_guardrail(city: str) -> str:
+    """Minimal tool for testing structured-output vs tools guardrail."""
+    return f"Weather in {city}"
+
+
+@pytest.mark.asyncio
+async def test_structured_output_with_tools_raises_value_error() -> None:
+    """Pydantic json_output + tools must raise ValueError (guardrail for issue #7132)."""
+    mock_client = MagicMock()
+    client = BaseOpenAIChatCompletionClient(
+        client=mock_client,
+        create_args={"model": "gpt-4o"},
+        model_info={
+            "vision": False,
+            "function_calling": True,
+            "json_output": True,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": True,
+        },
+    )
+    tool = FunctionTool(_dummy_tool_for_guardrail, name="get_weather", description="Get weather", strict=True)
+    messages: List[LLMMessage] = [UserMessage(content="What is the weather in Paris?", source="user")]
+
+    with pytest.raises(ValueError) as exc_info:
+        client._process_create_args(  # pyright: ignore[reportPrivateUsage]
+            messages=messages,
+            tools=[tool],
+            json_output=Weather,
+            extra_create_args={},
+            tool_choice="auto",
+        )
+
+    assert "Cannot use structured output (output_content_type) together with function tools" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_structured_output_without_tools_passes() -> None:
+    """Pydantic json_output + no tools must not raise (guardrail does not apply)."""
+    mock_client = MagicMock()
+    client = BaseOpenAIChatCompletionClient(
+        client=mock_client,
+        create_args={"model": "gpt-4o"},
+        model_info={
+            "vision": False,
+            "function_calling": True,
+            "json_output": True,
+            "family": ModelFamily.UNKNOWN,
+            "structured_output": True,
+        },
+    )
+    messages: List[LLMMessage] = [UserMessage(content="Return Paris.", source="user")]
+
+    create_params = client._process_create_args(  # pyright: ignore[reportPrivateUsage]
+        messages=messages,
+        tools=[],
+        json_output=Weather,
+        extra_create_args={},
+        tool_choice="auto",
+    )
+
+    assert create_params.response_format is Weather
+    assert create_params.messages is not None
+    assert len(create_params.tools) == 0
 
 
 def noop(input: str) -> str:
