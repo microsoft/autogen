@@ -37,11 +37,13 @@ from ._constants import (
 from ._default_subscription import DefaultSubscription, default_subscription, type_subscription
 from ._default_topic import DefaultTopicId
 from ._image import Image
+from ._cost_intervention import CostInterventionHandler
 from ._intervention import (
     DefaultInterventionHandler,
     DropMessage,
     InterventionHandler,
 )
+from ._validation_intervention import JSONValidationIntervention
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
 from ._routed_agent import RoutedAgent, event, message_handler, rpc
@@ -137,6 +139,8 @@ __all__ = [
     "DropMessage",
     "InterventionHandler",
     "DefaultInterventionHandler",
+    "CostInterventionHandler",
+    "JSONValidationIntervention",
     "trace_create_agent_span",
     "trace_invoke_agent_span",
     "trace_tool_span",
