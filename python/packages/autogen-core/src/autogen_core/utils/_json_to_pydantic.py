@@ -139,6 +139,49 @@ class _JSONSchemaToPydantic:
         # Use field name as-is with hash suffix
         return f"{array_field_name}_{hash_suffix}"
 
+    def _resolve_def_as_type(self, model_schema: Dict[str, Any], model_name: str, root_schema: Dict[str, Any]) -> Any:
+        """Return the Python / Pydantic type for a $defs entry.
+
+        Pydantic models are only created for object schemas (``type: object``
+        or schemas with ``properties``).  Array, primitive, enum, and other
+        non-object schemas are resolved to the appropriate Python type so that
+        ``get_ref()`` returns the correct annotation for downstream fields.
+        """
+        schema_type = model_schema.get("type")
+
+        # Object schema → create a Pydantic model as before
+        if schema_type == "object" or "properties" in model_schema or "allOf" in model_schema:
+            return self.json_schema_to_pydantic(model_schema, model_name, root_schema)
+
+        # Array schema → resolve to List[item_type]
+        if schema_type == "array":
+            item_schema = model_schema.get("items", {"type": "string"})
+            if "$ref" in item_schema:
+                ref_name = item_schema["$ref"].split("/")[-1]
+                # May be a forward-reference; resolve lazily via get_ref later
+                item_type = self._model_cache.get(ref_name) or ForwardRef(ref_name)
+            else:
+                item_type_name = item_schema.get("type")
+                item_type = TYPE_MAPPING.get(item_type_name or "", str)  # type: ignore[assignment]
+            constraints: Dict[str, Any] = {}
+            if "minItems" in model_schema:
+                constraints["min_length"] = model_schema["minItems"]
+            if "maxItems" in model_schema:
+                constraints["max_length"] = model_schema["maxItems"]
+            return conlist(item_type, **constraints) if constraints else List[item_type]  # type: ignore[valid-type]
+
+        # Enum schema → Literal
+        if "enum" in model_schema:
+            return Literal[tuple(model_schema["enum"])]  # type: ignore[misc]
+
+        # Primitive type → direct mapping
+        if schema_type in TYPE_MAPPING:
+            return TYPE_MAPPING[schema_type]
+
+        # Fallback: create a model (may fail for unsupported schemas, but
+        # preserves previous behaviour)
+        return self.json_schema_to_pydantic(model_schema, model_name, root_schema)
+
     def _process_definitions(self, root_schema: Dict[str, Any]) -> None:
         if "$defs" in root_schema:
             for model_name in root_schema["$defs"]:
@@ -147,7 +190,9 @@ class _JSONSchemaToPydantic:
 
             for model_name, model_schema in root_schema["$defs"].items():
                 if self._model_cache[model_name] is None:
-                    self._model_cache[model_name] = self.json_schema_to_pydantic(model_schema, model_name, root_schema)
+                    self._model_cache[model_name] = self._resolve_def_as_type(  # type: ignore[assignment]
+                        model_schema, model_name, root_schema
+                    )
 
     def json_schema_to_pydantic(
         self, schema: Dict[str, Any], model_name: str = "GeneratedModel", root_schema: Optional[Dict[str, Any]] = None
