@@ -995,7 +995,7 @@ async def test_selector_group_chat_state(task: TaskType, runtime: AgentRuntime |
         SelectorGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
     assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
-    assert manager_1._previous_speaker == manager_2._previous_speaker  # pyright: ignore
+    assert manager_1._previous_speakers == manager_2._previous_speakers  # pyright: ignore
 
 
 @pytest.mark.asyncio
@@ -1237,6 +1237,74 @@ async def test_selector_group_chat_custom_candidate_func(runtime: AgentRuntime |
         result.stop_reason is not None
         and result.stop_reason == "Maximum number of messages 6 reached, current message count: 6"
     )
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_concurrent_speakers_with_selector_func(runtime: AgentRuntime | None) -> None:
+    """Test concurrent speakers using a selector function that returns multiple speaker names."""
+    model_client = ReplayChatCompletionClient(["agent1"])
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+
+    def _select_concurrent(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> list[str] | str | None:
+        if len(messages) <= 1:
+            # First turn (only task message in thread): select agent1 and agent2 concurrently.
+            return ["agent1", "agent2"]
+        # After concurrent responses, select agent3 alone.
+        return "agent3"
+
+    termination = MaxMessageTermination(5)
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        selector_func=_select_concurrent,
+        termination_condition=termination,
+        runtime=runtime,
+    )
+    result = await team.run(task="concurrent task")
+    # Messages: task, agent1, agent2 (concurrent), then agent3, then again based on selector.
+    assert len(result.messages) >= 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].content == "concurrent task"
+    # agent1 and agent2 should both appear in the first round (order may vary).
+    first_round_sources = {result.messages[1].source, result.messages[2].source}
+    assert first_round_sources == {"agent1", "agent2"}
+    # Next speaker should be agent3.
+    assert result.messages[3].source == "agent3"
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_concurrent_speakers_with_model(runtime: AgentRuntime | None) -> None:
+    """Test concurrent speakers using model-based selection with max_concurrent_speakers > 1."""
+    # Model returns two names in first selection, then one name in subsequent selections.
+    model_client = ReplayChatCompletionClient(
+        ["agent1, agent2", "agent3", "agent1"],
+    )
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+
+    # MaxMessageTermination(3): task(1) + agent2_delta(2) + agent3_delta(3) = terminates
+    # Result will have 4 messages: task, agent1, agent2, agent3
+    termination = MaxMessageTermination(3)
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        termination_condition=termination,
+        runtime=runtime,
+        max_concurrent_speakers=2,
+        allow_repeated_speaker=True,
+    )
+    result = await team.run(task="concurrent task")
+    assert len(result.messages) == 4
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].content == "concurrent task"
+    # First round: agent1 and agent2 concurrently.
+    first_round_sources = {result.messages[1].source, result.messages[2].source}
+    assert first_round_sources == {"agent1", "agent2"}
+    # Second round: agent3.
+    assert result.messages[3].source == "agent3"
 
 
 class _HandOffAgent(BaseChatAgent):
