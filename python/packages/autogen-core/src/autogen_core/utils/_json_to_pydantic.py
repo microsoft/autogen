@@ -105,6 +105,8 @@ def _make_field(
 class _JSONSchemaToPydantic:
     def __init__(self) -> None:
         self._model_cache: Dict[str, Optional[Union[Type[BaseModel], ForwardRef]]] = {}
+        # Cache for non-object types in $defs (arrays, primitives, etc.)
+        self._type_cache: Dict[str, Any] = {}
 
     def _resolve_ref(self, ref: str, schema: Dict[str, Any]) -> Dict[str, Any]:
         ref_key = ref.split("/")[-1]
@@ -118,6 +120,10 @@ class _JSONSchemaToPydantic:
         return definitions[ref_key]
 
     def get_ref(self, ref_name: str) -> Any:
+        # Check type cache first for non-object types (arrays, primitives)
+        if ref_name in self._type_cache:
+            return self._type_cache[ref_name]
+
         if ref_name not in self._model_cache:
             raise ReferenceNotFoundError(
                 f"Reference `{ref_name}` not found in cache. Available: {list(self._model_cache.keys())}"
@@ -141,13 +147,52 @@ class _JSONSchemaToPydantic:
 
     def _process_definitions(self, root_schema: Dict[str, Any]) -> None:
         if "$defs" in root_schema:
-            for model_name in root_schema["$defs"]:
-                if model_name not in self._model_cache:
-                    self._model_cache[model_name] = None
+            # First pass: register all definition names
+            for def_name in root_schema["$defs"]:
+                if def_name not in self._model_cache:
+                    self._model_cache[def_name] = None
 
-            for model_name, model_schema in root_schema["$defs"].items():
-                if self._model_cache[model_name] is None:
-                    self._model_cache[model_name] = self.json_schema_to_pydantic(model_schema, model_name, root_schema)
+            # Second pass: process each definition
+            for def_name, def_schema in root_schema["$defs"].items():
+                schema_type = def_schema.get("type")
+
+                # Handle non-object types (arrays, primitives) - don't create BaseModel
+                if schema_type is not None and schema_type != "object":
+                    self._type_cache[def_name] = self._schema_to_python_type(def_schema, def_name, root_schema)
+                    # Remove from model_cache since it's not a model
+                    if def_name in self._model_cache:
+                        del self._model_cache[def_name]
+                elif self._model_cache.get(def_name) is None:
+                    # Object type - create a BaseModel
+                    self._model_cache[def_name] = self.json_schema_to_pydantic(def_schema, def_name, root_schema)
+
+    def _schema_to_python_type(self, schema: Dict[str, Any], name: str, root_schema: Dict[str, Any]) -> Any:
+        """Convert a JSON Schema to a Python type (for non-object $defs)."""
+        schema_type = schema.get("type")
+
+        if schema_type == "array":
+            item_schema = schema.get("items", {"type": "string"})
+            if "$ref" in item_schema:
+                item_type = self.get_ref(item_schema["$ref"].split("/")[-1])
+            elif item_schema.get("type") == "object" and "properties" in item_schema:
+                item_type = self._json_schema_to_model(item_schema, f"{name}_Item", root_schema)
+            else:
+                item_type_name = item_schema.get("type", "string")
+                item_type = TYPE_MAPPING.get(item_type_name, str)
+
+            constraints: Dict[str, Any] = {}
+            if "minItems" in schema:
+                constraints["min_length"] = schema["minItems"]
+            if "maxItems" in schema:
+                constraints["max_length"] = schema["maxItems"]
+
+            return conlist(item_type, **constraints) if constraints else List[item_type]  # type: ignore[valid-type]
+
+        elif schema_type in TYPE_MAPPING:
+            return TYPE_MAPPING[schema_type]
+
+        # Fallback for unknown types
+        return Any
 
     def json_schema_to_pydantic(
         self, schema: Dict[str, Any], model_name: str = "GeneratedModel", root_schema: Optional[Dict[str, Any]] = None
