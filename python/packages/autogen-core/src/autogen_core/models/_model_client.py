@@ -45,6 +45,8 @@ class ModelFamily:
     LLAMA_3_3_70B = "llama-3.3-70b"
     LLAMA_4_SCOUT = "llama-4-scout"
     LLAMA_4_MAVERICK = "llama-4-maverick"
+    MINIMAX_M2_5 = "minimax-m2.5"
+    MINIMAX_M2_7 = "minimax-m2.7"
     CODESRAL = "codestral"
     OPEN_CODESRAL_MAMBA = "open-codestral-mamba"
     MISTRAL = "mistral"
@@ -84,6 +86,9 @@ class ModelFamily:
         "llama-3.3-70b",
         "llama-4-scout",
         "llama-4-maverick",
+        # minimax_models
+        "minimax-m2.5",
+        "minimax-m2.7",
         # mistral_models
         "codestral",
         "open-codestral-mamba",
@@ -142,6 +147,10 @@ class ModelFamily:
             ModelFamily.LLAMA_4_SCOUT,
             ModelFamily.LLAMA_4_MAVERICK,
         )
+
+    @staticmethod
+    def is_minimax(family: str) -> bool:
+        return family in (ModelFamily.MINIMAX_M2_5, ModelFamily.MINIMAX_M2_7)
 
     @staticmethod
     def is_mistral(family: str) -> bool:
