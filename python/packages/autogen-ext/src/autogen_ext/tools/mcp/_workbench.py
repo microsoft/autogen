@@ -30,7 +30,13 @@ from mcp.types import (
 )
 
 from ._actor import McpSessionActor
-from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
+from ._config import (
+    McpServerParams,
+    SseServerParams,
+    StdioServerParams,
+    StreamableHttpServerParams,
+    validate_mcp_trust_policy,
+)
 from ._host import McpSessionHost
 
 
@@ -38,6 +44,8 @@ class McpWorkbenchConfig(BaseModel):
     server_params: McpServerParams
     tool_overrides: Dict[str, ToolOverride] = Field(default_factory=dict)
     host: ComponentModel | Dict[str, Any] | None = None
+    strict_mode: bool = False
+    allow_untrusted: bool = False
 
 
 class McpWorkbenchState(BaseModel):
@@ -241,9 +249,19 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         server_params: McpServerParams,
         tool_overrides: Optional[Dict[str, ToolOverride]] = None,
         host: McpSessionHost | None = None,
+        strict_mode: bool = False,
+        allow_untrusted: bool = False,
     ) -> None:
         self._server_params = server_params
         self._tool_overrides = tool_overrides or {}
+        self._strict_mode = strict_mode
+        self._allow_untrusted = allow_untrusted
+
+        validate_mcp_trust_policy(
+            self._server_params,
+            strict_mode=self._strict_mode,
+            allow_untrusted=self._allow_untrusted,
+        )
 
         # Build reverse mapping from override names to original names for call_tool
         self._override_name_to_original: Dict[str, str] = {}
@@ -467,7 +485,12 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             return  # Already initialized, no need to start again
 
         if isinstance(self._server_params, (StdioServerParams, SseServerParams, StreamableHttpServerParams)):
-            self._actor = McpSessionActor(self._server_params, host=self._host)
+            self._actor = McpSessionActor(
+                self._server_params,
+                host=self._host,
+                strict_mode=self._strict_mode,
+                allow_untrusted=self._allow_untrusted,
+            )
             await self._actor.initialize()
             self._actor_loop = asyncio.get_event_loop()
         else:
@@ -493,7 +516,11 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     def _to_config(self) -> McpWorkbenchConfig:
         host_config = self._host.dump_component() if self._host else None
         return McpWorkbenchConfig(
-            server_params=self._server_params, tool_overrides=self._tool_overrides, host=host_config
+            server_params=self._server_params,
+            tool_overrides=self._tool_overrides,
+            host=host_config,
+            strict_mode=self._strict_mode,
+            allow_untrusted=self._allow_untrusted,
         )
 
     @classmethod
@@ -501,7 +528,13 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         host = None
         if config.host is not None:
             host = McpSessionHost.load_component(config.host)
-        return cls(server_params=config.server_params, tool_overrides=config.tool_overrides, host=host)
+        return cls(
+            server_params=config.server_params,
+            tool_overrides=config.tool_overrides,
+            host=host,
+            strict_mode=config.strict_mode,
+            allow_untrusted=config.allow_untrusted,
+        )
 
     def __del__(self) -> None:
         # Ensure the actor is stopped when the workbench is deleted

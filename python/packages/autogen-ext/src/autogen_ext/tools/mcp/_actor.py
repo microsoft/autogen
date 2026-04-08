@@ -11,7 +11,7 @@ from mcp import types as mcp_types
 from mcp.client.session import ClientSession
 from mcp.shared.context import RequestContext
 
-from ._config import McpServerParams
+from ._config import McpServerParams, validate_mcp_trust_policy
 from ._host import McpSessionHost
 from ._session import create_mcp_server_session
 
@@ -49,6 +49,8 @@ class McpSessionActorConfig(BaseModel):
     """
 
     server_params: McpServerParams
+    strict_mode: bool = False
+    allow_untrusted: bool = False
 
 
 class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]):
@@ -74,9 +76,17 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
 
     # model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __init__(self, server_params: McpServerParams, host: McpSessionHost | None = None) -> None:
+    def __init__(
+        self,
+        server_params: McpServerParams,
+        host: McpSessionHost | None = None,
+        strict_mode: bool = False,
+        allow_untrusted: bool = False,
+    ) -> None:
         self.server_params: McpServerParams = server_params
         self._host = host
+        self._strict_mode = strict_mode
+        self._allow_untrusted = allow_untrusted
         self.name = "mcp_session_actor"
         self.description = "MCP session actor"
         self._command_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
@@ -92,6 +102,11 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
 
     async def initialize(self) -> None:
         if not self._active:
+            validate_mcp_trust_policy(
+                self.server_params,
+                strict_mode=self._strict_mode,
+                allow_untrusted=self._allow_untrusted,
+            )
             self._active = True
             self._actor_task = asyncio.create_task(self._run_actor())
 
@@ -286,7 +301,11 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         Returns:
             McpSessionConfig: The configuration of the adapter.
         """
-        return McpSessionActorConfig(server_params=self.server_params)
+        return McpSessionActorConfig(
+            server_params=self.server_params,
+            strict_mode=self._strict_mode,
+            allow_untrusted=self._allow_untrusted,
+        )
 
     @classmethod
     def _from_config(cls, config: McpSessionActorConfig) -> Self:
@@ -299,4 +318,8 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         Returns:
             McpSessionActor: An instance of SseMcpToolAdapter.
         """
-        return cls(server_params=config.server_params)
+        return cls(
+            server_params=config.server_params,
+            strict_mode=config.strict_mode,
+            allow_untrusted=config.allow_untrusted,
+        )
