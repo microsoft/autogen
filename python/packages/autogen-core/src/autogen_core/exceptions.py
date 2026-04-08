@@ -1,4 +1,4 @@
-__all__ = ["CantHandleException", "UndeliverableException", "MessageDroppedException", "NotAccessibleError"]
+__all__ = ["CantHandleException", "UndeliverableException", "MessageDroppedException", "NotAccessibleError", "RecipientNotFoundError"]
 
 
 class CantHandleException(Exception):
@@ -15,3 +15,7 @@ class MessageDroppedException(Exception):
 
 class NotAccessibleError(Exception):
     """Tried to access a value that is not accessible. For example if it is remote cannot be accessed locally."""
+
+
+class RecipientNotFoundError(Exception):
+    """Raised when a message recipient is not found in the runtime."""
