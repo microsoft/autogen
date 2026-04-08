@@ -626,6 +626,66 @@ async def test_thought_field_with_tool_calls_streaming(
     assert final_result.thought == "Let me think about what function to call."
 
 
+@pytest.mark.asyncio
+async def test_azure_ai_chat_completion_client_create_stream_single_chunk(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression test: a text response that arrives in a single streaming chunk
+    must be returned as string content, not misclassified as a tool-call response."""
+
+    async def _mock_single_chunk_stream(
+        *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        yield StreamingChatCompletionsUpdate(
+            id="id",
+            choices=[
+                StreamingChatChoiceUpdate(
+                    index=0,
+                    finish_reason="stop",
+                    delta=StreamingChatResponseMessageUpdate(role="assistant", content="Short answer"),
+                )
+            ],
+            created=datetime.now(),
+            model="model",
+            usage=CompletionsUsage(prompt_tokens=3, completion_tokens=2, total_tokens=5),
+        )
+
+    async def _mock_create(
+        *args: Any, **kwargs: Any
+    ) -> ChatCompletions | AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        stream = kwargs.get("stream", False)
+        if stream:
+            return _mock_single_chunk_stream(*args, **kwargs)
+        raise NotImplementedError
+
+    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_create)
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(messages=[UserMessage(content="Hi", source="user")]):
+        chunks.append(chunk)
+
+    # The streamed text delta should appear as a string chunk.
+    assert chunks[0] == "Short answer"
+
+    # The final CreateResult must contain the text as string content.
+    final = chunks[-1]
+    assert isinstance(final, CreateResult)
+    assert isinstance(final.content, str)
+    assert final.content == "Short answer"
+
+
 def _pass_function(input: str) -> str:
     """Simple passthrough function."""
     return f"Processed: {input}"
