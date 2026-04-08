@@ -144,6 +144,10 @@ http-tool = [
     "json-schema-to-pydantic>=0.2.0"
 ]
 
+plasmate-tool = [
+    "plasmate>=0.4.1"
+]
+
 semantic-kernel-all = [
     "semantic-kernel[google,hugging_face,mistralai,ollama,onnx,anthropic,usearch,pandas,aws,dapr]>=1.17.1",
 ]
