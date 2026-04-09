@@ -43,11 +43,11 @@ class ValidationService:
                     suggestion="Ensure the class inherits from Component and implements required methods",
                 )
             return None
-        except ImportError:
+        except ImportError as e:
             return ValidationError(
                 field="provider",
-                error=f"Could not import provider {provider}",
-                suggestion="Check that the provider module is installed and the path is correct",
+                error=f"Could not import provider {provider}: {str(e)}",
+                suggestion="Check that the provider module and any optional/transitive dependencies are installed and the path is correct",
             )
         except Exception as e:
             return ValidationError(
