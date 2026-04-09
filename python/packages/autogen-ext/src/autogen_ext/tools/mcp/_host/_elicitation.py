@@ -12,6 +12,8 @@ from pydantic import BaseModel
 
 from mcp import types as mcp_types
 
+from .._base import _to_json_str
+
 _ELICITATION_CHOICE_SHORTHANDS = {"a": "accept", "d": "decline", "c": "cancel"}
 
 
@@ -82,7 +84,7 @@ class StreamElicitor(Elicitor):
                 prompt = "\n".join(
                     [
                         "Input Schema:",
-                        json.dumps(params.requestedSchema, indent=2),
+                        _to_json_str(params.requestedSchema, indent=2),
                         "Please enter a JSON string following the above schema: ",
                     ]
                 )

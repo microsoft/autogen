@@ -194,4 +194,8 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
             else:
                 return {}
 
-        return json.dumps([serialize_item(item) for item in value])
+        return _to_json_str([serialize_item(item) for item in value])
+
+
+def _to_json_str(obj: Any, indent: int | None = None) -> str:
+    return json.dumps(obj, ensure_ascii=False, indent=indent)
