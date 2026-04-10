@@ -1,5 +1,6 @@
 """State management for agents, teams and termination conditions."""
 
+from ._message_store import InMemoryMessageStore, MessageStore
 from ._states import (
     AssistantAgentState,
     BaseGroupChatManagerState,
@@ -18,6 +19,8 @@ __all__ = [
     "AssistantAgentState",
     "BaseGroupChatManagerState",
     "ChatAgentContainerState",
+    "InMemoryMessageStore",
+    "MessageStore",
     "RoundRobinManagerState",
     "SelectorManagerState",
     "SwarmManagerState",

@@ -3,6 +3,7 @@ This module provides implementation of various pre-defined multi-agent teams.
 Each team inherits from the BaseGroupChat class.
 """
 
+from ..state import InMemoryMessageStore, MessageStore
 from ._group_chat._base_group_chat import BaseGroupChat
 from ._group_chat._graph import (
     DiGraph,
@@ -18,6 +19,8 @@ from ._group_chat._swarm_group_chat import Swarm
 
 __all__ = [
     "BaseGroupChat",
+    "InMemoryMessageStore",
+    "MessageStore",
     "RoundRobinGroupChat",
     "SelectorGroupChat",
     "Swarm",

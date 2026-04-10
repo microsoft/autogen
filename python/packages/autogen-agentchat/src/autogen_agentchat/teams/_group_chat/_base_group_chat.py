@@ -24,7 +24,7 @@ from ...messages import (
     StructuredMessage,
     TextMessage,
 )
-from ...state import TeamState
+from ...state import MessageStore, TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
     GroupChatPause,
@@ -75,6 +75,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
+        message_store: MessageStore | None = None,
     ):
         self._name = name
         self._description = description
@@ -150,6 +151,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         # Flag to track if the team events should be emitted.
         self._emit_team_events = emit_team_events
 
+        # Optional message store for the group chat manager.
+        self._message_store = message_store
+
     @property
     def name(self) -> str:
         """The name of the group chat team."""
@@ -173,6 +177,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        message_store: MessageStore | None = None,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
@@ -224,6 +229,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 termination_condition=self._termination_condition,
                 max_turns=self._max_turns,
                 message_factory=self._message_factory,
+                message_store=self._message_store,
             ),
         )
         # Add subscriptions for the group chat manager.

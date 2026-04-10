@@ -74,7 +74,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
 
     async def reset(self) -> None:
         self._current_turn = 0
-        self._message_thread.clear()
+        await self._message_store.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._current_speaker = self._participant_names[0]
@@ -98,8 +98,9 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         return self._current_speaker
 
     async def save_state(self) -> Mapping[str, Any]:
+        messages = await self._message_store.get_messages()
         state = SwarmManagerState(
-            message_thread=[msg.dump() for msg in self._message_thread],
+            message_thread=[msg.dump() for msg in messages],
             current_turn=self._current_turn,
             current_speaker=self._current_speaker,
         )
@@ -107,7 +108,9 @@ class SwarmGroupChatManager(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         swarm_state = SwarmManagerState.model_validate(state)
-        self._message_thread = [self._message_factory.create(message) for message in swarm_state.message_thread]
+        loaded_messages = [self._message_factory.create(message) for message in swarm_state.message_thread]
+        await self._message_store.clear()
+        await self._message_store.add_messages(loaded_messages)
         self._current_turn = swarm_state.current_turn
         self._current_speaker = swarm_state.current_speaker
 

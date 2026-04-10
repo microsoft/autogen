@@ -511,8 +511,9 @@ class GraphFlowManager(BaseGroupChatManager):
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the execution state."""
+        messages = await self._message_store.get_messages()
         state = {
-            "message_thread": [message.dump() for message in self._message_thread],
+            "message_thread": [message.dump() for message in messages],
             "current_turn": self._current_turn,
             "remaining": {target: dict(counter) for target, counter in self._remaining.items()},
             "enqueued_any": dict(self._enqueued_any),
@@ -522,7 +523,9 @@ class GraphFlowManager(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """Restore execution state from saved data."""
-        self._message_thread = [self._message_factory.create(msg) for msg in state["message_thread"]]
+        loaded_messages = [self._message_factory.create(msg) for msg in state["message_thread"]]
+        await self._message_store.clear()
+        await self._message_store.add_messages(loaded_messages)
         self._current_turn = state["current_turn"]
         self._remaining = {target: Counter(groups) for target, groups in state["remaining"].items()}
         self._enqueued_any = state["enqueued_any"]
@@ -531,7 +534,7 @@ class GraphFlowManager(BaseGroupChatManager):
     async def reset(self) -> None:
         """Reset execution state to the start of the graph."""
         self._current_turn = 0
-        self._message_thread.clear()
+        await self._message_store.clear()
         if self._termination_condition:
             await self._termination_condition.reset()
         self._reset_execution_state()

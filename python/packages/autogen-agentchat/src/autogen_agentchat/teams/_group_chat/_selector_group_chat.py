@@ -107,15 +107,16 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
     async def reset(self) -> None:
         self._current_turn = 0
-        self._message_thread.clear()
+        await self._message_store.clear()
         await self._model_context.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._previous_speaker = None
 
     async def save_state(self) -> Mapping[str, Any]:
+        messages = await self._message_store.get_messages()
         state = SelectorManagerState(
-            message_thread=[msg.dump() for msg in self._message_thread],
+            message_thread=[msg.dump() for msg in messages],
             current_turn=self._current_turn,
             previous_speaker=self._previous_speaker,
         )
@@ -123,9 +124,11 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         selector_state = SelectorManagerState.model_validate(state)
-        self._message_thread = [self._message_factory.create(msg) for msg in selector_state.message_thread]
+        loaded_messages = [self._message_factory.create(msg) for msg in selector_state.message_thread]
+        await self._message_store.clear()
+        await self._message_store.add_messages(loaded_messages)
         await self._add_messages_to_context(
-            self._model_context, [msg for msg in self._message_thread if isinstance(msg, BaseChatMessage)]
+            self._model_context, [msg for msg in loaded_messages if isinstance(msg, BaseChatMessage)]
         )
         self._current_turn = selector_state.current_turn
         self._previous_speaker = selector_state.previous_speaker
@@ -145,7 +148,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             await model_context.add_message(msg.to_model_message())
 
     async def update_message_thread(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> None:
-        self._message_thread.extend(messages)
+        await self._message_store.add_messages(messages)
         base_chat_messages = [m for m in messages if isinstance(m, BaseChatMessage)]
         await self._add_messages_to_context(self._model_context, base_chat_messages)
 

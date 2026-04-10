@@ -6,6 +6,7 @@ from autogen_core import CancellationToken, DefaultTopicId, MessageContext, even
 
 from ...base import TerminationCondition
 from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectSpeakerEvent, StopMessage
+from ...state import InMemoryMessageStore, MessageStore
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
@@ -47,6 +48,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool = False,
+        message_store: MessageStore | None = None,
     ):
         super().__init__(
             description="Group chat manager",
@@ -74,7 +76,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             name: topic_type for name, topic_type in zip(participant_names, participant_topic_types, strict=True)
         }
         self._participant_descriptions = participant_descriptions
-        self._message_thread: List[BaseAgentEvent | BaseChatMessage] = []
+        self._message_store: MessageStore = message_store if message_store is not None else InMemoryMessageStore()
         self._output_message_queue = output_message_queue
         self._termination_condition = termination_condition
         self._max_turns = max_turns
@@ -82,6 +84,43 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._message_factory = message_factory
         self._emit_team_events = emit_team_events
         self._active_speakers: List[str] = []
+
+    @property
+    def _message_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Backwards-compatible access to the message thread via the message store.
+
+        Subclasses that previously accessed ``self._message_thread`` directly
+        will continue to work transparently.
+        """
+        if isinstance(self._message_store, InMemoryMessageStore):
+            return self._message_store.messages
+        # For non-InMemoryMessageStore implementations, we cannot provide a
+        # live mutable list.  Return a snapshot instead.
+        import asyncio as _asyncio
+
+        loop = _asyncio.get_event_loop()
+        if loop.is_running():
+            # We are inside an async context; callers should prefer
+            # get_messages() but this keeps sync access working for
+            # simple attribute reads used in select_speaker() etc.
+            # Fall back to the store's synchronous snapshot if available.
+            raise RuntimeError(
+                "Cannot access _message_thread synchronously with a non-InMemoryMessageStore. "
+                "Use 'await self._message_store.get_messages()' instead."
+            )
+        return loop.run_until_complete(self._message_store.get_messages())
+
+    @_message_thread.setter
+    def _message_thread(self, value: List[BaseAgentEvent | BaseChatMessage]) -> None:
+        """Allow ``self._message_thread = [...]`` for backwards compatibility."""
+        if isinstance(self._message_store, InMemoryMessageStore):
+            self._message_store._messages = value
+            self._message_store._timestamps = []
+        else:
+            raise RuntimeError(
+                "Cannot set _message_thread directly with a non-InMemoryMessageStore. "
+                "Use the message store API instead."
+            )
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -170,7 +209,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             raise
 
     async def _transition_to_next_speakers(self, cancellation_token: CancellationToken) -> None:
-        speaker_names_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
+        thread = await self._message_store.get_messages()
+        speaker_names_future = asyncio.ensure_future(self.select_speaker(thread))
         # Link the select speaker future to the cancellation token.
         cancellation_token.link_future(speaker_names_future)
         speaker_names = await speaker_names_future
@@ -300,7 +340,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         This is called when the group chat receives a GroupChatStart or GroupChatAgentResponse event,
         before calling the select_speakers method.
         """
-        self._message_thread.extend(messages)
+        await self._message_store.add_messages(messages)
 
     @abstractmethod
     async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:

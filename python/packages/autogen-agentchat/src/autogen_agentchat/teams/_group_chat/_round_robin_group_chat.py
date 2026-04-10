@@ -7,7 +7,7 @@ from typing_extensions import Self
 
 from ...base import ChatAgent, Team, TerminationCondition
 from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory
-from ...state import RoundRobinManagerState
+from ...state import MessageStore, RoundRobinManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._events import GroupChatTermination
@@ -29,6 +29,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool,
+        message_store: MessageStore | None = None,
     ) -> None:
         super().__init__(
             name,
@@ -42,6 +43,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
+            message_store=message_store,
         )
         self._next_speaker_index = 0
 
@@ -50,14 +52,15 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
 
     async def reset(self) -> None:
         self._current_turn = 0
-        self._message_thread.clear()
+        await self._message_store.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._next_speaker_index = 0
 
     async def save_state(self) -> Mapping[str, Any]:
+        messages = await self._message_store.get_messages()
         state = RoundRobinManagerState(
-            message_thread=[message.dump() for message in self._message_thread],
+            message_thread=[message.dump() for message in messages],
             current_turn=self._current_turn,
             next_speaker_index=self._next_speaker_index,
         )
@@ -65,7 +68,9 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         round_robin_state = RoundRobinManagerState.model_validate(state)
-        self._message_thread = [self._message_factory.create(message) for message in round_robin_state.message_thread]
+        loaded_messages = [self._message_factory.create(message) for message in round_robin_state.message_thread]
+        await self._message_store.clear()
+        await self._message_store.add_messages(loaded_messages)
         self._current_turn = round_robin_state.current_turn
         self._next_speaker_index = round_robin_state.next_speaker_index
 
@@ -250,6 +255,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
+        message_store: MessageStore | None = None,
     ) -> None:
         super().__init__(
             name=name or self.DEFAULT_NAME,
@@ -262,6 +268,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
             runtime=runtime,
             custom_message_types=custom_message_types,
             emit_team_events=emit_team_events,
+            message_store=message_store,
         )
 
     def _create_group_chat_manager_factory(
@@ -276,6 +283,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        message_store: MessageStore | None = None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
@@ -290,6 +298,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
                 max_turns,
                 message_factory,
                 self._emit_team_events,
+                message_store=message_store,
             )
 
         return _factory
