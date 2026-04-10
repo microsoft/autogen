@@ -1480,6 +1480,15 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                 copied_args["base_url"] = _model_info.LLAMA_API_BASE_URL
             if "api_key" not in copied_args and "LLAMA_API_KEY" in os.environ:
                 copied_args["api_key"] = os.environ["LLAMA_API_KEY"]
+        if _model_info._is_mistral_model(copied_args["model"]):
+            if "base_url" not in copied_args:
+                copied_args["base_url"] = _model_info.MISTRAL_API_BASE_URL
+            if "api_key" not in copied_args and "MISTRAL_API_KEY" in os.environ:
+                copied_args["api_key"] = os.environ["MISTRAL_API_KEY"]
+            # Mistral API rejects the 'name' field in messages (HTTP 422),
+            # so disable it by default unless the user explicitly set it.
+            if "include_name_in_message" not in kwargs:
+                include_name_in_message = False
 
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
