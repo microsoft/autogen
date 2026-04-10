@@ -24,7 +24,13 @@ from autogen_core.models import (
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
-from autogen_ext.models.openai._model_info import resolve_model
+from autogen_ext.models.openai._model_info import (
+    MISTRAL_API_BASE_URL,
+    _is_mistral_model,
+    get_info,
+    get_token_limit,
+    resolve_model,
+)
 from autogen_ext.models.openai._openai_client import (
     BaseOpenAIChatCompletionClient,
     calculate_vision_tokens,
@@ -189,6 +195,150 @@ async def test_openai_chat_completion_client() -> None:
 async def test_openai_chat_completion_client_with_gemini_model() -> None:
     client = OpenAIChatCompletionClient(model="gemini-1.5-flash", api_key="api_key")
     assert client
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_with_mistral_model() -> None:
+    """Test that Mistral models can be instantiated via OpenAIChatCompletionClient."""
+    client = OpenAIChatCompletionClient(model="mistral-small-latest", api_key="api_key")
+    assert client
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_with_mistral_model_variants() -> None:
+    """Test that various Mistral model variants are recognized."""
+    mistral_models = [
+        "mistral-large-latest",
+        "mistral-medium-latest",
+        "mistral-small-latest",
+        "codestral-latest",
+        "pixtral-large-latest",
+        "ministral-3b-latest",
+        "ministral-8b-latest",
+        "open-mistral-nemo",
+    ]
+    for model_name in mistral_models:
+        client = OpenAIChatCompletionClient(model=model_name, api_key="api_key")
+        assert client, f"Failed to create client for model: {model_name}"
+
+
+def test_is_mistral_model() -> None:
+    """Test the _is_mistral_model helper function."""
+    # Positive cases
+    assert _is_mistral_model("mistral-large-latest")
+    assert _is_mistral_model("mistral-small-2503")
+    assert _is_mistral_model("codestral-latest")
+    assert _is_mistral_model("codestral-2501")
+    assert _is_mistral_model("open-codestral-mamba")
+    assert _is_mistral_model("pixtral-large-2411")
+    assert _is_mistral_model("pixtral-12b-2409")
+    assert _is_mistral_model("ministral-3b-2410")
+    assert _is_mistral_model("ministral-8b-latest")
+    assert _is_mistral_model("open-mistral-nemo")
+    assert _is_mistral_model("open-mistral-nemo-2407")
+    # Negative cases
+    assert not _is_mistral_model("gpt-4o")
+    assert not _is_mistral_model("gemini-1.5-flash")
+    assert not _is_mistral_model("claude-3-5-sonnet-20241022")
+    assert not _is_mistral_model("Llama-4-Scout-17B-16E-Instruct-FP8")
+
+
+def test_mistral_model_info() -> None:
+    """Test that Mistral model info is correctly registered."""
+    # mistral-large
+    info = get_info("mistral-large-latest")
+    assert info["family"] == ModelFamily.MISTRAL
+    assert info["function_calling"] is True
+    assert info["json_output"] is True
+    assert info["vision"] is False
+    assert info["structured_output"] is True
+
+    # pixtral (vision model)
+    info = get_info("pixtral-large-latest")
+    assert info["family"] == ModelFamily.PIXTRAL
+    assert info["vision"] is True
+    assert info["function_calling"] is True
+
+    # codestral
+    info = get_info("codestral-latest")
+    assert info["family"] == ModelFamily.CODESRAL
+    assert info["function_calling"] is True
+
+    # open-codestral-mamba (no function calling)
+    info = get_info("open-codestral-mamba")
+    assert info["family"] == ModelFamily.OPEN_CODESRAL_MAMBA
+    assert info["function_calling"] is False
+
+    # ministral
+    info = get_info("ministral-8b-latest")
+    assert info["family"] == ModelFamily.MINISTRAL
+    assert info["function_calling"] is True
+
+    # open-mistral-nemo
+    info = get_info("open-mistral-nemo")
+    assert info["family"] == ModelFamily.MISTRAL
+    assert info["function_calling"] is True
+
+
+def test_mistral_model_token_limits() -> None:
+    """Test that Mistral model token limits are correctly registered."""
+    assert get_token_limit("mistral-large-latest") == 131072
+    assert get_token_limit("mistral-small-latest") == 131072
+    assert get_token_limit("codestral-latest") == 262144
+    assert get_token_limit("open-codestral-mamba") == 262144
+    assert get_token_limit("pixtral-large-latest") == 131072
+    assert get_token_limit("ministral-3b-latest") == 131072
+    assert get_token_limit("open-mistral-nemo") == 131072
+
+
+def test_mistral_resolve_model() -> None:
+    """Test that Mistral model pointers resolve correctly."""
+    assert resolve_model("mistral-large-latest") == "mistral-large-2411"
+    assert resolve_model("mistral-medium-latest") == "mistral-medium-2505"
+    assert resolve_model("mistral-small-latest") == "mistral-small-2503"
+    assert resolve_model("codestral-latest") == "codestral-2501"
+    assert resolve_model("pixtral-large-latest") == "pixtral-large-2411"
+    assert resolve_model("ministral-3b-latest") == "ministral-3b-2410"
+    assert resolve_model("ministral-8b-latest") == "ministral-8b-2410"
+    assert resolve_model("open-mistral-nemo") == "open-mistral-nemo-2407"
+    # Versioned models should resolve to themselves
+    assert resolve_model("mistral-large-2411") == "mistral-large-2411"
+    assert resolve_model("codestral-2501") == "codestral-2501"
+
+
+@pytest.mark.asyncio
+async def test_mistral_auto_base_url() -> None:
+    """Test that Mistral models automatically get the correct base_url."""
+    client = OpenAIChatCompletionClient(model="mistral-small-latest", api_key="test_key")
+    assert client._raw_config.get("base_url") == MISTRAL_API_BASE_URL
+
+
+@pytest.mark.asyncio
+async def test_mistral_auto_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that MISTRAL_API_KEY env var is auto-detected for Mistral models."""
+    monkeypatch.setenv("MISTRAL_API_KEY", "test_mistral_key")
+    client = OpenAIChatCompletionClient(model="mistral-small-latest")
+    assert client._raw_config.get("api_key") == "test_mistral_key"
+
+
+@pytest.mark.asyncio
+async def test_mistral_include_name_disabled_by_default() -> None:
+    """Test that include_name_in_message defaults to False for Mistral models.
+
+    This addresses the HTTP 422 error from Mistral API when the 'name' field
+    is included in messages (see issue #6147).
+    """
+    client = OpenAIChatCompletionClient(model="mistral-small-latest", api_key="test_key")
+    assert client._include_name_in_message is False
+
+
+@pytest.mark.asyncio
+async def test_mistral_include_name_can_be_overridden() -> None:
+    """Test that include_name_in_message can be explicitly set for Mistral models."""
+    client = OpenAIChatCompletionClient(
+        model="mistral-small-latest", api_key="test_key", include_name_in_message=True
+    )
+    assert client._include_name_in_message is True
 
 
 @pytest.mark.asyncio
