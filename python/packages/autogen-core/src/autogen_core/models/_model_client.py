@@ -153,6 +153,22 @@ class ModelFamily:
             ModelFamily.PIXTRAL,
         )
 
+    @staticmethod
+    def requires_alternating_roles(family: str) -> bool:
+        """Check if a model family requires strict alternating user-assistant roles.
+
+        Models like DeepSeek R1 and some Mistral models reject requests
+        with consecutive same-role messages.
+        """
+        return family in (
+            ModelFamily.R1,
+            ModelFamily.MISTRAL,
+            ModelFamily.MINISTRAL,
+            ModelFamily.CODESRAL,
+            ModelFamily.OPEN_CODESRAL_MAMBA,
+            ModelFamily.PIXTRAL,
+        )
+
 
 @deprecated("Use the ModelInfo class instead ModelCapabilities.")
 class ModelCapabilities(TypedDict, total=False):
@@ -180,6 +196,11 @@ class ModelInfo(TypedDict, total=False):
     """True if the model supports structured output, otherwise False. This is different to json_output."""
     multiple_system_messages: Optional[bool]
     """True if the model supports multiple, non-consecutive system messages, otherwise False."""
+    requires_alternating_roles: Optional[bool]
+    """True if the model requires strict alternating user-assistant message roles.
+    Models like DeepSeek R1 and some Mistral models reject requests with consecutive
+    same-role messages. When True, the framework will automatically merge or inject
+    messages to ensure strict alternation before sending to the model."""
 
 
 def validate_model_info(model_info: ModelInfo) -> None:

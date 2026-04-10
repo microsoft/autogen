@@ -57,7 +57,7 @@ from ..messages import (
     ToolCallSummaryMessage,
 )
 from ..state import AssistantAgentState
-from ..utils import remove_images
+from ..utils import ensure_alternating_roles, remove_images
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -1640,11 +1640,24 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     @staticmethod
     def _get_compatible_context(model_client: ChatCompletionClient, messages: List[LLMMessage]) -> Sequence[LLMMessage]:
-        """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
-        if model_client.model_info["vision"]:
-            return messages
-        else:
-            return remove_images(messages)
+        """Ensure that the messages are compatible with the underlying client.
+
+        This method handles two compatibility concerns:
+        1. Removing images for non-vision models.
+        2. Ensuring strict alternating user-assistant roles for models that require it
+           (e.g., DeepSeek R1, Mistral). See https://github.com/microsoft/autogen/issues/5965
+        """
+        from autogen_core.models import ModelFamily
+
+        result: List[LLMMessage] = messages if model_client.model_info["vision"] else remove_images(messages)
+        # Enforce alternating roles if the model requires it (explicit flag or family-based).
+        needs_alternating = model_client.model_info.get("requires_alternating_roles", False)
+        if not needs_alternating:
+            family = model_client.model_info.get("family", "")
+            needs_alternating = ModelFamily.requires_alternating_roles(family)
+        if needs_alternating:
+            result = ensure_alternating_roles(result)
+        return result
 
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""

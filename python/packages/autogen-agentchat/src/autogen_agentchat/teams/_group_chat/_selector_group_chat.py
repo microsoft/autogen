@@ -23,6 +23,7 @@ from typing_extensions import Self
 
 from ... import TRACE_LOGGER_NAME
 from ...base import ChatAgent, Team, TerminationCondition
+from ...utils import ensure_alternating_roles
 from ...messages import (
     BaseAgentEvent,
     BaseChatMessage,
@@ -245,11 +246,21 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             select_speaker_messages = [UserMessage(content=select_speaker_prompt, source="user")]
 
         num_attempts = 0
+        # Check if the model requires strict alternating roles (explicit flag or family-based).
+        _requires_alternating = self._model_client.model_info.get("requires_alternating_roles", False)
+        if not _requires_alternating:
+            _family = self._model_client.model_info.get("family", "")
+            _requires_alternating = ModelFamily.requires_alternating_roles(_family)
+
         while num_attempts < max_attempts:
             num_attempts += 1
+            # Apply alternating role enforcement if needed.
+            send_messages: List[SystemMessage | UserMessage | AssistantMessage] = select_speaker_messages
+            if _requires_alternating:
+                send_messages = ensure_alternating_roles(select_speaker_messages)  # type: ignore[assignment]
             if self._model_client_streaming:
                 chunk: CreateResult | str = ""
-                async for _chunk in self._model_client.create_stream(messages=select_speaker_messages):
+                async for _chunk in self._model_client.create_stream(messages=send_messages):
                     chunk = _chunk
                     if self._emit_team_events:
                         if isinstance(chunk, str):
@@ -266,7 +277,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 assert isinstance(chunk, CreateResult)
                 response = chunk
             else:
-                response = await self._model_client.create(messages=select_speaker_messages)
+                response = await self._model_client.create(messages=send_messages)
             assert isinstance(response.content, str)
             select_speaker_messages.append(AssistantMessage(content=response.content, source="selector"))
             # NOTE: we use all participant names to check for mentions, even if the previous speaker is not allowed.
