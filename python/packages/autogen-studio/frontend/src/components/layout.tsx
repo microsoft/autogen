@@ -10,6 +10,9 @@ import ContentHeader from "./contentheader";
 import { ConfigProvider, theme } from "antd";
 import { useAuth } from "../auth/context";
 import ProtectedRoute from "../auth/protected";
+import { useTranslation } from "react-i18next";
+import antdEnUS from "antd/locale/en_US";
+import antdZhCN from "antd/locale/zh_CN";
 
 const classNames = (...classes: (string | undefined | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
@@ -37,6 +40,8 @@ const Layout = ({
   const { isExpanded } = sidebar;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const { authType } = useAuth();
+  const { i18n } = useTranslation();
+  const antdLocale = i18n.language === "zh-CN" ? antdZhCN : antdEnUS;
 
   // Close mobile menu on route change
   React.useEffect(() => {
@@ -101,6 +106,7 @@ const Layout = ({
         )}
 
         <ConfigProvider
+          locale={antdLocale}
           theme={{
             token: {
               borderRadius: 4,
@@ -148,6 +154,8 @@ export const LiteLayout = ({
   const { darkMode } = React.useContext(appContext);
   const { authType } = useAuth();
   const { setHeader } = useConfigStore();
+  const { i18n } = useTranslation();
+  const antdLocale = i18n.language === "zh-CN" ? antdZhCN : antdEnUS;
 
   React.useEffect(() => {
     document.getElementsByTagName("html")[0].className = `${
@@ -184,6 +192,7 @@ export const LiteLayout = ({
       )}
 
       <ConfigProvider
+        locale={antdLocale}
         theme={{
           token: {
             borderRadius: 4,

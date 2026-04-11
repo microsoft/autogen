@@ -11,6 +11,8 @@ import { appContext } from "../hooks/provider";
 import { useConfigStore } from "../hooks/store";
 import { Link } from "gatsby";
 import { sanitizeUrl } from "./utils/security-utils";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 type ContentHeaderProps = {
   onMobileMenuToggle: () => void;
@@ -29,6 +31,7 @@ const ContentHeader = ({
   const { sidebar, setSidebarState, header } = useConfigStore();
   const { isExpanded } = sidebar;
   const { title, breadcrumbs } = header;
+  const { t } = useTranslation();
 
   return (
     <div className="sticky top-0 z-40 bg-primary border-b border-secondary">
@@ -134,6 +137,9 @@ const ContentHeader = ({
               )}
             </button>
 
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+
             {/* Notifications */}
             <button className="text-secondary hidden hover:text-primary">
               <BellIcon className="h-6 w-6" />
@@ -174,7 +180,7 @@ const ContentHeader = ({
                           active ? "bg-secondary" : ""
                         } block px-4 py-2 text-sm text-primary`}
                       >
-                        Sign out
+                        {t("nav.signOut")}
                       </a>
                     )}
                   </MenuItem>
