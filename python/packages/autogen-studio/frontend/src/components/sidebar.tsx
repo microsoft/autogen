@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "gatsby";
 import { useConfigStore } from "../hooks/store";
 import { Tooltip } from "antd";
+import { useTranslation } from "react-i18next";
 import {
   Settings,
   MessagesSquare,
@@ -29,46 +30,44 @@ interface INavItem {
   }>;
 }
 
-const navigation: INavItem[] = [
-  {
-    name: "Team Builder",
-    href: "/build",
-    icon: Bot,
-    breadcrumbs: [{ name: "Team Builder", href: "/build", current: true }],
-  },
-  {
-    name: "Playground",
-    href: "/",
-    icon: MessagesSquare,
-    breadcrumbs: [{ name: "Playground", href: "/", current: true }],
-  },
-  {
-    name: "MCP (Experimental)",
-    href: "/mcp",
-    icon: ({ className }: { className?: string }) => (
-      <Icon size={6} icon="mcp" className={className} />
-    ),
-    breadcrumbs: [{ name: "MCP (Experimental)", href: "/mcp", current: true }],
-  },
-  {
-    name: "Gallery",
-    href: "/gallery",
-    icon: GalleryHorizontalEnd,
-    breadcrumbs: [{ name: "Gallery", href: "/gallery", current: true }],
-  },
-  // {
-  //   name: "Labs",
-  //   href: "/labs",
-  //   icon: FlaskConical,
-  //   breadcrumbs: [{ name: "Labs", href: "/labs", current: true }],
-  // },
-  {
-    name: "Deploy",
-    href: "/deploy",
-    icon: Rocket,
-    breadcrumbs: [{ name: "Deploy", href: "/deploy", current: true }],
-  },
-];
+const useNavigation = () => {
+  const { t } = useTranslation();
+  const navigation: INavItem[] = [
+    {
+      name: t("nav.teamBuilder"),
+      href: "/build",
+      icon: Bot,
+      breadcrumbs: [{ name: t("nav.teamBuilder"), href: "/build", current: true }],
+    },
+    {
+      name: t("nav.playground"),
+      href: "/",
+      icon: MessagesSquare,
+      breadcrumbs: [{ name: t("nav.playground"), href: "/", current: true }],
+    },
+    {
+      name: t("nav.mcp"),
+      href: "/mcp",
+      icon: ({ className }: { className?: string }) => (
+        <Icon size={6} icon="mcp" className={className} />
+      ),
+      breadcrumbs: [{ name: t("nav.mcp"), href: "/mcp", current: true }],
+    },
+    {
+      name: t("nav.gallery"),
+      href: "/gallery",
+      icon: GalleryHorizontalEnd,
+      breadcrumbs: [{ name: t("nav.gallery"), href: "/gallery", current: true }],
+    },
+    {
+      name: t("nav.deploy"),
+      href: "/deploy",
+      icon: Rocket,
+      breadcrumbs: [{ name: t("nav.deploy"), href: "/deploy", current: true }],
+    },
+  ];
+  return navigation;
+};
 
 const classNames = (...classes: (string | undefined | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
@@ -86,6 +85,8 @@ type SidebarProps = {
 const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
   const { sidebar, setHeader, setSidebarState } = useConfigStore();
   const { isExpanded } = sidebar;
+  const { t } = useTranslation();
+  const navigation = useNavigation();
 
   // Set initial header state based on current route
   React.useEffect(() => {
@@ -114,8 +115,8 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
       });
     } else if (path === "/settings") {
       setHeader({
-        title: "Settings",
-        breadcrumbs: [{ name: "Settings", href: "/settings", current: true }],
+        title: t("nav.settings"),
+        breadcrumbs: [{ name: t("nav.settings"), href: "/settings", current: true }],
       });
     }
   };
@@ -223,15 +224,15 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
           >
             {!showFull && !isMobile ? (
               <>
-                <Tooltip title="Settings" placement="right">
+                <Tooltip title={t("nav.settings")} placement="right">
                   <Link
                     to="/settings"
                     onClick={() =>
                       setHeader({
-                        title: "Settings",
+                        title: t("nav.settings"),
                         breadcrumbs: [
                           {
-                            name: "Settings",
+                            name: t("nav.settings"),
                             href: "/settings",
                             current: true,
                           },
@@ -245,7 +246,7 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
                 </Tooltip>
                 <div className="hidden md:block">
                   <Tooltip
-                    title={isExpanded ? "Close Sidebar" : "Open Sidebar"}
+                    title={isExpanded ? t("nav.closeSidebar") : t("nav.openSidebar")}
                     placement="right"
                   >
                     <button
@@ -272,10 +273,10 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
                       to="/settings"
                       onClick={() =>
                         setHeader({
-                          title: "Settings",
+                          title: t("nav.settings"),
                           breadcrumbs: [
                             {
-                              name: "Settings",
+                              name: t("nav.settings"),
                               href: "/settings",
                               current: true,
                             },
@@ -285,13 +286,13 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
                       className="group flex flex-1 gap-x-3 rounded-md p-2 text-sm font-medium text-primary hover:text-accent hover:bg-secondary"
                     >
                       <Settings className="h-6 w-6 shrink-0 text-secondary group-hover:text-accent" />
-                      {showFull && "Settings"}
+                      {showFull && t("nav.settings")}
                     </Link>
                   </div>
                 </div>
                 <div className="hidden md:block">
                   <Tooltip
-                    title={`${isExpanded ? "Close Sidebar" : "Open Sidebar"}`}
+                    title={`${isExpanded ? t("nav.closeSidebar") : t("nav.openSidebar")}`}
                     placement="right"
                   >
                     <button
