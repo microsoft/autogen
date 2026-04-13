@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, Optional, cast
 
 from ._agent_id import AgentId
 from ._message_handler_context import MessageHandlerContext
@@ -15,6 +15,8 @@ class LLMCallEvent:
         response: Dict[str, Any],
         prompt_tokens: int,
         completion_tokens: int,
+        latency_ms: Optional[float] = None,
+        tokens_per_second: Optional[float] = None,
         **kwargs: Any,
     ) -> None:
         """To be used by model clients to log the call to the LLM.
@@ -24,6 +26,8 @@ class LLMCallEvent:
             response (Dict[str, Any]): The response of the call. Must be json serializable.
             prompt_tokens (int): Number of tokens used in the prompt.
             completion_tokens (int): Number of tokens used in the completion.
+            latency_ms (Optional[float]): Total call duration in milliseconds.
+            tokens_per_second (Optional[float]): Completion tokens divided by latency in seconds.
 
         Example:
 
@@ -45,6 +49,10 @@ class LLMCallEvent:
         self.kwargs["response"] = response
         self.kwargs["prompt_tokens"] = prompt_tokens
         self.kwargs["completion_tokens"] = completion_tokens
+        if latency_ms is not None:
+            self.kwargs["latency_ms"] = latency_ms
+        if tokens_per_second is not None:
+            self.kwargs["tokens_per_second"] = tokens_per_second
         try:
             agent_id = MessageHandlerContext.agent_id()
         except RuntimeError:
@@ -58,6 +66,14 @@ class LLMCallEvent:
     @property
     def completion_tokens(self) -> int:
         return cast(int, self.kwargs["completion_tokens"])
+
+    @property
+    def latency_ms(self) -> Optional[float]:
+        return self.kwargs.get("latency_ms")
+
+    @property
+    def tokens_per_second(self) -> Optional[float]:
+        return self.kwargs.get("tokens_per_second")
 
     # This must output the event in a json serializable format
     def __str__(self) -> str:
@@ -111,6 +127,9 @@ class LLMStreamEndEvent:
         response: Dict[str, Any],
         prompt_tokens: int,
         completion_tokens: int,
+        latency_ms: Optional[float] = None,
+        tokens_per_second: Optional[float] = None,
+        ttft_ms: Optional[float] = None,
         **kwargs: Any,
     ) -> None:
         """To be used by model clients to log the end of a stream.
@@ -119,6 +138,9 @@ class LLMStreamEndEvent:
             response (Dict[str, Any]): The response of the call. Must be json serializable.
             prompt_tokens (int): Number of tokens used in the prompt.
             completion_tokens (int): Number of tokens used in the completion.
+            latency_ms (Optional[float]): Total stream duration in milliseconds.
+            tokens_per_second (Optional[float]): Completion tokens divided by latency in seconds.
+            ttft_ms (Optional[float]): Time to first token in milliseconds.
 
         Example:
 
@@ -138,6 +160,12 @@ class LLMStreamEndEvent:
         self.kwargs["response"] = response
         self.kwargs["prompt_tokens"] = prompt_tokens
         self.kwargs["completion_tokens"] = completion_tokens
+        if latency_ms is not None:
+            self.kwargs["latency_ms"] = latency_ms
+        if tokens_per_second is not None:
+            self.kwargs["tokens_per_second"] = tokens_per_second
+        if ttft_ms is not None:
+            self.kwargs["ttft_ms"] = ttft_ms
         try:
             agent_id = MessageHandlerContext.agent_id()
         except RuntimeError:
@@ -151,6 +179,18 @@ class LLMStreamEndEvent:
     @property
     def completion_tokens(self) -> int:
         return cast(int, self.kwargs["completion_tokens"])
+
+    @property
+    def latency_ms(self) -> Optional[float]:
+        return self.kwargs.get("latency_ms")
+
+    @property
+    def tokens_per_second(self) -> Optional[float]:
+        return self.kwargs.get("tokens_per_second")
+
+    @property
+    def ttft_ms(self) -> Optional[float]:
+        return self.kwargs.get("ttft_ms")
 
     # This must output the event in a json serializable format
     def __str__(self) -> str:
