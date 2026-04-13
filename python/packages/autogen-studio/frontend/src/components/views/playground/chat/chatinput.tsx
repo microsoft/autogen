@@ -373,6 +373,7 @@ export default function ChatInput({
               <Button
                 type="text"
                 size="small"
+                aria-label="Remove file"
                 className="p-0 ml-1 flex items-center justify-center"
                 onClick={() =>
                   setFileList((prev) => prev.filter((f) => f.uid !== file.uid))
@@ -408,6 +409,7 @@ export default function ChatInput({
             </div>
           )}
           <textarea
+            aria-label="Chat input"
             id="queryInput"
             name="queryInput"
             ref={textAreaRef}
@@ -447,7 +449,12 @@ export default function ChatInput({
                   </span>
                   placement="top"
                 >
-                  <Button type="text" disabled={isInputDisabled} className=" ">
+                  <Button
+                    type="text"
+                    disabled={isInputDisabled}
+                    className=" "
+                    aria-label="Upload files"
+                  >
                     <UploadIcon
                       strokeWidth={2}
                       size={26}
@@ -460,6 +467,7 @@ export default function ChatInput({
 
             <button
               type="button"
+              aria-label={loading ? "Sending message" : "Send message"}
               onClick={handleSubmit}
               disabled={
                 isInputDisabled || (text.trim() === "" && fileList.length === 0)

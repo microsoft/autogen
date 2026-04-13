@@ -195,6 +195,7 @@ You can use the AutoGen framework and developer tools to create applications for
 
 For community support, visit our [Discord server](https://aka.ms/autogen-discord) or [GitHub Discussions](https://github.com/microsoft/autogen/discussions). Note that AutoGen is now community-managed and responses may be limited.
 
+
 ## Where to go next?
 
 > **Starting a new project?** Head to [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) for the latest multi-agent capabilities with long-term support.
