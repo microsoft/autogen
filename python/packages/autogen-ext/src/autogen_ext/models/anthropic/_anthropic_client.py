@@ -23,20 +23,23 @@ from typing import (
 )
 
 import tiktoken
-from anthropic import AsyncAnthropic, AsyncAnthropicBedrock, AsyncStream
-from anthropic.types import (
-    Base64ImageSourceParam,
-    ContentBlock,
-    ImageBlockParam,
-    Message,
-    MessageParam,
-    RawMessageStreamEvent,  # type: ignore
-    TextBlock,
-    TextBlockParam,
-    ToolParam,
-    ToolResultBlockParam,
-    ToolUseBlock,
-)
+try:
+    from anthropic import AsyncAnthropic, AsyncAnthropicBedrock, AsyncStream
+    from anthropic.types import (
+        Base64ImageSourceParam,
+        ContentBlock,
+        ImageBlockParam,
+        Message,
+        MessageParam,
+        RawMessageStreamEvent,  # type: ignore
+        TextBlock,
+        TextBlockParam,
+        ToolParam,
+        ToolResultBlockParam,
+        ToolUseBlock,
+    )
+except ImportError as e:
+    raise ImportError("Please install anthropic using `pip install autogen-ext[anthropic]`") from e
 from autogen_core import (
     EVENT_LOGGER_NAME,
     TRACE_LOGGER_NAME,
