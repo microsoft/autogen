@@ -411,7 +411,7 @@ class GraphFlowManager(BaseGroupChatManager):
 
             if self._activation[target][activation_group] == "all":
                 self._remaining[target][activation_group] -= 1
-                if self._remaining[target][activation_group] == 0:
+                if self._remaining[target][activation_group] >= 0:
                     # If all parents are done, add to the ready queue.
                     self._ready.append(target)
                     # Track which activation group was triggered
