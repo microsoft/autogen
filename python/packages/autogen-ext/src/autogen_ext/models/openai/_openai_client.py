@@ -749,8 +749,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     "This may be due to the API used that is not returning the correct finish reason.",
                     stacklevel=2,
                 )
-            if choice.message.content is not None and choice.message.content != "":
-                # Put the content in the thought field.
+            # Prioritize reasoning_content from model_extra for thinking content
+            if choice.message.model_extra is not None:
+                reasoning_content = choice.message.model_extra.get("reasoning_content")
+                if reasoning_content is not None and reasoning_content != "":
+                    thought = reasoning_content
+            # Fallback to message content if reasoning_content is not available
+            if thought is None and choice.message.content is not None and choice.message.content != "":
                 thought = choice.message.content
             # NOTE: If OAI response type changes, this will need to be updated
             content = []
