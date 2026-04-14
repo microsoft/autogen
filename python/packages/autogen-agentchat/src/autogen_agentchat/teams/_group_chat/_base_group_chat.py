@@ -27,11 +27,13 @@ from ...messages import (
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
     GroupChatStart,
     GroupChatTermination,
+    GroupChatThreadResponse,
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -576,6 +578,50 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
                 # Indicate that the team is no longer running.
                 self._is_running = False
+
+    async def get_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Return the group chat manager's message thread so far.
+
+        This uses an RPC to the group chat manager and includes the same messages
+        the manager uses for speaker selection (including inner agent messages when applicable).
+
+        .. versionadded:: v0.7.6
+
+        When using the default embedded runtime, the runtime is started temporarily
+        if it is not already running (for example after :meth:`run` has finished).
+
+        Returns:
+            A list of messages and events in conversation order.
+
+        Raises:
+            RuntimeError: If the embedded runtime fails to start for the RPC call.
+        """
+        if not self._initialized:
+            await self._init(self._runtime)
+
+        need_stop = False
+        if self._embedded_runtime:
+            assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+            try:
+                self._runtime.start()
+                need_stop = True
+            except RuntimeError as exc:
+                if "already started" not in str(exc).lower():
+                    raise
+
+        try:
+            response = await self._runtime.send_message(
+                GroupChatGetThread(),
+                recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            )
+        finally:
+            if need_stop:
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                await self._runtime.stop_when_idle()
+
+        if not isinstance(response, GroupChatThreadResponse):
+            raise TypeError(f"Expected GroupChatThreadResponse, got {type(response)}")
+        return list(response.messages)
 
     async def reset(self) -> None:
         """Reset the team and its participants to their initial state.
