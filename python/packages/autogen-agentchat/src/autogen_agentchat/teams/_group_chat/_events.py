@@ -106,6 +106,19 @@ class GroupChatResume(BaseModel):
     ...
 
 
+class GroupChatGetThread(BaseModel):
+    """RPC request to read the group chat manager's current message thread."""
+
+    ...
+
+
+class GroupChatThreadResponse(BaseModel):
+    """RPC response with a snapshot of the group chat message thread."""
+
+    messages: List[SerializeAsAny[BaseAgentEvent | BaseChatMessage]]
+    """Messages recorded by the manager so far, in order."""
+
+
 class GroupChatError(BaseModel):
     """A message indicating that an error occurred in the group chat."""
 
