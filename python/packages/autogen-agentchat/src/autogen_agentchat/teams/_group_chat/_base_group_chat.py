@@ -78,11 +78,23 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     ):
         self._name = name
         self._description = description
-        if len(participants) == 0:
+        if participants is None:
+            raise TypeError("participants must be a non-empty sequence of ChatAgent or Team instances.")
+        try:
+            participants_list = list(participants)
+        except TypeError:
+            raise TypeError("participants must be a non-empty sequence of ChatAgent or Team instances.") from None
+        if len(participants_list) == 0:
             raise ValueError("At least one participant is required.")
-        if len(participants) != len(set(participant.name for participant in participants)):
+        for i, participant in enumerate(participants_list):
+            if not isinstance(participant, (ChatAgent, Team)):
+                raise TypeError(
+                    f"participants must be a non-empty sequence of ChatAgent or Team instances, "
+                    f"but found {type(participant).__name__} at index {i}."
+                )
+        if len(participants_list) != len(set(p.name for p in participants_list)):
             raise ValueError("The participant names must be unique.")
-        self._participants = participants
+        self._participants = participants_list
         self._base_group_chat_manager_class = group_chat_manager_class
         self._termination_condition = termination_condition
         self._max_turns = max_turns
