@@ -95,7 +95,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
                 # The latest handoff message should always target a valid participant.
                 assert self._current_speaker in self._participant_names
                 return [self._current_speaker]
-        return self._current_speaker
+        return [self._current_speaker]
 
     async def save_state(self) -> Mapping[str, Any]:
         state = SwarmManagerState(
