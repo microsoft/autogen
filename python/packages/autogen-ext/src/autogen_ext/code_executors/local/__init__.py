@@ -11,7 +11,7 @@ from hashlib import sha256
 from pathlib import Path
 from string import Template
 from types import SimpleNamespace
-from typing import Any, Callable, ClassVar, List, Optional, Sequence, Union
+from typing import Any, Callable, ClassVar, List, Mapping, Optional, Sequence, Union
 
 from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import CodeBlock, CodeExecutor, FunctionWithRequirements, FunctionWithRequirementsStr
@@ -32,6 +32,80 @@ __all__ = ("LocalCommandLineCodeExecutor",)
 
 A = ParamSpec("A")
 
+logger = logging.getLogger(__name__)
+
+# Environment variable name patterns considered sensitive enough to strip when
+# the executor is instantiated with sandbox=True. Matching is case-insensitive
+# and uses substring containment, not prefix, to catch variants like
+# "HF_TOKEN" / "GH_TOKEN" / "MY_API_KEY" without enumerating every provider.
+_SENSITIVE_ENV_SUBSTRINGS: tuple[str, ...] = (
+    "TOKEN",
+    "SECRET",
+    "PASSWORD",
+    "PASSWD",
+    "API_KEY",
+    "APIKEY",
+    "PRIVATE_KEY",
+    "CREDENTIAL",
+    "SESSION",
+    "COOKIE",
+    "AUTH",
+)
+
+
+def _scrub_sensitive_env(env: Mapping[str, str]) -> dict[str, str]:
+    """Return a copy of *env* with entries whose name matches a sensitive
+    pattern removed. Case-insensitive substring match."""
+    scrubbed: dict[str, str] = {}
+    for key, value in env.items():
+        upper = key.upper()
+        if any(marker in upper for marker in _SENSITIVE_ENV_SUBSTRINGS):
+            continue
+        scrubbed[key] = value
+    return scrubbed
+
+
+# Default per-process resource ceilings when sandbox=True on POSIX. These are
+# best-effort safety rails, not a security boundary — an adversarial payload
+# can still read files, make outbound connections, and write to work_dir.
+_SANDBOX_MAX_ADDRESS_SPACE_BYTES = 2 * 1024 * 1024 * 1024  # 2 GiB
+_SANDBOX_MAX_OPEN_FILES = 256
+_SANDBOX_MAX_PROCESSES = 64
+
+
+def _build_preexec_rlimits(timeout_seconds: int) -> Callable[[], None]:
+    """Return a ``preexec_fn`` callable that applies POSIX rlimits in the
+    forked child before ``exec``. Isolated in its own factory so we can patch
+    it in tests and to keep the ``resource`` import POSIX-scoped."""
+    import resource  # POSIX-only; import at call time for Windows safety
+
+    cpu_seconds = max(1, int(timeout_seconds))
+
+    def _apply() -> None:
+        # CPU time — gives a hard second-level ceiling that complements the
+        # asyncio-level timeout (which can be suppressed by blocking syscalls).
+        resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
+        # Address space — blocks naive memory-bomb payloads.
+        resource.setrlimit(
+            resource.RLIMIT_AS,
+            (_SANDBOX_MAX_ADDRESS_SPACE_BYTES, _SANDBOX_MAX_ADDRESS_SPACE_BYTES),
+        )
+        # File descriptors.
+        resource.setrlimit(
+            resource.RLIMIT_NOFILE,
+            (_SANDBOX_MAX_OPEN_FILES, _SANDBOX_MAX_OPEN_FILES),
+        )
+        # Fork bomb guard; RLIMIT_NPROC is advisory on some platforms.
+        try:
+            resource.setrlimit(
+                resource.RLIMIT_NPROC,
+                (_SANDBOX_MAX_PROCESSES, _SANDBOX_MAX_PROCESSES),
+            )
+        except (ValueError, OSError):
+            pass
+
+    return _apply
+
 
 class LocalCommandLineCodeExecutorConfig(BaseModel):
     """Configuration for LocalCommandLineCodeExecutor"""
@@ -40,6 +114,7 @@ class LocalCommandLineCodeExecutorConfig(BaseModel):
     work_dir: Optional[str] = None
     functions_module: str = "functions"
     cleanup_temp_files: bool = True
+    sandbox: Optional[bool] = None
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeExecutorConfig]):
@@ -81,6 +156,14 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
         cleanup_temp_files (bool, optional): Whether to automatically clean up temporary files after execution. Defaults to True.
         virtual_env_context (Optional[SimpleNamespace], optional): The virtual environment context. Defaults to None.
+        sandbox (Optional[bool], optional): Explicit sandbox posture. When ``None`` (default, legacy) the executor runs unsandboxed
+            and emits a ``DeprecationWarning``; in a future release this parameter will become required. When ``False`` the caller
+            explicitly acknowledges unsandboxed execution and no warning is emitted. When ``True`` the executor applies best-effort
+            in-process hardening: environment entries whose name contains common credential patterns (``TOKEN``, ``SECRET``,
+            ``API_KEY``, ``PASSWORD``, ``PRIVATE_KEY`` etc.) are stripped from the child process, and on POSIX platforms per-child
+            rlimits (``RLIMIT_CPU``, ``RLIMIT_AS``, ``RLIMIT_NOFILE``, ``RLIMIT_NPROC``) are applied via ``preexec_fn``. This is
+            **not** a substitute for :class:`DockerCommandLineCodeExecutor`; it does not provide filesystem, network, or user
+            isolation. Use the Docker executor for untrusted-code deployments.
 
     .. note::
         Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
@@ -158,15 +241,45 @@ $functions"""
         functions_module: str = "functions",
         cleanup_temp_files: bool = True,
         virtual_env_context: Optional[SimpleNamespace] = None,
+        sandbox: Optional[bool] = None,
     ):
-        # Issue warning about using LocalCommandLineCodeExecutor
-        warnings.warn(
-            "Using LocalCommandLineCodeExecutor may execute code on the local machine which can be unsafe. "
-            "For security, it is recommended to use DockerCommandLineCodeExecutor instead. "
-            "To install Docker, visit: https://docs.docker.com/get-docker/",
-            UserWarning,
-            stacklevel=2,
-        )
+        # ── Sandbox posture notification ────────────────────────────────────
+        # The legacy UserWarning at construction was easily suppressed by
+        # production configurations (`python -W ignore`, warning filters in
+        # logging pipelines). Callers now choose one of three postures:
+        #   • sandbox=None  (default, legacy)  → DeprecationWarning + logger
+        #   • sandbox=False                    → explicit opt-out, silent
+        #   • sandbox=True                     → best-effort in-process
+        #                                         hardening (env scrub +
+        #                                         POSIX rlimits). NOT a
+        #                                         substitute for the Docker
+        #                                         executor.
+        if sandbox is None:
+            warnings.warn(
+                "LocalCommandLineCodeExecutor is running WITHOUT sandboxing. "
+                "Pass sandbox=False to acknowledge this explicitly, or "
+                "sandbox=True for best-effort POSIX hardening. "
+                "For strong isolation use DockerCommandLineCodeExecutor "
+                "(https://docs.docker.com/get-docker/). "
+                "In a future release the `sandbox` parameter will become "
+                "required.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            logger.warning(
+                "LocalCommandLineCodeExecutor instantiated without explicit "
+                "sandbox posture; defaulting to unsandboxed execution."
+            )
+        elif sandbox is True and sys.platform == "win32":
+            warnings.warn(
+                "sandbox=True requested but POSIX rlimits / preexec hooks "
+                "are not available on Windows; falling back to env scrub "
+                "only. Use DockerCommandLineCodeExecutor for strong "
+                "isolation on Windows.",
+                UserWarning,
+                stacklevel=2,
+            )
+        self._sandbox: Optional[bool] = sandbox
 
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
@@ -399,6 +512,14 @@ $functions"""
                 virtual_env_bin_abs_path = os.path.abspath(self._virtual_env_context.bin_path)
                 env["PATH"] = f"{virtual_env_bin_abs_path}{os.pathsep}{env['PATH']}"
 
+            # Sandbox hardening: strip env entries that look like credentials.
+            # This is a shallow defence — LLM-generated code can still read
+            # files, call out to the network, or touch the filesystem — but it
+            # prevents the most common leak pattern where provider API keys
+            # sit in the parent process environment.
+            if self._sandbox is True:
+                env = _scrub_sensitive_env(env)
+
             # Decide how to invoke the script
             if lang == "python":
                 program = (
@@ -422,6 +543,14 @@ $functions"""
                     # Shell commands (bash, sh, etc.)
                     extra_args = [str(written_file.absolute())]
 
+            # Build sandbox-specific subprocess kwargs.
+            # On POSIX with sandbox=True we set per-child rlimits via a
+            # preexec_fn so runaway memory or fork bombs are capped. Windows
+            # does not support preexec_fn or RLIMIT_AS → env scrub only.
+            exec_kwargs: dict[str, Any] = {}
+            if self._sandbox is True and sys.platform != "win32":
+                exec_kwargs["preexec_fn"] = _build_preexec_rlimits(self._timeout)
+
             # Create a subprocess and run
             task = asyncio.create_task(
                 asyncio.create_subprocess_exec(
@@ -431,6 +560,7 @@ $functions"""
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                     env=env,
+                    **exec_kwargs,
                 )
             )
             cancellation_token.link_future(task)
@@ -514,6 +644,7 @@ $functions"""
             work_dir=str(self.work_dir),
             functions_module=self._functions_module,
             cleanup_temp_files=self._cleanup_temp_files,
+            sandbox=self._sandbox,
         )
 
     @classmethod
@@ -523,4 +654,5 @@ $functions"""
             work_dir=Path(config.work_dir) if config.work_dir is not None else None,
             functions_module=config.functions_module,
             cleanup_temp_files=config.cleanup_temp_files,
+            sandbox=config.sandbox,
         )

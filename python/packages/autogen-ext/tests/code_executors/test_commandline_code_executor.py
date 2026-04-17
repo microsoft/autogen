@@ -10,6 +10,7 @@ import sys
 import tempfile
 import types
 import venv
+import warnings
 from pathlib import Path
 from typing import AsyncGenerator, TypeAlias
 from unittest.mock import patch
@@ -445,3 +446,80 @@ async def test_cleanup_temp_files_oserror(caplog: pytest.LogCaptureFixture) -> N
                 # The code file should have been attempted to be deleted and failed
                 assert any("Failed to delete temporary file" in record.message for record in caplog.records)
                 assert any("Mocked OSError" in record.message for record in caplog.records)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Sandbox posture tests (issue #7462)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_sandbox_default_emits_deprecation_warning() -> None:
+    """Instantiating without an explicit sandbox posture should emit a
+    DeprecationWarning (not the legacy UserWarning) so warning-filter
+    pipelines that silence UserWarning still surface the security notice."""
+    with pytest.warns(DeprecationWarning, match=r"sandbox=False.*sandbox=True"):
+        LocalCommandLineCodeExecutor()
+
+
+@pytest.mark.asyncio
+async def test_sandbox_false_is_silent_opt_out() -> None:
+    """sandbox=False is the explicit "I accept the risk" acknowledgement and
+    must not emit the DeprecationWarning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        # Must not raise: the DeprecationWarning-as-error filter would trip
+        # if we regressed and emitted the warning in the explicit path.
+        LocalCommandLineCodeExecutor(sandbox=False)
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only rlimit path")
+async def test_sandbox_true_strips_credential_env(tmp_path: Path) -> None:
+    """sandbox=True should remove environment variables whose names look
+    like credentials before invoking the child process."""
+    executor = LocalCommandLineCodeExecutor(work_dir=tmp_path, sandbox=True)
+    await executor.start()
+    try:
+        code = (
+            "import os\n"
+            "for k in ['MY_API_KEY', 'SOME_TOKEN', 'HARMLESS_VAR']:\n"
+            "    print(k, os.environ.get(k, '<missing>'))\n"
+        )
+        with patch.dict(
+            os.environ,
+            {
+                "MY_API_KEY": "sekret-1",
+                "SOME_TOKEN": "sekret-2",
+                "HARMLESS_VAR": "benign",
+            },
+            clear=False,
+        ):
+            result = await executor.execute_code_blocks(
+                [CodeBlock(code=code, language="python")],
+                cancellation_token=CancellationToken(),
+            )
+    finally:
+        await executor.stop()
+
+    assert result.exit_code == 0, result.output
+    assert "MY_API_KEY <missing>" in result.output
+    assert "SOME_TOKEN <missing>" in result.output
+    assert "HARMLESS_VAR benign" in result.output
+
+
+@pytest.mark.asyncio
+async def test_sandbox_roundtrips_through_config(tmp_path: Path) -> None:
+    """The sandbox posture must survive serialize → deserialize so declarative
+    deployments cannot silently downgrade to the default warning path."""
+    executor = LocalCommandLineCodeExecutor(work_dir=tmp_path, sandbox=True)
+    config = executor.dump_component()
+    # dump_component should preserve the explicit posture.
+    assert config.config["sandbox"] is True
+
+    # The load side must not emit the default DeprecationWarning — it would
+    # fire if sandbox weren't threaded through.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        restored = LocalCommandLineCodeExecutor.load_component(config)
+    assert restored._sandbox is True  # type: ignore[attr-defined]
