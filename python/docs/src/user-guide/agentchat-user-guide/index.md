@@ -40,6 +40,15 @@ Build your first agent
 Step-by-step guide to using AgentChat, learn about agents, teams, and more
 :::
 
+:::{grid-item-card} {fas}`shield-halved;pst-color-primary` Termination Best Practices
+:link: ./termination-best-practices.html
+:link-alt: Best practices for choosing reliable termination conditions
+
+Choosing the right termination condition
+:::
+
+
+
 :::{grid-item-card} {fas}`wrench;pst-color-primary` Custom Agents
 :link: ./custom-agents.html
 :link-alt: Custom Agents: Create your own agents with custom behaviors
