@@ -142,6 +142,24 @@ class _FlakyTermination(TerminationCondition):
         pass
 
 
+def test_round_robin_group_chat_rejects_non_sequence_participants() -> None:
+    with pytest.raises(TypeError, match="participants must be a non-empty sequence"):
+        RoundRobinGroupChat(participants=None)  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match="participants must be a non-empty sequence"):
+        RoundRobinGroupChat(participants=1)  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match="participants must be a non-empty sequence"):
+        RoundRobinGroupChat(participants="not a list")  # type: ignore[arg-type]
+
+
+def test_round_robin_group_chat_rejects_non_agent_participants() -> None:
+    agent = _EchoAgent("agent", "An echo agent")
+
+    with pytest.raises(TypeError, match="participants must contain only ChatAgent or Team instances"):
+        RoundRobinGroupChat(participants=[agent, "bad"])  # type: ignore[list-item]
+
+
 class _UnknownMessageType(BaseChatMessage):
     content: str
 
