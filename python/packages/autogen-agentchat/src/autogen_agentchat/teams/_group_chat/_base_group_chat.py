@@ -78,6 +78,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     ):
         self._name = name
         self._description = description
+        if not isinstance(participants, list):
+            raise TypeError(
+                f"participants must be a list of ChatAgent or Team instances, got {type(participants).__name__!r}."
+            )
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
