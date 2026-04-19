@@ -22,6 +22,7 @@ from typing import (
     List,
     Literal,
     Mapping,
+    Optional,
     ParamSpec,
     Sequence,
     Set,
@@ -133,18 +134,40 @@ class HostConnection:
 
     @classmethod
     async def from_host_address(
-        cls, host_address: str, extra_grpc_config: ChannelArgumentType = DEFAULT_GRPC_CONFIG
+        cls,
+        host_address: str,
+        extra_grpc_config: ChannelArgumentType = DEFAULT_GRPC_CONFIG,
+        channel_credentials: Any | None = None,
     ) -> Self:
+        """Create a connection to a host runtime from its address.
+
+        Args:
+            host_address (str): The address of the host runtime.
+            extra_grpc_config (ChannelArgumentType): Extra gRPC configuration options.
+            channel_credentials (Optional[grpc.ChannelCredentials]): Channel credentials for TLS.
+
+        Returns:
+            HostConnection: The created connection.
+
+        .. versionadded:: v0.7.6
+        """
         logger.info("Connecting to %s", host_address)
         #  Always use DEFAULT_GRPC_CONFIG and override it with provided grpc_config
         merged_options = [
             (k, v) for k, v in {**dict(HostConnection.DEFAULT_GRPC_CONFIG), **dict(extra_grpc_config)}.items()
         ]
 
-        channel = grpc.aio.insecure_channel(
-            host_address,
-            options=merged_options,
-        )
+        if channel_credentials is not None:
+            channel = grpc.aio.secure_channel(
+                host_address,
+                channel_credentials,
+                options=merged_options,
+            )
+        else:
+            channel = grpc.aio.insecure_channel(
+                host_address,
+                options=merged_options,
+            )
         stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
         instance = cls(channel, stub)
 
@@ -219,6 +242,17 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
     Cross-language agents will additionally require all agents use shared protobuf schemas for any message types that are sent between agents.
 
+    Args:
+        host_address (str): The address of the host runtime to connect to.
+        tracer_provider (Optional[TracerProvider]): The tracer provider for telemetry.
+        extra_grpc_config (Optional[ChannelArgumentType]): Extra gRPC configuration options.
+        payload_serialization_format (str): The serialization format for payloads. Defaults to JSON.
+        channel_credentials (Optional[grpc.ChannelCredentials]): Channel credentials for TLS.
+            If provided, the connection will use a secure channel.
+
+    .. versionadded:: v0.7.6
+        The `channel_credentials` parameter was added to support TLS.
+
     .. _agent_worker.proto: https://github.com/microsoft/autogen/blob/main/protos/agent_worker.proto
 
     .. _cloudevent.proto: https://github.com/microsoft/autogen/blob/main/protos/cloudevent.proto
@@ -232,6 +266,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         tracer_provider: TracerProvider | None = None,
         extra_grpc_config: ChannelArgumentType | None = None,
         payload_serialization_format: str = JSON_DATA_CONTENT_TYPE,
+        channel_credentials: Any | None = None,
     ) -> None:
         self._host_address = host_address
         self._trace_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("Worker Runtime"))
@@ -257,6 +292,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             raise ValueError(f"Unsupported payload serialization format: {payload_serialization_format}")
 
         self._payload_serialization_format = payload_serialization_format
+        self._channel_credentials = channel_credentials
 
     async def start(self) -> None:
         """Start the runtime in a background task."""
@@ -264,7 +300,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             raise ValueError("Runtime is already running.")
         logger.info(f"Connecting to host: {self._host_address}")
         self._host_connection = await HostConnection.from_host_address(
-            self._host_address, extra_grpc_config=self._extra_grpc_config
+            self._host_address, extra_grpc_config=self._extra_grpc_config, channel_credentials=self._channel_credentials
         )
         logger.info("Connection established")
         if self._read_task is None:
