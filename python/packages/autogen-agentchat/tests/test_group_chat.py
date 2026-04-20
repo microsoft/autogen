@@ -1137,6 +1137,8 @@ async def test_selector_group_chat_fall_back_to_first_after_3_attempts(runtime: 
 
 @pytest.mark.asyncio
 async def test_selector_group_chat_fall_back_to_previous_after_3_attempts(runtime: AgentRuntime | None) -> None:
+    # When allow_repeated_speaker=True, falling back to the previous speaker
+    # after exhausting max_selector_attempts is the expected behavior.
     model_client = ReplayChatCompletionClient(
         ["agent2", "agent2", "agent2", "agent2"],
     )
@@ -1147,6 +1149,7 @@ async def test_selector_group_chat_fall_back_to_previous_after_3_attempts(runtim
         participants=[agent1, agent2, agent3],
         model_client=model_client,
         max_turns=2,
+        allow_repeated_speaker=True,
         runtime=runtime,
     )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
@@ -1155,6 +1158,80 @@ async def test_selector_group_chat_fall_back_to_previous_after_3_attempts(runtim
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"
     assert result.messages[2].source == "agent2"
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_fall_back_excludes_previous_when_disallowed(
+    runtime: AgentRuntime | None,
+) -> None:
+    # Regression test for https://github.com/microsoft/autogen/issues/7471
+    # When allow_repeated_speaker=False, the fallback after exhausting
+    # max_selector_attempts must NOT return the previous speaker; otherwise
+    # a livelock can occur (same agent picked forever). Instead the fallback
+    # must pick from the pre-filtered candidate list that already excludes
+    # the previous speaker.
+    model_client = ReplayChatCompletionClient(
+        # First selection has no previous speaker; pick agent2.
+        # Subsequent selections all attempt to repeat agent2, which is now
+        # the excluded previous speaker -- the fallback must pick someone else.
+        ["agent2", "agent2", "agent2", "agent2"],
+    )
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        max_turns=2,
+        allow_repeated_speaker=False,
+        runtime=runtime,
+    )
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 3
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
+    assert result.messages[1].source == "agent2"
+    # Second speaker must NOT be agent2 (the previous speaker).
+    assert result.messages[2].source != "agent2"
+    assert result.messages[2].source in {"agent1", "agent3"}
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_fall_back_excludes_previous_with_candidate_func(
+    runtime: AgentRuntime | None,
+) -> None:
+    # Regression test for https://github.com/microsoft/autogen/issues/7471
+    # When `candidate_func` supplies candidates, `allow_repeated_speaker=False`
+    # is documented to be ignored for filtering, but the post-exhaustion
+    # fallback must still not return the previous speaker -- otherwise the
+    # livelock reappears on candidate_func paths. Here candidate_func returns
+    # [previous, other] and the model keeps picking previous; the fallback
+    # must pick the non-previous candidate.
+    model_client = ReplayChatCompletionClient(
+        ["agent2", "agent2", "agent2", "agent2"],
+    )
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+
+    def _candidate_func(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
+        # Put the previous speaker (agent2) first to trigger the worst case.
+        return ["agent2", "agent1", "agent3"]
+
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        max_turns=2,
+        allow_repeated_speaker=False,
+        candidate_func=_candidate_func,
+        runtime=runtime,
+    )
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 3
+    assert result.messages[1].source == "agent2"
+    # Even though candidate_func returned agent2 first, the fallback must skip it.
+    assert result.messages[2].source != "agent2"
+    assert result.messages[2].source in {"agent1", "agent3"}
 
 
 @pytest.mark.asyncio

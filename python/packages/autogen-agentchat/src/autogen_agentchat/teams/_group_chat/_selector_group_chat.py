@@ -299,13 +299,24 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                     trace_logger.debug(f"Model selected a valid name: {agent_name} (attempt {num_attempts})")
                     return agent_name
 
-        if self._previous_speaker is not None:
+        # When repeated speakers are disallowed, returning the previous speaker
+        # would violate `allow_repeated_speaker=False` and cause a livelock if
+        # the model keeps picking the excluded speaker
+        # (see https://github.com/microsoft/autogen/issues/7471).
+        # The no-`candidate_func` path pre-filters `participants` to exclude
+        # the previous speaker; the `candidate_func` path does not, so we
+        # also skip the previous speaker explicitly here.
+        if self._allow_repeated_speaker and self._previous_speaker is not None:
             trace_logger.warning(f"Model failed to select a speaker after {max_attempts}, using the previous speaker.")
             return self._previous_speaker
-        trace_logger.warning(
-            f"Model failed to select a speaker after {max_attempts} and there was no previous speaker, using the first participant."
+        fallback = next(
+            (p for p in participants if p != self._previous_speaker),
+            participants[0],
         )
-        return participants[0]
+        trace_logger.warning(
+            f"Model failed to select a speaker after {max_attempts}, using {fallback} as the fallback."
+        )
+        return fallback
 
     def _mentioned_agents(self, message_content: str, agent_names: List[str]) -> Dict[str, int]:
         """Counts the number of times each agent is mentioned in the provided message content.
@@ -395,8 +406,9 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
         allow_repeated_speaker (bool, optional): Whether to include the previous speaker in the list of candidates to be selected for the next turn.
             Defaults to False. The model may still select the previous speaker -- a warning will be logged if this happens.
         max_selector_attempts (int, optional): The maximum number of attempts to select a speaker using the model. Defaults to 3.
-            If the model fails to select a speaker after the maximum number of attempts, the previous speaker will be used if available,
-            otherwise the first participant will be used.
+            If the model fails to select a speaker after the maximum number of attempts, the fallback depends on ``allow_repeated_speaker``:
+            when ``True`` and a previous speaker exists, the previous speaker is reused; otherwise the first participant other than
+            the previous speaker is used.
         selector_func (Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], str | None], Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[str | None]], optional): A custom selector
             function that takes the conversation history and returns the name of the next speaker.
             If provided, this function will be used to override the model to select the next speaker.
