@@ -4,6 +4,7 @@
 import asyncio
 import logging
 import os
+import re
 import sys
 import tempfile
 import warnings
@@ -11,7 +12,7 @@ from hashlib import sha256
 from pathlib import Path
 from string import Template
 from types import SimpleNamespace
-from typing import Any, Callable, ClassVar, List, Optional, Sequence, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Union
 
 from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import CodeBlock, CodeExecutor, FunctionWithRequirements, FunctionWithRequirementsStr
@@ -32,6 +33,71 @@ __all__ = ("LocalCommandLineCodeExecutor",)
 
 A = ParamSpec("A")
 
+logger = logging.getLogger(__name__)
+
+# Default hard memory cap applied via RLIMIT_AS when sandbox=True (POSIX only).
+# 512 MiB is enough for most small Python scripts while still bounding runaway
+# LLM-generated code. Callers that need more can override via the
+# ``sandbox_memory_bytes`` constructor argument.
+_DEFAULT_SANDBOX_MEMORY_BYTES: int = 512 * 1024 * 1024
+
+# Env-var name patterns scrubbed when sandbox=True. Matched case-insensitively
+# against variable *names* (not values). Best-effort only: this is not a
+# substitute for a real sandbox, and secrets stored under non-matching names
+# will still leak to the subprocess.
+_CREDENTIAL_ENV_PATTERNS: Tuple[re.Pattern[str], ...] = (
+    re.compile(r".*_API_KEY$", re.IGNORECASE),
+    re.compile(r".*_TOKEN$", re.IGNORECASE),
+    re.compile(r".*_SECRET$", re.IGNORECASE),
+    re.compile(r".*PASSWORD.*", re.IGNORECASE),
+    re.compile(r"^AWS_.*", re.IGNORECASE),
+    re.compile(r"^AZURE_.*", re.IGNORECASE),
+    re.compile(r"^GCP_.*", re.IGNORECASE),
+    re.compile(r"^GOOGLE_.*", re.IGNORECASE),
+    re.compile(r"^OPENAI_.*", re.IGNORECASE),
+    re.compile(r"^ANTHROPIC_.*", re.IGNORECASE),
+    re.compile(r"^HF_.*", re.IGNORECASE),
+    re.compile(r"^HUGGINGFACE_.*", re.IGNORECASE),
+    re.compile(r"^GITHUB_TOKEN$", re.IGNORECASE),
+    re.compile(r"^GH_TOKEN$", re.IGNORECASE),
+    re.compile(r"^NPM_TOKEN$", re.IGNORECASE),
+    re.compile(r"^PYPI_.*", re.IGNORECASE),
+)
+
+
+def _scrub_credentials_from_env(env: Dict[str, str]) -> Dict[str, str]:
+    """Return a copy of ``env`` with credential-shaped variable names removed."""
+    scrubbed: Dict[str, str] = {}
+    for key, value in env.items():
+        if any(pattern.match(key) for pattern in _CREDENTIAL_ENV_PATTERNS):
+            continue
+        scrubbed[key] = value
+    return scrubbed
+
+
+def _make_sandbox_preexec_fn(cpu_seconds: int, memory_bytes: int) -> Optional[Callable[[], None]]:
+    """Build a ``preexec_fn`` that applies POSIX resource limits before ``exec``.
+
+    Returns ``None`` on platforms where the ``resource`` module is unavailable
+    (notably Windows). The returned closure is intended to be passed as
+    ``preexec_fn`` to :func:`asyncio.create_subprocess_exec`.
+    """
+    try:
+        import resource  # type: ignore[import-not-found]
+    except ImportError:
+        return None
+
+    def _apply_limits() -> None:  # pragma: no cover - runs in child process
+        resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
+        try:
+            resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+        except (ValueError, OSError):
+            # Some platforms (e.g. macOS) refuse RLIMIT_AS; continue so
+            # sandbox=True still provides env-scrub + CPU capping.
+            pass
+
+    return _apply_limits
+
 
 class LocalCommandLineCodeExecutorConfig(BaseModel):
     """Configuration for LocalCommandLineCodeExecutor"""
@@ -40,6 +106,8 @@ class LocalCommandLineCodeExecutorConfig(BaseModel):
     work_dir: Optional[str] = None
     functions_module: str = "functions"
     cleanup_temp_files: bool = True
+    sandbox: Optional[bool] = None
+    sandbox_memory_bytes: int = _DEFAULT_SANDBOX_MEMORY_BYTES
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeExecutorConfig]):
@@ -81,6 +149,25 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
         cleanup_temp_files (bool, optional): Whether to automatically clean up temporary files after execution. Defaults to True.
         virtual_env_context (Optional[SimpleNamespace], optional): The virtual environment context. Defaults to None.
+        sandbox (Optional[bool], optional): Opt-in best-effort hardening for LLM-generated code.
+            This is **NOT** a substitute for :class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
+            and provides no strong isolation guarantees; it is only a defense-in-depth layer for
+            users who cannot run Docker.
+
+            * ``None`` (default): backward-compatible behavior. Emits a :class:`DeprecationWarning`
+              noting that a future release will make this parameter required, and executes code
+              without any added hardening.
+            * ``False``: explicit acknowledgement that no sandboxing should be applied. No
+              warning is emitted.
+            * ``True``: applies POSIX ``RLIMIT_CPU`` (= ``timeout + 5`` seconds) and
+              ``RLIMIT_AS`` (default 512 MiB, see ``sandbox_memory_bytes``) via ``preexec_fn``
+              on code-execution and pip-install subprocesses, and scrubs credential-shaped
+              environment variables (``*_API_KEY``, ``*_TOKEN``, ``*_SECRET``, ``AWS_*``,
+              ``OPENAI_*``, etc.) from the subprocess environment. On Windows, resource limits
+              are unavailable and a warning is logged; env scrub still applies.
+        sandbox_memory_bytes (int, optional): Address-space cap (``RLIMIT_AS``) applied when
+            ``sandbox=True`` on POSIX. Defaults to 512 MiB. Ignored when ``sandbox`` is ``None``
+            or ``False``, and on platforms without the ``resource`` module.
 
     .. note::
         Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
@@ -158,15 +245,38 @@ $functions"""
         functions_module: str = "functions",
         cleanup_temp_files: bool = True,
         virtual_env_context: Optional[SimpleNamespace] = None,
+        sandbox: Optional[bool] = None,
+        sandbox_memory_bytes: int = _DEFAULT_SANDBOX_MEMORY_BYTES,
     ):
-        # Issue warning about using LocalCommandLineCodeExecutor
-        warnings.warn(
-            "Using LocalCommandLineCodeExecutor may execute code on the local machine which can be unsafe. "
-            "For security, it is recommended to use DockerCommandLineCodeExecutor instead. "
-            "To install Docker, visit: https://docs.docker.com/get-docker/",
-            UserWarning,
-            stacklevel=2,
-        )
+        # Warn based on the caller's choice of ``sandbox``. When ``sandbox`` is
+        # left at its default (``None``), we emit a ``DeprecationWarning`` so
+        # callers are nudged toward making an explicit decision before a future
+        # release makes the parameter required. An explicit ``False`` opts out
+        # of the warning (but preserves the insecure behavior), while ``True``
+        # enables best-effort hardening. See issue #7462.
+        if sandbox is None:
+            deprecation_msg = (
+                "LocalCommandLineCodeExecutor was constructed without an explicit "
+                "`sandbox` argument. A future release will require this parameter. "
+                "Pass `sandbox=True` for best-effort in-process hardening (POSIX "
+                "resource limits + credential env-var scrub), or `sandbox=False` to "
+                "explicitly acknowledge unsandboxed execution. For real isolation, "
+                "prefer DockerCommandLineCodeExecutor. See "
+                "https://github.com/microsoft/autogen/issues/7462."
+            )
+            warnings.warn(deprecation_msg, DeprecationWarning, stacklevel=2)
+            logger.warning(deprecation_msg)
+
+        self._sandbox: Optional[bool] = sandbox
+        self._sandbox_memory_bytes: int = sandbox_memory_bytes
+        if sandbox is True and sys.platform == "win32":
+            logger.warning(
+                "LocalCommandLineCodeExecutor(sandbox=True) on Windows: POSIX "
+                "resource limits (RLIMIT_CPU, RLIMIT_AS) are not available on "
+                "this platform. Credential env-var scrubbing still applies, but "
+                "no CPU/memory caps will be enforced. Use "
+                "DockerCommandLineCodeExecutor for real isolation."
+            )
 
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
@@ -270,6 +380,33 @@ $functions"""
         """(Experimental) Whether to automatically clean up temporary files after execution."""
         return self._cleanup_temp_files
 
+    @property
+    def sandbox(self) -> Optional[bool]:
+        """(Experimental) Whether sandbox hardening is enabled. See ``__init__`` docs."""
+        return self._sandbox
+
+    def _prepare_sandbox_subprocess_kwargs(self, env: Dict[str, str]) -> Tuple[Dict[str, str], Dict[str, Any]]:
+        """Apply sandbox policy to a subprocess env + kwargs pair.
+
+        Returns ``(env, extra_kwargs)``. When ``sandbox`` is not ``True``, the
+        env is returned unchanged and extra_kwargs is empty. When ``sandbox`` is
+        ``True``, credential-shaped env vars are stripped and (on POSIX) a
+        ``preexec_fn`` applying RLIMIT_CPU and RLIMIT_AS is attached.
+        """
+        if self._sandbox is not True:
+            return env, {}
+
+        scrubbed = _scrub_credentials_from_env(env)
+        extra_kwargs: Dict[str, Any] = {}
+        if sys.platform != "win32":
+            preexec = _make_sandbox_preexec_fn(
+                cpu_seconds=self._timeout + 5,
+                memory_bytes=self._sandbox_memory_bytes,
+            )
+            if preexec is not None:
+                extra_kwargs["preexec_fn"] = preexec
+        return scrubbed, extra_kwargs
+
     async def _setup_functions(self, cancellation_token: CancellationToken) -> None:
         func_file_content = build_python_functions_file(self._functions)
         func_file = self.work_dir / f"{self._functions_module}.py"
@@ -290,6 +427,8 @@ $functions"""
             else:
                 py_executable = sys.executable
 
+            pip_env, pip_extra_kwargs = self._prepare_sandbox_subprocess_kwargs(os.environ.copy())
+
             task = asyncio.create_task(
                 asyncio.create_subprocess_exec(
                     py_executable,
@@ -297,6 +436,8 @@ $functions"""
                     cwd=self.work_dir,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
+                    env=pip_env,
+                    **pip_extra_kwargs,
                 )
             )
             cancellation_token.link_future(task)
@@ -422,6 +563,9 @@ $functions"""
                     # Shell commands (bash, sh, etc.)
                     extra_args = [str(written_file.absolute())]
 
+            # Apply sandbox policy (env scrub + POSIX rlimits) if enabled.
+            env, sandbox_kwargs = self._prepare_sandbox_subprocess_kwargs(env)
+
             # Create a subprocess and run
             task = asyncio.create_task(
                 asyncio.create_subprocess_exec(
@@ -431,6 +575,7 @@ $functions"""
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                     env=env,
+                    **sandbox_kwargs,
                 )
             )
             cancellation_token.link_future(task)
@@ -514,6 +659,8 @@ $functions"""
             work_dir=str(self.work_dir),
             functions_module=self._functions_module,
             cleanup_temp_files=self._cleanup_temp_files,
+            sandbox=self._sandbox,
+            sandbox_memory_bytes=self._sandbox_memory_bytes,
         )
 
     @classmethod
@@ -523,4 +670,6 @@ $functions"""
             work_dir=Path(config.work_dir) if config.work_dir is not None else None,
             functions_module=config.functions_module,
             cleanup_temp_files=config.cleanup_temp_files,
+            sandbox=config.sandbox,
+            sandbox_memory_bytes=config.sandbox_memory_bytes,
         )
