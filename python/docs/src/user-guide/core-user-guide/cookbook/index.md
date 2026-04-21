@@ -15,6 +15,7 @@ openai-assistant-agent
 langgraph-agent
 llamaindex-agent
 local-llms-ollama-litellm
+mlflow-gateway
 instrumenting
 topic-subscription-scenarios
 structured-output-agent
