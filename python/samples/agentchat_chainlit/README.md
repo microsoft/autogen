@@ -50,8 +50,9 @@ You can use one of the starters. For example, ask "Write a poem about winter.".
 The team is a RoundRobinGroupChat, so each agent will respond in turn.
 There are two agents in the team: one is instructed to be generally helpful
 and the other one is instructed to be a critic and provide feedback. 
-The two agents will respond in round-robin fashion until
-the 'APPROVE' is mentioned by the critic agent.
+The two agents will respond in round-robin fashion until the configured
+maximum message limit is reached. This keeps the sample deterministic and
+does not rely on a model emitting a specific magic word.
 
 ## Running the Team Sample with UserProxyAgent
 
@@ -69,6 +70,7 @@ By default, the `UserProxyAgent` will request an input action from the user
 to approve or reject the response from the team.
 When the user approves the response, the `UserProxyAgent` will send a message
 to the team containing the text "APPROVE", and the team will stop responding.
+This user-driven pattern is the more robust way to model explicit approval.
 
 
 ## Next Steps

@@ -4,7 +4,7 @@ import chainlit as cl
 import yaml
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.conditions import TextMentionTermination
+from autogen_agentchat.conditions import MaxMessageTermination
 from autogen_agentchat.messages import ModelClientStreamingChunkEvent, TextMessage
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_core import CancellationToken
@@ -30,13 +30,12 @@ async def start_chat() -> None:
     critic = AssistantAgent(
         name="critic",
         model_client=model_client,
-        system_message="You are a critic. Provide constructive feedback. "
-        "Respond with 'APPROVE' if your feedback has been addressed.",
+        system_message="You are a critic. Provide constructive feedback.",
         model_client_stream=True,  # Enable model client streaming.
     )
 
-    # Termination condition.
-    termination = TextMentionTermination("APPROVE", sources=["critic"])
+    # Deterministic termination condition.
+    termination = MaxMessageTermination(6)
 
     # Chain the assistant and critic agents using RoundRobinGroupChat.
     group_chat = RoundRobinGroupChat([assistant, critic], termination_condition=termination)
