@@ -1,0 +1,57 @@
+# AutoGen Documentation
+
+> AutoGen is a framework for building AI agent systems. It provides a multi-agent conversation framework, tools for creating custom agents, and integration with various LLM providers.
+
+## AutoGen Studio
+
+AutoGen Studio is a web-based interface for building, testing, and deploying agent workflows without writing code.
+
+- [Getting Started](src/user-guide/autogenstudio-user-guide/index.md): Overview and quick start
+- [Installation](src/user-guide/autogenstudio-user-guide/installation.md): How to install AutoGen Studio
+- [Usage Guide](src/user-guide/autogenstudio-user-guide/usage.md): Build and manage agent workflows
+- [Experimental Features](src/user-guide/autogenstudio-user-guide/experimental.md): Preview new capabilities
+- [FAQ](src/user-guide/autogenstudio-user-guide/faq.md): Frequently asked questions
+
+## AgentChat
+
+AgentChat provides high-level conversation patterns for building multi-agent applications with AutoGen.
+
+- [Overview](src/user-guide/agentchat-user-guide/index.md): Introduction to AgentChat
+- [Installation](src/user-guide/agentchat-user-guide/installation.md): Setup instructions
+- [Tutorial](src/user-guide/agentchat-user-guide/tutorial/index.md): Step-by-step guide
+- [Examples](src/user-guide/agentchat-user-guide/examples/index.md): Example applications
+- [Magentic-One](src/user-guide/agentchat-user-guide/magentic-one.md): Multi-agent orchestration
+- [Logging](src/user-guide/agentchat-user-guide/logging.md): Debug and monitor agent activity
+- [Migration Guide](src/user-guide/agentchat-user-guide/migration-guide.md): Upgrade from previous versions
+
+## Core
+
+The Core framework provides foundational concepts for building agent-based systems.
+
+- [Overview](src/user-guide/core-user-guide/index.md): Core concepts introduction
+- [Installation](src/user-guide/core-user-guide/installation.md): Setup
+- [Architecture](src/user-guide/core-user-guide/core-concepts/architecture.md): System architecture overview
+- [Agent & Multi-Agent Applications](src/user-guide/core-user-guide/core-concepts/agent-and-multi-agent-application.md): Building agents
+- [Agent Identity & Lifecycle](src/user-guide/core-user-guide/core-concepts/agent-identity-and-lifecycle.md): Agent management
+- [Application Stack](src/user-guide/core-user-guide/core-concepts/application-stack.md): Application layers
+- [Topic & Subscription](src/user-guide/core-user-guide/core-concepts/topic-and-subscription.md): Message routing
+- [Design Patterns](src/user-guide/core-user-guide/design-patterns/intro.md): Common patterns
+- [Logging](src/user-guide/core-user-guide/framework/logging.md): Framework logging
+- [Telemetry](src/user-guide/core-user-guide/framework/telemetry.md): Observability
+- [Cookbook](src/user-guide/core-user-guide/cookbook/index.md): Recipes and examples
+- [FAQs](src/user-guide/core-user-guide/faqs.md): Frequently asked questions
+
+## Extensions
+
+Extensions enable custom components and third-party integrations.
+
+- [Overview](src/user-guide/extensions-user-guide/index.md): Introduction to extensions
+- [Installation](src/user-guide/extensions-user-guide/installation.md): Setup
+- [Discover](src/user-guide/extensions-user-guide/discover.md): Finding extensions
+- [Create Your Own](src/user-guide/extensions-user-guide/create-your-own.md): Building custom extensions
+
+## API Reference
+
+Detailed API documentation for all AutoGen packages.
+
+- Python API Reference: https://microsoft.github.io/autogen/stable/reference/python/
