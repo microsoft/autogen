@@ -172,13 +172,15 @@ $functions"""
                 Callable[..., Any],
                 FunctionWithRequirementsStr,
             ]
-        ] = [],
+        ] | None = None,
         functions_module: str = "functions",
         extra_volumes: Optional[Dict[str, Dict[str, str]]] = None,
         extra_hosts: Optional[Dict[str, str]] = None,
         init_command: Optional[str] = None,
         delete_tmp_files: bool = False,
     ):
+        if functions is None:
+            functions = []
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
