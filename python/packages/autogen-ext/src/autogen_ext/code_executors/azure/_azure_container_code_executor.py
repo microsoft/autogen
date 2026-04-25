@@ -100,11 +100,13 @@ $functions"""
                 Callable[..., Any],
                 FunctionWithRequirementsStr,
             ]
-        ] = [],
+        ] | None = None,
         functions_module: str = "functions",
         suppress_result_output: bool = False,
         session_id: Optional[str] = None,
     ):
+        if functions is None:
+            functions = []
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 

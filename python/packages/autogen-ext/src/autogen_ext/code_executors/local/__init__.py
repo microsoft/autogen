@@ -154,7 +154,7 @@ $functions"""
                 Callable[..., Any],
                 FunctionWithRequirementsStr,
             ]
-        ] = [],
+        ] | None = None,
         functions_module: str = "functions",
         cleanup_temp_files: bool = True,
         virtual_env_context: Optional[SimpleNamespace] = None,
@@ -168,6 +168,8 @@ $functions"""
             stacklevel=2,
         )
 
+        if functions is None:
+            functions = []
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
         self._timeout = timeout
