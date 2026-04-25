@@ -87,6 +87,11 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 
+# Serve llms.txt at the documentation site root so LLM agents can discover it
+# at e.g. https://microsoft.github.io/autogen/stable/llms.txt
+# See https://llmstxt.org/ for the format spec.
+html_extra_path = ["llms.txt"]
+
 add_module_names = False
 
 html_logo = "_static/images/logo/logo.svg"

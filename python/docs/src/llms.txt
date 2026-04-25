@@ -1,0 +1,121 @@
+# AutoGen
+
+> AutoGen is an open-source framework from Microsoft for building AI agent systems. It includes Core (an event-driven runtime for distributed multi-agent applications), AgentChat (a high-level conversational multi-agent API), Extensions (built-in and community components such as model clients, tools, and code executors), and AutoGen Studio (a low-code UI for prototyping agent teams).
+
+The links below point to canonical pages on the published documentation site (`microsoft.github.io/autogen/stable`). Replace `stable` with `dev` to read the development version of any page.
+
+## Getting Started
+
+- [AutoGen documentation home](https://microsoft.github.io/autogen/stable/index.html): Top-level overview of AutoGen and the four packages (Studio, AgentChat, Core, Extensions).
+- [Quickstart - AgentChat](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/quickstart.html): Build your first agent with AgentChat.
+- [Quickstart - Core](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/quickstart.html): Build your first event-driven multi-agent application with Core.
+- [Installation - AgentChat](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/installation.html): Install the AgentChat package.
+- [Installation - Core](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/installation.html): Install the Core package.
+- [Installation - Extensions](https://microsoft.github.io/autogen/stable/user-guide/extensions-user-guide/installation.html): Install autogen-ext and built-in extensions.
+- [Installation - Studio](https://microsoft.github.io/autogen/stable/user-guide/autogenstudio-user-guide/installation.html): Install AutoGen Studio.
+- [Migration Guide (v0.2 to v0.4)](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html): How to migrate from AutoGen 0.2.x to 0.4.x.
+
+## AgentChat User Guide
+
+- [AgentChat overview](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html): High-level API for building conversational single and multi-agent applications.
+- [Tutorial - Introduction](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/index.html): Step-by-step guide to using AgentChat.
+- [Tutorial - Models](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html): How to use LLM model clients.
+- [Tutorial - Messages](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/messages.html): Message types and content.
+- [Tutorial - Agents](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/agents.html): Preset agents and how to use them.
+- [Tutorial - Teams](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html): Multi-agent teams and group chats.
+- [Tutorial - Human in the Loop](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/human-in-the-loop.html): Inject human input into agent runs.
+- [Tutorial - Termination](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/termination.html): Conditions that stop a team's run.
+- [Tutorial - State](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/state.html): Save and restore agent and team state.
+- [Custom Agents](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/custom-agents.html): Create your own agents with custom behaviors.
+- [Selector Group Chat](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/selector-group-chat.html): Multi-agent coordination through a shared context and a centralized, customizable selector.
+- [Swarm](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/swarm.html): Multi-agent coordination through a shared context and a localized, tool-based selector.
+- [Magentic-One](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/magentic-one.html): Generalist multi-agent system for solving open-ended web and file-based tasks.
+- [GraphFlow (Workflow)](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/graph-flow.html): Multi-agent workflows expressed as a directed graph of agents.
+- [Memory](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/memory.html): Add memory capabilities to your agents.
+- [Logging](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/logging.html): Log traces and internal messages.
+- [Tracing](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tracing.html): Distributed tracing of agent runs with OpenTelemetry.
+- [Serialize Components](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/serialize-components.html): Serialize and deserialize agents, teams, and tools.
+
+## AgentChat Examples
+
+- [Examples index](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/examples/index.html): Sample multi-agent applications.
+- [Travel Planning](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/examples/travel-planning.html): Group of agents collaborating to plan a trip.
+- [Company Research](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/examples/company-research.html): Multi-agent research workflow over a company.
+- [Literature Review](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/examples/literature-review.html): Search-and-summarize literature review pipeline.
+
+## Core User Guide
+
+- [Core overview](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/index.html): Event-driven, scalable framework for building multi-agent AI systems.
+- [Agent and Multi-Agent Application](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/core-concepts/agent-and-multi-agent-application.html): Single-agent vs multi-agent application concepts.
+- [Architecture](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/core-concepts/architecture.html): Standalone and distributed runtime architectures.
+- [Application Stack](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/core-concepts/application-stack.html): The layered design of a Core application.
+- [Agent Identity and Lifecycle](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/core-concepts/agent-identity-and-lifecycle.html): How agents are identified, created, and shut down.
+- [Topic and Subscription](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/core-concepts/topic-and-subscription.html): Pub/sub message routing in Core.
+- [Agent and Agent Runtime](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/framework/agent-and-agent-runtime.html): Programming agents against the runtime.
+- [Message and Communication](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/framework/message-and-communication.html): Message types and request/response communication.
+- [Logging](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/framework/logging.html): Configure framework logging.
+- [Telemetry](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/framework/telemetry.html): OpenTelemetry instrumentation for Core.
+- [Distributed Agent Runtime](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/framework/distributed-agent-runtime.html): Run agents across processes and machines.
+- [Component Config](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/framework/component-config.html): Declarative component configuration.
+- [Model Clients](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/components/model-clients.html): Use chat completion model clients.
+- [Model Context](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/components/model-context.html): Conversation context management.
+- [Tools](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/components/tools.html): Define and use tools with agents.
+- [Workbench](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/components/workbench.html): Group related tools (e.g. MCP) into a workbench.
+- [Command Line Code Executors](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/components/command-line-code-executors.html): Local and Docker code execution backends.
+
+## Multi-Agent Design Patterns
+
+- [Intro](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/design-patterns/intro.html): Why and when to use multi-agent design patterns.
+- [Concurrent Agents](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/design-patterns/concurrent-agents.html): Run agents in parallel and aggregate results.
+- [Sequential Workflow](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/design-patterns/sequential-workflow.html): Pass work along a fixed pipeline of agents.
+- [Group Chat](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/design-patterns/group-chat.html): Implement a free-form group chat among agents.
+- [Handoffs](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/design-patterns/handoffs.html): Agents transferring control to one another.
+- [Mixture of Agents](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/design-patterns/mixture-of-agents.html): Combine specialist agents behind a router.
+- [Multi-Agent Debate](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/design-patterns/multi-agent-debate.html): Agents critique each other to improve answers.
+- [Reflection](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/design-patterns/reflection.html): Self-critique and revision pattern.
+- [Code Execution Group Chat](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/design-patterns/code-execution-groupchat.html): Group chat that executes generated code.
+
+## Core Cookbook
+
+- [Cookbook index](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/index.html): Recipes for common tasks with Core.
+- [Azure OpenAI with AAD Auth](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/azure-openai-with-aad-auth.html): Use Azure OpenAI with Microsoft Entra ID.
+- [Extracting Results with an Agent](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/extracting-results-with-an-agent.html): Use an agent to summarize a run's output.
+- [Instrumenting](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/instrumenting.html): Instrument agent runs with logs and traces.
+- [LangGraph Agent](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/langgraph-agent.html): Wrap a LangGraph agent as a Core agent.
+- [LlamaIndex Agent](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/llamaindex-agent.html): Wrap a LlamaIndex agent as a Core agent.
+- [LLM Usage Logger](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/llm-usage-logger.html): Log token usage across model calls.
+- [Local LLMs - Ollama and LiteLLM](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/local-llms-ollama-litellm.html): Use local models via Ollama or LiteLLM.
+- [OpenAI Assistant Agent](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/openai-assistant-agent.html): Use the OpenAI Assistants API as an agent.
+- [Structured Output Agent](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/structured-output-agent.html): Have an agent return typed structured output.
+- [Termination with Intervention](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/termination-with-intervention.html): Stop a run with an intervention handler.
+- [Tool Use with Intervention](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/tool-use-with-intervention.html): Approve or deny tool calls at runtime.
+- [Topic Subscription Scenarios](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/cookbook/topic-subscription-scenarios.html): Patterns for routing messages by topic.
+
+## Extensions User Guide
+
+- [Extensions overview](https://microsoft.github.io/autogen/stable/user-guide/extensions-user-guide/index.html): Built-in and community components for Core and AgentChat.
+- [Discover](https://microsoft.github.io/autogen/stable/user-guide/extensions-user-guide/discover.html): Find community extensions and samples.
+- [Create Your Own](https://microsoft.github.io/autogen/stable/user-guide/extensions-user-guide/create-your-own.html): Build and publish your own extension.
+- [Azure Container Code Executor](https://microsoft.github.io/autogen/stable/user-guide/extensions-user-guide/azure-container-code-executor.html): Run model-generated code in Azure Container Apps.
+- [Azure AI Foundry Agent](https://microsoft.github.io/autogen/stable/user-guide/extensions-user-guide/azure-foundry-agent.html): Use an Azure AI Foundry agent inside AutoGen.
+
+## AutoGen Studio User Guide
+
+- [Studio overview](https://microsoft.github.io/autogen/stable/user-guide/autogenstudio-user-guide/index.html): Low-code interface for building, testing, and deploying agent teams.
+- [Usage](https://microsoft.github.io/autogen/stable/user-guide/autogenstudio-user-guide/usage.html): Team Builder, Playground, Gallery, and Deployment.
+- [Experimental Features](https://microsoft.github.io/autogen/stable/user-guide/autogenstudio-user-guide/experimental.html): Preview features in Studio.
+- [FAQ](https://microsoft.github.io/autogen/stable/user-guide/autogenstudio-user-guide/faq.html): Common questions about Studio.
+
+## API Reference
+
+- [Python API reference](https://microsoft.github.io/autogen/stable/reference/index.html): Generated reference for autogen-core, autogen-agentchat, and autogen-ext.
+- [autogen_core](https://microsoft.github.io/autogen/stable/reference/python/autogen_core.html): Core runtime, agents, messaging, and components.
+- [autogen_agentchat](https://microsoft.github.io/autogen/stable/reference/python/autogen_agentchat.html): High-level conversational agents and teams.
+- [autogen_ext](https://microsoft.github.io/autogen/stable/reference/python/autogen_ext.html): Built-in extensions (model clients, tools, executors, runtimes).
+
+## Optional
+
+- [FAQ - Core](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/faqs.html): Frequently asked questions about Core.
+- [Project README](https://github.com/microsoft/autogen/blob/main/README.md): Repository README and high-level project overview.
+- [Contributing Guide](https://github.com/microsoft/autogen/blob/main/CONTRIBUTING.md): How to contribute to AutoGen.
+- [.NET documentation](https://microsoft.github.io/autogen/dotnet/): AutoGen for .NET (separate site).
