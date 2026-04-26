@@ -1,0 +1,51 @@
+# Build artifacts
+bin/
+obj/
+
+# IDE and editor files
+.vs/
+.vscode/
+*.user
+*.suo
+.foundry/
+
+# Source control
+.git/
+
+# Documentation
+README.md
+
+# Ignore files
+.gitignore
+.dockerignore
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package manager directories
+node_modules/
+packages/
+
+# Test results
+TestResults/
+*.trx
+
+# Coverage reports
+coverage/
+*.coverage
+*.coveragexml
+
+# Local development config 
+appsettings.Development.json
+.env
+
+.venv/
+__pycache__/

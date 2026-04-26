@@ -220,3 +220,43 @@ uv sync --python 3.12
 source .venv/bin/activate
 cookiecutter ./templates/new-package/
 ```
+
+- selector_group_chat_example.py: Example usage of SelectorGroupChat for web search and data analysis
+- selector_group_chat_README.md: Overview and explanation of SelectorGroupChat, usage steps, and example scenario
+- selector_group_chat_workflow.md: Workflow, termination conditions, and selector prompt details for SelectorGroupChat
+- selector_group_chat_streaming_example.py: Streaming example for SelectorGroupChat with NBA player analysis task
+- selector_group_chat_custom_selection_example.py: Custom selector_func and candidate_func examples for SelectorGroupChat
+- selector_group_chat_advanced_example.py: Advanced customization examples for SelectorGroupChat (custom selector_func, candidate_func, UserProxyAgent, reasoning model)
+- swarm_customer_support_example.py: Swarm team customer support (flights refund) example
+- swarm_stock_research_example.py: Swarm team stock research example
+- magentic_one_example.py: Magentic-One multi-agent orchestration examples (minimal, agents, helper class)
+- graphflow_example.py: GraphFlow multi-agent workflow examples (sequential, parallel)
+- graphflow_message_filtering_example.py: GraphFlow message filtering and advanced workflow examples
+- graphflow_advanced_activation_example.py: GraphFlow advanced cycles and activation group examples
+- listmemory_rag_example.py: ListMemory and RAG-style context example for AssistantAgent (simple, user preferences, context-aware responses)
+- custom_chromadb_memory_example.py: ChromaDB vector memory store with AssistantAgent (vector DB, embedding, context-aware responses)
+- custom_redis_memory_example.py: Redis vector memory store with AssistantAgent (persistent, context-aware responses)
+- logging_example.py: Enabling and using trace and structured logging in AutoGen AgentChat (with custom handler and event example)
+- tracing_observability_example.py: OpenTelemetry tracing and observability for AgentChat teams (Jaeger, OTLP, team execution tracing)
+- travel_planning_example.py: Multi-agent travel planning system (planner, local, language, summary agents, collaborative itinerary)
+- core_quickstart_example.py: Core agent runtime quick start (Modifier and Checker agents, SingleThreadedAgentRuntime, message passing)
+- core_application_stack_example.py: Application stack, agent identity, lifecycle, topics, and type-based subscription patterns (Coder, Executor, Reviewer agents, message protocol)
+- [Core Agent and Runtime Example](core_agent_and_runtime_example.py): Foundational example of agents, agent runtime, messages, direct messaging, broadcast, and type-based routing/subscription.
+- [Core Application Stack Example](core_application_stack_example.py): Demonstrates agent identity, lifecycle, topics, and type-based subscription patterns with Coder, Executor, and Reviewer agents.
+- [Core Logging Example](core_logging_example.py): Demonstrates trace and structured logging, custom structured events, and emitting logs from child loggers.
+- [Core Model Clients Example](core_model_clients_example.py): Demonstrates usage of model clients (OpenAI, streaming, structured output, caching, agent integration) and model call logging.
+- [Core Model Context Example](core_model_context_example.py): Demonstrates model context for message history and agent memory using BufferedChatCompletionContext.
+- [Core Model Clients Example](core_model_clients_example.py): Demonstrates usage of model clients (OpenAI, streaming, structured output, caching, agent integration) and model call logging.
+- [Core Logging Example](core_logging_example.py): Demonstrates trace and structured logging, custom structured events, and emitting logs from child loggers.
+- [Core Agent and Runtime Example](core_agent_and_runtime_example.py): Foundational example of agents, agent runtime, messages, direct messaging, broadcast, and type-based routing/subscription.
+- [Core Application Stack Example](core_application_stack_example.py): Demonstrates agent identity, lifecycle, topics, and type-based subscription patterns with Coder, Executor, and Reviewer agents.
+- [Core Multi-Agent Patterns Example](core_multiagent_patterns_example.py): Demonstrates concurrent agent patterns: pub/sub, topic routing, result collection, and direct messaging.
+- [Core Sequential Workflow Example](core_sequential_workflow_example.py): Sequential multi-agent workflow (Concept Extractor → Writer → Format & Proof → User)
+- core_group_chat_example.py: Group chat multi-agent workflow (Writer, Illustrator, Editor, User, Manager)
+- core_mixture_of_agents_example.py: Mixture of Agents pattern (multi-layer, feed-forward, orchestrator + workers)
+- [core_multi_agent_debate_example.py](core_multi_agent_debate_example.py): Multi-Agent Debate pattern (sparse topology, solver/aggregator, GSM8K math problem)
+- [core_reflection_example.py](core_reflection_example.py): Reflection pattern (coder/reviewer agents, iterative code generation and critique)
+- [core_azure_openai_aad_termination_example.py](core_azure_openai_aad_termination_example.py): Azure OpenAI with AAD Auth, termination/intervention handler
+- [core_langgraph_tool_use_agent_example.py](core_langgraph_tool_use_agent_example.py): LangGraph-backed agent with tool use
+- [core_llamaindex_agent_example.py](core_llamaindex_agent_example.py): LlamaIndex-backed agent with Wikipedia tool
+- [core_structured_output_gpt4o_example.py](core_structured_output_gpt4o_example.py): Structured output with GPT-4o models and usage tracking
