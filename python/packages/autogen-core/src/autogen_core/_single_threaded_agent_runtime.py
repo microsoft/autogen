@@ -707,6 +707,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                 _warn_if_none(temp_message, "on_send")
                             except BaseException as e:
                                 future.set_exception(e)
+                                self._message_queue.task_done()
                                 return
                             if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                                 event_logger.info(
@@ -718,6 +719,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                     )
                                 )
                                 future.set_exception(MessageDroppedException())
+                                self._message_queue.task_done()
                                 return
 
                         message_envelope.message = temp_message
@@ -747,6 +749,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                             except BaseException as e:
                                 # TODO: we should raise the intervention exception to the publisher.
                                 logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
+                                self._message_queue.task_done()
                                 return
                             if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                                 event_logger.info(
@@ -757,6 +760,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                         kind=MessageKind.PUBLISH,
                                     )
                                 )
+                                self._message_queue.task_done()
                                 return
 
                         message_envelope.message = temp_message
@@ -773,6 +777,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         except BaseException as e:
                             # TODO: should we raise the exception to sender of the response instead?
                             future.set_exception(e)
+                            self._message_queue.task_done()
                             return
                         if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                             event_logger.info(
@@ -784,6 +789,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                 )
                             )
                             future.set_exception(MessageDroppedException())
+                            self._message_queue.task_done()
                             return
                         message_envelope.message = temp_message
                 task = asyncio.create_task(self._process_response(message_envelope))
