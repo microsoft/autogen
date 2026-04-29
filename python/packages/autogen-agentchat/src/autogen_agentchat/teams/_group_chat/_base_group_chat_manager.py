@@ -150,7 +150,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             await self.update_message_thread(delta)
 
             # Remove the agent from the active speakers list.
-            self._active_speakers.remove(message.name)
+            if message.name in self._active_speakers:
+                self._active_speakers.remove(message.name)
             if len(self._active_speakers) > 0:
                 # If there are still active speakers, return without doing anything.
                 return
