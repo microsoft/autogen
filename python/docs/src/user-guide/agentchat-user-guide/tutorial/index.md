@@ -77,4 +77,11 @@ Create your own agents
 
 Save and load agents and teams for persistent sessions
 :::
+
+:::{grid-item-card} {fas}`magnifying-glass;pst-color-primary` Perplexity
+:link: ./perplexity.html
+:link-alt: Perplexity: Use the Perplexity model client and Search API tool
+
+Use the Perplexity model client and Search API tool
+:::
 ::::
