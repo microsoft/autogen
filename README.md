@@ -11,13 +11,18 @@
 
 </div>
 
-# AutoGen
+# AutoGen [![Maintenance Mode](https://img.shields.io/badge/status-maintenance%20mode-orange)](https://github.com/microsoft/agent-framework)
 
 **AutoGen** is a framework for creating multi-agent AI applications that can act autonomously or work alongside humans.
 
-> **Important:** if you are new to AutoGen, please checkout [Microsoft Agent Framework](https://github.com/microsoft/agent-framework).
-> AutoGen will still be maintained and continue to receive bug fixes and critical security patches.
-> Read our [announcement](https://github.com/microsoft/autogen/discussions/7066).
+> [!CAUTION]
+> **⚠️ Maintenance Mode**
+>
+> AutoGen is now in maintenance mode. It will not receive new features or enhancements and is community managed going forward.
+>
+> New users should start with [Microsoft Agent Framework](https://github.com/microsoft/agent-framework). Existing users are encouraged to migrate using the [AutoGen → Microsoft Agent Framework migration guide](https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen/).
+>
+> Microsoft Agent Framework (MAF) is the enterprise‑ready successor to AutoGen. Microsoft Agent FrameworkAF in now available as a production-ready release: stable APIs, and a commitment to long-term support. Whether you're building a single assistant or orchestrating a fleet of specialized agents, Microsoft Agent Framework 1.0 gives you enterprise-grade multi-agent orchestration, multi-provider model support, and cross-runtime interoperability via A2A and MCP.
 
 ## Installation
 
@@ -152,20 +157,26 @@ For more advanced multi-agent orchestrations and workflows, read
 
 Use AutoGen Studio to prototype and run multi-agent workflows without writing code.
 
+> **Caution**: AutoGen Studio is meant to help you rapidly prototype multi-agent workflows and
+> demonstrate an example of end user interfaces built with AutoGen. It is **not meant to be a
+> production-ready app**. Developers are encouraged to use the AutoGen framework to build their own
+> applications, implementing authentication, security and other features required for deployed
+> applications. See the [security note](https://microsoft.github.io/autogen/dev/user-guide/autogenstudio-user-guide/index.html#a-note-on-security) for more details.
+
 ```bash
 # Run AutoGen Studio on http://localhost:8080
 autogenstudio ui --port 8080 --appdir ./my-app
 ```
 
-## Why Use AutoGen?
+## Why AutoGen?
 
 <div align="center">
   <img src="autogen-landing.jpg" alt="AutoGen Landing" width="500">
 </div>
 
-The AutoGen ecosystem provides everything you need to create AI agents, especially multi-agent workflows -- framework, developer tools, and applications.
+Pioneered in Microsoft Research, AutoGen opened the door to experimental multi-agent orchestration patterns that inspired the community. While AutoGen is now in maintenance mode, existing users can continue to use the framework with the architecture described below. **For new projects, we recommend [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)**, which builds on the lessons learned from AutoGen with enterprise-grade support.
 
-The _framework_ uses a layered and extensible design. Layers have clearly divided responsibilities and build on top of layers below. This design enables you to use the framework at different levels of abstraction, from high-level APIs to low-level components.
+The autogen _framework_ uses a layered and extensible design. Layers have clearly divided responsibilities and build on top of layers below. This design enables you to use the framework at different levels of abstraction, from high-level APIs to low-level components.
 
 - [Core API](./python/packages/autogen-core/) implements message passing, event-driven agents, and local and distributed runtime for flexibility and power. It also support cross-language support for .NET and Python.
 - [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API for rapid prototyping. This API is built on top of the Core API and is closest to what users of v0.2 are familiar with and supports common multi-agent patterns such as two-agent chat or group chats.
@@ -182,9 +193,13 @@ The ecosystem also supports two essential _developer tools_:
 
 You can use the AutoGen framework and developer tools to create applications for your domain. For example, [Magentic-One](./python/packages/magentic-one-cli/) is a state-of-the-art multi-agent team built using AgentChat API and Extensions API that can handle a variety of tasks that require web browsing, code execution, and file handling.
 
-With AutoGen you get to join and contribute to a thriving ecosystem. We host weekly office hours and talks with maintainers and community. We also have a [Discord server](https://aka.ms/autogen-discord) for real-time chat, GitHub Discussions for Q&A, and a blog for tutorials and updates.
+For community support, visit our [Discord server](https://aka.ms/autogen-discord) or [GitHub Discussions](https://github.com/microsoft/autogen/discussions). Note that AutoGen is now community-managed and responses may be limited.
 
 ## Where to go next?
+
+> **Starting a new project?** Head to [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) for the latest multi-agent capabilities with long-term support.
+>
+> **Existing AutoGen user?** Use the [migration guide](https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen/) to transition, or refer to the resources below for current AutoGen documentation.
 
 <div align="center">
 
@@ -198,9 +213,9 @@ With AutoGen you get to join and contribute to a thriving ecosystem. We host wee
 
 </div>
 
-Interested in contributing? See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to get started. We welcome contributions of all kinds, including bug fixes, new features, and documentation improvements. Join our community and help us make AutoGen better!
+Interested in contributing? See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines. As AutoGen is in maintenance mode, contributions are limited to bug fixes, security patches, and documentation improvements. For feature development, consider contributing to [Microsoft Agent Framework](https://github.com/microsoft/agent-framework).
 
-Have questions? Check out our [Frequently Asked Questions (FAQ)](./FAQ.md) for answers to common queries. If you don't find what you're looking for, feel free to ask in our [GitHub Discussions](https://github.com/microsoft/autogen/discussions) or join our [Discord server](https://aka.ms/autogen-discord) for real-time support. You can also read our [blog](https://devblogs.microsoft.com/autogen/) for updates.
+Have questions? Check out our [Frequently Asked Questions (FAQ)](./FAQ.md) for answers to common queries. Community support is available through [GitHub Discussions](https://github.com/microsoft/autogen/discussions) and the [Discord server](https://aka.ms/autogen-discord), though response times may vary as AutoGen is now community-managed. For actively supported tooling, see [Microsoft Agent Framework](https://github.com/microsoft/agent-framework).
 
 ## Legal Notices
 

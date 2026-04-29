@@ -67,7 +67,7 @@ video-surfer = [
     "autogen-agentchat==0.7.5",
     "opencv-python>=4.5",
     "ffmpeg-python",
-    "openai-whisper",
+    "openai-whisper>=20250625",
 ]
 diskcache = [
     "diskcache>=5.6.3"

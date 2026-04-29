@@ -9,8 +9,19 @@ AutoGen Studio is an AutoGen-powered AI app (user interface) to help you rapidly
 
 Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-studio)
 
+> [!CAUTION]
+> AutoGen Studio is meant to help you rapidly prototype multi-agent workflows and demonstrate an example of end user interfaces built with AutoGen. It is **not meant to be a production-ready app**. Developers are encouraged to use the [AutoGen framework](https://microsoft.github.io/autogen) to build their own applications, implementing authentication, security and other features required for deployed applications.
+
 > [!WARNING]
-> AutoGen Studio is under active development and is currently not meant to be a production-ready app. Expect breaking changes in upcoming releases. [Documentation](https://microsoft.github.io/autogen/docs/autogen-studio/getting-started) and the `README.md` might be outdated.
+> AutoGen Studio is under active development. Expect breaking changes in upcoming releases.
+
+## A Note on Security
+
+AutoGen Studio is a research prototype and is **not meant to be used** in a production environment. Some baseline practices are encouraged e.g., using Docker code execution environment for your agents.
+
+However, other considerations such as rigorous tests related to jailbreaking, ensuring LLMs only have access to the right keys of data given the end user's permissions, and other security features are not implemented in AutoGen Studio.
+
+If you are building a production application, please use the [AutoGen framework](https://microsoft.github.io/autogen) and implement the necessary security features.
 
 ## Updates
 
