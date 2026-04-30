@@ -488,6 +488,26 @@ async def test_round_robin_group_chat_unknown_task_message_type(runtime: AgentRu
         )
 
 
+def test_group_chat_invalid_participants() -> None:
+    """Test that BaseGroupChat raises clear TypeError for invalid participants."""
+    agent = _EchoAgent("agent", "An echo agent.")
+
+    with pytest.raises(TypeError, match="participants must be a list"):
+        RoundRobinGroupChat(participants=None)  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match="participants must be a list"):
+        RoundRobinGroupChat(participants="not a list")  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match="participants must be a list"):
+        RoundRobinGroupChat(participants=42)  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match=r"participants\[1\] must be a ChatAgent or Team instance"):
+        RoundRobinGroupChat(participants=[agent, "bad"])  # type: ignore[list-item]
+
+    with pytest.raises(TypeError, match=r"participants\[0\] must be a ChatAgent or Team instance"):
+        RoundRobinGroupChat(participants=[42])  # type: ignore[list-item]
+
+
 @pytest.mark.asyncio
 async def test_round_robin_group_chat_unknown_agent_message_type() -> None:
     model_client = ReplayChatCompletionClient(["Hello"])

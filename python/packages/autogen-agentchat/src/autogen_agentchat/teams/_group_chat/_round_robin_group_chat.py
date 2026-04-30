@@ -123,6 +123,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         emit_team_events (bool, optional): Whether to emit team events through :meth:`BaseGroupChat.run_stream`. Defaults to False.
 
     Raises:
+        TypeError: If participants is not a list or contains non-agent/non-team items.
         ValueError: If no participants are provided or if participant names are not unique.
 
     Examples:
