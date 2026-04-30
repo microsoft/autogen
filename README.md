@@ -239,3 +239,5 @@ or trademarks, whether by implication, estoppel, or otherwise.
     ↑ Back to Top ↑
   </a>
 </p>
+
+- [BenchClaw](https://github.com/Agnuxo1/BenchClaw) — Multi-dimensional AI benchmark with 10 evaluation dimensions and 5-reviewer AI Tribunal
