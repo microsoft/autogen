@@ -27,11 +27,13 @@ from ...messages import (
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
     GroupChatStart,
     GroupChatTermination,
+    GroupChatThreadResponse,
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -744,6 +746,76 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             GroupChatResume(),
             recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
         )
+
+    async def get_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get the current message thread from the group chat.
+
+        This method allows external code to retrieve the messages exchanged
+        so far in the group chat without waiting for the team to terminate.
+
+        Returns:
+            A list of messages in the order they were added to the thread.
+
+        Raises:
+            RuntimeError: If the team has not been initialized.
+
+        Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.conditions import MaxMessageTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                termination = MaxMessageTermination(3)
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+                # Run the team in the background
+                run_task = asyncio.create_task(team.run(task="Count from 1 to 3, respond one at a time."))
+
+                # Wait a bit for some messages to be exchanged
+                await asyncio.sleep(1)
+
+                # Get the current thread while the team is still running
+                thread = await team.get_thread()
+                for msg in thread:
+                    print(f"{msg.source}: {msg.content}")
+
+                await run_task
+
+
+            asyncio.run(main())
+        """
+        if not self._initialized:
+            raise RuntimeError(
+                "The group chat has not been initialized. It must be run before the thread can be retrieved."
+            )
+
+        if self._embedded_runtime:
+            # Start the runtime for embedded mode.
+            assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+            self._runtime.start()
+
+        try:
+            response: GroupChatThreadResponse = await self._runtime.send_message(
+                GroupChatGetThread(),
+                recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            )
+        finally:
+            if self._embedded_runtime:
+                # Stop the runtime.
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                await self._runtime.stop_when_idle()
+
+        return list(response.messages)
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the group chat team.
