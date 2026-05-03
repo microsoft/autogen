@@ -46,6 +46,7 @@ Find community samples and examples of how to use AutoGen
 | [autogen-oaiapi](https://github.com/SongChiYoung/autogen-oaiapi)  | [PyPi](https://pypi.org/project/autogen-oaiapi/) | an OpenAI-style API server built on top of AutoGen |
 | [autogen-contextplus](https://github.com/SongChiYoung/autogen-contextplus)  | [PyPi](https://pypi.org/project/autogen-contextplus/) | Enhanced model_context implementations, with features such as automatic summarization and truncation of model context. |
 | [autogen-ext-yepcode](https://github.com/yepcode/autogen-ext-yepcode)  | [PyPi](https://pypi.org/project/autogen-ext-yepcode/) | Enables agents to securely execute code in isolated remote sandboxes using [YepCode](https://yepcode.io)’s serverless runtime. |
+| [traceAI-autogen](https://github.com/future-agi/traceAI/tree/main/python/frameworks/autogen)  | [PyPi](https://pypi.org/project/traceAI-autogen/) | OpenTelemetry instrumentation for AutoGen v0.4+ (AgentChat). Exports traces to any OTLP-compatible backend — see [setup guide](https://docs.futureagi.com/docs/integrations/traceai/autogen). |
 
 
 <!-- Example -->
