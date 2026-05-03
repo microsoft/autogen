@@ -1,4 +1,13 @@
 import pytest
+from autogen_core import ComponentLoader, ComponentModel
+from autogen_core.model_context import (
+    BufferedChatCompletionContext,
+    HeadAndTailChatCompletionContext,
+    TokenLimitedChatCompletionContext,
+    UnboundedChatCompletionContext,
+)
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
 from autogen_agentchat.base import AndTerminationCondition
 from autogen_agentchat.conditions import (
     ExternalTermination,
@@ -10,14 +19,6 @@ from autogen_agentchat.conditions import (
     TimeoutTermination,
     TokenUsageTermination,
 )
-from autogen_core import ComponentLoader, ComponentModel
-from autogen_core.model_context import (
-    BufferedChatCompletionContext,
-    HeadAndTailChatCompletionContext,
-    TokenLimitedChatCompletionContext,
-    UnboundedChatCompletionContext,
-)
-from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
 @pytest.mark.asyncio
@@ -43,6 +44,14 @@ async def test_termination_declarative() -> None:
     text_config = text_term.dump_component()
     assert text_config.provider == "autogen_agentchat.conditions.TextMentionTermination"
     assert text_config.config.get("text") == "stop"
+    assert text_config.config.get("sources") is None
+
+    # TextMentionTermination with sources — round-trip must preserve the filter
+    text_term_sources = TextMentionTermination("stop", sources=["agent1", "agent2"])
+    text_sources_config = text_term_sources.dump_component()
+    assert text_sources_config.config.get("sources") == ["agent1", "agent2"]
+    loaded_text_sources = ComponentLoader.load_component(text_sources_config, TextMentionTermination)
+    assert isinstance(loaded_text_sources, TextMentionTermination)
 
     token_config = token_term.dump_component()
     assert token_config.provider == "autogen_agentchat.conditions.TokenUsageTermination"

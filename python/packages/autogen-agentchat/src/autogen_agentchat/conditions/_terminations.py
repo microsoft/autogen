@@ -106,15 +106,19 @@ class MaxMessageTermination(TerminationCondition, Component[MaxMessageTerminatio
 
 class TextMentionTerminationConfig(BaseModel):
     text: str
+    sources: List[str] | None = None
 
 
 class TextMentionTermination(TerminationCondition, Component[TextMentionTerminationConfig]):
     """Terminate the conversation if a specific text is mentioned.
 
-
     Args:
         text: The text to look for in the messages.
-        sources: Check only messages of the specified agents for the text to look for.
+        sources: Check only messages from these sources for the termination text.
+            If ``None`` (the default), all messages are checked including the initial
+            user task message.  Pass the names of the agents whose responses should
+            trigger termination (e.g. ``sources=["assistant"]``) to avoid the
+            termination phrase in the task prompt causing an early exit.
     """
 
     component_config_schema = TextMentionTerminationConfig
@@ -148,11 +152,14 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
         self._terminated = False
 
     def _to_config(self) -> TextMentionTerminationConfig:
-        return TextMentionTerminationConfig(text=self._termination_text)
+        return TextMentionTerminationConfig(
+            text=self._termination_text,
+            sources=list(self._sources) if self._sources is not None else None,
+        )
 
     @classmethod
     def _from_config(cls, config: TextMentionTerminationConfig) -> Self:
-        return cls(text=config.text)
+        return cls(text=config.text, sources=config.sources)
 
 
 class FunctionalTermination(TerminationCondition):
