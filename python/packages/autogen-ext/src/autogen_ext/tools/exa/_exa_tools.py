@@ -1,7 +1,7 @@
 """Exa search tools for AutoGen.
 
-This module provides four tools that wrap the `Exa <https://exa.ai>`_ neural
-search API:
+This module provides four tools that wrap the `Exa <https://exa.ai>`_ search
+API:
 
 * :class:`ExaSearchTool` -- web search with optional text content
 * :class:`ExaFindSimilarTool` -- discover pages similar to a given URL
@@ -12,7 +12,7 @@ search API:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Literal, Optional, Sequence, Type, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence
 
 from autogen_core import CancellationToken, Component
 from autogen_core.tools import BaseTool
@@ -270,6 +270,23 @@ class ExaSearchTool(BaseTool[ExaSearchArgs, ExaSearchResult], Component[ExaSearc
         moderation: Optional[bool] = None,
         client: Optional[Any] = None,
     ) -> None:
+        """Initialize the Exa search tool.
+
+        Args:
+            api_key: Exa API key.  Falls back to the ``EXA_API_KEY`` environment variable.
+            num_results: Maximum number of results to return.
+            max_characters: Limit on text characters returned per result.
+            search_type: Search mode (e.g. ``"auto"``, ``"neural"``, ``"fast"``).
+            category: Restrict results to a content category.
+            include_domains: Only return results from these domains.
+            exclude_domains: Exclude results from these domains.
+            start_published_date: Earliest publication date (ISO 8601).
+            end_published_date: Latest publication date (ISO 8601).
+            livecrawl: Live-crawl behaviour (``"never"``, ``"fallback"``, etc.).
+            user_location: User location hint for geo-relevant results.
+            moderation: Whether to enable content moderation.
+            client: Pre-configured :class:`~exa_py.Exa` client instance.
+        """
         super().__init__(
             args_type=ExaSearchArgs,
             return_type=ExaSearchResult,
@@ -400,6 +417,17 @@ class ExaFindSimilarTool(BaseTool[ExaFindSimilarArgs, ExaFindSimilarResult], Com
         category: Optional[Category] = None,
         client: Optional[Any] = None,
     ) -> None:
+        """Initialize the Exa find-similar tool.
+
+        Args:
+            api_key: Exa API key.  Falls back to the ``EXA_API_KEY`` environment variable.
+            num_results: Maximum number of similar pages to return.
+            include_domains: Only return results from these domains.
+            exclude_domains: Exclude results from these domains.
+            exclude_source_domain: Whether to exclude the source URL's domain from results.
+            category: Restrict results to a content category.
+            client: Pre-configured :class:`~exa_py.Exa` client instance.
+        """
         super().__init__(
             args_type=ExaFindSimilarArgs,
             return_type=ExaFindSimilarResult,
@@ -498,6 +526,12 @@ class ExaGetContentsTool(BaseTool[ExaGetContentsArgs, ExaGetContentsResult], Com
         *,
         client: Optional[Any] = None,
     ) -> None:
+        """Initialize the Exa get-contents tool.
+
+        Args:
+            api_key: Exa API key.  Falls back to the ``EXA_API_KEY`` environment variable.
+            client: Pre-configured :class:`~exa_py.Exa` client instance.
+        """
         super().__init__(
             args_type=ExaGetContentsArgs,
             return_type=ExaGetContentsResult,
@@ -567,6 +601,12 @@ class ExaAnswerTool(BaseTool[ExaAnswerArgs, ExaAnswerResult], Component[ExaAnswe
         *,
         client: Optional[Any] = None,
     ) -> None:
+        """Initialize the Exa answer tool.
+
+        Args:
+            api_key: Exa API key.  Falls back to the ``EXA_API_KEY`` environment variable.
+            client: Pre-configured :class:`~exa_py.Exa` client instance.
+        """
         super().__init__(
             args_type=ExaAnswerArgs,
             return_type=ExaAnswerResult,
