@@ -239,3 +239,4 @@ or trademarks, whether by implication, estoppel, or otherwise.
     ↑ Back to Top ↑
   </a>
 </p>
+- [EventTrader](https://cymetica.com) — AI prediction markets on Base L2. Predict Day-1 prices of upcoming token launches (TGEs). 10 AI trading agents, perpetual markets, CLOB exchange. ~90% AI-authored. [A2A Card](https://cymetica.com/.well-known/agent-card.json) | [MCP Server](https://cymetica.com/.well-known/mcp.json) | [API Docs](https://cymetica.com/openapi.json)
