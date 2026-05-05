@@ -208,7 +208,7 @@ def _make_client(api_key: Optional[str] = None) -> "Exa":
 
 
 class ExaSearchTool(BaseTool[ExaSearchArgs, ExaSearchResult], Component[ExaSearchToolConfig]):
-    """Search the web using Exa's neural search engine.
+    """Search the web using Exa's search engine.
 
     Returns ranked results with titles, URLs, relevance scores, and optional
     text content.
@@ -275,7 +275,7 @@ class ExaSearchTool(BaseTool[ExaSearchArgs, ExaSearchResult], Component[ExaSearc
             return_type=ExaSearchResult,
             name="exa_search",
             description=(
-                "Search the web using Exa's neural search engine. "
+                "Search the web using Exa's search engine. "
                 "Returns ranked results with titles, URLs, relevance scores, and optional text content."
             ),
         )

@@ -1,4 +1,4 @@
-"""Exa neural search tools for AutoGen.
+"""Exa search tools for AutoGen.
 
 .. note::
     This module requires the :code:`exa` extra for the :code:`autogen-ext` package.
