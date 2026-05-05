@@ -199,7 +199,9 @@ def _make_client(api_key: Optional[str] = None) -> "Exa":
         raise ImportError(
             "The 'exa-py' package is required for Exa tools. " 'Install it with: pip install -U "autogen-ext[exa]"'
         )
-    return Exa(api_key=api_key, integration_source="autogen")
+    client = Exa(api_key=api_key)
+    client.headers["x-exa-integration"] = "autogen"
+    return client
 
 
 # ---------------------------------------------------------------------------
