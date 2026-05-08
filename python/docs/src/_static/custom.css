@@ -46,6 +46,16 @@ html[data-theme="dark"] {
 nav.bd-links .current>a  {
   box-shadow: inset 1px 0 0 var(--pst-color-primary);
 }
+
+nav.bd-links .navbar-nav a:focus-visible,
+.bd-sidebar-secondary .sidebar-secondary-items a:focus-visible {
+  color: var(--pst-color-secondary) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.15em;
+  outline: 2px solid var(--pst-color-secondary);
+  outline-offset: 2px;
+}
+
 @media (forced-colors: active) {
   /* Top breadcrumbs navigation (ie: Home > Core > ...) */
   .bd-breadcrumbs .breadcrumb-item > a:focus-visible{
