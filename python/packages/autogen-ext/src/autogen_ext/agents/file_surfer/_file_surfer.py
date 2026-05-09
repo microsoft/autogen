@@ -76,11 +76,16 @@ class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
         name: str,
         model_client: ChatCompletionClient,
         description: str = DEFAULT_DESCRIPTION,
-        base_path: str = os.getcwd(),
+        base_path: str | None = None,
     ) -> None:
         super().__init__(name, description)
         self._model_client = model_client
         self._chat_history: List[LLMMessage] = []
+        # Resolve `base_path` at call time, not import time. With `base_path=os.getcwd()`
+        # in the signature the default was frozen to the cwd at module import, ignoring
+        # any later `os.chdir`.
+        if base_path is None:
+            base_path = os.getcwd()
         self._browser = MarkdownFileBrowser(viewport_size=1024 * 5, base_path=base_path)
 
     @property
@@ -114,7 +119,7 @@ class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
 
         current_page = self._browser.viewport_current_page
         total_pages = len(self._browser.viewport_pages)
-        header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
+        header += f"Viewport position: Showing page {current_page + 1} of {total_pages}.\n"
 
         return (header, self._browser.viewport)
 
