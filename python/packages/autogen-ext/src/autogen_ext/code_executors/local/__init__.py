@@ -28,7 +28,27 @@ from .._common import (
     to_stub,
 )
 
-__all__ = ("LocalCommandLineCodeExecutor",)
+__all__ = ("LocalCommandLineCodeExecutor", "PlatformExecutionScopeError")
+
+
+class PlatformExecutionScopeError(RuntimeError):
+    """Raised when ``sandbox=True`` was requested but the current platform
+    cannot honor the in-process isolation contract.
+
+    The :class:`LocalCommandLineCodeExecutor` ``sandbox=True`` posture is a
+    *contract*, not a hint: it promises a specific set of guarantees
+    (POSIX rlimits + credential-pattern environment scrub). When the running
+    platform cannot deliver one or more of those guarantees — for example,
+    Windows has no ``preexec_fn`` and no ``RLIMIT_AS`` — the executor refuses
+    to construct rather than silently degrade to a weaker posture.
+
+    The error message names *which* guarantee is unavailable so procurement
+    and threat-model reviewers can audit the failure surface without
+    inferring from "falls back to" prose. Callers that need cross-platform
+    untrusted-code execution should use
+    :class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`,
+    which provides container-based isolation independent of the host OS.
+    """
 
 A = ParamSpec("A")
 
@@ -156,14 +176,36 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
         cleanup_temp_files (bool, optional): Whether to automatically clean up temporary files after execution. Defaults to True.
         virtual_env_context (Optional[SimpleNamespace], optional): The virtual environment context. Defaults to None.
-        sandbox (Optional[bool], optional): Explicit sandbox posture. When ``None`` (default, legacy) the executor runs unsandboxed
-            and emits a ``DeprecationWarning``; in a future release this parameter will become required. When ``False`` the caller
-            explicitly acknowledges unsandboxed execution and no warning is emitted. When ``True`` the executor applies best-effort
-            in-process hardening: environment entries whose name contains common credential patterns (``TOKEN``, ``SECRET``,
-            ``API_KEY``, ``PASSWORD``, ``PRIVATE_KEY`` etc.) are stripped from the child process, and on POSIX platforms per-child
-            rlimits (``RLIMIT_CPU``, ``RLIMIT_AS``, ``RLIMIT_NOFILE``, ``RLIMIT_NPROC``) are applied via ``preexec_fn``. This is
-            **not** a substitute for :class:`DockerCommandLineCodeExecutor`; it does not provide filesystem, network, or user
-            isolation. Use the Docker executor for untrusted-code deployments.
+        sandbox (Optional[bool], optional): Explicit sandbox posture. This parameter is a **contract**, not a hint — see the
+            per-platform behavior below. The executor refuses to construct rather than silently degrade to a weaker posture.
+
+            **When** ``sandbox`` **is** ``None`` (default, legacy):
+                The executor runs unsandboxed and emits a ``DeprecationWarning``. In a future release this parameter will become
+                required.
+
+            **When** ``sandbox`` **is** ``False``:
+                The caller explicitly acknowledges unsandboxed execution. No warning is emitted; no isolation is applied.
+
+            **When** ``sandbox`` **is** ``True`` **on POSIX (Linux, macOS):**
+                The executor applies the following in-process hardening contract on every child process:
+
+                * Environment scrub — entries whose name matches any of the credential substrings ``TOKEN``, ``SECRET``,
+                  ``PASSWORD``, ``PASSWD``, ``API_KEY``, ``APIKEY``, ``PRIVATE_KEY``, ``CREDENTIAL``, ``SESSION``, ``COOKIE``,
+                  ``AUTH`` (case-insensitive) are stripped from the child environment.
+                * ``RLIMIT_CPU`` set to the per-block ``timeout`` value — caps wall-clock-equivalent CPU consumption.
+                * ``RLIMIT_AS`` set to 2 GiB — caps the child process address space (memory-bomb guard).
+                * ``RLIMIT_NOFILE`` set to 256 — caps simultaneously open file descriptors.
+                * ``RLIMIT_NPROC`` set to 64 (best-effort; advisory on some platforms) — fork-bomb guard.
+
+                These rlimits are applied via ``preexec_fn`` in the forked child before ``exec``. This is **not** a substitute
+                for :class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`; it does not provide filesystem,
+                network, user, or namespace isolation.
+
+            **When** ``sandbox`` **is** ``True`` **on Windows:**
+                Raises :class:`PlatformExecutionScopeError` at construction. ``preexec_fn`` and the ``resource``-module rlimits
+                used to enforce the POSIX hardening contract are not available on Windows, so the in-process isolation
+                guarantees cannot be honored. Use :class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
+                for untrusted-code execution on Windows hosts.
 
     .. note::
         Using the current directory (".") as working directory is deprecated. Using it will raise a deprecation warning.
@@ -271,13 +313,20 @@ $functions"""
                 "sandbox posture; defaulting to unsandboxed execution."
             )
         elif sandbox is True and sys.platform == "win32":
-            warnings.warn(
-                "sandbox=True requested but POSIX rlimits / preexec hooks "
-                "are not available on Windows; falling back to env scrub "
-                "only. Use DockerCommandLineCodeExecutor for strong "
-                "isolation on Windows.",
-                UserWarning,
-                stacklevel=2,
+            # Contract framing per #7611 reviewer feedback: name the failure
+            # mode explicitly. Silent fallback to env-scrub-only would let a
+            # caller believe they obtained the POSIX hardening contract when
+            # the rlimit guarantees (RLIMIT_AS / RLIMIT_CPU / RLIMIT_NOFILE /
+            # RLIMIT_NPROC) and the preexec_fn hook required to install them
+            # are platform-unavailable.
+            raise PlatformExecutionScopeError(
+                "sandbox=True requires the POSIX in-process hardening contract "
+                "(preexec_fn + RLIMIT_CPU / RLIMIT_AS / RLIMIT_NOFILE / "
+                "RLIMIT_NPROC), which is not available on Windows: "
+                "the `resource` module and `preexec_fn` are POSIX-only, so the "
+                "memory-cap, FD-cap, and fork-bomb guarantees cannot be "
+                "enforced. Use DockerCommandLineCodeExecutor for untrusted "
+                "code on Windows hosts."
             )
         self._sandbox: Optional[bool] = sandbox
 
@@ -545,10 +594,19 @@ $functions"""
 
             # Build sandbox-specific subprocess kwargs.
             # On POSIX with sandbox=True we set per-child rlimits via a
-            # preexec_fn so runaway memory or fork bombs are capped. Windows
-            # does not support preexec_fn or RLIMIT_AS → env scrub only.
+            # preexec_fn so runaway memory or fork bombs are capped. The
+            # Windows path is unreachable here because __init__ raises
+            # PlatformExecutionScopeError when sandbox=True on win32; this
+            # second guard is defense-in-depth so a future refactor cannot
+            # silently exec without the rlimit contract.
             exec_kwargs: dict[str, Any] = {}
-            if self._sandbox is True and sys.platform != "win32":
+            if self._sandbox is True:
+                if sys.platform == "win32":
+                    raise PlatformExecutionScopeError(
+                        "sandbox=True cannot be honored on Windows: "
+                        "preexec_fn + RLIMIT_* are POSIX-only. Use "
+                        "DockerCommandLineCodeExecutor instead."
+                    )
                 exec_kwargs["preexec_fn"] = _build_preexec_rlimits(self._timeout)
 
             # Create a subprocess and run

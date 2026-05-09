@@ -20,7 +20,7 @@ import pytest_asyncio
 from aiofiles import open
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor, PlatformExecutionScopeError
 
 HAS_POWERSHELL: bool = platform.system() == "Windows" and (
     shutil.which("powershell") is not None or shutil.which("pwsh") is not None
@@ -506,6 +506,36 @@ async def test_sandbox_true_strips_credential_env(tmp_path: Path) -> None:
     assert "MY_API_KEY <missing>" in result.output
     assert "SOME_TOKEN <missing>" in result.output
     assert "HARMLESS_VAR benign" in result.output
+
+
+@pytest.mark.asyncio
+async def test_sandbox_true_on_windows_raises_platform_scope_error() -> None:
+    """sandbox=True must raise PlatformExecutionScopeError on Windows rather
+    than silently degrading to env-scrub-only. The contract is named in the
+    error message so threat-model and procurement reviewers can see exactly
+    which guarantees were unavailable."""
+    with patch("autogen_ext.code_executors.local.sys") as mock_sys:
+        mock_sys.platform = "win32"
+        # Preserve the real `sys.executable` since the executor reads it
+        # only after the platform branch; the ValueError-on-timeout etc.
+        # paths don't run during construction.
+        mock_sys.executable = sys.executable
+        with pytest.raises(PlatformExecutionScopeError) as excinfo:
+            LocalCommandLineCodeExecutor(sandbox=True)
+    msg = str(excinfo.value)
+    # The contract names the missing guarantees explicitly.
+    assert "RLIMIT_AS" in msg
+    assert "preexec_fn" in msg
+    # And points the caller at the right escape hatch.
+    assert "Docker" in msg
+
+
+@pytest.mark.asyncio
+async def test_platform_execution_scope_error_is_runtime_error() -> None:
+    """PlatformExecutionScopeError must subclass RuntimeError so existing
+    `except RuntimeError:` handlers in caller code still catch it without a
+    breaking change to the public exception hierarchy."""
+    assert issubclass(PlatformExecutionScopeError, RuntimeError)
 
 
 @pytest.mark.asyncio
