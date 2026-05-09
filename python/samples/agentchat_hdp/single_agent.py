@@ -131,7 +131,31 @@ async def main() -> None:
         for v in result.violations:
             print(f"    - {v}")
 
+    if result.hop_results:
+        print(f"\n  Per-hop results:")
+        for hop in result.hop_results:
+            status = "OK" if hop.valid else f"INVALID — {hop.reason}"
+            print(f"    Hop {hop.seq} ({hop.agent_id}): {status}")
+
     print("=" * 60)
+
+    # ── Tamper-resistance check ────────────────────────────────────────────
+    # Mutating any hop signature causes verify_chain to return valid=False.
+    # Chain verification stops at the first invalid hop — each hop is signed
+    # over the cumulative chain, so subsequent results would be unreliable.
+    if result.hop_count > 0:
+        tampered = dict(token)
+        tampered["chain"] = [dict(h) for h in token["chain"]]
+        tampered["chain"][0]["hop_signature"] = "AAAA"  # simulate attacker modifying chain
+        tampered_result = verify_chain(tampered, private_key.public_key())
+        print("\n[HDP] Tamper-resistance check:")
+        print(f"  Tampered chain valid: {tampered_result.valid}")   # False
+        print(f"  Violations:           {tampered_result.violations}")
+
+    # ── max_hops exceeded ─────────────────────────────────────────────────
+    # ScopePolicy(max_hops=N) caps delegation depth.  verify_chain returns
+    # valid=False with "Chain depth N exceeds max_hops M" when len(chain) > N.
+
     print(
         "\n[HDP] See https://helixar.ai/about/labs/hdp/ for the protocol spec\n"
         "      and https://github.com/Helixar-AI/HDP for the full SDK."
