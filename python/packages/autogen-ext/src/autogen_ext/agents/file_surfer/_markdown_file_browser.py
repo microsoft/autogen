@@ -15,11 +15,15 @@ class MarkdownFileBrowser:
     (In preview) An extremely simple Markdown-powered file browser.
     """
 
+    # Sentinel used so we can tell "caller omitted base_path" (use cwd at call time)
+    # apart from "caller explicitly passed None" (disable path-restriction).
+    _BASE_PATH_DEFAULT = object()
+
     # TODO: Fix unfollowed import
     def __init__(  # type: ignore
         self,
         viewport_size: Union[int, None] = 1024 * 8,
-        base_path: str | None = os.getcwd(),
+        base_path: str | None = _BASE_PATH_DEFAULT,  # type: ignore[assignment]
         cwd: str | None = None,
     ):
         """
@@ -27,7 +31,7 @@ class MarkdownFileBrowser:
 
         Arguments:
             viewport_size: Approximately how many *characters* fit in the viewport. Viewport dimensions are adjusted dynamically to avoid cutting off words (default: 8192).
-            base_path: The base path to use for the file browser. Files outside this path cannot be accessed. Defaults to the current working directory.
+            base_path: The base path to use for the file browser. Files outside this path cannot be accessed. Defaults to the current working directory. Pass ``None`` to explicitly disable path restriction.
             cwd: The browser's current working directory. Defaults to the system's current working directory.
         """
         self.viewport_size = viewport_size  # Applies only to the standard uri types
@@ -36,6 +40,10 @@ class MarkdownFileBrowser:
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
         self._markdown_converter = MarkItDown()
+        # Resolve the "default" case at call time so cwd reflects the caller's
+        # current directory, not whatever it was when this module was imported.
+        if base_path is self._BASE_PATH_DEFAULT:
+            base_path = os.getcwd()
         self._base_path = None if base_path is None else os.path.realpath(base_path)
         self._page_content: str = ""
         self._find_on_page_query: Union[str, None] = None
