@@ -34,6 +34,7 @@ Find community samples and examples of how to use AutoGen
 
 ::::
 
+For a live remote MCP discovery surface, naxytra keeps a public machine discovery index at `https://www.naxytra.com/v1/agent-discovery-index`, an A2A agent card at `https://www.naxytra.com/.well-known/agent.json`, and a live MCP endpoint at `https://xytara-mcp-executor.onrender.com/mcp`.
 
 ## List of community projects
 
