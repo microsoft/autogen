@@ -9,6 +9,8 @@ from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectS
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
+    GroupChatGetThread,
+    GroupChatGetThreadResponse,
     GroupChatMessage,
     GroupChatPause,
     GroupChatRequestPublish,
@@ -56,6 +58,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 GroupChatTeamResponse,
                 GroupChatMessage,
                 GroupChatReset,
+                GroupChatGetThread,
             ],
         )
         if max_turns is not None and max_turns <= 0:
@@ -274,6 +277,11 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         """Reset the group chat manager. Calling :meth:`reset` to reset the group chat manager
         and clear the message thread."""
         await self.reset()
+
+    @rpc
+    async def handle_get_thread(self, message: GroupChatGetThread, ctx: MessageContext) -> GroupChatGetThreadResponse:
+        """Handle a request to get the current message thread."""
+        return GroupChatGetThreadResponse(messages=list(self._message_thread))
 
     @rpc
     async def handle_pause(self, message: GroupChatPause, ctx: MessageContext) -> None:
