@@ -1,11 +1,12 @@
 """AgentChat sample: persistent long-term memory via Synap.
 
 [Synap](https://maximem.ai) is a managed long-term memory layer for AI agents.
-The `synap-autogen` package exposes Synap as AutoGen `BaseTool` implementations
-so an `AssistantAgent` can search and store memories across conversations.
+The `maximem-synap-autogen` package exposes Synap as AutoGen `BaseTool`
+implementations so an `AssistantAgent` can search and store memories across
+conversations.
 
 Setup:
-    pip install synap-autogen maximem-synap "autogen-agentchat" "autogen-ext[openai]"
+    pip install maximem-synap-autogen maximem-synap "autogen-agentchat" "autogen-ext[openai]"
     export SYNAP_API_KEY=<your-key>     # https://synap.maximem.ai
     export OPENAI_API_KEY=<your-key>
 
