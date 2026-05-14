@@ -5,7 +5,7 @@ This sample shows how to give an AutoGen `AssistantAgent` persistent, cross-sess
 ## Setup
 
 ```bash
-pip install synap-autogen maximem-synap "autogen-agentchat" "autogen-ext[openai]"
+pip install maximem-synap-autogen maximem-synap "autogen-agentchat" "autogen-ext[openai]"
 ```
 
 Set environment variables:
@@ -26,5 +26,5 @@ The agent is wired with `SynapSearchTool` and `SynapStoreTool` — it can semant
 ## Resources
 
 - [Synap documentation](https://docs.maximem.ai)
-- [PyPI: `synap-autogen`](https://pypi.org/project/synap-autogen/)
+- [PyPI: `maximem-synap-autogen`](https://pypi.org/project/maximem-synap-autogen/)
 - [Open source integration package](https://github.com/maximem-ai/maximem_synap_sdk/tree/main/packages/integrations/synap-autogen)
