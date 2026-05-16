@@ -102,7 +102,7 @@ def main() -> None:
         else:
             config = yaml.safe_load(DEFAULT_CONFIG_CONTENTS)
     else:
-        with open(args.config if isinstance(args.config, str) else args.config[0], "r") as f:
+        with open(args.config if isinstance(args.config, str) else args.config[0], "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
     # Run the task
