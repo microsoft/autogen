@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Dict
 
 import yaml
@@ -27,5 +28,13 @@ def load_yaml_file(file_path: str) -> Any:
     """
     Opens a file and returns its contents.
     """
-    with open(file_path, "r") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         return yaml.safe_load(file)
+
+
+def set_temp_memory_paths(config: Dict[str, Any], test_name: str, base_path: Path) -> None:
+    """
+    Keeps replay tests from sharing persistent Chroma and log directories.
+    """
+    config["PageLogger"]["path"] = str(base_path / "pagelogs" / test_name)
+    config["Apprentice"]["MemoryController"]["MemoryBank"]["path"] = str(base_path / "memory_bank" / test_name)
