@@ -74,6 +74,7 @@ class PageLogger:
             "CRITICAL": 50,
             "NONE": 100,
         }
+        self.finalized = True
 
         # Apply default settings and any config overrides.
         level_str = "NONE"  # Default to no logging at all.
@@ -92,12 +93,15 @@ class PageLogger:
         self.pages: List[Page] = []
         self.last_page_id = 0
         self.name = "0  Call Tree"
+        self.finalized = False
         self._create_run_dir()
         self.flush()
-        self.finalized = False
 
     def __del__(self) -> None:
-        self.finalize()
+        try:
+            self.finalize()
+        except Exception:
+            pass
 
     def finalize(self) -> None:
         # Writes a hash of the log directory to a file for change detection.
