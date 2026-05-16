@@ -73,7 +73,7 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
             # Load the previously recorded messages and responses from disk.
             self.logger.info("Replay mode enabled.\nRetrieving session from: " + self.session_file_path)
             try:
-                with open(self.session_file_path, "r") as f:
+                with open(self.session_file_path, "r", encoding="utf-8") as f:
                     self.records = json.load(f)
             except Exception as e:
                 error_str = f"\nFailed to load recorded session: '{self.session_file_path}': {e}"
