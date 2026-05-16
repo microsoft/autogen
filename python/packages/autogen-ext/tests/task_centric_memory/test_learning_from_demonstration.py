@@ -1,5 +1,7 @@
 import asyncio
 import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, Dict, Literal
 
 import pytest
@@ -13,7 +15,7 @@ from autogen_ext.experimental.task_centric_memory.utils import (
     PageLogger,
 )
 from autogen_ext.models.replay import ReplayChatCompletionClient
-from utils import create_oai_client, load_yaml_file
+from utils import create_oai_client, load_yaml_file, set_temp_memory_paths
 
 """
 This code sample connects task-centric memory to a selectable agent with no changes to that agent's code.
@@ -89,7 +91,11 @@ async def eval_learning_from_demonstration(
 
 
 @pytest.mark.asyncio
-async def test_memory(mode: Literal["record", "replay"] = "replay") -> None:
+async def test_memory(tmp_path: Path, mode: Literal["record", "replay"] = "replay") -> None:
+    await run_memory_test(tmp_path, mode)
+
+
+async def run_memory_test(base_path: Path, mode: Literal["record", "replay"] = "replay") -> None:
     """
     Tests memory using the components specified in the config file.
     By default, mode is "replay", which uses a pre-recorded session file.
@@ -97,6 +103,7 @@ async def test_memory(mode: Literal["record", "replay"] = "replay") -> None:
     """
     test = "demonstration"
     config = load_yaml_file(f"./tests/task_centric_memory/configs/{test}.yaml")
+    set_temp_memory_paths(config, test, base_path)
 
     # Create the necessary components.
     logger = PageLogger(config["PageLogger"])
@@ -130,4 +137,5 @@ if __name__ == "__main__":
     mode: Literal["record", "replay"] = "replay"
     if (len(args) >= 1) and (args[0] == "record"):
         mode = "record"
-    asyncio.run(test_memory(mode=mode))
+    with TemporaryDirectory() as temp_dir:
+        asyncio.run(run_memory_test(Path(temp_dir), mode=mode))
