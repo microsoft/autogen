@@ -675,6 +675,51 @@ class TestAssistantAgentToolCallLoop:
         assert result is not None
 
     @pytest.mark.asyncio
+    async def test_tool_call_loop_summary_includes_all_iterations(self) -> None:
+        """Test that max-iteration summaries include every executed tool call."""
+        model_client = ReplayChatCompletionClient(
+            [
+                CreateResult(
+                    finish_reason="function_calls",
+                    content=[
+                        FunctionCall(
+                            id=str(i),
+                            arguments=json.dumps({"param": f"call_{i}"}),
+                            name="mock_tool_function",
+                        )
+                    ],
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                )
+                for i in range(3)
+            ],
+            model_info={
+                "function_calling": True,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
+        )
+
+        agent = AssistantAgent(
+            name="test_agent",
+            model_client=model_client,
+            tools=[mock_tool_function],
+            max_tool_iterations=3,
+            reflect_on_tool_use=False,
+        )
+
+        result = await agent.run(task="Test max iteration summary")
+
+        final_message = result.messages[-1]
+        assert isinstance(final_message, ToolCallSummaryMessage)
+        assert len(final_message.tool_calls) == 3
+        assert len(final_message.results) == 3
+        for i in range(3):
+            assert f"Tool executed with: call_{i}" in final_message.content
+
+    @pytest.mark.asyncio
     async def test_tool_call_loop_with_handoff(self) -> None:
         """Test that tool call loop stops on handoff."""
         model_client = ReplayChatCompletionClient(

@@ -1228,8 +1228,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     raise RuntimeError(f"Unexpected event type: {type(event)}")
 
             # Wait for all tool calls to complete.
-            executed_calls_and_results = await task
-            exec_results = [result for _, result in executed_calls_and_results]
+            current_executed_calls_and_results = await task
+            executed_calls_and_results.extend(current_executed_calls_and_results)
+            exec_results = [result for _, result in current_executed_calls_and_results]
 
             # Yield ToolCallExecutionEvent
             tool_call_result_msg = ToolCallExecutionEvent(
@@ -1244,7 +1245,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             # STEP 4C: Check for handoff
             handoff_output = cls._check_and_handle_handoff(
                 model_result=current_model_result,
-                executed_calls_and_results=executed_calls_and_results,
+                executed_calls_and_results=current_executed_calls_and_results,
                 inner_messages=inner_messages,
                 handoffs=handoffs,
                 agent_name=agent_name,
