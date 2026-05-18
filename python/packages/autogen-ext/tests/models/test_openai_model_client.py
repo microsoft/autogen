@@ -396,6 +396,62 @@ async def test_openai_chat_completion_client_none_usage(monkeypatch: pytest.Monk
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_stream_none_chunk(monkeypatch: pytest.MonkeyPatch) -> None:
+    """None chunks in a stream must be silently skipped without AttributeError.
+
+    Some providers (e.g. Azure) emit None keepalive chunks between real ones.
+    https://github.com/microsoft/autogen/issues/7130
+    """
+
+    async def _gen_none_chunks() -> AsyncGenerator[Any, None]:
+        model = "gpt-4o"
+        # Interleave real chunks with None keepalives.
+        yield None
+        yield ChatCompletionChunk(
+            id="id",
+            choices=[
+                ChunkChoice(
+                    finish_reason=None,
+                    index=0,
+                    delta=ChoiceDelta(content="Hello", role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion.chunk",
+        )
+        yield None
+        yield ChatCompletionChunk(
+            id="id",
+            choices=[
+                ChunkChoice(
+                    finish_reason="stop",
+                    index=0,
+                    delta=ChoiceDelta(content=None, role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion.chunk",
+        )
+
+    async def _mock_create_with_none_chunks(*args: Any, **kwargs: Any) -> AsyncGenerator[Any, None]:
+        return _gen_none_chunks()
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create_with_none_chunks)
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
+        chunks.append(chunk)
+
+    content_chunks = [c for c in chunks if isinstance(c, str)]
+    assert content_chunks == ["Hello"]
+    result = chunks[-1]
+    assert isinstance(result, CreateResult)
+    assert result.content == "Hello"
+
+
+@pytest.mark.asyncio
 async def test_openai_chat_completion_client_create_cancel(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
     client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")

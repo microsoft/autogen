@@ -906,6 +906,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # Process the stream of chunks.
         async for chunk in chunks:
+            # Some providers (e.g. Azure) send None keepalive chunks.
+            # https://github.com/microsoft/autogen/issues/7130
+            if chunk is None:
+                continue
+
             if first_chunk:
                 first_chunk = False
                 # Emit the start event.
@@ -949,7 +954,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             maybe_model = chunk.model
 
             reasoning_content: str | None = None
-            if choice.delta.model_extra is not None and "reasoning_content" in choice.delta.model_extra:
+            if (
+                choice.delta is not None
+                and choice.delta.model_extra is not None
+                and "reasoning_content" in choice.delta.model_extra
+            ):
                 # If there is a reasoning_content field, then we populate the thought field. This is for models such as R1.
                 reasoning_content = choice.delta.model_extra.get("reasoning_content")
 
@@ -968,7 +977,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 yield reasoning_content
 
             # First try get content
-            if choice.delta.content:
+            if choice.delta is not None and choice.delta.content:
                 content_deltas.append(choice.delta.content)
                 if len(choice.delta.content) > 0:
                     yield choice.delta.content
@@ -976,7 +985,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 # However, this may not be the case for other APIs -- we should expect this may need to be updated.
                 continue
             # Otherwise, get tool calls
-            if choice.delta.tool_calls is not None:
+            if choice.delta is not None and choice.delta.tool_calls is not None:
                 for tool_call_chunk in choice.delta.tool_calls:
                     idx = tool_call_chunk.index
                     if idx not in full_tool_calls:
