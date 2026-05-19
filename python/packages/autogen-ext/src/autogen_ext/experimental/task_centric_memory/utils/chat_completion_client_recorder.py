@@ -73,7 +73,7 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
             # Load the previously recorded messages and responses from disk.
             self.logger.info("Replay mode enabled.\nRetrieving session from: " + self.session_file_path)
             try:
-                with open(self.session_file_path, "r") as f:
+                with open(self.session_file_path, "r", encoding="utf-8") as f:
                     self.records = json.load(f)
             except Exception as e:
                 error_str = f"\nFailed to load recorded session: '{self.session_file_path}': {e}"
@@ -211,7 +211,7 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
                 # Create the directory if it doesn't exist.
                 os.makedirs(os.path.dirname(self.session_file_path), exist_ok=True)
                 # Write the records to disk.
-                with open(self.session_file_path, "w") as f:
+                with open(self.session_file_path, "w", encoding="utf-8") as f:
                     json.dump(self.records, f, indent=2)
                     self.logger.info("\nRecorded session was saved to: " + self.session_file_path)
             except Exception as e:
