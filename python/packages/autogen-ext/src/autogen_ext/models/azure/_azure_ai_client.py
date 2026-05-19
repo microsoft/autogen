@@ -188,6 +188,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         credential (union, AzureKeyCredential, AsyncTokenCredential): The credentials to use. **Required**
         model_info (ModelInfo): The model family and capabilities of the model. **Required.**
         model (str): The name of the model. **Required if model is hosted on GitHub Models.**
+        api_version (optional, str): API version for the Azure AI Inference service. Defaults to the value used by the underlying ``azure-ai-inference`` SDK.
         frequency_penalty: (optional,float)
         presence_penalty: (optional,float)
         temperature: (optional,float)
