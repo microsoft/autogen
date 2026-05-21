@@ -2,6 +2,7 @@
 # Credit to original authors
 
 import asyncio
+import logging
 import os
 import platform
 import shutil
@@ -454,21 +455,34 @@ async def test_cleanup_temp_files_oserror(caplog: pytest.LogCaptureFixture) -> N
 
 
 @pytest.mark.asyncio
-async def test_sandbox_default_emits_deprecation_warning() -> None:
+async def test_sandbox_default_emits_user_warning() -> None:
     """Instantiating without an explicit sandbox posture should emit a
-    DeprecationWarning (not the legacy UserWarning) so warning-filter
-    pipelines that silence UserWarning still surface the security notice."""
-    with pytest.warns(DeprecationWarning, match=r"sandbox=False.*sandbox=True"):
+    UserWarning so library-level construction is visible under Python's
+    stock warning filters."""
+    with pytest.warns(UserWarning, match=r"sandbox=False.*sandbox=True"):
         LocalCommandLineCodeExecutor()
+
+
+@pytest.mark.asyncio
+async def test_sandbox_default_logs_when_warnings_are_ignored(caplog: pytest.LogCaptureFixture) -> None:
+    """The logging lane should still emit when an application suppresses
+    Python warnings globally."""
+    caplog.set_level(logging.WARNING, logger="autogen_ext.code_executors.local")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        LocalCommandLineCodeExecutor()
+
+    assert any("without explicit sandbox posture" in record.message for record in caplog.records)
 
 
 @pytest.mark.asyncio
 async def test_sandbox_false_is_silent_opt_out() -> None:
     """sandbox=False is the explicit "I accept the risk" acknowledgement and
-    must not emit the DeprecationWarning."""
+    must not emit the UserWarning."""
     with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
-        # Must not raise: the DeprecationWarning-as-error filter would trip
+        warnings.simplefilter("error", UserWarning)
+        # Must not raise: the UserWarning-as-error filter would trip
         # if we regressed and emitted the warning in the explicit path.
         LocalCommandLineCodeExecutor(sandbox=False)
 
@@ -547,9 +561,9 @@ async def test_sandbox_roundtrips_through_config(tmp_path: Path) -> None:
     # dump_component should preserve the explicit posture.
     assert config.config["sandbox"] is True
 
-    # The load side must not emit the default DeprecationWarning — it would
+    # The load side must not emit the default UserWarning — it would
     # fire if sandbox weren't threaded through.
     with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
+        warnings.simplefilter("error", UserWarning)
         restored = LocalCommandLineCodeExecutor.load_component(config)
     assert restored._sandbox is True  # type: ignore[attr-defined]

@@ -180,7 +180,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
             per-platform behavior below. The executor refuses to construct rather than silently degrade to a weaker posture.
 
             **When** ``sandbox`` **is** ``None`` (default, legacy):
-                The executor runs unsandboxed and emits a ``DeprecationWarning``. In a future release this parameter will become
+                The executor runs unsandboxed and emits a ``UserWarning`` plus a logger warning. In a future release this parameter will become
                 required.
 
             **When** ``sandbox`` **is** ``False``:
@@ -286,10 +286,12 @@ $functions"""
         sandbox: Optional[bool] = None,
     ):
         # ── Sandbox posture notification ────────────────────────────────────
-        # The legacy UserWarning at construction was easily suppressed by
-        # production configurations (`python -W ignore`, warning filters in
-        # logging pipelines). Callers now choose one of three postures:
-        #   • sandbox=None  (default, legacy)  → DeprecationWarning + logger
+        # The default notice intentionally uses UserWarning rather than
+        # DeprecationWarning so library-level construction remains visible
+        # under Python's stock warning filters. logger.warning stays as a
+        # second channel for applications that route warnings into logging.
+        # Callers choose one of three postures:
+        #   • sandbox=None  (default, legacy)  → UserWarning + logger
         #   • sandbox=False                    → explicit opt-out, silent
         #   • sandbox=True                     → best-effort in-process
         #                                         hardening (env scrub +
@@ -305,7 +307,7 @@ $functions"""
                 "(https://docs.docker.com/get-docker/). "
                 "In a future release the `sandbox` parameter will become "
                 "required.",
-                DeprecationWarning,
+                UserWarning,
                 stacklevel=2,
             )
             logger.warning(
