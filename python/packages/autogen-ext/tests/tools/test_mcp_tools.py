@@ -928,3 +928,26 @@ def test_return_value_as_string_with_resource_link(sample_tool: Tool, sample_ser
     assert '"type": "resource_link"' in result
     assert '"name": "test_link"' in result
     assert '"uri": "http://example.com/"' in result  # AnyUrl normalizes with trailing slash
+
+
+def test_return_value_as_string_preserves_non_ascii_text(
+    sample_tool: Tool, sample_server_params: StdioServerParams
+) -> None:
+    """Non-ASCII characters (e.g. Japanese/Chinese) should not be escaped to \\uXXXX."""
+    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool)
+
+    japanese_text = "日本語のテキスト"
+    chinese_text = "中文文本"
+
+    result = adapter.return_value_as_string(
+        [
+            TextContent(text=japanese_text, type="text"),
+            TextContent(text=chinese_text, type="text"),
+        ]
+    )
+
+    # Original characters must survive serialization.
+    assert japanese_text in result
+    assert chinese_text in result
+    # And they must not appear as escaped unicode codepoints.
+    assert "\\u" not in result
