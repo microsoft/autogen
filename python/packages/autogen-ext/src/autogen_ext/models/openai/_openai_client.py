@@ -20,6 +20,7 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    Tuple,
     Type,
     Union,
     cast,
@@ -303,6 +304,33 @@ def normalize_name(name: str) -> str:
     Prefer _assert_valid_name for validating user configuration or input
     """
     return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
+
+
+def _normalize_list_content(content: List[Any]) -> Tuple[str, str | None]:
+    """Flatten a list of content blocks into visible text and reasoning text.
+
+    Some OpenAI-compatible reasoning endpoints (e.g. gpt-5, o1) return
+    ``message.content`` as a list of typed blocks instead of a string, such as
+    ``[{"type": "reasoning", "text": ...}, {"type": "text", "text": ...}]``.
+    Visible text comes from ``text``/``output_text`` blocks; reasoning comes from
+    ``reasoning``/``thinking`` blocks. Unknown block types are ignored.
+    """
+    text_parts: List[str] = []
+    reasoning_parts: List[str] = []
+    for block in content:
+        if not isinstance(block, Mapping):
+            continue
+        typed_block = cast(Mapping[str, Any], block)
+        block_text = typed_block.get("text")
+        if not isinstance(block_text, str):
+            continue
+        block_type = typed_block.get("type")
+        if block_type in ("text", "output_text"):
+            text_parts.append(block_text)
+        elif block_type in ("reasoning", "thinking"):
+            reasoning_parts.append(block_text)
+    thought = "".join(reasoning_parts) if reasoning_parts else None
+    return "".join(text_parts), thought
 
 
 def count_tokens_openai(
@@ -775,7 +803,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         else:
             # if not tool_calls, then it is a text response and we populate the content and thought fields.
             finish_reason = choice.finish_reason
-            content = choice.message.content or ""
+            message_content = choice.message.content
+            if isinstance(message_content, list):
+                # Some OpenAI-compatible reasoning endpoints (e.g. gpt-5, o1) return content
+                # as a list of typed blocks instead of a string. Flatten it so downstream
+                # callers receive a string rather than the raw list.
+                content, thought = _normalize_list_content(cast(List[Any], message_content))
+            else:
+                content = message_content or ""
             # if there is a reasoning_content field, then we populate the thought field. This is for models such as R1 - direct from deepseek api.
             if choice.message.model_extra is not None:
                 reasoning_content = choice.message.model_extra.get("reasoning_content")
