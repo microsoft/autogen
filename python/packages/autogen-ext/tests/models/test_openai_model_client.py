@@ -1115,6 +1115,35 @@ async def test_r1_reasoning_content(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_normalizes_list_content(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Some OpenAI-compatible reasoning endpoints return content as a list of blocks."""
+
+    async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion:
+        message = ChatCompletionMessage(role="assistant", content=None)
+        # Reasoning endpoints (gpt-5, o1) may return a list of typed blocks.
+        message.content = [  # type: ignore[assignment]
+            {"type": "reasoning", "text": "let me think"},
+            {"type": "text", "text": "the answer"},
+            {"type": "image", "text": "ignored"},
+        ]
+        return ChatCompletion(
+            id="test_id",
+            model="gpt-4o",
+            object="chat.completion",
+            created=0,
+            choices=[Choice(index=0, finish_reason="stop", message=message)],
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20),
+        )
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", api_key="")
+    result = await model_client.create([UserMessage(content="Test message", source="user")])
+
+    assert result.content == "the answer"
+    assert result.thought == "let me think"
+
+
+@pytest.mark.asyncio
 async def test_r1_reasoning_content_streaming(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that reasoning_content in model_extra is correctly extracted and streamed."""
 
