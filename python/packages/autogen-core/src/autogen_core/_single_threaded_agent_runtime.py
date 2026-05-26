@@ -746,7 +746,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                 _warn_if_none(temp_message, "on_publish")
                             except BaseException as e:
                                 # TODO: we should raise the intervention exception to the publisher.
-                                logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
+                                logger.error(f"Exception raised in intervention handler: {e}", exc_info=True)
                                 return
                             if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                                 event_logger.info(
