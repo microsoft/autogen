@@ -133,6 +133,7 @@ tutorial/teams
 tutorial/human-in-the-loop
 tutorial/termination
 tutorial/state
+tutorial/perplexity
 
 ```
 

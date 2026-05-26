@@ -31,6 +31,12 @@ azure = [
 docker = ["docker~=7.0", "asyncio_atexit>=1.0.1"]
 ollama = ["ollama>=0.4.7", "tiktoken>=0.8.0"]
 openai = ["openai>=1.93", "tiktoken>=0.8.0", "aiofiles"]
+perplexity = [
+    "openai>=1.93",
+    "tiktoken>=0.8.0",
+    "aiofiles",
+    "httpx>=0.27.0",
+]
 file-surfer = [
     "autogen-agentchat==0.7.5",
     "magika>=0.6.1rc2",
