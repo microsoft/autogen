@@ -8,6 +8,15 @@ from autogen_ext.models.perplexity import (
     PERPLEXITY_BASE_URL,
     PerplexityChatCompletionClient,
 )
+from autogen_ext.models.perplexity._perplexity_client import (
+    PPLX_INTEGRATION_HEADER,
+    PPLX_INTEGRATION_HEADER_VALUE,
+)
+
+
+def _assert_pplx_integration_header(client: PerplexityChatCompletionClient) -> None:
+    assert client._raw_config["default_headers"][PPLX_INTEGRATION_HEADER] == PPLX_INTEGRATION_HEADER_VALUE
+    assert client._client.default_headers[PPLX_INTEGRATION_HEADER] == PPLX_INTEGRATION_HEADER_VALUE
 
 
 def test_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -26,6 +35,7 @@ def test_picks_up_perplexity_api_key_env_var(monkeypatch: pytest.MonkeyPatch) ->
 
     assert client._raw_config["api_key"] == "env-key-1"
     assert client._raw_config["base_url"] == PERPLEXITY_BASE_URL
+    _assert_pplx_integration_header(client)
 
 
 def test_falls_back_to_pplx_api_key_alias(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -35,6 +45,7 @@ def test_falls_back_to_pplx_api_key_alias(monkeypatch: pytest.MonkeyPatch) -> No
     client = PerplexityChatCompletionClient(model="sonar-pro")
 
     assert client._raw_config["api_key"] == "alias-key"
+    _assert_pplx_integration_header(client)
 
 
 def test_explicit_api_key_overrides_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -43,6 +54,7 @@ def test_explicit_api_key_overrides_env(monkeypatch: pytest.MonkeyPatch) -> None
     client = PerplexityChatCompletionClient(model="sonar", api_key="explicit-key")
 
     assert client._raw_config["api_key"] == "explicit-key"
+    _assert_pplx_integration_header(client)
 
 
 def test_custom_base_url_is_respected(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -51,9 +63,12 @@ def test_custom_base_url_is_respected(monkeypatch: pytest.MonkeyPatch) -> None:
     client = PerplexityChatCompletionClient(
         model="sonar",
         base_url="https://gateway.example.com/v1",
+        default_headers={"X-Custom": "custom-value"},
     )
 
     assert client._raw_config["base_url"] == "https://gateway.example.com/v1"
+    assert client._raw_config["default_headers"]["X-Custom"] == "custom-value"
+    _assert_pplx_integration_header(client)
 
 
 def test_default_model_info_is_populated(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -65,3 +80,4 @@ def test_default_model_info_is_populated(monkeypatch: pytest.MonkeyPatch) -> Non
     assert info["function_calling"] is True
     assert info["json_output"] is True
     assert info["vision"] is False
+    _assert_pplx_integration_header(client)

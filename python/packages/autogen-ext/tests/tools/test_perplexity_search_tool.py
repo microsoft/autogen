@@ -13,6 +13,14 @@ from autogen_ext.tools.perplexity import (
     PerplexitySearchTool,
     PerplexitySearchToolArgs,
 )
+from autogen_ext.tools.perplexity._perplexity_search_tool import (
+    PPLX_INTEGRATION_HEADER,
+    PPLX_INTEGRATION_HEADER_VALUE,
+)
+
+
+def _assert_pplx_integration_header(request: httpx.Request) -> None:
+    assert request.headers[PPLX_INTEGRATION_HEADER] == PPLX_INTEGRATION_HEADER_VALUE
 
 
 def _mock_transport(
@@ -82,6 +90,7 @@ async def test_run_returns_structured_results(monkeypatch: pytest.MonkeyPatch) -
     assert response.results[0].url == "https://a.example.com"
     assert response.results[0].date == "2025-01-02"
     assert response.results[1].date is None
+    _assert_pplx_integration_header(captured["request"])
 
 
 @pytest.mark.asyncio
@@ -112,6 +121,7 @@ async def test_run_sends_expected_payload(monkeypatch: pytest.MonkeyPatch) -> No
     request = captured["request"]
     assert str(request.url) == "https://api.perplexity.ai/search"
     assert request.headers["Authorization"] == "Bearer my-key"
+    _assert_pplx_integration_header(request)
     body = json.loads(captured["json"])
     assert body["query"] == "elections 2025"
     assert body["max_results"] == 4
@@ -138,6 +148,7 @@ async def test_run_picks_up_pplx_api_key_alias(monkeypatch: pytest.MonkeyPatch) 
     await tool.run(PerplexitySearchToolArgs(query="x"), CancellationToken())
 
     assert captured["request"].headers["Authorization"] == "Bearer alias-only"
+    _assert_pplx_integration_header(captured["request"])
 
 
 @pytest.mark.asyncio
@@ -156,6 +167,8 @@ async def test_run_raises_on_http_error(monkeypatch: pytest.MonkeyPatch) -> None
 
     with pytest.raises(httpx.HTTPStatusError):
         await tool.run(PerplexitySearchToolArgs(query="x"), CancellationToken())
+
+    _assert_pplx_integration_header(captured["request"])
 
 
 def test_tool_metadata() -> None:

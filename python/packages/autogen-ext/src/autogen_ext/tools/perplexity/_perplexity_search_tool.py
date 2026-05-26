@@ -7,6 +7,7 @@ https://docs.perplexity.ai/api-reference/search-post for the API contract.
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
 import os
 from typing import Any, List, Literal, Optional
 
@@ -19,6 +20,12 @@ from typing_extensions import Self
 DEFAULT_BASE_URL = "https://api.perplexity.ai"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RESULTS = 5
+PPLX_INTEGRATION_HEADER = "X-Pplx-Integration"
+try:
+    _AUTOGEN_EXT_VERSION = version("autogen-ext")
+except PackageNotFoundError:
+    _AUTOGEN_EXT_VERSION = "dev"
+PPLX_INTEGRATION_HEADER_VALUE = f"autogen/{_AUTOGEN_EXT_VERSION}"
 
 RecencyFilter = Literal["hour", "day", "week", "month", "year"]
 
@@ -183,6 +190,7 @@ class PerplexitySearchTool(
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
+            PPLX_INTEGRATION_HEADER: PPLX_INTEGRATION_HEADER_VALUE,
         }
 
         async with httpx.AsyncClient(timeout=httpx.Timeout(self._timeout)) as client:

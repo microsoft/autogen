@@ -10,6 +10,7 @@ See https://docs.perplexity.ai/docs/agent/quickstart for endpoint details.
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
 import os
 from typing import Any
 
@@ -18,6 +19,12 @@ from autogen_core.models import ModelFamily, ModelInfo
 from ..openai import OpenAIChatCompletionClient
 
 PERPLEXITY_BASE_URL = "https://api.perplexity.ai"
+PPLX_INTEGRATION_HEADER = "X-Pplx-Integration"
+try:
+    _AUTOGEN_EXT_VERSION = version("autogen-ext")
+except PackageNotFoundError:
+    _AUTOGEN_EXT_VERSION = "dev"
+PPLX_INTEGRATION_HEADER_VALUE = f"autogen/{_AUTOGEN_EXT_VERSION}"
 
 _DEFAULT_MODEL_INFO: ModelInfo = {
     "vision": False,
@@ -87,10 +94,14 @@ class PerplexityChatCompletionClient(OpenAIChatCompletionClient):
                 "PERPLEXITY_API_KEY (or PPLX_API_KEY) environment variable."
             )
 
+        default_headers = dict(kwargs.pop("default_headers", {}) or {})
+        default_headers[PPLX_INTEGRATION_HEADER] = PPLX_INTEGRATION_HEADER_VALUE
+
         super().__init__(
             model=model,
             api_key=resolved_api_key,
             base_url=base_url or PERPLEXITY_BASE_URL,
             model_info=model_info or _DEFAULT_MODEL_INFO,
+            default_headers=default_headers,
             **kwargs,
         )
