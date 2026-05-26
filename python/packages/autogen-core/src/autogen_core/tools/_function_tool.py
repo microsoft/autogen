@@ -144,7 +144,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
     def _from_config(cls, config: FunctionToolConfig) -> Self:
         warnings.warn(
             "\n⚠️  SECURITY WARNING ⚠️\n"
-            "Loading a FunctionTool from config will execute code to import the provided global imports and and function code.\n"
+            "Loading a FunctionTool from config will execute code to import the provided global imports and function code.\n"
             "Only load configs from TRUSTED sources to prevent arbitrary code execution.",
             UserWarning,
             stacklevel=2,
