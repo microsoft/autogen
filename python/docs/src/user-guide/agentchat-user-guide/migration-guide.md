@@ -1033,7 +1033,7 @@ In `v0.2` group chat, when tools are involved, you need to register the tool fun
 and include the user proxy in the group chat. The tool calls made by other agents
 will be routed to the user proxy to execute.
 
-We have observed numerous issues with this approach, such as the the tool call
+We have observed numerous issues with this approach, such as the tool call
 routing not working as expected, and the tool call request and result cannot be
 accepted by models without support for function calling.
 
