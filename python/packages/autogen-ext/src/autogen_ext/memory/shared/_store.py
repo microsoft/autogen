@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, List, Optional
+from typing import Any, List
 
 from autogen_core import CancellationToken, Component
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQueryResult, UpdateContextResult
@@ -87,15 +86,10 @@ class WriteReceipt:
 
 
 class SharedMemoryStore(Memory, Component[SharedMemoryConfig]):
-    """Cross-agent shared memory store with scoped FTS recall.
-
-    Stores facts in SQLite with FTS5 full-text search, scoped to agent/group/global.
-    Facts are recalled as small capsules via tool-result position, not prefix-loaded.
-
-    No external dependencies — uses Python's built-in sqlite3 module.
+    """Cross-agent shared memory with scoped FTS5 recall.
 
     Args:
-        config: Configuration for the shared memory store.
+        config: Store configuration.
         agent_id: Identity of the agent using this store instance.
     """
 
@@ -126,24 +120,25 @@ class SharedMemoryStore(Memory, Component[SharedMemoryConfig]):
                 f"Agent '{self._agent_id}' is not authorized to write to '{scope.value}' scope"
             )
 
-    def _scope_filter(self, scope: str | None) -> str:
-        parts = ["deleted = 0"]
-        now = _now_iso()
-        parts.append(f"(ttl_expires_at IS NULL OR ttl_expires_at > '{now}')")
+    def _scope_filter(self, scope: str | None) -> tuple[str, list[Any]]:
+        parts = ["deleted = 0", "(ttl_expires_at IS NULL OR ttl_expires_at > ?)"]
+        params: list[Any] = [_now_iso()]
 
         if scope is None or scope == "all":
             pass
         elif scope == MemoryScope.AGENT.value:
-            parts.append(f"scope = 'agent' AND agent_id = '{self._agent_id}'")
+            parts.append("scope = 'agent' AND agent_id = ?")
+            params.append(self._agent_id)
         elif scope == MemoryScope.GROUP.value:
-            gid = self._config.group_id or "default"
-            parts.append(f"scope = 'group' AND group_id = '{gid}'")
+            parts.append("scope = 'group' AND group_id = ?")
+            params.append(self._config.group_id or "default")
         elif scope == MemoryScope.GLOBAL.value:
             parts.append("scope = 'global'")
         else:
-            parts.append(f"scope = '{scope}'")
+            parts.append("scope = ?")
+            params.append(scope)
 
-        return " AND ".join(parts)
+        return " AND ".join(parts), params
 
     def remember(
         self,
@@ -189,12 +184,11 @@ class SharedMemoryStore(Memory, Component[SharedMemoryConfig]):
         scope: str | None = None,
         top_k: int | None = None,
     ) -> List[dict[str, Any]]:
-        """Search facts via FTS5. Returns capsules with provenance metadata."""
         self._ensure_initialized()
         assert self._conn is not None
 
         k = top_k or self._config.default_top_k
-        where = self._scope_filter(scope)
+        where_clause, where_params = self._scope_filter(scope)
         max_bytes = self._config.max_capsule_bytes
 
         sql = f"""
@@ -204,18 +198,18 @@ class SharedMemoryStore(Memory, Component[SharedMemoryConfig]):
             FROM facts f
             JOIN facts_fts fts ON f.rowid = fts.rowid
             WHERE fts.facts_fts MATCH ?
-              AND {where}
+              AND {where_clause}
             ORDER BY fts.rank
             LIMIT ?
         """
 
-        # FTS5 query: add prefix matching for each term
-        fts_query = " OR ".join(f'"{w}"*' for w in query_text.split() if w.strip())
-        if not fts_query:
+        terms = [w.replace('"', '').strip() for w in query_text.split() if w.strip()]
+        if not terms:
             return []
+        fts_query = " OR ".join(f'"{t}"*' for t in terms)
 
         try:
-            rows = self._conn.execute(sql, (fts_query, k)).fetchall()
+            rows = self._conn.execute(sql, [fts_query, *where_params, k]).fetchall()
         except sqlite3.OperationalError:
             return []
 
@@ -250,8 +244,6 @@ class SharedMemoryStore(Memory, Component[SharedMemoryConfig]):
         )
         self._conn.commit()
         return cur.rowcount > 0
-
-    # --- Memory protocol implementation ---
 
     async def update_context(self, model_context: ChatCompletionContext) -> UpdateContextResult:
         messages = await model_context.get_messages()

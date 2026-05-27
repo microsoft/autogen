@@ -1,9 +1,7 @@
-"""FunctionTool factories that wrap a SharedMemoryStore for agent tool use."""
-
 from __future__ import annotations
 
 import json
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from autogen_core.tools import FunctionTool
 

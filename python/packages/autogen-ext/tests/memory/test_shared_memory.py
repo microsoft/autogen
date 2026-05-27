@@ -148,10 +148,10 @@ class TestCapsuleSize:
             config=SharedMemoryConfig(db_path=":memory:", max_capsule_bytes=50),
             agent_id="agent_A",
         )
-        s.remember("a" * 200, scope=MemoryScope.GROUP)
-        results = s.search("a" * 10)
-        if results:
-            assert len(results[0]["content"].encode()) <= 54  # 50 + "..."
+        s.remember("a " * 100, scope=MemoryScope.GROUP)
+        results = s.search("a")
+        assert len(results) == 1
+        assert len(results[0]["content"].encode()) <= 54  # 50 + "..."
 
 
 class TestTTL:
