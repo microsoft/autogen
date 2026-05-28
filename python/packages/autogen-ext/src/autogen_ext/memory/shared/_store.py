@@ -178,6 +178,8 @@ class SharedMemoryStore(Memory, Component[SharedMemoryConfig]):
             timestamp=now, fact_hash=h, version=1,
         )
 
+    _SCOPE_PRIORITY = {"agent": 0, "group": 1, "global": 2}
+
     def search(
         self,
         query_text: str,
@@ -194,7 +196,7 @@ class SharedMemoryStore(Memory, Component[SharedMemoryConfig]):
         sql = f"""
             SELECT f.fact_id, f.scope, f.group_id, f.agent_id, f.content,
                    f.confidence, f.version, f.created_by, f.created_at,
-                   f.updated_at, f.fact_hash
+                   f.updated_at, f.fact_hash, f.ttl_expires_at
             FROM facts f
             JOIN facts_fts fts ON f.rowid = fts.rowid
             WHERE fts.facts_fts MATCH ?
@@ -219,7 +221,7 @@ class SharedMemoryStore(Memory, Component[SharedMemoryConfig]):
             if len(content.encode()) > max_bytes:
                 content = content.encode()[:max_bytes].decode(errors="ignore") + "..."
 
-            results.append({
+            capsule: dict[str, Any] = {
                 "fact_id": row["fact_id"],
                 "content": content,
                 "scope": row["scope"],
@@ -229,9 +231,37 @@ class SharedMemoryStore(Memory, Component[SharedMemoryConfig]):
                 "created_at": row["created_at"],
                 "fact_hash": row["fact_hash"],
                 "version": row["version"],
-            })
+            }
+            if row["ttl_expires_at"]:
+                capsule["stale_after"] = row["ttl_expires_at"]
+                capsule["stale_writer"] = row["created_by"]
+            results.append(capsule)
+
+        if scope is None or scope == "all":
+            self._annotate_shadowing(results)
 
         return results
+
+    @staticmethod
+    def _annotate_shadowing(results: List[dict[str, Any]]) -> None:
+        """When a narrower scope fact shares a fact_hash with a broader scope
+        fact, mark the broader one with ``shadowed_by`` so consumers know a
+        more-specific version exists."""
+        by_hash: dict[str, list[dict[str, Any]]] = {}
+        for r in results:
+            by_hash.setdefault(r["fact_hash"], []).append(r)
+        for group in by_hash.values():
+            if len(group) < 2:
+                continue
+            group.sort(key=lambda r: SharedMemoryStore._SCOPE_PRIORITY.get(r["scope"], 9))
+            winner = group[0]
+            for loser in group[1:]:
+                if SharedMemoryStore._SCOPE_PRIORITY.get(loser["scope"], 9) > SharedMemoryStore._SCOPE_PRIORITY.get(winner["scope"], 9):
+                    loser["shadowed_by"] = {
+                        "fact_id": winner["fact_id"],
+                        "scope": winner["scope"],
+                        "created_by": winner["created_by"],
+                    }
 
     def forget(self, fact_id: str) -> bool:
         """Soft-delete a fact. Tombstone preserved for audit."""

@@ -230,6 +230,54 @@ class TestTools:
         assert "denied" in result.lower()
 
 
+class TestWriterScopeStaleness:
+    def test_stale_after_binds_to_writer(self, store: SharedMemoryStore):
+        store.remember("ephemeral claim", scope=MemoryScope.GROUP, ttl_days=7)
+        results = store.search("ephemeral claim")
+        assert len(results) == 1
+        r = results[0]
+        assert "stale_after" in r
+        assert "stale_writer" in r
+        assert r["stale_writer"] == "agent_A"
+
+    def test_no_stale_after_without_ttl(self, store: SharedMemoryStore):
+        store.remember("permanent fact", scope=MemoryScope.GROUP)
+        results = store.search("permanent fact")
+        assert len(results) == 1
+        assert "stale_after" not in results[0]
+
+
+class TestShadowing:
+    def test_global_shadowed_by_group(self):
+        admin_store = SharedMemoryStore(
+            config=SharedMemoryConfig(
+                db_path=":memory:",
+                write_policies={
+                    "agent": WritePolicyEntry(allowed_agents=["*"]),
+                    "group": WritePolicyEntry(allowed_agents=["*"]),
+                    "global": WritePolicyEntry(allowed_agents=["agent_A"]),
+                },
+                group_id="test-group",
+            ),
+            agent_id="agent_A",
+        )
+        admin_store.remember("deploy freezes on Fridays", scope=MemoryScope.GLOBAL)
+        admin_store.remember("deploy freezes on Fridays", scope=MemoryScope.GROUP)
+        results = admin_store.search("deploy freezes", scope="all")
+        assert len(results) == 2
+        global_fact = next(r for r in results if r["scope"] == "global")
+        group_fact = next(r for r in results if r["scope"] == "group")
+        assert "shadowed_by" in global_fact
+        assert global_fact["shadowed_by"]["scope"] == "group"
+        assert "shadowed_by" not in group_fact
+
+    def test_no_shadowing_when_scoped_search(self, store: SharedMemoryStore):
+        store.remember("scoped fact", scope=MemoryScope.GROUP)
+        results = store.search("scoped fact", scope="group")
+        assert len(results) == 1
+        assert "shadowed_by" not in results[0]
+
+
 class TestPersistence:
     def test_file_backed_persistence(self):
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
