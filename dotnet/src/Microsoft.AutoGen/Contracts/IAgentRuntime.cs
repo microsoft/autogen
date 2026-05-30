@@ -15,14 +15,14 @@ public interface IAgentRuntime : ISaveState
     /// This method should be used to communicate directly with an agent.
     /// </summary>
     /// <param name="message">The message to send.</param>
-    /// <param name="recepient">The agent to send the message to.</param>
+    /// <param name="recipient">The agent to send the message to.</param>
     /// <param name="sender">The agent sending the message. Should be <c>null</c> if sent from an external source.</param>
     /// <param name="messageId">A unique identifier for the message. If <c>null</c>, a new ID will be generated.</param>
     /// <param name="cancellationToken">A token to cancel the operation if needed.</param>
     /// <returns>A task representing the asynchronous operation, returning the response from the agent.</returns>
     /// <exception cref="CantHandleException">Thrown if the recipient cannot handle the message.</exception>
     /// <exception cref="UndeliverableException">Thrown if the message cannot be delivered.</exception>
-    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default);
+    public ValueTask<object?> SendMessageAsync(object message, AgentId recipient, AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Publishes a message to all agents subscribed to the given topic.

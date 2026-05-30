@@ -119,13 +119,13 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         return await agent.OnMessageAsync(envelope.Message, messageContext);
     }
 
-    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
+    public ValueTask<object?> SendMessageAsync(object message, AgentId recipient, AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
     {
         return this.ExecuteTracedAsync(async () =>
         {
             MessageDelivery delivery = new MessageEnvelope(message, messageId, cancellationToken)
                                             .WithSender(sender)
-                                            .ForSend(recepient, this.SendMessageServicer);
+                                            .ForSend(recipient, this.SendMessageServicer);
 
             this.messageDeliveryQueue.Enqueue(delivery);
 

@@ -313,7 +313,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         return this._messageRouter.StopAsync();
     }
 
-    public async ValueTask<object?> SendMessageAsync(object message, Contracts.AgentId recepient, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
+    public async ValueTask<object?> SendMessageAsync(object message, Contracts.AgentId recipient, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
     {
         if (!SerializationRegistry.Exists(message.GetType()))
         {
@@ -326,7 +326,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
             RequestId = Guid.NewGuid().ToString(),
 
             Source = sender?.ToProtobuf() ?? null,
-            Target = recepient.ToProtobuf(),
+            Target = recipient.ToProtobuf(),
             Payload = payload,
         };
 
