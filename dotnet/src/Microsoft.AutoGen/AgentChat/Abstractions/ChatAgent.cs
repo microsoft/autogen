@@ -65,7 +65,7 @@ public struct AgentName
     00B7          ; Other_ID_Continue # Po       MIDDLE DOT
     0387          ; Other_ID_Continue # Po       GREEK ANO TELEIA
     1369..1371    ; Other_ID_Continue # No   [9] ETHIOPIC DIGIT ONE..ETHIOPIC DIGIT NINE
-    19DA          ; Other_ID_Continue # No       NEW TAI LUE THAM DIGIT ONE
+    19DA          ; Other_ID_Continue # No       NEW TAI LUE THAN DIGIT ONE
     200C..200D    ; Other_ID_Continue # Cf   [2] ZERO WIDTH NON-JOINER..ZERO WIDTH JOINER
     30FB          ; Other_ID_Continue # Po       KATAKANA MIDDLE DOT
     FF65          ; Other_ID_Continue # Po       HALFWIDTH KATAKANA MIDDLE DOT

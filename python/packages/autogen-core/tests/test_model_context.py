@@ -64,10 +64,10 @@ async def test_head_and_tail_model_context() -> None:
     for msg in messages:
         await model_context.add_message(msg)
 
-    retrived = await model_context.get_messages()
-    assert len(retrived) == 3  # 1 head, 1 tail + 1 placeholder.
-    assert retrived[0] == messages[0]
-    assert retrived[2] == messages[-1]
+    retrieved = await model_context.get_messages()
+    assert len(retrieved) == 3  # 1 head, 1 tail + 1 placeholder.
+    assert retrieved[0] == messages[0]
+    assert retrieved[2] == messages[-1]
 
     await model_context.clear()
     retrieved = await model_context.get_messages()
@@ -79,10 +79,10 @@ async def test_head_and_tail_model_context() -> None:
     state = await model_context.save_state()
     await model_context.clear()
     await model_context.load_state(state)
-    retrived = await model_context.get_messages()
-    assert len(retrived) == 3
-    assert retrived[0] == messages[0]
-    assert retrived[2] == messages[-1]
+    retrieved = await model_context.get_messages()
+    assert len(retrieved) == 3
+    assert retrieved[0] == messages[0]
+    assert retrieved[2] == messages[-1]
 
 
 @pytest.mark.asyncio
