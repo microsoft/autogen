@@ -252,19 +252,19 @@ def convert_tools(
             assert isinstance(tool, dict)
             tool_schema = tool
 
-        result.append(
-            ChatCompletionToolParam(
-                type="function",
-                function=FunctionDefinition(
-                    name=tool_schema["name"],
-                    description=(tool_schema["description"] if "description" in tool_schema else ""),
-                    parameters=(
-                        cast(FunctionParameters, tool_schema["parameters"]) if "parameters" in tool_schema else {}
-                    ),
-                    strict=(tool_schema["strict"] if "strict" in tool_schema else False),
-                ),
-            )
+        # Only emit ``strict`` when the tool explicitly opts in. OpenAI-compatible
+        # servers (vLLM, Qwen-Tongyi, Mistral via LiteLLM, ...) reject any
+        # ``strict`` field on function definitions with ``extra_forbidden`` errors,
+        # and OpenAI itself treats the field as optional with a default of False.
+        # See https://github.com/microsoft/autogen/issues/5814.
+        function_def = FunctionDefinition(
+            name=tool_schema["name"],
+            description=(tool_schema["description"] if "description" in tool_schema else ""),
+            parameters=(cast(FunctionParameters, tool_schema["parameters"]) if "parameters" in tool_schema else {}),
         )
+        if tool_schema.get("strict"):
+            function_def["strict"] = True
+        result.append(ChatCompletionToolParam(type="function", function=function_def))
     # Check if all tools have valid names.
     for tool_param in result:
         assert_valid_name(tool_param["function"]["name"])
