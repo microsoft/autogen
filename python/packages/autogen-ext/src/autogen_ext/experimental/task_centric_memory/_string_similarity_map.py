@@ -9,6 +9,7 @@ from chromadb.api.types import (
 from chromadb.config import Settings
 
 from .utils.page_logger import PageLogger
+from .utils.restricted_pickle import BASE_ALLOWED_PICKLE_GLOBALS, restricted_pickle_load
 
 
 class StringSimilarityMap:
@@ -45,7 +46,7 @@ class StringSimilarityMap:
         if (not reset) and os.path.exists(self.path_to_dict):
             self.logger.debug("\nLOADING STRING SIMILARITY MAP FROM DISK  at {}".format(self.path_to_dict))
             with open(self.path_to_dict, "rb") as f:
-                self.uid_text_dict = pickle.load(f)
+                self.uid_text_dict = restricted_pickle_load(f, allowed_globals=BASE_ALLOWED_PICKLE_GLOBALS)
                 self.last_string_pair_id = len(self.uid_text_dict)
                 if len(self.uid_text_dict) > 0:
                     self.logger.debug("\n{} STRING PAIRS LOADED".format(len(self.uid_text_dict)))
