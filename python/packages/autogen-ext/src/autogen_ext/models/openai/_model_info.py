@@ -42,8 +42,7 @@ _MODEL_POINTERS = {
     "claude-4-sonnet": "claude-sonnet-4-20250514",
     "claude-4-opus": "claude-opus-4-20250514",
     # MiniMax models
-    "minimax-m2.5": "MiniMax-M2.5",
-    "minimax-m2.5-highspeed": "MiniMax-M2.5-highspeed",
+    "minimax-m3": "MiniMax-M3",
     "minimax-m2.7": "MiniMax-M2.7",
     "minimax-m2.7-highspeed": "MiniMax-M2.7-highspeed",
     # Llama models
@@ -414,19 +413,11 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": False,
         "multiple_system_messages": True,
     },
-    "MiniMax-M2.5": {
+    "MiniMax-M3": {
         "vision": True,
         "function_calling": True,
         "json_output": True,
-        "family": ModelFamily.MINIMAX_M2_5,
-        "structured_output": True,
-        "multiple_system_messages": True,
-    },
-    "MiniMax-M2.5-highspeed": {
-        "vision": True,
-        "function_calling": True,
-        "json_output": True,
-        "family": ModelFamily.MINIMAX_M2_5,
+        "family": ModelFamily.MINIMAX_M3,
         "structured_output": True,
         "multiple_system_messages": True,
     },
@@ -524,8 +515,7 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "claude-3-7-sonnet-20250219": 200000,
     "claude-sonnet-4-20250514": 200000,
     "claude-opus-4-20250514": 200000,
-    "MiniMax-M2.5": 204800,
-    "MiniMax-M2.5-highspeed": 204800,
+    "MiniMax-M3": 524288,
     "MiniMax-M2.7": 204800,
     "MiniMax-M2.7-highspeed": 204800,
     "Llama-3.3-8B-Instruct": 128000,
