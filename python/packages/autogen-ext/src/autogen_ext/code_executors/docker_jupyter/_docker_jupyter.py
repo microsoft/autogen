@@ -275,7 +275,7 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         """Save html data to a file."""
         filename = f"{uuid.uuid4().hex}.html"
         path = os.path.join(str(self._output_dir), filename)
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(html_data)
         return os.path.abspath(path)
 
