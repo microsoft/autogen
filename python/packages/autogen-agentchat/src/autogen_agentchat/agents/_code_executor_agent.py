@@ -41,7 +41,7 @@ from ..messages import (
     TextMessage,
     ThoughtEvent,
 )
-from ..utils import remove_images
+from ..utils import _ensure_alternating_roles, remove_images
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -801,7 +801,13 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
         """
         all_messages = await model_context.get_messages()
-        llm_messages = cls._get_compatible_context(model_client=model_client, messages=system_messages + all_messages)
+        llm_messages = cls._get_compatible_context(
+            model_client=model_client,
+            messages=_ensure_alternating_roles(
+                system_messages + all_messages,
+                model_client.model_info["family"],
+            ),
+        )
 
         if model_client_stream:
             model_result: Optional[CreateResult] = None
