@@ -27,5 +27,5 @@ def load_yaml_file(file_path: str) -> Any:
     """
     Opens a file and returns its contents.
     """
-    with open(file_path, "r") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         return yaml.safe_load(file)

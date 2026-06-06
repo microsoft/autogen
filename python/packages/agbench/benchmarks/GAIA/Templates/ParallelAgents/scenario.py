@@ -267,7 +267,7 @@ async def aggregate_final_answer(task: str, client: ChatCompletionClient, team_r
 async def main(num_teams: int, num_answers: int) -> None:
 
     # Load model configuration and create the model client.
-    with open("config.yaml", "r") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     orchestrator_client = ChatCompletionClient.load_component(config["orchestrator_client"])
@@ -277,7 +277,7 @@ async def main(num_teams: int, num_answers: int) -> None:
 
     # Read the prompt
     prompt = ""
-    with open("prompt.txt", "rt") as fh:
+    with open("prompt.txt", "rt", encoding="utf-8") as fh:
         prompt = fh.read().strip()
     filename = "__FILE_NAME__".strip()
 
@@ -338,7 +338,7 @@ If you are asked for a comma separated list, apply the above rules depending on 
         teams.append(team)
         cancellation_token = CancellationToken()
         tokens.append(cancellation_token)
-        logfile = open(f"console_log_{team_idx}.txt", "w")
+        logfile = open(f"console_log_{team_idx}.txt", "w", encoding="utf-8")
         team_agentchat_logger = logging.getLogger(f"{AGENTCHAT_EVENT_LOGGER_NAME}.team{team_idx}")
         team_core_logger = logging.getLogger(f"{CORE_EVENT_LOGGER_NAME}.team{team_idx}")
         team_log_handler = LogHandler(f"log_{team_idx}.jsonl", print_message=False)
