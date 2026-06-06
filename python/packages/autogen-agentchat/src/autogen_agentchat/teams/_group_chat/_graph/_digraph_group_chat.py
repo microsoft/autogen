@@ -1,6 +1,6 @@
 import asyncio
 from collections import Counter, deque
-from typing import Any, Callable, Deque, Dict, List, Literal, Mapping, Sequence, Set, Union
+from typing import Any, Callable, Deque, Dict, List, Literal, Mapping, Optional, Sequence, Set, Union
 
 from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel, Field, model_validator
@@ -14,6 +14,7 @@ from autogen_agentchat.messages import (
     StopMessage,
 )
 from autogen_agentchat.state import BaseGroupChatManagerState
+from autogen_agentchat.storage import MessageStore
 from autogen_agentchat.teams import BaseGroupChat
 
 from ..._group_chat._base_group_chat_manager import BaseGroupChatManager
@@ -322,6 +323,7 @@ class GraphFlowManager(BaseGroupChatManager):
         max_turns: int | None,
         message_factory: MessageFactory,
         graph: DiGraph,
+        message_store: Optional[MessageStore] = None,
     ) -> None:
         """Initialize the graph-based execution manager."""
         super().__init__(
@@ -335,6 +337,7 @@ class GraphFlowManager(BaseGroupChatManager):
             termination_condition=termination_condition,
             max_turns=max_turns,
             message_factory=message_factory,
+            message_store=message_store,
         )
         graph.graph_validate()
         if graph.get_has_cycles() and self._termination_condition is None and self._max_turns is None:
@@ -532,6 +535,8 @@ class GraphFlowManager(BaseGroupChatManager):
         """Reset execution state to the start of the graph."""
         self._current_turn = 0
         self._message_thread.clear()
+        if self._message_store is not None:
+            await self._message_store.clear()
         if self._termination_condition:
             await self._termination_condition.reset()
         self._reset_execution_state()
@@ -826,6 +831,7 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        message_store: Optional[MessageStore] = None,
     ) -> Callable[[], GraphFlowManager]:
         """Creates the factory method for initializing the DiGraph-based chat manager."""
 
@@ -842,6 +848,7 @@ class GraphFlow(BaseGroupChat, Component[GraphFlowConfig]):
                 max_turns=max_turns,
                 message_factory=message_factory,
                 graph=self._graph,
+                message_store=message_store,
             )
 
         return _factory

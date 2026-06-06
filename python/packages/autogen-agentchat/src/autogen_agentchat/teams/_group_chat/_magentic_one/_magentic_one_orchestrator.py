@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from autogen_core import AgentId, CancellationToken, DefaultTopicId, MessageContext, event, rpc
 from autogen_core.models import (
@@ -29,6 +29,7 @@ from ....messages import (
     ToolCallSummaryMessage,
 )
 from ....state import MagenticOneOrchestratorState
+from ....storage import MessageStore
 from ....utils import remove_images
 from .._base_group_chat_manager import BaseGroupChatManager
 from .._events import (
@@ -74,6 +75,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         emit_team_events: bool,
+        message_store: Optional[MessageStore] = None,
     ):
         super().__init__(
             name,
@@ -87,6 +89,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events=emit_team_events,
+            message_store=message_store,
         )
         self._model_client = model_client
         self._max_stalls = max_stalls
@@ -251,6 +254,8 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
     async def reset(self) -> None:
         """Reset the group chat manager."""
         self._message_thread.clear()
+        if self._message_store is not None:
+            await self._message_store.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._n_rounds = 0

@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 from autogen_core import AgentRuntime, Component, ComponentModel
 from autogen_core.models import ChatCompletionClient
@@ -10,6 +10,7 @@ from typing_extensions import Self
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition
 from ....messages import BaseAgentEvent, BaseChatMessage, MessageFactory
+from ....storage import MessageStore
 from .._base_group_chat import BaseGroupChat
 from .._events import GroupChatTermination
 from ._magentic_one_orchestrator import MagenticOneOrchestrator
@@ -156,6 +157,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        message_store: Optional[MessageStore] = None,
     ) -> Callable[[], MagenticOneOrchestrator]:
         return lambda: MagenticOneOrchestrator(
             name,
@@ -172,6 +174,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             output_message_queue,
             termination_condition,
             self._emit_team_events,
+            message_store,
         )
 
     def _to_config(self) -> MagenticOneGroupChatConfig:

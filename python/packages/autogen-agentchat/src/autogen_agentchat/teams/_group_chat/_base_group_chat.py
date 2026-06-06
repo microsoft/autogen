@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
+from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Optional, Sequence
 
 from autogen_core import (
     AgentId,
@@ -25,8 +25,10 @@ from ...messages import (
     TextMessage,
 )
 from ...state import TeamState
+from ...storage import MessageStore
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
@@ -75,6 +77,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
+        message_store: Optional[MessageStore] = None,
     ):
         self._name = name
         self._description = description
@@ -87,6 +90,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._termination_condition = termination_condition
         self._max_turns = max_turns
         self._message_factory = MessageFactory()
+        self._message_store = message_store
         if custom_message_types is not None:
             for message_type in custom_message_types:
                 self._message_factory.register(message_type)
@@ -173,6 +177,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        message_store: Optional[MessageStore] = None,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
@@ -224,6 +229,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 termination_condition=self._termination_condition,
                 max_turns=self._max_turns,
                 message_factory=self._message_factory,
+                message_store=self._message_store,
             ),
         )
         # Add subscriptions for the group chat manager.
@@ -745,7 +751,65 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
         )
 
-    async def save_state(self) -> Mapping[str, Any]:
+    async def get_message_thread(self) -> Sequence[BaseAgentEvent | BaseChatMessage]:
+        """Get the current message thread from the group chat manager.
+
+        This method sends an RPC request to the group chat manager to retrieve
+        the current message thread. This can be useful for inspecting the state
+        of the conversation or for continuing a conversation from a previous
+        state.
+
+        .. note::
+
+            The team must be initialized and running before this method can be called.
+            The message thread is only available during or after a run.
+
+        Returns:
+            A sequence of messages representing the current message thread.
+
+        Raises:
+            RuntimeError: If the team has not been initialized.
+
+        Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.conditions import MaxMessageTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                termination = MaxMessageTermination(3)
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+                stream = team.run_stream(task="Count from 1 to 10, respond one at a time.")
+                async for message in stream:
+                    print(message)
+
+                # Get the current message thread.
+                thread = await team.get_message_thread()
+                print(thread)
+
+
+            asyncio.run(main())
+
+        """
+        if not self._initialized:
+            await self._init(self._runtime)
+
+        # Send a direct RPC to the group chat manager to get the message thread.
+        thread = await self._runtime.send_message(
+            GroupChatGetThread(),
+            recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+        )
+        return thread
         """Save the state of the group chat team.
 
         The state is saved by calling the :meth:`~autogen_core.AgentRuntime.agent_save_state` method

@@ -1,6 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, List, Sequence
+from typing import Any, List, Optional, Sequence
 
 from autogen_core import CancellationToken, DefaultTopicId, MessageContext, event, rpc
 
@@ -9,6 +9,7 @@ from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectS
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
+    GroupChatGetThread,
     GroupChatMessage,
     GroupChatPause,
     GroupChatRequestPublish,
@@ -20,6 +21,7 @@ from ._events import (
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
+from ...storage import MessageStore
 
 
 class BaseGroupChatManager(SequentialRoutedAgent, ABC):
@@ -47,6 +49,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool = False,
+        message_store: Optional[MessageStore] = None,
     ):
         super().__init__(
             description="Group chat manager",
@@ -81,6 +84,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._current_turn = 0
         self._message_factory = message_factory
         self._emit_team_events = emit_team_events
+        self._message_store = message_store
         self._active_speakers: List[str] = []
 
     @rpc
@@ -285,6 +289,18 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         """Resume the group chat manager. This is a no-op in the base class."""
         pass
 
+    @rpc
+    async def handle_get_message_thread(self, message: GroupChatGetThread, ctx: MessageContext) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Handle a request to get the current message thread.
+
+        Args:
+            message: The request to get the message thread.
+
+        Returns:
+            A copy of the current message thread.
+        """
+        return list(self._message_thread)
+
     @abstractmethod
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         """Validate the state of the group chat given the start messages.
@@ -301,6 +317,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         before calling the select_speakers method.
         """
         self._message_thread.extend(messages)
+        if self._message_store is not None:
+            await self._message_store.append(messages)
 
     @abstractmethod
     async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:

@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Callable, List, Mapping, Sequence
+from typing import Any, Callable, List, Mapping, Optional, Sequence
 
 from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
@@ -8,6 +8,7 @@ from typing_extensions import Self
 from ...base import ChatAgent, Team, TerminationCondition
 from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory
 from ...state import RoundRobinManagerState
+from ...storage import MessageStore
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._events import GroupChatTermination
@@ -29,6 +30,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool,
+        message_store: Optional[MessageStore] = None,
     ) -> None:
         super().__init__(
             name,
@@ -42,6 +44,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
+            message_store,
         )
         self._next_speaker_index = 0
 
@@ -51,6 +54,8 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
     async def reset(self) -> None:
         self._current_turn = 0
         self._message_thread.clear()
+        if self._message_store is not None:
+            await self._message_store.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._next_speaker_index = 0
@@ -276,6 +281,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        message_store: Optional[MessageStore] = None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
@@ -290,6 +296,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
                 max_turns,
                 message_factory,
                 self._emit_team_events,
+                message_store,
             )
 
         return _factory

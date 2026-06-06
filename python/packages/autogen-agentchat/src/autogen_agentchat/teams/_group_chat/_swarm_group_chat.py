@@ -1,11 +1,12 @@
 import asyncio
-from typing import Any, Callable, List, Mapping, Sequence
+from typing import Any, Callable, List, Mapping, Optional, Sequence
 
 from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
 
 from ...base import ChatAgent, TerminationCondition
 from ...messages import BaseAgentEvent, BaseChatMessage, HandoffMessage, MessageFactory
+from ...storage import MessageStore
 from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
@@ -28,6 +29,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool,
+        message_store: Optional[MessageStore] = None,
     ) -> None:
         super().__init__(
             name,
@@ -41,6 +43,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
+            message_store,
         )
         self._current_speaker = self._participant_names[0]
 
@@ -75,6 +78,8 @@ class SwarmGroupChatManager(BaseGroupChatManager):
     async def reset(self) -> None:
         self._current_turn = 0
         self._message_thread.clear()
+        if self._message_store is not None:
+            await self._message_store.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._current_speaker = self._participant_names[0]
@@ -275,6 +280,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        message_store: Optional[MessageStore] = None,
     ) -> Callable[[], SwarmGroupChatManager]:
         def _factory() -> SwarmGroupChatManager:
             return SwarmGroupChatManager(
@@ -289,6 +295,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
                 max_turns,
                 message_factory,
                 self._emit_team_events,
+                message_store,
             )
 
         return _factory

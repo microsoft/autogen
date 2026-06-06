@@ -23,6 +23,7 @@ from typing_extensions import Self
 
 from ... import TRACE_LOGGER_NAME
 from ...base import ChatAgent, Team, TerminationCondition
+from ...utils import _ensure_alternating_roles
 from ...messages import (
     BaseAgentEvent,
     BaseChatMessage,
@@ -32,6 +33,7 @@ from ...messages import (
     SelectorEvent,
 )
 from ...state import SelectorManagerState
+from ...storage import MessageStore
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 from ._events import GroupChatTermination
@@ -72,6 +74,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         emit_team_events: bool,
         model_context: ChatCompletionContext | None,
         model_client_streaming: bool = False,
+        message_store: Optional[MessageStore] = None,
     ) -> None:
         super().__init__(
             name,
@@ -85,6 +88,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
+            message_store,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
@@ -108,6 +112,8 @@ class SelectorGroupChatManager(BaseGroupChatManager):
     async def reset(self) -> None:
         self._current_turn = 0
         self._message_thread.clear()
+        if self._message_store is not None:
+            await self._message_store.clear()
         await self._model_context.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
@@ -146,6 +152,8 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
     async def update_message_thread(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> None:
         self._message_thread.extend(messages)
+        if self._message_store is not None:
+            await self._message_store.append(messages)
         base_chat_messages = [m for m in messages if isinstance(m, BaseChatMessage)]
         await self._add_messages_to_context(self._model_context, base_chat_messages)
 
@@ -243,6 +251,10 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         else:
             # Many other models need a UserMessage to respond to
             select_speaker_messages = [UserMessage(content=select_speaker_prompt, source="user")]
+        select_speaker_messages = _ensure_alternating_roles(
+            select_speaker_messages,
+            self._model_client.model_info["family"],
+        )
 
         num_attempts = 0
         while num_attempts < max_attempts:
@@ -657,6 +669,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        message_store: Optional[MessageStore] = None,
     ) -> Callable[[], BaseGroupChatManager]:
         return lambda: SelectorGroupChatManager(
             name,
@@ -678,6 +691,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._emit_team_events,
             self._model_context,
             self._model_client_streaming,
+            message_store,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:
