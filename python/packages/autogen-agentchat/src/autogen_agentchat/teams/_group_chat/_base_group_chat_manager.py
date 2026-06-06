@@ -9,6 +9,7 @@ from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectS
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
+    GroupChatGetThread,
     GroupChatMessage,
     GroupChatPause,
     GroupChatRequestPublish,
@@ -284,6 +285,18 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
     async def handle_resume(self, message: GroupChatResume, ctx: MessageContext) -> None:
         """Resume the group chat manager. This is a no-op in the base class."""
         pass
+
+    @rpc
+    async def handle_get_message_thread(self, message: GroupChatGetThread, ctx: MessageContext) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Handle a request to get the current message thread.
+
+        Args:
+            message: The request to get the message thread.
+
+        Returns:
+            A copy of the current message thread.
+        """
+        return list(self._message_thread)
 
     @abstractmethod
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
