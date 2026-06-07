@@ -70,7 +70,7 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     model_capabilities: ModelCapabilities  # type: ignore
     model_info: ModelInfo
     add_name_prefixes: bool
-    """What functionality the model supports, determined by default from model name but is overriden if value passed."""
+    """What functionality the model supports, determined by default from model name but is overridden if value passed."""
     include_name_in_message: bool
     """Whether to include the 'name' field in user message parameters. Defaults to True. Set to False for providers that don't support the 'name' field."""
     default_headers: Dict[str, str] | None

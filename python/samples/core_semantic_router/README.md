@@ -13,7 +13,7 @@ In this example, we have a simple scenario where we have a set of distributed ag
 
 The way this system is designed, when a user initiates a session, the semantic router agent will identify the intent of the user (currently using the overly simple method of string matching), identify the most relevant agent, and then route the user to that agent. The agent will then manage the conversation with the user, and the user will be able to interact with the agent in a conversational manner.
 
-While the logic of the agents is simple in this example, the goal is to show how the distributed runtime capabilities of autogen supports this scenario independantly of the capabilities of the agents themselves.
+While the logic of the agents is simple in this example, the goal is to show how the distributed runtime capabilities of autogen supports this scenario independently of the capabilities of the agents themselves.
 
 ## Getting Started
 
