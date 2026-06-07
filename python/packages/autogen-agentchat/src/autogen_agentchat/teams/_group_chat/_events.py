@@ -71,6 +71,19 @@ class GroupChatRequestPublish(BaseModel):
     ...
 
 
+class GroupChatGetThread(BaseModel):
+    """A request to get the current message thread from a group chat."""
+
+    ...
+
+
+class GroupChatThread(BaseModel):
+    """A response containing the current message thread from a group chat."""
+
+    messages: List[SerializeAsAny[BaseAgentEvent | BaseChatMessage]]
+    """The messages that have been published to the group chat."""
+
+
 class GroupChatMessage(BaseModel):
     """A message from a group chat."""
 

@@ -27,11 +27,13 @@ from ...messages import (
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
     GroupChatStart,
     GroupChatTermination,
+    GroupChatThread,
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -653,6 +655,30 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
             # Indicate that the team is no longer running.
             self._is_running = False
+
+    async def get_thread(self) -> Sequence[BaseAgentEvent | BaseChatMessage]:
+        """Return the current message thread from the group chat manager."""
+        if not self._initialized:
+            await self._init(self._runtime)
+
+        should_stop_runtime = False
+        if self._embedded_runtime and not self._is_running:
+            assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+            self._runtime.start()
+            should_stop_runtime = True
+
+        try:
+            response = await self._runtime.send_message(
+                GroupChatGetThread(),
+                recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            )
+            if not isinstance(response, GroupChatThread):
+                raise RuntimeError(f"Unexpected response type from group chat manager: {type(response)}")
+            return response.messages
+        finally:
+            if should_stop_runtime:
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                await self._runtime.stop_when_idle()
 
     async def pause(self) -> None:
         """Pause its participants when the team is running by calling their
