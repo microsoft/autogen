@@ -543,13 +543,18 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                     if "index" in tool_call_chunk:
                         idx = tool_call_chunk["index"]
                     else:
-                        idx = tool_call_chunk.id
+                        idx = tool_call_chunk.id if tool_call_chunk.id is not None else 0
                     if idx not in full_tool_calls:
                         full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
 
-                    full_tool_calls[idx].id += tool_call_chunk.id
-                    full_tool_calls[idx].name += tool_call_chunk.function.name
-                    full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
+                    # Handle None values in streaming deltas (similar to OpenAI client)
+                    if tool_call_chunk.id is not None:
+                        full_tool_calls[idx].id += tool_call_chunk.id
+                    if tool_call_chunk.function is not None:
+                        if tool_call_chunk.function.name is not None:
+                            full_tool_calls[idx].name += tool_call_chunk.function.name
+                        if tool_call_chunk.function.arguments is not None:
+                            full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
 
         if chunk and chunk.usage:
             prompt_tokens = chunk.usage.prompt_tokens
