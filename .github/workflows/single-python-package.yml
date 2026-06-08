@@ -1,0 +1,44 @@
+name: Deploy single package
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Select the package to deploy"
+        required: true
+        type: choice
+        options:
+          - autogen-agentchat
+          - autogen-core
+          - autogen-ext
+          - agbench
+          - autogen-studio
+          - magentic-one-cli
+          - pyautogen
+      ref:
+        description: "Tag to deploy"
+        required: true
+
+jobs:
+  deploy-package:
+    environment:
+      name: package
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+      # Require ref to be a tag
+      - run: git show-ref --verify refs/tags/${{ github.event.inputs.ref }}
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv build --package ${{ github.event.inputs.package }} --out-dir dist/
+        working-directory: python
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: python/dist/

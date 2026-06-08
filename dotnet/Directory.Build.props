@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="./eng/MetaInfo.props" />
+  <Import Project="./eng/Sign.props" />
+  <PropertyGroup>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <PackageTargetFrameworks>netstandard2.0;net8.0</PackageTargetFrameworks>
+    <TestTargetFrameworks>net8.0</TestTargetFrameworks>
+    <LangVersion>preview</LangVersion>
+	  <Nullable>enable</Nullable>
+    <Deterministic>true</Deterministic>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)eng/opensource.snk</AssemblyOriginatorKeyFile>
+    <PublicKey>0024000004800000940000000602000000240000525341310004000001000100f1d038d0b85ae392ad72011df91e9343b0b5df1bb8080aa21b9424362d696919e0e9ac3a8bca24e283e10f7a569c6f443e1d4e3ebc84377c87ca5caa562e80f9932bf5ea91b7862b538e13b8ba91c7565cf0e8dfeccfea9c805ae3bda044170ecc7fc6f147aeeac422dd96aeb9eb1f5a5882aa650efe2958f2f8107d2038f2ab</PublicKey>
+    <CSNoWarn>CS1998;CS1591;CS8002;</CSNoWarn>
+    <SKEXPNoWarn>SKEXP0001;SKEXP0010;SKEXP0020</SKEXPNoWarn>
+    <NoWarn>$(NoWarn);$(CSNoWarn);$(SKEXPNoWarn);NU5104</NoWarn>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+    <EnableNetAnalyzers>true</EnableNetAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName.StartsWith(`AutoGen`))' == 'true'">
+    <VersionPrefix>$(VersionPrefixForAutoGen0_2)</VersionPrefix>
+    <IsAutoGen0_2>true</IsAutoGen0_2>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <NoWarn>$(NoWarn);CA1829</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+    <PackageReference Include="ApprovalTests" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.console" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="System.Data.SqlClient" />
+  </ItemGroup>
+
+  <ItemGroup  Condition="'$(IsTestProject)' == 'true'">
+    <Content Include="$(RepoRoot)resource/**/*.*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>testData/%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup  Condition="'$(IncludeResourceFolder)' == 'true'">
+    <Content Include="$(RepoRoot)resource/**/*.*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>resource/%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+</Project>

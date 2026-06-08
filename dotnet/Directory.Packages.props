@@ -1,0 +1,139 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <MicrosoftSemanticKernelVersion>1.22.0</MicrosoftSemanticKernelVersion>
+    <MicrosoftSemanticKernelStableVersion>1.45.0</MicrosoftSemanticKernelStableVersion>
+    <MicrosoftSemanticKernelPreviewVersion>$(MicrosoftSemanticKernelStableVersion)-preview</MicrosoftSemanticKernelPreviewVersion>
+    <MicrosoftSemanticKernelAlphaVersion>$(MicrosoftSemanticKernelStableVersion)-alpha</MicrosoftSemanticKernelAlphaVersion>
+    <MicrosoftExtensionsAIVersion>9.5.0</MicrosoftExtensionsAIVersion>
+    <MicrosoftExtensionsAIPreviewVersion>9.5.0-preview.1.25265.7</MicrosoftExtensionsAIPreviewVersion>
+    <MicrosoftExtensionConfiguration>9.0.0</MicrosoftExtensionConfiguration>
+    <MicrosoftExtensionDependencyInjection>9.0.3</MicrosoftExtensionDependencyInjection>
+    <MicrosoftExtensionLogging>9.0.0</MicrosoftExtensionLogging>
+    <MicrosoftExtensionOptions>9.0.0</MicrosoftExtensionOptions>
+    <MicrosoftOrleans>9.0.1</MicrosoftOrleans>
+    <OpenTelemetryInstrumentation>1.9.0</OpenTelemetryInstrumentation>
+    <MicrosoftDotNetInteractive>1.0.0-beta.24568.1</MicrosoftDotNetInteractive>
+    <NuGetAuditMode>direct</NuGetAuditMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="ApprovalTests" Version="6.0.0" />
+    <PackageVersion Include="Aspire.Hosting" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Python" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="9.0.0-preview.5.24551.3" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.NodeJs" Version="8.2.0" />
+    <PackageVersion Include="Aspire.Hosting.Orleans" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Qdrant" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="8.2.0" />
+    <PackageVersion Include="AspNetCore.Authentication.ApiKey" Version="8.0.1" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version="2.2.0-beta.4" />
+    <PackageVersion Include="Azure.AI.Inference" Version="1.0.0-beta.1" />
+    <PackageVersion Include="Azure.Data.Tables" Version="12.9.1" />
+    <PackageVersion Include="Azure.Core" Version="1.44.1" />
+    <PackageVersion Include="Azure.Identity" Version="1.13.1" />
+    <PackageVersion Include="Azure.ResourceManager.ContainerInstance" Version="1.2.1" />
+    <PackageVersion Include="Azure.Storage.Files.Shares" Version="12.21.0" />
+    <PackageVersion Include="CloudNative.CloudEvents.SystemTextJson" Version="2.7.1" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <PackageVersion Include="FluentAssertions" Version="6.12.2" />
+    <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageVersion>
+    <PackageVersion Include="Grpc.AspNetCore" Version="2.67.0" />
+    <PackageVersion Include="Grpc.Core" Version="2.46.6" />
+    <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.67.0" />
+    <PackageVersion Include="Grpc.Tools" Version="2.67.0" />
+    <PackageVersion Include="Grpc.Net.Client" Version="2.65.0" />
+    <PackageVersion Include="Google.Cloud.AIPlatform.V1" Version="3.11.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.28.3" />
+    <PackageVersion Include="JsonSchema.Net.Generation" Version="4.5.1" />
+    <PackageVersion Include="MartinCostello.Logging.XUnit" Version="0.4.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.App" Version="8.0.4" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="8.0.11" />
+    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
+    <PackageVersion Include="Microsoft.DotNet.Interactive" Version="$(MicrosoftDotNetInteractive)" />
+    <PackageVersion Include="Microsoft.DotNet.Interactive.Jupyter" Version="$(MicrosoftDotNetInteractive)" />
+    <PackageVersion Include="Microsoft.DotNet.Interactive.PackageManagement" Version="$(MicrosoftDotNetInteractive)" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAIVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="$(MicrosoftExtensionsAIVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.AzureAIInference" Version="$(MicrosoftExtensionsAIPreviewVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Ollama" Version="$(MicrosoftExtensionsAIPreviewVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIPreviewVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.8.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="$(MicrosoftExtensionConfiguration)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.FileExtensions" Version="$(MicrosoftExtensionConfiguration)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="$(MicrosoftExtensionConfiguration)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="$(MicrosoftExtensionConfiguration)" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftExtensionDependencyInjection)" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftExtensionDependencyInjection)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensionLogging)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensionLogging)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="$(MicrosoftExtensionLogging)" />
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftExtensionOptions)" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.Cosmos" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.CodeGenerator" Version="$(MicrosoftOrleans)">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageVersion>
+    <PackageVersion Include="Microsoft.Orleans.Core.Abstractions" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.Memory" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.Cosmos" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Reminders" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Reminders.Cosmos" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Runtime" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Serialization" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Serialization.Protobuf" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Streaming" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Streaming.EventHubs" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.5.0" />
+    <PackageVersion Include="Microsoft.SemanticKernel" Version="$(MicrosoftSemanticKernelStableVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.Agents.Core" Version="$(MicrosoftSemanticKernelStableVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="$(MicrosoftSemanticKernelStableVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="$(MicrosoftSemanticKernelPreviewVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.Plugins.Memory" Version="$(MicrosoftSemanticKernelAlphaVersion)" />
+    <PackageVersion Include="Microsoft.SemanticKernel.Plugins.Web" Version="$(MicrosoftSemanticKernelAlphaVersion)" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="Octokit" Version="13.0.1" />
+    <PackageVersion Include="Octokit.Webhooks.AspNetCore" Version="2.4.1" />
+    <PackageVersion Include="OpenAI" Version="2.2.0-beta.4" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryInstrumentation)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryInstrumentation)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryInstrumentation)" />
+    <PackageVersion Include="OrleansDashboard" Version="8.2.0" />
+    <PackageVersion Include="PdfPig" Version="0.1.10-alpha-20241121-7db34" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.1.0" />
+    <PackageVersion Include="System.CodeDom" Version="9.0.0" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageVersion Include="System.Data.SqlClient" Version="4.9.0" />
+    <PackageVersion Include="System.Formats.Asn1" Version="9.0.0" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
+    <PackageVersion Include="System.IO.Packaging" Version="9.0.0" />
+    <PackageVersion Include="System.Memory.Data" Version="9.0.0" />
+    <PackageVersion Include="System.Text.Json" Version="9.0.3" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.console" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+</Project>
