@@ -9,7 +9,7 @@ from azure.ai.inference.models import (
 from azure.core.credentials import AzureKeyCredential
 from azure.core.credentials_async import AsyncTokenCredential
 
-GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
+GITHUB_MODELS_ENDPOINT = "https://models.github.ai/inference"
 
 
 class JsonSchemaFormat(TypedDict, total=False):

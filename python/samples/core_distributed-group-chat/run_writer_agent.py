@@ -22,6 +22,8 @@ async def main(config: AppConfig) -> None:
     Console().print(Markdown("Starting **`Writer Agent`**"))
 
     await writer_agent_runtime.start()
+    model_client = AzureOpenAIChatCompletionClient(**config.client_config)
+    
     writer_agent_type = await BaseGroupChatAgent.register(
         writer_agent_runtime,
         config.writer_agent.topic_type,
@@ -29,7 +31,7 @@ async def main(config: AppConfig) -> None:
             description=config.writer_agent.description,
             group_chat_topic_type=config.group_chat_manager.topic_type,
             system_message=config.writer_agent.system_message,
-            model_client=AzureOpenAIChatCompletionClient(**config.client_config),
+            model_client=model_client,
             ui_config=config.ui_agent,
         ),
     )
@@ -37,10 +39,11 @@ async def main(config: AppConfig) -> None:
         TypeSubscription(topic_type=config.writer_agent.topic_type, agent_type=writer_agent_type.type)
     )
     await writer_agent_runtime.add_subscription(
-        TypeSubscription(topic_type=config.group_chat_manager.topic_type, agent_type=config.writer_agent.topic_type)
+        TypeSubscription(topic_type=config.group_chat_manager.topic_type, agent_type=writer_agent_type.type)
     )
 
     await writer_agent_runtime.stop_when_signal()
+    await model_client.close()
 
 
 if __name__ == "__main__":

@@ -69,7 +69,9 @@ class PlaywrightController:
         self._markdown_converter: Optional[Any] | None = None
 
         # Read page_script
-        with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+        with open(
+            os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt", encoding="utf-8"
+        ) as fh:
             self._page_script = fh.read()
 
     async def sleep(self, page: Page, duration: Union[int, float]) -> None:
@@ -565,8 +567,11 @@ class PlaywrightController:
         assert page is not None
         if self._markdown_converter is None and markitdown is not None:
             self._markdown_converter = markitdown.MarkItDown()
+            assert self._markdown_converter is not None
             html = await page.evaluate("document.documentElement.outerHTML;")
-            res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=page.url)  # type: ignore
+            res = self._markdown_converter.convert_stream(
+                io.BytesIO(html.encode("utf-8")), file_extension=".html", url=page.url
+            )
             assert hasattr(res, "text_content") and isinstance(res.text_content, str)
             return res.text_content
         else:

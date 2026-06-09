@@ -53,9 +53,9 @@ public class FunctionCallMiddleware : IStreamingMiddleware
     public FunctionCallMiddleware(IEnumerable<AIFunction> functions, string? name = null)
     {
         this.Name = name ?? nameof(FunctionCallMiddleware);
-        this.functions = functions.Select(f => (FunctionContract)f.Metadata).ToArray();
+        this.functions = functions.Select(f => (FunctionContract)f).ToArray();
 
-        this.functionMap = functions.Select(f => (f.Metadata.Name, this.AIToolInvokeWrapper(f.InvokeAsync))).ToDictionary(f => f.Name, f => f.Item2);
+        this.functionMap = functions.Select(f => (f.Name, this.AIToolInvokeWrapper(f.InvokeAsync))).ToDictionary(f => f.Name, f => f.Item2);
     }
 
     public string? Name { get; }
@@ -189,12 +189,12 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         }
     }
 
-    private Func<string, Task<string>> AIToolInvokeWrapper(Func<IEnumerable<KeyValuePair<string, object?>>?, CancellationToken, Task<object?>> lambda)
+    private Func<string, Task<string>> AIToolInvokeWrapper(Func<AIFunctionArguments?, CancellationToken, ValueTask<object?>> lambda)
     {
         return async (string args) =>
         {
             var arguments = JsonSerializer.Deserialize<Dictionary<string, object?>>(args);
-            var result = await lambda(arguments, CancellationToken.None);
+            var result = await lambda(new(arguments), CancellationToken.None);
 
             return result switch
             {

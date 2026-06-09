@@ -1,7 +1,6 @@
 import os
-from typing import cast
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
 from ..datamodel import Response
 from ..teammanager import TeamManager

@@ -6,6 +6,7 @@ import { Message, Session } from "../components/types/datamodel";
 interface IBreadcrumb {
   name: string;
   href: string;
+  icon?: React.ReactNode;
   current?: boolean;
 }
 

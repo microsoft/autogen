@@ -251,6 +251,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         self._subscription_manager = SubscriptionManager()
         self._serialization_registry = SerializationRegistry()
         self._extra_grpc_config = extra_grpc_config or []
+        self._agent_instance_types: Dict[str, Type[Agent]] = {}
 
         if payload_serialization_format not in {JSON_DATA_CONTENT_TYPE, PROTOBUF_DATA_CONTENT_TYPE}:
             raise ValueError(f"Unsupported payload serialization format: {payload_serialization_format}")
@@ -701,6 +702,14 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         except BaseException as e:
             logger.error("Error handling event", exc_info=e)
 
+    async def _register_agent_type(self, agent_type: str) -> None:
+        if self._host_connection is None:
+            raise RuntimeError("Host connection is not set.")
+        message = agent_worker_pb2.RegisterAgentTypeRequest(type=agent_type)
+        _response: agent_worker_pb2.RegisterAgentTypeResponse = await self._host_connection.stub.RegisterAgent(
+            message, metadata=self._host_connection.metadata
+        )
+
     async def register_factory(
         self,
         type: str | AgentType,
@@ -729,13 +738,37 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             return agent_instance
 
         self._agent_factories[type.type] = factory_wrapper
-
         # Send the registration request message to the host.
-        message = agent_worker_pb2.RegisterAgentTypeRequest(type=type.type)
-        _response: agent_worker_pb2.RegisterAgentTypeResponse = await self._host_connection.stub.RegisterAgent(
-            message, metadata=self._host_connection.metadata
-        )
+        await self._register_agent_type(type.type)
+
         return type
+
+    async def register_agent_instance(
+        self,
+        agent_instance: Agent,
+        agent_id: AgentId,
+    ) -> AgentId:
+        def agent_factory() -> Agent:
+            raise RuntimeError(
+                "Agent factory was invoked for an agent instance that was not registered. This is likely due to the agent type being incorrectly subscribed to a topic. If this exception occurs when publishing a message to the DefaultTopicId, then it is likely that `skip_class_subscriptions` needs to be turned off when registering the agent."
+            )
+
+        if agent_id in self._instantiated_agents:
+            raise ValueError(f"Agent with id {agent_id} already exists.")
+
+        if agent_id.type not in self._agent_factories:
+            self._agent_factories[agent_id.type] = agent_factory
+            await self._register_agent_type(agent_id.type)
+            self._agent_instance_types[agent_id.type] = type_func_alias(agent_instance)
+        else:
+            if self._agent_factories[agent_id.type].__code__ != agent_factory.__code__:
+                raise ValueError("Agent factories and agent instances cannot be registered to the same type.")
+            if self._agent_instance_types[agent_id.type] != type_func_alias(agent_instance):
+                raise ValueError("Agent instances must be the same object type.")
+
+        await agent_instance.bind_id_and_runtime(id=agent_id, runtime=self)
+        self._instantiated_agents[agent_id] = agent_instance
+        return agent_id
 
     async def _invoke_agent_factory(
         self,
@@ -757,7 +790,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 raise ValueError("Agent factory must take 0 or 2 arguments.")
 
             if inspect.isawaitable(agent):
-                return cast(T, await agent)
+                agent = cast(T, await agent)
 
         return agent
 

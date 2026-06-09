@@ -32,7 +32,7 @@ public partial class TwoAgentTest
     {
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new ArgumentException("AZURE_OPENAI_DEPLOY_NAME is not set");
+        var deploymentName = "gpt-4o-mini";
         var config = new AzureOpenAIConfig(endpoint, deploymentName, key);
 
         var assistant = new AssistantAgent(

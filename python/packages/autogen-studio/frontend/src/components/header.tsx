@@ -71,7 +71,8 @@ const Header = ({ meta, link }: any) => {
   return (
     <Disclosure
       as="nav"
-      className="bg-primary text-primary mb-8 border-b border-secondary"
+      style={{ zIndex: 1000 }}
+      className="bg-primary text-primary z-40 mb-8 border-b border-secondary"
     >
       {({ open }) => (
         <>

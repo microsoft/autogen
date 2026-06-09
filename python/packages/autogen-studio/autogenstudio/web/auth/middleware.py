@@ -3,8 +3,9 @@ import re
 
 from fastapi import Request, Response, WebSocket
 from loguru import logger
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.status import HTTP_401_UNAUTHORIZED
+from starlette.types import ASGIApp
 
 from .exceptions import AuthException
 from .manager import AuthManager
@@ -15,11 +16,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
     Middleware for handling authentication for all routes.
     """
 
-    def __init__(self, app, auth_manager: AuthManager):
+    def __init__(self, app: ASGIApp, auth_manager: AuthManager) -> None:
         super().__init__(app)
         self.auth_manager = auth_manager
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """Process each request, authenticating as needed."""
         # Skip auth for OPTIONS requests (CORS preflight)
         if request.method == "OPTIONS":
@@ -45,7 +46,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # WebSocket handling (special case)
-        if request.url.path.startswith("/api/ws"):
+        if request.url.path.startswith("/api/ws") or request.url.path.startswith("/api/maker"):
             # For WebSockets, we'll add auth in the WebSocket accept handler
             # Just pass through here
             return await call_next(request)
@@ -81,7 +82,7 @@ class WebSocketAuthMiddleware:
     Not a middleware in the traditional sense - used in WebSocket endpoint.
     """
 
-    def __init__(self, auth_manager: AuthManager):
+    def __init__(self, auth_manager: AuthManager) -> None:
         self.auth_manager = auth_manager
 
     async def authenticate(self, websocket: WebSocket) -> bool:

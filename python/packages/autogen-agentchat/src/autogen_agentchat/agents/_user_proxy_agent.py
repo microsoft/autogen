@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ..base import Response
-from ..messages import AgentEvent, ChatMessage, HandoffMessage, TextMessage, UserInputRequestedEvent
+from ..messages import BaseAgentEvent, BaseChatMessage, HandoffMessage, TextMessage, UserInputRequestedEvent
 from ._base_chat_agent import BaseChatAgent
 
 SyncInputFunc = Callable[[str], str]
@@ -82,6 +82,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
                         cancellation_token=CancellationToken(),
                     )
                 )
+                assert isinstance(response.chat_message, TextMessage)
                 print(f"Your name is {response.chat_message.content}")
 
     Example:
@@ -117,6 +118,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
                         )
                     )
                     response = await agent_task
+                    assert isinstance(response.chat_message, TextMessage)
                     print(f"Your name is {response.chat_message.content}")
                 except Exception as e:
                     print(f"Exception: {e}")
@@ -168,11 +170,11 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
         self._is_async = iscoroutinefunction(self.input_func)
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
         """Message types this agent can produce."""
         return (TextMessage, HandoffMessage)
 
-    def _get_latest_handoff(self, messages: Sequence[ChatMessage]) -> Optional[HandoffMessage]:
+    def _get_latest_handoff(self, messages: Sequence[BaseChatMessage]) -> Optional[HandoffMessage]:
         """Find the HandoffMessage in the message sequence that addresses this agent."""
         if len(messages) > 0 and isinstance(messages[-1], HandoffMessage):
             if messages[-1].target == self.name:
@@ -199,15 +201,15 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
         except Exception as e:
             raise RuntimeError(f"Failed to get user input: {str(e)}") from e
 
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
         raise AssertionError("The stream should have returned the final result.")
 
     async def on_messages_stream(
-        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         """Handle incoming messages by requesting user input."""
         try:
             # Check for handoff first

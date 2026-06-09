@@ -1,5 +1,4 @@
 import os
-import tempfile
 import warnings
 from typing import Optional
 
@@ -91,6 +90,7 @@ def serve(
     host: str = "127.0.0.1",
     port: int = 8084,
     workers: int = 1,
+    reload: Annotated[bool, typer.Option("--reload")] = False,
     docs: bool = False,
 ):
     """
@@ -118,7 +118,7 @@ def serve(
         host=host,
         port=port,
         workers=workers,
-        reload=False,
+        reload=reload,
     )
 
 
@@ -129,6 +129,35 @@ def version():
     """
 
     typer.echo(f"AutoGen Studio  CLI version: {VERSION}")
+
+
+@app.command()
+def lite(
+    team: Optional[str] = None,
+    host: str = "127.0.0.1",
+    port: int = 8080,
+    auto_open: bool = True,
+    session_name: str = "Lite Session",
+):
+    """
+    Launch AutoGen Studio in lightweight mode for quick experimentation.
+
+    Args:
+        team (str, optional): Path to team JSON/YAML file. If not provided, uses a default team.
+        host (str): Host to run on. Defaults to 127.0.0.1.
+        port (int): Port to run on. Defaults to 8080.
+        auto_open (bool): Auto-open browser. Defaults to True.
+        session_name (str): Name for the auto-created session.
+    """
+    from autogenstudio.lite import LiteStudio
+
+    # Create and start studio instance
+    studio = LiteStudio(team=team, host=host, port=port, auto_open=auto_open, session_name=session_name)
+
+    try:
+        studio.start()  # Blocking call for CLI
+    except KeyboardInterrupt:
+        studio.stop()
 
 
 def run():

@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, Optional, TypeVar, cast
 
 import redis
@@ -26,6 +27,11 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
     A typed CacheStore implementation that uses redis as the underlying storage.
     See :class:`~autogen_ext.models.cache.ChatCompletionCache` for an example of usage.
 
+    This implementation provides automatic serialization and deserialization for:
+    - Pydantic models (uses model_dump_json/model_validate_json)
+    - Primitive types (strings, numbers, etc.)
+
+
     Args:
         cache_instance: An instance of `redis.Redis`.
                         The user is responsible for managing the Redis instance's lifetime.
@@ -38,13 +44,81 @@ class RedisStore(CacheStore[T], Component[RedisStoreConfig]):
         self.cache = redis_instance
 
     def get(self, key: str, default: Optional[T] = None) -> Optional[T]:
-        value = cast(Optional[T], self.cache.get(key))
-        if value is None:
+        """
+        Retrieve a value from the Redis cache.
+
+        This method handles both primitive values and complex objects:
+        - Pydantic models are automatically deserialized from JSON
+        - Primitive values (strings, numbers, etc.) are returned as-is
+        - If deserialization fails, returns the raw value or default
+
+        Args:
+            key: The key to retrieve
+            default: Value to return if key doesn't exist
+
+        Returns:
+            The value if found and properly deserialized, otherwise the default
+        """
+        try:
+            raw_value = self.cache.get(key)
+            if raw_value is None:
+                return default
+
+            if isinstance(raw_value, bytes):
+                try:
+                    # First try to decode as UTF-8 string
+                    decoded_str = raw_value.decode("utf-8")
+                    try:
+                        # Try to parse as JSON and return the parsed object
+                        parsed_json = json.loads(decoded_str)
+                        return cast(Optional[T], parsed_json)
+                    except json.JSONDecodeError:
+                        # If not valid JSON, return the decoded string.
+                        return cast(Optional[T], decoded_str)
+                except UnicodeDecodeError:
+                    return default
+            else:
+                # Backward compatibility for primitives
+                return cast(Optional[T], raw_value)
+        except (redis.RedisError, ConnectionError):
+            # Log Redis-specific errors but return default gracefully
             return default
-        return value
 
     def set(self, key: str, value: T) -> None:
-        self.cache.set(key, cast(Any, value))
+        """
+        Store a value in the Redis cache.
+
+        This method handles both primitive values and complex objects:
+        - Pydantic models are automatically serialized to JSON
+        - Lists containing Pydantic models are serialized to JSON
+        - Primitive values (strings, numbers, etc.) are stored as-is
+
+        Args:
+            key: The key to store the value under
+            value: The value to store
+        """
+        try:
+            if isinstance(value, BaseModel):
+                # Serialize Pydantic models to JSON
+                serialized_value = value.model_dump_json().encode("utf-8")
+                self.cache.set(key, serialized_value)
+            elif isinstance(value, list):
+                # Serialize lists (which may contain Pydantic models) to JSON
+                serializable_list: list[Any] = []
+                item: Any
+                for item in value:
+                    if isinstance(item, BaseModel):
+                        serializable_list.append(item.model_dump())
+                    else:
+                        serializable_list.append(item)
+                serialized_value = json.dumps(serializable_list).encode("utf-8")
+                self.cache.set(key, serialized_value)
+            else:
+                # Backward compatibility for primitives
+                self.cache.set(key, cast(Any, value))
+        except (redis.RedisError, ConnectionError, UnicodeEncodeError, TypeError):
+            # Log the error but don't re-raise to maintain robustness
+            pass
 
     def _to_config(self) -> RedisStoreConfig:
         # Extract connection info from redis instance

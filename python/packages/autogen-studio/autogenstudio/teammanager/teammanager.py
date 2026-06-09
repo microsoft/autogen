@@ -4,20 +4,25 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import AsyncGenerator, Callable, List, Optional, Union
+from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Optional, Sequence, Union
 
 import aiofiles
 import yaml
 from autogen_agentchat.agents import UserProxyAgent
-from autogen_agentchat.base import TaskResult, Team
-from autogen_agentchat.messages import AgentEvent, ChatMessage
+from autogen_agentchat.base import TaskResult
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 from autogen_agentchat.teams import BaseGroupChat
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, ComponentModel
 from autogen_core.logging import LLMCallEvent
 
 from ..datamodel.types import EnvironmentVariable, LLMCallEventMessage, TeamResult
+from ..web.managers.run_context import RunContext
 
 logger = logging.getLogger(__name__)
+
+SyncInputFunc = Callable[[str], str]
+AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
+InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 
 
 class RunEventLogger(logging.Handler):
@@ -25,7 +30,7 @@ class RunEventLogger(logging.Handler):
 
     def __init__(self):
         super().__init__()
-        self.events = asyncio.Queue()
+        self.events: asyncio.Queue[LLMCallEventMessage] = asyncio.Queue()
 
     def emit(self, record: logging.LogRecord):
         if isinstance(record.msg, LLMCallEvent):
@@ -35,8 +40,12 @@ class RunEventLogger(logging.Handler):
 class TeamManager:
     """Manages team operations including loading configs and running teams"""
 
+    def __init__(self):
+        self._team: Optional[BaseGroupChat] = None
+        self._run_context = RunContext()
+
     @staticmethod
-    async def load_from_file(path: Union[str, Path]) -> dict:
+    async def load_from_file(path: Union[str, Path]) -> Any:
         """Load team configuration from JSON/YAML file"""
         path = Path(path)
         if not path.exists():
@@ -51,10 +60,10 @@ class TeamManager:
             raise ValueError(f"Unsupported file format: {path.suffix}")
 
     @staticmethod
-    async def load_from_directory(directory: Union[str, Path]) -> List[dict]:
+    async def load_from_directory(directory: Union[str, Path]) -> List[Any]:
         """Load all team configurations from a directory"""
         directory = Path(directory)
-        configs = []
+        configs: List[Any] = []
         valid_extensions = {".json", ".yaml", ".yml"}
 
         for path in directory.iterdir():
@@ -69,8 +78,8 @@ class TeamManager:
 
     async def _create_team(
         self,
-        team_config: Union[str, Path, dict, ComponentModel],
-        input_func: Optional[Callable] = None,
+        team_config: Union[str, Path, Dict[str, Any], ComponentModel],
+        input_func: Optional[InputFuncType] = None,
         env_vars: Optional[List[EnvironmentVariable]] = None,
     ) -> BaseGroupChat:
         """Create team instance from config"""
@@ -78,8 +87,10 @@ class TeamManager:
             config = await self.load_from_file(team_config)
         elif isinstance(team_config, dict):
             config = team_config
-        else:
+        elif isinstance(team_config, ComponentModel):
             config = team_config.model_dump()
+        else:
+            raise ValueError(f"Unsupported team_config type: {type(team_config)}")
 
         # Load env vars into environment if provided
         if env_vars:
@@ -87,22 +98,22 @@ class TeamManager:
             for var in env_vars:
                 os.environ[var.name] = var.value
 
-        team: BaseGroupChat = BaseGroupChat.load_component(config)
+        self._team = BaseGroupChat.load_component(config)
 
-        for agent in team._participants:
+        for agent in self._team._participants:  # type: ignore
             if hasattr(agent, "input_func") and isinstance(agent, UserProxyAgent) and input_func:
                 agent.input_func = input_func
 
-        return team
+        return self._team
 
     async def run_stream(
         self,
-        task: str,
-        team_config: Union[str, Path, dict, ComponentModel],
-        input_func: Optional[Callable] = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None,
+        team_config: Union[str, Path, Dict[str, Any], ComponentModel],
+        input_func: Optional[InputFuncType] = None,
         cancellation_token: Optional[CancellationToken] = None,
         env_vars: Optional[List[EnvironmentVariable]] = None,
-    ) -> AsyncGenerator[Union[AgentEvent | ChatMessage | LLMCallEvent, ChatMessage, TeamResult], None]:
+    ) -> AsyncGenerator[Union[BaseAgentEvent | BaseChatMessage | LLMCallEvent, BaseChatMessage, TeamResult], None]:
         """Stream team execution results"""
         start_time = time.time()
         team = None
@@ -136,15 +147,15 @@ class TeamManager:
 
             # Ensure cleanup happens
             if team and hasattr(team, "_participants"):
-                for agent in team._participants:
+                for agent in team._participants:  # type: ignore
                     if hasattr(agent, "close"):
                         await agent.close()
 
     async def run(
         self,
-        task: str,
-        team_config: Union[str, Path, dict, ComponentModel],
-        input_func: Optional[Callable] = None,
+        task: str | BaseChatMessage | Sequence[BaseChatMessage] | None,
+        team_config: Union[str, Path, Dict[str, Any], ComponentModel],
+        input_func: Optional[InputFuncType] = None,
         cancellation_token: Optional[CancellationToken] = None,
         env_vars: Optional[List[EnvironmentVariable]] = None,
     ) -> TeamResult:
@@ -160,6 +171,6 @@ class TeamManager:
 
         finally:
             if team and hasattr(team, "_participants"):
-                for agent in team._participants:
+                for agent in team._participants:  # type: ignore
                     if hasattr(agent, "close"):
                         await agent.close()

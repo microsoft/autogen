@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       package:
-        description: 'Select the package to deploy'
+        description: "Select the package to deploy"
         required: true
         type: choice
         options:
@@ -14,8 +14,9 @@ on:
           - agbench
           - autogen-studio
           - magentic-one-cli
+          - pyautogen
       ref:
-        description: 'Tag to deploy'
+        description: "Tag to deploy"
         required: true
 
 jobs:
@@ -35,7 +36,6 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: "0.5.18"
       - run: uv build --package ${{ github.event.inputs.package }} --out-dir dist/
         working-directory: python
       - name: Publish package to PyPI

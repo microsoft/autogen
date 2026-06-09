@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyautogen"
+version = "0.10.0"
+license = {file = "LICENSE-CODE"}
+description = "A programming framework for agentic AI. Proxy package for autogen-agentchat."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "autogen-agentchat>=0.6.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyautogen"]
+
+[tool.hatch.build.targets.sdist]
+include = ["pyproject.toml", "README.md", "LICENSE-CODE", "src/**"]

@@ -90,7 +90,7 @@ const TestDrawer = ({ isVisble, onClose, team }: TestDrawerProps) => {
         }
       >
         {loading && <p>Creating a test session...</p>}
-        {session && <ChatView session={session} />}
+        {session && <ChatView session={session} showCompareButton={false} />}
       </Drawer>
     </div>
   );

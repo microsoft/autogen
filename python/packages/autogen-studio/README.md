@@ -9,8 +9,19 @@ AutoGen Studio is an AutoGen-powered AI app (user interface) to help you rapidly
 
 Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-studio)
 
+> [!CAUTION]
+> AutoGen Studio is meant to help you rapidly prototype multi-agent workflows and demonstrate an example of end user interfaces built with AutoGen. It is **not meant to be a production-ready app**. Developers are encouraged to use the [AutoGen framework](https://microsoft.github.io/autogen) to build their own applications, implementing authentication, security and other features required for deployed applications.
+
 > [!WARNING]
-> AutoGen Studio is under active development and is currently not meant to be a production-ready app. Expect breaking changes in upcoming releases. [Documentation](https://microsoft.github.io/autogen/docs/autogen-studio/getting-started) and the `README.md` might be outdated.
+> AutoGen Studio is under active development. Expect breaking changes in upcoming releases.
+
+## A Note on Security
+
+AutoGen Studio is a research prototype and is **not meant to be used** in a production environment. Some baseline practices are encouraged e.g., using Docker code execution environment for your agents.
+
+However, other considerations such as rigorous tests related to jailbreaking, ensuring LLMs only have access to the right keys of data given the end user's permissions, and other security features are not implemented in AutoGen Studio.
+
+If you are building a production application, please use the [AutoGen framework](https://microsoft.github.io/autogen) and implement the necessary security features.
 
 ## Updates
 
@@ -123,6 +134,45 @@ AutoGen Studio also takes several parameters to customize the application:
 - `--upgrade-database` argument to upgrade the database schema to the latest version. By default, it is set to `False`.
 
 Now that you have AutoGen Studio installed and running, you are ready to explore its capabilities, including defining and modifying agent workflows, interacting with agents and sessions, and expanding agent skills.
+
+## AutoGen Studio Lite
+
+AutoGen Studio Lite provides a lightweight way to quickly prototype and experiment with AI agent teams. It's designed for rapid experimentation without the full database setup.
+
+### CLI Usage
+
+Launch Studio Lite from the command line:
+
+```bash
+# Quick start with default team
+autogenstudio lite
+
+# Use custom team file
+autogenstudio lite --team ./my_team.json --port 8080
+
+# Custom session name
+autogenstudio lite --session-name "My Experiment" --auto-open
+```
+
+### Programmatic Usage
+
+Use Studio Lite directly in your Python code:
+
+```python
+from autogenstudio.lite import LiteStudio
+
+# Quick start with default team
+studio = LiteStudio()
+# Use with AutoGen team objects
+from autogen_agentchat.teams import RoundRobinGroupChat
+team = RoundRobinGroupChat([agent1, agent2], termination_condition=...)
+
+# Context manager usage
+with LiteStudio(team=team) as studio:
+    # Studio runs in background
+    # Do other work here
+    pass
+```
 
 #### Local frontend development server
 

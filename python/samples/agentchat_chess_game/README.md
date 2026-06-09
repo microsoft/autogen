@@ -18,6 +18,12 @@ pip install "autogen-ext[openai]"
 # pip install "autogen-ext[openai,azure]" for Azure OpenAI models
 ```
 
+To run this sample, you will need to install the following packages:
+
+```shell
+pip install -U autogen-agentchat pyyaml
+```
+
 Create a new file named `model_config.yaml` in the the same directory as the script
 to configure the model you want to use.
 
@@ -63,12 +69,12 @@ please refer to the [Models documentation](https://microsoft.github.io/autogen/s
 Run the following command to start the game:
 
 ```bash
-python chess_game.py
+python main.py
 ```
 
 By default, the game will use a random agent to play against the AI agent.
 You can enable human vs AI mode by setting the `--human` flag:
 
 ```bash
-python chess_game.py --human
+python main.py --human
 ```

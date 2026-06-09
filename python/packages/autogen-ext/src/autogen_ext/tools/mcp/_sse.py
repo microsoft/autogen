@@ -1,7 +1,8 @@
 from autogen_core import Component
-from mcp import Tool
 from pydantic import BaseModel
 from typing_extensions import Self
+
+from mcp import ClientSession, Tool
 
 from ._base import McpToolAdapter
 from ._config import SseServerParams
@@ -35,8 +36,11 @@ class SseMcpToolAdapter(
 
     Args:
         server_params (SseServerParameters): Parameters for the MCP server connection,
-            including URL, headers, and timeouts
-        tool (Tool): The MCP tool to wrap
+            including URL, headers, and timeouts.
+        tool (Tool): The MCP tool to wrap.
+        session (ClientSession, optional): The MCP client session to use. If not provided,
+            it will create a new session. This is useful for testing or when you want to
+            manage the session lifecycle yourself.
 
     Examples:
         Use a remote translation service that implements MCP over SSE to create tools
@@ -86,8 +90,8 @@ class SseMcpToolAdapter(
     component_config_schema = SseMcpToolAdapterConfig
     component_provider_override = "autogen_ext.tools.mcp.SseMcpToolAdapter"
 
-    def __init__(self, server_params: SseServerParams, tool: Tool) -> None:
-        super().__init__(server_params=server_params, tool=tool)
+    def __init__(self, server_params: SseServerParams, tool: Tool, session: ClientSession | None = None) -> None:
+        super().__init__(server_params=server_params, tool=tool, session=session)
 
     def _to_config(self) -> SseMcpToolAdapterConfig:
         """

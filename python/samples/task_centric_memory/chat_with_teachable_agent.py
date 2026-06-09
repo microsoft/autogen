@@ -31,6 +31,9 @@ async def main():
             break
         await Console(assistant_agent.run_stream(task=user_input))
 
+    # Close the connection to the client
+    await client.close()
+
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())

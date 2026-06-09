@@ -7,7 +7,7 @@ from typing import Any, ClassVar, Dict, Generic, Literal, Type, TypeGuard, cast,
 from pydantic import BaseModel
 from typing_extensions import Self, TypeVar
 
-ComponentType = Literal["model", "agent", "tool", "termination", "token_provider"] | str
+ComponentType = Literal["model", "agent", "tool", "termination", "token_provider", "workbench"] | str
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
 FromConfigT = TypeVar("FromConfigT", bound=BaseModel, contravariant=True)
 ToConfigT = TypeVar("ToConfigT", bound=BaseModel, covariant=True)
@@ -49,7 +49,36 @@ WELL_KNOWN_PROVIDERS = {
     "AzureOpenAIChatCompletionClient": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
     "openai_chat_completion_client": "autogen_ext.models.openai.OpenAIChatCompletionClient",
     "OpenAIChatCompletionClient": "autogen_ext.models.openai.OpenAIChatCompletionClient",
+    "OllamaChatCompletionClient": "autogen_ext.models.ollama.OllamaChatCompletionClient",
 }
+
+_TRUSTED_PROVIDER_NAMESPACES: tuple[str, ...] = (
+    "autogen_core.",
+    "autogen_agentchat.",
+    "autogen_ext.",
+    "autogen_studio.",
+    "autogenstudio.",
+    "autogen_test_utils.",
+)
+
+
+def _get_trusted_namespaces() -> tuple[str, ...]:
+    """Return the set of trusted provider namespaces.
+
+    The default set covers all first-party AutoGen packages. Additional namespaces
+    can be added at runtime by setting the ``AUTOGEN_ALLOWED_PROVIDER_NAMESPACES``
+    environment variable to a comma-separated list of package prefixes
+    (e.g. ``mycompany_agents,mypackage``).
+    """
+    import os
+
+    extra = os.environ.get("AUTOGEN_ALLOWED_PROVIDER_NAMESPACES", "")
+    if extra:
+        extras = tuple(
+            ns.strip() if ns.strip().endswith(".") else ns.strip() + "." for ns in extra.split(",") if ns.strip()
+        )
+        return _TRUSTED_PROVIDER_NAMESPACES + extras
+    return _TRUSTED_PROVIDER_NAMESPACES
 
 
 class ComponentFromConfig(Generic[FromConfigT]):
@@ -223,6 +252,23 @@ class ComponentLoader:
             raise ValueError("Invalid")
 
         module_path, class_name = output
+
+        trusted = _get_trusted_namespaces()
+        # Also allow test modules (pytest convention) to load components
+        module_name = module_path.rsplit(".", maxsplit=1)[-1]
+        is_test_module = module_name.startswith("test_") or module_path.startswith("test_")
+        if not is_test_module and not any(
+            module_path.startswith(ns) or module_path == ns.rstrip(".") for ns in trusted
+        ):
+            raise ValueError(
+                f"Provider module '{module_path}' is not in a trusted namespace. "
+                f"Allowed namespaces by default: autogen_core, autogen_agentchat, autogen_ext, "
+                f"autogen_studio, autogenstudio. "
+                f"To allow additional namespaces, set the AUTOGEN_ALLOWED_PROVIDER_NAMESPACES "
+                f"environment variable to a comma-separated list "
+                f"(e.g. AUTOGEN_ALLOWED_PROVIDER_NAMESPACES=mycompany_agents,mypackage)."
+            )
+
         module = importlib.import_module(module_path)
         component_class = module.__getattribute__(class_name)
 

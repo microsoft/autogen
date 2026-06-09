@@ -1,3 +1,5 @@
+from pydantic import BaseModel
+
 ORCHESTRATOR_SYSTEM_MESSAGE = ""
 
 
@@ -96,6 +98,24 @@ Please output an answer in pure JSON format according to the following schema. T
         }}
     }}
 """
+
+
+class LedgerEntryBooleanAnswer(BaseModel):
+    reason: str
+    answer: bool
+
+
+class LedgerEntryStringAnswer(BaseModel):
+    reason: str
+    answer: str
+
+
+class LedgerEntry(BaseModel):
+    is_request_satisfied: LedgerEntryBooleanAnswer
+    is_in_loop: LedgerEntryBooleanAnswer
+    is_progress_being_made: LedgerEntryBooleanAnswer
+    next_speaker: LedgerEntryStringAnswer
+    instruction_or_question: LedgerEntryStringAnswer
 
 
 ORCHESTRATOR_TASK_LEDGER_FACTS_UPDATE_PROMPT = """As a reminder, we are working to solve the following task:

@@ -83,6 +83,60 @@ async def test_agent_type_must_be_unique() -> None:
 
 
 @pytest.mark.asyncio
+async def test_agent_type_register_instance() -> None:
+    runtime = SingleThreadedAgentRuntime()
+    agent1_id = AgentId(type="name", key="default")
+    agent2_id = AgentId(type="name", key="notdefault")
+    agent1 = NoopAgent()
+    agent1_dup = NoopAgent()
+    agent2 = NoopAgent()
+    await agent1.register_instance(runtime=runtime, agent_id=agent1_id)
+    await agent2.register_instance(runtime=runtime, agent_id=agent2_id)
+
+    assert await runtime.try_get_underlying_agent_instance(agent1_id, type=NoopAgent) == agent1
+    assert await runtime.try_get_underlying_agent_instance(agent2_id, type=NoopAgent) == agent2
+    with pytest.raises(ValueError):
+        await agent1_dup.register_instance(runtime=runtime, agent_id=agent1_id)
+
+
+@pytest.mark.asyncio
+async def test_agent_type_register_instance_different_types() -> None:
+    runtime = SingleThreadedAgentRuntime()
+    agent_id1 = AgentId(type="name", key="noop")
+    agent_id2 = AgentId(type="name", key="loopback")
+    agent1 = NoopAgent()
+    agent2 = LoopbackAgent()
+    await agent1.register_instance(runtime=runtime, agent_id=agent_id1)
+    with pytest.raises(ValueError):
+        await agent2.register_instance(runtime=runtime, agent_id=agent_id2)
+
+
+@pytest.mark.asyncio
+async def test_agent_type_register_instance_publish_new_source() -> None:
+    runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
+    agent_id = AgentId(type="name", key="default")
+    agent1 = LoopbackAgent()
+    await agent1.register_instance(runtime=runtime, agent_id=agent_id)
+    await runtime.add_subscription(TypeSubscription("notdefault", "name"))
+
+    runtime.start()
+    with pytest.raises(RuntimeError):
+        await runtime.publish_message(MessageType(), TopicId("notdefault", "notdefault"))
+        await runtime.stop_when_idle()
+    await runtime.close()
+
+
+@pytest.mark.asyncio
+async def test_register_instance_factory() -> None:
+    runtime = SingleThreadedAgentRuntime()
+    agent1_id = AgentId(type="name", key="default")
+    agent1 = NoopAgent()
+    await agent1.register_instance(runtime=runtime, agent_id=agent1_id)
+    with pytest.raises(ValueError):
+        await NoopAgent.register(runtime, "name", lambda: NoopAgent())
+
+
+@pytest.mark.asyncio
 async def test_register_receives_publish(tracer_provider: TracerProvider) -> None:
     runtime = SingleThreadedAgentRuntime(tracer_provider=tracer_provider)
 

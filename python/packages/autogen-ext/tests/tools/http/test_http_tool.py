@@ -176,7 +176,7 @@ async def test_invalid_request(test_config: ComponentModel, test_server: None) -
     config.config["host"] = "fake"
     tool = HttpTool.load_component(config)
 
-    with pytest.raises(httpx.ConnectError):
+    with pytest.raises((httpx.ConnectError, httpx.ConnectTimeout)):
         await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
 
 

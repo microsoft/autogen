@@ -69,7 +69,7 @@ const ContentHeader = ({
               <nav aria-label="Breadcrumb" className="flex">
                 <ol role="list" className="flex items-center space-x-4">
                   {breadcrumbs.map((page, index) => (
-                    <li key={page.name}>
+                    <li key={index}>
                       <div className="flex items-center">
                         {index > 0 && (
                           <svg

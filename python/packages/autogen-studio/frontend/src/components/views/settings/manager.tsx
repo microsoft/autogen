@@ -71,42 +71,42 @@ export const SettingsManager: React.FC = () => {
       ),
       children: <UISettingsPanel userId={userId} />,
     },
-    {
-      key: "model",
-      label: (
-        <span className="flex items-center gap-2">
-          <Brain className="w-4 h-4" />
-          Default Model
-        </span>
-      ),
-      children: (
-        <div className="mt-4">
-          <ModelConfigPanel
-            modelComponent={modelComponent}
-            onModelUpdate={async () => {}}
-          />
-        </div>
-      ),
-    },
-    {
-      key: "environment",
-      label: (
-        <span className="flex items-center gap-2">
-          <Variable className="w-4 h-4" />
-          Environment Variables
-        </span>
-      ),
-      children: (
-        <div className="mt-4">
-          <EnvironmentVariablesPanel
-            serverSettings={serverSettings}
-            loading={false}
-            userId={userId}
-            initializeSettings={initializeSettings}
-          />
-        </div>
-      ),
-    },
+    // {
+    //   key: "model",
+    //   label: (
+    //     <span className="flex items-center gap-2">
+    //       <Brain className="w-4 h-4" />
+    //       Default Model
+    //     </span>
+    //   ),
+    //   children: (
+    //     <div className="mt-4">
+    //       <ModelConfigPanel
+    //         modelComponent={modelComponent}
+    //         onModelUpdate={async () => {}}
+    //       />
+    //     </div>
+    //   ),
+    // },
+    // {
+    //   key: "environment",
+    //   label: (
+    //     <span className="flex items-center gap-2">
+    //       <Variable className="w-4 h-4" />
+    //       Environment Variables
+    //     </span>
+    //   ),
+    //   children: (
+    //     <div className="mt-4">
+    //       <EnvironmentVariablesPanel
+    //         serverSettings={serverSettings}
+    //         loading={false}
+    //         userId={userId}
+    //         initializeSettings={initializeSettings}
+    //       />
+    //     </div>
+    //   ),
+    // },
   ];
 
   return (

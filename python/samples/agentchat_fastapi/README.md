@@ -17,7 +17,7 @@ You will be using the following features of AgentChat:
 Install the required packages with OpenAI support:
 
 ```bash
-pip install -U "autogen-ext[openai]" "fastapi" "uvicorn" "PyYAML"
+pip install -U "autogen-agentchat" "autogen-ext[openai]" "fastapi" "uvicorn[standard]" "PyYAML"
 ```
 
 To use models other than OpenAI, see the [Models](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html) documentation.

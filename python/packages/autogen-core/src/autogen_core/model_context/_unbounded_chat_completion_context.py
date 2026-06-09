@@ -9,7 +9,7 @@ from ._chat_completion_context import ChatCompletionContext
 
 
 class UnboundedChatCompletionContextConfig(BaseModel):
-    pass
+    initial_messages: List[LLMMessage] | None = None
 
 
 class UnboundedChatCompletionContext(ChatCompletionContext, Component[UnboundedChatCompletionContextConfig]):
@@ -23,8 +23,8 @@ class UnboundedChatCompletionContext(ChatCompletionContext, Component[UnboundedC
         return self._messages
 
     def _to_config(self) -> UnboundedChatCompletionContextConfig:
-        return UnboundedChatCompletionContextConfig()
+        return UnboundedChatCompletionContextConfig(initial_messages=self._initial_messages)
 
     @classmethod
     def _from_config(cls, config: UnboundedChatCompletionContextConfig) -> Self:
-        return cls()
+        return cls(initial_messages=config.initial_messages)

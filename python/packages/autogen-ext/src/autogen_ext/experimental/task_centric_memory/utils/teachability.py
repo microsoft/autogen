@@ -14,10 +14,11 @@ class Teachability(Memory):
     Gives an AssistantAgent the ability to learn quickly from user teachings, hints, and advice.
 
     Steps for usage:
-    1. Instantiate MemoryController.
-    2. Instantiate Teachability, passing the memory controller as a parameter.
-    3. Instantiate an AssistantAgent, passing the teachability instance (wrapped in a list) as the memory parameter.
-    4. Use the AssistantAgent as usual, such as for chatting with the user.
+
+        1. Instantiate MemoryController.
+        2. Instantiate Teachability, passing the memory controller as a parameter.
+        3. Instantiate an AssistantAgent, passing the teachability instance (wrapped in a list) as the memory parameter.
+        4. Use the AssistantAgent as usual, such as for chatting with the user.
     """
 
     def __init__(self, memory_controller: "MemoryController", name: str | None = None) -> None:

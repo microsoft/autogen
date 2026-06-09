@@ -26,19 +26,19 @@ public abstract class InferenceAgent<T>(
 {
     protected IChatClient ChatClient { get; } = client;
     private ILogger<InferenceAgent<T>>? Logger => _logger as ILogger<InferenceAgent<T>>;
-    private Task<ChatCompletion> CompleteAsync(
+    private Task<ChatResponse> CompleteAsync(
         IList<ChatMessage> chatMessages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        return ChatClient.CompleteAsync(chatMessages, options, cancellationToken);
+        return ChatClient.GetResponseAsync(chatMessages, options, cancellationToken);
     }
-    private IAsyncEnumerable<StreamingChatCompletionUpdate> CompleteStreamingAsync(
+    private IAsyncEnumerable<ChatResponseUpdate> CompleteStreamingAsync(
         IList<ChatMessage> chatMessages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        return ChatClient.CompleteStreamingAsync(chatMessages, options, cancellationToken);
+        return ChatClient.GetStreamingResponseAsync(chatMessages, options, cancellationToken);
     }
 
 }

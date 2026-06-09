@@ -3,19 +3,19 @@ from pydantic import BaseModel
 
 class DataConfig(BaseModel):
     input_dir: str
-    entity_table: str = "create_final_nodes"
-    entity_embedding_table: str = "create_final_entities"
+    entity_table: str = "entities"
+    entity_embedding_table: str = "entities"
+    community_table: str = "communities"
     community_level: int = 2
 
 
 class GlobalDataConfig(DataConfig):
-    community_table: str = "create_final_communities"
-    community_report_table: str = "create_final_community_reports"
+    community_report_table: str = "community_reports"
 
 
 class LocalDataConfig(DataConfig):
-    relationship_table: str = "create_final_relationships"
-    text_unit_table: str = "create_final_text_units"
+    relationship_table: str = "relationships"
+    text_unit_table: str = "text_units"
 
 
 class ContextConfig(BaseModel):

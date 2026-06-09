@@ -6,7 +6,7 @@ from autogen_core import Component, ComponentBase, ComponentModel
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from ..messages import AgentEvent, ChatMessage, StopMessage
+from ..messages import BaseAgentEvent, BaseChatMessage, StopMessage
 
 
 class TerminatedException(BaseException): ...
@@ -15,7 +15,7 @@ class TerminatedException(BaseException): ...
 class TerminationCondition(ABC, ComponentBase[BaseModel]):
     """A stateful condition that determines when a conversation should be terminated.
 
-    A termination condition is a callable that takes a sequence of ChatMessage objects
+    A termination condition is a callable that takes a sequence of BaseChatMessage objects
     since the last time the condition was called, and returns a StopMessage if the
     conversation should be terminated, or None otherwise.
     Once a termination condition has been reached, it must be reset before it can be used again.
@@ -56,7 +56,7 @@ class TerminationCondition(ABC, ComponentBase[BaseModel]):
         ...
 
     @abstractmethod
-    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
         """Check if the conversation should be terminated based on the messages received
         since the last time the condition was called.
         Return a StopMessage if the conversation should be terminated, or None otherwise.
@@ -102,7 +102,7 @@ class AndTerminationCondition(TerminationCondition, Component[AndTerminationCond
     def terminated(self) -> bool:
         return all(condition.terminated for condition in self._conditions)
 
-    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
         if self.terminated:
             raise TerminatedException("Termination condition has already been reached.")
         # Check all remaining conditions.
@@ -153,13 +153,14 @@ class OrTerminationCondition(TerminationCondition, Component[OrTerminationCondit
     def terminated(self) -> bool:
         return any(condition.terminated for condition in self._conditions)
 
-    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
         if self.terminated:
             raise RuntimeError("Termination condition has already been reached")
         stop_messages = await asyncio.gather(*[condition(messages) for condition in self._conditions])
-        if any(stop_message is not None for stop_message in stop_messages):
-            content = ", ".join(stop_message.content for stop_message in stop_messages if stop_message is not None)
-            source = ", ".join(stop_message.source for stop_message in stop_messages if stop_message is not None)
+        stop_messages_filter = [stop_message for stop_message in stop_messages if stop_message is not None]
+        if len(stop_messages_filter) > 0:
+            content = ", ".join(stop_message.content for stop_message in stop_messages_filter)
+            source = ", ".join(stop_message.source for stop_message in stop_messages_filter)
             return StopMessage(content=content, source=source)
         return None
 

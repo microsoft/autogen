@@ -8,6 +8,7 @@ import {
 
 export interface NodeData extends Record<string, unknown> {
   component: Component<ComponentConfig>;
+  isUserPositioned?: boolean;
 }
 
 export interface EditingState {

@@ -20,11 +20,11 @@ public partial class SingleAgentTest
         _output = output;
     }
 
-    private ILLMConfig CreateAzureOpenAIGPT35TurboConfig()
+    private ILLMConfig CreateAzureOpenAIGPT4oMiniConfig()
     {
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-        var deployName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new ArgumentException("AZURE_OPENAI_DEPLOY_NAME is not set");
+        var deployName = "gpt-4o-mini";
         return new AzureOpenAIConfig(endpoint, deployName, key);
     }
 
@@ -37,7 +37,7 @@ public partial class SingleAgentTest
     [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task AssistantAgentFunctionCallTestAsync()
     {
-        var config = this.CreateAzureOpenAIGPT35TurboConfig();
+        var config = this.CreateAzureOpenAIGPT4oMiniConfig();
 
         var llmConfig = new ConversableAgentConfig
         {
@@ -77,7 +77,7 @@ public partial class SingleAgentTest
     [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
     public async Task AssistantAgentFunctionCallSelfExecutionTestAsync()
     {
-        var config = this.CreateAzureOpenAIGPT35TurboConfig();
+        var config = this.CreateAzureOpenAIGPT4oMiniConfig();
         var llmConfig = new ConversableAgentConfig
         {
             FunctionContracts = new[]

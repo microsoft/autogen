@@ -81,7 +81,7 @@ You can run the backend on its own:
 dotnet run --project Microsoft.AutoGen.AgentHost
 ```
 
-or you can run iclude it inside your own application:
+or you can include it inside your own application:
 
 ```csharp
 using Microsoft.AutoGen.RuntimeGateway;

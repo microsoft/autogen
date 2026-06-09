@@ -1,3 +1,8 @@
+from ._genai import (
+    trace_create_agent_span,
+    trace_invoke_agent_span,
+    trace_tool_span,
+)
 from ._propagation import (
     EnvelopeMetadata,
     TelemetryMetadataContainer,
@@ -14,4 +19,7 @@ __all__ = [
     "TelemetryMetadataContainer",
     "TraceHelper",
     "MessageRuntimeTracingConfig",
+    "trace_create_agent_span",
+    "trace_invoke_agent_span",
+    "trace_tool_span",
 ]

@@ -137,7 +137,9 @@ export const GallerySidebar: React.FC<GallerySidebarProps> = ({
                 <div className="flex items-center justify-between min-w-0">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="truncate flex-1">
-                      <span className="font-medium">{gallery.config.name}</span>
+                      <span className="font-medium text-sm">
+                        {gallery.config.name}
+                      </span>
                     </div>
                     {gallery.config.url && (
                       <Tooltip title="Remote Gallery">
