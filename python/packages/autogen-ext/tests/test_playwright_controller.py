@@ -1,6 +1,10 @@
+import builtins
+from typing import Any
+
 import pytest
-from autogen_ext.agents.web_surfer.playwright_controller import PlaywrightController
 from playwright.async_api import async_playwright
+
+from autogen_ext.agents.web_surfer.playwright_controller import PlaywrightController
 
 FAKE_HTML = """
 <!DOCTYPE html>
@@ -25,6 +29,22 @@ async def test_playwright_controller_initialization() -> None:
     assert controller.viewport_width == 1440
     assert controller.viewport_height == 900
     assert controller.animate_actions is False
+
+
+def test_playwright_controller_reads_page_script_as_utf8(monkeypatch: pytest.MonkeyPatch) -> None:
+    real_open = builtins.open
+    page_script_encodings: list[str | None] = []
+
+    def open_spy(file: Any, mode: str = "r", *args: Any, **kwargs: Any) -> Any:
+        if str(file).endswith("page_script.js"):
+            page_script_encodings.append(kwargs.get("encoding"))
+        return real_open(file, mode, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", open_spy)
+
+    PlaywrightController()
+
+    assert page_script_encodings == ["utf-8"]
 
 
 @pytest.mark.asyncio
