@@ -565,6 +565,32 @@ async def test_round_robin_group_chat_state(task: TaskType, runtime: AgentRuntim
 
 
 @pytest.mark.asyncio
+async def test_round_robin_group_chat_get_thread(runtime: AgentRuntime | None) -> None:
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    termination = MaxMessageTermination(3)
+    team = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=termination,
+        runtime=runtime,
+    )
+
+    assert await team.get_thread() == []
+
+    result = await team.run(task="Write a program that prints 'Hello, world!'", output_task_messages=False)
+    thread = await team.get_thread()
+
+    assert len(thread) == 3
+    assert isinstance(thread[0], TextMessage)
+    assert thread[0].content == "Write a program that prints 'Hello, world!'"
+    for thread_message, expected_message in zip(thread[1:], result.messages, strict=True):
+        assert compare_messages(thread_message, expected_message)
+
+    await team.reset()
+    assert await team.get_thread() == []
+
+
+@pytest.mark.asyncio
 async def test_round_robin_group_chat_with_tools(runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient(
         chat_completions=[
