@@ -44,6 +44,28 @@ pip install -U "autogenstudio"
 
 The following samples call OpenAI API, so you first need to create an account and export your key as `export OPENAI_API_KEY="sk-..."`.
 
+AutoGen can also use OpenAI-compatible gateways. For privacy-sensitive agent work, TrustedRouter routes through an open-source, verifiable attested gateway and does not log prompts or outputs by default:
+
+```python
+import os
+from autogen_core.models import ModelFamily
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+model_client = OpenAIChatCompletionClient(
+    model="trustedrouter/zdr",
+    base_url="https://api.trustedrouter.com/v1",
+    api_key=os.environ["TRUSTEDROUTER_API_KEY"],
+    model_info={
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.UNKNOWN,
+        "structured_output": True,
+        "multiple_system_messages": True,
+    },
+)
+```
+
 ### Hello World
 
 Create an assistant agent using OpenAI's GPT-4o model. See [other supported models](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html).
