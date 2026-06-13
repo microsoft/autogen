@@ -41,6 +41,26 @@ def _ask_for_input() -> str:
     return "Further input from user"
 
 
+@pytest.mark.parametrize(
+    "model",
+    [
+        "anthropic.claude-3-5-sonnet-20240620-v1:0",
+        "us.anthropic.claude-3-5-sonnet-20240620-v1:0",
+        "eu.anthropic.claude-3-5-sonnet-20240620-v1:0",
+        "apac.anthropic.claude-3-5-sonnet-20240620-v1:0",
+        "global.anthropic.claude-3-5-sonnet-20240620-v1:0",
+    ],
+)
+def test_model_info_resolves_bedrock_ids(model: str) -> None:
+    """Bedrock and cross-region inference ids resolve to the same entry as the bare Anthropic id."""
+    from autogen_ext.models.anthropic import _model_info
+
+    bare = "claude-3-5-sonnet-20240620"
+    assert _model_info.get_info(model) == _model_info.get_info(bare)
+    # The token limit is looked up from the table (200000), not the 100000 fallback.
+    assert _model_info.get_token_limit(model) == _model_info.get_token_limit(bare) == 200000
+
+
 @pytest.mark.asyncio
 async def test_mock_tool_choice_specific_tool() -> None:
     """Test tool_choice parameter with a specific tool using mocks."""
