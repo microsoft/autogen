@@ -641,53 +641,53 @@ echo RUN.SH COMPLETE !#!#
     docker_timeout: float = timeout + 60  # One full minute after the bash timeout command should have already triggered
     start_time = time.time()
     logs = container.logs(stream=True)
-    log_file = open(os.path.join(work_dir, "console_log.txt"), "wt", encoding="utf-8")
     stopping = False
     exiting = False
 
-    while True:
-        try:
-            chunk = next(logs)  # Manually step the iterator so it is captures with the try-catch
+    with open(os.path.join(work_dir, "console_log.txt"), "wt", encoding="utf-8") as log_file:
+        while True:
+            try:
+                chunk = next(logs)  # Manually step the iterator so it is captures with the try-catch
 
-            # Stream the data to the log file and the console
-            chunk_str = chunk.decode("utf-8")
-            log_file.write(chunk_str)
-            log_file.flush()
-            sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
-            sys.stdout.write(chunk_str)
-            sys.stdout.flush()
+                # Stream the data to the log file and the console
+                chunk_str = chunk.decode("utf-8")
+                log_file.write(chunk_str)
+                log_file.flush()
+                sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
+                sys.stdout.write(chunk_str)
+                sys.stdout.flush()
 
-            # Check if we need to terminate
-            if not stopping and time.time() - start_time >= docker_timeout:
+                # Check if we need to terminate
+                if not stopping and time.time() - start_time >= docker_timeout:
+                    container.stop()
+
+                    # Don't exit the loop right away, as there are things we may still want to read from the logs
+                    # but remember how we got here.
+                    stopping = True
+            except KeyboardInterrupt:
+                log_file.write("\nKeyboard interrupt (Ctrl-C). Attempting to exit gracefully.\n")
+                log_file.flush()
+                sys.stdout.write("\nKeyboard interrupt (Ctrl-C). Attempting to exit gracefully.\n")
+                sys.stdout.flush()
+
+                # Start the exit process, and give it a minute, but keep iterating
                 container.stop()
+                exiting = True
+                docker_timeout = time.time() - start_time + 60
+            except StopIteration:
+                break
 
-                # Don't exit the loop right away, as there are things we may still want to read from the logs
-                # but remember how we got here.
-                stopping = True
-        except KeyboardInterrupt:
-            log_file.write("\nKeyboard interrupt (Ctrl-C). Attempting to exit gracefully.\n")
+        # Clean up the container
+        try:
+            container.remove()
+        except APIError:
+            pass
+
+        if stopping:  # By this line we've exited the loop, and the container has actually stopped.
+            log_file.write("\nDocker timed out.\n")
             log_file.flush()
-            sys.stdout.write("\nKeyboard interrupt (Ctrl-C). Attempting to exit gracefully.\n")
+            sys.stdout.write("\nDocker timed out.\n")
             sys.stdout.flush()
-
-            # Start the exit process, and give it a minute, but keep iterating
-            container.stop()
-            exiting = True
-            docker_timeout = time.time() - start_time + 60
-        except StopIteration:
-            break
-
-    # Clean up the container
-    try:
-        container.remove()
-    except APIError:
-        pass
-
-    if stopping:  # By this line we've exited the loop, and the container has actually stopped.
-        log_file.write("\nDocker timed out.\n")
-        log_file.flush()
-        sys.stdout.write("\nDocker timed out.\n")
-        sys.stdout.flush()
 
     if exiting:  # User hit ctrl-C
         sys.exit(1)
