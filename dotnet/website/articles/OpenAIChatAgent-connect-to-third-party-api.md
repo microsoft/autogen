@@ -1,6 +1,6 @@
 The following example shows how to connect to third-party OpenAI API using @AutoGen.OpenAI.OpenAIChatAgent.
 
-[![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/microsoft/autogen/blob/main/dotnet/samples/AgentChat/AutoGen.OpenAI.Sample/Connect_To_Ollama.cs)
+[![](https://img.shields.io/badge/Open%20on%20Github-grey?logo=github)](https://github.com/microsoft/autogen/blob/main/dotnet/samples/AgentChat/AutoGen.OpenAI.Sample/Connect_To_Tuning_Engines.cs)
 
 ## Overview
 A lot of LLM applications/platforms support spinning up a chat server that is compatible with OpenAI API, such as LM Studio, Ollama, Mistral etc. This means that you can connect to these servers using the @AutoGen.OpenAI.OpenAIChatAgent.
@@ -41,7 +41,7 @@ For a governed OpenAI-compatible endpoint such as Tuning Engines, set `TUNING_EN
 - Chat with the `OpenAIChatAgent`.
 Finally, you can start chatting with the agent. In this example, we send a coding question to the agent and get the response.
 
-[!code-csharp[](../../samples/AgentChat/AutoGen.OpenAI.Sample/Connect_To_Ollama.cs?name=send_message)]
+[!code-csharp[](../../samples/AgentChat/AutoGen.OpenAI.Sample/Connect_To_Tuning_Engines.cs?name=send_message)]
 
 ## Sample Output
 The following is the sample output of the code snippet above:
