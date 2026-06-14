@@ -96,12 +96,22 @@ async def run_websocket(
                     team_config = message.get("team_config")
                     if task and team_config:
                         # Start the stream in a separate task. Keep a strong
-                        # reference so it isn't garbage-collected mid-run.
+                        # reference so it isn't garbage-collected mid-run, and
+                        # log any failure instead of dropping it silently.
                         stream_task = asyncio.create_task(
                             ws_manager.start_stream(run_id, task, team_config)
                         )
                         _background_tasks.add(stream_task)
-                        stream_task.add_done_callback(_background_tasks.discard)
+
+                        def _on_stream_done(t: asyncio.Task, run_id: int = run_id) -> None:
+                            _background_tasks.discard(t)
+                            if not t.cancelled() and (exc := t.exception()) is not None:
+                                logger.error(
+                                    f"Stream task for run {run_id} failed: {exc}",
+                                    exc_info=exc,
+                                )
+
+                        stream_task.add_done_callback(_on_stream_done)
                     else:
                         logger.warning(f"Invalid start message format for run {run_id}")
                         await websocket.send_json(
