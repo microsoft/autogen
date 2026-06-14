@@ -48,11 +48,42 @@ def test_agent_tool_component() -> None:
     tool = AgentTool(agent=agent)
     config = tool.dump_component()
     assert config.provider == "autogen_agentchat.tools.AgentTool"
+    assert "name" not in config.config
+    assert "description" not in config.config
 
     tool2 = AgentTool.load_component(config)
     assert isinstance(tool2, AgentTool)
     assert tool2.name == agent.name
     assert tool2.description == agent.description
+
+
+def test_agent_tool_component_with_scoped_tool_metadata() -> None:
+    """Test AgentTool can expose scoped metadata without mutating the wrapped agent."""
+    model_client = ReplayChatCompletionClient(["test"])
+    agent = AssistantAgent(
+        name="repo_agent",
+        model_client=model_client,
+        description="Can read, write, and execute repository tasks.",
+    )
+    tool = AgentTool(
+        agent=agent,
+        name="repo_reader",
+        description="Read-only repository helper. Does not write files or execute commands.",
+    )
+
+    assert tool.name == "repo_reader"
+    assert tool.description == "Read-only repository helper. Does not write files or execute commands."
+    assert agent.name == "repo_agent"
+    assert agent.description == "Can read, write, and execute repository tasks."
+
+    config = tool.dump_component()
+    assert config.config["name"] == "repo_reader"
+    assert config.config["description"] == "Read-only repository helper. Does not write files or execute commands."
+
+    tool2 = AgentTool.load_component(config)
+    assert isinstance(tool2, AgentTool)
+    assert tool2.name == "repo_reader"
+    assert tool2.description == "Read-only repository helper. Does not write files or execute commands."
 
 
 @pytest.mark.asyncio

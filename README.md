@@ -124,7 +124,11 @@ async def main() -> None:
         description="A math expert assistant.",
         model_client_stream=True,
     )
-    math_agent_tool = AgentTool(math_agent, return_value_as_last_message=True)
+    math_agent_tool = AgentTool(
+        math_agent,
+        return_value_as_last_message=True,
+        description="Answer math questions. Does not have additional tools attached.",
+    )
 
     chemistry_agent = AssistantAgent(
         "chemistry_expert",
@@ -133,7 +137,11 @@ async def main() -> None:
         description="A chemistry expert assistant.",
         model_client_stream=True,
     )
-    chemistry_agent_tool = AgentTool(chemistry_agent, return_value_as_last_message=True)
+    chemistry_agent_tool = AgentTool(
+        chemistry_agent,
+        return_value_as_last_message=True,
+        description="Answer chemistry questions. Does not have additional tools attached.",
+    )
 
     agent = AssistantAgent(
         "assistant",
@@ -149,6 +157,11 @@ async def main() -> None:
 
 asyncio.run(main())
 ```
+
+When wrapping agents as tools, expose only the delegated capability you intend the
+caller to use. The `AgentTool` name and description control the tool surface shown
+to the caller, but they do not enforce authorization; attach separately scoped tools
+or workbenches to the wrapped agent when you need least-privilege execution.
 
 For more advanced multi-agent orchestrations and workflows, read
 [AgentChat documentation](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html).
