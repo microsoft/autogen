@@ -13,6 +13,12 @@ class AgentToolConfig(BaseModel):
     agent: ComponentModel
     """The agent to be used for running the task."""
 
+    name: str | None = None
+    """Optional tool name to expose to the caller."""
+
+    description: str | None = None
+    """Optional tool description to expose to the caller."""
+
     return_value_as_last_message: bool = False
     """Whether to return the value as the last message of the task result."""
 
@@ -31,11 +37,22 @@ class AgentTool(TaskRunnerTool, Component[AgentToolConfig]):
 
     Args:
         agent (BaseChatAgent): The agent to be used for running the task.
+        name (str | None, optional): The name of the tool exposed to the caller. If not provided,
+            the wrapped agent's name is used.
+        description (str | None, optional): The description of the tool exposed to the caller. If not provided,
+            the wrapped agent's description is used. This only controls the prompt-visible tool metadata;
+            it does not enforce an authorization boundary. Use separately scoped tools or workbenches on the
+            wrapped agent to enforce least privilege.
         return_value_as_last_message (bool): Whether to use the last message content of the task result
             as the return value of the tool in :meth:`~autogen_agentchat.tools.TaskRunnerTool.return_value_as_string`.
             If set to True, the last message content will be returned as a string.
             If set to False, the tool will return all messages in the task result as a string concatenated together,
             with each message prefixed by its source (e.g., "writer: ...", "assistant: ...").
+
+    .. versionadded:: v0.7.6
+
+       The ``name`` and ``description`` parameters allow exposing a narrower task-specific capability surface
+       than the wrapped agent's full identity.
 
     Example:
 
@@ -76,18 +93,37 @@ class AgentTool(TaskRunnerTool, Component[AgentToolConfig]):
     component_config_schema = AgentToolConfig
     component_provider_override = "autogen_agentchat.tools.AgentTool"
 
-    def __init__(self, agent: BaseChatAgent, return_value_as_last_message: bool = False) -> None:
+    def __init__(
+        self,
+        agent: BaseChatAgent,
+        return_value_as_last_message: bool = False,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> None:
         self._agent = agent
+        self._name_override = name
+        self._description_override = description
         super().__init__(
-            agent, agent.name, agent.description, return_value_as_last_message=return_value_as_last_message
+            agent,
+            name if name is not None else agent.name,
+            description if description is not None else agent.description,
+            return_value_as_last_message=return_value_as_last_message,
         )
 
     def _to_config(self) -> AgentToolConfig:
         return AgentToolConfig(
             agent=self._agent.dump_component(),
+            name=self._name_override,
+            description=self._description_override,
             return_value_as_last_message=self._return_value_as_last_message,
         )
 
     @classmethod
     def _from_config(cls, config: AgentToolConfig) -> Self:
-        return cls(BaseChatAgent.load_component(config.agent), config.return_value_as_last_message)
+        return cls(
+            BaseChatAgent.load_component(config.agent),
+            config.return_value_as_last_message,
+            name=config.name,
+            description=config.description,
+        )
