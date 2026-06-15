@@ -26,6 +26,7 @@ from autogen_agentchat.messages import (
     ToolCallExecutionEvent,
     UserInputRequestedEvent,
 )
+from autogen_core import ComponentLoader
 from autogen_core.models import FunctionExecutionResult, RequestUsage
 from pydantic import BaseModel
 
@@ -155,6 +156,18 @@ async def test_mention_termination() -> None:
         await termination([TextMessage(content="stop", source="user"), TextMessage(content="stop", source="agent")])
         is not None
     )
+
+
+@pytest.mark.asyncio
+async def test_text_mention_termination_serializes_sources() -> None:
+    termination = TextMentionTermination("MISSION_DRIFT", sources=["mission_keeper"])
+
+    config = termination.dump_component()
+
+    assert config.config.get("sources") == ["mission_keeper"]
+    loaded_termination = ComponentLoader.load_component(config, TextMentionTermination)
+    assert await loaded_termination([TextMessage(content="MISSION_DRIFT", source="worker")]) is None
+    assert await loaded_termination([TextMessage(content="MISSION_DRIFT", source="mission_keeper")]) is not None
 
 
 @pytest.mark.asyncio
