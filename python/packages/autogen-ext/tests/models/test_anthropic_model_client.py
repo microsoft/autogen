@@ -1254,3 +1254,47 @@ async def test_anthropic_thinking_mode_with_tools() -> None:
     # Should have thinking content even with tool calls
     assert result.thought is not None
     assert len(result.thought) > 10
+
+
+def test_bedrock_model_info_resolution() -> None:
+    """Bedrock / cross-region inference model IDs should resolve to first-party model info.
+
+    Regression test for https://github.com/microsoft/autogen/issues/7833 — previously these
+    IDs raised ``KeyError`` from ``get_info`` and silently fell back to the default token
+    limit in ``get_token_limit``.
+    """
+    from autogen_ext.models.anthropic import _model_info
+
+    bedrock_to_first_party = {
+        "anthropic.claude-3-5-sonnet-20240620-v1:0": "claude-3-5-sonnet-20240620",
+        "us.anthropic.claude-3-5-sonnet-20240620-v1:0": "claude-3-5-sonnet-20240620",
+        "eu.anthropic.claude-3-7-sonnet-20250219-v1:0": "claude-3-7-sonnet-20250219",
+        "apac.anthropic.claude-3-haiku-20240307-v1:0": "claude-3-haiku-20240307",
+        "us.anthropic.claude-opus-4-20250514-v1:0": "claude-opus-4-20250514",
+    }
+    for bedrock_id, first_party_id in bedrock_to_first_party.items():
+        # Must not raise KeyError and must resolve to the same info as the first-party ID.
+        assert _model_info.get_info(bedrock_id) == _model_info.get_info(first_party_id)
+        assert _model_info.get_info(bedrock_id)["function_calling"] is True
+        # Must return the real context window, not the 100000 default-fallback.
+        assert _model_info.get_token_limit(bedrock_id) == 200000
+
+
+def test_first_party_model_info_unchanged() -> None:
+    """First-party model IDs (no Bedrock prefix/suffix) keep resolving as before."""
+    from autogen_ext.models.anthropic import _model_info
+
+    assert _model_info.get_info("claude-3-haiku-20240307")["function_calling"] is True
+    assert _model_info.get_token_limit("claude-3-5-sonnet-20240620") == 200000
+    # Claude 4 models were previously missing from the token-limit table and fell back to
+    # the 100000 default; they should now report their real context window.
+    assert _model_info.get_token_limit("claude-opus-4-20250514") == 200000
+    assert _model_info.get_token_limit("claude-sonnet-4-0") == 200000
+
+
+def test_model_info_and_token_limit_tables_in_sync() -> None:
+    """Every model with capability info should also have an explicit token limit."""
+    from autogen_ext.models.anthropic import _model_info
+
+    missing = set(_model_info._MODEL_INFO) - set(_model_info._MODEL_TOKEN_LIMITS)  # pyright: ignore[reportPrivateUsage]
+    assert not missing, f"Models missing from _MODEL_TOKEN_LIMITS: {sorted(missing)}"
