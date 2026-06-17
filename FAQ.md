@@ -85,7 +85,7 @@ Our project remains fully open-source and accessible to everyone. We understand 
 
 ### Can you clarify the current state of the packages?
 
-Currently, we are unable to make releases to the `pyautogen` package via Pypi due to a change to package ownership that was done without our involvement. Additionally, we are moving to using multiple packages to align with the new design. Please see details [here](https://microsoft.github.io/autogen/dev/packages/index.html).
+Currently, we are unable to make releases to the `pyautogen` package via Pypi due to a change to package ownership that was done without our involvement. Additionally, we are moving to using multiple packages to align with the new design. Please see details [here](https://microsoft.github.io/autogen/stable/).
 
 ### Can I still be involved?
 
