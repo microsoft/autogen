@@ -172,6 +172,21 @@ class _JSONSchemaToPydantic:
             merged["required"] = list(set(merged["required"]))
             schema = merged
 
+        # Handle non-object type schemas (array, string, integer, number, boolean, null).
+        # These appear in $defs as type aliases produced by Pydantic v2's model_json_schema(),
+        # and cannot be processed by _json_schema_to_model which only handles object types.
+        json_type = schema.get("type")
+        if json_type is not None and json_type != "object" and json_type in TYPE_MAPPING:
+            type_annotation = self._extract_field_type("__root__", schema, model_name, root_schema)
+            field = _make_field(
+                default=...,
+                title=schema.get("title"),
+                description=schema.get("description"),
+            )
+            model = create_model(model_name, __root__=(type_annotation, field))
+            model.model_rebuild()
+            return model
+
         return self._json_schema_to_model(schema, model_name, root_schema)
 
     def _resolve_union_types(self, schemas: List[Dict[str, Any]]) -> List[Any]:
