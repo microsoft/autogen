@@ -325,7 +325,11 @@ class DockerJupyterServer(JupyterConnectable):
         if bind_dir:
             self._bind_dir = Path(bind_dir) if isinstance(bind_dir, str) else bind_dir
             self._bind_dir.mkdir(exist_ok=True)
-            os.chmod(bind_dir, 0o777)
+            # Owner-only (0o700). Docker bind-mount preserves ownership, so the
+            # container retains read/write regardless of host-side mode. 0o777
+            # unnecessarily exposed agent-generated code and session artifacts to
+            # any local user on the host.
+            os.chmod(bind_dir, 0o700)
 
         # Determine and prepare Docker image
         image_name = custom_image_name or "autogen-jupyterkernelgateway"
