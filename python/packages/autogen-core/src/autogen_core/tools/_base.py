@@ -171,6 +171,16 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
                 return json.dumps(dumped)
             return str(dumped)
 
+        if isinstance(value, (dict, list)):
+            # Serialize structured return values as valid JSON instead of their
+            # Python repr (e.g. ``str``) so downstream consumers receive
+            # double-quoted JSON rather than single-quoted repr strings. Fall
+            # back to ``str`` for values that are not JSON serializable.
+            try:
+                return json.dumps(value)
+            except (TypeError, ValueError):
+                return str(value)
+
         return str(value)
 
     @abstractmethod
