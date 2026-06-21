@@ -10,6 +10,7 @@ from autogen_core import TopicId
 from autogen_core._agent_id import AgentId
 from autogen_core._runtime_impl_helpers import SubscriptionManager
 
+from . import _constants
 from ._constants import GRPC_IMPORT_ERROR_STR
 from ._utils import subscription_from_proto, subscription_to_proto
 
@@ -199,12 +200,26 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                 task.add_done_callback(self._raise_on_exception)
                 task.add_done_callback(self._background_tasks.discard)
             case "cloudEvent":
-                task = asyncio.create_task(self._process_event(message.cloudEvent))
+                task = asyncio.create_task(self._process_event(message.cloudEvent, client_id))
                 self._background_tasks.add(task)
                 task.add_done_callback(self._raise_on_exception)
                 task.add_done_callback(self._background_tasks.discard)
             case None:
                 logger.warning("Received empty message")
+
+    async def _client_owns_agent_type(self, agent_type: str, client_id: ClientConnectionId) -> bool:
+        async with self._agent_type_to_client_id_lock:
+            registered_client_id = self._agent_type_to_client_id.get(agent_type)
+        return registered_client_id == client_id
+
+    async def _send_rpc_error(self, client_id: ClientConnectionId, request_id: str, error: str) -> None:
+        send_queue = self._data_connections.get(client_id)
+        if send_queue is None:
+            logger.error("Client %s not found, failed to send RPC error response.", client_id)
+            return
+        await send_queue.send(
+            agent_worker_pb2.Message(response=agent_worker_pb2.RpcResponse(request_id=request_id, error=error))
+        )
 
     async def _receive_control_message(
         self, client_id: ClientConnectionId, message: agent_worker_pb2.ControlMessage
@@ -230,6 +245,19 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         await target_send_queue.send(message)
 
     async def _process_request(self, request: agent_worker_pb2.RpcRequest, client_id: ClientConnectionId) -> None:
+        if request.HasField("source") and not await self._client_owns_agent_type(request.source.type, client_id):
+            logger.warning(
+                "Client %s attempted to send an RPC request as agent type %s owned by another client.",
+                client_id,
+                request.source.type,
+            )
+            await self._send_rpc_error(
+                client_id,
+                request.request_id,
+                f"Client {client_id} is not authorized to send as agent type {request.source.type}.",
+            )
+            return
+
         # Deliver the message to a client given the target agent type.
         async with self._agent_type_to_client_id_lock:
             target_client_id = self._agent_type_to_client_id.get(request.target.type)
@@ -268,16 +296,37 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         future = self._pending_responses[client_id].pop(response.request_id)
         future.set_result(response)
 
-    async def _process_event(self, event: cloudevent_pb2.CloudEvent) -> None:
+    async def _process_event(self, event: cloudevent_pb2.CloudEvent, client_id: ClientConnectionId) -> None:
+        event_attributes = event.attributes
+        sender_type_attribute = event_attributes.get(_constants.AGENT_SENDER_TYPE_ATTR)
+        sender_key_attribute = event_attributes.get(_constants.AGENT_SENDER_KEY_ATTR)
+        is_legacy_anonymous_sender = (
+            sender_type_attribute is not None
+            and sender_key_attribute is not None
+            and sender_type_attribute.ce_string == "unknown"
+            and sender_key_attribute.ce_string == "unknown"
+        )
+        if (
+            sender_type_attribute is not None
+            and not is_legacy_anonymous_sender
+            and not await self._client_owns_agent_type(sender_type_attribute.ce_string, client_id)
+        ):
+            logger.warning(
+                "Client %s attempted to publish an event as agent type %s owned by another client.",
+                client_id,
+                sender_type_attribute.ce_string,
+            )
+            return
+
         topic_id = TopicId(type=event.type, source=event.source)
         recipients = await self._subscription_manager.get_subscribed_recipients(topic_id)
         # Get the client ids of the recipients.
         async with self._agent_type_to_client_id_lock:
             client_ids: Set[ClientConnectionId] = set()
             for recipient in recipients:
-                client_id = self._agent_type_to_client_id.get(recipient.type)
-                if client_id is not None:
-                    client_ids.add(client_id)
+                target_client_id = self._agent_type_to_client_id.get(recipient.type)
+                if target_client_id is not None:
+                    client_ids.add(target_client_id)
                 else:
                     logger.error(f"Agent {recipient.type} and its client not found for topic {topic_id}.")
         # Deliver the event to clients.

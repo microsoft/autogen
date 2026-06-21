@@ -1,3 +1,4 @@
+# pyright: reportPrivateUsage=false
 import asyncio
 import logging
 import os
@@ -20,7 +21,9 @@ from autogen_core import (
     try_get_known_serializers_for_type,
     type_subscription,
 )
-from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime, GrpcWorkerAgentRuntimeHost
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime, GrpcWorkerAgentRuntimeHost, _constants
+from autogen_ext.runtimes.grpc._worker_runtime_host_servicer import GrpcWorkerAgentRuntimeHostServicer
+from autogen_ext.runtimes.grpc.protos import agent_worker_pb2, cloudevent_pb2
 from autogen_test_utils import (
     CascadingAgent,
     CascadingMessageType,
@@ -32,6 +35,178 @@ from autogen_test_utils import (
 )
 
 from .protos.serialization_test_pb2 import ProtoMessage
+
+
+class _RecordingConnection:
+    def __init__(self) -> None:
+        self.messages: List[agent_worker_pb2.Message] = []
+
+    async def send(self, message: agent_worker_pb2.Message) -> None:
+        self.messages.append(message)
+
+
+def _test_payload() -> agent_worker_pb2.Payload:
+    return agent_worker_pb2.Payload(data_type="test", data=b"{}", data_content_type="application/json")
+
+
+@pytest.mark.asyncio
+async def test_host_rejects_rpc_request_with_spoofed_source_agent_type() -> None:
+    servicer = GrpcWorkerAgentRuntimeHostServicer()
+    servicer._agent_type_to_client_id.update({"source_agent": "source-client", "target_agent": "target-client"})
+    source_connection = _RecordingConnection()
+    target_connection = _RecordingConnection()
+    servicer._data_connections["spoofing-client"] = source_connection  # type: ignore[assignment]
+    servicer._data_connections["target-client"] = target_connection  # type: ignore[assignment]
+
+    await servicer._process_request(
+        agent_worker_pb2.RpcRequest(
+            request_id="request-1",
+            target=agent_worker_pb2.AgentId(type="target_agent", key="default"),
+            source=agent_worker_pb2.AgentId(type="source_agent", key="default"),
+            payload=_test_payload(),
+        ),
+        client_id="spoofing-client",
+    )
+
+    assert target_connection.messages == []
+    assert len(source_connection.messages) == 1
+    assert "not authorized to send as agent type source_agent" in source_connection.messages[0].response.error
+
+
+@pytest.mark.asyncio
+async def test_host_rejects_rpc_request_with_unregistered_source_agent_type() -> None:
+    servicer = GrpcWorkerAgentRuntimeHostServicer()
+    servicer._agent_type_to_client_id.update({"target_agent": "target-client"})
+    source_connection = _RecordingConnection()
+    target_connection = _RecordingConnection()
+    servicer._data_connections["source-client"] = source_connection  # type: ignore[assignment]
+    servicer._data_connections["target-client"] = target_connection  # type: ignore[assignment]
+
+    await servicer._process_request(
+        agent_worker_pb2.RpcRequest(
+            request_id="request-1",
+            target=agent_worker_pb2.AgentId(type="target_agent", key="default"),
+            source=agent_worker_pb2.AgentId(type="unregistered_agent", key="default"),
+            payload=_test_payload(),
+        ),
+        client_id="source-client",
+    )
+
+    assert target_connection.messages == []
+    assert len(source_connection.messages) == 1
+    assert "not authorized to send as agent type unregistered_agent" in source_connection.messages[0].response.error
+
+
+@pytest.mark.asyncio
+async def test_host_rejects_publish_event_with_spoofed_sender_agent_type() -> None:
+    servicer = GrpcWorkerAgentRuntimeHostServicer()
+    servicer._agent_type_to_client_id.update({"source_agent": "source-client", "target_agent": "target-client"})
+    target_connection = _RecordingConnection()
+    servicer._data_connections["target-client"] = target_connection  # type: ignore[assignment]
+    await servicer._subscription_manager.add_subscription(TypeSubscription("default", "target_agent"))
+
+    await servicer._process_event(
+        cloudevent_pb2.CloudEvent(
+            id="event-1",
+            spec_version="1.0",
+            type="default",
+            source="default",
+            attributes={
+                _constants.AGENT_SENDER_TYPE_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string="source_agent"
+                ),
+                _constants.AGENT_SENDER_KEY_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string="default"
+                ),
+            },
+            binary_data=b"{}",
+        ),
+        client_id="spoofing-client",
+    )
+
+    assert target_connection.messages == []
+
+
+@pytest.mark.asyncio
+async def test_host_rejects_publish_event_with_unregistered_sender_agent_type() -> None:
+    servicer = GrpcWorkerAgentRuntimeHostServicer()
+    servicer._agent_type_to_client_id.update({"target_agent": "target-client"})
+    target_connection = _RecordingConnection()
+    servicer._data_connections["target-client"] = target_connection  # type: ignore[assignment]
+    await servicer._subscription_manager.add_subscription(TypeSubscription("default", "target_agent"))
+
+    await servicer._process_event(
+        cloudevent_pb2.CloudEvent(
+            id="event-1",
+            spec_version="1.0",
+            type="default",
+            source="default",
+            attributes={
+                _constants.AGENT_SENDER_TYPE_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string="unregistered_agent"
+                ),
+                _constants.AGENT_SENDER_KEY_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string="default"
+                ),
+            },
+            binary_data=b"{}",
+        ),
+        client_id="source-client",
+    )
+
+    assert target_connection.messages == []
+
+
+@pytest.mark.asyncio
+async def test_host_allows_anonymous_publish_when_unknown_agent_type_is_registered_elsewhere() -> None:
+    servicer = GrpcWorkerAgentRuntimeHostServicer()
+    servicer._agent_type_to_client_id.update({"unknown": "unknown-client", "target_agent": "target-client"})
+    target_connection = _RecordingConnection()
+    servicer._data_connections["target-client"] = target_connection  # type: ignore[assignment]
+    await servicer._subscription_manager.add_subscription(TypeSubscription("default", "target_agent"))
+
+    await servicer._process_event(
+        cloudevent_pb2.CloudEvent(
+            id="event-1",
+            spec_version="1.0",
+            type="default",
+            source="default",
+            binary_data=b"{}",
+        ),
+        client_id="source-client",
+    )
+
+    assert len(target_connection.messages) == 1
+
+
+@pytest.mark.asyncio
+async def test_host_allows_legacy_unknown_sender_publish_for_rolling_upgrade() -> None:
+    servicer = GrpcWorkerAgentRuntimeHostServicer()
+    servicer._agent_type_to_client_id.update({"unknown": "unknown-client", "target_agent": "target-client"})
+    target_connection = _RecordingConnection()
+    servicer._data_connections["target-client"] = target_connection  # type: ignore[assignment]
+    await servicer._subscription_manager.add_subscription(TypeSubscription("default", "target_agent"))
+
+    await servicer._process_event(
+        cloudevent_pb2.CloudEvent(
+            id="event-1",
+            spec_version="1.0",
+            type="default",
+            source="default",
+            attributes={
+                _constants.AGENT_SENDER_TYPE_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string="unknown"
+                ),
+                _constants.AGENT_SENDER_KEY_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string="unknown"
+                ),
+            },
+            binary_data=b"{}",
+        ),
+        client_id="source-client",
+    )
+
+    assert len(target_connection.messages) == 1
 
 
 @pytest.mark.grpc

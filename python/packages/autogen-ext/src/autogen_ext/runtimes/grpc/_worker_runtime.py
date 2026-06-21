@@ -434,22 +434,22 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 message, type_name=message_type, data_content_type=self._payload_serialization_format
             )
 
-            sender_id = sender or AgentId("unknown", "unknown")
             attributes = {
                 _constants.DATA_CONTENT_TYPE_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
                     ce_string=self._payload_serialization_format
                 ),
                 _constants.DATA_SCHEMA_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(ce_string=message_type),
-                _constants.AGENT_SENDER_TYPE_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
-                    ce_string=sender_id.type
-                ),
-                _constants.AGENT_SENDER_KEY_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
-                    ce_string=sender_id.key
-                ),
                 _constants.MESSAGE_KIND_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
                     ce_string=_constants.MESSAGE_KIND_VALUE_PUBLISH
                 ),
             }
+            if sender is not None:
+                attributes[_constants.AGENT_SENDER_TYPE_ATTR] = cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string=sender.type
+                )
+                attributes[_constants.AGENT_SENDER_KEY_ATTR] = cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string=sender.key
+                )
 
             # If sending JSON we fill text_data with the serialized message
             # If sending Protobuf we fill proto_data with the serialized message
