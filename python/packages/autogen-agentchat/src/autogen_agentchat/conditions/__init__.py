@@ -30,3 +30,10 @@ __all__ = [
     "FunctionCallTermination",
     "FunctionalTermination",
 ]
+
+from ._shackle_guard import ShackleGuard, ShackleGuardConfig
+
+__all__ = [
+    "ShackleGuard",
+    "ShackleGuardConfig",
+]
