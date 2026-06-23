@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Callable, List, Mapping, Sequence
+from typing import Any, Callable, List, Mapping, Optional, Sequence
 
 from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
@@ -29,6 +29,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool,
+        source_verifier: Callable[[str, Sequence[BaseAgentEvent | BaseChatMessage]], Optional[str]] | None = None,
     ) -> None:
         super().__init__(
             name,
@@ -42,6 +43,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             max_turns,
             message_factory,
             emit_team_events,
+            source_verifier,
         )
         self._next_speaker_index = 0
 
@@ -276,6 +278,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        source_verifier: Callable[[str, Sequence[BaseAgentEvent | BaseChatMessage]], Optional[str]] | None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
@@ -290,6 +293,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
                 max_turns,
                 message_factory,
                 self._emit_team_events,
+                source_verifier,
             )
 
         return _factory
