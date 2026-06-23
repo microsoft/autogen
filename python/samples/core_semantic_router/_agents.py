@@ -64,5 +64,5 @@ class UserProxyAgent(RoutedAgent):
 
     async def get_user_input(self, prompt: str) -> str:
         """Get user input from the console. Override this method to customize how user input is retrieved."""
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, input, prompt)
