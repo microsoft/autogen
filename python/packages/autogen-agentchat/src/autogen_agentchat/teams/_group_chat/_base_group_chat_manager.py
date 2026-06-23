@@ -1,6 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, List, Sequence
+from typing import Any, Callable, List, Optional, Sequence
 
 from autogen_core import CancellationToken, DefaultTopicId, MessageContext, event, rpc
 
@@ -47,7 +47,18 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool = False,
+        source_verifier: Callable[[str, Sequence[BaseAgentEvent | BaseChatMessage]], Optional[str]] | None = None,
     ):
+        """
+        Args:
+            source_verifier: Optional callback to verify the source of agent responses.
+                Called when a GroupChatAgentResponse or GroupChatTeamResponse is received,
+                before processing the response. The callback receives the claimed source name
+                and the message thread. It may return None to accept the message, or a
+                string describing the reason for rejection, which will cause the group chat
+                to terminate with an error. This is useful for identity verification,
+                content pinning, or policy enforcement. Defaults to None (no verification).
+        """
         super().__init__(
             description="Group chat manager",
             sequential_message_types=[
@@ -82,6 +93,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._message_factory = message_factory
         self._emit_team_events = emit_team_events
         self._active_speakers: List[str] = []
+        self._source_verifier = source_verifier
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -136,6 +148,16 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self, message: GroupChatAgentResponse | GroupChatTeamResponse, ctx: MessageContext
     ) -> None:
         try:
+            # Verify the source of the agent response if a verifier is registered.
+            if self._source_verifier is not None:
+                rejection_reason = self._source_verifier(message.name, self._message_thread)
+                if rejection_reason is not None:
+                    error = SerializableException(
+                        error_type="SourceVerificationError",
+                        error_message=rejection_reason,
+                    )
+                    await self._signal_termination_with_error(error)
+                    return
             # Construct the detla from the agent response.
             delta: List[BaseAgentEvent | BaseChatMessage] = []
             if isinstance(message, GroupChatAgentResponse):

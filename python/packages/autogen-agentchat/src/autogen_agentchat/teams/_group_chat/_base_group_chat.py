@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
+from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Optional, Sequence
 
 from autogen_core import (
     AgentId,
@@ -75,6 +75,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         runtime: AgentRuntime | None = None,
         custom_message_types: List[type[BaseAgentEvent | BaseChatMessage]] | None = None,
         emit_team_events: bool = False,
+        source_verifier: Callable[[str, Sequence[BaseAgentEvent | BaseChatMessage]], Optional[str]] | None = None,
     ):
         self._name = name
         self._description = description
@@ -130,6 +131,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._output_message_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | GroupChatTermination] = (
             asyncio.Queue()
         )
+        self._source_verifier = source_verifier
 
         # Create a runtime for the team.
         if runtime is not None:
@@ -173,6 +175,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         message_factory: MessageFactory,
+        source_verifier: Callable[[str, Sequence[BaseAgentEvent | BaseChatMessage]], Optional[str]] | None,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
@@ -224,6 +227,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 termination_condition=self._termination_condition,
                 max_turns=self._max_turns,
                 message_factory=self._message_factory,
+                source_verifier=self._source_verifier,
             ),
         )
         # Add subscriptions for the group chat manager.
