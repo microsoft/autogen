@@ -182,7 +182,10 @@ class StaticStreamWorkbench(StaticWorkbench, StreamWorkbench):
         cancellation_token: CancellationToken | None = None,
         call_id: str | None = None,
     ) -> AsyncGenerator[Any | ToolResult, None]:
-        tool = next((tool for tool in self._tools if tool.name == name), None)
+        # Check if the name is an override name and map it back to the original
+        original_name = self._override_name_to_original.get(name, name)
+
+        tool = next((tool for tool in self._tools if tool.name == original_name), None)
         if tool is None:
             yield ToolResult(
                 name=name,
@@ -210,7 +213,7 @@ class StaticStreamWorkbench(StaticWorkbench, StreamWorkbench):
                         yield previous_result
                     # Then yield the error result
                     result_str = self._format_errors(e)
-                    yield ToolResult(name=tool.name, result=[TextResultContent(content=result_str)], is_error=True)
+                    yield ToolResult(name=name, result=[TextResultContent(content=result_str)], is_error=True)
                     return
             else:
                 # If the tool is not a stream tool, we run it normally and yield the result
@@ -222,4 +225,4 @@ class StaticStreamWorkbench(StaticWorkbench, StreamWorkbench):
         except Exception as e:
             result_str = self._format_errors(e)
             is_error = True
-        yield ToolResult(name=tool.name, result=[TextResultContent(content=result_str)], is_error=is_error)
+        yield ToolResult(name=name, result=[TextResultContent(content=result_str)], is_error=is_error)
