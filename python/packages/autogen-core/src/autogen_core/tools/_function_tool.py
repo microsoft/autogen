@@ -115,8 +115,9 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
             else:
                 result = await self._func(**kwargs)
         else:
+            loop = asyncio.get_running_loop()
             if self._has_cancellation_support:
-                result = await asyncio.get_event_loop().run_in_executor(
+                result = await loop.run_in_executor(
                     None,
                     functools.partial(
                         self._func,
@@ -125,7 +126,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
                     ),
                 )
             else:
-                future = asyncio.get_event_loop().run_in_executor(None, functools.partial(self._func, **kwargs))
+                future = loop.run_in_executor(None, functools.partial(self._func, **kwargs))
                 cancellation_token.link_future(future)
                 result = await future
 
