@@ -25,6 +25,7 @@ from .._component_config import ComponentBase
 from .._function_utils import normalize_annotated_type
 from .._telemetry import trace_tool_span
 from ..logging import ToolCallEvent
+from ._guardrail import Decision, GuardrailProvider, GuardrailResult
 
 T = TypeVar("T", bound=BaseModel, contravariant=True)
 
@@ -103,6 +104,7 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         name: str,
         description: str,
         strict: bool = False,
+        guardrail_providers: Sequence[GuardrailProvider] = (),
     ) -> None:
         self._args_type = args_type
         # Normalize Annotated to the base type.
@@ -110,6 +112,7 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         self._name = name
         self._description = description
         self._strict = strict
+        self._guardrail_providers = guardrail_providers
 
     @property
     def schema(self) -> ToolSchema:
@@ -187,15 +190,31 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             call_id (str | None): An optional identifier for the tool call, used for tracing.
 
         Returns:
-            Any: The return value of the tool's run method.
+            Any: The return value of the tool's run method, or a denial string if
+                a guardrail provider denied the call.
         """
+        effective_args = args
+
+        # Run guardrail providers in order; short-circuit on DENY.
+        for provider in self._guardrail_providers:
+            result = await provider.evaluate(
+                tool_name=self._name,
+                args=effective_args,
+                call_id=call_id,
+                cancellation_token=cancellation_token,
+            )
+            if result.decision == Decision.DENY:
+                return f"Tool call denied: {result.reason or 'policy violation'}"
+            if result.decision == Decision.MODIFY and result.modified_args is not None:
+                effective_args = result.modified_args
+
         with trace_tool_span(
             tool_name=self._name,
             tool_description=self._description,
             tool_call_id=call_id,
         ):
             # Execute the tool's run method
-            return_value = await self.run(self._args_type.model_validate(args), cancellation_token)
+            return_value = await self.run(self._args_type.model_validate(effective_args), cancellation_token)
 
         # Log the tool call event
         event = ToolCallEvent(
@@ -206,6 +225,16 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         logger.info(event)
 
         return return_value
+
+    def add_guardrail(self, provider: GuardrailProvider) -> None:
+        """Add a guardrail provider to the tool.
+
+        Args:
+            provider: A guardrail provider to evaluate tool calls before execution.
+                Providers are evaluated in the order they were added; the first
+                DENY short-circuits subsequent providers and blocks execution.
+        """
+        self._guardrail_providers = (*self._guardrail_providers, provider)
 
     async def save_state_json(self) -> Mapping[str, Any]:
         return {}
@@ -229,7 +258,7 @@ class BaseStreamTool(
         args: Mapping[str, Any],
         cancellation_token: CancellationToken,
         call_id: str | None = None,
-    ) -> AsyncGenerator[StreamT | ReturnT, None]:
+    ) -> AsyncGenerator[Any, None]:
         """Run the tool with the provided arguments in a dictionary and return a stream of data
         from the tool's :meth:`run_stream` method and end with the final return value.
 
@@ -239,8 +268,24 @@ class BaseStreamTool(
             call_id (str | None): An optional identifier for the tool call, used for tracing.
 
         Returns:
-            AsyncGenerator[StreamT | ReturnT, None]: A generator yielding results from the tool's :meth:`run_stream` method.
+            AsyncGenerator[Any, None]: A generator yielding results from the tool's :meth:`run_stream` method.
         """
+        effective_args = args
+
+        # Run guardrail providers in order; short-circuit on DENY.
+        for provider in self._guardrail_providers:
+            result = await provider.evaluate(
+                tool_name=self._name,
+                args=effective_args,
+                call_id=call_id,
+                cancellation_token=cancellation_token,
+            )
+            if result.decision == Decision.DENY:
+                yield f"Tool call denied: {result.reason or 'policy violation'}"
+                return
+            if result.decision == Decision.MODIFY and result.modified_args is not None:
+                effective_args = result.modified_args
+
         return_value: ReturnT | StreamT | None = None
         with trace_tool_span(
             tool_name=self._name,
@@ -248,7 +293,7 @@ class BaseStreamTool(
             tool_call_id=call_id,
         ):
             # Execute the tool's run_stream method
-            async for result in self.run_stream(self._args_type.model_validate(args), cancellation_token):
+            async for result in self.run_stream(self._args_type.model_validate(effective_args), cancellation_token):
                 return_value = result
                 yield result
 

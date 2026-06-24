@@ -15,6 +15,7 @@ from .._function_utils import (
 )
 from ..code_executor._func_with_reqs import Import, import_to_str, to_code
 from ._base import BaseTool
+from ._guardrail import GuardrailProvider
 
 
 class FunctionToolConfig(BaseModel):
@@ -92,6 +93,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         name: str | None = None,
         global_imports: Sequence[Import] = [],
         strict: bool = False,
+        guardrail_providers: Sequence[GuardrailProvider] = (),
     ) -> None:
         self._func = func
         self._global_imports = global_imports
@@ -100,7 +102,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         args_model = args_base_model_from_signature(func_name + "args", self._signature)
         self._has_cancellation_support = "cancellation_token" in self._signature.parameters
         return_type = self._signature.return_annotation
-        super().__init__(args_model, return_type, func_name, description, strict)
+        super().__init__(args_model, return_type, func_name, description, strict, guardrail_providers)
 
     async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
         kwargs = {}
@@ -178,4 +180,4 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         if not callable(func):
             raise TypeError(f"Expected function but got {type(func)}")
 
-        return cls(func, name=config.name, description=config.description, global_imports=config.global_imports)
+        return cls(func, name=config.name, description=config.description, global_imports=config.global_imports, guardrail_providers=())

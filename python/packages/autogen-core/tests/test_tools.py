@@ -1,13 +1,14 @@
 import inspect
 from dataclasses import dataclass
 from functools import partial
-from typing import Annotated, List
+from typing import Annotated, Any, List, Mapping
 
 import pytest
 from autogen_core import CancellationToken
 from autogen_core._function_utils import get_typed_signature
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
+from autogen_core.tools._guardrail import Decision, GuardrailProvider, GuardrailResult
 from pydantic import BaseModel, Field, ValidationError, model_serializer
 from pydantic_core import PydanticUndefined
 
@@ -589,3 +590,273 @@ async def test_func_tool_with_dataclass_conversion_failure() -> None:
 
     with pytest.raises(ValidationError, match="Field required"):
         await tool.run_json(test_input, CancellationToken())
+
+
+# Guardrail provider implementations for testing.
+
+
+class _AllowGuardrail:
+    """A guardrail that always allows."""
+
+    async def evaluate(
+        self,
+        *,
+        tool_name: str,
+        args: Mapping[str, Any],
+        agent_name: str | None = None,
+        call_id: str | None = None,
+        cancellation_token: Any = None,
+    ) -> GuardrailResult:
+        return GuardrailResult(decision=Decision.ALLOW)
+
+
+class _DenyGuardrail:
+    """A guardrail that always denies with a configurable reason."""
+
+    def __init__(self, reason: str = "denied by test guardrail"):
+        self._reason = reason
+
+    async def evaluate(
+        self,
+        *,
+        tool_name: str,
+        args: Mapping[str, Any],
+        agent_name: str | None = None,
+        call_id: str | None = None,
+        cancellation_token: Any = None,
+    ) -> GuardrailResult:
+        return GuardrailResult(decision=Decision.DENY, reason=self._reason)
+
+
+class _ModifyGuardrail:
+    """A guardrail that modifies arguments."""
+
+    def __init__(self, override: Mapping[str, Any]):
+        self._override = override
+
+    async def evaluate(
+        self,
+        *,
+        tool_name: str,
+        args: Mapping[str, Any],
+        agent_name: str | None = None,
+        call_id: str | None = None,
+        cancellation_token: Any = None,
+    ) -> GuardrailResult:
+        return GuardrailResult(
+            decision=Decision.MODIFY,
+            modified_args=self._override,
+            reason="args modified by test guardrail",
+        )
+
+
+class _CountingGuardrail:
+    """A guardrail that counts how many times it was called."""
+
+    def __init__(self) -> None:
+        self.call_count = 0
+        self.last_tool_name: str | None = None
+        self.last_args: Mapping[str, Any] | None = None
+
+    async def evaluate(
+        self,
+        *,
+        tool_name: str,
+        args: Mapping[str, Any],
+        agent_name: str | None = None,
+        call_id: str | None = None,
+        cancellation_token: Any = None,
+    ) -> GuardrailResult:
+        self.call_count += 1
+        self.last_tool_name = tool_name
+        self.last_args = dict(args)
+        return GuardrailResult(decision=Decision.ALLOW)
+
+
+# ---------------------------------------------------------------------------
+# Tests for guardrail integration
+# ---------------------------------------------------------------------------
+
+
+def test_guardrail_protocol_allow() -> None:
+    """A tool with an allow guardrail executes normally."""
+
+    class AllowTool(MyTool):
+        def __init__(self) -> None:
+            super().__init__()
+            self._guardrail_providers = (_AllowGuardrail(),)
+
+    tool = AllowTool()
+    assert isinstance(tool._guardrail_providers[0], _AllowGuardrail)
+
+
+@pytest.mark.asyncio
+async def test_guardrail_allow_executes() -> None:
+    """When the guardrail returns ALLOW, the tool runs normally."""
+    tool = MyTool()
+    tool.add_guardrail(_AllowGuardrail())
+    result = await tool.run_json({"query": "test"}, CancellationToken())
+    assert result.result == "value"
+
+
+@pytest.mark.asyncio
+async def test_guardrail_deny_returns_denial_string() -> None:
+    """When the guardrail returns DENY, the tool does not execute and a denial message is returned."""
+    tool = MyTool()
+    tool.add_guardrail(_DenyGuardrail("unsafe input"))
+    result = await tool.run_json({"query": "test"}, CancellationToken())
+    assert result == "Tool call denied: unsafe input"
+
+
+@pytest.mark.asyncio
+async def test_guardrail_deny_preserves_reason() -> None:
+    """DENY without a reason falls back to 'policy violation'."""
+    tool = MyTool()
+    tool.add_guardrail(_DenyGuardrail())
+    result = await tool.run_json({"query": "test"}, CancellationToken())
+    assert result == "Tool call denied: denied by test guardrail"
+
+
+@pytest.mark.asyncio
+async def test_guardrail_modify_passes_modified_args() -> None:
+    """When the guardrail returns MODIFY, the tool receives the modified arguments."""
+    tool = MyTool()
+    tool.add_guardrail(_ModifyGuardrail({"query": "modified input"}))
+    result = await tool.run_json({"query": "original"}, CancellationToken())
+    assert result.result == "value"
+
+
+@pytest.mark.asyncio
+async def test_guardrail_chain_order() -> None:
+    """Guardrails evaluate in order; first DENY short-circuits."""
+    tool = MyTool()
+    counter = _CountingGuardrail()
+    tool.add_guardrail(_DenyGuardrail("stop here"))
+    tool.add_guardrail(counter)  # Should never be reached
+
+    result = await tool.run_json({"query": "test"}, CancellationToken())
+    assert result == "Tool call denied: stop here"
+    assert counter.call_count == 0  # never called
+
+
+@pytest.mark.asyncio
+async def test_guardrail_chain_all_allow() -> None:
+    """When all guardrails return ALLOW, the tool executes."""
+    tool = MyTool()
+    counter = _CountingGuardrail()
+    tool.add_guardrail(_CountingGuardrail())
+    tool.add_guardrail(counter)
+
+    result = await tool.run_json({"query": "test"}, CancellationToken())
+    assert result.result == "value"
+    assert counter.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_guardrail_modify_chains() -> None:
+    """MODIFY passes modified args to the next guardrail in the chain."""
+    tool = MyTool()
+    second = _CountingGuardrail()
+    tool.add_guardrail(_ModifyGuardrail({"query": "first pass"}))
+    tool.add_guardrail(second)
+
+    await tool.run_json({"query": "original"}, CancellationToken())
+    # The second guardrail receives the modified args
+    assert second.last_args == {"query": "first pass"}
+
+
+@pytest.mark.asyncio
+async def test_guardrail_receives_tool_name() -> None:
+    """Guardrail receives the correct tool name."""
+    tool = MyTool()
+    counter = _CountingGuardrail()
+    tool.add_guardrail(counter)
+
+    await tool.run_json({"query": "test"}, CancellationToken())
+    assert counter.last_tool_name == "TestTool"
+
+
+@pytest.mark.asyncio
+async def test_guardrail_receives_original_args() -> None:
+    """Guardrail receives the arguments as passed (not yet modified by earlier guardrails in the chain)."""
+    tool = MyTool()
+    counter = _CountingGuardrail()
+    tool.add_guardrail(_ModifyGuardrail({"query": "modified"}))
+    tool.add_guardrail(counter)
+
+    await tool.run_json({"query": "original"}, CancellationToken())
+    # First guardrail modified to "modified", but second guardrail receives
+    # what was passed to it by the first guardrail (the MODIFY result)
+    assert counter.last_args == {"query": "modified"}
+
+
+@pytest.mark.asyncio
+async def test_guardrail_multiple_tools_independent() -> None:
+    """Each tool instance has its own guardrail chain."""
+    tool_a = MyTool()
+    tool_b = MyTool()
+    counter_a = _CountingGuardrail()
+    counter_b = _CountingGuardrail()
+    tool_a.add_guardrail(counter_a)
+    tool_b.add_guardrail(counter_b)
+
+    await tool_a.run_json({"query": "a"}, CancellationToken())
+    await tool_b.run_json({"query": "b"}, CancellationToken())
+    await tool_b.run_json({"query": "c"}, CancellationToken())
+
+    assert counter_a.call_count == 1
+    assert counter_b.call_count == 2
+
+
+def test_guardrail_via_init() -> None:
+    """GuardrailProvider can be passed at construction time via BaseTool.__init__."""
+    async def typed_query(query: str) -> str:
+        return query
+
+    tool = FunctionTool(
+        typed_query,
+        description="Example",
+        guardrail_providers=(_AllowGuardrail(), _CountingGuardrail()),
+    )
+    assert len(tool._guardrail_providers) == 2
+
+
+@pytest.mark.asyncio
+async def test_guardrail_empty_chain_no_overhead() -> None:
+    """A tool with no guardrails executes without any guardrail overhead."""
+    tool = MyTool()
+    result = await tool.run_json({"query": "test"}, CancellationToken())
+    assert result.result == "value"
+
+
+@pytest.mark.asyncio
+async def test_guardrail_deny_preserves_tool_error_behavior() -> None:
+    """Guardrail DENY returns a string, not an exception — callers handle it as a tool error."""
+    tool = MyTool()
+    tool.add_guardrail(_DenyGuardrail("custom reason"))
+
+    result = await tool.run_json({"query": "test"}, CancellationToken())
+    assert isinstance(result, str)
+    assert "custom reason" in result
+
+
+@pytest.mark.asyncio
+async def test_guardrail_guardrail_provider_subclass() -> None:
+    """GuardrailProvider is a runtime-checkable Protocol."""
+
+    class SubclassGuardrail:
+        async def evaluate(
+            self,
+            *,
+            tool_name: str,
+            args: Mapping[str, Any],
+            agent_name: str | None = None,
+            call_id: str | None = None,
+            cancellation_token: Any = None,
+        ) -> GuardrailResult:
+            return GuardrailResult(decision=Decision.ALLOW)
+
+    tool = MyTool()
+    tool.add_guardrail(SubclassGuardrail())
+    result = tool._guardrail_providers[0]
+    assert isinstance(result, SubclassGuardrail)
