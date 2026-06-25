@@ -76,6 +76,28 @@ my_handler = MyHandler()
 logger.handlers = [my_handler]
 ```
 
+## Cryptographic receipts and audit trails
+
+Structured logging is the supported integration point for systems that need to
+turn AutoGen activity into an external audit trail. For example, a logging handler
+can consume {py:class}`~autogen_core.logging.MessageEvent`,
+{py:class}`~autogen_core.logging.ToolCallEvent`, and
+{py:class}`~autogen_core.logging.LLMCallEvent`, canonicalize the event payload,
+hash sensitive inputs or outputs, and pass the resulting digest to a signing or
+receipt service.
+
+AutoGen does not prescribe a receipt format or signing scheme. This keeps the
+runtime independent of any particular governance standard while still exposing
+stable structured events that a deployment can adapt to Agent Action Receipt
+(AAR), internal policy receipts, or SIEM ingestion.
+
+For stronger pre-execution and post-execution boundaries, combine structured
+logging with {py:class}`~autogen_core.InterventionHandler`. Intervention handlers
+run when messages are sent, published, or returned, so they can record decision
+metadata such as the sender, recipient, policy version, verdict, and parent trace
+before a message is delivered. Recording denied or dropped messages at this
+boundary avoids audit gaps where only successful actions produce evidence.
+
 ## Emitting logs
 
 These two names are the root loggers for these types. Code that emits logs should use a child logger of these loggers. For example, if you are writing a module `my_module` and you want to emit trace logs, you should use the logger named:
