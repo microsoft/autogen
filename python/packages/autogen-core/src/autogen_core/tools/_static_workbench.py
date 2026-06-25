@@ -116,6 +116,8 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
             result_future = asyncio.ensure_future(tool.run_json(arguments, cancellation_token, call_id=call_id))
             cancellation_token.link_future(result_future)
             actual_tool_output = await result_future
+            if isinstance(actual_tool_output, ToolResult):
+                return actual_tool_output
             is_error = False
             result_str = tool.return_value_as_string(actual_tool_output)
         except Exception as e:
@@ -217,6 +219,9 @@ class StaticStreamWorkbench(StaticWorkbench, StreamWorkbench):
                 result_future = asyncio.ensure_future(tool.run_json(arguments, cancellation_token, call_id=call_id))
                 cancellation_token.link_future(result_future)
                 actual_tool_output = await result_future
+            if isinstance(actual_tool_output, ToolResult):
+                yield actual_tool_output
+                return
             is_error = False
             result_str = tool.return_value_as_string(actual_tool_output)
         except Exception as e:
