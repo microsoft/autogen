@@ -141,11 +141,7 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
 
 def _normalize_model_id(model: str) -> str:
     """Normalize provider-specific Anthropic model IDs to table keys."""
-    if model.startswith("anthropic."):
-        model = model.removeprefix("anthropic.")
-    elif ".anthropic." in model:
-        model = model.split(".anthropic.", 1)[1]
-
+    model = re.sub(r"^(?:[a-z]+\.)?anthropic\.", "", model)
     return re.sub(r"-v\d+:\d+$", "", model)
 
 
