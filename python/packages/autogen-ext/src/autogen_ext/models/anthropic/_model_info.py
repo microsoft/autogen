@@ -1,3 +1,4 @@
+import re
 from typing import Dict
 
 from autogen_core.models import ModelFamily, ModelInfo
@@ -138,15 +139,27 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
 }
 
 
+def _normalize_model_id(model: str) -> str:
+    """Normalize provider-specific Anthropic model IDs to table keys."""
+    if model.startswith("anthropic."):
+        model = model.removeprefix("anthropic.")
+    elif ".anthropic." in model:
+        model = model.split(".anthropic.", 1)[1]
+
+    return re.sub(r"-v\d+:\d+$", "", model)
+
+
 def get_info(model: str) -> ModelInfo:
     """Get the model information for a specific model."""
+    normalized_model = _normalize_model_id(model)
+
     # Check for exact match first
-    if model in _MODEL_INFO:
-        return _MODEL_INFO[model]
+    if normalized_model in _MODEL_INFO:
+        return _MODEL_INFO[normalized_model]
 
     # Check for partial match (for handling model variants)
     for model_id in _MODEL_INFO:
-        if model.startswith(model_id.split("-2")[0]):  # Match base name
+        if normalized_model.startswith(model_id.split("-2")[0]):  # Match base name
             return _MODEL_INFO[model_id]
 
     raise KeyError(f"Model '{model}' not found in model info")
@@ -154,13 +167,15 @@ def get_info(model: str) -> ModelInfo:
 
 def get_token_limit(model: str) -> int:
     """Get the token limit for a specific model."""
+    normalized_model = _normalize_model_id(model)
+
     # Check for exact match first
-    if model in _MODEL_TOKEN_LIMITS:
-        return _MODEL_TOKEN_LIMITS[model]
+    if normalized_model in _MODEL_TOKEN_LIMITS:
+        return _MODEL_TOKEN_LIMITS[normalized_model]
 
     # Check for partial match (for handling model variants)
     for model_id in _MODEL_TOKEN_LIMITS:
-        if model.startswith(model_id.split("-2")[0]):  # Match base name
+        if normalized_model.startswith(model_id.split("-2")[0]):  # Match base name
             return _MODEL_TOKEN_LIMITS[model_id]
 
     # Default to a reasonable limit if model not found
