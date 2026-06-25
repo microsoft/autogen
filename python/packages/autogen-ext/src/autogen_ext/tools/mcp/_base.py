@@ -4,8 +4,8 @@ import json
 from abc import ABC
 from typing import Any, Dict, Generic, Sequence, Type, TypeVar
 
-from autogen_core import CancellationToken
-from autogen_core.tools import BaseTool
+from autogen_core import CancellationToken, Image
+from autogen_core.tools import BaseTool, ImageResultContent, TextResultContent, ToolResult
 from autogen_core.utils import schema_to_pydantic_model
 from pydantic import BaseModel
 from pydantic.networks import AnyUrl
@@ -37,10 +37,21 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
     component_type = "tool"
 
-    def __init__(self, server_params: TServerParams, tool: Tool, session: ClientSession | None = None) -> None:
+    def __init__(
+        self,
+        server_params: TServerParams,
+        tool: Tool,
+        session: ClientSession | None = None,
+        max_retries: int = 0,
+        retry_delay: float = 1.0,
+        raise_on_error: bool = False,
+    ) -> None:
         self._tool = tool
         self._server_params = server_params
         self._session = session
+        self._max_retries = max_retries
+        self._retry_delay = retry_delay
+        self._raise_on_error = raise_on_error
 
         # Extract name and description
         name = tool.name
@@ -49,12 +60,12 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         # Create the input model from the tool's schema
         input_model = schema_to_pydantic_model(tool.inputSchema)
 
-        # Use Any as return type since MCP tool returns can vary
-        return_type: Type[Any] = object
+        # Use ToolResult as return type
+        return_type: Type[ToolResult] = ToolResult
 
         super().__init__(input_model, return_type, name, description)
 
-    async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
+    async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> ToolResult:
         """
         Run the MCP tool with the provided arguments.
 
@@ -63,24 +74,50 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
             cancellation_token (CancellationToken): Token to signal cancellation.
 
         Returns:
-            Any: The result of the tool execution.
-
-        Raises:
-            Exception: If the operation is cancelled or the tool execution fails.
+            ToolResult: The result of the tool execution.
         """
         # Convert the input model to a dictionary
         # Exclude unset values to avoid sending them to the MCP servers which may cause errors
         # for many servers.
         kwargs = args.model_dump(exclude_unset=True)
 
-        if self._session is not None:
-            # If a session is provided, use it directly.
-            session = self._session
-            return await self._run(args=kwargs, cancellation_token=cancellation_token, session=session)
+        exceptions_to_catch: tuple[Type[BaseException], ...]
+        if hasattr(builtins, "ExceptionGroup"):
+            exceptions_to_catch = (asyncio.CancelledError, builtins.ExceptionGroup)
+        else:
+            exceptions_to_catch = (asyncio.CancelledError,)
 
-        async with create_mcp_server_session(self._server_params) as session:
-            await session.initialize()
-            return await self._run(args=kwargs, cancellation_token=cancellation_token, session=session)
+        attempts = 1 + self._max_retries
+        for attempt in range(attempts):
+            try:
+                if cancellation_token.is_cancelled():
+                    raise asyncio.CancelledError("Operation cancelled")
+
+                if self._session is not None:
+                    # If a session is provided, use it directly.
+                    session = self._session
+                    return await self._run(args=kwargs, cancellation_token=cancellation_token, session=session)
+
+                async with create_mcp_server_session(self._server_params) as session:
+                    await session.initialize()
+                    return await self._run(args=kwargs, cancellation_token=cancellation_token, session=session)
+
+            except exceptions_to_catch:
+                # Re-raise these specific exception types directly.
+                raise
+            except Exception as e:
+                if attempt < attempts - 1:
+                    await asyncio.sleep(self._retry_delay)
+                    continue
+                if self._raise_on_error:
+                    raise
+                return ToolResult(
+                    name=self.name,
+                    result=[TextResultContent(content=f"Tool {self.name} failed: {str(e)}")],
+                    is_error=True,
+                )
+
+        raise RuntimeError("Unreachable")
 
     def _normalize_payload_to_content_list(self, payload: Sequence[ContentBlock]) -> list[ContentBlock]:
         """
@@ -102,7 +139,9 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         else:
             return [TextContent(text=str(payload), type="text")]
 
-    async def _run(self, args: Dict[str, Any], cancellation_token: CancellationToken, session: ClientSession) -> Any:
+    async def _run(
+        self, args: Dict[str, Any], cancellation_token: CancellationToken, session: ClientSession
+    ) -> ToolResult:
         exceptions_to_catch: tuple[Type[BaseException], ...]
         if hasattr(builtins, "ExceptionGroup"):
             exceptions_to_catch = (asyncio.CancelledError, builtins.ExceptionGroup)
@@ -117,12 +156,23 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
             cancellation_token.link_future(result_future)
             result = await result_future
 
-            normalized_content_list = self._normalize_payload_to_content_list(result.content)
-
-            if result.isError:
+            if result.isError and self._raise_on_error:
+                normalized_content_list = self._normalize_payload_to_content_list(result.content)
                 serialized_error_message = self.return_value_as_string(normalized_content_list)
                 raise Exception(serialized_error_message)
-            return normalized_content_list
+
+            result_parts: list[TextResultContent | ImageResultContent] = []
+            for content in result.content:
+                if isinstance(content, TextContent):
+                    result_parts.append(TextResultContent(content=content.text))
+                elif isinstance(content, ImageContent):
+                    result_parts.append(ImageResultContent(content=Image.from_base64(content.data)))
+                elif isinstance(content, EmbeddedResource):
+                    result_parts.append(TextResultContent(content=content.model_dump_json()))
+                else:
+                    result_parts.append(TextResultContent(content=str(content)))
+
+            return ToolResult(name=self.name, result=result_parts, is_error=result.isError)
 
         except exceptions_to_catch:
             # Re-raise these specific exception types directly.
@@ -156,8 +206,10 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
         return cls(server_params=server_params, tool=matching_tool)
 
-    def return_value_as_string(self, value: list[Any]) -> str:
+    def return_value_as_string(self, value: Any) -> str:
         """Return a string representation of the result."""
+        if isinstance(value, ToolResult):
+            return value.to_text()
 
         def serialize_item(item: Any) -> dict[str, Any]:
             if isinstance(item, (TextContent, ImageContent, AudioContent)):

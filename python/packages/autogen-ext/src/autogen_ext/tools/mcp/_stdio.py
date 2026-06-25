@@ -13,6 +13,9 @@ class StdioMcpToolAdapterConfig(BaseModel):
 
     server_params: StdioServerParams
     tool: Tool
+    max_retries: int = 0
+    retry_delay: float = 1.0
+    raise_on_error: bool = False
 
 
 class StdioMcpToolAdapter(
@@ -41,6 +44,9 @@ class StdioMcpToolAdapter(
         session (ClientSession, optional): The MCP client session to use. If not provided,
             a new session will be created. This is useful for testing or when you want to
             manage the session lifecycle yourself.
+        max_retries (int, optional): The maximum number of retries for tool execution. Defaults to 0.
+        retry_delay (float, optional): The delay in seconds between retries. Defaults to 1.0.
+        raise_on_error (bool, optional): Whether to raise an exception on tool error. Defaults to False.
 
     See :func:`~autogen_ext.tools.mcp.mcp_server_tools` for examples.
     """
@@ -48,8 +54,23 @@ class StdioMcpToolAdapter(
     component_config_schema = StdioMcpToolAdapterConfig
     component_provider_override = "autogen_ext.tools.mcp.StdioMcpToolAdapter"
 
-    def __init__(self, server_params: StdioServerParams, tool: Tool, session: ClientSession | None = None) -> None:
-        super().__init__(server_params=server_params, tool=tool, session=session)
+    def __init__(
+        self,
+        server_params: StdioServerParams,
+        tool: Tool,
+        session: ClientSession | None = None,
+        max_retries: int = 0,
+        retry_delay: float = 1.0,
+        raise_on_error: bool = False,
+    ) -> None:
+        super().__init__(
+            server_params=server_params,
+            tool=tool,
+            session=session,
+            max_retries=max_retries,
+            retry_delay=retry_delay,
+            raise_on_error=raise_on_error,
+        )
 
     def _to_config(self) -> StdioMcpToolAdapterConfig:
         """
@@ -58,7 +79,13 @@ class StdioMcpToolAdapter(
         Returns:
             StdioMcpToolAdapterConfig: The configuration of the adapter.
         """
-        return StdioMcpToolAdapterConfig(server_params=self._server_params, tool=self._tool)
+        return StdioMcpToolAdapterConfig(
+            server_params=self._server_params,
+            tool=self._tool,
+            max_retries=self._max_retries,
+            retry_delay=self._retry_delay,
+            raise_on_error=self._raise_on_error,
+        )
 
     @classmethod
     def _from_config(cls, config: StdioMcpToolAdapterConfig) -> Self:
@@ -71,4 +98,10 @@ class StdioMcpToolAdapter(
         Returns:
             StdioMcpToolAdapter: An instance of StdioMcpToolAdapter.
         """
-        return cls(server_params=config.server_params, tool=config.tool)
+        return cls(
+            server_params=config.server_params,
+            tool=config.tool,
+            max_retries=config.max_retries,
+            retry_delay=config.retry_delay,
+            raise_on_error=config.raise_on_error,
+        )
