@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 def extract_json_from_str(content: str) -> List[Dict[str, Any]]:
     """Extract JSON objects from a string. Supports backtick enclosed JSON objects"""
-    pattern = re.compile(r"```(?:\s*([\w\+\-]+))?\n([\s\S]*?)```")
+    pattern = re.compile(r"```(?:\s*([\w\+\-]+))?\r?\n([\s\S]*?)```")
     matches = pattern.findall(content)
     ret: List[Dict[str, Any]] = []
     # If no matches found, assume the entire content is a JSON object
