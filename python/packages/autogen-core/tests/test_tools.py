@@ -1,14 +1,16 @@
 import inspect
+import json
+import logging
 from dataclasses import dataclass
 from functools import partial
 from typing import Annotated, Any, List, Mapping
 
 import pytest
-from autogen_core import CancellationToken
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken
 from autogen_core._function_utils import get_typed_signature
-from autogen_core.tools import BaseTool, FunctionTool
+from autogen_core.tools import BaseStreamTool, BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
-from autogen_core.tools._guardrail import Decision, GuardrailProvider, GuardrailResult
+from autogen_core.tools._guardrail import Decision, GuardrailDeniedError, GuardrailProvider, GuardrailResult
 from pydantic import BaseModel, Field, ValidationError, model_serializer
 from pydantic_core import PydanticUndefined
 
@@ -53,6 +55,35 @@ class MyNestedTool(BaseTool[MyNestedArgs, MyResult]):
     async def run(self, args: MyNestedArgs, cancellation_token: CancellationToken) -> MyResult:
         self.called_count += 1
         return MyResult(result="value")
+
+
+class RecordingTool(BaseTool[MyArgs, MyResult]):
+    def __init__(self) -> None:
+        super().__init__(
+            args_type=MyArgs,
+            return_type=MyResult,
+            name="RecordingTool",
+            description="Records the effective args.",
+        )
+        self.last_args: MyArgs | None = None
+
+    async def run(self, args: MyArgs, cancellation_token: CancellationToken) -> MyResult:
+        self.last_args = args
+        return MyResult(result=args.query)
+
+
+class MyStreamTool(BaseStreamTool[MyArgs, MyResult, MyResult]):
+    def __init__(self) -> None:
+        super().__init__(MyArgs, MyResult, "TestStreamTool", "Description of test stream tool.")
+        self.called_count = 0
+
+    async def run(self, args: MyArgs, cancellation_token: CancellationToken) -> MyResult:
+        self.called_count += 1
+        return MyResult(result=args.query)
+
+    async def run_stream(self, args: MyArgs, cancellation_token: CancellationToken):  # type: ignore[no-untyped-def]
+        self.called_count += 1
+        yield MyResult(result=args.query)
 
 
 def test_tool_schema_generation() -> None:
@@ -613,7 +644,7 @@ class _AllowGuardrail:
 class _DenyGuardrail:
     """A guardrail that always denies with a configurable reason."""
 
-    def __init__(self, reason: str = "denied by test guardrail"):
+    def __init__(self, reason: str | None = "denied by test guardrail"):
         self._reason = reason
 
     async def evaluate(
@@ -678,16 +709,16 @@ class _CountingGuardrail:
 # ---------------------------------------------------------------------------
 
 
-def test_guardrail_protocol_allow() -> None:
+@pytest.mark.asyncio
+async def test_guardrail_protocol_allow() -> None:
     """A tool with an allow guardrail executes normally."""
+    tool = MyTool()
+    tool.add_guardrail(_AllowGuardrail())
 
-    class AllowTool(MyTool):
-        def __init__(self) -> None:
-            super().__init__()
-            self._guardrail_providers = (_AllowGuardrail(),)
+    result = await tool.run_json({"query": "test"}, CancellationToken())
 
-    tool = AllowTool()
-    assert isinstance(tool._guardrail_providers[0], _AllowGuardrail)
+    assert result.result == "value"
+    assert tool.called_count == 1
 
 
 @pytest.mark.asyncio
@@ -701,29 +732,32 @@ async def test_guardrail_allow_executes() -> None:
 
 @pytest.mark.asyncio
 async def test_guardrail_deny_returns_denial_string() -> None:
-    """When the guardrail returns DENY, the tool does not execute and a denial message is returned."""
+    """When the guardrail returns DENY, the tool does not execute and raises a structured denial."""
     tool = MyTool()
     tool.add_guardrail(_DenyGuardrail("unsafe input"))
-    result = await tool.run_json({"query": "test"}, CancellationToken())
-    assert result == "Tool call denied: unsafe input"
+    with pytest.raises(GuardrailDeniedError, match="unsafe input"):
+        await tool.run_json({"query": "test"}, CancellationToken())
+    assert tool.called_count == 0
 
 
 @pytest.mark.asyncio
 async def test_guardrail_deny_preserves_reason() -> None:
     """DENY without a reason falls back to 'policy violation'."""
     tool = MyTool()
-    tool.add_guardrail(_DenyGuardrail())
-    result = await tool.run_json({"query": "test"}, CancellationToken())
-    assert result == "Tool call denied: denied by test guardrail"
+    tool.add_guardrail(_DenyGuardrail(None))
+    with pytest.raises(GuardrailDeniedError, match="policy violation"):
+        await tool.run_json({"query": "test"}, CancellationToken())
+    assert tool.called_count == 0
 
 
 @pytest.mark.asyncio
 async def test_guardrail_modify_passes_modified_args() -> None:
     """When the guardrail returns MODIFY, the tool receives the modified arguments."""
-    tool = MyTool()
+    tool = RecordingTool()
     tool.add_guardrail(_ModifyGuardrail({"query": "modified input"}))
     result = await tool.run_json({"query": "original"}, CancellationToken())
-    assert result.result == "value"
+    assert result.result == "modified input"
+    assert tool.last_args == MyArgs(query="modified input")
 
 
 @pytest.mark.asyncio
@@ -734,8 +768,8 @@ async def test_guardrail_chain_order() -> None:
     tool.add_guardrail(_DenyGuardrail("stop here"))
     tool.add_guardrail(counter)  # Should never be reached
 
-    result = await tool.run_json({"query": "test"}, CancellationToken())
-    assert result == "Tool call denied: stop here"
+    with pytest.raises(GuardrailDeniedError, match="stop here"):
+        await tool.run_json({"query": "test"}, CancellationToken())
     assert counter.call_count == 0  # never called
 
 
@@ -808,17 +842,24 @@ async def test_guardrail_multiple_tools_independent() -> None:
     assert counter_b.call_count == 2
 
 
-def test_guardrail_via_init() -> None:
+@pytest.mark.asyncio
+async def test_guardrail_via_init() -> None:
     """GuardrailProvider can be passed at construction time via BaseTool.__init__."""
+
     async def typed_query(query: str) -> str:
         return query
 
+    counter = _CountingGuardrail()
     tool = FunctionTool(
         typed_query,
         description="Example",
-        guardrail_providers=(_AllowGuardrail(), _CountingGuardrail()),
+        guardrail_providers=(_AllowGuardrail(), counter),
     )
-    assert len(tool._guardrail_providers) == 2
+
+    result = await tool.run_json({"query": "test"}, CancellationToken())
+
+    assert result == "test"
+    assert counter.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -831,13 +872,80 @@ async def test_guardrail_empty_chain_no_overhead() -> None:
 
 @pytest.mark.asyncio
 async def test_guardrail_deny_preserves_tool_error_behavior() -> None:
-    """Guardrail DENY returns a string, not an exception — callers handle it as a tool error."""
+    """Guardrail DENY raises a structured error without calling the tool."""
     tool = MyTool()
     tool.add_guardrail(_DenyGuardrail("custom reason"))
 
-    result = await tool.run_json({"query": "test"}, CancellationToken())
-    assert isinstance(result, str)
-    assert "custom reason" in result
+    with pytest.raises(GuardrailDeniedError, match="custom reason"):
+        await tool.run_json({"query": "test"}, CancellationToken())
+    assert tool.called_count == 0
+
+
+@pytest.mark.asyncio
+async def test_guardrail_deny_logs_terminal_event(caplog: pytest.LogCaptureFixture) -> None:
+    """DENY is traced through the normal tool-call logging path without executing the tool."""
+    tool = MyTool()
+    tool.add_guardrail(_DenyGuardrail("blocked by policy"))
+    caplog.set_level(logging.INFO, logger=EVENT_LOGGER_NAME)
+
+    with pytest.raises(GuardrailDeniedError, match="blocked by policy"):
+        await tool.run_json({"query": "secret"}, CancellationToken(), call_id="call-1")
+
+    events = [json.loads(record.getMessage()) for record in caplog.records]
+    assert events[-1]["type"] == "ToolCall"
+    assert events[-1]["tool_name"] == "TestTool"
+    assert events[-1]["arguments"] == {"query": "secret"}
+    assert "blocked by policy" in events[-1]["result"]
+
+
+@pytest.mark.asyncio
+async def test_guardrail_modify_logs_effective_args(caplog: pytest.LogCaptureFixture) -> None:
+    """MODIFY logs the same arguments that are actually passed to the tool."""
+    tool = RecordingTool()
+    tool.add_guardrail(_ModifyGuardrail({"query": "effective"}))
+    caplog.set_level(logging.INFO, logger=EVENT_LOGGER_NAME)
+
+    result = await tool.run_json({"query": "original"}, CancellationToken())
+
+    events = [json.loads(record.getMessage()) for record in caplog.records]
+    assert result.result == "effective"
+    assert events[-1]["arguments"] == {"query": "effective"}
+    assert events[-1]["result"] == '{"result": "effective"}'
+
+
+@pytest.mark.asyncio
+async def test_guardrail_stream_deny_raises_without_yielding_string() -> None:
+    """Streaming tools use the same structured denial path as run_json."""
+    tool = MyStreamTool()
+    tool.add_guardrail(_DenyGuardrail("stream blocked"))
+
+    with pytest.raises(GuardrailDeniedError, match="stream blocked"):
+        _ = [item async for item in tool.run_json_stream({"query": "test"}, CancellationToken())]
+
+    assert tool.called_count == 0
+
+
+@pytest.mark.asyncio
+async def test_guardrail_stream_modify_passes_effective_args() -> None:
+    """Streaming tools execute with modified arguments after revalidation."""
+    tool = MyStreamTool()
+    tool.add_guardrail(_ModifyGuardrail({"query": "stream effective"}))
+
+    results = [item async for item in tool.run_json_stream({"query": "stream original"}, CancellationToken())]
+
+    assert [item.result for item in results] == ["stream effective"]
+
+
+def test_guardrail_public_import_path() -> None:
+    from autogen_core.tools import Decision as PublicDecision
+    from autogen_core.tools import GuardrailDeniedError as PublicGuardrailDeniedError
+    from autogen_core.tools import GuardrailProvider as PublicGuardrailProvider
+    from autogen_core.tools import GuardrailResult as PublicGuardrailResult
+
+    assert PublicDecision is Decision
+    assert PublicGuardrailDeniedError is GuardrailDeniedError
+    assert PublicGuardrailProvider is GuardrailProvider
+    assert PublicGuardrailResult is GuardrailResult
 
 
 @pytest.mark.asyncio
@@ -856,7 +964,11 @@ async def test_guardrail_guardrail_provider_subclass() -> None:
         ) -> GuardrailResult:
             return GuardrailResult(decision=Decision.ALLOW)
 
+    guardrail = SubclassGuardrail()
+    assert isinstance(guardrail, GuardrailProvider)
     tool = MyTool()
-    tool.add_guardrail(SubclassGuardrail())
-    result = tool._guardrail_providers[0]
-    assert isinstance(result, SubclassGuardrail)
+    tool.add_guardrail(guardrail)
+
+    result = await tool.run_json({"query": "test"}, CancellationToken())
+
+    assert result.result == "value"

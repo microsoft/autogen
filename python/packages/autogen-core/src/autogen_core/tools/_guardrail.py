@@ -39,6 +39,22 @@ class GuardrailResult:
     metadata: dict[str, Any] = field(default_factory=dict)  # type: ignore[assignment]
 
 
+class GuardrailDeniedError(RuntimeError):
+    """Raised when a guardrail denies a tool call before execution."""
+
+    def __init__(
+        self,
+        *,
+        tool_name: str,
+        result: GuardrailResult,
+        arguments: Mapping[str, Any],
+    ) -> None:
+        self.tool_name = tool_name
+        self.result = result
+        self.arguments = dict(arguments)
+        super().__init__(f"Tool call denied for {tool_name}: {result.reason or 'policy violation'}")
+
+
 @runtime_checkable
 class GuardrailProvider(Protocol):
     """Intercepts tool calls before execution for policy enforcement.
@@ -54,6 +70,7 @@ class GuardrailProvider(Protocol):
             import time
             from collections import defaultdict
             from autogen_core.tools import Decision, GuardrailProvider, GuardrailResult
+
 
             class RateLimitGuardrail:
                 def __init__(self, max_calls: int = 10, window_seconds: float = 60.0):
@@ -84,8 +101,10 @@ class GuardrailProvider(Protocol):
 
             from autogen_core.tools import FunctionTool
 
+
             async def my_tool(arg: str) -> str:
                 return f"got: {arg}"
+
 
             tool = FunctionTool(my_tool, description="Example tool")
             tool.add_guardrail(RateLimitGuardrail(max_calls=5))

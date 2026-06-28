@@ -180,4 +180,10 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         if not callable(func):
             raise TypeError(f"Expected function but got {type(func)}")
 
-        return cls(func, name=config.name, description=config.description, global_imports=config.global_imports, guardrail_providers=())
+        return cls(
+            func,
+            name=config.name,
+            description=config.description,
+            global_imports=config.global_imports,
+            guardrail_providers=(),
+        )
