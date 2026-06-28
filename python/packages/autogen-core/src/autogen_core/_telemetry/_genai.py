@@ -58,10 +58,10 @@ def derive_action_ref(
 ) -> str:
     """Derive a deterministic action_ref per action-ref-v1.
 
-    Produces a SHA-256 hex digest from RFC 8785 JCS canonical JSON of the
-    four preimage fields.  Any implementation using the same inputs yields
-    the same 32-byte hex string, enabling cross-producer correlation without
-    shared state.
+    Produces a SHA-256 hex digest from canonical JSON of the four preimage
+    fields (sorted keys, no whitespace, UTF-8).  Any implementation using
+    the same inputs yields the same 64-character hex string, enabling
+    cross-producer correlation without shared state.
 
     Args:
         agent_id: Stable identifier for the agent.
@@ -81,8 +81,9 @@ def derive_action_ref(
         },
         sort_keys=True,
         separators=(",", ":"),
+        ensure_ascii=False,
     )
-    return hashlib.sha256(preimage.encode()).hexdigest()
+    return hashlib.sha256(preimage.encode("utf-8")).hexdigest()
 
 
 @contextmanager
