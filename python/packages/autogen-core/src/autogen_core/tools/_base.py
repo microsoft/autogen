@@ -25,7 +25,7 @@ from .._component_config import ComponentBase
 from .._function_utils import normalize_annotated_type
 from .._telemetry import trace_tool_span
 from ..logging import ToolCallEvent
-from ._guardrail import Decision, GuardrailDeniedError, GuardrailProvider
+from ._guardrail import Decision, GuardrailDeniedError, GuardrailProvider, GuardrailResult
 
 T = TypeVar("T", bound=BaseModel, contravariant=True)
 
@@ -226,7 +226,17 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             )
             if result.decision == Decision.DENY:
                 raise GuardrailDeniedError(tool_name=self._name, result=result, arguments=effective_args)
-            if result.decision == Decision.MODIFY and result.modified_args is not None:
+            if result.decision == Decision.MODIFY:
+                if result.modified_args is None:
+                    raise GuardrailDeniedError(
+                        tool_name=self._name,
+                        result=GuardrailResult(
+                            decision=Decision.DENY,
+                            reason="Guardrail MODIFY decision requires modified_args.",
+                            metadata=result.metadata,
+                        ),
+                        arguments=effective_args,
+                    )
                 effective_args = result.modified_args
 
         return effective_args

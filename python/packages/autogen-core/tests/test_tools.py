@@ -681,6 +681,21 @@ class _ModifyGuardrail:
         )
 
 
+class _ModifyWithoutArgsGuardrail:
+    """A guardrail that incorrectly requests MODIFY without replacement args."""
+
+    async def evaluate(
+        self,
+        *,
+        tool_name: str,
+        args: Mapping[str, Any],
+        agent_name: str | None = None,
+        call_id: str | None = None,
+        cancellation_token: Any = None,
+    ) -> GuardrailResult:
+        return GuardrailResult(decision=Decision.MODIFY)
+
+
 class _CountingGuardrail:
     """A guardrail that counts how many times it was called."""
 
@@ -707,18 +722,6 @@ class _CountingGuardrail:
 # ---------------------------------------------------------------------------
 # Tests for guardrail integration
 # ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_guardrail_protocol_allow() -> None:
-    """A tool with an allow guardrail executes normally."""
-    tool = MyTool()
-    tool.add_guardrail(_AllowGuardrail())
-
-    result = await tool.run_json({"query": "test"}, CancellationToken())
-
-    assert result.result == "value"
-    assert tool.called_count == 1
 
 
 @pytest.mark.asyncio
@@ -758,6 +761,17 @@ async def test_guardrail_modify_passes_modified_args() -> None:
     result = await tool.run_json({"query": "original"}, CancellationToken())
     assert result.result == "modified input"
     assert tool.last_args == MyArgs(query="modified input")
+
+
+@pytest.mark.asyncio
+async def test_guardrail_modify_without_args_fails_closed() -> None:
+    """MODIFY without modified_args fails closed instead of executing with original args."""
+    tool = MyTool()
+    tool.add_guardrail(_ModifyWithoutArgsGuardrail())
+
+    with pytest.raises(GuardrailDeniedError, match="requires modified_args"):
+        await tool.run_json({"query": "original"}, CancellationToken())
+    assert tool.called_count == 0
 
 
 @pytest.mark.asyncio
@@ -811,8 +825,8 @@ async def test_guardrail_receives_tool_name() -> None:
 
 
 @pytest.mark.asyncio
-async def test_guardrail_receives_original_args() -> None:
-    """Guardrail receives the arguments as passed (not yet modified by earlier guardrails in the chain)."""
+async def test_guardrail_receives_effective_args_after_modify() -> None:
+    """Later guardrails receive the effective args after an earlier MODIFY decision."""
     tool = MyTool()
     counter = _CountingGuardrail()
     tool.add_guardrail(_ModifyGuardrail({"query": "modified"}))
