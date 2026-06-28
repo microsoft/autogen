@@ -25,6 +25,7 @@ from .._component_config import ComponentBase
 from .._function_utils import normalize_annotated_type
 from .._telemetry import trace_tool_span
 from ..logging import ToolCallEvent
+from ._guardrail import Decision, GuardrailDeniedError, GuardrailProvider, GuardrailResult
 
 T = TypeVar("T", bound=BaseModel, contravariant=True)
 
@@ -103,6 +104,7 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         name: str,
         description: str,
         strict: bool = False,
+        guardrail_providers: Sequence[GuardrailProvider] = (),
     ) -> None:
         self._args_type = args_type
         # Normalize Annotated to the base type.
@@ -110,6 +112,7 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         self._name = name
         self._description = description
         self._strict = strict
+        self._guardrail_providers = guardrail_providers
 
     @property
     def schema(self) -> ToolSchema:
@@ -186,6 +189,9 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             cancellation_token (CancellationToken): A token to cancel the operation if needed.
             call_id (str | None): An optional identifier for the tool call, used for tracing.
 
+        Raises:
+            GuardrailDeniedError: If a guardrail provider denies the call.
+
         Returns:
             Any: The return value of the tool's run method.
         """
@@ -194,18 +200,64 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             tool_description=self._description,
             tool_call_id=call_id,
         ):
-            # Execute the tool's run method
-            return_value = await self.run(self._args_type.model_validate(args), cancellation_token)
+            try:
+                effective_args = await self._evaluate_guardrails(args, cancellation_token, call_id)
+            except GuardrailDeniedError as error:
+                self._log_tool_call(error.arguments, str(error))
+                raise
 
-        # Log the tool call event
+            return_value = await self.run(self._args_type.model_validate(effective_args), cancellation_token)
+
+        self._log_tool_call(effective_args, return_value)
+
+        return return_value
+
+    async def _evaluate_guardrails(
+        self, args: Mapping[str, Any], cancellation_token: CancellationToken, call_id: str | None
+    ) -> Mapping[str, Any]:
+        effective_args = args
+
+        for provider in self._guardrail_providers:
+            result = await provider.evaluate(
+                tool_name=self._name,
+                args=effective_args,
+                call_id=call_id,
+                cancellation_token=cancellation_token,
+            )
+            if result.decision == Decision.DENY:
+                raise GuardrailDeniedError(tool_name=self._name, result=result, arguments=effective_args)
+            if result.decision == Decision.MODIFY:
+                if result.modified_args is None:
+                    raise GuardrailDeniedError(
+                        tool_name=self._name,
+                        result=GuardrailResult(
+                            decision=Decision.DENY,
+                            reason="Guardrail MODIFY decision requires modified_args.",
+                            metadata=result.metadata,
+                        ),
+                        arguments=effective_args,
+                    )
+                effective_args = result.modified_args
+
+        return effective_args
+
+    def _log_tool_call(self, arguments: Mapping[str, Any], result: Any) -> None:
         event = ToolCallEvent(
             tool_name=self.name,
-            arguments=dict(args),  # Using the raw args passed to run_json
-            result=self.return_value_as_string(return_value),
+            arguments=dict(arguments),
+            result=self.return_value_as_string(result),
         )
         logger.info(event)
 
-        return return_value
+    def add_guardrail(self, provider: GuardrailProvider) -> None:
+        """Add a guardrail provider to the tool.
+
+        Args:
+            provider: A guardrail provider to evaluate tool calls before execution.
+                Providers are evaluated in the order they were added; the first
+                DENY short-circuits subsequent providers and blocks execution.
+        """
+        self._guardrail_providers = (*self._guardrail_providers, provider)
 
     async def save_state_json(self) -> Mapping[str, Any]:
         return {}
@@ -229,7 +281,7 @@ class BaseStreamTool(
         args: Mapping[str, Any],
         cancellation_token: CancellationToken,
         call_id: str | None = None,
-    ) -> AsyncGenerator[StreamT | ReturnT, None]:
+    ) -> AsyncGenerator[Any, None]:
         """Run the tool with the provided arguments in a dictionary and return a stream of data
         from the tool's :meth:`run_stream` method and end with the final return value.
 
@@ -239,7 +291,7 @@ class BaseStreamTool(
             call_id (str | None): An optional identifier for the tool call, used for tracing.
 
         Returns:
-            AsyncGenerator[StreamT | ReturnT, None]: A generator yielding results from the tool's :meth:`run_stream` method.
+            AsyncGenerator[Any, None]: A generator yielding results from the tool's :meth:`run_stream` method.
         """
         return_value: ReturnT | StreamT | None = None
         with trace_tool_span(
@@ -247,8 +299,14 @@ class BaseStreamTool(
             tool_description=self._description,
             tool_call_id=call_id,
         ):
+            try:
+                effective_args = await self._evaluate_guardrails(args, cancellation_token, call_id)
+            except GuardrailDeniedError as error:
+                self._log_tool_call(error.arguments, str(error))
+                raise
+
             # Execute the tool's run_stream method
-            async for result in self.run_stream(self._args_type.model_validate(args), cancellation_token):
+            async for result in self.run_stream(self._args_type.model_validate(effective_args), cancellation_token):
                 return_value = result
                 yield result
 
@@ -258,13 +316,7 @@ class BaseStreamTool(
                 f"Expected return value of type {self._return_type.__name__}, but got {type(return_value).__name__}"
             )
 
-        # Log the tool call event
-        event = ToolCallEvent(
-            tool_name=self.name,
-            arguments=dict(args),  # Using the raw args passed to run_json
-            result=self.return_value_as_string(return_value),
-        )
-        logger.info(event)
+        self._log_tool_call(effective_args, return_value)
 
 
 class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, StateT], ComponentBase[BaseModel]):

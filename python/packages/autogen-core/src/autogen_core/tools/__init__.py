@@ -9,6 +9,7 @@ from ._base import (
     ToolSchema,
 )
 from ._function_tool import FunctionTool
+from ._guardrail import Decision, GuardrailDeniedError, GuardrailProvider, GuardrailResult
 from ._static_workbench import StaticStreamWorkbench, StaticWorkbench
 from ._workbench import ImageResultContent, TextResultContent, ToolResult, Workbench
 
@@ -28,4 +29,8 @@ __all__ = [
     "StaticWorkbench",
     "StaticStreamWorkbench",
     "ToolOverride",
+    "Decision",
+    "GuardrailProvider",
+    "GuardrailResult",
+    "GuardrailDeniedError",
 ]
