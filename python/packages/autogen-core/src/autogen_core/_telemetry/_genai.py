@@ -1,3 +1,5 @@
+import hashlib
+import json
 from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum
@@ -25,6 +27,9 @@ GEN_AI_TOOL_CALL_ID = "gen_ai.tool.call.id"
 GEN_AI_TOOL_DESCRIPTION = "gen_ai.tool.description"
 GEN_AI_TOOL_NAME = "gen_ai.tool.name"
 
+# GenAI Agent Action Ref attribute
+GEN_AI_AGENT_ACTION_REF = "gen_ai.agent.action_ref"
+
 # Error attributes
 ERROR_TYPE = "error.type"
 
@@ -45,6 +50,41 @@ class GenAiOperationNameValues(Enum):
 GENAI_SYSTEM_AUTOGEN = "autogen"
 
 
+def derive_action_ref(
+    agent_id: str,
+    action_type: str,
+    scope: str,
+    timestamp_ms: int,
+) -> str:
+    """Derive a deterministic action_ref per action-ref-v1.
+
+    Produces a SHA-256 hex digest from RFC 8785 JCS canonical JSON of the
+    four preimage fields.  Any implementation using the same inputs yields
+    the same 32-byte hex string, enabling cross-producer correlation without
+    shared state.
+
+    Args:
+        agent_id: Stable identifier for the agent.
+        action_type: The type of action (e.g. "tool_execution").
+        scope: The scope in which the action occurs (e.g. "default").
+        timestamp_ms: Epoch milliseconds when the action was triggered.
+
+    Returns:
+        A 64-character hex string (SHA-256 digest).
+    """
+    preimage = json.dumps(
+        {
+            "agent_id": agent_id,
+            "action_type": action_type,
+            "scope": scope,
+            "timestamp_ms": timestamp_ms,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(preimage.encode()).hexdigest()
+
+
 @contextmanager
 def trace_tool_span(
     tool_name: str,
@@ -53,6 +93,7 @@ def trace_tool_span(
     parent: Optional[Span] = None,
     tool_description: Optional[str] = None,
     tool_call_id: Optional[str] = None,
+    action_ref: Optional[str] = None,
 ) -> Generator[Span, Any, None]:
     """Context manager to create a span for tool execution following the
     OpenTelemetry Semantic conventions for generative AI systems.
@@ -72,6 +113,8 @@ def trace_tool_span(
         parent (Optional[Span]): The parent span to link this span to.
         tool_description (Optional[str]): A description of the tool.
         tool_call_id (Optional[str]): A unique identifier for the tool call.
+        action_ref (Optional[str]): A deterministic action reference for cross-producer
+            audit correlation.
     """
     if tracer is None:
         tracer = trace.get_tracer("autogen-core")
@@ -84,6 +127,8 @@ def trace_tool_span(
         span_attributes[GEN_AI_TOOL_DESCRIPTION] = tool_description
     if tool_call_id is not None:
         span_attributes[GEN_AI_TOOL_CALL_ID] = tool_call_id
+    if action_ref is not None:
+        span_attributes[GEN_AI_AGENT_ACTION_REF] = action_ref
     with tracer.start_as_current_span(
         f"{GenAiOperationNameValues.EXECUTE_TOOL.value} {tool_name}",
         kind=SpanKind.INTERNAL,
