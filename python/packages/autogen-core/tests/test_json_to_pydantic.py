@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Literal, Optional, Type, get_args, get_origi
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import BaseModel, EmailStr, Field, Json, ValidationError
+
 from autogen_core.utils._json_to_pydantic import (
     FORMAT_MAPPING,
     TYPE_MAPPING,
@@ -11,7 +13,6 @@ from autogen_core.utils._json_to_pydantic import (
     UnsupportedKeywordError,
     _JSONSchemaToPydantic,  # pyright: ignore[reportPrivateUsage]
 )
-from pydantic import BaseModel, EmailStr, Field, Json, ValidationError
 
 
 # ✅ Define Pydantic models for testing
@@ -368,9 +369,9 @@ def test_valid_data_model_nested(
     instance = Model(**valid_data)
     assert instance
     for field, value in valid_data.items():
-        assert (
-            getattr(instance, field) == value
-        ), f"Mismatch in field `{field}`: expected `{value}`, got `{getattr(instance, field)}`"
+        assert getattr(instance, field) == value, (
+            f"Mismatch in field `{field}`: expected `{value}`, got `{getattr(instance, field)}`"
+        )
 
 
 # ✅ **Invalid Data Tests**
@@ -419,6 +420,39 @@ def test_reference_not_found(converter: _JSONSchemaToPydantic) -> None:
     schema = {"type": "object", "properties": {"manager": {"$ref": "#/$defs/MissingRef"}}}
     with pytest.raises(ReferenceNotFoundError):
         converter.json_schema_to_pydantic(schema, "MissingRefModel")
+
+
+def test_nested_defs_reference_is_resolved(converter: _JSONSchemaToPydantic) -> None:
+    schema = {
+        "type": "object",
+        "properties": {
+            "windows_params": {
+                "type": "object",
+                "$defs": {
+                    "WindowsSortOption": {
+                        "description": "Sort options for Windows search.",
+                        "enum": [1, 2, 3],
+                        "type": "integer",
+                    }
+                },
+                "properties": {
+                    "sort_by": {
+                        "$ref": "#/$defs/WindowsSortOption",
+                        "default": 1,
+                        "description": "Sort order for results.",
+                    }
+                },
+            }
+        },
+    }
+
+    Model = converter.json_schema_to_pydantic(schema, "SearchToolInput")
+
+    instance = Model(windows_params={"sort_by": 2})
+    assert instance.windows_params.sort_by == 2  # type: ignore[attr-defined]
+
+    with pytest.raises(ValidationError):
+        Model(windows_params={"sort_by": 4})
 
 
 def test_format_not_supported(converter: _JSONSchemaToPydantic) -> None:
