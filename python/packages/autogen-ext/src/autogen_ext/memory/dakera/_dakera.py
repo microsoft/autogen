@@ -1,7 +1,7 @@
 """Dakera persistent memory for AutoGen agents.
 
 Self-hosted, decay-weighted vector memory server.
-Self-host: docker run -p 3000:3000 -e DAKERA_API_KEY=key dakera/dakera:latest
+Self-host: docker run -p 3300:3300 -e DAKERA_API_KEY=key ghcr.io/dakera-ai/dakera:latest
 Install: pip install autogen-ext[dakera]
 """
 
@@ -23,7 +23,7 @@ class DakeraMemoryConfig(BaseModel):
     """Configuration for the DakeraMemory component."""
 
     base_url: str = Field(
-        default="http://localhost:3000",
+        default="http://localhost:3300",
         description="Base URL of the self-hosted Dakera server.",
     )
     api_key: Optional[SecretStr] = Field(
@@ -70,7 +70,7 @@ class DakeraMemory(Memory, Component[DakeraMemoryConfig]):
 
             memory = DakeraMemory(
                 DakeraMemoryConfig(
-                    base_url=\"http://localhost:3000\",
+                    base_url=\"http://localhost:3300\",
                     api_key=\"dk_your_key\",
                     agent_id=\"support-agent\",
                     top_k=5,
