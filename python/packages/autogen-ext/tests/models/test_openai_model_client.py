@@ -424,6 +424,72 @@ async def test_openai_chat_completion_client_create_stream_cancel(monkeypatch: p
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_create_stream_none_chunk(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regression test for https://github.com/microsoft/autogen/issues/7130.
+
+    Ensures that None chunks yielded by some streaming endpoints do not cause
+    an AttributeError when the loop accesses chunk.model before a None guard.
+    """
+
+    async def _mock_create_stream_with_none_chunks(
+        *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[ChatCompletionChunk | None, None]:  # type: ignore[misc]
+        model = resolve_model(kwargs.get("model", "gpt-4.1-nano"))
+        # Yield a None sentinel chunk first (simulates certain streaming endpoints).
+        yield None  # type: ignore[misc]
+        yield ChatCompletionChunk(
+            id="id",
+            choices=[
+                ChunkChoice(
+                    finish_reason=None,
+                    index=0,
+                    delta=ChoiceDelta(content="Hello", role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion.chunk",
+            usage=None,
+        )
+        # Yield another None between real chunks.
+        yield None  # type: ignore[misc]
+        yield ChatCompletionChunk(
+            id="id",
+            choices=[
+                ChunkChoice(
+                    finish_reason="stop",
+                    index=0,
+                    delta=ChoiceDelta(content=None, role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion.chunk",
+            usage=None,
+        )
+
+    async def _mock_create_with_none_chunks(
+        *args: Any, **kwargs: Any
+    ) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk | None, None]:  # type: ignore[misc]
+        if kwargs.get("stream", False):
+            return _mock_create_stream_with_none_chunks(*args, **kwargs)
+        return await _mock_create(*args, **kwargs)
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create_with_none_chunks)
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+    chunks: List[str | CreateResult] = []
+    # Should not raise AttributeError when None chunks are in the stream.
+    async for chunk in client.create_stream(
+        messages=[UserMessage(content="Hello", source="user")],
+    ):
+        chunks.append(chunk)
+
+    assert chunks[0] == "Hello"
+    assert isinstance(chunks[-1], CreateResult)
+    assert chunks[-1].content == "Hello"
+
+
+@pytest.mark.asyncio
 async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.MonkeyPatch) -> None:
     client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
     messages: List[LLMMessage] = [
