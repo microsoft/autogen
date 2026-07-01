@@ -202,6 +202,7 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             tool_name=self.name,
             arguments=dict(args),  # Using the raw args passed to run_json
             result=self.return_value_as_string(return_value),
+            call_id=call_id,
         )
         logger.info(event)
 
@@ -263,6 +264,7 @@ class BaseStreamTool(
             tool_name=self.name,
             arguments=dict(args),  # Using the raw args passed to run_json
             result=self.return_value_as_string(return_value),
+            call_id=call_id,
         )
         logger.info(event)
 
