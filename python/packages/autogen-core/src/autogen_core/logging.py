@@ -164,6 +164,7 @@ class ToolCallEvent:
         tool_name: str,
         arguments: Dict[str, Any],
         result: str,
+        call_id: str | None = None,
     ) -> None:
         """Used by subclasses of :class:`~autogen_core.tools.BaseTool` to log executions of tools.
 
@@ -171,6 +172,7 @@ class ToolCallEvent:
             tool_name (str): The name of the tool.
             arguments (Dict[str, Any]): The arguments of the tool. Must be json serializable.
             result (str): The result of the tool. Must be a string.
+            call_id (str | None): An optional identifier for the tool call.
 
         Example:
 
@@ -180,7 +182,7 @@ class ToolCallEvent:
                 from autogen_core.logging import ToolCallEvent
 
                 logger = logging.getLogger(EVENT_LOGGER_NAME)
-                logger.info(ToolCallEvent(tool_name="Tool1", call_id="123", arguments={"arg1": "value1"}))
+                logger.info(ToolCallEvent(tool_name="Tool1", call_id="123", arguments={"arg1": "value1"}, result="done"))
 
         """
         self.kwargs: Dict[str, Any] = {}
@@ -188,6 +190,8 @@ class ToolCallEvent:
         self.kwargs["tool_name"] = tool_name
         self.kwargs["arguments"] = arguments
         self.kwargs["result"] = result
+        if call_id is not None:
+            self.kwargs["call_id"] = call_id
         try:
             agent_id = MessageHandlerContext.agent_id()
         except RuntimeError:

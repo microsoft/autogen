@@ -1,10 +1,12 @@
 import inspect
+import json
+import logging
 from dataclasses import dataclass
 from functools import partial
 from typing import Annotated, List
 
 import pytest
-from autogen_core import CancellationToken
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken
 from autogen_core._function_utils import get_typed_signature
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
@@ -397,6 +399,46 @@ async def test_func_call_tool() -> None:
     tool = FunctionTool(my_function, description="Function tool.")
     result = await tool.run_json({}, CancellationToken())
     assert result == "result"
+
+
+@pytest.mark.asyncio
+async def test_tool_call_event_includes_call_id() -> None:
+    def my_function() -> str:
+        return "result"
+
+    class CapturingHandler(logging.Handler):
+        def __init__(self) -> None:
+            super().__init__()
+            self.records: list[logging.LogRecord] = []
+
+        def emit(self, record: logging.LogRecord) -> None:
+            self.records.append(record)
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    handler = CapturingHandler()
+    logger = logging.getLogger(EVENT_LOGGER_NAME)
+    previous_level = logger.level
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
+    try:
+        await tool.run_json({}, CancellationToken(), call_id="payment-intent-123")
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(previous_level)
+
+    logged_events = [json.loads(record.getMessage()) for record in handler.records if record.name == EVENT_LOGGER_NAME]
+    tool_call_events = [event for event in logged_events if event.get("type") == "ToolCall"]
+    assert tool_call_events == [
+        {
+            "type": "ToolCall",
+            "tool_name": "my_function",
+            "arguments": {},
+            "result": "result",
+            "agent_id": None,
+            "call_id": "payment-intent-123",
+        }
+    ]
 
 
 @pytest.mark.asyncio
