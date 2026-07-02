@@ -30,6 +30,14 @@ from .._common import (
 
 __all__ = ("LocalCommandLineCodeExecutor",)
 
+logger = logging.getLogger(__name__)
+
+LOCAL_COMMAND_LINE_CODE_EXECUTOR_WARNING = (
+    "Using LocalCommandLineCodeExecutor may execute code on the local machine which can be unsafe. "
+    "For security, it is recommended to use DockerCommandLineCodeExecutor instead. "
+    "To install Docker, visit: https://docs.docker.com/get-docker/"
+)
+
 A = ParamSpec("A")
 
 
@@ -160,13 +168,8 @@ $functions"""
         virtual_env_context: Optional[SimpleNamespace] = None,
     ):
         # Issue warning about using LocalCommandLineCodeExecutor
-        warnings.warn(
-            "Using LocalCommandLineCodeExecutor may execute code on the local machine which can be unsafe. "
-            "For security, it is recommended to use DockerCommandLineCodeExecutor instead. "
-            "To install Docker, visit: https://docs.docker.com/get-docker/",
-            UserWarning,
-            stacklevel=2,
-        )
+        logger.warning(LOCAL_COMMAND_LINE_CODE_EXECUTOR_WARNING)
+        warnings.warn(LOCAL_COMMAND_LINE_CODE_EXECUTOR_WARNING, UserWarning, stacklevel=2)
 
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")

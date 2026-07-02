@@ -2,6 +2,7 @@
 # Credit to original authors
 
 import asyncio
+import logging
 import os
 import platform
 import shutil
@@ -10,6 +11,7 @@ import sys
 import tempfile
 import types
 import venv
+import warnings
 from pathlib import Path
 from typing import AsyncGenerator, TypeAlias
 from unittest.mock import patch
@@ -210,6 +212,20 @@ async def test_local_commandline_code_executor_restart() -> None:
     executor = LocalCommandLineCodeExecutor()
     with pytest.warns(UserWarning, match=r".*No action is taken."):
         await executor.restart()
+
+
+def test_local_commandline_code_executor_security_warning_is_logged_when_warnings_are_suppressed(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with caplog.at_level(logging.WARNING, logger="autogen_ext.code_executors.local"):
+            LocalCommandLineCodeExecutor()
+
+    assert any(
+        "Using LocalCommandLineCodeExecutor may execute code on the local machine" in record.message
+        for record in caplog.records
+    )
 
 
 @pytest.mark.asyncio
