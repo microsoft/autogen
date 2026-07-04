@@ -1,10 +1,12 @@
 from typing import Sequence
 
+import pytest
 from autogen_agentchat.agents import BaseChatAgent, MessageFilterAgent
 from autogen_agentchat.agents._message_filter_agent import MessageFilterConfig, PerSourceFilter
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import BaseChatMessage, TextMessage
 from autogen_core import CancellationToken
+from pydantic import ValidationError
 
 
 class _DummyAgent(BaseChatAgent):
@@ -71,3 +73,11 @@ def test_count_positive_first_and_last() -> None:
 
     last_two = _apply([PerSourceFilter(source="user", position="last", count=2)], messages)
     assert [m.to_text() for m in last_two] == ["msg-3", "msg-4"]
+
+
+def test_count_negative_rejected_at_construction() -> None:
+    # Negative counts are not meaningful and must be rejected at construction
+    # (PerSourceFilter.count is constrained to ge=0), failing fast at the system
+    # boundary rather than being silently coerced inside _apply_filter.
+    with pytest.raises(ValidationError):
+        PerSourceFilter(source="user", position="first", count=-1)

@@ -1,7 +1,7 @@
 from typing import AsyncGenerator, List, Literal, Optional, Sequence, Union
 
 from autogen_core import CancellationToken, Component, ComponentModel
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
@@ -13,9 +13,22 @@ from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 
 
 class PerSourceFilter(BaseModel):
+    """Filter configuration for a single message source.
+
+    Args:
+        source (str): The source name to match against ``BaseChatMessage.source``.
+        position (Optional[Literal["first", "last"]]): When set, keep only the
+            ``first`` or ``last`` N messages from this source. When ``None``,
+            all messages from this source are kept (no slicing).
+        count (Optional[int]): The number of messages to keep when ``position``
+            is set. ``0`` means *no* messages; ``None`` means *do not slice*
+            (all messages from this source are kept, regardless of ``position``).
+            Must be ``>= 0``.
+    """
+
     source: str
     position: Optional[Literal["first", "last"]] = None
-    count: Optional[int] = None
+    count: Optional[int] = Field(default=None, ge=0)
 
 
 class MessageFilterConfig(BaseModel):
@@ -157,9 +170,10 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
         for source_filter in self._filter.per_source:
             msgs = [m for m in messages if m.source == source_filter.source]
 
-            if source_filter.count is not None and source_filter.count <= 0:
-                # count == 0 means "no messages" (and negative values are not meaningful).
-                # Note: msgs[-0:] would return the whole list, so handle this explicitly.
+            if source_filter.count == 0:
+                # count == 0 means "no messages". Negative values are rejected at
+                # construction (PerSourceFilter.count has ge=0). Handle 0 explicitly
+                # because msgs[-0:] would otherwise return the whole list.
                 msgs = []
             elif source_filter.position == "first" and source_filter.count is not None:
                 msgs = msgs[: source_filter.count]
