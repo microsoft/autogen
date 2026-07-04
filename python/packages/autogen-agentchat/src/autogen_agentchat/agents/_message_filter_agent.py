@@ -157,9 +157,13 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
         for source_filter in self._filter.per_source:
             msgs = [m for m in messages if m.source == source_filter.source]
 
-            if source_filter.position == "first" and source_filter.count:
+            if source_filter.count is not None and source_filter.count <= 0:
+                # count == 0 means "no messages" (and negative values are not meaningful).
+                # Note: msgs[-0:] would return the whole list, so handle this explicitly.
+                msgs = []
+            elif source_filter.position == "first" and source_filter.count is not None:
                 msgs = msgs[: source_filter.count]
-            elif source_filter.position == "last" and source_filter.count:
+            elif source_filter.position == "last" and source_filter.count is not None:
                 msgs = msgs[-source_filter.count :]
 
             result.extend(msgs)
