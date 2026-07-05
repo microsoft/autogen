@@ -1,15 +1,17 @@
 import inspect
+import json
 from dataclasses import dataclass
 from functools import partial
 from typing import Annotated, List
 
 import pytest
+from pydantic import BaseModel, Field, ValidationError, model_serializer
+from pydantic_core import PydanticUndefined
+
 from autogen_core import CancellationToken
 from autogen_core._function_utils import get_typed_signature
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
-from pydantic import BaseModel, Field, ValidationError, model_serializer
-from pydantic_core import PydanticUndefined
 
 
 class MyArgs(BaseModel):
@@ -478,6 +480,59 @@ async def test_func_tool_return_list() -> None:
     assert isinstance(result, list)
     assert result == [1, 2]
     assert tool.return_value_as_string(result) == "[1, 2]"
+
+
+@pytest.mark.asyncio
+async def test_func_tool_return_dict_serializes_to_json() -> None:
+    def my_function() -> dict[str, object]:
+        return {"status": "success", "items": ["alpha", "beta"], "count": 2}
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    result = await tool.run_json({}, CancellationToken())
+    assert isinstance(result, dict)
+    assert json.loads(tool.return_value_as_string(result)) == {
+        "status": "success",
+        "items": ["alpha", "beta"],
+        "count": 2,
+    }
+
+
+@pytest.mark.asyncio
+async def test_func_tool_return_nested_list_serializes_to_json() -> None:
+    def my_function() -> list[dict[str, int]]:
+        return [{"count": 1}, {"count": 2}]
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    result = await tool.run_json({}, CancellationToken())
+    assert isinstance(result, list)
+    assert json.loads(tool.return_value_as_string(result)) == [{"count": 1}, {"count": 2}]
+
+
+@pytest.mark.asyncio
+async def test_func_tool_return_dataclass_serializes_to_json() -> None:
+    @dataclass
+    class ToolPayload:
+        status: str
+        count: int
+
+    def my_function() -> ToolPayload:
+        return ToolPayload(status="success", count=2)
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    result = await tool.run_json({}, CancellationToken())
+    assert isinstance(result, ToolPayload)
+    assert json.loads(tool.return_value_as_string(result)) == {"status": "success", "count": 2}
+
+
+@pytest.mark.asyncio
+async def test_func_tool_return_non_json_serializable_value_falls_back_to_str() -> None:
+    def my_function() -> dict[str, object]:
+        return {"ids": {1, 2}}
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    result = await tool.run_json({}, CancellationToken())
+    assert isinstance(result, dict)
+    assert tool.return_value_as_string(result) == str(result)
 
 
 def test_nested_tool_schema_generation() -> None:
