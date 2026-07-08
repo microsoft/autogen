@@ -158,6 +158,47 @@ async def test_create_stream(monkeypatch: pytest.MonkeyPatch, caplog: pytest.Log
 
 
 @pytest.mark.asyncio
+async def test_create_stream_single_chunk_content(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A streamed response delivered as a single content chunk must be returned in full.
+
+    Regression test: the final-result assembly previously required more than one content
+    chunk (``len(content_chunks) > 1``), so a short single-chunk text response fell through
+    to the tool-call branch and yielded an empty content list with zero completion tokens.
+    """
+    model = "llama3.2"
+    content_raw = "Hi!"
+
+    async def _mock_chat(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatResponse, None]:
+        assert kwargs["stream"] is True
+
+        async def _mock_stream() -> AsyncGenerator[ChatResponse, None]:
+            # A single chunk that is also the final (done) chunk.
+            yield ChatResponse(
+                model=model,
+                done=True,
+                done_reason="stop",
+                message=Message(role="assistant", content=content_raw),
+                prompt_eval_count=10,
+                eval_count=12,
+            )
+
+        return _mock_stream()
+
+    monkeypatch.setattr(AsyncClient, "chat", _mock_chat)
+    client = OllamaChatCompletionClient(model=model)
+    stream = client.create_stream(messages=[UserMessage(content="hi", source="user")])
+    chunks: List[str | CreateResult] = []
+    async for chunk in stream:
+        chunks.append(chunk)
+
+    assert isinstance(chunks[-1], CreateResult)
+    assert chunks[-1].content == content_raw
+    assert chunks[-1].finish_reason == "stop"
+    assert chunks[-1].usage is not None
+    assert chunks[-1].usage.completion_tokens == 12
+
+
+@pytest.mark.asyncio
 async def test_create_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     def add(x: int, y: int) -> str:
         return str(x + y)
