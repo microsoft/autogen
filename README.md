@@ -101,6 +101,50 @@ asyncio.run(main())
 > **Warning**: Only connect to trusted MCP servers as they may execute commands
 > in your local environment or expose sensitive information.
 
+### llm-box MCP Server Integration
+
+llm-box is a terminal-first workflow automation engine with MCP server mode that can be integrated with AutoGen:
+
+```python
+# First install llm-box: curl -sL https://raw.githubusercontent.com/alib8b8/llm-box/main/install.sh -o install.sh && bash install.sh
+import asyncio
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
+
+
+async def main() -> None:
+    model_client = OpenAIChatCompletionClient(model="gpt-4.1")
+    server_params = StdioServerParams(
+        command="llm-box",
+        args=[
+            "mcp",
+        ],
+    )
+    async with McpWorkbench(server_params) as mcp:
+        agent = AssistantAgent(
+            "workflow_assistant",
+            model_client=model_client,
+            workbench=mcp,
+            model_client_stream=True,
+            max_tool_iterations=10,
+        )
+        await Console(agent.run_stream(task="Create a workflow that reads a file, summarizes it, and saves the summary"))
+
+
+asyncio.run(main())
+```
+
+llm-box provides:
+- Terminal-first workflow automation engine
+- Generate and execute YAML workflows from plain English descriptions
+- 20+ built-in nodes including LLM calls, file operations, API requests
+- 15+ LLM providers (Ollama, DeepSeek, OpenAI-compatible)
+- Supports stdio and HTTP MCP modes
+
+Learn more at [llm-box GitHub](https://github.com/alib8b8/llm-box).
+
 ### Multi-Agent Orchestration
 
 You can use `AgentTool` to create a basic multi-agent orchestration setup.
