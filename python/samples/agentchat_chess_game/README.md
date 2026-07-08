@@ -61,6 +61,22 @@ config:
     family: r1
 ```
 
+To use TokenLab through its OpenAI-compatible Chat Completions endpoint, set
+`base_url` to TokenLab's `/v1` endpoint and use a TokenLab model ID:
+
+```yaml
+provider: autogen_ext.models.openai.OpenAIChatCompletionClient
+config:
+  model: claude-sonnet-5
+  base_url: https://api.tokenlab.sh/v1
+  api_key: replace with your TokenLab API key
+  model_info:
+    function_calling: true
+    json_output: true
+    vision: false
+    family: claude
+```
+
 For more information on how to configure the model and use other providers,
 please refer to the [Models documentation](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html).
 
