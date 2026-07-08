@@ -102,6 +102,31 @@ async def test_termination_declarative() -> None:
 
 
 @pytest.mark.asyncio
+async def test_text_mention_termination_sources_round_trip() -> None:
+    """TextMentionTermination should preserve its ``sources`` restriction across serialization.
+
+    Previously ``sources`` was dropped by ``dump_component``/``load_component``, so a
+    reloaded condition fired on any source instead of only the configured ones (unlike the
+    sibling SourceMatchTermination, which round-trips ``sources`` correctly).
+    """
+    term = TextMentionTermination("stop", sources=["assistant"])
+
+    config = term.dump_component()
+    assert config.config.get("sources") == ["assistant"]
+
+    loaded = ComponentLoader.load_component(config, TextMentionTermination)
+    assert isinstance(loaded, TextMentionTermination)
+    assert loaded._sources == ["assistant"]  # type: ignore[reportPrivateUsage]
+
+    # A condition configured without sources still round-trips as unrestricted (None).
+    unrestricted = TextMentionTermination("stop")
+    unrestricted_config = unrestricted.dump_component()
+    assert unrestricted_config.config.get("sources") is None
+    loaded_unrestricted = ComponentLoader.load_component(unrestricted_config, TextMentionTermination)
+    assert loaded_unrestricted._sources is None  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
 async def test_chat_completion_context_declarative() -> None:
     unbounded_context = UnboundedChatCompletionContext()
     buffered_context = BufferedChatCompletionContext(buffer_size=5)
