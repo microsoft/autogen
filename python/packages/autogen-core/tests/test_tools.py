@@ -1,7 +1,8 @@
 import inspect
+import json
 from dataclasses import dataclass
 from functools import partial
-from typing import Annotated, List
+from typing import Annotated, Any, Dict, List
 
 import pytest
 from autogen_core import CancellationToken
@@ -478,6 +479,37 @@ async def test_func_tool_return_list() -> None:
     assert isinstance(result, list)
     assert result == [1, 2]
     assert tool.return_value_as_string(result) == "[1, 2]"
+
+
+@pytest.mark.asyncio
+async def test_func_tool_return_dict_as_json() -> None:
+    """A dict return value is serialized as valid JSON, not a Python repr.
+
+    Regression test for https://github.com/microsoft/autogen/issues/7867.
+    """
+
+    def my_function() -> Dict[str, Any]:
+        return {"status": "success", "items": ["a", "b"], "count": 2}
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    result = await tool.run_json({}, CancellationToken())
+    as_string = tool.return_value_as_string(result)
+    # Must be valid JSON (double-quoted), not a Python repr like "{'status': 'success'}".
+    assert as_string == '{"status": "success", "items": ["a", "b"], "count": 2}'
+    assert json.loads(as_string) == result
+
+
+@pytest.mark.asyncio
+async def test_func_tool_return_list_of_strings_as_json() -> None:
+    """A list-of-strings return value is serialized as valid JSON, not a Python repr."""
+
+    def my_function() -> List[str]:
+        return ["a", "b"]
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    result = await tool.run_json({}, CancellationToken())
+    # Previously str(["a", "b"]) produced "['a', 'b']" (invalid JSON).
+    assert tool.return_value_as_string(result) == '["a", "b"]'
 
 
 def test_nested_tool_schema_generation() -> None:

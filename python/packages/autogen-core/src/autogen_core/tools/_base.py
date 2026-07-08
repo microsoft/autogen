@@ -171,6 +171,16 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
                 return json.dumps(dumped)
             return str(dumped)
 
+        # Serialize structured return values (dict / list) as JSON so that tools returning
+        # structured data produce valid JSON in the message history rather than a Python
+        # repr (e.g. '{"a": 1}' instead of "{'a': 1}"). Fall back to str() for values that
+        # are not JSON-serializable.
+        if isinstance(value, (dict, list)):
+            try:
+                return json.dumps(value)
+            except (TypeError, ValueError):
+                return str(value)
+
         return str(value)
 
     @abstractmethod
