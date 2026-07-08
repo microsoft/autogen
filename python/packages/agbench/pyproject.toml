@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agbench"
+dynamic = ["version"]
+license = {file = "LICENSE-CODE"}
+authors = [
+  { name="Adam Fourney", email="adamfo@microsoft.com" },
+]
+description = "AutoGen Benchmarking Tools"
+readme = "README.md"
+requires-python = ">=3.8, <3.13"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "openai",
+    "docker",
+    "huggingface_hub",
+    "tabulate",
+    "azure-identity",
+    "pandas",
+    "scipy"
+]
+
+[dependency-groups]
+dev = [
+    "types-tabulate",
+    "types-docker"
+]
+
+[tool.hatch.version]
+path = "src/agbench/version.py"
+
+[project.scripts]
+agbench = "agbench.cli:main"
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+exclude = ["build", "dist", "page_script.js", "src/agbench/res/Dockerfile", "src/agbench/template/global_init.sh"]
+include = [
+    "src/**"
+]
+
+[tool.ruff.lint]
+# Allow prints in this package
+ignore = ["T20"]
+
+[tool.pyright]
+extends = "../../pyproject.toml"
+include = ["src"]
+
+[tool.poe]
+include = "../../shared_tasks.toml"
+
+[tool.poe.tasks]
+mypy = "mypy --config-file ../../pyproject.toml src"

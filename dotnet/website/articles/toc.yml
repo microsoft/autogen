@@ -1,0 +1,126 @@
+- name: Getting start
+  items:
+    - name: Overview
+      href: ../index.md
+    - name: Installation
+      href: Installation.md
+    - name: agent
+      items:
+        - name: agent overview
+          href: Agent-overview.md
+        - name: assistant agent
+          href: Create-an-agent.md
+        - name: user proxy agent
+          href: Create-a-user-proxy-agent.md
+        - name: Chat with an agent using user proxy agent
+          href: Two-agent-chat.md
+        # - name: Create your own agent
+        #   href: Create-your-own-agent.md
+    - name: built-in messages
+      href: Built-in-messages.md
+    - name: function call
+      items:
+        - name: Function call overview
+          href: Function-call-overview.md
+        - name: Create type-safe function call using AutoGen.SourceGenerator
+          href: Create-type-safe-function-call.md
+        - name: Use function call in an agent
+          href: Use-function-call.md
+        - name: Function call with local model
+          href: Function-call-with-ollama-and-litellm.md
+    - name: middleware
+      items:
+        - name: middleware overview
+          href: Middleware-overview.md
+        - name: built-in middleware and use case
+          items:
+            - name: print message
+              href: Print-message-middleware.md
+            # - name: function call
+            #   href: Function-call-middleware.md
+    - name: group chat
+      items:
+        - name: group chat overview
+          href: Group-chat-overview.md
+        - name: round robin group chat
+          href: Roundrobin-chat.md
+        - name: dynamic group chat
+          href: Group-chat.md
+        - name: use graph to control dynamic group chat
+          href: Use-graph-in-group-chat.md
+
+- name: AutoGen.DotnetInteractive
+  items:
+    - name: Execute code snippet
+      href: Run-dotnet-code.md
+
+- name: AutoGen.OpenAI
+  items:
+    - name: Overview
+      href: AutoGen-OpenAI-Overview.md
+    - name: Examples
+      items:
+        - name: Simple chat and streaming chat
+          href: OpenAIChatAgent-simple-chat.md
+        - name: Support more AutoGen built-in messages
+          href: OpenAIChatAgent-support-more-messages.md
+        - name: Use function call in OpenAIChatAgent
+          href: OpenAIChatAgent-use-function-call.md
+        - name: Use json mode in OpenAIChatAgent
+          href: OpenAIChatAgent-use-json-mode.md
+        - name: Connect to third-party OpenAI API endpoints.
+          href: OpenAIChatAgent-connect-to-third-party-api.md
+
+- name: AutoGen.SemanticKernel
+  items:
+    - name: Overview
+      href: AutoGen.SemanticKernel/AutoGen-SemanticKernel-Overview.md
+    - name: Chat with Semantic Kernel Agent
+      href: AutoGen.SemanticKernel/SemanticKernelAgent-simple-chat.md
+    - name: Chat with Semantic Kernel Chat Agent
+      href: AutoGen.SemanticKernel/SemanticKernelChatAgent-simple-chat.md
+    - name: Support AutoGen built-in messages
+      href: AutoGen.SemanticKernel/SemanticKernelAgent-support-more-messages.md
+    - name: Use kernel plugin in other agents
+      href: AutoGen.SemanticKernel/Use-kernel-plugin-in-other-agents.md
+
+- name: AutoGen.Ollama
+  items:
+    - name: Examples
+      items:
+        - name: Chat with LLaMA
+          href: AutoGen.Ollama/Chat-with-llama.md
+        - name: MultiModal Chat with LLaVA
+          href: AutoGen.Ollama/Chat-with-llava.md
+
+- name: AutoGen.Gemini
+  items:
+    - name: Overview
+      href: AutoGen.Gemini/Overview.md
+    - name: Examples
+      items:
+        - name: Chat with Google AI Gemini
+          href: AutoGen.Gemini/Chat-with-google-gemini.md
+        - name: Chat with Vertex AI Gemini
+          href: AutoGen.Gemini/Chat-with-vertex-gemini.md
+        - name: Function call with Gemini
+          href: AutoGen.Gemini/Function-call-with-gemini.md
+        - name: Image chat with Gemini
+          href: AutoGen.Gemini/Image-chat-with-gemini.md
+
+- name: AutoGen.Mistral
+  items:
+    - name: Overview
+      href: AutoGen-Mistral-Overview.md
+    - name: Examples
+      items:
+        - name: Use function call in MistralChatAgent
+          href: MistralChatAgent-use-function-call.md
+        - name: Count token usage in MistralChatAgent
+          href: MistralChatAgent-count-token-usage.md
+
+- name: AutoGen.LMStudio
+  items:
+    - name: Consume LLM server from LM Studio
+      href: Consume-LLM-server-from-LM-Studio.md
+

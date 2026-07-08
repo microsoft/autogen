@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package devteam;
+
+option csharp_namespace = "DevTeam";
+
+message NewAsk {
+  string org = 1;
+  string repo = 2;
+  string ask = 3;
+  int64 issue_number = 4;
+}
+
+message ReadmeRequested {
+   string org = 1;
+   string repo = 2;
+   int64 issue_number = 3;
+   string ask = 4;
+}
+message ReadmeChainClosed {
+      string ask = 1;
+}
+
+message ReadmeCreated {
+  string readme = 1;
+}
+
+message ReadmeGenerated {
+  string org = 1;
+  string repo = 2;
+  int64 issue_number = 3;
+  string readme = 4;
+}
+
+message CodeChainClosed {
+  string user_id = 1;
+  string user_message = 2;
+}
+
+message CodeGenerationRequested {
+  string org = 1;
+  string repo = 2;
+  int64 issue_number = 3;
+  string ask = 4;
+}
+
+message DevPlanRequested {
+  string org = 1;
+  string repo = 2;
+  int64 issue_number = 3;
+  string ask = 4;
+}
+
+message DevPlanGenerated {
+  string org = 1;
+  string repo = 2;
+  int64 issue_number = 3;
+  string plan = 4;
+}
+
+message CodeGenerated {
+  string org = 1;
+  string repo = 2;
+  int64 issue_number = 3;
+  string code = 4;
+}
+
+message DevPlanChainClosed {
+  string plan = 1;
+}
+
+message ReadmeStored {
+  string org = 1;
+  string repo = 2;
+  int64 issue_number = 3;
+  int64 parent_number = 4;
+}
+
+message SandboxRunFinished {
+  string user_id = 1;
+  string user_message = 2;
+}
+
+message CodeCreated {
+  string code = 1;
+}
+
+message DevPlanCreated {
+  string org = 1;
+  string repo = 2;
+  int64 issue_number = 3;
+  string plan = 4;
+}
+
+message SandboxRunCreated {
+  string user_id = 1;
+  string user_message = 2;
+}
+    

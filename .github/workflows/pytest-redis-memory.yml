@@ -1,0 +1,67 @@
+name: Redis Memory Tests
+
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        env:
+          REDIS_URL: redis://localhost:6379
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Wait for Redis
+        run: |
+          # give Redis time to start
+          sleep 5
+          # Wait for Redis to respond to curl (expecting empty reply, code 52)
+          timeout 5s bash -c 'until curl -s localhost:6379 || [ $? -eq 52 ]; do sleep 1; done'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+          # install core packages
+          cd python/packages/autogen-core
+          pip install -e .
+
+          cd ../autogen-agentchat
+          pip install -e .
+
+          # install autogen-ext with its dependencies
+          cd ../autogen-ext
+          pip install -e ".[dev,redisvl]"
+
+          # install test dependencies
+          pip install pytest pytest-asyncio pytest-cov
+
+          # install additional dependencies for redis memory tests
+          pip install sentence-transformers
+
+      - name: Run tests with coverage
+        run: |
+          cd python/packages/autogen-ext
+          pytest --cov=autogen_ext.memory.redis tests/memory/test_redis_memory.py -v --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./python/packages/autogen-ext/coverage.xml
+          name: codecov-redis-memory
+          fail_ci_if_error: false

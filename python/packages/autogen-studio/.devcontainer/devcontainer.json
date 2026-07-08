@@ -1,0 +1,45 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+	"name": "Python 3",
+	"image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"nodeGypDependencies": true,
+			"installYarnUsingApt": true,
+			"version": "lts",
+			"pnpmVersion": "latest",
+			"nvmVersion": "latest"
+		}
+	},
+	"portsAttributes": {
+		"8000": {
+			"label": "Frontend develop"
+		},
+		"8081": {
+			"label": "AutoGen Studio"
+		},
+		"9000": {
+			"label": "Frontend serve (production)"
+		}
+	},
+
+	// Use 'postCreateCommand' to install dependencies after the container is created.
+	"postCreateCommand": "bash .devcontainer/post-create-command.sh",
+
+	// Performance optimizations for Windows
+	"mounts": [
+	"source=node_modules,target=/workspace/frontend/node_modules,type=volume",
+	"source=yarn-cache,target=/usr/local/share/.cache/yarn,type=volume"
+	],
+	// Add workspaceMount for better performance
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+	"workspaceFolder": "/workspace",
+
+	"containerEnv": {
+        "npm_config_cache": "/tmp/.npm",
+        "YARN_CACHE_FOLDER": "/tmp/.yarn-cache",
+        "PYTHONUNBUFFERED": "1",
+        "PIP_NO_CACHE_DIR": "false"
+	}
+}

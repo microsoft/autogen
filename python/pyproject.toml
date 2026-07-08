@@ -1,0 +1,147 @@
+[dependency-groups]
+dev = [
+    "pyright==1.1.389",
+    "mypy==1.13.0",
+    "ruff==0.4.8",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-xdist",
+    "typer",
+    "rich",
+    "polars",
+    "pytest_mock",
+    "poethepoet",
+    "packaging",
+    "grpcio-tools~=1.70.0",
+    "mypy-protobuf",
+    "cookiecutter",
+    "tomli",
+    "tomli-w",
+    "chainlit",
+    "streamlit",
+    
+    # Documentation
+    "myst-nb==1.1.2",
+    "pydata-sphinx-theme==0.16.0",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "sphinx",
+    "sphinxcontrib-apidoc",
+    "autodoc_pydantic~=2.2",
+    "pygments",
+    "sphinxext-rediraffe",
+    "opentelemetry-instrumentation-openai",
+    "diskcache",
+    "redis",
+    "sphinx-autobuild",
+]
+
+[tool.uv]
+override-dependencies = [
+    "tenacity>=9.0.0",
+    "aiofiles>=24.1.0",
+    "chainlit>=2.0.1",
+    "httpx>=0.27.0",
+]
+[tool.uv.workspace]
+members = ["packages/*"]
+exclude = ["packages/autogen-magentic-one"]
+
+[tool.uv.sources]
+agbench = { workspace = true }
+autogen-agentchat = { workspace = true }
+autogen-core = { workspace = true }
+autogen-ext = { workspace = true }
+autogen-test-utils = { workspace = true }
+autogenstudio = { workspace = true }
+component-schema-gen = { workspace = true }
+magentic-one-cli = { workspace = true }
+
+[tool.ruff]
+line-length = 120
+fix = true
+
+target-version = "py310"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "Q", "I", "ASYNC", "T20"]
+ignore = ["F401", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"docs/**.ipynb" = ["T20"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"unittest".msg = "Use `pytest` instead."
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+ignore_missing_imports = true
+
+# from https://blog.wolt.com/engineering/2021/09/30/professional-grade-mypy-configuration/
+disallow_untyped_defs = true
+no_implicit_optional = true
+check_untyped_defs = true
+warn_return_any = true
+show_error_codes = true
+warn_unused_ignores = false
+
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+disallow_any_unimported = true
+
+[tool.pyright]
+include = ["src", "tests", "samples"]
+exclude = ["samples/core_xlang_hello_python_agent/protos"]
+typeCheckingMode = "strict"
+reportUnnecessaryIsInstance = false
+reportMissingTypeStubs = false
+
+[tool.nbqa.addopts]
+mypy = [
+    "--disable-error-code=top-level-await"
+]
+
+[tool.poe.tasks]
+fmt = "python run_task_in_pkgs_if_exist.py fmt"
+format.ref = "fmt"
+lint = "python run_task_in_pkgs_if_exist.py lint"
+pyright = "python run_task_in_pkgs_if_exist.py pyright"
+mypy = "python run_task_in_pkgs_if_exist.py mypy"
+test = "python run_task_in_pkgs_if_exist.py test"
+markdown-code-lint = """python check_md_code_blocks.py ../README.md ./docs/src/**/*.md ./packages/autogen-magentic-one/README.md"""
+samples-code-check = """pyright ./samples"""
+
+check = ["fmt", "lint", "pyright", "mypy", "docs-mypy", "test", "markdown-code-lint", "samples-code-check"]
+
+# Docs
+docs-mypy = "nbqa mypy docs/src --config-file ./pyproject.toml"
+docs-clean = "rm -rf docs/build docs/src/reference"
+docs-build = "sphinx-build docs/src docs/build"
+docs-serve = "sphinx-autobuild docs/src docs/build --watch packages/ --port 8000 --jobs auto"
+docs-check = "sphinx-build --fail-on-warning docs/src docs/build"
+docs-check-examples = "sphinx-build -b code_lint docs/src docs/build"
+
+gen-proto = [
+    { cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto" },
+    { script = "fixup_generated_files:main" }
+]
+
+
+gen-proto-samples = "python -m grpc_tools.protoc --python_out=./samples/core_xlang_hello_python_agent/protos --grpc_python_out=./samples/core_xlang_hello_python_agent/protos --mypy_out=./samples/core_xlang_hello_python_agent/protos --mypy_grpc_out=./samples/core_xlang_hello_python_agent/protos --proto_path ../dotnet/src/Microsoft.AutoGen/Agents/protos/ agent_events.proto"
+
+[[tool.poe.tasks.gen-test-proto.sequence]]
+cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/tests/protos --grpc_python_out=./packages/autogen-core/tests/protos --mypy_out=./packages/autogen-core/tests/protos --mypy_grpc_out=./packages/autogen-core/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"
+
+[[tool.poe.tasks.gen-test-proto.sequence]]
+cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/tests/protos --grpc_python_out=./packages/autogen-ext/tests/protos --mypy_out=./packages/autogen-ext/tests/protos --mypy_grpc_out=./packages/autogen-ext/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"
+
+[tool.pytest.ini_options]
+markers = [
+    "grpc: tests invoking gRPC functionality",
+]

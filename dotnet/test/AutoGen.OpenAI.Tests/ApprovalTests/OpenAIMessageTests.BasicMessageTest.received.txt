@@ -1,0 +1,260 @@
+﻿[
+  {
+    "OriginalMessage": "TextMessage(system, You are a helpful AI assistant, )",
+    "ConvertedMessages": [
+      {
+        "Name": null,
+        "Role": "system",
+        "Content": [
+          {
+            "Kind": 0,
+            "Text": "You are a helpful AI assistant",
+            "ImageUri": null,
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "InputAudioBytes": null,
+            "InputAudioFormat": null,
+            "FileId": null,
+            "FileBytes": null,
+            "FileBytesMediaType": null,
+            "Filename": null,
+            "ImageDetailLevel": null,
+            "Refusal": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "TextMessage(user, Hello, user)",
+    "ConvertedMessages": [
+      {
+        "Role": "user",
+        "Content": [
+          {
+            "Kind": 0,
+            "Text": "Hello",
+            "ImageUri": null,
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "InputAudioBytes": null,
+            "InputAudioFormat": null,
+            "FileId": null,
+            "FileBytes": null,
+            "FileBytesMediaType": null,
+            "Filename": null,
+            "ImageDetailLevel": null,
+            "Refusal": null
+          }
+        ],
+        "Name": "user",
+        "MultiModaItem": [
+          {
+            "Type": "Text",
+            "Text": "Hello"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "TextMessage(assistant, How can I help you?, assistant)",
+    "ConvertedMessages": [
+      {
+        "Role": "assistant",
+        "Content": [
+          {
+            "Kind": 0,
+            "Text": "How can I help you?",
+            "ImageUri": null,
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "InputAudioBytes": null,
+            "InputAudioFormat": null,
+            "FileId": null,
+            "FileBytes": null,
+            "FileBytesMediaType": null,
+            "Filename": null,
+            "ImageDetailLevel": null,
+            "Refusal": null
+          }
+        ],
+        "Name": "assistant",
+        "TooCall": []
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "ImageMessage(user, https://example.com/image.png, user)",
+    "ConvertedMessages": [
+      {
+        "Role": "user",
+        "Content": [
+          {
+            "Kind": 2,
+            "Text": null,
+            "ImageUri": "https://example.com/image.png",
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "InputAudioBytes": null,
+            "InputAudioFormat": null,
+            "FileId": null,
+            "FileBytes": null,
+            "FileBytesMediaType": null,
+            "Filename": null,
+            "ImageDetailLevel": null,
+            "Refusal": null
+          }
+        ],
+        "Name": "user",
+        "MultiModaItem": [
+          {
+            "Type": "Image",
+            "ImageUrl": "https://example.com/image.png"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "MultiModalMessage(assistant, user)\n\tTextMessage(user, Hello, user)\n\tImageMessage(user, https://example.com/image.png, user)",
+    "ConvertedMessages": [
+      {
+        "Role": "user",
+        "Content": [
+          {
+            "Kind": 0,
+            "Text": "Hello",
+            "ImageUri": null,
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "InputAudioBytes": null,
+            "InputAudioFormat": null,
+            "FileId": null,
+            "FileBytes": null,
+            "FileBytesMediaType": null,
+            "Filename": null,
+            "ImageDetailLevel": null,
+            "Refusal": null
+          },
+          {
+            "Kind": 2,
+            "Text": null,
+            "ImageUri": "https://example.com/image.png",
+            "ImageBytes": null,
+            "ImageBytesMediaType": null,
+            "InputAudioBytes": null,
+            "InputAudioFormat": null,
+            "FileId": null,
+            "FileBytes": null,
+            "FileBytesMediaType": null,
+            "Filename": null,
+            "ImageDetailLevel": null,
+            "Refusal": null
+          }
+        ],
+        "Name": "user",
+        "MultiModaItem": [
+          {
+            "Type": "Text",
+            "Text": "Hello"
+          },
+          {
+            "Type": "Image",
+            "ImageUrl": "https://example.com/image.png"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "ToolCallMessage(assistant)\n\tToolCall(test, test, )",
+    "ConvertedMessages": [
+      {
+        "Role": "assistant",
+        "Content": [],
+        "Name": null,
+        "TooCall": [
+          {
+            "Type": "Function",
+            "Name": "test",
+            "Arguments": "dGVzdA==",
+            "Id": "test"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "ToolCallResultMessage(user)\n\tToolCall(test, test, result)",
+    "ConvertedMessages": [
+      {
+        "Role": "tool",
+        "Content": "result",
+        "ToolCallId": "test"
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "ToolCallResultMessage(user)\n\tToolCall(result, test, test)\n\tToolCall(result, test, test)",
+    "ConvertedMessages": [
+      {
+        "Role": "tool",
+        "Content": "test",
+        "ToolCallId": "result_0"
+      },
+      {
+        "Role": "tool",
+        "Content": "test",
+        "ToolCallId": "result_1"
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "ToolCallMessage(assistant)\n\tToolCall(test, test, )\n\tToolCall(test, test, )",
+    "ConvertedMessages": [
+      {
+        "Role": "assistant",
+        "Content": [],
+        "Name": null,
+        "TooCall": [
+          {
+            "Type": "Function",
+            "Name": "test",
+            "Arguments": "dGVzdA==",
+            "Id": "test_0"
+          },
+          {
+            "Type": "Function",
+            "Name": "test",
+            "Arguments": "dGVzdA==",
+            "Id": "test_1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "AggregateMessage(assistant)\n\tToolCallMessage(assistant)\n\tToolCall(test, test, )\n\tToolCallResultMessage(assistant)\n\tToolCall(test, test, result)",
+    "ConvertedMessages": [
+      {
+        "Role": "assistant",
+        "Content": [],
+        "Name": null,
+        "TooCall": [
+          {
+            "Type": "Function",
+            "Name": "test",
+            "Arguments": "dGVzdA==",
+            "Id": "test"
+          }
+        ]
+      },
+      {
+        "Role": "tool",
+        "Content": "result",
+        "ToolCallId": "test"
+      }
+    ]
+  }
+]

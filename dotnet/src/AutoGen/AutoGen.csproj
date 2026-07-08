@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
+    <RootNamespace>AutoGen</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen</Title>
+    <Description>
+      The all-in-one package for AutoGen. This package provides contracts, core functionalities, OpenAI integration, source generator, etc. for AutoGen.
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoGen.Anthropic\AutoGen.Anthropic.csproj" />
+    <ProjectReference Include="..\AutoGen.AzureAIInference\AutoGen.AzureAIInference.csproj" />
+    <ProjectReference Include="..\AutoGen.Mistral\AutoGen.Mistral.csproj" />
+    <ProjectReference Include="..\AutoGen.Ollama\AutoGen.Ollama.csproj" />
+    <ProjectReference Include="..\AutoGen.Gemini\AutoGen.Gemini.csproj" />
+    <ProjectReference Include="..\AutoGen.SemanticKernel\AutoGen.SemanticKernel.csproj" />
+    <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+    <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
+    <PackageReference Include="Azure.AI.OpenAI"/>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoGen.Tests" />
+  </ItemGroup>
+
+</Project>

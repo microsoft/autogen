@@ -1,0 +1,49 @@
+{
+    "messages": [
+        {
+            "content": "Hi, I bought a rocket-powered unicycle and it exploded.",
+            "source": "User",
+            "type": "UserMessage"
+        },
+        {
+            "content": "Hi, I'm here to help. That sounds serious. Are you looking to report the issue or perhaps discuss a refund?",
+            "thought": null,
+            "source": "TriageAgent",
+            "type": "AssistantMessage"
+        },
+        {
+            "content": "Hi, I bought a rocket-powered unicycle and it exploded.",
+            "source": "User",
+            "type": "UserMessage"
+        },
+        {
+            "content": [
+                {
+                    "id": "call_iRnHdOjAk80LBNwPxMdxwwqM",
+                    "arguments": "{}",
+                    "name": "transfer_to_issues_and_repairs"
+                }
+            ],
+            "thought": null,
+            "source": "TriageAgent",
+            "type": "AssistantMessage"
+        },
+        {
+            "content": [
+                {
+                    "content": "Transferred to IssuesAndRepairsAgent. Adopt persona immediately.",
+                    "name": "transfer_to_issues_and_repairs",
+                    "call_id": "call_iRnHdOjAk80LBNwPxMdxwwqM",
+                    "is_error": false
+                }
+            ],
+            "type": "FunctionExecutionResultMessage"
+        },
+        {
+            "content": "Could you please describe what happened with your rocket-powered unicycle before it exploded?",
+            "thought": null,
+            "source": "IssuesAndRepairsAgent",
+            "type": "AssistantMessage"
+        }
+    ]
+}
