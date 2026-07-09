@@ -1,6 +1,22 @@
+import re
 from typing import Dict
 
 from autogen_core.models import ModelFamily, ModelInfo
+
+# AWS Bedrock prefixes and version suffixes that obscure the canonical model ID.
+# See https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
+_BEDROCK_PREFIX_RE = re.compile(
+    r"^(us\.|eu\.|apac\.|global\.)?anthropic\."
+)
+_BEDROCK_VERSION_SUFFIX_RE = re.compile(r"-v\d+:\d+$")
+
+
+def _normalize_model_id(model: str) -> str:
+    """Strip Bedrock prefix and version suffix so the ID matches the canonical form."""
+    model = _BEDROCK_PREFIX_RE.sub("", model)
+    model = _BEDROCK_VERSION_SUFFIX_RE.sub("", model)
+    return model
+
 
 # Mapping of model names to their capabilities
 # For Anthropic's Claude models based on:
@@ -140,13 +156,15 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
 
 def get_info(model: str) -> ModelInfo:
     """Get the model information for a specific model."""
+    normalized = _normalize_model_id(model)
+
     # Check for exact match first
-    if model in _MODEL_INFO:
-        return _MODEL_INFO[model]
+    if normalized in _MODEL_INFO:
+        return _MODEL_INFO[normalized]
 
     # Check for partial match (for handling model variants)
     for model_id in _MODEL_INFO:
-        if model.startswith(model_id.split("-2")[0]):  # Match base name
+        if normalized.startswith(model_id.split("-2")[0]):  # Match base name
             return _MODEL_INFO[model_id]
 
     raise KeyError(f"Model '{model}' not found in model info")
@@ -154,13 +172,15 @@ def get_info(model: str) -> ModelInfo:
 
 def get_token_limit(model: str) -> int:
     """Get the token limit for a specific model."""
+    normalized = _normalize_model_id(model)
+
     # Check for exact match first
-    if model in _MODEL_TOKEN_LIMITS:
-        return _MODEL_TOKEN_LIMITS[model]
+    if normalized in _MODEL_TOKEN_LIMITS:
+        return _MODEL_TOKEN_LIMITS[normalized]
 
     # Check for partial match (for handling model variants)
     for model_id in _MODEL_TOKEN_LIMITS:
-        if model.startswith(model_id.split("-2")[0]):  # Match base name
+        if normalized.startswith(model_id.split("-2")[0]):  # Match base name
             return _MODEL_TOKEN_LIMITS[model_id]
 
     # Default to a reasonable limit if model not found
