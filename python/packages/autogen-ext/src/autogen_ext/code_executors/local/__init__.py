@@ -54,8 +54,10 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
     the working directory, and a unique file is generated and saved in the
     working directory for each code block.
     The code blocks are executed in the order they are received.
-    Command line code is sanitized using regular expression match against a list of dangerous commands in order to prevent self-destructive
-    commands from being executed which may potentially affect the users environment.
+    .. warning::
+        No dangerous-command sanitization is performed. LLM-generated code
+        (including destructive commands like rm -rf) will be executed directly
+        on the local machine. Use Docker-based executors for untrusted code.
     Currently the only supported languages is Python and shell scripts.
     For Python code, use the language "python" for the code block.
     For shell scripts, use the language "bash", "shell", "sh", "pwsh", "powershell", or "ps1" for the code
