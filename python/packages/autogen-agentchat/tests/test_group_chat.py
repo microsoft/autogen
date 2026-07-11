@@ -1944,3 +1944,30 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
 
     # Content-based verification instead of index-based
     # Note: The streaming test verifies the streaming behavior, not the final result content
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_streaming_no_final_result(runtime: AgentRuntime | None) -> None:
+    """Streaming speaker selection raises a clear error when the stream yields no final CreateResult."""
+    # Replay payload is unused: create_stream is overridden below to simulate an empty stream.
+    model_client = ReplayChatCompletionClient(["unused"])
+
+    async def mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[str | CreateResult, None]:
+        yield "agent"
+        yield "2"
+        # No final CreateResult.
+
+    model_client.create_stream = mock_create_stream  # type: ignore[method-assign]
+
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2],
+        model_client=model_client,
+        termination_condition=MaxMessageTermination(2),
+        runtime=runtime,
+        model_client_streaming=True,
+    )
+
+    with pytest.raises(RuntimeError, match="No final model result"):
+        await team.run(task="Say hello")
