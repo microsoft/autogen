@@ -10,6 +10,7 @@ This section contains a collection of recipes that demonstrate how to use the Co
 azure-openai-with-aad-auth
 termination-with-intervention
 tool-use-with-intervention
+structured-authority-intervention
 extracting-results-with-an-agent
 openai-assistant-agent
 langgraph-agent
