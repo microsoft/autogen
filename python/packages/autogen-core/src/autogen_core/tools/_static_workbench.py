@@ -118,6 +118,9 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
             actual_tool_output = await result_future
             is_error = False
             result_str = tool.return_value_as_string(actual_tool_output)
+        except asyncio.CancelledError:
+            result_str = "Tool call was cancelled."
+            is_error = True
         except Exception as e:
             result_str = self._format_errors(e)
             is_error = True
@@ -219,6 +222,9 @@ class StaticStreamWorkbench(StaticWorkbench, StreamWorkbench):
                 actual_tool_output = await result_future
             is_error = False
             result_str = tool.return_value_as_string(actual_tool_output)
+        except asyncio.CancelledError:
+            result_str = "Tool call was cancelled."
+            is_error = True
         except Exception as e:
             result_str = self._format_errors(e)
             is_error = True
