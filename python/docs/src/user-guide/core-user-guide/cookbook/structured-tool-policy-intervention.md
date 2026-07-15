@@ -152,6 +152,14 @@ async def main() -> None:
     print(json.dumps(await evaluate(handler, recoverable), sort_keys=True))
     print(json.dumps(await evaluate(handler, forbidden), sort_keys=True))
 
+    status_message = {"kind": "status"}
+    status_result = await handler.on_send(
+        status_message,
+        message_context=message_context("message-status"),
+        recipient=AgentId("tool_executor_agent", "default"),
+    )
+    assert status_result is status_message
+
 
 asyncio.run(main())
 ```
@@ -166,4 +174,4 @@ The three results let an agent loop branch without parsing natural language:
 
 The denial payload intentionally omits raw tool arguments. A production adapter can attach an opaque,
 digest-bound `actionRef` and record post-call evidence separately after successful tool execution.
-
+Messages that are not `FunctionCall` instances pass through unchanged, as the final assertion demonstrates.
