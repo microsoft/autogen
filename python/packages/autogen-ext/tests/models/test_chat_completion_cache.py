@@ -59,6 +59,31 @@ async def test_cache_basic_with_args() -> None:
 
 
 @pytest.mark.asyncio
+async def test_cache_miss_on_tool_choice_change() -> None:
+    """Regression test: tool_choice must be part of the cache key, since it changes what the
+    underlying client is asked to do (let the model decide, force/forbid a tool call) and can
+    materially change the shape of the response. A call that only differs by tool_choice must
+    not be served a cached result from a call made with a different tool_choice."""
+    responses, prompts, system_prompt, _, cached_client = get_test_data()
+
+    message = [system_prompt, UserMessage(content=prompts[0], source="user")]
+
+    response0 = await cached_client.create(message, tool_choice="auto")
+    assert not response0.cached
+    assert response0.content == responses[0]
+
+    # Same messages, different tool_choice: must be a cache miss, not a replay of response0.
+    response1 = await cached_client.create(message, tool_choice="none")
+    assert not response1.cached
+    assert response1.content == responses[1]
+
+    # Now this exact (messages, tool_choice="auto") combination should be a cache hit.
+    response0_cached = await cached_client.create(message, tool_choice="auto")
+    assert response0_cached.cached
+    assert response0_cached.content == responses[0]
+
+
+@pytest.mark.asyncio
 async def test_cache_structured_output_with_args() -> None:
     responses, prompts, system_prompt, _, cached_client = get_test_data(num_messages=4)
 
