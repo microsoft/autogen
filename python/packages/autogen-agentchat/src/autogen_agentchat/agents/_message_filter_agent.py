@@ -152,19 +152,23 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
         return self._wrapped_agent.produced_message_types
 
     def _apply_filter(self, messages: Sequence[BaseChatMessage]) -> Sequence[BaseChatMessage]:
-        result: List[BaseChatMessage] = []
+        # Track each kept message by its original index so the result below can be
+        # restored to chronological order, instead of the order per_source happens
+        # to list its sources in.
+        kept: dict[int, BaseChatMessage] = {}
 
         for source_filter in self._filter.per_source:
-            msgs = [m for m in messages if m.source == source_filter.source]
+            indexed_msgs = [(i, m) for i, m in enumerate(messages) if m.source == source_filter.source]
 
             if source_filter.position == "first" and source_filter.count:
-                msgs = msgs[: source_filter.count]
+                indexed_msgs = indexed_msgs[: source_filter.count]
             elif source_filter.position == "last" and source_filter.count:
-                msgs = msgs[-source_filter.count :]
+                indexed_msgs = indexed_msgs[-source_filter.count :]
 
-            result.extend(msgs)
+            for i, m in indexed_msgs:
+                kept[i] = m
 
-        return result
+        return [kept[i] for i in sorted(kept)]
 
     async def on_messages(
         self,
