@@ -967,6 +967,23 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 is_reasoning = False
                 yield reasoning_content
 
+            # Collect logprobs before the content fast-path below, because content-bearing
+            # chunks are exactly the ones that carry the logprobs for their delta tokens.
+            # Accumulate across chunks instead of overwriting so that the final
+            # CreateResult.logprobs matches what the non-streaming path returns.
+            if choice.logprobs and choice.logprobs.content:
+                if logprobs is None:
+                    logprobs = []
+                logprobs.extend(
+                    ChatCompletionTokenLogprob(
+                        token=x.token,
+                        logprob=x.logprob,
+                        top_logprobs=[TopLogprob(logprob=y.logprob, bytes=y.bytes) for y in x.top_logprobs],
+                        bytes=x.bytes,
+                    )
+                    for x in choice.logprobs.content
+                )
+
             # First try get content
             if choice.delta.content:
                 content_deltas.append(choice.delta.content)
@@ -991,16 +1008,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                             full_tool_calls[idx].name += tool_call_chunk.function.name
                         if tool_call_chunk.function.arguments is not None:
                             full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
-            if choice.logprobs and choice.logprobs.content:
-                logprobs = [
-                    ChatCompletionTokenLogprob(
-                        token=x.token,
-                        logprob=x.logprob,
-                        top_logprobs=[TopLogprob(logprob=y.logprob, bytes=y.bytes) for y in x.top_logprobs],
-                        bytes=x.bytes,
-                    )
-                    for x in choice.logprobs.content
-                ]
 
         # Finalize the CreateResult.
 
