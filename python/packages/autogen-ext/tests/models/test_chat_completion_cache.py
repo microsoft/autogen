@@ -84,6 +84,59 @@ async def test_cache_miss_on_tool_choice_change() -> None:
 
 
 @pytest.mark.asyncio
+async def test_cache_hit_omitted_tool_choice_matches_explicit_auto() -> None:
+    """Regression test: omitting tool_choice entirely must hash identically to passing
+    tool_choice="auto" explicitly, since that is create()'s own default. If a future change
+    let these two forms diverge (e.g. by defaulting _check_cache's tool_choice to something
+    that doesn't match create()'s default), every caller that omits tool_choice would silently
+    stop sharing a cache with callers who pass "auto" explicitly, and vice versa."""
+    responses, prompts, system_prompt, _, cached_client = get_test_data()
+
+    message = [system_prompt, UserMessage(content=prompts[0], source="user")]
+
+    response0 = await cached_client.create(message)  # tool_choice omitted
+    assert not response0.cached
+    assert response0.content == responses[0]
+
+    response0_explicit_auto = await cached_client.create(message, tool_choice="auto")
+    assert response0_explicit_auto.cached
+    assert response0_explicit_auto.content == responses[0]
+
+
+@pytest.mark.asyncio
+async def test_cache_miss_on_forced_tool_choice_then_none() -> None:
+    """Regression test covering the specific transition raised in review on #7968: an
+    agent step that forces a specific tool call followed by a step that forbids tool calls
+    entirely. These represent different authority boundaries for the model (forced to call
+    a tool vs. not allowed to), so serving step two a cached response generated under step
+    one's tool_choice would let the caller act on a result produced under the wrong policy."""
+    responses, prompts, system_prompt, _, cached_client = get_test_data()
+    from autogen_core.tools import FunctionTool
+
+    def _add_numbers(a: int, b: int) -> int:
+        return a + b
+
+    add_tool = FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers")
+    message = [system_prompt, UserMessage(content=prompts[0], source="user")]
+
+    response0 = await cached_client.create(message, tools=[add_tool], tool_choice=add_tool)
+    assert not response0.cached
+    assert response0.content == responses[0]
+
+    # Same messages and tools, but tool_choice="none" instead of forcing add_tool: must not
+    # replay response0, that response was generated under a "you must call add_numbers"
+    # instruction, not a "you may not call any tool" one.
+    response1 = await cached_client.create(message, tools=[add_tool], tool_choice="none")
+    assert not response1.cached
+    assert response1.content == responses[1]
+
+    # The original forced-tool call is still a cache hit against itself.
+    response0_cached = await cached_client.create(message, tools=[add_tool], tool_choice=add_tool)
+    assert response0_cached.cached
+    assert response0_cached.content == responses[0]
+
+
+@pytest.mark.asyncio
 async def test_cache_structured_output_with_args() -> None:
     responses, prompts, system_prompt, _, cached_client = get_test_data(num_messages=4)
 
