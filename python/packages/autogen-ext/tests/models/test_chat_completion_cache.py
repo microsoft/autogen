@@ -956,3 +956,27 @@ async def test_create_stream_with_cached_non_streaming_result_non_string_content
     assert stream_results[0].content == [expected_function_call]
     assert stream_results[0].finish_reason == "function_calls"
     assert stream_results[0].cached is True
+
+
+async def test_cache_key_includes_tool_choice() -> None:
+    """Different tool_choice values on otherwise identical requests must produce
+    different cache keys (regression for issue #7968)."""
+    _, _, _, replay_client, _ = get_test_data()
+    messages = [
+        SystemMessage(content="You are helpful.", source="system"),
+        UserMessage(content="Hello", source="user"),
+    ]
+
+    cache_store = MockCacheStore(return_value=None)
+    client = ChatCompletionCache(replay_client, cache_store)
+
+    _, key_auto = client._check_cache(messages, [], None, {}, "auto")  # type: ignore
+    _, key_required = client._check_cache(messages, [], None, {}, "required")  # type: ignore
+    _, key_none = client._check_cache(messages, [], None, {}, "none")  # type: ignore
+    _, key_auto_again = client._check_cache(messages, [], None, {}, "auto")  # type: ignore
+
+    print("KEYS:", key_auto[:16], key_required[:16], key_none[:16])
+    assert key_auto != key_required
+    assert key_auto != key_none
+    assert key_required != key_none
+    assert key_auto == key_auto_again
