@@ -1480,6 +1480,14 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                 copied_args["base_url"] = _model_info.LLAMA_API_BASE_URL
             if "api_key" not in copied_args and "LLAMA_API_KEY" in os.environ:
                 copied_args["api_key"] = os.environ["LLAMA_API_KEY"]
+        # Special handling for Mistral models (mistral-*, ministral-*, codestral-*, pixtral-*, open-mistral-*, open-codestral-*).
+        if copied_args["model"].startswith(
+            ("mistral-", "ministral-", "codestral-", "pixtral-", "open-mistral-", "open-codestral-")
+        ):
+            if "base_url" not in copied_args:
+                copied_args["base_url"] = _model_info.MISTRAL_OPENAI_BASE_URL
+            if "api_key" not in copied_args and "MISTRAL_API_KEY" in os.environ:
+                copied_args["api_key"] = os.environ["MISTRAL_API_KEY"]
 
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)

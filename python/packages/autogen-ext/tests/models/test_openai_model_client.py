@@ -24,7 +24,7 @@ from autogen_core.models import (
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
-from autogen_ext.models.openai._model_info import resolve_model
+from autogen_ext.models.openai._model_info import MISTRAL_OPENAI_BASE_URL, resolve_model
 from autogen_ext.models.openai._openai_client import (
     BaseOpenAIChatCompletionClient,
     calculate_vision_tokens,
@@ -189,6 +189,32 @@ async def test_openai_chat_completion_client() -> None:
 async def test_openai_chat_completion_client_with_gemini_model() -> None:
     client = OpenAIChatCompletionClient(model="gemini-1.5-flash", api_key="api_key")
     assert client
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_with_mistral_model() -> None:
+    client = OpenAIChatCompletionClient(model="mistral-large-latest", api_key="api_key")
+    assert client
+    assert str(client._client.base_url) == MISTRAL_OPENAI_BASE_URL  # pyright: ignore[reportPrivateUsage]
+    assert client.model_info["family"] == ModelFamily.MISTRAL
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_with_mistral_model_env_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MISTRAL_API_KEY", "env-mistral-key")
+    client = OpenAIChatCompletionClient(model="ministral-8b-latest")
+    assert client
+    assert client._client.api_key == "env-mistral-key"  # pyright: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_with_mistral_model_explicit_base_url() -> None:
+    # An explicitly provided base_url should not be overridden by the Mistral auto-detection.
+    client = OpenAIChatCompletionClient(
+        model="codestral-latest", api_key="api_key", base_url="https://custom.example.com/v1/"
+    )
+    assert client
+    assert str(client._client.base_url) == "https://custom.example.com/v1/"  # pyright: ignore[reportPrivateUsage]
 
 
 @pytest.mark.asyncio
