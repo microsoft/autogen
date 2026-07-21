@@ -164,6 +164,14 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
 
             result.extend(msgs)
 
+        # Restore original chronological order. _apply_filter iterates per_source
+        # in config order and appends each source's matches, so the emitted
+        # sequence reflects config order, not the original message timeline.
+        # Sorting by the position each message occupied in the input restores
+        # the correct chronological order regardless of how per_source is listed.
+        # see https://github.com/microsoft/autogen/issues/7971
+        result.sort(key=lambda m: messages.index(m))
+
         return result
 
     async def on_messages(
