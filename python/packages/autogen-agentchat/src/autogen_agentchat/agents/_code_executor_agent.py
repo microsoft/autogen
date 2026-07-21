@@ -482,7 +482,6 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         else:
             self._model_context = UnboundedChatCompletionContext()
 
-        self._system_messaages: List[SystemMessage] = []
         if system_message is None:
             self._system_messages = []
         else:
