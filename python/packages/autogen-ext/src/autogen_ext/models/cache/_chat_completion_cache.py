@@ -179,6 +179,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         tools: Sequence[Tool | ToolSchema],
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
+        tool_choice: Tool | Literal['auto', 'required', 'none'] = 'auto',
     ) -> tuple[Optional[Union[CreateResult, List[Union[str, CreateResult]]]], str]:
         """
         Helper function to check the cache for a result.
@@ -270,7 +271,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
 
         NOTE: cancellation_token is ignored for cached results.
         """
-        cached_result, cache_key = self._check_cache(messages, tools, json_output, extra_create_args)
+        cached_result, cache_key = self._check_cache(messages, tools, json_output, extra_create_args, tool_choice)
         if cached_result is not None:
             if isinstance(cached_result, CreateResult):
                 # Cache hit from previous non-streaming call
@@ -319,6 +320,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                 tools,
                 json_output,
                 extra_create_args,
+                tool_choice,
             )
             if cached_result is not None:
                 if isinstance(cached_result, list):
