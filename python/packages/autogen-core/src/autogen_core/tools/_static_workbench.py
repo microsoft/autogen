@@ -118,7 +118,7 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
             actual_tool_output = await result_future
             is_error = False
             result_str = tool.return_value_as_string(actual_tool_output)
-        except Exception as e:
+        except (Exception, asyncio.CancelledError) as e:
             result_str = self._format_errors(e)
             is_error = True
         return ToolResult(name=name, result=[TextResultContent(content=result_str)], is_error=is_error)
@@ -153,7 +153,7 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
     def _from_config(cls, config: StaticWorkbenchConfig) -> Self:
         return cls(tools=[BaseTool.load_component(tool) for tool in config.tools], tool_overrides=config.tool_overrides)
 
-    def _format_errors(self, error: Exception) -> str:
+    def _format_errors(self, error: BaseException) -> str:
         """Recursively format errors into a string."""
 
         error_message = ""
@@ -219,7 +219,7 @@ class StaticStreamWorkbench(StaticWorkbench, StreamWorkbench):
                 actual_tool_output = await result_future
             is_error = False
             result_str = tool.return_value_as_string(actual_tool_output)
-        except Exception as e:
+        except (Exception, asyncio.CancelledError) as e:
             result_str = self._format_errors(e)
             is_error = True
         yield ToolResult(name=tool.name, result=[TextResultContent(content=result_str)], is_error=is_error)

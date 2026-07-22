@@ -443,7 +443,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                         reflect_on_tool_use=True,
                     )
                     await Console(
-                        assistant.run_stream(task="Go to https://github.com/microsoft/autogen and tell me what you see.")
+                        assistant.run_stream(
+                            task="Go to https://github.com/microsoft/autogen and tell me what you see."
+                        )
                     )
 
 
@@ -1197,22 +1199,24 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 function_calls: List[FunctionCall],
                 stream_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | None],
             ) -> List[Tuple[FunctionCall, FunctionExecutionResult]]:
-                results = await asyncio.gather(
-                    *[
-                        cls._execute_tool_call(
-                            tool_call=call,
-                            workbench=workbench,
-                            handoff_tools=handoff_tools,
-                            agent_name=agent_name,
-                            cancellation_token=cancellation_token,
-                            stream=stream_queue,
-                        )
-                        for call in function_calls
-                    ]
-                )
-                # Signal the end of streaming by putting None in the queue.
-                stream_queue.put_nowait(None)
-                return results
+                try:
+                    results = await asyncio.gather(
+                        *[
+                            cls._execute_tool_call(
+                                tool_call=call,
+                                workbench=workbench,
+                                handoff_tools=handoff_tools,
+                                agent_name=agent_name,
+                                cancellation_token=cancellation_token,
+                                stream=stream_queue,
+                            )
+                            for call in function_calls
+                        ],
+                        return_exceptions=True,
+                    )
+                    return [r for r in results if not isinstance(r, BaseException)]
+                finally:
+                    stream_queue.put_nowait(None)
 
             task = asyncio.create_task(_execute_tool_calls(current_model_result.content, stream))
 
