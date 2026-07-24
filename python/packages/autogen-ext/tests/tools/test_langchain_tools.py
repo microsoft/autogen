@@ -100,3 +100,38 @@ async def test_langchain_tool_adapter(caplog: pytest.LogCaptureFixture) -> None:
     # Test run method for CustomCalculatorTool
     custom_result = await custom_adapter.run_json({"a": 3, "b": 4}, CancellationToken())
     assert custom_result == 12
+
+
+class NoSchemaTool(LangChainTool):
+    name: str = "NoSchema"
+    description: str = "a tool without an explicit args schema"
+
+    def _run(self, a: int, b: int, run_manager: Optional[CallbackManagerForToolRun] = None) -> int:
+        return a + b
+
+    async def _arun(
+        self,
+        a: int,
+        b: int,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> int:
+        return a + b
+
+
+@pytest.mark.asyncio
+async def test_langchain_tool_adapter_skips_run_manager() -> None:
+    # Tools without an explicit args_schema get their args inferred from the
+    # callable's signature. LangChain injects a ``run_manager`` into ``_run``
+    # which is not a user-facing input and cannot be turned into a pydantic
+    # schema; the adapter must skip it (see #6385).
+    tool = NoSchemaTool()
+    adapter = LangChainToolAdapter(tool)  # type: ignore
+
+    schema = adapter.schema
+    assert schema["name"] == "NoSchema"
+    props = schema["parameters"]["properties"]
+    assert set(props.keys()) == {"a", "b"}
+    assert set(schema["parameters"]["required"]) == {"a", "b"}
+
+    result = await adapter.run_json({"a": 2, "b": 3}, CancellationToken())
+    assert result == 5
