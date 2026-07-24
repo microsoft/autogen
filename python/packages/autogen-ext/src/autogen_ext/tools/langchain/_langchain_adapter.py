@@ -208,15 +208,19 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
                     inspect.Parameter.VAR_KEYWORD,
                 ):
                     continue
-                # LangChain injects a ``run_manager``
-                # (CallbackManagerForToolRun / its async variant) into a tool's
-                # ``_run``/``_arun`` at run time. It is not a user-facing
-                # argument and pydantic cannot build a schema for it, so skip
-                # it. We detect it by annotation when resolvable and, as a
-                # fallback for unresolvable (string) annotations, by the
-                # conventional parameter name.
+                # LangChain injects runtime-only callback arguments into a
+                # tool's ``_run``/``_arun`` that are not user-facing and cannot
+                # be represented in a pydantic schema. LangChain itself excludes
+                # these via ``FILTERED_ARGS = ("run_manager", "callbacks")``:
+                #   * ``run_manager`` (CallbackManagerForToolRun / its async
+                #     variant) — detected by annotation when resolvable, and as
+                #     a fallback for unresolvable (string) annotations, by the
+                #     conventional parameter name.
+                #   * ``callbacks`` (a ``Callbacks`` sequence of handlers) —
+                #     ``_is_callback_manager_annotation`` does not match it, so
+                #     it must be filtered by name.
                 annotation = type_hints.get(k, v.annotation)
-                if _is_callback_manager_annotation(annotation) or k == "run_manager":
+                if _is_callback_manager_annotation(annotation) or k in ("run_manager", "callbacks"):
                     continue
                 fields[k] = (annotation, Field(...))
             args_type = create_model(f"{name}Args", **fields)  # type: ignore
