@@ -50,6 +50,7 @@ components/model-context
 components/tools
 components/workbench
 components/command-line-code-executors
+components/multi-language-code-execution
 ```
 
 ```{toctree}
