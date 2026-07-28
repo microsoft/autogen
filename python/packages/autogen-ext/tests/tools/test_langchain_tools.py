@@ -181,14 +181,10 @@ class NoSchemaAsyncManagerTool(LangChainTool):
     name: str = "NoSchemaAsyncManager"
     description: str = "a tool whose sync _run is annotated with the async callback manager type"
 
-    def _run(
-        self, a: int, b: int, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
-    ) -> int:
+    def _run(self, a: int, b: int, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> int:
         return a + b
 
-    async def _arun(
-        self, a: int, b: int, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
-    ) -> int:
+    async def _arun(self, a: int, b: int, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> int:
         return a + b
 
 
