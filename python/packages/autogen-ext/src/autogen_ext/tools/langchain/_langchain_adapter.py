@@ -219,6 +219,13 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
                 #   * ``callbacks`` (a ``Callbacks`` sequence of handlers) —
                 #     ``_is_callback_manager_annotation`` does not match it, so
                 #     it must be filtered by name.
+                # ``get_type_hints`` resolves annotations to real types when it
+                # can, but this module uses ``from __future__ import annotations``,
+                # so annotations arrive as strings and ``get_type_hints`` can fail
+                # (e.g. for a locally-defined tool), leaving a string annotation
+                # that ``_is_callback_manager_annotation``'s ``issubclass`` check
+                # cannot match. The ``run_manager``/``callbacks`` name check is a
+                # deliberate fallback for exactly that case.
                 annotation = type_hints.get(k, v.annotation)
                 if _is_callback_manager_annotation(annotation) or k in ("run_manager", "callbacks"):
                     continue

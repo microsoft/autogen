@@ -133,6 +133,7 @@ async def test_langchain_tool_adapter_skips_run_manager() -> None:
     assert "parameters" in schema
     assert "properties" in schema["parameters"]
     props = schema["parameters"]["properties"]
+    assert "run_manager" not in props
     assert set(props.keys()) == {"a", "b"}
     assert "required" in schema["parameters"]
     assert set(schema["parameters"]["required"]) == {"a", "b"}
@@ -167,6 +168,46 @@ async def test_langchain_tool_adapter_skips_callbacks() -> None:
     assert "parameters" in schema
     assert "properties" in schema["parameters"]
     props = schema["parameters"]["properties"]
+    assert "callbacks" not in props
+    assert set(props.keys()) == {"a", "b"}
+    assert "required" in schema["parameters"]
+    assert set(schema["parameters"]["required"]) == {"a", "b"}
+
+    result = await adapter.run_json({"a": 2, "b": 3}, CancellationToken())
+    assert result == 5
+
+
+class NoSchemaAsyncManagerTool(LangChainTool):
+    name: str = "NoSchemaAsyncManager"
+    description: str = "a tool whose sync _run is annotated with the async callback manager type"
+
+    def _run(
+        self, a: int, b: int, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
+    ) -> int:
+        return a + b
+
+    async def _arun(
+        self, a: int, b: int, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
+    ) -> int:
+        return a + b
+
+
+@pytest.mark.asyncio
+async def test_langchain_tool_adapter_skips_async_run_manager() -> None:
+    # The detection must cover the *async* callback-manager type
+    # (``AsyncCallbackManagerForToolRun``), not only the sync
+    # ``CallbackManagerForToolRun``. ``_is_callback_manager_annotation`` unwraps
+    # ``Optional[...]`` and matches both via ``issubclass``, so a tool that
+    # annotates its signature with the async variant is still filtered out.
+    tool = NoSchemaAsyncManagerTool()
+    adapter = LangChainToolAdapter(tool)  # type: ignore
+
+    schema = adapter.schema
+    assert schema["name"] == "NoSchemaAsyncManager"
+    assert "parameters" in schema
+    assert "properties" in schema["parameters"]
+    props = schema["parameters"]["properties"]
+    assert "run_manager" not in props
     assert set(props.keys()) == {"a", "b"}
     assert "required" in schema["parameters"]
     assert set(schema["parameters"]["required"]) == {"a", "b"}
