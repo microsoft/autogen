@@ -1944,3 +1944,41 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
 
     # Content-based verification instead of index-based
     # Note: The streaming test verifies the streaming behavior, not the final result content
+
+
+@pytest.mark.asyncio
+async def test_get_thread(runtime: AgentRuntime | None) -> None:
+    """Test getting the message thread from a group chat."""
+    model_client = ReplayChatCompletionClient(
+        ["1", "2", "3", "4", "5"],
+    )
+    agent1 = AssistantAgent("agent1", model_client=model_client)
+    agent2 = AssistantAgent("agent2", model_client=model_client)
+    termination = MaxMessageTermination(5)
+    team = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=termination,
+        runtime=runtime,
+    )
+    result = await team.run(task="Count from 1 to 4")
+    
+    # Verify the result
+    assert len(result.messages) == 5  # task + 4 agent messages
+    assert result.stop_reason is not None
+    
+    # Now test get_thread
+    thread = await team.get_thread()
+    assert len(thread) == 5  # task + 4 agent messages
+    
+    # Verify thread messages match result messages
+    for i, (thread_msg, result_msg) in enumerate(zip(thread, result.messages, strict=False)):
+        if isinstance(thread_msg, TextMessage) and isinstance(result_msg, TextMessage):
+            assert thread_msg.content == result_msg.content
+            assert thread_msg.source == result_msg.source
+    
+    # Test that get_thread works after reset
+    model_client.reset()
+    await team.reset()
+    result2 = await team.run(task="Count again")
+    thread2 = await team.get_thread()
+    assert len(thread2) == 5  # task + 4 agent messages
