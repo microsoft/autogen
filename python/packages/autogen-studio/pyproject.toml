@@ -31,6 +31,7 @@ dependencies = [
     "loguru",
     "pyyaml",
     "html2text",
+    "openeval-sdk",
     "autogen-core>=0.4.9.2,<0.7",
     "autogen-agentchat>=0.4.9.2,<0.7",
     "autogen-ext[magentic-one, openai, azure, mcp]>=0.4.2,<0.7",
