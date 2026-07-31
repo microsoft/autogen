@@ -820,6 +820,59 @@ async def test_selector_group_chat(runtime: AgentRuntime | None) -> None:
 
 
 @pytest.mark.asyncio
+async def test_selector_group_chat_fallback_respects_allow_repeated_speaker(runtime: AgentRuntime | None) -> None:
+    # When allow_repeated_speaker=False the selector fallback must never pick the
+    # previous speaker, otherwise the conversation livelocks on a single agent.
+    # Here the selector model always "selects" the previous speaker; after exhausting
+    # max_selector_attempts the fallback should move to a different participant.
+    model_client = ReplayChatCompletionClient(
+        chat_completions=[
+            "agent1",  # turn 1: valid pick (no previous speaker) -> agent1
+            "agent1",
+            "agent1",
+            "agent1",  # turn 2: 3 failed attempts -> fallback away from agent1
+            "agent2",
+            "agent2",
+            "agent2",  # turn 3: 3 failed attempts -> fallback away from agent2
+            "agent1",
+            "agent1",
+            "agent1",  # turn 4: 3 failed attempts -> fallback away from agent1
+            "agent2",
+            "agent2",
+            "agent2",  # turn 5: 3 failed attempts -> fallback away from agent2
+            "agent1",
+            "agent1",
+            "agent1",  # turn 6: 3 failed attempts -> fallback away from agent1
+        ]
+    )
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    termination = MaxMessageTermination(6)
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        termination_condition=termination,
+        runtime=runtime,
+        allow_repeated_speaker=False,
+        max_selector_attempts=3,
+    )
+    result = await team.run(task="Task")
+    agent_sources = [m.source for m in result.messages if isinstance(m, TextMessage) and m.source in ("agent1", "agent2", "agent3")]
+    # The selector always picks the previous speaker; every fallback must move away.
+    # With 3 participants the fallback target is deterministic: first non-previous = agent3,
+    # but since agent3 never gets selected above (always agent1 or agent2), the actual
+    # invariant is: no two consecutive speakers are identical.
+    assert len(agent_sources) == 6
+    assert "agent1" in agent_sources
+    assert "agent2" in agent_sources
+    # No agent speaks twice in a row - this is the invariant allow_repeated_speaker=False guarantees.
+    for a, b in zip(agent_sources, agent_sources[1:]):
+        assert a != b, f"Repeated consecutive speaker detected: {a}"
+    assert result.stop_reason is not None and "Maximum number of messages 6 reached" in result.stop_reason
+
+
+@pytest.mark.asyncio
 async def test_selector_group_chat_with_model_context(runtime: AgentRuntime | None) -> None:
     buffered_context = BufferedChatCompletionContext(buffer_size=5)
     await buffered_context.add_message(UserMessage(content="[User] Prefilled message", source="user"))
@@ -1136,7 +1189,9 @@ async def test_selector_group_chat_fall_back_to_first_after_3_attempts(runtime: 
 
 
 @pytest.mark.asyncio
-async def test_selector_group_chat_fall_back_to_previous_after_3_attempts(runtime: AgentRuntime | None) -> None:
+async def test_selector_group_chat_fall_back_to_non_previous_after_3_attempts(
+    runtime: AgentRuntime | None,
+) -> None:
     model_client = ReplayChatCompletionClient(
         ["agent2", "agent2", "agent2", "agent2"],
     )
@@ -1154,7 +1209,9 @@ async def test_selector_group_chat_fall_back_to_previous_after_3_attempts(runtim
     assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
     assert result.messages[1].source == "agent2"
-    assert result.messages[2].source == "agent2"
+    # When allow_repeated_speaker=False (the default), the fallback must not return
+    # the previous speaker; it should pick the first non-previous candidate instead.
+    assert result.messages[2].source == "agent1"
 
 
 @pytest.mark.asyncio
