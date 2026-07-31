@@ -843,9 +843,10 @@ async def test_selector_group_chat_fallback_respects_allow_repeated_speaker(runt
     )
     agent1 = _EchoAgent("agent1", description="echo agent 1")
     agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
     termination = MaxMessageTermination(6)
     team = SelectorGroupChat(
-        participants=[agent1, agent2],
+        participants=[agent1, agent2, agent3],
         model_client=model_client,
         termination_condition=termination,
         runtime=runtime,
@@ -853,7 +854,7 @@ async def test_selector_group_chat_fallback_respects_allow_repeated_speaker(runt
         max_selector_attempts=3,
     )
     result = await team.run(task="Task")
-    agent_sources = [m.source for m in result.messages if isinstance(m, TextMessage) and m.source in ("agent1", "agent2")]
+    agent_sources = [m.source for m in result.messages if isinstance(m, TextMessage) and m.source in ("agent1", "agent2", "agent3")]
     # At least one agent2 turn proves the fallback moved away from the previous speaker.
     assert "agent2" in agent_sources
     # No agent speaks twice in a row.
