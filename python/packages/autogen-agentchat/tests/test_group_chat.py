@@ -827,18 +827,22 @@ async def test_selector_group_chat_fallback_respects_allow_repeated_speaker(runt
     # max_selector_attempts the fallback should move to a different participant.
     model_client = ReplayChatCompletionClient(
         chat_completions=[
-            "agent1",  # turn 1: valid pick (no previous speaker)
+            "agent1",  # turn 1: valid pick (no previous speaker) -> agent1
             "agent1",
             "agent1",
-            "agent1",  # turn 2: 3 failed attempts -> fallback to agent2
-            "agent1",  # turn 3: valid pick (agent1 != agent2)
+            "agent1",  # turn 2: 3 failed attempts -> fallback away from agent1
+            "agent2",
+            "agent2",
+            "agent2",  # turn 3: 3 failed attempts -> fallback away from agent2
             "agent1",
             "agent1",
-            "agent1",  # turn 4: 3 failed attempts -> fallback to agent2
-            "agent1",  # turn 5: valid pick (agent1 != agent2)
+            "agent1",  # turn 4: 3 failed attempts -> fallback away from agent1
+            "agent2",
+            "agent2",
+            "agent2",  # turn 5: 3 failed attempts -> fallback away from agent2
             "agent1",
             "agent1",
-            "agent1",  # turn 6: 3 failed attempts -> fallback to agent2
+            "agent1",  # turn 6: 3 failed attempts -> fallback away from agent1
         ]
     )
     agent1 = _EchoAgent("agent1", description="echo agent 1")
@@ -855,9 +859,14 @@ async def test_selector_group_chat_fallback_respects_allow_repeated_speaker(runt
     )
     result = await team.run(task="Task")
     agent_sources = [m.source for m in result.messages if isinstance(m, TextMessage) and m.source in ("agent1", "agent2", "agent3")]
-    # At least one agent2 turn proves the fallback moved away from the previous speaker.
+    # The selector always picks the previous speaker; every fallback must move away.
+    # With 3 participants the fallback target is deterministic: first non-previous = agent3,
+    # but since agent3 never gets selected above (always agent1 or agent2), the actual
+    # invariant is: no two consecutive speakers are identical.
+    assert len(agent_sources) == 6
+    assert "agent1" in agent_sources
     assert "agent2" in agent_sources
-    # No agent speaks twice in a row.
+    # No agent speaks twice in a row - this is the invariant allow_repeated_speaker=False guarantees.
     for a, b in zip(agent_sources, agent_sources[1:]):
         assert a != b, f"Repeated consecutive speaker detected: {a}"
     assert result.stop_reason is not None and "Maximum number of messages 6 reached" in result.stop_reason
