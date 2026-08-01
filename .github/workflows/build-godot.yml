@@ -1,0 +1,56 @@
+name: Build Godot (HTML5 + Windows)
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+
+jobs:
+  build_html5:
+    name: Build HTML5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: game-ci/godot-action@v2
+        with:
+          godot-version: '4.1.2'
+
+      - name: Export HTML5
+        run: |
+          mkdir -p build/html5
+          godot --headless --export "HTML5" build/html5/index.html
+
+      - name: Upload HTML5 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: html5-build
+          path: build/html5
+
+  build_windows:
+    name: Build Windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: game-ci/godot-action@v2
+        with:
+          godot-version: '4.1.2'
+
+      - name: Export Windows
+        run: |
+          mkdir -p build/windows
+          godot --headless --export "Windows Desktop" build/windows/game.exe
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: build/windows
+
+# Notes:
+# - Ensure export_presets.cfg contains "HTML5" and "Windows Desktop" export presets.
+# - game-ci/godot-action sets up Godot and download export templates when needed.
+# - Artifacts are attached to the workflow run; optionally add steps to create GitHub Release.
