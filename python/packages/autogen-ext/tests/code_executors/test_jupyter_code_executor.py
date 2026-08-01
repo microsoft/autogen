@@ -194,6 +194,36 @@ async def test_execute_code_with_html_output(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_execute_code_with_non_ascii_html_output(tmp_path: Path) -> None:
+    async with JupyterCodeExecutor(output_dir=tmp_path) as executor:
+        await executor.start()
+        code_blocks = [
+            CodeBlock(
+                code=inspect.cleandoc("""
+                    from IPython.core.display import HTML
+                    HTML("<div>Unicode: 你好 🎉 Ñoño</div>")
+                """),
+                language="python",
+            )
+        ]
+
+        code_result = await executor.execute_code_blocks(code_blocks, CancellationToken())
+
+        assert len(code_result.output_files) == 1
+        assert code_result.exit_code == 0
+        assert code_result.output == "<IPython.core.display.HTML object>"
+
+        # Verify UTF-8 encoding by reading the HTML file
+        html_file = code_result.output_files[0]
+        html_content = html_file.read_text(encoding="utf-8")
+        assert "你好" in html_content
+        assert "🎉" in html_content
+        assert "Ñoño" in html_content
+
+        await executor.stop()
+
+
+@pytest.mark.asyncio
 async def test_jupyter_code_executor_serialization(tmp_path: Path) -> None:
     executor = JupyterCodeExecutor(output_dir=tmp_path)
     await executor.start()
