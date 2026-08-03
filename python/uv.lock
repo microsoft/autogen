@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12.4' and sys_platform == 'darwin'",
@@ -842,6 +842,7 @@ dependencies = [
     { name = "autogen-agentchat" },
     { name = "autogen-core" },
     { name = "autogen-ext", extra = ["azure", "magentic-one", "mcp", "openai"] },
+    { name = "evalport-sdk" },
     { name = "fastapi", extra = ["standard"] },
     { name = "html2text" },
     { name = "loguru" },
@@ -873,6 +874,7 @@ requires-dist = [
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "autogen-ext", extras = ["azure", "magentic-one", "mcp", "openai"], editable = "packages/autogen-ext" },
+    { name = "evalport-sdk" },
     { name = "fastapi", marker = "extra == 'web'" },
     { name = "fastapi", extras = ["standard"] },
     { name = "html2text" },
@@ -2035,6 +2037,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/30/ea/8b0ac4469d4c347c6a385ff09dc3c048c2d021696664e26c7ee6791631b5/eval_type_backport-0.2.2.tar.gz", hash = "sha256:f0576b4cf01ebb5bd358d02314d31846af5e07678387486e2c798af0e7d849c1", size = 9079, upload-time = "2024-12-21T20:09:46.005Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/31/55cd413eaccd39125368be33c46de24a1f639f2e12349b0361b4678f3915/eval_type_backport-0.2.2-py3-none-any.whl", hash = "sha256:cb6ad7c393517f476f96d456d0412ea80f0a8cf96f6892834cd9340149111b0a", size = 5830, upload-time = "2024-12-21T20:09:44.175Z" },
+]
+
+[[package]]
+name = "evalport-sdk"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ff/9b/42b0152cca5e85407b11903a553d8239094dda0cdc1e34cf3ddf06776b27/evalport_sdk-1.0.0.tar.gz", hash = "sha256:10ecd1b35b31c11d508091f0dd7f1de7d018384bb9a4e033ebd8435b6926fced", size = 7124, upload-time = "2026-08-02T18:14:00.621Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/b7/9adb560ccaa9a645181b702712ebc95b8b012d5415798e73f835aa937982/evalport_sdk-1.0.0-py3-none-any.whl", hash = "sha256:81fb2fb1e6507cec5a08439db9fd96cc21cae33930c65472e7e41efc07b34829", size = 9415, upload-time = "2026-08-02T18:13:59.589Z" },
 ]
 
 [[package]]
