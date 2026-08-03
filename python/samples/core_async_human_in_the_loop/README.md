@@ -49,7 +49,6 @@ decision = armor.validate_tool(
     arguments,
     tenant_id="calendar_agent",
     session_id=call.id or "calendar-run",
-    action_label="schedule_meeting",
 )
 
 if decision.verdict == Verdict.BLOCK:
