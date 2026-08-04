@@ -112,11 +112,11 @@ def create_request_params_to_extra_create_args(params: mcp_types.CreateMessageRe
         Dictionary of extra arguments for AutoGen chat completion client
     """
     # TODO: Need to support all ChatCompletionClients
-    extra_create_args: dict[str, Any] = {"max_tokens": params.maxTokens}
+    extra_create_args: dict[str, Any] = {"max_tokens": params.max_tokens}
     if params.temperature is not None:
         extra_create_args["temperature"] = params.temperature
-    if params.stopSequences is not None:
-        extra_create_args["stop"] = params.stopSequences
+    if params.stop_sequences is not None:
+        extra_create_args["stop"] = params.stop_sequences
     return extra_create_args
 
 
@@ -147,8 +147,8 @@ class ChatCompletionClientSampler(Sampler, Component[ChatCompletionClientSampler
         autogen_messages: list[LLMMessage] = []
 
         # Add system prompt if provided
-        if params.systemPrompt:
-            autogen_messages.append(SystemMessage(content=params.systemPrompt))
+        if params.system_prompt:
+            autogen_messages.append(SystemMessage(content=params.system_prompt))
 
         # Parse sampling messages
         for msg in params.messages:
