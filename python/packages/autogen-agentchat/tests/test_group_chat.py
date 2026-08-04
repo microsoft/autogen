@@ -1944,3 +1944,25 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
 
     # Content-based verification instead of index-based
     # Note: The streaming test verifies the streaming behavior, not the final result content
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_get_thread(runtime: AgentRuntime | None) -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _EchoAgent("agent_2", description="echo agent 2")
+    termination = MaxMessageTermination(2)
+    team = RoundRobinGroupChat(participants=[agent_1, agent_2], termination_condition=termination, runtime=runtime)
+
+    # Test error before init
+    team2 = RoundRobinGroupChat(participants=[agent_1, agent_2], termination_condition=termination, runtime=runtime)
+    with pytest.raises(RuntimeError, match="The group chat has not been initialized."):
+        await team2.get_thread()
+
+    await team.run(
+        task="Write a program that prints 'Hello, world!'",
+    )
+
+    thread = await team.get_thread()
+    assert len(thread) == 2
+    assert getattr(thread[0], "source", None) == "user"
+    assert getattr(thread[1], "source", None) == "agent_1"
