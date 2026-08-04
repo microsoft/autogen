@@ -1,6 +1,7 @@
 """Tests for McpSessionHost to cover MCP host functionality."""
 
 import atexit
+import sys
 from pathlib import Path
 from typing import Any, Callable
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,6 +14,8 @@ from autogen_core.models import (
     RequestUsage,
     UserMessage,
 )
+from mcp import types as mcp_types
+
 from autogen_ext.tools.mcp import (
     ChatCompletionClientSampler,
     McpSessionHost,
@@ -26,7 +29,6 @@ from autogen_ext.tools.mcp._host._sampling import (
     parse_sampling_content,
     parse_sampling_message,
 )
-from mcp import types as mcp_types
 
 # Monkey patch to prevent atexit handlers from being registered during tests
 # This prevents the test suite from hanging during shutdown
@@ -221,7 +223,7 @@ async def test_mcp_session_host_elicit_request() -> None:
 
     host = McpSessionHost(elicitor=mock_elicitor)
 
-    params = mcp_types.ElicitRequestParams(message="Test elicitation message", requestedSchema={"type": "object"})
+    params = mcp_types.ElicitRequestFormParams(message="Test elicitation message", requestedSchema={"type": "object"})
 
     result = await host.handle_elicit_request(params)
 
@@ -238,7 +240,7 @@ async def test_mcp_session_host_elicit_request_no_elicitor() -> None:
     """Test McpSessionHost returns error when no elicitor available."""
     host = McpSessionHost(elicitor=None)
 
-    params = mcp_types.ElicitRequestParams(message="Test elicitation message", requestedSchema={"type": "object"})
+    params = mcp_types.ElicitRequestFormParams(message="Test elicitation message", requestedSchema={"type": "object"})
 
     result = await host.handle_elicit_request(params)
 
@@ -256,7 +258,7 @@ async def test_mcp_session_host_elicit_request_error_handling() -> None:
 
     host = McpSessionHost(elicitor=mock_elicitor)
 
-    params = mcp_types.ElicitRequestParams(message="Test elicitation message", requestedSchema={"type": "object"})
+    params = mcp_types.ElicitRequestFormParams(message="Test elicitation message", requestedSchema={"type": "object"})
 
     result = await host.handle_elicit_request(params)
 
@@ -456,8 +458,8 @@ def mcp_server_params() -> StdioServerParams:
     # Get the path to the simple MCP server
     server_path = Path(__file__).parent.parent / "mcp_server_comprehensive.py"
     return StdioServerParams(
-        command="uv",
-        args=["run", "python", str(server_path)],
+        command=sys.executable,
+        args=[str(server_path)],
         read_timeout_seconds=10,
     )
 
@@ -482,7 +484,7 @@ async def test_stream_elicitor_basic_functionality() -> None:
     elicitor = StreamElicitor(read_stream, write_stream)
 
     schema = {"type": "object", "properties": {"response": {"type": "string"}}}
-    params = mcp_types.ElicitRequestParams(message="Test message", requestedSchema=schema)
+    params = mcp_types.ElicitRequestFormParams(message="Test message", requestedSchema=schema)
 
     # Mock asyncio.to_thread to return the read value synchronously
     call_responses = ["accept\n", '{"response": "test"}\n']  # action then content for schema
@@ -535,7 +537,7 @@ async def test_stream_elicitor_with_timeout() -> None:
 
     elicitor = StreamElicitor(read_stream, write_stream, timeout=5.0)
 
-    params = mcp_types.ElicitRequestParams(message="Test message", requestedSchema={})
+    params = mcp_types.ElicitRequestFormParams(message="Test message", requestedSchema={})
 
     call_responses = ["decline\n", "{}\n"]  # action then content for schema
     call_count = {"count": 0}
@@ -569,7 +571,7 @@ async def test_stream_elicitor_with_schema() -> None:
     elicitor = StreamElicitor(read_stream, write_stream)
 
     schema = {"type": "object", "properties": {"name": {"type": "string"}}}
-    params = mcp_types.ElicitRequestParams(message="Test message", requestedSchema=schema)
+    params = mcp_types.ElicitRequestFormParams(message="Test message", requestedSchema=schema)
 
     call_count = {"count": 0}
 
@@ -604,7 +606,7 @@ async def test_stream_elicitor_shorthand_mapping() -> None:
 
     elicitor = StreamElicitor(read_stream, write_stream)
 
-    params = mcp_types.ElicitRequestParams(message="Test", requestedSchema={})
+    params = mcp_types.ElicitRequestFormParams(message="Test", requestedSchema={})
 
     call_responses = ["d\n", "{}\n"]  # action then content for schema
     call_count = {"count": 0}
@@ -954,7 +956,7 @@ async def test_mcp_session_host_elicit_with_elicitor_exception() -> None:
 
     host = McpSessionHost(elicitor=mock_elicitor)
 
-    params = mcp_types.ElicitRequestParams(message="Test", requestedSchema={})
+    params = mcp_types.ElicitRequestFormParams(message="Test", requestedSchema={})
 
     result = await host.handle_elicit_request(params)
 

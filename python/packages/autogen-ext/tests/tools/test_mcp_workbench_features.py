@@ -2,7 +2,6 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
-from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 from mcp.types import (
     GetPromptResult,
     ListPromptsResult,
@@ -18,6 +17,8 @@ from mcp.types import (
     TextResourceContents,
 )
 from pydantic import AnyUrl
+
+from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 
 
 @pytest.fixture
@@ -67,13 +68,13 @@ def sample_resources() -> list[Resource]:
     """Create sample MCP resources for testing."""
     return [
         Resource(
-            uri=AnyUrl("file:///test/document.txt"),
+            uri="file:///test/document.txt",
             name="Test Document",
             description="A sample document for testing",
             mimeType="text/plain",
         ),
         Resource(
-            uri=AnyUrl("https://api.example.com/data"),
+            uri="https://api.example.com/data",
             name="API Data",
             description="External API data source",
             mimeType="application/json",
@@ -240,10 +241,10 @@ async def test_list_resources(
         assert len(result.resources) == 2
         assert str(result.resources[0].uri) == "file:///test/document.txt"
         assert result.resources[0].name == "Test Document"
-        assert result.resources[0].mimeType == "text/plain"
+        assert result.resources[0].mime_type == "text/plain"
         assert str(result.resources[1].uri) == "https://api.example.com/data"
         assert result.resources[1].name == "API Data"
-        assert result.resources[1].mimeType == "application/json"
+        assert result.resources[1].mime_type == "application/json"
 
         # Verify actor was called correctly
         mock_mcp_actor.call.assert_called_with("list_resources", None)
@@ -263,7 +264,7 @@ async def test_read_resource(mock_mcp_actor: AsyncMock, sample_server_params: St
     read_resource_result = ReadResourceResult(
         contents=[
             TextResourceContents(
-                uri=AnyUrl("file:///test/document.txt"),
+                uri="file:///test/document.txt",
                 mimeType="text/plain",
                 text="This is the content of the test document.",
             )
@@ -283,8 +284,8 @@ async def test_read_resource(mock_mcp_actor: AsyncMock, sample_server_params: St
         assert len(result.contents) == 1
         content = result.contents[0]
         assert isinstance(content, TextResourceContents)
-        assert content.uri == AnyUrl(uri)
-        assert content.mimeType == "text/plain"
+        assert content.uri == uri
+        assert content.mime_type == "text/plain"
         assert content.text == "This is the content of the test document."
 
         # Verify actor was called correctly
@@ -306,7 +307,7 @@ async def test_list_resource_templates(
     workbench._actor = mock_mcp_actor  # type: ignore[reportPrivateUsage]
 
     # Mock list_resource_templates response
-    list_templates_result = ListResourceTemplatesResult(resourceTemplates=sample_resource_templates)
+    list_templates_result = ListResourceTemplatesResult(resource_templates=sample_resource_templates)
     future_result: asyncio.Future[ListResourceTemplatesResult] = asyncio.Future()
     future_result.set_result(list_templates_result)
     mock_mcp_actor.call.return_value = future_result
@@ -317,13 +318,13 @@ async def test_list_resource_templates(
 
         # Verify result
         assert isinstance(result, ListResourceTemplatesResult)
-        assert len(result.resourceTemplates) == 2
-        assert result.resourceTemplates[0].uriTemplate == "file:///logs/{date}.log"
-        assert result.resourceTemplates[0].name == "Daily Logs"
-        assert result.resourceTemplates[0].mimeType == "text/plain"
-        assert result.resourceTemplates[1].uriTemplate == "https://api.example.com/users/{userId}"
-        assert result.resourceTemplates[1].name == "User Profile"
-        assert result.resourceTemplates[1].mimeType == "application/json"
+        assert len(result.resource_templates) == 2
+        assert result.resource_templates[0].uri_template == "file:///logs/{date}.log"
+        assert result.resource_templates[0].name == "Daily Logs"
+        assert result.resource_templates[0].mime_type == "text/plain"
+        assert result.resource_templates[1].uri_template == "https://api.example.com/users/{userId}"
+        assert result.resource_templates[1].name == "User Profile"
+        assert result.resource_templates[1].mime_type == "application/json"
 
         # Verify actor was called correctly
         mock_mcp_actor.call.assert_called_with("list_resource_templates", None)
@@ -461,7 +462,7 @@ async def test_workbench_auto_start_on_read_resource(sample_server_params: Stdio
         # Set up a mock actor
         mock_actor = AsyncMock()
         read_resource_result = ReadResourceResult(
-            contents=[TextResourceContents(uri=AnyUrl("file:///test.txt"), mimeType="text/plain", text="Test content")]
+            contents=[TextResourceContents(uri="file:///test.txt", mimeType="text/plain", text="Test content")]
         )
         future_result: asyncio.Future[ReadResourceResult] = asyncio.Future()
         future_result.set_result(read_resource_result)
@@ -499,7 +500,7 @@ async def test_workbench_auto_start_on_list_resource_templates(
         start_called = True
         # Set up a mock actor
         mock_actor = AsyncMock()
-        list_templates_result = ListResourceTemplatesResult(resourceTemplates=sample_resource_templates)
+        list_templates_result = ListResourceTemplatesResult(resource_templates=sample_resource_templates)
         future_result: asyncio.Future[ListResourceTemplatesResult] = asyncio.Future()
         future_result.set_result(list_templates_result)
         mock_actor.call.return_value = future_result
@@ -514,7 +515,7 @@ async def test_workbench_auto_start_on_list_resource_templates(
         # Verify that start was called
         assert start_called
         assert isinstance(result, ListResourceTemplatesResult)
-        assert len(result.resourceTemplates) == 2
+        assert len(result.resource_templates) == 2
 
     finally:
         workbench._actor = None  # type: ignore[reportPrivateUsage]
