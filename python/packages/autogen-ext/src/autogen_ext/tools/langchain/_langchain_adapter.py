@@ -162,37 +162,23 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
 
         # Determine args_type
         if self._langchain_tool.args_schema:  # pyright: ignore
-            args_type = self._langchain_tool.args_schema  # pyright: ignore
+            try:
+                # Try to use the args_schema directly first
+                args_type = self._langchain_tool.args_schema  # pyright: ignore
+                
+                # Validate that it's a proper Pydantic model for this version
+                # If it's not a valid BaseModel, fall back to signature inference
+                if not (hasattr(args_type, "__bases__") and BaseModel in args_type.__bases__):
+                    raise ValueError("args_schema is not a valid Pydantic BaseModel")
+            except Exception:
+                # If args_schema fails validation, fall back to signature inference
+                # Infer args_type from the callable's signature
+                fields = {
+                    k: (v.annotation, Field(...))
+                    for k, v in sig.parameters.items()
+                    if k != "self" and v.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+                }
+                args_type = create_model(f"{name}Args", **fields)  # type: ignore
+                # Note: type ignore is used due to a LangChain typing limitation
         else:
-            # Infer args_type from the callable's signature
-            sig = inspect.signature(cast(Callable[..., Any], self._callable))  # type: ignore
-            fields = {
-                k: (v.annotation, Field(...))
-                for k, v in sig.parameters.items()
-                if k != "self" and v.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
-            }
-            args_type = create_model(f"{name}Args", **fields)  # type: ignore
-            # Note: type ignore is used due to a LangChain typing limitation
-
-        # Ensure args_type is a subclass of BaseModel
-        if not issubclass(args_type, BaseModel):
-            raise ValueError(f"Failed to create a valid Pydantic v2 model for {name}")
-
-        # Assume return_type as Any if not specified
-        return_type: Type[Any] = object
-
-        super().__init__(args_type, return_type, name, description)
-
-    async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
-        # Prepare arguments
-        kwargs = args.model_dump()
-
-        # Determine if the callable is asynchronous
-        if inspect.iscoroutinefunction(self._callable):
-            return await self._callable(**kwargs)
-        else:
-            # Run in a thread to avoid blocking the event loop
-            return await asyncio.to_thread(self._call_sync, kwargs)
-
-    def _call_sync(self, kwargs: Dict[str, Any]) -> Any:
-        return self._callable(**kwargs)
+            # Inf
