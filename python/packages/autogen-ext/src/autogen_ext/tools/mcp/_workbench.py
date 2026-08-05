@@ -258,6 +258,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                         f"'{existing_original}' and '{original_name}'. Override names must be unique."
                     )
                 self._override_name_to_original[override_name] = original_name
+        self._tool_override_names_validated = not self._override_name_to_original
 
         self._host = host
 
@@ -284,6 +285,8 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             list_tool_result, ListToolsResult
         ), f"list_tools must return a CallToolResult, instead of : {str(type(list_tool_result))}"
         schema: List[ToolSchema] = []
+        exposed_name_to_original: Dict[str, str] = {}
+        resolved_override_name_to_original: Dict[str, str] = {}
         for tool in list_tool_result.tools:
             original_name = tool.name
             name = original_name
@@ -294,8 +297,19 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                 override = self._tool_overrides[original_name]
                 if override.name is not None:
                     name = override.name
+                    if name != original_name:
+                        resolved_override_name_to_original[name] = original_name
                 if override.description is not None:
                     description = override.description
+
+            existing_original = exposed_name_to_original.get(name)
+            if existing_original is not None and existing_original != original_name:
+                raise ValueError(
+                    f"Duplicate exposed tool name '{name}' for MCP tools "
+                    f"'{existing_original}' and '{original_name}'. Tool override names must not conflict "
+                    "with server tool names."
+                )
+            exposed_name_to_original[name] = original_name
 
             parameters = ParametersSchema(
                 type="object",
@@ -309,6 +323,8 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                 parameters=parameters,
             )
             schema.append(tool_schema)
+        self._override_name_to_original = resolved_override_name_to_original
+        self._tool_override_names_validated = True
         return schema
 
     async def call_tool(
@@ -328,6 +344,9 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             cancellation_token = CancellationToken()
         if not arguments:
             arguments = {}
+
+        if not self._tool_override_names_validated:
+            await self.list_tools()
 
         # Check if the name is an override name and map it back to the original
         original_name = self._override_name_to_original.get(name, name)

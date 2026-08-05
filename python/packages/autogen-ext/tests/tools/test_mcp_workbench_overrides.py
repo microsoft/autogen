@@ -296,3 +296,91 @@ def test_mcp_workbench_conflict_detection() -> None:
     }
     with pytest.raises(ValueError):
         McpWorkbench(server_params=server_params, tool_overrides=overrides_duplicate)
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_rejects_override_name_colliding_with_server_tool(
+    sample_mcp_tools: list[Tool], mock_mcp_actor: AsyncMock, sample_server_params: StdioServerParams
+) -> None:
+    """An override must not shadow another tool returned by the MCP server."""
+
+    workbench = McpWorkbench(
+        server_params=sample_server_params,
+        tool_overrides={"fetch": ToolOverride(name="search")},
+    )
+    workbench._actor = mock_mcp_actor  # type: ignore[reportPrivateUsage]
+
+    future_result: asyncio.Future[ListToolsResult] = asyncio.Future()
+    future_result.set_result(ListToolsResult(tools=sample_mcp_tools))
+    mock_mcp_actor.call.return_value = future_result
+
+    try:
+        with pytest.raises(
+            ValueError,
+            match="Duplicate exposed tool name 'search' for MCP tools 'fetch' and 'search'",
+        ):
+            await workbench.list_tools()
+    finally:
+        workbench._actor = None  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_validates_override_names_before_direct_call(
+    sample_mcp_tools: list[Tool], mock_mcp_actor: AsyncMock, sample_server_params: StdioServerParams
+) -> None:
+    """Direct calls must not bypass override-name collision validation."""
+
+    workbench = McpWorkbench(
+        server_params=sample_server_params,
+        tool_overrides={"fetch": ToolOverride(name="search")},
+    )
+    workbench._actor = mock_mcp_actor  # type: ignore[reportPrivateUsage]
+
+    future_result: asyncio.Future[ListToolsResult] = asyncio.Future()
+    future_result.set_result(ListToolsResult(tools=sample_mcp_tools))
+    mock_mcp_actor.call.return_value = future_result
+
+    try:
+        with pytest.raises(ValueError, match="Duplicate exposed tool name 'search'"):
+            await workbench.call_tool("search", {"query": "example"})
+        mock_mcp_actor.call.assert_awaited_once_with("list_tools", None)
+    finally:
+        workbench._actor = None  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_does_not_route_through_override_for_missing_original(
+    sample_mcp_tools: list[Tool], mock_mcp_actor: AsyncMock, sample_server_params: StdioServerParams
+) -> None:
+    """Overrides for absent tools must not shadow tools that the server still exposes."""
+
+    workbench = McpWorkbench(
+        server_params=sample_server_params,
+        tool_overrides={"missing": ToolOverride(name="search")},
+    )
+    workbench._actor = mock_mcp_actor  # type: ignore[reportPrivateUsage]
+
+    from mcp.types import CallToolResult, TextContent
+
+    mock_result = CallToolResult(content=[TextContent(text="found", type="text")], isError=False)
+
+    def mock_call_side_effect(
+        method: str, args: dict[str, Any] | None = None
+    ) -> asyncio.Future[ListToolsResult | CallToolResult]:
+        future_result: asyncio.Future[ListToolsResult | CallToolResult] = asyncio.Future()
+        if method == "list_tools":
+            future_result.set_result(ListToolsResult(tools=sample_mcp_tools[1:]))
+        elif method == "call_tool":
+            future_result.set_result(mock_result)
+        else:
+            future_result.set_exception(ValueError(f"Unexpected method: {method}"))
+        return future_result
+
+    mock_mcp_actor.call.side_effect = mock_call_side_effect
+
+    try:
+        result = await workbench.call_tool("search", {"query": "example"})
+        assert result.is_error is False
+        assert mock_mcp_actor.call.call_args_list[-1].args[1]["name"] == "search"
+    finally:
+        workbench._actor = None  # type: ignore[reportPrivateUsage]
