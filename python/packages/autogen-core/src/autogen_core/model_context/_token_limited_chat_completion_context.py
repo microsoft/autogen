@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from .._component_config import Component, ComponentModel
-from ..models import ChatCompletionClient, FunctionExecutionResultMessage, LLMMessage
+from ..models import AssistantMessage, ChatCompletionClient, FunctionExecutionResultMessage, LLMMessage
 from ..tools import ToolSchema
 from ._chat_completion_context import ChatCompletionContext
 
@@ -14,6 +14,27 @@ class TokenLimitedChatCompletionContextConfig(BaseModel):
     token_limit: int | None = None
     tool_schema: List[ToolSchema] | None = None
     initial_messages: List[LLMMessage] | None = None
+
+
+def _is_function_call_message(message: LLMMessage) -> bool:
+    return isinstance(message, AssistantMessage) and isinstance(message.content, list)
+
+
+def _remove_middle_message(messages: List[LLMMessage]) -> None:
+    """Remove the middle message without splitting an adjacent tool call/result pair."""
+    middle_index = len(messages) // 2
+    message = messages[middle_index]
+
+    if _is_function_call_message(message):
+        if middle_index + 1 < len(messages) and isinstance(messages[middle_index + 1], FunctionExecutionResultMessage):
+            del messages[middle_index : middle_index + 2]
+            return
+    elif isinstance(message, FunctionExecutionResultMessage):
+        if middle_index > 0 and _is_function_call_message(messages[middle_index - 1]):
+            del messages[middle_index - 1 : middle_index + 1]
+            return
+
+    messages.pop(middle_index)
 
 
 class TokenLimitedChatCompletionContext(ChatCompletionContext, Component[TokenLimitedChatCompletionContextConfig]):
@@ -61,14 +82,12 @@ class TokenLimitedChatCompletionContext(ChatCompletionContext, Component[TokenLi
         if self._token_limit is None:
             remaining_tokens = self._model_client.remaining_tokens(messages, tools=self._tool_schema)
             while remaining_tokens < 0 and len(messages) > 0:
-                middle_index = len(messages) // 2
-                messages.pop(middle_index)
+                _remove_middle_message(messages)
                 remaining_tokens = self._model_client.remaining_tokens(messages, tools=self._tool_schema)
         else:
             token_count = self._model_client.count_tokens(messages, tools=self._tool_schema)
             while token_count > self._token_limit and len(messages) > 0:
-                middle_index = len(messages) // 2
-                messages.pop(middle_index)
+                _remove_middle_message(messages)
                 token_count = self._model_client.count_tokens(messages, tools=self._tool_schema)
         if messages and isinstance(messages[0], FunctionExecutionResultMessage):
             # Handle the first message is a function call result message.
