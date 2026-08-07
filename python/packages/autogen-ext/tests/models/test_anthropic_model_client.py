@@ -836,6 +836,23 @@ def test_mock_rstrip_trailing_whitespace_at_last_assistant_content() -> None:
     assert result[-1].content == "foobar"
 
 
+def test_mock_rstrip_removes_whitespace_only_last_assistant_message() -> None:
+    """If the last assistant message is whitespace-only, rstrip leaves an empty
+    string, which Anthropic's API rejects (text content blocks must be non-empty).
+    The message should be dropped entirely instead."""
+    messages: list[LLMMessage] = [
+        UserMessage(content="foo", source="user"),
+        UserMessage(content="bar", source="user"),
+        AssistantMessage(content="   ", source="assistant"),
+    ]
+
+    dummy_client = AnthropicChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
+    result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
+
+    assert len(result) == 2
+    assert isinstance(result[-1], UserMessage)
+
+
 @pytest.mark.asyncio
 async def test_anthropic_tool_choice_with_actual_api() -> None:
     """Test tool_choice parameter with actual Anthropic API endpoints."""

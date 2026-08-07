@@ -2643,6 +2643,23 @@ def test_rstrip_railing_whitespace_at_last_assistant_content() -> None:
     assert result[-1].content == "foobar"
 
 
+def test_rstrip_removes_whitespace_only_last_assistant_message() -> None:
+    """If the last assistant message is whitespace-only, rstrip leaves an empty
+    string, which Anthropic's API rejects (text content blocks must be non-empty).
+    The message should be dropped entirely instead."""
+    messages: list[LLMMessage] = [
+        UserMessage(content="foo", source="user"),
+        UserMessage(content="bar", source="user"),
+        AssistantMessage(content="   ", source="assistant"),
+    ]
+
+    dummy_client = OpenAIChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
+    result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
+
+    assert len(result) == 2
+    assert isinstance(result[-1], UserMessage)
+
+
 def test_find_model_family() -> None:
     assert _find_model_family("openai", "gpt-4") == ModelFamily.GPT_4
     assert _find_model_family("openai", "gpt-4-latest") == ModelFamily.GPT_4
