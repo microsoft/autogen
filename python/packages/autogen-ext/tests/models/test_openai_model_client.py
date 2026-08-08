@@ -23,6 +23,7 @@ from autogen_core.models import (
 )
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import BaseTool, FunctionTool
+from autogen_ext.models._utils.rstrip_last_assistant_message import rstrip_last_assistant_message
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from autogen_ext.models.openai._model_info import resolve_model
 from autogen_ext.models.openai._openai_client import (
@@ -2635,9 +2636,8 @@ def test_rstrip_railing_whitespace_at_last_assistant_content() -> None:
         AssistantMessage(content="foobar ", source="assistant"),
     ]
 
-    # This will crash if _rstrip_railing_whitespace_at_last_assistant_content is not applied to "content"
-    dummy_client = OpenAIChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
-    result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
+    # This will crash if rstrip_last_assistant_message is not applied to "content"
+    result = rstrip_last_assistant_message(messages)
 
     assert isinstance(result[-1].content, str)
     assert result[-1].content == "foobar"
@@ -2653,8 +2653,7 @@ def test_rstrip_removes_whitespace_only_last_assistant_message() -> None:
         AssistantMessage(content="   ", source="assistant"),
     ]
 
-    dummy_client = OpenAIChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
-    result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
+    result = rstrip_last_assistant_message(messages)
 
     assert len(result) == 2
     assert isinstance(result[-1], UserMessage)
