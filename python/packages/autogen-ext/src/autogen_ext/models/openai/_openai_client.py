@@ -491,11 +491,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         """
         Remove the last assistant message if it is empty.
         """
-        # When Claude models last message is AssistantMessage, It could not end with whitespace
+        if not messages:
+            return messages
         if isinstance(messages[-1], AssistantMessage):
             if isinstance(messages[-1].content, str):
                 messages[-1].content = messages[-1].content.rstrip()
-
+                if not messages[-1].content:
+                    return messages[:-1]
         return messages
 
     def _process_create_args(
