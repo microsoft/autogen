@@ -274,14 +274,12 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         if cached_result is not None:
             if isinstance(cached_result, CreateResult):
                 # Cache hit from previous non-streaming call
-                cached_result.cached = True
-                return cached_result
+                return cached_result.model_copy(update={"cached": True})
             elif isinstance(cached_result, list):
                 # Cache hit from previous streaming call - extract the final CreateResult
                 for item in reversed(cached_result):
                     if isinstance(item, CreateResult):
-                        item.cached = True
-                        return item
+                        return item.model_copy(update={"cached": True})
                 # If no CreateResult found in list, fall through to make actual call
 
         result = await self.client.create(
@@ -325,12 +323,13 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                     # Cache hit from previous streaming call
                     for result in cached_result:
                         if isinstance(result, CreateResult):
-                            result.cached = True
-                        yield result
+                            yield result.model_copy(update={"cached": True})
+                        else:
+                            yield result
                     return
                 elif isinstance(cached_result, CreateResult):
                     # Cache hit from previous non-streaming call - convert to streaming format
-                    cached_result.cached = True
+                    cached_result = cached_result.model_copy(update={"cached": True})
 
                     # If content is a non-empty string, yield it as a streaming chunk first
                     if isinstance(cached_result.content, str) and cached_result.content:
