@@ -59,6 +59,19 @@ async def test_cache_basic_with_args() -> None:
 
 
 @pytest.mark.asyncio
+async def test_cache_hit_does_not_mutate_original_result() -> None:
+    _, prompts, system_prompt, _, cached_client = get_test_data(num_messages=1)
+    messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
+
+    original = await cached_client.create(messages)
+    cached = await cached_client.create(messages)
+
+    assert not original.cached
+    assert cached.cached
+    assert original is not cached
+
+
+@pytest.mark.asyncio
 async def test_cache_structured_output_with_args() -> None:
     responses, prompts, system_prompt, _, cached_client = get_test_data(num_messages=4)
 
