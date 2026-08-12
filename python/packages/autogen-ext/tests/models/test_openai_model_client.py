@@ -3378,3 +3378,28 @@ async def test_reasoning_effort_validation() -> None:
         }
 
         ChatCompletionClient.load_component(config)
+
+
+@pytest.mark.asyncio
+async def test_openai_client_async_context_manager() -> None:
+    """Test that OpenAIChatCompletionClient supports async context manager protocol."""
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="fake_key")
+    client._client.close = AsyncMock()  # pyright: ignore[reportPrivateUsage]
+
+    async with client as c:
+        assert c is client
+
+    client._client.close.assert_awaited_once()  # pyright: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_openai_client_async_context_manager_exception_propagation() -> None:
+    """Test that async context manager cleans up resources when an exception is raised inside the block."""
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="fake_key")
+    client._client.close = AsyncMock()  # pyright: ignore[reportPrivateUsage]
+
+    with pytest.raises(ValueError, match="Test exception"):
+        async with client:
+            raise ValueError("Test exception")
+
+    client._client.close.assert_awaited_once()  # pyright: ignore[reportPrivateUsage]
