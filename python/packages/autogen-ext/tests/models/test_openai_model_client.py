@@ -3378,3 +3378,52 @@ async def test_reasoning_effort_validation() -> None:
         }
 
         ChatCompletionClient.load_component(config)
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_streaming_none_chunk(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that streaming handles None chunks without throwing AttributeError."""
+
+    async def _none_chunk_stream() -> AsyncGenerator[Any, None]:
+        # Yield None first (reproducing issue #7130)
+        yield None
+        # Followed by a valid ChatCompletionChunk
+        yield ChatCompletionChunk(
+            id="chunk-1",
+            choices=[
+                ChunkChoice(
+                    finish_reason=None,
+                    index=0,
+                    delta=ChoiceDelta(content="Hello world", role="assistant"),
+                )
+            ],
+            created=0,
+            model="gpt-4o",
+            object="chat.completion.chunk",
+        )
+        # Final stop chunk
+        yield ChatCompletionChunk(
+            id="chunk-2",
+            choices=[
+                ChunkChoice(
+                    finish_reason="stop",
+                    index=0,
+                    delta=ChoiceDelta(content=None, role="assistant"),
+                )
+            ],
+            created=0,
+            model="gpt-4o",
+            object="chat.completion.chunk",
+        )
+
+    async def _mock_stream_with_none_chunk(*args: Any, **kwargs: Any) -> AsyncGenerator[Any, None]:
+        return _none_chunk_stream()
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_stream_with_none_chunk)
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="fake_key")
+
+    results: List[Any] = []
+    async for response in client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
+        results.append(response)
+
+    assert "Hello world" in results
