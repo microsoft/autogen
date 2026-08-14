@@ -1,0 +1,8 @@
+﻿[
+  {
+    "Name": "sayHello",
+    "Description": "Generic function, unknown purpose",
+    "Parameters": [],
+    "ReturnDescription": ""
+  }
+]
