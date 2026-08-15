@@ -171,7 +171,18 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
                 for k, v in sig.parameters.items()
                 if k != "self" and v.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
             }
-            args_type = create_model(f"{name}Args", **fields)  # type: ignore
+            try:
+                args_type = create_model(f"{name}Args", **fields)  # type: ignore
+            except Exception:
+                # Some LangChain tools (e.g. GoogleDriveSearchTool) have internal
+                # fields that cannot be serialized by pydantic-core. Fall back to
+                # a simple model accepting arbitrary kwargs.
+                simple_fields = {
+                    k: (Any, Field(...))
+                    for k, v in sig.parameters.items()
+                    if k != "self" and v.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+                }
+                args_type = create_model(f"{name}Args", **simple_fields)  # type: ignore
             # Note: type ignore is used due to a LangChain typing limitation
 
         # Ensure args_type is a subclass of BaseModel
