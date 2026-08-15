@@ -42,6 +42,14 @@ class CustomCalculatorTool(LangChainTool):
         return self._run(a, b, run_manager=run_manager.get_sync() if run_manager else None)
 
 
+class ToolWithoutArgsSchema(LangChainTool):
+    name: str = "tool_without_args_schema"
+    description: str = "A tool whose run manager is injected by LangChain."
+
+    def _run(self, value: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
+        return value
+
+
 @pytest.mark.asyncio
 async def test_langchain_tool_adapter(caplog: pytest.LogCaptureFixture) -> None:
     # Create a LangChain tool
@@ -100,3 +108,9 @@ async def test_langchain_tool_adapter(caplog: pytest.LogCaptureFixture) -> None:
     # Test run method for CustomCalculatorTool
     custom_result = await custom_adapter.run_json({"a": 3, "b": 4}, CancellationToken())
     assert custom_result == 12
+
+
+def test_langchain_tool_adapter_filters_injected_parameters() -> None:
+    adapter = LangChainToolAdapter(ToolWithoutArgsSchema())  # type: ignore
+
+    assert set(adapter.schema["parameters"]["properties"]) == {"value"}
