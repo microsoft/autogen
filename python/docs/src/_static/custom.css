@@ -145,3 +145,15 @@ html[data-theme="light"] .bd-header {
 .prev-next-title {
   word-break: break-word;
 }
+
+/* A11y: visible underline for left sidebar nav on keyboard focus (issue #6090 item 15) */
+nav.bd-links .navbar-nav a:focus-visible {
+  text-decoration: underline !important;
+  text-underline-offset: 0.2em;
+}
+
+/* A11y: underline for On This Page links on keyboard focus (issue #6090 item 21) */
+.bd-sidebar-secondary .sidebar-secondary-items .nav-item > a:focus-visible {
+  text-decoration: underline !important;
+  text-underline-offset: 0.2em;
+}
