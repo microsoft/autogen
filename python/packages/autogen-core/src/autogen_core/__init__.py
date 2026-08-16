@@ -58,6 +58,7 @@ from ._serialization import (
 )
 from ._single_threaded_agent_runtime import SingleThreadedAgentRuntime
 from ._subscription import Subscription
+from .exceptions import RecipientNotFoundError
 from ._subscription_context import SubscriptionInstantiationContext
 from ._telemetry import (
     trace_create_agent_span,
@@ -140,4 +141,5 @@ __all__ = [
     "trace_create_agent_span",
     "trace_invoke_agent_span",
     "trace_tool_span",
+    "RecipientNotFoundError",
 ]
