@@ -1,6 +1,7 @@
 from typing import List
 
 import pytest
+from autogen_core import FunctionCall
 from autogen_core.model_context import (
     BufferedChatCompletionContext,
     HeadAndTailChatCompletionContext,
@@ -10,6 +11,7 @@ from autogen_core.model_context import (
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
+    FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     UserMessage,
@@ -83,6 +85,36 @@ async def test_head_and_tail_model_context() -> None:
     assert len(retrived) == 3
     assert retrived[0] == messages[0]
     assert retrived[2] == messages[-1]
+
+
+@pytest.mark.asyncio
+async def test_head_and_tail_model_context_placeholder_counts_dropped_function_call_messages() -> None:
+    # The head ends on a tool call message and the tail starts on a tool result
+    # message, so both are dropped in addition to the messages in the middle.
+    model_context = HeadAndTailChatCompletionContext(head_size=2, tail_size=2)
+    messages: List[LLMMessage] = [
+        UserMessage(content="Hello!", source="user"),
+        AssistantMessage(content=[FunctionCall(id="1", name="tool", arguments="{}")], source="assistant"),
+        UserMessage(content="Middle 1", source="user"),
+        UserMessage(content="Middle 2", source="user"),
+        FunctionExecutionResultMessage(
+            content=[FunctionExecutionResult(call_id="1", content="ok", is_error=False, name="tool")]
+        ),
+        UserMessage(content="More places?", source="user"),
+    ]
+    for msg in messages:
+        await model_context.add_message(msg)
+
+    retrieved = await model_context.get_messages()
+
+    # 1 head + 1 placeholder + 1 tail.
+    assert len(retrieved) == 3
+    assert retrieved[0] == messages[0]
+    assert retrieved[2] == messages[-1]
+
+    # Four messages are left out, not just the two in the middle.
+    num_kept = len(retrieved) - 1
+    assert retrieved[1] == UserMessage(content=f"Skipped {len(messages) - num_kept} messages.", source="System")
 
 
 @pytest.mark.asyncio
