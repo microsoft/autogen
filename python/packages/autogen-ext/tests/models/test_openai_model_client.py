@@ -3378,3 +3378,37 @@ async def test_reasoning_effort_validation() -> None:
         }
 
         ChatCompletionClient.load_component(config)
+
+
+@pytest.mark.asyncio
+async def test_extra_body_configuration_and_serialization() -> None:
+    """Test extra_body parameter configuration, serialization, and deserialization."""
+    from autogen_core.models import ChatCompletionClient
+
+    # Test direct client initialization with extra_body
+    client = OpenAIChatCompletionClient(
+        model="gpt-4o",
+        api_key="fake_key",
+        extra_body={"enable_thinking": True, "custom_param": 123},
+    )
+    assert client._create_args["extra_body"] == {"enable_thinking": True, "custom_param": 123}  # pyright: ignore[reportPrivateUsage]
+    assert client._raw_config["extra_body"] == {"enable_thinking": True, "custom_param": 123}  # pyright: ignore[reportPrivateUsage]
+
+    # Test load_component with extra_body
+    config = {
+        "provider": "OpenAIChatCompletionClient",
+        "config": {
+            "model": "gpt-4o",
+            "api_key": "fake_key",
+            "extra_body": {"enable_thinking": True, "vendor_flag": "fast"},
+        },
+    }
+    loaded_client = ChatCompletionClient.load_component(config)
+    assert loaded_client._create_args["extra_body"] == {"enable_thinking": True, "vendor_flag": "fast"}  # type: ignore[attr-defined] # pyright: ignore[reportPrivateUsage]
+    assert loaded_client._raw_config["extra_body"] == {"enable_thinking": True, "vendor_flag": "fast"}  # type: ignore[attr-defined] # pyright: ignore[reportPrivateUsage]
+
+    # Test component dump and reload roundtrip
+    dumped = client.dump_component()
+    reloaded = OpenAIChatCompletionClient.load_component(dumped)
+    assert reloaded._create_args["extra_body"] == {"enable_thinking": True, "custom_param": 123}  # pyright: ignore[reportPrivateUsage]
+
