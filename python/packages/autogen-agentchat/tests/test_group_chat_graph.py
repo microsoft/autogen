@@ -1143,6 +1143,32 @@ async def test_message_filter_agent_with_position_none_gets_all() -> None:
 
 
 @pytest.mark.asyncio
+async def test_message_filter_agent_preserves_chronological_order() -> None:
+    inner_agent = _TestMessageFilterAgent("inner")
+    wrapper = MessageFilterAgent(
+        name="wrapper",
+        wrapped_agent=inner_agent,
+        filter=MessageFilterConfig(
+            per_source=[
+                PerSourceFilter(source="user", position="first", count=1),
+                PerSourceFilter(source="A", position="last", count=1),
+                PerSourceFilter(source="B", position="last", count=10),
+            ]
+        ),
+    )
+    messages = [
+        TextMessage(source="user", content="task"),
+        TextMessage(source="A", content="first attempt"),
+        TextMessage(source="B", content="review"),
+        TextMessage(source="A", content="revised attempt"),
+    ]
+
+    await wrapper.on_messages(messages, CancellationToken())
+
+    assert inner_agent.received_messages == [messages[0], messages[2], messages[3]]
+
+
+@pytest.mark.asyncio
 async def test_digraph_group_chat() -> None:
     inner_agent = _TestMessageFilterAgent("agent")
     wrapper = MessageFilterAgent(
