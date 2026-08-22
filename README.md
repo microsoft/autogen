@@ -35,8 +35,11 @@ pip install -U "autogen-agentchat" "autogen-ext[openai]"
 
 The current stable version can be found in the [releases](https://github.com/microsoft/autogen/releases). If you are upgrading from AutoGen v0.2, please refer to the [Migration Guide](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html) for detailed instructions on how to update your code and configurations.
 
+Install AutoGen Studio for its no-code GUI in a separate virtual environment.
+Its published dependency constraints may not be compatible with the latest
+AgentChat and Core packages:
+
 ```bash
-# Install AutoGen Studio for no-code GUI
 pip install -U "autogenstudio"
 ```
 
