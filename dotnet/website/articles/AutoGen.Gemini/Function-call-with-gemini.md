@@ -18,21 +18,21 @@ dotnet add package AutoGen.SourceGenerator
 The AutoGen.SourceGenerator package is required to generate the @AutoGen.Core.FunctionContract. For more information, please refer to [Create-type-safe-function-call](../Create-type-safe-function-call.md)
 
 ### Step 2: Add using statement
-[!code-csharp[](../../../samples/AutoGen.Gemini.Sample/Function_call_with_gemini.cs?name=Using)]
+[!code-csharp[](../../../samples/AgentChat/AutoGen.Gemini.Sample/Function_Call_With_Gemini.cs?name=Using)]
 
 ### Step 3: Create `MovieFunction`
 
-[!code-csharp[](../../../samples/AutoGen.Gemini.Sample/Function_call_with_gemini.cs?name=MovieFunction)]
+[!code-csharp[](../../../samples/AgentChat/AutoGen.Gemini.Sample/Function_Call_With_Gemini.cs?name=MovieFunction)]
 
 ### Step 4: Create a Gemini agent
 
-[!code-csharp[](../../../samples/AutoGen.Gemini.Sample/Function_call_with_gemini.cs?name=Create_Gemini_Agent)]
+[!code-csharp[](../../../samples/AgentChat/AutoGen.Gemini.Sample/Function_Call_With_Gemini.cs?name=Create_Gemini_Agent)]
 
 ### Step 5: Single turn function call
 
-[!code-csharp[](../../../samples/AutoGen.Gemini.Sample/Function_call_with_gemini.cs?name=Single_turn)]
+[!code-csharp[](../../../samples/AgentChat/AutoGen.Gemini.Sample/Function_Call_With_Gemini.cs?name=Single_turn)]
 
 ### Step 6: Multi-turn function call
 
-[!code-csharp[](../../../samples/AutoGen.Gemini.Sample/Function_call_with_gemini.cs?name=Multi_turn)]
+[!code-csharp[](../../../samples/AgentChat/AutoGen.Gemini.Sample/Function_Call_With_Gemini.cs?name=Multi_turn)]
 

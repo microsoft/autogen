@@ -7,4 +7,4 @@ cd Hello.AppHost
 dotnet run
 ```
 
-For more info see the HelloAgent [README](../HelloAgent/README.md).
+For more info see the HelloAgent [README](./HelloAgent/README.md).

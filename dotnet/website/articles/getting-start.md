@@ -13,8 +13,8 @@ dotnet add package AutoGen
 
 Then you can start with the following code snippet to create a conversable agent and chat with it.
 
-[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/GetStartCodeSnippet.cs?name=snippet_GetStartCodeSnippet)]
-[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/GetStartCodeSnippet.cs?name=code_snippet_1)]
+[!code-csharp[](../../samples/AgentChat/AutoGen.Basic.Sample/CodeSnippet/GetStartCodeSnippet.cs?name=snippet_GetStartCodeSnippet)]
+[!code-csharp[](../../samples/AgentChat/AutoGen.Basic.Sample/CodeSnippet/GetStartCodeSnippet.cs?name=code_snippet_1)]
 
 ### Tutorial
 Getting started with AutoGen.Net by following the [tutorial](../tutorial/Chat-with-an-agent.md) series.
