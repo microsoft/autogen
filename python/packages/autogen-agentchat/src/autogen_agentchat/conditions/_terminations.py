@@ -1,4 +1,4 @@
-import asyncio
+import inspect
 import time
 from typing import Awaitable, Callable, List, Sequence
 
@@ -213,10 +213,9 @@ class FunctionalTermination(TerminationCondition):
     async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
-        if asyncio.iscoroutinefunction(self._func):
-            result = await self._func(messages)
-        else:
-            result = self._func(messages)
+        result = self._func(messages)
+        if inspect.isawaitable(result):
+            result = await result
         if result is True:
             self._terminated = True
             return StopMessage(content="Functional termination condition met", source="FunctionalTermination")

@@ -431,3 +431,15 @@ async def test_functional_termination() -> None:
     assert termination.terminated
     await termination.reset()
     assert await termination([TextMessage(content="Hello", source="user")]) is None
+
+
+@pytest.mark.asyncio
+async def test_functional_termination_awaits_async_callable_instance() -> None:
+    class AsyncCallable:
+        async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> bool:
+            return True
+
+    termination = FunctionalTermination(AsyncCallable())
+
+    assert await termination([TextMessage(content="stop", source="user")]) is not None
+    assert termination.terminated
