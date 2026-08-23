@@ -12,15 +12,15 @@ JSON mode is a new feature in OpenAI which allows you to instruct model to alway
 
 To enable JSON mode for @AutoGen.OpenAI.OpenAIChatAgent, set `responseFormat` to `ChatCompletionsResponseFormat.JsonObject` when creating the agent. Note that when enabling JSON mode, you also need to instruct the agent to output JSON format in its system message.
 
-[!code-csharp[](../../samples/AutoGen.OpenAI.Sample/Use_Json_Mode.cs?name=create_agent)]
+[!code-csharp[](../../samples/AgentChat/AutoGen.OpenAI.Sample/Use_Json_Mode.cs?name=create_agent)]
 
 After enabling JSON mode, the `openAIClientAgent` will always respond in JSON format when it receives a message.
 
-[!code-csharp[](../../samples/AutoGen.OpenAI.Sample/Use_Json_Mode.cs?name=chat_with_agent)]
+[!code-csharp[](../../samples/AgentChat/AutoGen.OpenAI.Sample/Use_Json_Mode.cs?name=chat_with_agent)]
 
 When running the example, the output from `openAIClientAgent` will be a valid JSON object which can be parsed as `Person` class defined below. Note that in the output, the `address` field is missing because the address information is not provided in user input.
 
-[!code-csharp[](../../samples/AutoGen.OpenAI.Sample/Use_Json_Mode.cs?name=person_class)]
+[!code-csharp[](../../samples/AgentChat/AutoGen.OpenAI.Sample/Use_Json_Mode.cs?name=person_class)]
 
 The output will be:
 ```bash

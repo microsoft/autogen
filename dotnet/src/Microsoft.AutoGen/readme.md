@@ -1,3 +1,3 @@
 # Microsoft.AutoGen
 
-- [Getting started sample](../../samples/getting-started/)
+- [Getting started sample](../../samples/GettingStarted/)

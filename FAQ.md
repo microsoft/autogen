@@ -41,7 +41,7 @@ pip install autogen-agentchat~=0.2
 
 ### Will AutoGen Studio be supported in 0.4?
 
-Yes, this is on the [roadmap](#roadmap).
+Yes, this is on the [roadmap](CONTRIBUTING.md#roadmap).
 Our current plan is to enable an implementation of AutoGen Studio
 on the AgentChat high level API which implements a set of agent functionalities
 (agents, teams, etc).
