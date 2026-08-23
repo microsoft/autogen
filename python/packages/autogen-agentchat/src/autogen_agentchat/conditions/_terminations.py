@@ -106,6 +106,7 @@ class MaxMessageTermination(TerminationCondition, Component[MaxMessageTerminatio
 
 class TextMentionTerminationConfig(BaseModel):
     text: str
+    sources: Sequence[str] | None = None
 
 
 class TextMentionTermination(TerminationCondition, Component[TextMentionTerminationConfig]):
@@ -148,11 +149,11 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
         self._terminated = False
 
     def _to_config(self) -> TextMentionTerminationConfig:
-        return TextMentionTerminationConfig(text=self._termination_text)
+        return TextMentionTerminationConfig(text=self._termination_text, sources=self._sources)
 
     @classmethod
     def _from_config(cls, config: TextMentionTerminationConfig) -> Self:
-        return cls(text=config.text)
+        return cls(text=config.text, sources=config.sources)
 
 
 class FunctionalTermination(TerminationCondition):
