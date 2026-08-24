@@ -2685,6 +2685,51 @@ class TestAssistantAgentCancellationToken:
         assert chunk_events[1].content == "chunk2"
 
     @pytest.mark.asyncio
+    async def test_stream_cleanup_after_cancellation(self) -> None:
+        """Test that cancelling a blocked stream cleans up its pending task."""
+        model_client = MagicMock()
+        model_client.model_info = {"function_calling": False, "vision": False, "family": ModelFamily.GPT_4O}
+        started = asyncio.Event()
+        released = asyncio.Event()
+        closed = asyncio.Event()
+        blocked_task: asyncio.Task[bool] | None = None
+
+        async def mock_create_stream(*args: Any, **kwargs: Any) -> Any:
+            nonlocal blocked_task
+            blocked_task = asyncio.create_task(released.wait())
+            kwargs["cancellation_token"].link_future(blocked_task)
+            started.set()
+            try:
+                await blocked_task
+                yield "late chunk"
+            finally:
+                closed.set()
+
+        model_client.create_stream = mock_create_stream
+        agent = AssistantAgent(name="test_agent", model_client=model_client, model_client_stream=True)
+        cancellation_token = CancellationToken()
+        messages: List[Any] = []
+
+        async def consume_stream() -> None:
+            async for message in agent.on_messages_stream(
+                [TextMessage(content="Test", source="user")], cancellation_token
+            ):
+                messages.append(message)
+
+        consumer = asyncio.create_task(consume_stream())
+        await asyncio.wait_for(started.wait(), timeout=1)
+        cancellation_token.cancel()
+
+        with pytest.raises(asyncio.CancelledError):
+            await consumer
+        await asyncio.wait_for(closed.wait(), timeout=1)
+        released.set()
+        await asyncio.sleep(0)
+
+        assert messages == []
+        assert blocked_task is not None and blocked_task.cancelled()
+
+    @pytest.mark.asyncio
     async def test_cancellation_during_tool_execution(self) -> None:
         """Test cancellation token during tool execution."""
 
