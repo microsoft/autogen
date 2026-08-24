@@ -322,5 +322,13 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         """Reset the group chat manager."""
         ...
 
+    async def get_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get the current message thread of the group chat.
+        
+        Returns:
+            A list of messages in the current thread.
+        """
+        return self._message_thread.copy()
+
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         raise ValueError(f"Unhandled message in group chat manager: {type(message)}")
