@@ -10,6 +10,7 @@ from autogen_ext.runtimes.grpc._signal_utils import wait_for_signal
 
 
 @pytest.mark.asyncio
+@pytest.mark.windows
 async def test_wait_for_signal_uses_and_removes_loop_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
     loop = asyncio.get_running_loop()
     installed_handlers: dict[signal.Signals, Callable[[], None]] = {}
@@ -34,6 +35,7 @@ async def test_wait_for_signal_uses_and_removes_loop_handlers(monkeypatch: pytes
 
 
 @pytest.mark.asyncio
+@pytest.mark.windows
 async def test_worker_runtime_falls_back_and_restores_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
     loop = asyncio.get_running_loop()
     installed_handlers: dict[signal.Signals, signal.Handlers | Callable[[int, FrameType | None], Any]] = {}
