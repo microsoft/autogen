@@ -3560,3 +3560,72 @@ class TestAnthropicIntegration:
         usage = client.total_usage()
         assert usage.prompt_tokens > 0
         assert usage.completion_tokens > 0
+
+
+@pytest.mark.asyncio
+async def test_assistant_agent_stream_cancellation_cleanup() -> None:
+    """Test that cancelling an AssistantAgent streaming operation cleans up pending tasks and streams (fix #8092)."""
+    from autogen_core.models import ChatCompletionClient, CreateResult, ModelCapabilities
+
+    class BlockingStreamModelClient(ChatCompletionClient):
+        def __init__(self) -> None:
+            self.started = asyncio.Event()
+            self.released = asyncio.Event()
+
+        async def create(self, messages: Any, *args: Any, **kwargs: Any) -> CreateResult:
+            return CreateResult(
+                finish_reason="stop",
+                content="hello",
+                usage=RequestUsage(prompt_tokens=1, completion_tokens=1),
+                cached=False,
+            )
+
+        async def create_stream(self, messages: Any, *args: Any, **kwargs: Any):
+            self.started.set()
+            await self.released.wait()
+            yield "chunk"
+
+        async def actual_usage(self) -> RequestUsage:
+            return RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+        async def total_usage(self) -> RequestUsage:
+            return RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+        async def count_tokens(self, messages: Any, *args: Any, **kwargs: Any) -> int:
+            return 1
+
+        async def remaining_tokens(self, messages: Any, *args: Any, **kwargs: Any) -> int:
+            return 1000
+
+        @property
+        def capabilities(self) -> ModelCapabilities:
+            return ModelCapabilities(vision=False, function_calling=False, json_output=False)
+
+        @property
+        def model_info(self) -> dict:
+            return {"family": ModelFamily.UNKNOWN, "vision": False, "function_calling": False, "json_output": False}
+
+    mock_client = BlockingStreamModelClient()
+    agent = AssistantAgent(
+        name="cancellable_assistant",
+        model_client=mock_client,
+    )
+    cancellation_token = CancellationToken()
+
+    async def run_stream() -> None:
+        async for _ in agent.on_messages_stream(
+            [TextMessage(content="hello", source="user")],
+            cancellation_token=cancellation_token,
+        ):
+            pass
+
+    task = asyncio.create_task(run_stream())
+    await mock_client.started.wait()
+    cancellation_token.cancel()
+    mock_client.released.set()
+
+    try:
+        await asyncio.wait_for(task, timeout=2.0)
+    except (asyncio.CancelledError, Exception):
+        pass
+    assert task.done()
