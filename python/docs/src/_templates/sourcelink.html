@@ -1,0 +1,17 @@
+{# Offer the original notebook on notebook-backed pages; preserve the source link elsewhere. #}
+{% if show_source and has_source and sourcename %}
+  <div class="tocsection sourcelink">
+    {% if sourcename.endswith(".ipynb.txt") %}
+      <a
+        href="{{ pathto('_sources/' + sourcename, true)|e }}"
+        download="{{ pagename.split('/')[-1] }}.ipynb"
+      >
+        <i class="fa-solid fa-download" aria-hidden="true"></i> {{ _("Download Notebook") }}
+      </a>
+    {% else %}
+      <a href="{{ pathto('_sources/' + sourcename, true)|e }}">
+        <i class="fa-solid fa-file-lines" aria-hidden="true"></i> {{ _("Show Source") }}
+      </a>
+    {% endif %}
+  </div>
+{% endif %}
