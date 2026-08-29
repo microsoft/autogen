@@ -1142,6 +1142,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     async def close(self) -> None:
         await self._client.close()
 
+    async def __aenter__(self) -> "BaseOpenAIChatCompletionClient":
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        await self.close()
+
     def actual_usage(self) -> RequestUsage:
         return self._actual_usage
 

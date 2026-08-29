@@ -78,6 +78,17 @@ class MyArgs(BaseModel):
     query: str = Field(description="The description.")
 
 
+@pytest.mark.asyncio
+async def test_openai_client_is_async_context_manager() -> None:
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="test")
+    client.close = AsyncMock()  # type: ignore[method-assign]
+
+    async with client as entered:
+        assert entered is client
+
+    client.close.assert_awaited_once()
+
+
 class MockChunkDefinition(BaseModel):
     # defining elements for diffentiating mocking chunks
     chunk_choice: ChunkChoice
