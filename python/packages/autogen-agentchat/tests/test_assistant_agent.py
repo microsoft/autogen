@@ -3571,6 +3571,7 @@ async def test_assistant_agent_stream_cancellation_cleanup() -> None:
         def __init__(self) -> None:
             self.started = asyncio.Event()
             self.released = asyncio.Event()
+            self.closed = asyncio.Event()
 
         async def create(self, messages: Any, *args: Any, **kwargs: Any) -> CreateResult:
             return CreateResult(
@@ -3582,8 +3583,11 @@ async def test_assistant_agent_stream_cancellation_cleanup() -> None:
 
         async def create_stream(self, messages: Any, *args: Any, **kwargs: Any):
             self.started.set()
-            await self.released.wait()
-            yield "chunk"
+            try:
+                await self.released.wait()
+                yield "chunk"
+            finally:
+                self.closed.set()
 
         async def actual_usage(self) -> RequestUsage:
             return RequestUsage(prompt_tokens=0, completion_tokens=0)
@@ -3626,6 +3630,11 @@ async def test_assistant_agent_stream_cancellation_cleanup() -> None:
 
     try:
         await asyncio.wait_for(task, timeout=2.0)
-    except (asyncio.CancelledError, Exception):
+    except asyncio.CancelledError:
         pass
+    except Exception as exc:
+        pytest.fail(f"stream task failed with an unexpected exception: {exc!r}")
     assert task.done()
+    assert mock_client.closed.is_set()
+    if not task.cancelled():
+        assert task.exception() is None
