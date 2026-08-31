@@ -299,6 +299,37 @@ The {py:class}`~autogen_core.CancellationToken` can be used to cancel the reques
 when you call `cancellation_token.cancel()`, which will cause the `await`
 on the `on_messages` call to raise a `CancelledError`.
 
+When an agent delegates work to another agent, a workbench, or a tool, pass the
+same token through every asynchronous boundary. In a message handler,
+`ctx.cancellation_token` is the token to forward:
+
+```python
+from typing import Any, Mapping
+
+from autogen_core import CancellationToken, MessageContext
+from autogen_core.tools import Tool, Workbench
+
+
+async def handle_nested_call(
+    ctx: MessageContext,
+    workbench: Workbench,
+    tool: Tool,
+    arguments: Mapping[str, Any],
+) -> None:
+    cancellation_token: CancellationToken = ctx.cancellation_token
+
+    # Workbench calls must receive the token as a keyword argument.
+    await workbench.call_tool("lookup", arguments, cancellation_token=cancellation_token)
+
+    # Direct tool calls require the token as their second argument.
+    await tool.run_json(arguments, cancellation_token)
+```
+
+Do not create a new `CancellationToken` for the nested call. If the outer
+operation is cancelled, forwarding the token lets the nested agent, workbench,
+and tool observe the cancellation and stop their pending work. A cancelled
+`on_messages` or nested operation raises `asyncio.CancelledError` to its caller.
+
 Read more on [Agent Tutorial](./tutorial/agents.ipynb)
 and {py:class}`~autogen_agentchat.agents.AssistantAgent`.
 
