@@ -6,7 +6,7 @@ Each AutoGen agent system has one or more Agent Workers and a set of services fo
 
 - In-Memory: the Agent Workers and Services are all hosted in the same process and communicate over in-memory channels. Available for python and .NET.
 - Python only: Agent workers communicate with a python hosted service that implements an in-memory message bus and agent registry.
-- Micrososft Orleans: a distributed actor system that can host the services and workers, enables distributed state with persistent storage, can leverage multiple event bus types, and cross-language agent communication.
+- Microsoft Orleans: a distributed actor system that can host the services and workers, enables distributed state with persistent storage, can leverage multiple event bus types, and cross-language agent communication.
 - *Roadmap: support for other languages distributed systems such as dapr or Akka.*
 
 The Services in the system include:
