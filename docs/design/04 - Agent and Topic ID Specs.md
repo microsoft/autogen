@@ -9,7 +9,7 @@ This document describes the structure, constraints, and behavior of Agent IDs an
 #### type
 
 - Type: `string`
-- Description: The agent type is not an agent class. It associates an agent with a specific factory function, which produces instances of agents of the same agent `type`. For example, different factory functions can produce the same agent class but with different constructor perameters.
+- Description: The agent type is not an agent class. It associates an agent with a specific factory function, which produces instances of agents of the same agent `type`. For example, different factory functions can produce the same agent class but with different constructor parameters.
 - Constraints: UTF8 and only contain alphanumeric letters (a-z) and (0-9), or underscores (\_). A valid identifier cannot start with a number, or contain any spaces.
 - Examples:
   - `code_reviewer`
