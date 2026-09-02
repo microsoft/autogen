@@ -1944,3 +1944,26 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
 
     # Content-based verification instead of index-based
     # Note: The streaming test verifies the streaming behavior, not the final result content
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_validates_participants_none() -> None:
+    """Test that participants=None raises a clear TypeError."""
+    with pytest.raises(TypeError, match="participants must be a non-empty sequence"):
+        RoundRobinGroupChat(participants=None)  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_validates_participants_not_sequence() -> None:
+    """Test that non-sequence participants raises a clear TypeError."""
+    with pytest.raises(TypeError, match="participants must be a non-empty sequence"):
+        RoundRobinGroupChat(participants="not a list")  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_validates_participants_invalid_type() -> None:
+    """Test that participants containing non-agent objects raises a clear TypeError."""
+    from autogen_agentchat.agents import UserProxyAgent
+
+    with pytest.raises(TypeError, match=r"participants\[1\] must be a ChatAgent or Team"):
+        RoundRobinGroupChat(participants=[UserProxyAgent(name="valid"), "invalid"])  # type: ignore
