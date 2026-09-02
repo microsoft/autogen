@@ -74,6 +74,8 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     include_name_in_message: bool
     """Whether to include the 'name' field in user message parameters. Defaults to True. Set to False for providers that don't support the 'name' field."""
     default_headers: Dict[str, str] | None
+    extra_body: Dict[str, object] | None
+    """Additional parameters to pass to the OpenAI API. This is passed directly to the underlying OpenAI client."""
 
 
 # See OpenAI docs for explanation of these parameters
@@ -120,6 +122,7 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     add_name_prefixes: bool | None = None
     include_name_in_message: bool | None = None
     default_headers: Dict[str, str] | None = None
+    extra_body: Dict[str, object] | None = None
 
 
 # See OpenAI docs for explanation of these parameters

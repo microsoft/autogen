@@ -3378,3 +3378,30 @@ async def test_reasoning_effort_validation() -> None:
         }
 
         ChatCompletionClient.load_component(config)
+
+
+def test_openai_client_config_includes_extra_body() -> None:
+    """Test that extra_body is included in config serialization/deserialization."""
+    from autogen_ext.models.openai import OpenAIChatCompletionClient
+    from autogen_ext.models.openai.config import OpenAIClientConfigurationConfigModel
+
+    config = OpenAIClientConfigurationConfigModel(
+        model="gpt-4",
+        api_key="test-key",
+        extra_body={"enable_thinking": False},
+        model_info={
+            "vision": False,
+            "function_calling": True,
+            "json_output": True,
+            "family": "unknown",
+            "structured_output": True,
+        },
+    )
+
+    # Verify extra_body is in the config
+    assert config.extra_body == {"enable_thinking": False}
+
+    # Verify it serializes correctly
+    dumped = config.model_dump(exclude_none=True)
+    assert "extra_body" in dumped
+    assert dumped["extra_body"] == {"enable_thinking": False}
