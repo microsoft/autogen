@@ -194,7 +194,11 @@ else:
         """
         Generates content for alembic.ini file.
         """
-        engine_url = str(self.engine.url).replace("%", "%%")
+        # render_as_string(hide_password=False) is required because str(URL) masks the
+        # password as "***" in SQLAlchemy 2.x, which would make Alembic authenticate
+        # with the literal "***" and fail (see issue #7341). "%" must still be escaped
+        # for ConfigParser interpolation.
+        engine_url = self.engine.url.render_as_string(hide_password=False).replace("%", "%%")
         return f"""
 [alembic]
 script_location = {self.alembic_dir}
