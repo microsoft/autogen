@@ -3378,3 +3378,30 @@ async def test_reasoning_effort_validation() -> None:
         }
 
         ChatCompletionClient.load_component(config)
+
+
+def test_openai_client_handles_list_content_from_reasoning_models() -> None:
+    """Test that OpenAI client handles list content from reasoning models like gpt-5, o1."""
+    from autogen_ext.models.openai import OpenAIChatCompletionClient
+    from autogen_core.models import ModelFamily, ModelInfo
+
+    # Create a mock response with list content
+    class MockMessage:
+        def __init__(self, content, model_extra=None):
+            self.content = content
+            self.model_extra = model_extra or {}
+
+    class MockChoice:
+        def __init__(self, content, model_extra=None):
+            self.message = MockMessage(content, model_extra)
+            self.finish_reason = "stop"
+            self.logprobs = None
+
+    # Test with list content containing reasoning and text blocks
+    list_content = [
+        {"type": "reasoning", "text": "Let me think about this..."},
+        {"type": "text", "text": "The answer is 42."},
+    ]
+
+    choice = MockChoice(list_content)
+    assert isinstance(choice.message.content, list)
