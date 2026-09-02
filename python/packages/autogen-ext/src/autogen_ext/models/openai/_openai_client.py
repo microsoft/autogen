@@ -489,9 +489,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
     def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
         """
-        Remove the last assistant message if it is empty.
+        Remove trailing whitespace from the last assistant message if it is a string.
         """
-        # When Claude models last message is AssistantMessage, It could not end with whitespace
         if isinstance(messages[-1], AssistantMessage):
             if isinstance(messages[-1].content, str):
                 messages[-1].content = messages[-1].content.rstrip()
