@@ -618,6 +618,39 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+## Multi-Language Code Execution
+
+The `LocalCommandLineCodeExecutor` supports executing code in multiple languages, not just Python. This is useful when you need to run shell scripts, Node.js, or other languages alongside Python.
+
+### Supported Languages
+
+The executor automatically detects the language from the code block marker:
+
+```python
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+
+# Supports Python, shell, bash, and more
+executor = LocalCommandLineCodeExecutor(work_dir="coding")
+```
+
+When using markdown code blocks in your agent's output, specify the language:
+
+- ` ```python ` - Python code
+- ` ```shell ` or ` ```bash ` - Shell/Bash scripts
+- ` ```javascript ` or ` ```js ` - Node.js code
+- ` ```typescript ` or ` ```ts ` - TypeScript code
+
+### Security Considerations
+
+When using code execution, consider the following security best practices:
+
+1. **Use Docker for untrusted code**: The `DockerCommandLineCodeExecutor` provides sandboxing and isolation
+2. **Limit network access**: Use firewalls or network policies to restrict outbound connections
+3. **Set resource limits**: Limit memory, CPU, and disk usage
+4. **Validate inputs**: Sanitize any user-provided inputs before passing to code execution
+
+For production deployments, always use a sandboxed executor like `DockerCommandLineCodeExecutor` to prevent malicious code from affecting the host system.
+
 ## Tool Use
 
 In `v0.2`, to create a tool use chatbot, you must have two agents, one for calling the tool and one for executing the tool.
