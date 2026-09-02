@@ -13,6 +13,7 @@ from aiofiles import open
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+from docker.types import DeviceRequest
 
 
 def docker_tests_enabled() -> bool:
@@ -258,13 +259,16 @@ async def test_docker_commandline_code_executor_extra_args() -> None:
 @pytest.mark.asyncio
 async def test_docker_commandline_code_executor_serialization() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = DockerCommandLineCodeExecutor(work_dir=temp_dir)
+        device_request = DeviceRequest(count=-1, capabilities=[["gpu"]])
+        executor = DockerCommandLineCodeExecutor(work_dir=temp_dir, device_requests=[device_request])
 
         executor_config = executor.dump_component()
         loaded_executor = DockerCommandLineCodeExecutor.load_component(executor_config)
 
         assert executor.bind_dir == loaded_executor.bind_dir
         assert executor.timeout == loaded_executor.timeout
+        assert executor_config.config["device_requests"] == [dict(device_request)]
+        assert loaded_executor._device_requests == [device_request]  # type: ignore[reportPrivateUsage]
 
 
 def test_invalid_timeout() -> None:
