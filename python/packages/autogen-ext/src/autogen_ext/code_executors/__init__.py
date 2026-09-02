@@ -70,7 +70,7 @@ def create_default_code_executor(work_dir: Optional[str] = None) -> CodeExecutor
         "Docker is not available or not running. Using LocalCommandLineCodeExecutor instead of the recommended DockerCommandLineCodeExecutor. "
         "For security, it is recommended to install Docker and ensure it's running before using code executors. "
         "To install Docker, visit: https://docs.docker.com/get-docker/",
-        UserWarning,
+        DeprecationWarning,
         stacklevel=2,
     )
 
