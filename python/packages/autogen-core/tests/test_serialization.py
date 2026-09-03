@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Union
+from typing import Generic, TypeVar, Union
 
 import pytest
 from autogen_core import Image
@@ -35,6 +35,44 @@ class DataclassMessage:
 class NestingDataclassMessage:
     message: str
     nested: DataclassMessage
+
+
+@dataclass
+class ListNestingDataclassMessage:
+    message: str
+    nested: list[DataclassMessage]
+
+
+@dataclass
+class DictNestingDataclassMessage:
+    message: str
+    nested: dict[str, DataclassMessage]
+
+
+@dataclass
+class NestedListDataclassMessage:
+    message: str
+    nested: list[list[DataclassMessage]]
+
+
+T = TypeVar("T")
+
+
+@dataclass
+class GenericDataclassMessage(Generic[T]):
+    message: T
+
+
+@dataclass
+class GenericNestingDataclassMessage:
+    message: str
+    nested: list[GenericDataclassMessage[str]]
+
+
+@dataclass
+class ForwardReferenceNestingDataclassMessage:
+    message: str
+    nested: "list[DataclassMessage]"
 
 
 @dataclass
@@ -84,6 +122,30 @@ def test_nesting_dataclass_dataclass() -> None:
     serde = SerializationRegistry()
     with pytest.raises(ValueError):
         serde.add_serializer(try_get_known_serializers_for_type(NestingDataclassMessage))
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        ListNestingDataclassMessage,
+        DictNestingDataclassMessage,
+        NestedListDataclassMessage,
+        GenericNestingDataclassMessage,
+        ForwardReferenceNestingDataclassMessage,
+    ],
+)
+def test_nesting_dataclass_in_generic_container(
+    cls: type[
+        ListNestingDataclassMessage
+        | DictNestingDataclassMessage
+        | NestedListDataclassMessage
+        | GenericNestingDataclassMessage
+        | ForwardReferenceNestingDataclassMessage
+    ],
+) -> None:
+    serde = SerializationRegistry()
+    with pytest.raises(ValueError):
+        serde.add_serializer(try_get_known_serializers_for_type(cls))
 
 
 def test_proto() -> None:
