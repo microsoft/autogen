@@ -47,7 +47,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         description = tool.description or ""
 
         # Create the input model from the tool's schema
-        input_model = schema_to_pydantic_model(tool.inputSchema)
+        input_model = schema_to_pydantic_model(tool.input_schema)
 
         # Use Any as return type since MCP tool returns can vary
         return_type: Type[Any] = object
@@ -119,7 +119,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
             normalized_content_list = self._normalize_payload_to_content_list(result.content)
 
-            if result.isError:
+            if result.is_error:
                 serialized_error_message = self.return_value_as_string(normalized_content_list)
                 raise Exception(serialized_error_message)
             return normalized_content_list
