@@ -150,6 +150,7 @@ memory
 logging
 serialize-components
 tracing
+cancellation
 
 ```
 
