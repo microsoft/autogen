@@ -61,15 +61,31 @@ class TokenLimitedChatCompletionContext(ChatCompletionContext, Component[TokenLi
         if self._token_limit is None:
             remaining_tokens = self._model_client.remaining_tokens(messages, tools=self._tool_schema)
             while remaining_tokens < 0 and len(messages) > 0:
-                middle_index = len(messages) // 2
-                messages.pop(middle_index)
+                messages.pop(0)
                 remaining_tokens = self._model_client.remaining_tokens(messages, tools=self._tool_schema)
         else:
             token_count = self._model_client.count_tokens(messages, tools=self._tool_schema)
             while token_count > self._token_limit and len(messages) > 0:
-                middle_index = len(messages) // 2
-                messages.pop(middle_index)
+                messages.pop(0)
                 token_count = self._model_client.count_tokens(messages, tools=self._tool_schema)
+
+        # Clean up orphaned FunctionExecutionResultMessage entries.
+        # A result is orphaned if there is no preceding AssistantMessage in the
+        # list that contains a matching FunctionCall.
+        opened_call_ids: set[str] = set()
+        cleaned_messages: List[LLMMessage] = []
+        for msg in messages:
+            if isinstance(msg, FunctionExecutionResultMessage):
+                if any(result.call_id in opened_call_ids for result in msg.content):
+                    cleaned_messages.append(msg)
+                # else: orphan, drop it
+            else:
+                cleaned_messages.append(msg)
+                if isinstance(msg, AssistantMessage) and isinstance(msg.content, list):
+                    opened_call_ids.update(call.id for call in msg.content if isinstance(call, FunctionCall))
+
+        messages = cleaned_messages
+
         if messages and isinstance(messages[0], FunctionExecutionResultMessage):
             # Handle the first message is a function call result message.
             # Remove the first message from the list.
