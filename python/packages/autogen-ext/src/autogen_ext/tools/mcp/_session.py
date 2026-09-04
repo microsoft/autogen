@@ -2,13 +2,37 @@ from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import AsyncGenerator
 
+import httpx2
 from mcp import ClientSession
 from mcp.client.session import ElicitationFnT, ListRootsFnT, SamplingFnT
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
+from mcp.shared._httpx_utils import create_mcp_http_client
 
 from ._config import McpServerParams, SseServerParams, StdioServerParams, StreamableHttpServerParams
+
+
+def _create_http_client_factory(ssl_verify: bool) -> McpHttpClientFactory:
+    """Create an HTTP client factory with the given SSL verification setting."""
+
+    def factory(
+        headers: dict[str, Any] | None = None,
+        timeout: httpx2.Timeout | None = None,
+        auth: httpx2.Auth | None = None,
+    ) -> httpx2.AsyncClient:
+        kwargs: dict[str, Any] = {"follow_redirects": True, "verify": ssl_verify}
+        if timeout is None:
+            kwargs["timeout"] = httpx2.Timeout(30.0, read=300.0)
+        else:
+            kwargs["timeout"] = timeout
+        if headers is not None:
+            kwargs["headers"] = headers
+        if auth is not None:
+            kwargs["auth"] = auth
+        return httpx2.AsyncClient(**kwargs)
+
+    return factory
 
 
 @asynccontextmanager
@@ -31,7 +55,13 @@ async def create_mcp_server_session(
             ) as session:
                 yield session
     elif isinstance(server_params, SseServerParams):
-        async with sse_client(**server_params.model_dump(exclude={"type"})) as (read, write):
+        async with sse_client(
+            url=server_params.url,
+            headers=server_params.headers,
+            timeout=server_params.timeout,
+            sse_read_timeout=server_params.sse_read_timeout,
+            httpx_client_factory=_create_http_client_factory(server_params.ssl_verify),
+        ) as (read, write):
             async with ClientSession(
                 read_stream=read,
                 write_stream=write,
@@ -42,12 +72,16 @@ async def create_mcp_server_session(
             ) as session:
                 yield session
     elif isinstance(server_params, StreamableHttpServerParams):
-        # Convert float seconds to timedelta for the streamablehttp_client
-        params_dict = server_params.model_dump(exclude={"type"})
-        params_dict["timeout"] = timedelta(seconds=server_params.timeout)
-        params_dict["sse_read_timeout"] = timedelta(seconds=server_params.sse_read_timeout)
-
-        async with streamablehttp_client(**params_dict) as (
+        http_client = httpx2.AsyncClient(
+            follow_redirects=True,
+            verify=server_params.ssl_verify,
+            timeout=httpx2.Timeout(server_params.timeout, read=server_params.sse_read_timeout),
+        )
+        async with streamablehttp_client(
+            url=server_params.url,
+            http_client=http_client,
+            terminate_on_close=server_params.terminate_on_close,
+        ) as (
             read,
             write,
             session_id_callback,  # type: ignore[assignment, unused-variable]

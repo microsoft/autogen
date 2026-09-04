@@ -512,7 +512,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             except CancelledError as e:
                 if not message_envelope.future.cancelled():
                     message_envelope.future.set_exception(e)
-                self._message_queue.task_done()
+                try:
+                    self._message_queue.task_done()
+                except ValueError:
+                    pass
                 event_logger.info(
                     MessageHandlerExceptionEvent(
                         payload=self._try_serialize(message_envelope.message),
@@ -523,7 +526,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 return
             except BaseException as e:
                 message_envelope.future.set_exception(e)
-                self._message_queue.task_done()
+                try:
+                    self._message_queue.task_done()
+                except ValueError:
+                    pass
                 event_logger.info(
                     MessageHandlerExceptionEvent(
                         payload=self._try_serialize(message_envelope.message),
@@ -552,7 +558,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     metadata=get_telemetry_envelope_metadata(),
                 )
             )
-            self._message_queue.task_done()
+            try:
+                self._message_queue.task_done()
+            except ValueError:
+                pass
 
     async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
         with self._tracer_helper.trace_block("publish", message_envelope.topic_id, parent=message_envelope.metadata):
@@ -626,7 +635,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 if not self._ignore_unhandled_handler_exceptions:
                     self._background_exception = e
             finally:
-                self._message_queue.task_done()
+                try:
+                    self._message_queue.task_done()
+                except ValueError:
+                    pass
             # TODO if responses are given for a publish
 
     async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
@@ -659,7 +671,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             )
             if not message_envelope.future.cancelled():
                 message_envelope.future.set_result(message_envelope.message)
-            self._message_queue.task_done()
+            try:
+                self._message_queue.task_done()
+            except ValueError:
+                # Queue was shut down before this message was fully processed.
+                # This can happen during cancellation when shutdown(immediate=True)
+                # drains remaining items while a background task is still processing one.
+                pass
 
     async def process_next(self) -> None:
         """Process the next message in the queue.
