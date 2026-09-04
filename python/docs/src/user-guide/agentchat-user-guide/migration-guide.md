@@ -1369,3 +1369,35 @@ in the Core API documentation.
 We also added `ACADynamicSessionsCodeExecutor` that can use Azure Container Apps (ACA)
 dynamic sessions for code execution.
 See [ACA Dynamic Sessions Code Executor Docs](../extensions-user-guide/azure-container-code-executor.ipynb).
+
+## Security Considerations for Code Execution
+
+### Path Traversal Protection
+
+The `LocalCommandLineCodeExecutor` includes protection against path traversal attacks. When using Python code execution, a security preamble is automatically prepended to all code blocks that:
+
+1. **Intercepts file operations**: Uses `sys.addaudithook` (Python 3.8+) to intercept low-level file operations
+2. **Enforces path validation**: Ensures all file write operations stay within the designated working directory
+3. **Prevents directory traversal**: Blocks attempts to write files outside the working directory (e.g., `../../pwned.txt`)
+
+### Security Best Practices
+
+1. **Use Docker for untrusted code**: The `DockerCommandLineCodeExecutor` provides additional isolation
+2. **Set resource limits**: Limit memory, CPU, and disk usage
+3. **Network restrictions**: Use firewalls or network policies to restrict outbound connections
+4. **Input validation**: Sanitize any user-provided inputs before passing to code execution
+5. **Monitor execution**: Log and audit code execution for suspicious activity
+
+### Indirect Prompt Injection
+
+Be aware of indirect prompt injection attacks where:
+
+1. Agents interact with untrusted data (user messages, web content, documents)
+2. The LLM is tricked into generating malicious code
+3. The code is executed with host privileges
+
+To mitigate this risk:
+- Use sandboxed executors (Docker)
+- Implement code approval workflows
+- Monitor agent behavior for unexpected actions
+- Limit agent permissions to the minimum required
