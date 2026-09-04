@@ -171,6 +171,12 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
                 return json.dumps(dumped)
             return str(dumped)
 
+        if isinstance(value, dict):
+            return json.dumps(value)
+
+        if isinstance(value, list):
+            return json.dumps(value)
+
         return str(value)
 
     @abstractmethod
