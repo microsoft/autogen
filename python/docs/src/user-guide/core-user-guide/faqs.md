@@ -33,11 +33,11 @@ host = GrpcWorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_
 worker1 = GrpcWorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
 ```
 
-**Note**: When `GrpcWorkerAgentRuntime` creates a host connection for the clients, it uses `DEFAULT_GRPC_CONFIG` from `HostConnection` class as default set of values which will can be overriden if you pass parameters with the same name using `extra_grpc_config`.
+**Note**: When `GrpcWorkerAgentRuntime` creates a host connection for the clients, it uses `DEFAULT_GRPC_CONFIG` from `HostConnection` class as default set of values which will can be overridden if you pass parameters with the same name using `extra_grpc_config`.
 
 ## What are model capabilities and how do I specify them?
 
-Model capabilites are additional capabilities an LLM may have beyond the standard natural language features. There are currently 3 additional capabilities that can be specified within Autogen
+Model capabilities are additional capabilities an LLM may have beyond the standard natural language features. There are currently 3 additional capabilities that can be specified within Autogen
 
 - vision: The model is capable of processing and interpreting image data.
 - function_calling: The model has the capacity to accept function descriptions; such as the function name, purpose, input parameters, etc; and can respond with an appropriate function to call including any necessary parameters.
