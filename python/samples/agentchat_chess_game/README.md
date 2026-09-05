@@ -45,7 +45,7 @@ config:
   api_key: replace with your API key or skip it if you have environment variable OPENAI_API_KEY set
 ```
 
-To use a locally hosted DeepSeek-R1:8b model using Ollama throught its compatibility endpoint,
+To use a locally hosted DeepSeek-R1:8b model using Ollama through its compatibility endpoint,
 you can use the following configuration:
 
 ```yaml

@@ -2,7 +2,7 @@
 
 Start from 0.0.9, AutoGen introduces the @AutoGen.Core.IMessage and @AutoGen.Core.IMessage`1 types to provide a unified message interface for different agents. The @AutoGen.Core.IMessage is a non-generic interface that represents a message. The @AutoGen.Core.IMessage`1 is a generic interface that represents a message with a specific `T` where `T` can be any type.
 
-Besides, AutoGen also provides a set of built-in message types that implement the @AutoGen.Core.IMessage and @AutoGen.Core.IMessage`1 interfaces. These built-in message types are designed to cover different types of messages as much as possilbe. The built-in message types include:
+Besides, AutoGen also provides a set of built-in message types that implement the @AutoGen.Core.IMessage and @AutoGen.Core.IMessage`1 interfaces. These built-in message types are designed to cover different types of messages as much as possible. The built-in message types include:
 
 > [!NOTE]
 > The minimal requirement for an agent to be used as admin in @AutoGen.Core.GroupChat is to support @AutoGen.Core.TextMessage.
