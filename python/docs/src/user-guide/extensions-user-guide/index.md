@@ -14,6 +14,7 @@ myst:
 installation
 discover
 create-your-own
+security-extension-points
 ```
 
 ```{toctree}
@@ -54,5 +55,12 @@ Discover community extensions and samples
 :link-alt: Create your own: Create your own extension
 
 Create your own extension
+:::
+
+:::{grid-item-card} {fas}`shield-halved;pst-color-primary` Security extension points
+:link: ./security-extension-points.html
+:link-alt: Security extension points: Add external policy and threat scanners
+
+Add external policy and threat scanners
 :::
 ::::
