@@ -479,7 +479,7 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gemini-2.0-flash-lite-preview-02-05": 1048576,
     "gemini-2.5-pro-preview-03-25": 2097152,
     "gemini-2.5-flash": 1048576,
-    "claude-3-haiku-20240307": 50000,
+    "claude-3-haiku-20240307": 200000,
     "claude-3-sonnet-20240229": 200000,
     "claude-3-opus-20240229": 200000,
     "claude-3-5-haiku-20241022": 200000,
