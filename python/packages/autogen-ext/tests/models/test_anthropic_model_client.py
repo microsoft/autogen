@@ -1277,7 +1277,7 @@ def test_get_info_bedrock_model_id() -> None:
     """Bedrock model IDs should resolve to the same info as the base model."""
     from autogen_ext.models.anthropic._model_info import get_info
 
-    info = get_info("us.anthropic.claude-3-5-sonnet-20240620-v1:0")
+    info = get_info("us.anthropic.claude-3-5-sonnet-20240620-v1:0")  # ggignore
     assert info["function_calling"] is True
     assert info["vision"] is True
 
@@ -1286,7 +1286,7 @@ def test_get_token_limit_bedrock_model_id() -> None:
     """Bedrock model IDs should resolve to the correct token limit."""
     from autogen_ext.models.anthropic._model_info import get_token_limit
 
-    limit = get_token_limit("us.anthropic.claude-3-5-sonnet-20240620-v1:0")
+    limit = get_token_limit("us.anthropic.claude-3-5-sonnet-20240620-v1:0")  # ggignore
     assert limit == 200000
 
 
@@ -1294,5 +1294,5 @@ def test_get_info_eu_bedrock_model_id() -> None:
     """EU Bedrock model IDs should also resolve correctly."""
     from autogen_ext.models.anthropic._model_info import get_info
 
-    info = get_info("eu.anthropic.claude-3-7-sonnet-20250219-v1:0")
+    info = get_info("eu.anthropic.claude-3-7-sonnet-20250219-v1:0")  # ggignore
     assert info["function_calling"] is True
