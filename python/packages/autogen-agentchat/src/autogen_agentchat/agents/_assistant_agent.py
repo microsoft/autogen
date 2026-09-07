@@ -1197,22 +1197,48 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 function_calls: List[FunctionCall],
                 stream_queue: asyncio.Queue[BaseAgentEvent | BaseChatMessage | None],
             ) -> List[Tuple[FunctionCall, FunctionExecutionResult]]:
-                results = await asyncio.gather(
-                    *[
-                        cls._execute_tool_call(
-                            tool_call=call,
-                            workbench=workbench,
-                            handoff_tools=handoff_tools,
-                            agent_name=agent_name,
-                            cancellation_token=cancellation_token,
-                            stream=stream_queue,
+                try:
+                    results = await asyncio.gather(
+                        *[
+                            cls._execute_tool_call(
+                                tool_call=call,
+                                workbench=workbench,
+                                handoff_tools=handoff_tools,
+                                agent_name=agent_name,
+                                cancellation_token=cancellation_token,
+                                stream=stream_queue,
+                            )
+                            for call in function_calls
+                        ],
+                        return_exceptions=True,
+                    )
+                    # Re-raise CancelledError to honour the cancellation contract:
+                    # asyncio.CancelledError is a BaseException; returning it as a tool
+                    # error result would swallow cancellation silently.
+                    for result in results:
+                        if isinstance(result, asyncio.CancelledError):
+                            raise result
+                    return [
+                        (
+                            result[0],
+                            result[1],
                         )
-                        for call in function_calls
+                        if not isinstance(result, BaseException)
+                        else (
+                            call,
+                            FunctionExecutionResult(
+                                content=f"Error: {result}",
+                                call_id=call.id,
+                                is_error=True,
+                                name=call.name,
+                            ),
+                        )
+                        for call, result in zip(function_calls, results)
                     ]
-                )
-                # Signal the end of streaming by putting None in the queue.
-                stream_queue.put_nowait(None)
-                return results
+                finally:
+                    # Signal the end of streaming by putting None in the queue.
+                    # This runs even on CancelledError, ensuring the consumer loop terminates.
+                    stream_queue.put_nowait(None)
 
             task = asyncio.create_task(_execute_tool_calls(current_model_result.content, stream))
 
