@@ -382,7 +382,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             "create", recipient, parent=None, extraAttributes={"message_type": data_type}
         ):
             # create a new future for the result
-            future = asyncio.get_event_loop().create_future()
+            future = asyncio.get_running_loop().create_future()
             request_id = await self._get_new_request_id()
             self._pending_requests[request_id] = future
             serialized_message = self._serialization_registry.serialize(
