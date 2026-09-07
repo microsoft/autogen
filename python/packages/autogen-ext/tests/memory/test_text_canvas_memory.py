@@ -119,3 +119,41 @@ async def test_update_context_injects_snapshot(
     assert result.memories.results
     assert isinstance(result.memories.results[0].content, str)
     assert story_v2.strip() in result.memories.results[0].content
+
+
+@pytest.mark.asyncio
+async def test_apply_patch_rejects_stale_hunks() -> None:
+    """Test that patch application rejects hunks if their source context doesn't match."""
+    import difflib
+    from autogen_ext.memory.canvas import TextCanvasMemory
+    from autogen_core import CancellationToken
+    
+    BASE = "service=payments\nregion=Singapore\nstatus=active\n"
+    EDIT_A = "service=payments\nregion=Tokyo\nstatus=active\n"
+    EDIT_B = "service=payments\nregion=London\nstatus=active\n"
+    
+    memory = TextCanvasMemory()
+    update = memory.get_update_file_tool()
+    apply_patch = memory.get_apply_patch_tool()
+    token = CancellationToken()
+    
+    await update.run_json({"filename": "state.txt", "new_content": BASE}, token)
+    
+    # Generate patch from BASE -> EDIT_A
+    stale_patch = "".join(
+        difflib.unified_diff(
+            BASE.splitlines(keepends=True),
+            EDIT_A.splitlines(keepends=True),
+            fromfile="state.txt",
+            tofile="state.txt"
+        )
+    )
+    
+    # Fast-forward canvas to EDIT_B
+    await update.run_json({"filename": "state.txt", "new_content": EDIT_B}, token)
+    
+    # The stale patch should be rejected because its context (Singapore) doesn't match (London)
+    with pytest.raises(ValueError, match="Patch rejected: Hunk source context does not match"):
+        await apply_patch.run_json({"filename": "state.txt", "patch_text": stale_patch}, token)
+        
+    assert memory.canvas.get_latest_content("state.txt") == EDIT_B
