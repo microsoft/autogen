@@ -243,7 +243,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         await target_send_queue.send(agent_worker_pb2.Message(request=request))
 
         # Create a future to wait for the response from the target.
-        future = asyncio.get_event_loop().create_future()
+        future = asyncio.get_running_loop().create_future()
         self._pending_responses.setdefault(target_client_id, {})[request.request_id] = future
 
         # Create a task to wait for the response and send it back to the client.
