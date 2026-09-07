@@ -172,7 +172,10 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             return str(dumped)
 
         if isinstance(value, (dict, list)):
-            return json.dumps(value)
+            try:
+                return json.dumps(value)
+            except (TypeError, ValueError):
+                pass
 
         return str(value)
 
