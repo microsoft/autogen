@@ -540,14 +540,19 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
     def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
         """
-        Remove the last assistant message if it is empty.
+        Remove trailing assistant messages so the conversation ends with a user message.
+        The Anthropic API requires conversations to end with a user message.
         """
-        # When Claude models last message is AssistantMessage, It could not end with whitespace
-        if isinstance(messages[-1], AssistantMessage):
-            if isinstance(messages[-1].content, str):
-                messages[-1].content = messages[-1].content.rstrip()
+        msgs = list(messages)
+        # Strip whitespace from trailing assistant message content first
+        if msgs and isinstance(msgs[-1], AssistantMessage) and isinstance(msgs[-1].content, str):
+            msgs[-1].content = msgs[-1].content.rstrip()
 
-        return messages
+        # Remove trailing assistant messages (and their associated function execution results)
+        while msgs and isinstance(msgs[-1], AssistantMessage):
+            msgs.pop()
+
+        return msgs
 
     async def create(
         self,
