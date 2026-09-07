@@ -353,6 +353,9 @@ jobs:
       - name: Check if there are uncommited changes
         id: changes
         uses: UnicornGlobal/has-changes-action@v1.0.11
-      - name: Process changes
+      - name: Fail if proto files are not up to date
         if: steps.changes.outputs.changed == 1
-        run: echo "There are changes in the proto files. Please commit them."
+        run: |
+          echo "There are changes in the proto files. Please run 'poe gen-proto' and 'poe gen-test-proto' and commit the result."
+          git --no-pager diff
+          exit 1
