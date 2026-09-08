@@ -1,6 +1,8 @@
+import json
 from typing import List
 
 import pytest
+from autogen_core import FunctionCall
 from autogen_core.model_context import (
     BufferedChatCompletionContext,
     HeadAndTailChatCompletionContext,
@@ -10,6 +12,7 @@ from autogen_core.model_context import (
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
+    FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     UserMessage,
@@ -49,6 +52,39 @@ async def test_buffered_model_context() -> None:
     assert len(retrieved) == 2
     assert retrieved[0] == messages[0]
     assert retrieved[1] == messages[1]
+
+
+@pytest.mark.asyncio
+async def test_buffered_model_context_component_round_trip() -> None:
+    messages: List[LLMMessage] = [
+        UserMessage(content="Hello!", source="user"),
+        AssistantMessage(content="How can I help?", source="assistant"),
+        UserMessage(content="Tell me about Seattle.", source="user"),
+    ]
+    model_context = BufferedChatCompletionContext(buffer_size=2, initial_messages=messages)
+
+    config = json.loads(model_context.dump_component().model_dump_json())
+    restored = BufferedChatCompletionContext.load_component(config)
+
+    assert await restored.get_messages() == messages[-2:]
+    assert await restored.save_state() == await model_context.save_state()
+
+
+@pytest.mark.asyncio
+async def test_buffered_model_context_component_round_trip_filters_function_result() -> None:
+    messages: List[LLMMessage] = [
+        AssistantMessage(content=[FunctionCall(id="call_1", arguments="{}", name="search")], source="assistant"),
+        FunctionExecutionResultMessage(
+            content=[FunctionExecutionResult(content="Seattle", call_id="call_1", name="search")]
+        ),
+        AssistantMessage(content="Done.", source="assistant"),
+    ]
+    model_context = BufferedChatCompletionContext(buffer_size=2, initial_messages=messages)
+
+    config = json.loads(model_context.dump_component().model_dump_json())
+    restored = BufferedChatCompletionContext.load_component(config)
+
+    assert await restored.get_messages() == [messages[-1]]
 
 
 @pytest.mark.asyncio
