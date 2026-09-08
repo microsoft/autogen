@@ -58,7 +58,7 @@ public static class GroupChatExtension
                 yield break;
             }
 
-            // messages will contain the complete chat history, include initalize messages
+            // messages will contain the complete chat history, including initial messages
             // but we only need to add the last message to the chat history
             // fix #3268
             chatHistory = chatHistory.Append(lastMessage);
