@@ -51,6 +51,7 @@ class SelectorManagerState(BaseGroupChatManagerState):
     """State for :class:`~autogen_agentchat.teams.SelectorGroupChat` manager."""
 
     previous_speaker: Optional[str] = Field(default=None)
+    previous_speakers: Optional[List[str]] = Field(default=None)
     type: str = Field(default="SelectorManagerState")
 
 
