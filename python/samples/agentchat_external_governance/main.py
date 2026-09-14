@@ -11,6 +11,7 @@ import asyncio
 import hashlib
 import json
 import os
+import urllib.error
 import urllib.request
 from typing import Any, Literal, TypedDict
 
@@ -42,6 +43,53 @@ def stable_json(value: Any) -> str:
 
 def sha256(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def blocked_decision(
+    envelope: GovernanceActionEnvelope,
+    reason: str,
+    *,
+    decision_id: str | None = None,
+) -> GovernanceDecision:
+    return {
+        "verdict": "deny",
+        "reason": reason,
+        "decision_id": decision_id or f"local-block-{envelope['action_hash'][:12]}",
+        "action_hash": envelope["action_hash"],
+    }
+
+
+def normalize_governance_decision(
+    envelope: GovernanceActionEnvelope, payload: Any
+) -> GovernanceDecision:
+    if not isinstance(payload, dict):
+        return blocked_decision(
+            envelope,
+            "External governance checkpoint returned a non-object response.",
+        )
+
+    verdict = payload.get("verdict")
+    if verdict not in {"allow", "require_approval", "deny"}:
+        return blocked_decision(
+            envelope,
+            "External governance checkpoint returned an unrecognized verdict.",
+        )
+
+    action_hash = payload.get("action_hash")
+    if action_hash != envelope["action_hash"]:
+        return blocked_decision(
+            envelope,
+            "External governance checkpoint returned a mismatched action_hash.",
+        )
+
+    return {
+        "verdict": verdict,
+        "reason": str(payload.get("reason") or "No reason provided."),
+        "decision_id": str(
+            payload.get("decision_id") or f"external-{envelope['action_hash'][:12]}"
+        ),
+        "action_hash": envelope["action_hash"],
+    }
 
 
 def build_action_envelope(
@@ -86,7 +134,7 @@ async def call_external_governance(
     if endpoint:
         body = stable_json(envelope).encode("utf-8")
 
-        def send_request() -> GovernanceDecision:
+        def send_request() -> Any:
             request = urllib.request.Request(
                 endpoint,
                 data=body,
@@ -97,7 +145,18 @@ async def call_external_governance(
                 payload = response.read().decode("utf-8")
                 return json.loads(payload)
 
-        return await asyncio.to_thread(send_request)
+        try:
+            payload = await asyncio.to_thread(send_request)
+        except (OSError, TimeoutError, urllib.error.URLError, json.JSONDecodeError) as exc:
+            return blocked_decision(
+                envelope,
+                (
+                    "External governance checkpoint was unavailable or returned "
+                    f"invalid JSON: {type(exc).__name__}."
+                ),
+            )
+
+        return normalize_governance_decision(envelope, payload)
 
     high_risk = (
         bool(envelope["arguments"]["contains_pii"])
@@ -154,6 +213,15 @@ async def governed_export_customer_records(
     ):
         return {
             "status": "approval_required",
+            "executed": False,
+            "decision_id": decision["decision_id"],
+            "action_hash": decision["action_hash"],
+            "reason": decision["reason"],
+        }
+
+    if decision["verdict"] not in {"allow", "require_approval"}:
+        return {
+            "status": "blocked",
             "executed": False,
             "decision_id": decision["decision_id"],
             "action_hash": decision["action_hash"],

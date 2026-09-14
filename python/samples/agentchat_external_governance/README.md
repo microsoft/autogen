@@ -51,3 +51,8 @@ The endpoint should return JSON like:
 }
 ```
 
+The sample fails closed unless the checkpoint returns an exact `verdict` of
+`allow`, `require_approval`, or `deny` and an `action_hash` matching the
+submitted action envelope. Unknown verdicts, missing hashes, hash mismatches,
+unreachable endpoints, and invalid JSON are treated as blocked decisions rather
+than as permission to execute.
