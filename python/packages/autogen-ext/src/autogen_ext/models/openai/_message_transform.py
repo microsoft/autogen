@@ -43,11 +43,12 @@ that decouples message transformation logic from model SDK constructors.
 ### 🧪 Example: Basic Flow
 
 ```python
-from autogen_ext.models.openai._message_transform import get_transformer
-from autogen.types import AssistantMessage
+from autogen_ext.models.openai._transformation import get_transformer
+from autogen_core.models import AssistantMessage, ModelFamily
 
-llm_message = AssistantMessage(name="a", thought="Let's go!")
-transformer = get_transformer("openai", "gpt-4", type(llm_message))
+llm_message = AssistantMessage(content="Let's go!", source="user")
+transformer_map = get_transformer("openai", "gpt-4", ModelFamily.GPT_4)
+transformer = transformer_map[type(llm_message)]
 sdk_message = transformer(llm_message, context={})
 print(sdk_message)
 ```
@@ -530,13 +531,15 @@ __gemini_models = [model for model in total_models if ModelFamily.is_gemini(mode
 
 __llama_models = [model for model in total_models if ModelFamily.is_llama(model)]
 
-__unknown_models = list(
-    set(total_models) - set(__openai_models) - set(__claude_models) - set(__gemini_models) - set(__llama_models)
-)
 __mistral_models = [model for model in total_models if ModelFamily.is_mistral(model)]
 
 __unknown_models = list(
-    set(total_models) - set(__openai_models) - set(__claude_models) - set(__gemini_models) - set(__mistral_models)
+    set(total_models)
+    - set(__openai_models)
+    - set(__claude_models)
+    - set(__gemini_models)
+    - set(__llama_models)
+    - set(__mistral_models)
 )
 
 for model in __openai_models:
