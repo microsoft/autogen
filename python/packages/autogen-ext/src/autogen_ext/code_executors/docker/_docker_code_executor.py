@@ -65,6 +65,168 @@ async def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 
 A = ParamSpec("A")
 
 
+
+# Default set of sensitive host paths that should never be mounted into a code-execution sandbox.
+# Based on OWASP Agentic Security Initiative (ASI10) — trust boundary violations.
+_DEFAULT_SENSITIVE_HOST_PATHS: List[str] = [
+    "/",
+    "/etc",
+    "/root",
+    "/home",
+    "/var",
+    "/usr",
+    "/opt",
+    "/boot",
+    "/proc",
+    "/sys",
+    "/dev",
+    "/sbin",
+    "/bin",
+    "/lib",
+    "/lib64",
+    "/run",
+    "/var/run/docker.sock",
+    "/var/run/docker",
+]
+
+
+def _validate_host_volume_paths(
+    volumes: Dict[str, Dict[str, str]],
+    work_dir: Optional[Path],
+    bind_dir: Optional[Path],
+) -> None:
+    """Validate host paths bound to a code-execution container.
+
+    Enforces a minimal trust boundary (OWASP ASI10) so that the LLM-driven
+    executor cannot trivially read or write host files outside the explicit
+    workspace.
+
+    Rules:
+      * Paths under the executor's own ``work_dir`` / ``bind_dir`` are
+        always allowed (these are the intended workspace roots).
+      * Absolute paths resolving to well-known sensitive directories
+        (e.g. ``/etc``, ``/var/run/docker.sock``) are rejected outright.
+      * Relative paths or paths containing traversal (``..``) outside the
+        workspace roots are rejected.
+      * Absolute paths outside the sensitive block must exist on the host
+        so the developer notices typos before container start.
+
+    Raises:
+        ValueError: If any provided host path violates the trust boundary.
+    """
+
+    if not volumes:
+        return
+
+    # Build allowlist roots from the workspace and bind directory the executor
+    # itself created. Anything under these roots is trusted.
+    allowed_roots: List[Path] = []
+    for root in (work_dir, bind_dir):
+        if root is None:
+            continue
+        try:
+            allowed_roots.append(Path(root).resolve())
+        except (OSError, RuntimeError):
+            # If we cannot resolve, do not treat it as an allow-listed root.
+            continue
+
+    sensitive_paths = [_resolve_if_possible(p) for p in _DEFAULT_SENSITIVE_HOST_PATHS]
+
+    for host_path_raw, mount_spec in volumes.items():
+        # Empty entries are nonsensical but should not crash the executor.
+        if not host_path_raw:
+            raise ValueError(
+                "Empty host source path supplied to extra_volumes; refusing to "
+                "start the code-execution container to preserve the trust boundary."
+            )
+
+        # Reject explicit null-byte injections.
+        if chr(0) in host_path_raw:
+            raise ValueError(
+                f"NUL byte in host source path {host_path_raw!r}; refusing to "
+                "mount into the code-execution container."
+            )
+
+        host_path = Path(host_path_raw)
+
+        try:
+            resolved = host_path.resolve()
+        except (OSError, RuntimeError) as exc:
+            raise ValueError(
+                f"Could not resolve host source path {host_path_raw!r} for "
+                f"extra_volumes: {exc}. Refusing to start the code-execution "
+                "container."
+            ) from exc
+
+        # 1. If the path is under an allow-listed root (work_dir / bind_dir),
+        #    accept it regardless of further rules. This is the intended
+        #    workspace and must remain usable.
+        for root in allowed_roots:
+            try:
+                resolved.relative_to(root)
+                # Path is under an allowed root, skip sensitive-path check.
+                break
+            except ValueError:
+                continue
+        else:
+            # 2. Not under an allowed root -> reject known-sensitive host paths.
+            for sensitive in sensitive_paths:
+                if sensitive is None:
+                    continue
+                try:
+                    resolved.relative_to(sensitive)
+                    raise ValueError(
+                        f"Refusing to mount sensitive host path {host_path_raw!r} "
+                        f"(resolves to {str(resolved)!r}) into the code-execution "
+                        "container. Sensitive host paths expose host state outside "
+                        "the intended sandbox. Mount a narrower sub-path under the "
+                        "executor workspace, or remove this entry from extra_volumes."
+                    )
+                except ValueError as inner_exc:
+                    # Re-raise only if we matched a sensitive root.
+                    if "Refusing to mount sensitive host path" in str(inner_exc):
+                        raise
+                    continue
+
+            # 3. Relative paths or paths containing '..' that aren't under an
+            #    allowed root must be rejected.
+            is_relative = not host_path.is_absolute()
+            has_traversal = ".." in Path(host_path_raw).parts
+            if is_relative or has_traversal:
+                raise ValueError(
+                    f"Refusing to mount relative or traversal-containing host "
+                    f"path {host_path_raw!r} (resolves to {str(resolved)!r}) "
+                    "without an allow-listed workspace root. Provide an absolute "
+                    "path under work_dir/bind_dir, or remove this entry from "
+                    "extra_volumes."
+                )
+
+            # 4. Absolute paths outside the sensitive block must exist on the
+            #    host so the developer notices typos immediately.
+            if not resolved.exists():
+                raise ValueError(
+                    f"Host source path {host_path_raw!r} (resolves to "
+                    f"{str(resolved)!r}) does not exist on the host. Refusing to "
+                    "start the code-execution container. Use an existing path or "
+                    "remove this entry from extra_volumes."
+                )
+
+        # 5. Validate the bind specification shape.
+        if not isinstance(mount_spec, dict):
+            raise ValueError(
+                f"Invalid bind specification for {host_path_raw!r}: expected a "
+                "dict with 'bind' and optional 'mode'. Got "
+                f"{type(mount_spec).__name__}."
+            )
+
+
+def _resolve_if_possible(value: str) -> Optional[Path]:
+    try:
+        return Path(value).resolve()
+    except (OSError, RuntimeError):
+        return None
+
+
 class DockerCommandLineCodeExecutorConfig(BaseModel):
     """Configuration for DockerCommandLineCodeExecutor"""
 
@@ -503,6 +665,14 @@ $functions"""
             self._temp_dir = tempfile.TemporaryDirectory()
             self._temp_dir_path = Path(self._temp_dir.name)
             self._temp_dir_path.mkdir(exist_ok=True)
+
+        # Enforce a minimal trust boundary on host paths bound to the
+        # code-execution container (OWASP ASI10).
+        _validate_host_volume_paths(
+            self._extra_volumes,
+            self._work_dir,
+            self._bind_dir,
+        )
 
         # Start a container from the image, read to exec commands later
         try:
