@@ -1,15 +1,16 @@
 import inspect
 from dataclasses import dataclass
 from functools import partial
-from typing import Annotated, List
+from typing import Annotated, List, Optional
 
 import pytest
+from pydantic import BaseModel, Field, ValidationError, model_serializer
+from pydantic_core import PydanticUndefined
+
 from autogen_core import CancellationToken
 from autogen_core._function_utils import get_typed_signature
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
-from pydantic import BaseModel, Field, ValidationError, model_serializer
-from pydantic_core import PydanticUndefined
 
 
 class MyArgs(BaseModel):
@@ -589,3 +590,14 @@ async def test_func_tool_with_dataclass_conversion_failure() -> None:
 
     with pytest.raises(ValidationError, match="Field required"):
         await tool.run_json(test_input, CancellationToken())
+
+
+def test_tool_schema_optional_fields_carry_type() -> None:
+    def search(query: str, country: Optional[str] = None) -> str:
+        return query
+
+    tool = FunctionTool(search, description="Search tool.")
+    props = tool.schema["parameters"]["properties"]  # type: ignore[index]
+    assert props["query"].get("type") == "string"
+    assert props["country"].get("type") == "string"
+    assert "country" not in tool.schema["parameters"].get("required", [])  # type: ignore[index]
