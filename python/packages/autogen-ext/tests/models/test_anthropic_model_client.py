@@ -18,6 +18,7 @@ from autogen_core.models import (
 )
 from autogen_core.models._types import LLMMessage
 from autogen_core.tools import FunctionTool
+from autogen_ext.models._utils.rstrip_last_assistant_message import rstrip_last_assistant_message
 from autogen_ext.models.anthropic import (
     AnthropicBedrockChatCompletionClient,
     AnthropicChatCompletionClient,
@@ -828,12 +829,46 @@ def test_mock_rstrip_trailing_whitespace_at_last_assistant_content() -> None:
         AssistantMessage(content="foobar ", source="assistant"),
     ]
 
-    # This will crash if _rstrip_railing_whitespace_at_last_assistant_content is not applied to "content"
-    dummy_client = AnthropicChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
-    result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
+    # This will crash if rstrip_last_assistant_message is not applied to "content"
+    result = rstrip_last_assistant_message(messages)
 
     assert isinstance(result[-1].content, str)
     assert result[-1].content == "foobar"
+
+
+def test_mock_rstrip_removes_whitespace_only_last_assistant_message() -> None:
+    """If the last assistant message is whitespace-only, rstrip leaves an empty
+    string, which Anthropic's API rejects (text content blocks must be non-empty).
+    The message should be dropped entirely instead."""
+    messages: list[LLMMessage] = [
+        UserMessage(content="foo", source="user"),
+        UserMessage(content="bar", source="user"),
+        AssistantMessage(content="   ", source="assistant"),
+    ]
+
+    result = rstrip_last_assistant_message(messages)
+
+    assert len(result) == 2
+    assert isinstance(result[-1], UserMessage)
+
+
+def test_mock_rstrip_only_affects_trailing_assistant_message() -> None:
+    """An interleaved (non-trailing) assistant message with trailing whitespace
+    must be left untouched, even if it would otherwise be empty after rstrip."""
+    messages: list[LLMMessage] = [
+        UserMessage(content="foo", source="user"),
+        AssistantMessage(content="   ", source="assistant"),
+        UserMessage(content="bar", source="user"),
+        AssistantMessage(content="baz ", source="assistant"),
+    ]
+
+    result = rstrip_last_assistant_message(messages)
+
+    assert len(result) == 4
+    assert isinstance(result[1], AssistantMessage)
+    assert result[1].content == "   "
+    assert isinstance(result[-1], AssistantMessage)
+    assert result[-1].content == "baz"
 
 
 @pytest.mark.asyncio

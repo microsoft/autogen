@@ -65,6 +65,7 @@ from autogen_core.utils import extract_json_from_str
 from pydantic import BaseModel, SecretStr
 from typing_extensions import Self, Unpack
 
+from .._utils.rstrip_last_assistant_message import rstrip_last_assistant_message
 from . import _model_info
 from .config import (
     AnthropicBedrockClientConfiguration,
@@ -538,17 +539,6 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         return {"thinking": thinking_config}
 
-    def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
-        """
-        Remove the last assistant message if it is empty.
-        """
-        # When Claude models last message is AssistantMessage, It could not end with whitespace
-        if isinstance(messages[-1], AssistantMessage):
-            if isinstance(messages[-1].content, str):
-                messages[-1].content = messages[-1].content.rstrip()
-
-        return messages
-
     async def create(
         self,
         messages: Sequence[LLMMessage],
@@ -586,7 +576,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         # Merge continuous system messages into a single message
         messages = self._merge_system_messages(messages)
-        messages = self._rstrip_last_assistant_message(messages)
+        messages = rstrip_last_assistant_message(messages)
 
         for message in messages:
             if isinstance(message, SystemMessage):
@@ -804,7 +794,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         # Merge continuous system messages into a single message
         messages = self._merge_system_messages(messages)
-        messages = self._rstrip_last_assistant_message(messages)
+        messages = rstrip_last_assistant_message(messages)
 
         for message in messages:
             if isinstance(message, SystemMessage):
