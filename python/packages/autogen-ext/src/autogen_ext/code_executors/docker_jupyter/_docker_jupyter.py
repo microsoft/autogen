@@ -172,11 +172,12 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
         else:
             raise ValueError("jupyter_server must be a JupyterConnectable or JupyterConnectionInfo.")
 
+        self._temp_dir: Optional[tempfile.TemporaryDirectory[str]] = None
         self._output_dir = output_dir or getattr(jupyter_server, "_bind_dir", None)
         if not self._output_dir:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                self._output_dir = Path(temp_dir)
-                self._output_dir.mkdir(exist_ok=True)
+            self._temp_dir = tempfile.TemporaryDirectory()
+            self._output_dir = Path(self._temp_dir.name)
+            self._output_dir.mkdir(exist_ok=True)
 
         self._jupyter_client = JupyterClient(self._connection_info)
 
@@ -287,6 +288,17 @@ class DockerJupyterCodeExecutor(CodeExecutor, Component[DockerJupyterCodeExecuto
             await self._async_jupyter_kernel_client.stop()
             self._async_jupyter_kernel_client = None
         await self._jupyter_client.close()
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+            self._temp_dir = None
+
+    def __del__(self) -> None:
+        temp_dir = getattr(self, "_temp_dir", None)
+        if temp_dir is not None:
+            try:
+                temp_dir.cleanup()
+            except Exception:
+                pass
 
     async def __aenter__(self) -> Self:
         await self.start()

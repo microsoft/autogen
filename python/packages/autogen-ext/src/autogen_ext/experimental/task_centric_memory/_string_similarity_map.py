@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 from typing import Dict, List, Tuple, Union
@@ -39,17 +40,28 @@ class StringSimilarityMap:
         self.vec_db = self.db_client.create_collection("string-pairs", get_or_create=True)  # The collection is the DB.
 
         # Load or create the associated string-pair dict on disk.
-        self.path_to_dict = os.path.join(path_to_db_dir, "uid_text_dict.pkl")
+        self.path_to_dict = os.path.join(path_to_db_dir, "uid_text_dict.json")
+        self.legacy_path_to_dict = os.path.join(path_to_db_dir, "uid_text_dict.pkl")
         self.uid_text_dict: Dict[str, Tuple[str, str]] = {}
         self.last_string_pair_id = 0
-        if (not reset) and os.path.exists(self.path_to_dict):
-            self.logger.debug("\nLOADING STRING SIMILARITY MAP FROM DISK  at {}".format(self.path_to_dict))
-            with open(self.path_to_dict, "rb") as f:
-                self.uid_text_dict = pickle.load(f)
-                self.last_string_pair_id = len(self.uid_text_dict)
-                if len(self.uid_text_dict) > 0:
-                    self.logger.debug("\n{} STRING PAIRS LOADED".format(len(self.uid_text_dict)))
-                    self._log_string_pairs()
+        if not reset:
+            if os.path.exists(self.path_to_dict):
+                self.logger.debug("\nLOADING STRING SIMILARITY MAP FROM DISK  at {}".format(self.path_to_dict))
+                with open(self.path_to_dict, "r", encoding="utf-8") as f:
+                    loaded = json.load(f)
+                    self.uid_text_dict = {k: (v[0], v[1]) for k, v in loaded.items()}
+                    self.last_string_pair_id = len(self.uid_text_dict)
+                    if len(self.uid_text_dict) > 0:
+                        self.logger.debug("\n{} STRING PAIRS LOADED".format(len(self.uid_text_dict)))
+                        self._log_string_pairs()
+            elif os.path.exists(self.legacy_path_to_dict):
+                self.logger.debug("\nLOADING STRING SIMILARITY MAP (LEGACY) FROM DISK  at {}".format(self.legacy_path_to_dict))
+                with open(self.legacy_path_to_dict, "rb") as f:
+                    self.uid_text_dict = pickle.load(f)
+                    self.last_string_pair_id = len(self.uid_text_dict)
+                    if len(self.uid_text_dict) > 0:
+                        self.logger.debug("\n{} STRING PAIRS LOADED".format(len(self.uid_text_dict)))
+                        self._log_string_pairs()
 
         # Clear the DB if requested.
         if reset:
@@ -69,8 +81,8 @@ class StringSimilarityMap:
         Saves the string-pair dict (self.uid_text_dict) to disk.
         """
         self.logger.debug("\nSAVING STRING SIMILARITY MAP TO DISK  at {}".format(self.path_to_dict))
-        with open(self.path_to_dict, "wb") as file:
-            pickle.dump(self.uid_text_dict, file)
+        with open(self.path_to_dict, "w", encoding="utf-8") as file:
+            json.dump(self.uid_text_dict, file, indent=2)
 
     def reset_db(self) -> None:
         """

@@ -205,3 +205,15 @@ def test_config_deserialization(test_config: ComponentModel) -> None:
     assert tool.server_params.scheme == test_config.config["scheme"]
     assert tool.server_params.method == test_config.config["method"]
     assert tool.server_params.headers == test_config.config["headers"]
+
+
+@pytest.mark.asyncio
+async def test_path_params_url_encoding(test_config: ComponentModel, test_server: None) -> None:
+    config = test_config.model_copy()
+    config.config["path"] = "/test/{query}/{value}"
+    tool = HttpTool.load_component(config)
+
+    # Values with spaces and characters that must be URL encoded
+    result = await tool.run_json({"query": "hello world", "value": 99}, CancellationToken())
+    assert isinstance(result, str)
+    assert json.loads(result)["result"] == "Received: hello world with value 99"

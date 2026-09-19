@@ -1,5 +1,6 @@
 import re
 from typing import Any, Literal, Optional, Type
+from urllib.parse import quote
 
 import httpx
 from autogen_core import CancellationToken, Component
@@ -208,10 +209,10 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
         """
 
         model_dump = args.model_dump()
-        path_params = {k: v for k, v in model_dump.items() if k in self._path_params}
+        path_params = {k: quote(str(v), safe="") for k, v in model_dump.items() if k in self._path_params}
         # Remove path params from the model dump
         for k in self._path_params:
-            model_dump.pop(k)
+            model_dump.pop(k, None)
 
         path = self.server_params.path.format(**path_params)
 

@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 from dataclasses import dataclass
@@ -69,19 +70,30 @@ class MemoryBank:
         memory_dir_path = os.path.expanduser(memory_dir_path)
         self.logger.info("\nMEMORY BANK DIRECTORY  {}".format(memory_dir_path))
         path_to_db_dir = os.path.join(memory_dir_path, "string_map")
-        self.path_to_dict = os.path.join(memory_dir_path, "uid_memo_dict.pkl")
+        self.path_to_dict = os.path.join(memory_dir_path, "uid_memo_dict.json")
+        self.legacy_path_to_dict = os.path.join(memory_dir_path, "uid_memo_dict.pkl")
 
         self.string_map = StringSimilarityMap(reset=reset, path_to_db_dir=path_to_db_dir, logger=self.logger)
 
         # Load or create the associated memo dict on disk.
         self.uid_memo_dict: Dict[str, Memo] = {}
         self.last_memo_id = 0
-        if (not reset) and os.path.exists(self.path_to_dict):
-            self.logger.info("\nLOADING MEMOS FROM DISK  at {}".format(self.path_to_dict))
-            with open(self.path_to_dict, "rb") as f:
-                self.uid_memo_dict = pickle.load(f)
-                self.last_memo_id = len(self.uid_memo_dict)
-                self.logger.info("\n{} MEMOS LOADED".format(len(self.uid_memo_dict)))
+        if not reset:
+            if os.path.exists(self.path_to_dict):
+                self.logger.info("\nLOADING MEMOS FROM DISK  at {}".format(self.path_to_dict))
+                with open(self.path_to_dict, "r", encoding="utf-8") as f:
+                    raw_data = json.load(f)
+                    self.uid_memo_dict = {
+                        k: Memo(task=v.get("task"), insight=v["insight"]) for k, v in raw_data.items()
+                    }
+                    self.last_memo_id = len(self.uid_memo_dict)
+                    self.logger.info("\n{} MEMOS LOADED".format(len(self.uid_memo_dict)))
+            elif os.path.exists(self.legacy_path_to_dict):
+                self.logger.info("\nLOADING MEMOS (LEGACY) FROM DISK  at {}".format(self.legacy_path_to_dict))
+                with open(self.legacy_path_to_dict, "rb") as f:
+                    self.uid_memo_dict = pickle.load(f)
+                    self.last_memo_id = len(self.uid_memo_dict)
+                    self.logger.info("\n{} MEMOS LOADED".format(len(self.uid_memo_dict)))
 
         # Clear the DB if requested.
         if reset:
@@ -109,9 +121,10 @@ class MemoryBank:
         Saves the current memo structures (possibly empty) to disk.
         """
         self.string_map.save_string_pairs()
-        with open(self.path_to_dict, "wb") as file:
+        serialized = {k: {"task": v.task, "insight": v.insight} for k, v in self.uid_memo_dict.items()}
+        with open(self.path_to_dict, "w", encoding="utf-8") as file:
             self.logger.info("\nSAVING MEMOS TO DISK  at {}".format(self.path_to_dict))
-            pickle.dump(self.uid_memo_dict, file)
+            json.dump(serialized, file, indent=2)
 
     def contains_memos(self) -> bool:
         """

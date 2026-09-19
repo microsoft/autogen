@@ -80,7 +80,11 @@ class MarkdownFileBrowser:
         base = os.path.realpath(self._base_path)
 
         # Check if the path is within the base path
-        if os.path.commonpath([path, base]) != base:
+        try:
+            if os.path.commonpath([path, base]) != base:
+                return False
+        except ValueError:
+            # Different drives on Windows or invalid paths
             return False
 
         return True
