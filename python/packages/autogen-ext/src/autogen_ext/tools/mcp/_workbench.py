@@ -337,6 +337,8 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             tool_call_id=call_id,
         ):
             try:
+                if cancellation_token.is_cancelled():
+                    raise asyncio.CancelledError("Operation cancelled")
                 result_future = await self._actor.call("call_tool", {"name": original_name, "kargs": arguments})
                 cancellation_token.link_future(result_future)
                 result = await result_future
