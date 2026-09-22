@@ -119,3 +119,52 @@ async def test_update_context_injects_snapshot(
     assert result.memories.results
     assert isinstance(result.memories.results[0].content, str)
     assert story_v2.strip() in result.memories.results[0].content
+
+
+@pytest.mark.asyncio
+async def test_clear_keeps_existing_tools_connected(memory: TextCanvasMemory) -> None:
+    update_tool = memory.get_update_file_tool()
+    patch_tool = memory.get_apply_patch_tool()
+    token = CancellationToken()
+    await update_tool.run(UpdateFileArgs(filename="old.md", new_content="Old memory\n"), token)
+
+    await memory.clear()
+    assert memory.canvas.list_files() == {}
+
+    await update_tool.run(UpdateFileArgs(filename="new.md", new_content="Fresh memory\n"), token)
+    await patch_tool.run(
+        ApplyPatchArgs(
+            filename="new.md",
+            patch_text="--- new.md\n+++ new.md\n@@ -1 +1 @@\n-Fresh memory\n+Updated memory\n",
+        ),
+        token,
+    )
+
+    assert memory.canvas.list_files() == {"new.md": 2}
+    assert memory.canvas.get_latest_content("new.md") == "Updated memory\n"
+    context = UnboundedChatCompletionContext()
+    result = await memory.update_context(context)
+    messages = await context.get_messages()
+    assert len(messages) == 1
+    assert isinstance(messages[0].content, str)
+    assert "Updated memory" in messages[0].content
+    assert "Old memory" not in messages[0].content
+    assert result.memories.results[0].content == messages[0].content
+
+
+@pytest.mark.asyncio
+async def test_clear_removes_shared_canvas_history(memory: TextCanvasMemory) -> None:
+    shared_memory = TextCanvasMemory(canvas=memory.canvas)
+    memory.canvas.add_or_update_file("story.md", "First version")
+    memory.canvas.add_or_update_file("story.md", "Second version")
+
+    await memory.clear()
+    await memory.clear()
+
+    assert shared_memory.canvas.list_files() == {}
+    assert shared_memory.canvas.get_revision_content("story.md", 1) == ""
+    assert shared_memory.canvas.get_revision_content("story.md", 2) == ""
+    assert shared_memory.canvas.get_revision_diffs("story.md") == []
+    shared_memory.canvas.add_or_update_file("story.md", "New version")
+    assert memory.canvas.list_files() == {"story.md": 1}
+    assert memory.canvas.get_latest_content("story.md") == "New version"
