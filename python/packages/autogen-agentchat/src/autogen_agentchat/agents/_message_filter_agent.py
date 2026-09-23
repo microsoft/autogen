@@ -55,6 +55,10 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
     - Selecting the first N or last N messages from each source
     - If position is `None`, all messages from that source are included
 
+    Regardless of the order of the filters in the config, the filtered
+    messages are handed to the wrapped agent in chronological order -- the
+    order in which they appear in the input message sequence.
+
     This agent is compatible with both direct message passing and team-based execution
     such as :class:`~autogen_agentchat.teams.GraphFlow`.
 

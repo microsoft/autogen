@@ -15,6 +15,9 @@ of the bug.
 from typing import Sequence
 
 import pytest
+from autogen_core import CancellationToken, Component
+from pydantic import BaseModel
+
 from autogen_agentchat.agents import (
     BaseChatAgent,
     MessageFilterAgent,
@@ -23,8 +26,6 @@ from autogen_agentchat.agents import (
 )
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import BaseChatMessage, TextMessage
-from autogen_core import CancellationToken, Component
-from pydantic import BaseModel
 
 
 class _EchoAgentConfig(BaseModel):
@@ -218,3 +219,61 @@ async def test_value_identical_duplicates_keep_chronological_order() -> None:
     assert len(filtered) == 2
     assert filtered[0] is older_ack
     assert filtered[1] is newer_ack
+
+
+@pytest.mark.asyncio
+async def test_select_all_filter_reorders_chronologically() -> None:
+    """A filter with no position/count takes every message from its source.
+
+    Config order [B, ghost, A] must still yield chronological output, a
+    filter matching no source must not disturb the result, and the input
+    sequence itself must not be mutated by the re-sort.
+    """
+    messages = [
+        TextMessage(source="A", content="a1"),
+        TextMessage(source="B", content="b1"),
+        TextMessage(source="A", content="a2"),
+    ]
+    filtered = await _filtered_messages(
+        messages,
+        per_source=[
+            PerSourceFilter(source="B"),
+            PerSourceFilter(source="ghost"),
+            PerSourceFilter(source="A"),
+        ],
+    )
+    assert _contents(filtered) == ["a1", "b1", "a2"]
+    assert _contents(messages) == ["a1", "b1", "a2"]
+
+
+@pytest.mark.asyncio
+async def test_empty_message_history_yields_no_messages() -> None:
+    """An empty input sequence filters to empty without error."""
+    filtered = await _filtered_messages(
+        [],
+        per_source=[PerSourceFilter(source="A", position="last", count=1)],
+    )
+    assert filtered == []
+
+
+@pytest.mark.asyncio
+async def test_on_messages_stream_preserves_chronological_order() -> None:
+    """The streaming entry point applies the same chronological re-sort."""
+    messages = [
+        TextMessage(source="B", content="b1"),
+        TextMessage(source="A", content="a1"),
+    ]
+    inner = _EchoAgent("inner")
+    wrapper = MessageFilterAgent(
+        name="wrapper",
+        wrapped_agent=inner,
+        filter=MessageFilterConfig(
+            per_source=[
+                PerSourceFilter(source="A", position="last", count=1),
+                PerSourceFilter(source="B", position="last", count=1),
+            ]
+        ),
+    )
+    async for _ in wrapper.on_messages_stream(messages, CancellationToken()):
+        pass
+    assert _contents(inner.received_messages) == ["b1", "a1"]
