@@ -363,6 +363,39 @@ async def test_openai_chat_completion_client_create_stream_no_usage_explicit(mon
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("finish_reason", ["stop", "length"])
+async def test_openai_chat_completion_client_create_stream_finish_reason_with_usage(
+    monkeypatch: pytest.MonkeyPatch, finish_reason: Literal["stop", "length"]
+) -> None:
+    # Some OpenAI-compatible servers (e.g. the Amazon Bedrock runtime /openai/v1 endpoint with GPT-6 models) put
+    # usage on the chunk that carries finish_reason, then send the usual choices=[] usage chunk.
+    usage = CompletionUsage(prompt_tokens=3, completion_tokens=3, total_tokens=6)
+
+    async def _mock_stream_usage(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
+        for choices, chunk_usage in [
+            ([ChunkChoice(finish_reason=None, index=0, delta=ChoiceDelta(content="Hello", role="assistant"))], None),
+            ([ChunkChoice(finish_reason=finish_reason, index=0, delta=ChoiceDelta())], usage),
+            ([], usage),
+        ]:
+            yield ChatCompletionChunk(
+                id="id", choices=choices, created=0, model="gpt-4o", object="chat.completion.chunk", usage=chunk_usage
+            )
+
+    async def _mock_create_usage(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
+        return _mock_stream_usage(*args, **kwargs)
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create_usage)
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(messages=[UserMessage(content="Hello", source="user")], include_usage=True):
+        chunks.append(chunk)
+    assert isinstance(chunks[-1], CreateResult)
+    assert chunks[-1].content == "Hello"
+    assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
+    assert chunks[-1].finish_reason == finish_reason
+
+
+@pytest.mark.asyncio
 async def test_openai_chat_completion_client_none_usage(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that completion_tokens and prompt_tokens handle None usage correctly.
 
