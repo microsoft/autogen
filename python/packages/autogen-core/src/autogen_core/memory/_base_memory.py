@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Union
 
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
 
 from .._cancellation_token import CancellationToken
 from .._component_config import ComponentBase
@@ -42,6 +42,23 @@ class MemoryContent(BaseModel):
         """Serialize the MIME type to a string."""
         if isinstance(mime_type, MemoryMimeType):
             return mime_type.value
+        return mime_type
+
+    @field_validator("mime_type", mode="before")
+    @classmethod
+    def coerce_mime_type(cls, mime_type: Any) -> Any:
+        """Restore known MIME type strings to their enum members on the way in.
+
+        Serialization turns a ``MemoryMimeType`` into its string value; without
+        this inverse step a dump/load roundtrip degrades the enum to a plain
+        string, silently breaking ``mime_type == MemoryMimeType.X`` checks.
+        Unrecognized strings pass through unchanged.
+        """
+        if isinstance(mime_type, str):
+            try:
+                return MemoryMimeType(mime_type)
+            except ValueError:
+                return mime_type
         return mime_type
 
 

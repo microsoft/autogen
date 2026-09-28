@@ -175,3 +175,29 @@ async def test_list_memory_content_types() -> None:
     assert isinstance(results.results[0].content, str)
     assert isinstance(results.results[1].content, dict)
     assert isinstance(results.results[2].content, bytes)
+
+
+@pytest.mark.asyncio
+async def test_list_memory_mime_type_enum_survives_roundtrip() -> None:
+    """A dump/load roundtrip must not degrade MemoryMimeType into a plain str (#8293)."""
+    memory = ListMemory(name="t")
+    await memory.add(MemoryContent(content="hello", mime_type=MemoryMimeType.MARKDOWN))
+
+    config = memory.dump_component()
+    assert config.config["memory_contents"][0]["mime_type"] == "text/markdown"
+
+    loaded = ListMemory.load_component(config)
+    item = loaded._contents[0]
+    assert isinstance(item.mime_type, MemoryMimeType)
+    assert item.mime_type is MemoryMimeType.MARKDOWN
+
+
+@pytest.mark.asyncio
+async def test_list_memory_custom_mime_type_string_is_preserved() -> None:
+    """Unrecognized MIME strings keep passing through as plain str."""
+    memory = ListMemory(name="t")
+    await memory.add(MemoryContent(content="hello", mime_type="application/x-custom"))
+
+    config = memory.dump_component()
+    loaded = ListMemory.load_component(config)
+    assert loaded._contents[0].mime_type == "application/x-custom"
