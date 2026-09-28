@@ -383,3 +383,36 @@ def test_trusted_provider_via_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
 
     namespaces = _get_trusted_namespaces()
     assert "mycompany_agents." in namespaces
+
+
+def test_function_tool_strict_survives_round_trip() -> None:
+    """A FunctionTool created with strict=True must keep strict after dump/load. (#8283)"""
+    from autogen_core.tools import FunctionTool
+
+    def add(a: int, b: int) -> int:
+        """Add two integers."""
+        return a + b
+
+    tool = FunctionTool(add, description="Add two integers", strict=True)
+    assert tool.schema.get("strict") is True
+
+    config = tool.dump_component()
+    assert config.config["strict"] is True
+
+    restored = FunctionTool.load_component(config)
+    assert restored.schema.get("strict") is True
+
+
+def test_function_tool_default_strict_is_false() -> None:
+    from autogen_core.tools import FunctionTool
+
+    def add(a: int, b: int) -> int:
+        """Add two integers."""
+        return a + b
+
+    tool = FunctionTool(add, description="Add two integers")
+    config = tool.dump_component()
+    assert config.config["strict"] is False
+
+    restored = FunctionTool.load_component(config)
+    assert restored.schema.get("strict") is False
