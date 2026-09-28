@@ -175,3 +175,20 @@ async def test_list_memory_content_types() -> None:
     assert isinstance(results.results[0].content, str)
     assert isinstance(results.results[1].content, dict)
     assert isinstance(results.results[2].content, bytes)
+
+
+@pytest.mark.asyncio
+async def test_list_memory_mime_type_roundtrip_restores_enum() -> None:
+    """A dump/load roundtrip must restore MemoryMimeType members, not leave str."""
+    memory = ListMemory(name="t")
+    await memory.add(MemoryContent(content="hello", mime_type=MemoryMimeType.MARKDOWN))
+
+    config = memory.dump_component()
+    assert config.config["memory_contents"][0]["mime_type"] == "text/markdown"
+
+    loaded = ListMemory.load_component(config)
+    assert loaded._contents[0].mime_type == MemoryMimeType.MARKDOWN
+
+    # Custom MIME-type strings that are not enum values stay as str
+    custom = MemoryContent(content="x", mime_type="application/custom")
+    assert custom.mime_type == "application/custom"
