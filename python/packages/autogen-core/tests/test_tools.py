@@ -1,14 +1,18 @@
 import inspect
+import json
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from decimal import Decimal
 from functools import partial
 from typing import Annotated, List
+from uuid import UUID
 
 import pytest
 from autogen_core import CancellationToken
 from autogen_core._function_utils import get_typed_signature
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
-from pydantic import BaseModel, Field, ValidationError, model_serializer
+from pydantic import BaseModel, Field, ValidationError, field_serializer, model_serializer
 from pydantic_core import PydanticUndefined
 
 
@@ -439,6 +443,60 @@ async def test_func_base_model_res() -> None:
     tool = FunctionTool(my_function, description="Function tool.")
     result = await tool.run_json({"arg": "test"}, CancellationToken())
     assert tool.return_value_as_string(result) == '{"result": "test"}'
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("nested", [False, True])
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc), "2025-01-02T03:04:05Z"),
+        (UUID("12345678-1234-5678-1234-567812345678"), "12345678-1234-5678-1234-567812345678"),
+        (Decimal("12.50"), "12.50"),
+    ],
+)
+async def test_func_base_model_json_serializable_res(
+    value: datetime | UUID | Decimal, expected: str, nested: bool
+) -> None:
+    class Result(BaseModel):
+        value: datetime | UUID | Decimal
+
+    class NestedResult(BaseModel):
+        result: Result
+
+    payload = NestedResult(result=Result(value=value)) if nested else Result(value=value)
+    called_count = 0
+
+    def my_function() -> BaseModel:
+        nonlocal called_count
+        called_count += 1
+        return payload
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    try:
+        result = await tool.run_json({}, CancellationToken())
+    finally:
+        assert called_count == 1
+    assert result is payload
+    expected_json: dict[str, object] = {"result": {"value": expected}} if nested else {"value": expected}
+    assert json.loads(tool.return_value_as_string(result)) == expected_json
+
+
+@pytest.mark.asyncio
+async def test_func_base_model_json_field_serializer_res() -> None:
+    class Result(BaseModel):
+        value: int
+
+        @field_serializer("value", when_used="json")
+        def serialize_value(self, value: int) -> str:
+            return f"value: {value}"
+
+    def my_function() -> Result:
+        return Result(value=42)
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    result = await tool.run_json({}, CancellationToken())
+    assert json.loads(tool.return_value_as_string(result)) == {"value": "value: 42"}
 
 
 @pytest.mark.asyncio

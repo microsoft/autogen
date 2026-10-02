@@ -1,4 +1,8 @@
+import json
+from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Annotated, AsyncGenerator
+from uuid import UUID
 
 import pytest
 from autogen_core._cancellation_token import CancellationToken
@@ -68,6 +72,44 @@ class StreamToolWithError(BaseStreamTool[StreamArgs, StreamItem, StreamResult]):
     ) -> AsyncGenerator[StreamItem | StreamResult, None]:
         yield StreamItem(current=1)
         raise ValueError("Stream tool error")
+
+
+@pytest.mark.asyncio
+async def test_static_workbench_base_model_json_result() -> None:
+    class Details(BaseModel):
+        timestamp: datetime
+        identifier: UUID
+        amount: Decimal
+
+    class Result(BaseModel):
+        details: Details
+
+    called_count = 0
+
+    def my_function() -> Result:
+        nonlocal called_count
+        called_count += 1
+        return Result(
+            details=Details(
+                timestamp=datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc),
+                identifier=UUID("12345678-1234-5678-1234-567812345678"),
+                amount=Decimal("12.50"),
+            )
+        )
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    async with StaticWorkbench([tool]) as workbench:
+        result = await workbench.call_tool(tool.name)
+
+    assert called_count == 1
+    assert result.is_error is False
+    assert json.loads(result.to_text()) == {
+        "details": {
+            "timestamp": "2025-01-02T03:04:05Z",
+            "identifier": "12345678-1234-5678-1234-567812345678",
+            "amount": "12.50",
+        }
+    }
 
 
 @pytest.mark.asyncio
