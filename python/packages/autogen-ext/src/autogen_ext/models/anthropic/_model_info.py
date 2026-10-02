@@ -33,6 +33,15 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": False,
         "multiple_system_messages": False,
     },
+    # Claude 4.6 Sonnet
+    "claude-sonnet-4-6": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.CLAUDE_4_SONNET,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
     # Claude 4 Sonnet latest alias
     "claude-sonnet-4-0": {
         "vision": True,
@@ -127,6 +136,11 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
 
 # Model token limits (context window size)
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
+    "claude-opus-4-20250514": 200000,
+    "claude-opus-4-0": 200000,
+    "claude-sonnet-4-20250514": 200000,
+    "claude-sonnet-4-0": 200000,
+    "claude-sonnet-4-6": 200000,
     "claude-3-opus-20240229": 200000,
     "claude-3-sonnet-20240229": 200000,
     "claude-3-haiku-20240307": 200000,
