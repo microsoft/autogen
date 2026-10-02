@@ -157,6 +157,13 @@ canvas = [
 
 redisvl = ["redisvl>=0.6.0"]
 
+pgvector = [
+    "psycopg[binary]>=3.1",
+    "psycopg-pool>=3.2",
+    "pgvector>=0.3",
+    "sentence-transformers>=3",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
 
