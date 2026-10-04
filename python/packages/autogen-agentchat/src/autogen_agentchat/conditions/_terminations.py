@@ -106,6 +106,7 @@ class MaxMessageTermination(TerminationCondition, Component[MaxMessageTerminatio
 
 class TextMentionTerminationConfig(BaseModel):
     text: str
+    sources: List[str] | None = None
 
 
 class TextMentionTermination(TerminationCondition, Component[TextMentionTerminationConfig]):
@@ -115,6 +116,10 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
     Args:
         text: The text to look for in the messages.
         sources: Check only messages of the specified agents for the text to look for.
+
+    .. versionchanged:: 0.7.6
+        The ``sources`` argument is now preserved across component
+        serialization (dump/load) roundtrips.
     """
 
     component_config_schema = TextMentionTerminationConfig
@@ -148,11 +153,14 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
         self._terminated = False
 
     def _to_config(self) -> TextMentionTerminationConfig:
-        return TextMentionTerminationConfig(text=self._termination_text)
+        return TextMentionTerminationConfig(
+            text=self._termination_text,
+            sources=list(self._sources) if self._sources is not None else None,
+        )
 
     @classmethod
     def _from_config(cls, config: TextMentionTerminationConfig) -> Self:
-        return cls(text=config.text)
+        return cls(text=config.text, sources=config.sources)
 
 
 class FunctionalTermination(TerminationCondition):
