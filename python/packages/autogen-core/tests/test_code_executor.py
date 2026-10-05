@@ -6,6 +6,7 @@ from autogen_core.code_executor import (
     FunctionWithRequirements,
     FunctionWithRequirementsStr,
     ImportFromModule,
+    with_requirements,
 )
 from autogen_core.code_executor._func_with_reqs import build_python_functions_file
 from pandas import DataFrame, concat
@@ -51,3 +52,20 @@ async def test_hashability_Import() -> None:
     functions_module2 = build_python_functions_file([function2])
 
     assert "import pandas as pd" in functions_module2
+
+
+def test_default_requirement_arguments_are_immutable() -> None:
+    function = FunctionWithRequirements.from_callable(template_function)  # type: ignore
+    assert function.python_packages == ()
+    assert function.global_imports == ()
+
+    string_function = FunctionWithRequirements.from_str("def template_function2():\n    return None")
+    assert string_function.python_packages == ()
+    assert string_function.global_imports == ()
+
+    @with_requirements()
+    def decorated_function() -> None:
+        return None
+
+    assert decorated_function.python_packages == ()
+    assert decorated_function.global_imports == ()
