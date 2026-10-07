@@ -1,7 +1,7 @@
 import json
 import logging
 import warnings
-from typing import Any, Literal, Mapping, Optional, Sequence, Union
+from typing import Any, Literal, Mapping, Optional, Sequence, Union, cast
 
 from autogen_core import EVENT_LOGGER_NAME, FunctionCall
 from autogen_core._cancellation_token import CancellationToken
@@ -36,6 +36,20 @@ from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool, KernelFunc
 from .._utils.parse_r1_content import parse_r1_content
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
+
+
+def _get_token_usage(usage: Any) -> RequestUsage:
+    """Normalize OpenAI and Anthropic usage objects or dictionaries from Semantic Kernel."""
+    if isinstance(usage, Mapping):
+        usage = cast(Mapping[str, Any], usage)
+        return RequestUsage(
+            prompt_tokens=usage.get("prompt_tokens", usage.get("input_tokens", 0)),
+            completion_tokens=usage.get("completion_tokens", usage.get("output_tokens", 0)),
+        )
+    return RequestUsage(
+        prompt_tokens=getattr(usage, "prompt_tokens", getattr(usage, "input_tokens", 0)),
+        completion_tokens=getattr(usage, "completion_tokens", getattr(usage, "output_tokens", 0)),
+    )
 
 
 def ensure_serializable(data: BaseModel) -> BaseModel:
@@ -496,9 +510,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         completion_tokens = 0
 
         if result[0].metadata and "usage" in result[0].metadata:
-            usage = result[0].metadata["usage"]
-            prompt_tokens = getattr(usage, "prompt_tokens", 0)
-            completion_tokens = getattr(usage, "completion_tokens", 0)
+            usage = _get_token_usage(result[0].metadata["usage"])
+            prompt_tokens = usage.prompt_tokens
+            completion_tokens = usage.completion_tokens
 
         logger.info(
             LLMCallEvent(
@@ -635,9 +649,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             for msg in streaming_messages:
                 # Track token usage
                 if msg.metadata and "usage" in msg.metadata:
-                    usage = msg.metadata["usage"]
-                    prompt_tokens = getattr(usage, "prompt_tokens", 0)
-                    completion_tokens = getattr(usage, "completion_tokens", 0)
+                    usage = _get_token_usage(msg.metadata["usage"])
+                    prompt_tokens = usage.prompt_tokens
+                    completion_tokens = usage.completion_tokens
 
                 # Process function call deltas
                 for item in msg.items:
