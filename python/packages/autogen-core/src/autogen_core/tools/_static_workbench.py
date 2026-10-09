@@ -161,7 +161,7 @@ class StaticWorkbench(Workbench, Component[StaticWorkbenchConfig]):
             # ExceptionGroup is available in Python 3.11+.
             # TODO: how to make this compatible with Python 3.10?
             for sub_exception in error.exceptions:  # type: ignore
-                error_message += self._format_errors(sub_exception)  # type: ignore
+                error_message += self._format_errors(sub_exception) + "\n"  # type: ignore
         else:
             error_message += f"{str(error)}\n"
         return error_message.strip()
