@@ -128,6 +128,47 @@ async def test_sk_chat_completion_token_usage(
     assert all(event.completion_tokens == expected_usage.completion_tokens for event in events)
 
 
+@pytest.mark.asyncio
+async def test_sk_chat_completion_stream_shared_usage_metadata(caplog: pytest.LogCaptureFixture) -> None:
+    mock_client = AsyncMock(spec=AzureChatCompletion)
+
+    async def mock_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[list[StreamingChatMessageContent], None]:
+        # Anthropic's SK connector reuses this dictionary and adds output usage at the end.
+        metadata = {"usage": {"input_tokens": 147}}
+        for text in ("Hello", "!"):
+            chunk = StreamingChatMessageContent(choice_index=0, role=AuthorRole.ASSISTANT, content=text)
+            chunk.metadata = metadata
+            yield [chunk]
+
+        metadata["usage"]["output_tokens"] = 1024
+        final_chunk = StreamingChatMessageContent(
+            choice_index=0, role=AuthorRole.ASSISTANT, items=[], finish_reason=FinishReason.STOP
+        )
+        final_chunk.metadata = metadata
+        yield [final_chunk]
+
+    mock_client.get_streaming_chat_message_contents = mock_stream
+    adapter = SKChatCompletionAdapter(mock_client, kernel=Kernel(memory=NullMemory()))
+
+    with caplog.at_level(logging.INFO, logger=EVENT_LOGGER_NAME):
+        chunks = [chunk async for chunk in adapter.create_stream([UserMessage(content="Say hello!", source="user")])]
+
+    assert chunks[:-1] == ["Hello", "!"]
+    result = chunks[-1]
+    assert isinstance(result, CreateResult)
+    assert result.content == "Hello!"
+    assert result.finish_reason == "stop"
+    expected_usage = RequestUsage(prompt_tokens=147, completion_tokens=1024)
+    assert result.usage == expected_usage
+    assert adapter.actual_usage() == expected_usage
+    assert adapter.total_usage() == expected_usage
+
+    events = [record.msg for record in caplog.records if isinstance(record.msg, LLMStreamEndEvent)]
+    assert len(events) == 1
+    assert events[0].prompt_tokens == 147
+    assert events[0].completion_tokens == 1024
+
+
 class CalculatorArgs(BaseModel):
     a: float
     b: float
