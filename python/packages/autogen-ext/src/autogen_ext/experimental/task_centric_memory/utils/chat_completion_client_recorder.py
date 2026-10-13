@@ -209,7 +209,9 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
         if self.mode == "record":
             try:
                 # Create the directory if it doesn't exist.
-                os.makedirs(os.path.dirname(self.session_file_path), exist_ok=True)
+                parent_dir = os.path.dirname(self.session_file_path)
+                if parent_dir:
+                    os.makedirs(parent_dir, exist_ok=True)
                 # Write the records to disk.
                 with open(self.session_file_path, "w") as f:
                     json.dump(self.records, f, indent=2)
