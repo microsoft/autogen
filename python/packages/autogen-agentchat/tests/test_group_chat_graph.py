@@ -1766,3 +1766,32 @@ async def test_digraph_group_chat_resume_with_termination_condition(runtime: Age
     assert agent_a.total_messages == 1  # Still only ran once
     assert agent_b.total_messages == 1  # Still only ran once
     assert agent_c.total_messages == 1  # Now ran once
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("save_through_wrapper", [False, True])
+async def test_message_filter_agent_preserves_wrapped_state(save_through_wrapper: bool) -> None:
+    inner = AssistantAgent("inner", model_client=ReplayChatCompletionClient(["Saved reply"]))
+    filter_config = MessageFilterConfig(per_source=[PerSourceFilter(source="user")])
+    wrapper = MessageFilterAgent("wrapper", wrapped_agent=inner, filter=filter_config)
+    token = CancellationToken()
+    await wrapper.on_messages(
+        [TextMessage(source="user", content="Remember this"), TextMessage(source="other", content="Excluded")], token
+    )
+    expected_state = await inner.save_state()
+    state = await wrapper.save_state() if save_through_wrapper else expected_state
+    assert state == expected_state
+
+    client = ReplayChatCompletionClient(["Resumed reply"])
+    restored_inner = AssistantAgent("inner", model_client=client)
+    restored = MessageFilterAgent("wrapper", wrapped_agent=restored_inner, filter=filter_config)
+    await restored.load_state(state)
+    assert await restored_inner.save_state() == expected_state
+
+    await restored.on_messages([TextMessage(source="user", content="Continue")], token)
+    # The next model call must include the restored history, not just the new message.
+    assert [message.content for message in client.create_calls[0]["messages"]][-3:] == [
+        "Remember this",
+        "Saved reply",
+        "Continue",
+    ]
