@@ -166,12 +166,46 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
         else:
             # Infer args_type from the callable's signature
             sig = inspect.signature(cast(Callable[..., Any], self._callable))  # type: ignore
-            fields = {
-                k: (v.annotation, Field(...))
-                for k, v in sig.parameters.items()
-                if k != "self" and v.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
-            }
-            args_type = create_model(f"{name}Args", **fields)  # type: ignore
+
+            # Filter out parameters that are LangChain callbacks (not serializable by Pydantic)
+            excluded_types = set()
+            try:
+                from langchain_core.callbacks.manager import (
+                    AsyncCallbackManagerForToolRun,
+                    CallbackManagerForToolRun,
+                )
+                excluded_types = {CallbackManagerForToolRun, AsyncCallbackManagerForToolRun}
+            except ImportError:
+                pass
+
+            fields = {}
+            for param_name, param in sig.parameters.items():
+                # Skip self and *args/**kwargs
+                if param_name == "self" or param.kind in (
+                    inspect.Parameter.VAR_POSITIONAL,
+                    inspect.Parameter.VAR_KEYWORD,
+                ):
+                    continue
+
+                # Skip LangChain callback parameters
+                if param.annotation in excluded_types:
+                    continue
+
+                # Also skip Optional versions of callbacks
+                origin = getattr(param.annotation, "__origin__", None)
+                if origin is not None:
+                    args = getattr(param.annotation, "__args__", ())
+                    if any(arg in excluded_types for arg in args):
+                        continue
+
+                fields[param_name] = (param.annotation, Field(...))
+
+            # Create the model with arbitrary_types_allowed to handle any remaining edge cases
+            args_type = create_model(
+                f"{name}Args",
+                __config__={"arbitrary_types_allowed": True},
+                **fields  # type: ignore
+            )
             # Note: type ignore is used due to a LangChain typing limitation
 
         # Ensure args_type is a subclass of BaseModel

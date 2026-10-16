@@ -42,6 +42,26 @@ class CustomCalculatorTool(LangChainTool):
         return self._run(a, b, run_manager=run_manager.get_sync() if run_manager else None)
 
 
+class ToolWithoutSchema(LangChainTool):
+    """A tool without args_schema that has callback parameters (for testing fix)."""
+    name: str = "NoSchemaTool"
+    description: str = "A tool without args_schema for testing callback filtering"
+    return_direct: bool = True
+
+    def _run(self, query: str, limit: int = 10, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
+        """Search with optional callback."""
+        return f"Searched for: {query} (limit: {limit})"
+
+    async def _arun(
+        self,
+        query: str,
+        limit: int = 10,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> str:
+        """Async version."""
+        return self._run(query, limit, run_manager=run_manager.get_sync() if run_manager else None)
+
+
 @pytest.mark.asyncio
 async def test_langchain_tool_adapter(caplog: pytest.LogCaptureFixture) -> None:
     # Create a LangChain tool
@@ -100,3 +120,22 @@ async def test_langchain_tool_adapter(caplog: pytest.LogCaptureFixture) -> None:
     # Test run method for CustomCalculatorTool
     custom_result = await custom_adapter.run_json({"a": 3, "b": 4}, CancellationToken())
     assert custom_result == 12
+
+    # Test ToolWithoutSchema (tool without args_schema, with callback parameters)
+    # This tests the fix for issue #6385
+    no_schema_tool = ToolWithoutSchema()
+    no_schema_adapter = LangChainToolAdapter(no_schema_tool)  # type: ignore
+
+    # Test schema generation - should filter out run_manager callback
+    no_schema_schema = no_schema_adapter.schema
+    assert no_schema_schema["name"] == "NoSchemaTool"
+    assert "parameters" in no_schema_schema
+    assert "properties" in no_schema_schema["parameters"]
+    # Should have query and limit, but NOT run_manager
+    assert "query" in no_schema_schema["parameters"]["properties"]
+    assert "limit" in no_schema_schema["parameters"]["properties"]
+    assert "run_manager" not in no_schema_schema["parameters"]["properties"]
+
+    # Test run method
+    no_schema_result = await no_schema_adapter.run_json({"query": "test", "limit": 5}, CancellationToken())
+    assert no_schema_result == "Searched for: test (limit: 5)"
