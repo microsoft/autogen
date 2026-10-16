@@ -5,6 +5,7 @@ import pytest
 from autogen_core import CancellationToken
 from autogen_core.tools import Tool
 from autogen_ext.tools.langchain import LangChainToolAdapter  # type: ignore
+from langchain_core.callbacks import Callbacks
 from langchain_core.callbacks.manager import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
 from langchain_core.tools import BaseTool as LangChainTool
 from langchain_core.tools import tool  # pyright: ignore
@@ -100,3 +101,112 @@ async def test_langchain_tool_adapter(caplog: pytest.LogCaptureFixture) -> None:
     # Test run method for CustomCalculatorTool
     custom_result = await custom_adapter.run_json({"a": 3, "b": 4}, CancellationToken())
     assert custom_result == 12
+
+
+class NoSchemaTool(LangChainTool):
+    name: str = "NoSchema"
+    description: str = "a tool without an explicit args schema"
+
+    def _run(self, a: int, b: int, run_manager: Optional[CallbackManagerForToolRun] = None) -> int:
+        return a + b
+
+    async def _arun(
+        self,
+        a: int,
+        b: int,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> int:
+        return a + b
+
+
+@pytest.mark.asyncio
+async def test_langchain_tool_adapter_skips_run_manager() -> None:
+    # Tools without an explicit args_schema get their args inferred from the
+    # callable's signature. LangChain injects a ``run_manager`` into ``_run``
+    # which is not a user-facing input and cannot be turned into a pydantic
+    # schema; the adapter must skip it (see #6385).
+    tool = NoSchemaTool()
+    adapter = LangChainToolAdapter(tool)  # type: ignore
+
+    schema = adapter.schema
+    assert schema["name"] == "NoSchema"
+    assert "parameters" in schema
+    assert "properties" in schema["parameters"]
+    props = schema["parameters"]["properties"]
+    assert "run_manager" not in props
+    assert set(props.keys()) == {"a", "b"}
+    assert "required" in schema["parameters"]
+    assert set(schema["parameters"]["required"]) == {"a", "b"}
+
+    result = await adapter.run_json({"a": 2, "b": 3}, CancellationToken())
+    assert result == 5
+
+
+class NoSchemaCallbacksTool(LangChainTool):
+    name: str = "NoSchemaCallbacks"
+    description: str = "a tool without an explicit args schema that also accepts callbacks"
+
+    def _run(self, a: int, b: int, callbacks: Callbacks = None) -> int:
+        return a + b
+
+    async def _arun(self, a: int, b: int, callbacks: Callbacks = None) -> int:
+        return a + b
+
+
+@pytest.mark.asyncio
+async def test_langchain_tool_adapter_skips_callbacks() -> None:
+    # In addition to ``run_manager``, LangChain also reserves ``callbacks`` (a
+    # ``Callbacks`` sequence of handlers) as a runtime-only argument -- it is in
+    # LangChain's ``FILTERED_ARGS``. Its annotation is not matched by
+    # ``_is_callback_manager_annotation``, so the adapter must skip it by name;
+    # otherwise inferring the args schema raises PydanticSchemaGenerationError.
+    tool = NoSchemaCallbacksTool()
+    adapter = LangChainToolAdapter(tool)  # type: ignore
+
+    schema = adapter.schema
+    assert schema["name"] == "NoSchemaCallbacks"
+    assert "parameters" in schema
+    assert "properties" in schema["parameters"]
+    props = schema["parameters"]["properties"]
+    assert "callbacks" not in props
+    assert set(props.keys()) == {"a", "b"}
+    assert "required" in schema["parameters"]
+    assert set(schema["parameters"]["required"]) == {"a", "b"}
+
+    result = await adapter.run_json({"a": 2, "b": 3}, CancellationToken())
+    assert result == 5
+
+
+class NoSchemaAsyncManagerTool(LangChainTool):
+    name: str = "NoSchemaAsyncManager"
+    description: str = "a tool whose sync _run is annotated with the async callback manager type"
+
+    def _run(self, a: int, b: int, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> int:
+        return a + b
+
+    async def _arun(self, a: int, b: int, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> int:
+        return a + b
+
+
+@pytest.mark.asyncio
+async def test_langchain_tool_adapter_skips_async_run_manager() -> None:
+    # The detection must cover the *async* callback-manager type
+    # (``AsyncCallbackManagerForToolRun``), not only the sync
+    # ``CallbackManagerForToolRun``. ``_is_callback_manager_annotation`` unwraps
+    # ``Optional[...]`` and matches both via ``issubclass``, so a tool that
+    # annotates its signature with the async variant is still filtered out.
+    tool = NoSchemaAsyncManagerTool()
+    adapter = LangChainToolAdapter(tool)  # type: ignore
+
+    schema = adapter.schema
+    assert schema["name"] == "NoSchemaAsyncManager"
+    assert "parameters" in schema
+    assert "properties" in schema["parameters"]
+    props = schema["parameters"]["properties"]
+    assert "run_manager" not in props
+    assert set(props.keys()) == {"a", "b"}
+    assert "required" in schema["parameters"]
+    assert set(schema["parameters"]["required"]) == {"a", "b"}
+
+    result = await adapter.run_json({"a": 2, "b": 3}, CancellationToken())
+    assert result == 5
