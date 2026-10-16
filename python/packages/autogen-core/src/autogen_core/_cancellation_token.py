@@ -32,15 +32,28 @@ class CancellationToken:
             else:
                 self._callbacks.append(callback)
 
+    @staticmethod
+    def _cancel_future(future: Future[Any]) -> None:
+        try:
+            loop = future.get_loop()
+        except (AttributeError, RuntimeError):
+            loop = None
+
+        if loop is not None and loop.is_running():
+            try:
+                loop.call_soon_threadsafe(future.cancel)
+                return
+            except RuntimeError:
+                pass
+
+        if not future.done():
+            future.cancel()
+
     def link_future(self, future: Future[Any]) -> Future[Any]:
         """Link a pending async call to a token to allow its cancellation"""
         with self._lock:
             if self._cancelled:
-                future.cancel()
+                self._cancel_future(future)
             else:
-
-                def _cancel() -> None:
-                    future.cancel()
-
-                self._callbacks.append(_cancel)
+                self._callbacks.append(lambda: self._cancel_future(future))
         return future
