@@ -5,7 +5,7 @@ from autogen_core.model_context import (
     ChatCompletionContext,
     UnboundedChatCompletionContext,
 )
-from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from autogen_core.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -205,9 +205,22 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
                 inner_messages.append(inner_msg)
         assert result is not None
 
+        # Add new user/handoff messages to the model context
+        await self._add_messages_to_context(
+            model_context=model_context,
+            messages=messages,
+        )
+
         if len(inner_messages) == 0:
+            content = "No response."
+            await model_context.add_message(
+                AssistantMessage(
+                    content=content,
+                    source=self.name,
+                )
+            )
             yield Response(
-                chat_message=TextMessage(source=self.name, content="No response."),
+                chat_message=TextMessage(source=self.name, content=content),
                 inner_messages=[],
                 # Response's inner_messages should be empty. Cause that mean is response to outer world.
             )
@@ -234,17 +247,12 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
                 llm_messages.append(UserMessage(content=self._response_prompt, source="user"))
             completion = await self._model_client.create(messages=llm_messages, cancellation_token=cancellation_token)
             assert isinstance(completion.content, str)
+            await model_context.add_message(AssistantMessage(content=completion.content, source=self.name))
             yield Response(
                 chat_message=TextMessage(source=self.name, content=completion.content, models_usage=completion.usage),
                 inner_messages=[],
                 # Response's inner_messages should be empty. Cause that mean is response to outer world.
             )
-
-        # Add new user/handoff messages to the model context
-        await self._add_messages_to_context(
-            model_context=model_context,
-            messages=messages,
-        )
 
         # Reset the team.
         await self._team.reset()
