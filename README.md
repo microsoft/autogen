@@ -22,7 +22,9 @@
 >
 > Microsoft is not providing bug fixes, security fixes, new features, or support for this project. The repository remains available for historical/reference purposes.
 >
-> **Use archived repositories with caution.** Without ongoing maintenance or security fixes, vulnerabilities in this project and its dependencies may remain unaddressed, increasing the security risks of continued use. Carefully assess these risks before using AutoGen, especially in production or with sensitive data.
+> AutoGen was developed for research and experimentation and was never intended for production use.
+>
+> **Use archived repositories with caution.** Without ongoing maintenance or security fixes, vulnerabilities in this project and its dependencies may remain unaddressed, increasing the security risks of continued use. Carefully assess these risks before using AutoGen, particularly when handling sensitive data.
 >
 > We thank the AutoGen community for the code, documentation, bug reports, ideas, and discussions that helped shape this project.
 >
