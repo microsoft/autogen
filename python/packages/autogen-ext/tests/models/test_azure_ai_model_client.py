@@ -973,3 +973,108 @@ async def test_azure_ai_tool_choice_specific_tool_streaming(
     assert final_result.content[0].name == "process_text"
     assert final_result.content[0].arguments == '{"input": "hello"}'
     assert final_result.thought == "Let me process this for you."
+
+
+@pytest.fixture
+def streaming_tool_call_with_none_fields_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> AzureAIChatCompletionClient:
+    """
+    Returns a client that streams a tool call across two chunks where the second
+    chunk carries ``id=None`` and ``function.name=None`` and only appends more
+    arguments. This mirrors how providers stream tool-call deltas and exercises
+    the aggregation path in ``create_stream``.
+    """
+
+    def _make_tool_chunk(index: int, id: Any, name: Any, arguments: Any) -> MagicMock:
+        chunk = MagicMock()
+        chunk.__contains__ = MagicMock(side_effect=lambda key: key == "index")
+        chunk.__getitem__ = MagicMock(side_effect=lambda key: index if key == "index" else None)
+        chunk.id = id
+        chunk.function = MagicMock()
+        chunk.function.name = name
+        chunk.function.arguments = arguments
+        return chunk
+
+    first_choice = MagicMock()
+    first_choice.delta = MagicMock()
+    first_choice.delta.content = None
+    first_choice.delta.tool_calls = [_make_tool_chunk(0, "tool_call_id", "some_function", '{"foo": ')]
+    first_choice.finish_reason = None
+
+    second_choice = MagicMock()
+    second_choice.delta = MagicMock()
+    second_choice.delta.content = None
+    second_choice.delta.tool_calls = [_make_tool_chunk(0, None, None, '"bar"}')]
+    second_choice.finish_reason = "function_calls"
+
+    async def _mock_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        yield StreamingChatCompletionsUpdate(
+            id="id",
+            choices=[first_choice],
+            created=datetime.now(),
+            model="model",
+        )
+
+        await asyncio.sleep(0.01)
+
+        yield StreamingChatCompletionsUpdate(
+            id="id",
+            choices=[second_choice],
+            created=datetime.now(),
+            model="model",
+            usage=CompletionsUsage(prompt_tokens=8, completion_tokens=5, total_tokens=13),
+        )
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> Any:
+        if kwargs.get("stream", False):
+            return _mock_stream(*args, **kwargs)
+        return None
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": True,
+            "vision": False,
+            "family": "function_calling_model",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+
+@pytest.mark.asyncio
+async def test_streaming_tool_call_with_none_delta_fields(
+    streaming_tool_call_with_none_fields_client: AzureAIChatCompletionClient,
+) -> None:
+    """
+    A streamed tool call whose later chunks have ``id``/``name`` set to ``None``
+    must not raise ``TypeError`` and should aggregate the arguments correctly.
+    """
+    chunks: List[Union[str, CreateResult]] = []
+    async for chunk in streaming_tool_call_with_none_fields_client.create_stream(
+        messages=[UserMessage(content="Please call a function", source="user")],
+        tools=[{"name": "test_tool"}],
+    ):
+        chunks.append(chunk)
+
+    final_result = chunks[-1]
+    assert isinstance(final_result, CreateResult)
+    assert final_result.finish_reason == "function_calls"
+    assert isinstance(final_result.content, list)
+    assert isinstance(final_result.content[0], FunctionCall)
+    assert final_result.content[0].id == "tool_call_id"
+    assert final_result.content[0].name == "some_function"
+    assert final_result.content[0].arguments == '{"foo": "bar"}'
