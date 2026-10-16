@@ -1031,6 +1031,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if full_tool_calls:
             # This is a tool call response
             content = list(full_tool_calls.values())
+            for tool_call in content:
+                tool_call.name = normalize_name(tool_call.name)
             if content_deltas:
                 # Store any text alongside tool calls as thoughts
                 thought = "".join(content_deltas)
