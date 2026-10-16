@@ -156,6 +156,16 @@ async def test_mention_termination() -> None:
         is not None
     )
 
+    # Test serialization round-trip retains sources filter
+    dumped = termination.dump_component()
+    assert dumped.config.get("sources") == ["agent"]
+    loaded = TextMentionTermination.load_component(dumped)
+    assert await loaded([TextMessage(content="stop", source="user")]) is None
+    assert (
+        await loaded([TextMessage(content="stop", source="agent")])
+        is not None
+    )
+
 
 @pytest.mark.asyncio
 async def test_token_usage_termination() -> None:
