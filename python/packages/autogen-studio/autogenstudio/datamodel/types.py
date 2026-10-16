@@ -102,12 +102,21 @@ class UISettings(BaseModel):
     )
 
 
+class RedactionConfig(BaseModel):
+    enabled: bool = True
+    redact_env_vars: bool = True
+    redact_api_keys: bool = True
+    custom_patterns: List[str] = []
+    replacement: str = "[REDACTED]"
+
+
 class SettingsConfig(BaseModel):
     environment: List[EnvironmentVariable] = []
     default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(
         model="gpt-4o-mini", api_key="your-api-key"
     ).dump_component()
     ui: UISettings = UISettings()
+    redaction: RedactionConfig = RedactionConfig()
 
 
 # web request/response data models

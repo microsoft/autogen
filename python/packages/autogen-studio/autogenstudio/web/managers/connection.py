@@ -27,6 +27,7 @@ from ...datamodel import (
     LLMCallEventMessage,
     Message,
     MessageConfig,
+    RedactionConfig,
     Run,
     RunStatus,
     Settings,
@@ -34,6 +35,7 @@ from ...datamodel import (
     TeamResult,
 )
 from ...teammanager import TeamManager
+from ...utils.redactor import SensitiveDataRedactor
 from .run_context import RunContext
 
 logger = logging.getLogger(__name__)
@@ -102,10 +104,21 @@ class WebSocketManager:
                 # Update run with task and status
                 run = await self._get_run(run_id)
 
+                # Initialize settings, env vars, and sensitive data redactor
+                user_settings = None
+                env_vars = None
+                redaction_config = RedactionConfig()
+
                 if run is not None and run.user_id:
-                    # get user Settings
                     user_settings = await self._get_settings(run.user_id)
-                    env_vars = SettingsConfig(**user_settings.config).environment if user_settings else None  # type: ignore
+                    if user_settings:
+                        settings_cfg = SettingsConfig(**user_settings.config)
+                        env_vars = settings_cfg.environment
+                        redaction_config = settings_cfg.redaction
+
+                redactor = SensitiveDataRedactor(config=redaction_config, env_vars=env_vars)
+
+                if run is not None and run.user_id:
                     run.task = self._convert_images_in_dict(MessageConfig(content=task, source="user").model_dump())
                     run.status = RunStatus.ACTIVE
                     self.db_manager.upsert(run)
@@ -118,6 +131,7 @@ class WebSocketManager:
                     input_func=input_func,
                     cancellation_token=cancellation_token,
                     env_vars=env_vars,
+                    redaction_config=redaction_config,
                 ):
                     if cancellation_token.is_cancelled() or run_id in self._closed_connections:
                         logger.info(f"Stream cancelled or connection closed for run {run_id}")
@@ -125,7 +139,8 @@ class WebSocketManager:
 
                     formatted_message = self._format_message(message)
                     if formatted_message:
-                        await self._send_message(run_id, formatted_message)
+                        redacted_formatted = redactor.redact_dict(formatted_message)
+                        await self._send_message(run_id, redacted_formatted)
 
                         # Save messages by concrete type
                         if isinstance(
@@ -140,13 +155,13 @@ class WebSocketManager:
                                 LLMCallEventMessage,
                             ),
                         ):
-                            await self._save_message(run_id, message)
+                            await self._save_message(run_id, message, redactor=redactor)
                         # Capture final result if it's a TeamResult
                         elif isinstance(message, TeamResult):
-                            final_result = message.model_dump()
+                            final_result = redactor.redact_dict(message.model_dump())
                 if not cancellation_token.is_cancelled() and run_id not in self._closed_connections:
                     if final_result:
-                        await self._update_run(run_id, RunStatus.COMPLETE, team_result=final_result)
+                        await self._update_run(run_id, RunStatus.COMPLETE, team_result=final_result, redactor=redactor)
                     else:
                         logger.warning(f"No final result captured for completed run {run_id}")
                         await self._update_run_status(run_id, RunStatus.COMPLETE)
@@ -161,7 +176,7 @@ class WebSocketManager:
                         },
                     )
                     # Update run with cancellation result
-                    await self._update_run(run_id, RunStatus.STOPPED, team_result=self._cancel_message)
+                    await self._update_run(run_id, RunStatus.STOPPED, team_result=self._cancel_message, redactor=redactor)
 
             except Exception as e:
                 logger.error(f"Stream error for run {run_id}: {e}")
@@ -171,30 +186,45 @@ class WebSocketManager:
                 self._cancellation_tokens.pop(run_id, None)
 
     async def _save_message(
-        self, run_id: int, message: Union[BaseAgentEvent | BaseChatMessage, BaseChatMessage]
+        self,
+        run_id: int,
+        message: Union[BaseAgentEvent | BaseChatMessage, BaseChatMessage],
+        redactor: Optional[SensitiveDataRedactor] = None,
     ) -> None:
-        """Save a message to the database"""
+        """Save a message to the database with sensitive data redaction"""
 
         run = await self._get_run(run_id)
         if run:
+            dumped = message.model_dump()
+            if redactor:
+                dumped = redactor.redact_dict(dumped)
             db_message = Message(
                 session_id=run.session_id,
                 run_id=run_id,
-                config=self._convert_images_in_dict(message.model_dump()),
+                config=self._convert_images_in_dict(dumped),
                 user_id=None,  # You might want to pass this from somewhere
             )
             self.db_manager.upsert(db_message)
 
     async def _update_run(
-        self, run_id: int, status: RunStatus, team_result: Optional[dict] = None, error: Optional[str] = None
+        self,
+        run_id: int,
+        status: RunStatus,
+        team_result: Optional[dict] = None,
+        error: Optional[str] = None,
+        redactor: Optional[SensitiveDataRedactor] = None,
     ) -> None:
-        """Update run status and result"""
+        """Update run status and result with sensitive data redaction"""
         run = await self._get_run(run_id)
         if run:
             run.status = status
             if team_result:
+                if redactor:
+                    team_result = redactor.redact_dict(team_result)
                 run.team_result = self._convert_images_in_dict(team_result)
             if error:
+                if redactor:
+                    error = redactor.redact_text(error)
                 run.error_message = error
             self.db_manager.upsert(run)
 
