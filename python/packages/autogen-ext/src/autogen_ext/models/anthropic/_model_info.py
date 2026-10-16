@@ -1,3 +1,4 @@
+import re
 from typing import Dict
 
 from autogen_core.models import ModelFamily, ModelInfo
@@ -138,8 +139,26 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
 }
 
 
+def _normalize_model(model: str) -> str:
+    """Normalize a Bedrock or cross-region inference model id to its bare Anthropic id.
+
+    AWS Bedrock exposes Claude models with an ``anthropic.`` provider prefix, an optional
+    cross-region inference prefix (e.g. ``us.``, ``eu.``, ``apac.``, ``global.``), and a
+    ``-v<major>:<minor>`` version suffix, e.g. ``us.anthropic.claude-sonnet-4-20250514-v1:0``.
+    Stripping these yields the bare id (``claude-sonnet-4-20250514``) so the lookup below can
+    resolve it the same way it resolves the native Anthropic id. Non-Bedrock ids are returned
+    unchanged.
+    """
+    # Strip the optional cross-region prefix and the ``anthropic.`` provider prefix.
+    model = re.sub(r"^(?:[a-z0-9-]+\.)?anthropic\.", "", model)
+    # Strip the trailing Bedrock version suffix (e.g. ``-v1:0``).
+    model = re.sub(r"-v\d+:\d+$", "", model)
+    return model
+
+
 def get_info(model: str) -> ModelInfo:
     """Get the model information for a specific model."""
+    model = _normalize_model(model)
     # Check for exact match first
     if model in _MODEL_INFO:
         return _MODEL_INFO[model]
@@ -154,6 +173,7 @@ def get_info(model: str) -> ModelInfo:
 
 def get_token_limit(model: str) -> int:
     """Get the token limit for a specific model."""
+    model = _normalize_model(model)
     # Check for exact match first
     if model in _MODEL_TOKEN_LIMITS:
         return _MODEL_TOKEN_LIMITS[model]
