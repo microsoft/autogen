@@ -22,6 +22,10 @@
 >
 > Microsoft is not providing bug fixes, security fixes, new features, or support for this project. The repository remains available for historical/reference purposes.
 >
+> **Use archived repositories with caution.** Without ongoing maintenance or security fixes, vulnerabilities in this project and its dependencies may remain unaddressed, increasing the security risks of continued use. Carefully assess these risks before using AutoGen, especially in production or with sensitive data.
+>
+> We thank the AutoGen community for the code, documentation, bug reports, ideas, and discussions that helped shape this project.
+>
 > New users should start with [Microsoft Agent Framework](https://github.com/microsoft/agent-framework). Existing users are encouraged to migrate using the [AutoGen → Microsoft Agent Framework migration guide](https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen/).
 >
 > Microsoft Agent Framework (MAF) is the enterprise‑ready successor to AutoGen. Microsoft Agent FrameworkAF in now available as a production-ready release: stable APIs, and a commitment to long-term support. Whether you're building a single assistant or orchestrating a fleet of specialized agents, Microsoft Agent Framework 1.0 gives you enterprise-grade multi-agent orchestration, multi-provider model support, and cross-runtime interoperability via A2A and MCP.
