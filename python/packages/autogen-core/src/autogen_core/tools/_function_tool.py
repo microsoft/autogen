@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import inspect  # 2026-10-12
 import warnings
 from textwrap import dedent
 from typing import Any, Callable, Sequence
@@ -128,6 +129,15 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
                 future = asyncio.get_event_loop().run_in_executor(None, functools.partial(self._func, **kwargs))
                 cancellation_token.link_future(future)
                 result = await future
+
+            # 2026-10-12: Synchronous wrappers can defer async work until after the executor returns.
+            if inspect.isawaitable(result):
+                if self._has_cancellation_support:
+                    result = await result
+                else:
+                    future = asyncio.ensure_future(result)
+                    cancellation_token.link_future(future)
+                    result = await future
 
         return result
 

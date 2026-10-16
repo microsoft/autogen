@@ -1,7 +1,9 @@
+# 2026-10-12: Exercise async operations exposed through synchronous tracing wrappers.
+import asyncio
 import inspect
 from dataclasses import dataclass
-from functools import partial
-from typing import Annotated, List
+from functools import partial, wraps
+from typing import Annotated, Any, Awaitable, Callable, List
 
 import pytest
 from autogen_core import CancellationToken
@@ -397,6 +399,106 @@ async def test_func_call_tool() -> None:
     tool = FunctionTool(my_function, description="Function tool.")
     result = await tool.run_json({}, CancellationToken())
     assert result == "result"
+
+
+# 2026-10-12: Synchronous tracing wrappers must expose the resolved async tool result.
+@pytest.mark.asyncio
+@pytest.mark.parametrize("with_token", [False, True])
+@pytest.mark.parametrize("use_partial", [False, True])
+async def test_func_tool_awaits_decorated_async_result(with_token: bool, use_partial: bool) -> None:
+    completed: List[int] = []
+    token = CancellationToken()
+
+    async def lookup(value: int) -> str:
+        completed.append(value)
+        return f"record:{value}"
+
+    async def lookup_with_token(value: int, cancellation_token: CancellationToken) -> str:
+        assert cancellation_token is token
+        return await lookup(value)
+
+    targets: dict[bool, Callable[..., Awaitable[str]]] = {False: lookup, True: lookup_with_token}
+    target = targets[with_token]
+
+    @wraps(target)
+    def traced_lookup(*args: Any, **kwargs: Any) -> Awaitable[str]:
+        return target(*args, **kwargs)
+
+    function: Callable[..., Awaitable[str]] = partial(traced_lookup, value=7) if use_partial else traced_lookup
+    tool = FunctionTool(function, description="Look up a record with tracing.")
+    result = await tool.run_json({} if use_partial else {"value": 7}, token)
+    if inspect.iscoroutine(result):
+        result.close()
+    assert result == "record:7"
+    assert completed == [7]
+    assert tool.return_value_as_string(result) == "record:7"
+
+
+# 2026-10-12: Awaitable adapters include futures, not only coroutine objects.
+@pytest.mark.asyncio
+async def test_func_tool_awaits_future_result() -> None:
+    future: asyncio.Future[str] = asyncio.get_running_loop().create_future()
+    future.set_result("record:7")
+
+    def lookup() -> Awaitable[str]:
+        return future
+
+    result = await FunctionTool(lookup, description="Look up a queued record.").run_json({}, CancellationToken())
+    assert result == "record:7"
+
+
+# 2026-10-12: Errors from a decorated async tool must reach its caller.
+@pytest.mark.asyncio
+async def test_func_tool_propagates_deferred_exception() -> None:
+    async def lookup() -> str:
+        raise ValueError("record not found")
+
+    @wraps(lookup)
+    def traced_lookup() -> Awaitable[str]:
+        return lookup()
+
+    with pytest.raises(ValueError, match="record not found"):
+        result = await FunctionTool(traced_lookup, description="Look up a record.").run_json({}, CancellationToken())
+        if inspect.iscoroutine(result):
+            result.close()
+
+
+# 2026-10-12: Cancellation must cover the deferred operation after the wrapper returns.
+@pytest.mark.asyncio
+async def test_func_tool_cancels_deferred_result() -> None:
+    started = asyncio.Event()
+    stopped = asyncio.Event()
+    token = CancellationToken()
+
+    async def lookup() -> str:
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            stopped.set()
+        return "record:7"
+
+    @wraps(lookup)
+    def traced_lookup() -> Awaitable[str]:
+        return lookup()
+
+    call = asyncio.create_task(FunctionTool(traced_lookup, description="Look up a record.").run_json({}, token))
+    wait_started = asyncio.create_task(started.wait())
+    try:
+        done, _ = await asyncio.wait({call, wait_started}, timeout=5, return_when=asyncio.FIRST_COMPLETED)
+        if call in done:
+            result = call.result()
+            if inspect.iscoroutine(result):
+                result.close()
+        assert wait_started in done
+        token.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(call, timeout=5)
+        assert stopped.is_set()
+    finally:
+        wait_started.cancel()
+        call.cancel()
+        await asyncio.gather(wait_started, call, return_exceptions=True)
 
 
 @pytest.mark.asyncio
