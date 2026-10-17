@@ -84,7 +84,7 @@ class MyAgent(RoutedAgent):
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Get model client from config.
-    async with aiofiles.open("model_config.yaml", "r") as file:
+    async with aiofiles.open("model_config.yaml", "r", encoding="utf-8") as file:
         model_config = yaml.safe_load(await file.read())
     model_client = ChatCompletionClient.load_component(model_config)
 

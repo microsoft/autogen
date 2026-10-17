@@ -66,7 +66,7 @@ async def run_gitty(owner: str, repo: str, command: str, number: int) -> None:
     try:
         global_config_path = os.path.expanduser("~/.gitty/config")
         if os.path.exists(global_config_path):
-            with open(global_config_path, "r") as f:
+            with open(global_config_path, "r", encoding="utf-8") as f:
                 global_instructions = f.read().strip()
     except Exception as e:
         print("Warning: Could not load global config:", e)
@@ -77,7 +77,7 @@ async def run_gitty(owner: str, repo: str, command: str, number: int) -> None:
         local_config_path = os.path.join(gitty_dir, "config")
         print(f"Local config path: {local_config_path}")
         if os.path.exists(local_config_path):
-            with open(local_config_path, "r") as f:
+            with open(local_config_path, "r", encoding="utf-8") as f:
                 local_instructions = f.read().strip()
     except Exception as e:
         print("Warning: Could not load local config:", e)

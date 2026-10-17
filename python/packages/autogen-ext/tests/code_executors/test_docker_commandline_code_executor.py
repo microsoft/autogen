@@ -133,7 +133,7 @@ async def test_commandline_code_executor_cancellation(
     # to a file.
     code = """import time
 time.sleep(10)
-with open("hello.txt", "w") as f:
+with open("hello.txt", "w", encoding="utf-8") as f:
     f.write("hello world!")
 """
     code_blocks = [CodeBlock(code=code, language="python")]
@@ -289,7 +289,7 @@ async def test_error_wrong_path(executor_and_temp_dir: ExecutorFixture, cleanup_
     cancellation_token = CancellationToken()
     code_blocks = [
         CodeBlock(
-            code="""with open("/nonexistent_dir/test.txt", "w") as f:
+            code="""with open("/nonexistent_dir/test.txt", "w", encoding="utf-8") as f:
             f.write("hello world!")""",
             language="python",
         )

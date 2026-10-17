@@ -62,7 +62,7 @@ logger.addHandler(FileLogHandler("test_filesurfer_agent.log"))
 async def test_run_filesurfer(monkeypatch: pytest.MonkeyPatch) -> None:
     # Create a test file
     test_file = os.path.abspath("test_filesurfer_agent.html")
-    async with aiofiles.open(test_file, "wt") as file:
+    async with aiofiles.open(test_file, "wt", encoding="utf-8") as file:
         await file.write("""<html>
   <head>
     <title>FileSurfer test file</title>

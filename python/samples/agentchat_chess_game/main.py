@@ -101,7 +101,7 @@ async def get_ai_move(board: chess.Board, player: AssistantAgent, max_tries: int
 async def main(human_player: bool, max_tries: int) -> None:
     board = chess.Board()
     # Load the model client from config.
-    with open("model_config.yaml", "r") as f:
+    with open("model_config.yaml", "r", encoding="utf-8") as f:
         model_config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(model_config)
     player = create_ai_player(model_client)

@@ -46,7 +46,7 @@ async def get_team(
     user_input_func: Callable[[str, Optional[CancellationToken]], Awaitable[str]],
 ) -> RoundRobinGroupChat:
     # Get model client from config.
-    async with aiofiles.open(model_config_path, "r") as file:
+    async with aiofiles.open(model_config_path, "r", encoding="utf-8") as file:
         model_config = yaml.safe_load(await file.read())
     model_client = ChatCompletionClient.load_component(model_config)
     # Create the team.
@@ -70,7 +70,7 @@ async def get_team(
     # Load state from file.
     if not os.path.exists(state_path):
         return team
-    async with aiofiles.open(state_path, "r") as file:
+    async with aiofiles.open(state_path, "r", encoding="utf-8") as file:
         state = json.loads(await file.read())
     await team.load_state(state)
     return team
@@ -80,7 +80,7 @@ async def get_history() -> list[dict[str, Any]]:
     """Get chat history from file."""
     if not os.path.exists(history_path):
         return []
-    async with aiofiles.open(history_path, "r") as file:
+    async with aiofiles.open(history_path, "r", encoding="utf-8") as file:
         return json.loads(await file.read())
 
 
@@ -127,12 +127,12 @@ async def chat(websocket: WebSocket):
                         history.append(message.model_dump())
 
                 # Save team state to file.
-                async with aiofiles.open(state_path, "w") as file:
+                async with aiofiles.open(state_path, "w", encoding="utf-8") as file:
                     state = await team.save_state()
                     await file.write(json.dumps(state))
 
                 # Save chat history to file.
-                async with aiofiles.open(history_path, "w") as file:
+                async with aiofiles.open(history_path, "w", encoding="utf-8") as file:
                     await file.write(json.dumps(history))
                     
             except WebSocketDisconnect:
