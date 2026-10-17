@@ -28,7 +28,7 @@ public static class MEAIHostingExtensions
         }
         else
         {
-            throw new InvalidOperationException("Did not find a valid model implementation for the given service name ${serviceName}, valid supported implemenation types are ollama, openai, azureopenai, azureaiinference");
+            throw new InvalidOperationException("Did not find a valid model implementation for the given service name ${serviceName}, valid supported implementation types are ollama, openai, azureopenai, azureaiinference");
         }
         return builder;
     }
