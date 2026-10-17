@@ -30,6 +30,7 @@ from ...messages import (
     MessageFactory,
     ModelClientStreamingChunkEvent,
     SelectorEvent,
+    demote_handoff_context_message,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -141,7 +142,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         for msg in messages:
             if isinstance(msg, HandoffMessage):
                 for llm_msg in msg.context:
-                    await model_context.add_message(llm_msg)
+                    await model_context.add_message(demote_handoff_context_message(llm_msg))
             await model_context.add_message(msg.to_model_message())
 
     async def update_message_thread(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> None:
