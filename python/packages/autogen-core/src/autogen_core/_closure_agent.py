@@ -16,7 +16,7 @@ from ._serialization import try_get_known_serializers_for_type
 from ._subscription import Subscription
 from ._subscription_context import SubscriptionInstantiationContext
 from ._topic import TopicId
-from ._type_helpers import get_types
+from ._type_helpers import AnyType, get_types
 from .exceptions import CantHandleException
 
 T = TypeVar("T")
@@ -116,7 +116,7 @@ class ClosureAgent(BaseAgent, ClosureContext):
         return self._runtime
 
     async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any:
-        if type(message) not in self._expected_types:
+        if AnyType not in self._expected_types and type(message) not in self._expected_types:
             if self._unknown_type_policy == "warn":
                 warnings.warn(
                     f"Message type {type(message)} not in target types {self._expected_types} of {self.id}. Set unknown_type_policy to 'error' to raise an exception, or 'ignore' to suppress this warning.",
