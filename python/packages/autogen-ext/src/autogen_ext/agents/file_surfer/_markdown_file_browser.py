@@ -108,8 +108,8 @@ class MarkdownFileBrowser:
         self.history.append((path, time.time()))
         self._open_path(path)
         self.viewport_current_page = 0
-        self.find_on_page_query = None
-        self.find_on_page_viewport = None
+        self._find_on_page_query = None
+        self._find_on_page_last_result = None
 
     @property
     def viewport(self) -> str:
