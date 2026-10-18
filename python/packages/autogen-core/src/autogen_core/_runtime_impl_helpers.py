@@ -73,6 +73,10 @@ class SubscriptionManager:
 
     def _build_for_new_topic(self, topic: TopicId) -> None:
         self._seen_topics.add(topic)
+        recipients: Set[AgentId] = set()
         for subscription in self._subscriptions:
             if subscription.is_match(topic):
-                self._subscribed_recipients[topic].append(subscription.map_to_agent(topic))
+                agent_id = subscription.map_to_agent(topic)
+                if agent_id not in recipients:
+                    recipients.add(agent_id)
+                    self._subscribed_recipients[topic].append(agent_id)
