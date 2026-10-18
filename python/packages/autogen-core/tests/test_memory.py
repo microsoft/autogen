@@ -51,6 +51,41 @@ def test_memory_component_dump_config_to_base_model() -> None:
     assert len(config.config["memory_contents"]) == 1
 
 
+def test_memory_content_mime_type_roundtrip_preserves_enum() -> None:
+    """Test that a known MIME type stays a MemoryMimeType enum after model validation (#8293)."""
+    content = MemoryContent(content="test", mime_type=MemoryMimeType.TEXT)
+    assert content.mime_type is MemoryMimeType.TEXT
+
+    restored = MemoryContent.model_validate(content.model_dump())
+    assert restored.mime_type is MemoryMimeType.TEXT
+
+    restored_json = MemoryContent.model_validate(
+        MemoryContent(content={"key": "value"}, mime_type=MemoryMimeType.JSON).model_dump()
+    )
+    assert restored_json.mime_type is MemoryMimeType.JSON
+
+
+def test_memory_content_mime_type_custom_string_preserved() -> None:
+    """Test that custom MIME type strings are not converted to the enum."""
+    content = MemoryContent(content="test", mime_type="application/custom+json")
+    assert content.mime_type == "application/custom+json"
+
+    restored = MemoryContent.model_validate(content.model_dump())
+    assert restored.mime_type == "application/custom+json"
+    assert not isinstance(restored.mime_type, MemoryMimeType)
+
+
+def test_memory_component_roundtrip_preserves_mime_type_enum() -> None:
+    """Test that dump_component/load_component keeps mime_type as a MemoryMimeType enum (#8293)."""
+    memory = ListMemory(
+        name="test_memory", memory_contents=[MemoryContent(content="test", mime_type=MemoryMimeType.JSON)]
+    )
+    restored = ListMemory.load_component(memory.dump_component())
+    assert isinstance(restored, ListMemory)
+    assert len(restored.content) == 1
+    assert restored.content[0].mime_type is MemoryMimeType.JSON
+
+
 def test_memory_abc_implementation() -> None:
     """Test that Memory ABC is properly implemented."""
 
