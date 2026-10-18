@@ -299,11 +299,23 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                     trace_logger.debug(f"Model selected a valid name: {agent_name} (attempt {num_attempts})")
                     return agent_name
 
+        # When repeated speakers are not allowed, the previous speaker was excluded
+        # from `participants`; falling back to it would violate allow_repeated_speaker
+        # and can livelock (same speaker picked forever). Pick another candidate instead.
         if self._previous_speaker is not None:
-            trace_logger.warning(f"Model failed to select a speaker after {max_attempts}, using the previous speaker.")
-            return self._previous_speaker
+            if self._allow_repeated_speaker:
+                trace_logger.warning(
+                    f"Model failed to select a speaker after {max_attempts}, using the previous speaker."
+                )
+                return self._previous_speaker
+            fallback = next((p for p in participants if p != self._previous_speaker), None)
+            if fallback is not None:
+                trace_logger.warning(
+                    f"Model failed to select a speaker after {max_attempts}, using a non-previous participant."
+                )
+                return fallback
         trace_logger.warning(
-            f"Model failed to select a speaker after {max_attempts} and there was no previous speaker, using the first participant."
+            f"Model failed to select a speaker after {max_attempts} and there was no alternative, using the first participant."
         )
         return participants[0]
 
