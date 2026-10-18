@@ -65,6 +65,9 @@ class FunctionExecutionResult(BaseModel):
     call_id: str
     """The ID of the function call. Note this ID may be empty for some models."""
 
+    uuid: str | None = None
+    """Framework-generated identifier for correlating this result with its function call."""
+
     is_error: bool | None = None
     """Whether the function call resulted in an error."""
 
