@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import pytest
@@ -363,4 +364,94 @@ async def test_event_handler_exception_multi_message() -> None:
         await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
         await runtime.stop_when_idle()
 
+    await runtime.close()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_gets_share_one_async_factory_instance() -> None:
+    runtime = SingleThreadedAgentRuntime()
+    created: list[LoopbackAgent] = []
+
+    async def factory() -> LoopbackAgent:
+        await asyncio.sleep(0)
+        agent = LoopbackAgent()
+        created.append(agent)
+        return agent
+
+    await LoopbackAgent.register(runtime, "shared", factory)
+    agent_id = AgentId("shared", "default")
+    instances = await asyncio.gather(
+        *(runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent) for _ in range(10))
+    )
+    assert len(created) == 1
+    assert all(agent is created[0] for agent in instances)
+    runtime.start()
+    try:
+        await asyncio.gather(*(runtime.send_message(MessageType(), agent_id) for _ in range(10)))
+    finally:
+        await runtime.stop_when_idle()
+
+    assert len(created) == 1
+    agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
+    assert agent is created[0]
+    assert agent.num_calls == 10
+    await runtime.close()
+
+
+@pytest.mark.asyncio
+async def test_async_factories_for_different_agent_keys_can_run_concurrently() -> None:
+    runtime = SingleThreadedAgentRuntime()
+    keys: set[str] = set()
+    both_started = asyncio.Event()
+
+    async def factory() -> LoopbackAgent:
+        keys.add(AgentInstantiationContext.current_agent_id().key)
+        if len(keys) == 2:
+            both_started.set()
+        await both_started.wait()
+        return LoopbackAgent()
+
+    await LoopbackAgent.register(runtime, "parallel", factory)
+    first, second = await asyncio.wait_for(
+        asyncio.gather(
+            runtime.try_get_underlying_agent_instance(AgentId("parallel", "first"), type=LoopbackAgent),
+            runtime.try_get_underlying_agent_instance(AgentId("parallel", "second"), type=LoopbackAgent),
+        ),
+        timeout=5,
+    )
+    assert first is not second
+    assert keys == {"first", "second"}
+    await runtime.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cancel_first", [False, True])
+async def test_async_factory_can_retry_after_failure(cancel_first: bool) -> None:
+    runtime = SingleThreadedAgentRuntime()
+    attempts = 0
+
+    async def factory() -> LoopbackAgent:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            await asyncio.sleep(0)
+            if cancel_first:
+                raise asyncio.CancelledError()
+            raise ValueError("First construction failed")
+        return LoopbackAgent()
+
+    await LoopbackAgent.register(runtime, "retry", factory)
+    agent_id = AgentId("retry", "default")
+    first, second = await asyncio.wait_for(
+        asyncio.gather(
+            runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent),
+            runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent),
+            return_exceptions=True,
+        ),
+        timeout=5,
+    )
+    assert isinstance(first, asyncio.CancelledError if cancel_first else ValueError)
+    assert isinstance(second, LoopbackAgent)
+    assert await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent) is second
+    assert attempts == 2
     await runtime.close()

@@ -260,6 +260,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
         ] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
+        self._agent_instantiation_locks: Dict[AgentId, asyncio.Lock] = {}
         self._intervention_handlers = intervention_handlers
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
@@ -980,10 +981,15 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if agent_id.type not in self._agent_factories:
             raise LookupError(f"Agent with name {agent_id.type} not found.")
 
-        agent_factory = self._agent_factories[agent_id.type]
-        agent = await self._invoke_agent_factory(agent_factory, agent_id)
-        self._instantiated_agents[agent_id] = agent
-        return agent
+        # Factories may yield, so concurrent lookups must share the same instance.
+        lock = self._agent_instantiation_locks.setdefault(agent_id, asyncio.Lock())
+        async with lock:
+            if agent_id in self._instantiated_agents:
+                return self._instantiated_agents[agent_id]
+            agent_factory = self._agent_factories[agent_id.type]
+            agent = await self._invoke_agent_factory(agent_factory, agent_id)
+            self._instantiated_agents[agent_id] = agent
+            return agent
 
     # TODO: uncomment out the following type ignore when this is fixed in mypy: https://github.com/python/mypy/issues/3737
     async def try_get_underlying_agent_instance(self, id: AgentId, type: Type[T] = Agent) -> T:  # type: ignore[assignment]
