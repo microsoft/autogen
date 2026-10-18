@@ -4,7 +4,8 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from .._component_config import Component, ComponentModel
-from ..models import ChatCompletionClient, FunctionExecutionResultMessage, LLMMessage
+from .._types import FunctionCall
+from ..models import AssistantMessage, ChatCompletionClient, FunctionExecutionResultMessage, LLMMessage
 from ..tools import ToolSchema
 from ._chat_completion_context import ChatCompletionContext
 
@@ -70,10 +71,21 @@ class TokenLimitedChatCompletionContext(ChatCompletionContext, Component[TokenLi
                 middle_index = len(messages) // 2
                 messages.pop(middle_index)
                 token_count = self._model_client.count_tokens(messages, tools=self._tool_schema)
-        if messages and isinstance(messages[0], FunctionExecutionResultMessage):
-            # Handle the first message is a function call result message.
-            # Remove the first message from the list.
-            messages = messages[1:]
+        # Collect every call_id that still has a paired AssistantMessage with
+        # a matching FunctionCall. Any FunctionExecutionResultMessage whose
+        # call_id is not in that set is orphaned and must be removed.
+        active_call_ids: set[str] = set()
+        for msg in messages:
+            if isinstance(msg, AssistantMessage) and isinstance(msg.content, list):
+                for item in msg.content:
+                    if isinstance(item, FunctionCall):
+                        active_call_ids.add(item.id)
+        messages = [
+            m
+            for m in messages
+            if not isinstance(m, FunctionExecutionResultMessage)
+            or (m.content and all(r.call_id in active_call_ids for r in m.content))
+        ]
         return messages
 
     def _to_config(self) -> TokenLimitedChatCompletionContextConfig:
