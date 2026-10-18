@@ -1,3 +1,4 @@
+import builtins
 from typing import Annotated, AsyncGenerator
 
 import pytest
@@ -68,6 +69,67 @@ class StreamToolWithError(BaseStreamTool[StreamArgs, StreamItem, StreamResult]):
     ) -> AsyncGenerator[StreamItem | StreamResult, None]:
         yield StreamItem(current=1)
         raise ValueError("Stream tool error")
+
+
+@pytest.mark.parametrize("mode", ["regular", "stream_fallback", "stream_tool"])
+@pytest.mark.parametrize(
+    "error_case, expected",
+    [
+        ("ordinary", "download failed"),
+        ("single_leaf", "download failed"),
+        ("two_leaves", "download failed\nparse failed"),
+        ("nested", "download failed\nparse failed\n'missing'"),
+        ("multiline", "download failed\nretry exhausted\nparse failed"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_static_workbench_error_messages(mode: str, error_case: str, expected: str) -> None:
+    error: Exception = ValueError("download failed")
+    if error_case != "ordinary":
+        exception_group = getattr(builtins, "ExceptionGroup", None)
+        if exception_group is None:
+            pytest.skip("ExceptionGroup is available in Python 3.11+")
+        if error_case == "single_leaf":
+            error = exception_group("batch", [error])
+        elif error_case == "two_leaves":
+            error = exception_group("batch", [error, RuntimeError("parse failed")])
+        elif error_case == "nested":
+            error = exception_group(
+                "batch", [error, exception_group("nested", [RuntimeError("parse failed"), KeyError("missing")])]
+            )
+        else:
+            error = exception_group(
+                "batch", [ValueError("download failed\nretry exhausted"), RuntimeError("parse failed")]
+            )
+
+    async def failing_function(count: int) -> int:
+        raise error
+
+    class FailingStreamTool(StreamToolWithError):
+        async def run_stream(
+            self, args: StreamArgs, cancellation_token: CancellationToken
+        ) -> AsyncGenerator[StreamItem | StreamResult, None]:
+            yield StreamItem(current=1)
+            raise error
+
+    function_tool = FunctionTool(failing_function, description="Error message test", name="test_stream_tool_error")
+    if mode == "regular":
+        result = await StaticWorkbench([function_tool]).call_tool(function_tool.name, {"count": 1})
+    else:
+        stream_tool = FailingStreamTool() if mode == "stream_tool" else function_tool
+        events = [
+            event
+            async for event in StaticStreamWorkbench([stream_tool]).call_tool_stream(stream_tool.name, {"count": 1})
+        ]
+        if mode == "stream_tool":
+            assert events[:-1] == [StreamItem(current=1)]
+        else:
+            assert len(events) == 1
+        result = events[-1]
+        assert isinstance(result, ToolResult)
+    assert result.name == function_tool.name
+    assert result.is_error
+    assert result.to_text() == expected
 
 
 @pytest.mark.asyncio
