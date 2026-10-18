@@ -10,6 +10,7 @@ import sys
 import tempfile
 import types
 import venv
+import zipfile
 from pathlib import Path
 from typing import AsyncGenerator, TypeAlias
 from unittest.mock import patch
@@ -18,7 +19,7 @@ import pytest
 import pytest_asyncio
 from aiofiles import open
 from autogen_core import CancellationToken
-from autogen_core.code_executor import CodeBlock
+from autogen_core.code_executor import CodeBlock, FunctionWithRequirements
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 HAS_POWERSHELL: bool = platform.system() == "Windows" and (
@@ -445,3 +446,45 @@ async def test_cleanup_temp_files_oserror(caplog: pytest.LogCaptureFixture) -> N
                 # The code file should have been attempted to be deleted and failed
                 assert any("Failed to delete temporary file" in record.message for record in caplog.records)
                 assert any("Mocked OSError" in record.message for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_local_executor_installs_string_function_requirements(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Use an offline wheel that is absent from the executor's fresh environment.
+    package = "autogen_executor_test_dependency"
+    dist_info = f"{package}-1.0.dist-info"
+    wheel = tmp_path / f"{package}-1.0-py3-none-any.whl"
+    with zipfile.ZipFile(wheel, "w") as archive:
+        archive.writestr(f"{package}.py", "VALUE = 42\n")
+        archive.writestr(f"{dist_info}/METADATA", f"Metadata-Version: 2.1\nName: {package}\nVersion: 1.0\n")
+        archive.writestr(
+            f"{dist_info}/WHEEL", "Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n"
+        )
+        archive.writestr(f"{dist_info}/RECORD", "")
+
+    monkeypatch.setenv("PIP_NO_INDEX", "1")
+    monkeypatch.setenv("PIP_DISABLE_PIP_VERSION_CHECK", "1")
+    env_dir = str(tmp_path / "venv")
+    builder = venv.EnvBuilder(with_pip=True)
+    builder.create(env_dir)
+    context = builder.ensure_directories(env_dir)
+    function = FunctionWithRequirements.from_str(
+        f"def answer():\n    return {package}.VALUE\n",
+        python_packages=[str(wheel)],
+        global_imports=[package],
+    )
+    executor = LocalCommandLineCodeExecutor(
+        work_dir=tmp_path / "work", virtual_env_context=context, functions=[function]
+    )
+    await executor.start()
+    try:
+        result = await executor.execute_code_blocks(
+            [CodeBlock(code=f"from {executor.functions_module} import answer\nprint(answer())", language="python")],
+            CancellationToken(),
+        )
+        assert result.exit_code == 0
+        assert result.output.strip() == "42"
+    finally:
+        await executor.stop()
