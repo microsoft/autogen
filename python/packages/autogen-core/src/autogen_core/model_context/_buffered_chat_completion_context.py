@@ -47,4 +47,4 @@ class BufferedChatCompletionContext(ChatCompletionContext, Component[BufferedCha
 
     @classmethod
     def _from_config(cls, config: BufferedChatCompletionContextConfig) -> Self:
-        return cls(**config.model_dump())
+        return cls(buffer_size=config.buffer_size, initial_messages=config.initial_messages)
