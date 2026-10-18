@@ -94,6 +94,19 @@ class GroupChatReset(BaseModel):
     ...
 
 
+class GroupChatGetThread(BaseModel):
+    """A request to get the current message thread."""
+
+    ...
+
+
+class GroupChatGetThreadResponse(BaseModel):
+    """A response containing the current message thread."""
+
+    messages: List[SerializeAsAny[BaseAgentEvent | BaseChatMessage]]
+    """The current message thread."""
+
+
 class GroupChatPause(BaseModel):
     """A request to pause the group chat."""
 

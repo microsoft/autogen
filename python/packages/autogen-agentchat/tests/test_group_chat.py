@@ -55,7 +55,7 @@ from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
 from pydantic import BaseModel
-from utils import FileLogHandler, compare_messages, compare_task_results
+from utils import FileLogHandler, compare_message_lists, compare_messages, compare_task_results
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
@@ -398,6 +398,30 @@ async def test_round_robin_group_chat_output_task_messages_false(runtime: AgentR
         assert len(streamed_messages_3) == len(final_stream_result_3.messages)
         for streamed_msg, expected_msg in zip(streamed_messages_3, final_stream_result_3.messages, strict=False):
             assert compare_messages(streamed_msg, expected_msg)
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_get_thread(runtime: AgentRuntime | None) -> None:
+    agent1 = _EchoAgent("agent1", "First agent")
+    agent2 = _EchoAgent("agent2", "Second agent")
+    team = RoundRobinGroupChat([agent1, agent2], max_turns=2, runtime=runtime)
+
+    assert await team.get_thread() == []
+
+    result = await team.run(task="hello")
+    thread = await team.get_thread()
+
+    assert len(thread) == 3
+    assert compare_message_lists(thread, result.messages)
+    assert isinstance(thread[0], TextMessage)
+    assert thread[0].content == "hello"
+    assert thread[0].source == "user"
+    assert isinstance(thread[1], TextMessage)
+    assert thread[1].content == "hello"
+    assert thread[1].source == "agent1"
+    assert isinstance(thread[2], TextMessage)
+    assert thread[2].content == "hello"
+    assert thread[2].source == "agent2"
 
 
 @pytest.mark.asyncio
