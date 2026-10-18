@@ -921,6 +921,34 @@ async def test_create_stream_with_cached_non_streaming_result_empty_content() ->
 
 
 @pytest.mark.asyncio
+async def test_cache_different_tool_choice_is_cache_miss() -> None:
+    """Test that calls with different tool_choice values produce distinct cache keys.
+
+    Regression test for: two back-to-back calls that differ only in tool_choice
+    previously hashed to the same key, causing the second call to be served the
+    wrong (first) cached result silently.
+    """
+    responses, prompts, system_prompt, replay_client, cached_client = get_test_data(num_messages=2)
+
+    messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
+
+    # First call with tool_choice="auto"
+    result_auto = await cached_client.create(messages, tool_choice="auto")
+    assert not result_auto.cached
+    assert result_auto.content == responses[0]
+
+    # Second call, same messages but different tool_choice — must be a cache miss
+    result_none = await cached_client.create(messages, tool_choice="none")
+    assert not result_none.cached, "Different tool_choice must not hit the cache from tool_choice='auto'"
+    assert result_none.content == responses[1]
+
+    # Third call with tool_choice="auto" again — should now be a cache hit
+    result_auto_again = await cached_client.create(messages, tool_choice="auto")
+    assert result_auto_again.cached
+    assert result_auto_again.content == responses[0]
+
+
+@pytest.mark.asyncio
 async def test_create_stream_with_cached_non_streaming_result_non_string_content() -> None:
     """
     Test that when create_stream() finds a cached non-streaming result with non-string content,
