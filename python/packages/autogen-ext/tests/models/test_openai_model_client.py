@@ -205,6 +205,32 @@ async def test_openai_chat_completion_client_serialization() -> None:
     assert client2
 
 
+def test_extra_request_config_serialization() -> None:
+    from autogen_core.models import ChatCompletionClient
+
+    extra_body = {"enable_thinking": False}
+    extra_headers = {"x-provider-option": "enabled"}
+    config = {
+        "provider": "OpenAIChatCompletionClient",
+        "config": {
+            "model": "gpt-4.1-nano",
+            "api_key": "fake_key",
+            "extra_body": extra_body,
+            "extra_headers": extra_headers,
+        },
+    }
+
+    loaded_client = ChatCompletionClient.load_component(config)
+    loaded_client_any: Any = loaded_client
+    create_args = loaded_client_any._create_args
+    assert create_args["extra_body"] == extra_body
+    assert create_args["extra_headers"] == extra_headers
+
+    dumped_config = loaded_client.dump_component().model_dump()
+    assert dumped_config["config"]["extra_body"] == extra_body
+    assert dumped_config["config"]["extra_headers"] == extra_headers
+
+
 @pytest.mark.asyncio
 async def test_openai_chat_completion_client_raise_on_unknown_model() -> None:
     with pytest.raises(ValueError, match="model_info is required"):

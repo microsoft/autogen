@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
@@ -57,6 +57,10 @@ class CreateArguments(TypedDict, total=False):
     - 'low': Faster responses with less reasoning
     - 'medium': Balanced reasoning and speed
     - 'high': More thorough reasoning, may take longer"""
+    extra_body: Dict[str, Any]
+    """Extra body parameters to include in every API request."""
+    extra_headers: Dict[str, str]
+    """Extra headers to include in every API request."""
 
 
 AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
@@ -108,6 +112,10 @@ class CreateArgumentsConfigModel(BaseModel):
     parallel_tool_calls: bool | None = None
     # Controls the amount of effort the model uses for reasoning (reasoning models only)
     reasoning_effort: Literal["minimal", "low", "medium", "high"] | None = None
+    extra_body: Dict[str, Any] | None = None
+    """Extra body parameters to include in every API request."""
+    extra_headers: Dict[str, str] | None = None
+    """Extra headers to include in every API request."""
 
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
