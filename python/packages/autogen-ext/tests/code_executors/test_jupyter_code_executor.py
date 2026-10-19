@@ -213,6 +213,25 @@ def test_invalid_timeout() -> None:
 
 
 @pytest.mark.asyncio
+async def test_default_output_dir_cleanup() -> None:
+    executor = JupyterCodeExecutor()
+    try:
+        await executor.start()
+        temp_dir = executor.output_dir
+        assert temp_dir.exists()
+
+        await executor.stop()
+        assert not temp_dir.exists()
+
+        await executor.start()
+        new_temp_dir = executor.output_dir
+        assert new_temp_dir.exists()
+        assert new_temp_dir != temp_dir
+    finally:
+        await executor.stop()
+
+
+@pytest.mark.asyncio
 async def test_deprecation_output_dir() -> None:
     with pytest.warns(DeprecationWarning, match="Using the current directory as output_dir is deprecated"):
         async with JupyterCodeExecutor(output_dir=".") as executor:
