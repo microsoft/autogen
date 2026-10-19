@@ -104,11 +104,12 @@ def _make_field(
 
 class _JSONSchemaToPydantic:
     def __init__(self) -> None:
-        self._model_cache: Dict[str, Optional[Union[Type[BaseModel], ForwardRef]]] = {}
+        self._definition_schemas: Dict[str, Dict[str, Any]] = {}
+        self._model_cache: Dict[str, Optional[Any]] = {}
 
     def _resolve_ref(self, ref: str, schema: Dict[str, Any]) -> Dict[str, Any]:
         ref_key = ref.split("/")[-1]
-        definitions = cast(dict[str, dict[str, Any]], schema.get("$defs", {}))
+        definitions = {**cast(dict[str, dict[str, Any]], schema.get("$defs", {})), **self._definition_schemas}
 
         if ref_key not in definitions:
             raise ReferenceNotFoundError(
@@ -139,15 +140,42 @@ class _JSONSchemaToPydantic:
         # Use field name as-is with hash suffix
         return f"{array_field_name}_{hash_suffix}"
 
-    def _process_definitions(self, root_schema: Dict[str, Any]) -> None:
-        if "$defs" in root_schema:
-            for model_name in root_schema["$defs"]:
-                if model_name not in self._model_cache:
-                    self._model_cache[model_name] = None
+    def _collect_definitions(self, schema: Any) -> None:
+        if isinstance(schema, dict):
+            definitions = schema.get("$defs", {})
+            if isinstance(definitions, dict):
+                for model_name, model_schema in definitions.items():
+                    if isinstance(model_schema, dict):
+                        self._definition_schemas.setdefault(model_name, model_schema)
 
-            for model_name, model_schema in root_schema["$defs"].items():
-                if self._model_cache[model_name] is None:
-                    self._model_cache[model_name] = self.json_schema_to_pydantic(model_schema, model_name, root_schema)
+            for value in schema.values():
+                self._collect_definitions(value)
+        elif isinstance(schema, list):
+            for value in schema:
+                self._collect_definitions(value)
+
+    def _definition_to_type(self, model_name: str, model_schema: Dict[str, Any], root_schema: Dict[str, Any]) -> Any:
+        if "$ref" in model_schema:
+            return self.get_ref(model_schema["$ref"].split("/")[-1])
+        if "anyOf" in model_schema:
+            return Union[tuple(self._resolve_union_types(model_schema["anyOf"]))]
+        if "oneOf" in model_schema:
+            return Union[tuple(self._resolve_union_types(model_schema["oneOf"]))]
+        if "enum" in model_schema:
+            return Literal[tuple(model_schema["enum"])] if len(model_schema["enum"]) > 0 else Any
+        if "allOf" in model_schema or (model_schema.get("type") == "object" and "properties" in model_schema):
+            return self.json_schema_to_pydantic(model_schema, model_name, root_schema)
+        return self._extract_field_type(model_name, model_schema, model_name, root_schema)
+
+    def _process_definitions(self, root_schema: Dict[str, Any]) -> None:
+        self._collect_definitions(root_schema)
+        for model_name in self._definition_schemas:
+            if model_name not in self._model_cache:
+                self._model_cache[model_name] = None
+
+        for model_name, model_schema in self._definition_schemas.items():
+            if self._model_cache[model_name] is None:
+                self._model_cache[model_name] = self._definition_to_type(model_name, model_schema, root_schema)
 
     def json_schema_to_pydantic(
         self, schema: Dict[str, Any], model_name: str = "GeneratedModel", root_schema: Optional[Dict[str, Any]] = None
