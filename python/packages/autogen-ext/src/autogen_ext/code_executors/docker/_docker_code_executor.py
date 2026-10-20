@@ -439,10 +439,6 @@ $functions"""
         if not self._running:
             return
 
-        if self._temp_dir is not None:
-            self._temp_dir.cleanup()
-            self._temp_dir = None
-
         client = docker.from_env()
         try:
             try:
@@ -489,6 +485,9 @@ $functions"""
         except Exception as e:
             logging.exception(f"Unexpected error during stop operation for container {self.container_name}: {e}")
         finally:
+            if self._temp_dir is not None:
+                self._temp_dir.cleanup()
+                self._temp_dir = None
             self._running = False
             self._cancellation_futures.clear()
 
