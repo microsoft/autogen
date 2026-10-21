@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Literal, Optional, Type, get_args, get_origi
 from uuid import UUID, uuid4
 
 import pytest
+
 from autogen_core.utils._json_to_pydantic import (
     FORMAT_MAPPING,
     TYPE_MAPPING,
@@ -1042,3 +1043,50 @@ def test_nested_arrays_with_object_schemas() -> None:
     assert alice.name == "Alice"  # type: ignore[attr-defined]
     assert alice.role == "Senior Developer"  # type: ignore[attr-defined]
     assert alice.skills == ["Python", "JavaScript", "Docker"]  # type: ignore[attr-defined]
+
+
+def test_array_without_items_accepts_any_element_type() -> None:
+    """An array schema whose items are unconstrained accepts any element type.
+
+    Pydantic describes ``List[Any]`` as an array with an empty items schema, and such a
+    schema must convert to a list of any type instead of a list of strings.
+    """
+
+    class Payload(BaseModel):
+        values: List[Any]
+        tags: List[Any] = []
+
+    schema = Payload.model_json_schema()
+    assert schema["properties"]["values"]["type"] == "array"
+    assert schema["properties"]["values"].get("items", {}) == {}
+
+    Model = _JSONSchemaToPydantic().json_schema_to_pydantic(schema, "PayloadModel")
+    data = {"values": [1, True, "text", 4.5, {"a": 1}], "tags": []}
+    instance = Model(**data)
+    assert instance.values == data["values"]  # type: ignore[attr-defined]
+    assert instance.tags == []  # type: ignore[attr-defined]
+
+    # An array property that omits "items" entirely is equally unconstrained.
+    bare: Dict[str, Any] = {
+        "type": "object",
+        "properties": {"nums": {"type": "array"}},
+        "required": ["nums"],
+    }
+    BareModel = _JSONSchemaToPydantic().json_schema_to_pydantic(bare, "BareArrayModel")
+    assert BareModel(**{"nums": [1, 2, 3]}).nums == [1, 2, 3]  # type: ignore[attr-defined]
+
+
+def test_constrained_array_without_items_keeps_constraints() -> None:
+    """``minItems``/``maxItems`` still apply when the element type is unconstrained."""
+    schema: Dict[str, Any] = {
+        "type": "object",
+        "properties": {"xs": {"type": "array", "minItems": 1, "maxItems": 2}},
+        "required": ["xs"],
+    }
+    Model = _JSONSchemaToPydantic().json_schema_to_pydantic(schema, "ConstrainedArrayModel")
+
+    assert Model(**{"xs": [1, "two"]}).xs == [1, "two"]  # type: ignore[attr-defined]
+    with pytest.raises(ValidationError):
+        Model(**{"xs": []})
+    with pytest.raises(ValidationError):
+        Model(**{"xs": [1, 2, 3]})

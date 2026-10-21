@@ -261,7 +261,10 @@ class _JSONSchemaToPydantic:
                 constraints["min_length"] = value["minItems"]
             if "maxItems" in value:
                 constraints["max_length"] = value["maxItems"]
-            item_schema = value.get("items", {"type": "string"})
+            # Per JSON Schema, an array without "items" (or with an empty items schema,
+            # which is what Pydantic emits for ``List[Any]``) puts no constraint on the
+            # type of its elements. Assuming strings here would reject valid data.
+            item_schema = value.get("items", {})
             if "$ref" in item_schema:
                 item_type = self.get_ref(item_schema["$ref"].split("/")[-1])
             elif item_schema.get("type") == "object" and "properties" in item_schema:
@@ -272,7 +275,7 @@ class _JSONSchemaToPydantic:
             else:
                 item_type_name = item_schema.get("type")
                 if item_type_name is None:
-                    item_type = str
+                    item_type = Any
                 elif item_type_name not in TYPE_MAPPING:
                     raise UnsupportedKeywordError(
                         f"Unsupported or missing item type `{item_type_name}` for array field `{key}` in `{model_name}`"
