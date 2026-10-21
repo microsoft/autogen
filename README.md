@@ -11,14 +11,20 @@
 
 </div>
 
-# AutoGen [![Maintenance Mode](https://img.shields.io/badge/status-maintenance%20mode-orange)](https://github.com/microsoft/agent-framework)
+# AutoGen [![Archived](https://img.shields.io/badge/status-archived-red)](https://github.com/microsoft/agent-framework)
 
 **AutoGen** is a framework for creating multi-agent AI applications that can act autonomously or work alongside humans.
 
 > [!CAUTION]
-> **⚠️ Maintenance Mode**
+> **⚠️ Project archived and no longer maintained**
 >
-> AutoGen is now in maintenance mode. It will not receive new features or enhancements and is community managed going forward.
+> This project has been archived and is no longer actively maintained by Microsoft.
+>
+> Microsoft is not providing bug fixes, security fixes, new features, or support for this project. The repository remains available for historical/reference purposes.
+>
+> **Use archived repositories with caution.** Without ongoing maintenance or security fixes, vulnerabilities in this project and its dependencies may remain unaddressed, increasing the security risks of continued use. Carefully assess these risks before using AutoGen, particularly when handling sensitive data. AutoGen was developed for research and experimentation and as it transitions to archived, we continue to advise against production use.
+>
+> We thank the AutoGen community for the code, documentation, bug reports, ideas, and discussions that helped shape this project.
 >
 > New users should start with [Microsoft Agent Framework](https://github.com/microsoft/agent-framework). Existing users are encouraged to migrate using the [AutoGen → Microsoft Agent Framework migration guide](https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen/).
 >
@@ -174,7 +180,7 @@ autogenstudio ui --port 8080 --appdir ./my-app
   <img src="autogen-landing.jpg" alt="AutoGen Landing" width="500">
 </div>
 
-Pioneered in Microsoft Research, AutoGen opened the door to experimental multi-agent orchestration patterns that inspired the community. While AutoGen is now in maintenance mode, existing users can continue to use the framework with the architecture described below. **For new projects, we recommend [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)**, which builds on the lessons learned from AutoGen with enterprise-grade support.
+Pioneered in Microsoft Research, AutoGen opened the door to experimental multi-agent orchestration patterns that inspired the community. AutoGen is now archived and no longer maintained by Microsoft; the architecture described below remains available for historical/reference purposes. **For new projects, we recommend [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)**, which builds on the lessons learned from AutoGen with enterprise-grade support.
 
 The autogen _framework_ uses a layered and extensible design. Layers have clearly divided responsibilities and build on top of layers below. This design enables you to use the framework at different levels of abstraction, from high-level APIs to low-level components.
 
