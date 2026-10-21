@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any, Dict
 
 from autogen_core.tools import BaseTool, FunctionTool
@@ -33,7 +34,7 @@ class Handoff(BaseModel):
         if not values.get("description"):
             values["description"] = f"Handoff to {values['target']}."
         if not values.get("name"):
-            values["name"] = f"transfer_to_{values['target']}".lower()
+            values["name"] = re.sub(r"\W", "_", f"transfer_to_{values['target']}".lower())
         else:
             name = values["name"]
             if not isinstance(name, str):
