@@ -41,7 +41,7 @@ A subscription defines two things:
 - Matcher func of type `TopicId -> bool`, telling us "does this subscription match this topic"
 - Mapper func of type `TopicId -> AgentId`, telling us "given this subscription matches this topic, which agent does it map to"
 
-These functions MUST be be free of side effects such that the evaluation can be cached.
+These functions MUST be free of side effects such that the evaluation can be cached.
 
 ### Agent instance creation
 
