@@ -776,6 +776,20 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # if not tool_calls, then it is a text response and we populate the content and thought fields.
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
+            # Handle list content from reasoning models (gpt-5, o1)
+            # Content can be a list of content blocks like:
+            # [{"type": "reasoning", "text": "..."}, {"type": "text", "text": "..."}]
+            if isinstance(content, list):
+                # Extract text from content blocks
+                text_parts = []
+                for block in content:
+                    if isinstance(block, dict):
+                        block_type = block.get("type")
+                        if block_type in ("text", "output_text"):
+                            text_parts.append(block.get("text", ""))
+                        elif block_type == "reasoning" and thought is None:
+                            thought = block.get("text", "")
+                content = "".join(text_parts)
             # if there is a reasoning_content field, then we populate the thought field. This is for models such as R1 - direct from deepseek api.
             if choice.message.model_extra is not None:
                 reasoning_content = choice.message.model_extra.get("reasoning_content")
