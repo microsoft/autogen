@@ -542,10 +542,10 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         """
         Remove the last assistant message if it is empty.
         """
-        # When Claude models last message is AssistantMessage, It could not end with whitespace
-        if isinstance(messages[-1], AssistantMessage):
-            if isinstance(messages[-1].content, str):
-                messages[-1].content = messages[-1].content.rstrip()
+        # When Claude models last message is AssistantMessage, it must be removed
+        # (Anthropic API requires conversation to end with a user message)
+        while messages and isinstance(messages[-1], AssistantMessage):
+            messages = messages[:-1]
 
         return messages
 
