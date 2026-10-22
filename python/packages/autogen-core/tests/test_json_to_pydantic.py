@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Literal, Optional, Type, get_args, get_origi
 from uuid import UUID, uuid4
 
 import pytest
+from autogen_core.utils import schema_to_pydantic_model
 from autogen_core.utils._json_to_pydantic import (
     FORMAT_MAPPING,
     TYPE_MAPPING,
@@ -549,6 +550,36 @@ def test_oneof_with_discriminator(converter: _JSONSchemaToPydantic) -> None:
     model_schema = Model.model_json_schema()
     assert "discriminator" in model_schema["properties"]["pet"]
     assert model_schema["properties"]["pet"]["discriminator"]["propertyName"] == "pet_type"
+
+
+@pytest.mark.parametrize("union_keyword", ["anyOf", "oneOf"])
+@pytest.mark.parametrize(
+    "branch,valid_value,invalid_value",
+    [
+        ({"type": "integer", "minimum": 0}, 0, -1),
+        ({"type": "integer", "maximum": 0}, 0, 1),
+        ({"type": "number", "exclusiveMinimum": 0}, 0.5, 0),
+        ({"type": "number", "exclusiveMaximum": 0}, -0.5, 0),
+        ({"type": "string", "minLength": 2}, "ab", "a"),
+        ({"type": "string", "maxLength": 2}, "ab", "abc"),
+        ({"type": "string", "pattern": "^[A-Z]+$"}, "AB", "ab"),
+        ({"type": "string", "format": "email"}, "agent@example.com", "not-an-email"),
+    ],
+)
+def test_union_primitive_constraints(
+    union_keyword: str, branch: Dict[str, Any], valid_value: Any, invalid_value: Any
+) -> None:
+    schema = {
+        "type": "object",
+        "properties": {"value": {union_keyword: [branch, {"type": "null"}]}},
+        "required": ["value"],
+    }
+    model = schema_to_pydantic_model(schema)
+
+    assert model(value=valid_value).model_dump() == {"value": valid_value}
+    assert model(value=None).model_dump() == {"value": None}
+    with pytest.raises(ValidationError):
+        model(value=invalid_value)
 
 
 def test_anyof_array_with_item_constraints(converter: _JSONSchemaToPydantic) -> None:
