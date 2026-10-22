@@ -198,10 +198,10 @@
         "component_type": "model",
         "version": 1,
         "component_version": 1,
-        "description": "Anthropic Claude-3 model client.",
-        "label": "Anthropic Claude-3-7",
+        "description": "Anthropic Claude Sonnet 4.6 model client.",
+        "label": "Anthropic Claude Sonnet 4.6",
         "config": {
-          "model": "claude-3-7-sonnet-20250219",
+          "model": "claude-sonnet-4-6",
           "max_tokens": 4096,
           "temperature": 1.0
         }
@@ -243,12 +243,12 @@
         "component_type": "tool",
         "version": 1,
         "component_version": 1,
-        "description": "A tool that generates images based on a text description using OpenAI's DALL-E model. Note: Requires OpenAI API key to function.",
+        "description": "A tool that generates images based on a text description using OpenAI's GPT Image 2 model. Note: Requires OpenAI API key to function.",
         "label": "Image Generation Tool",
         "config": {
-          "source_code": "async def generate_image(\n    query: str, output_dir: Optional[Path] = None, image_size: Literal[\"1024x1024\", \"512x512\", \"256x256\"] = \"1024x1024\"\n) -> List[str]:\n    \"\"\"\n    Generate images using OpenAI's DALL-E model based on a text description.\n\n    Args:\n        query: Natural language description of the desired image\n        output_dir: Directory to save generated images (default: current directory)\n        image_size: Size of generated image (1024x1024, 512x512, or 256x256)\n\n    Returns:\n        List[str]: Paths to the generated image files\n    \"\"\"\n    # Initialize the OpenAI client\n    client = OpenAI()\n\n    # Generate images using DALL-E 3\n    response = client.images.generate(model=\"dall-e-3\", prompt=query, n=1, response_format=\"b64_json\", size=image_size)\n\n    saved_files = []\n\n    # Process the response\n    if response.data:\n        for image_data in response.data:\n            # Generate a unique filename\n            file_name: str = f\"{uuid.uuid4()}.png\"\n\n            # Use output_dir if provided, otherwise use current directory\n            file_path = Path(output_dir) / file_name if output_dir else Path(file_name)\n\n            base64_str = image_data.b64_json\n            if base64_str:\n                img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, \"utf-8\"))))\n                # Save the image to a file\n                img.save(file_path)\n                saved_files.append(str(file_path))\n\n    return saved_files\n",
+          "source_code": "async def generate_image(\n    query: str,\n    output_dir: Optional[Path] = None,\n    image_size: Literal[\"1024x1024\", \"1024x1536\", \"1536x1024\"] = \"1024x1024\",\n) -> List[str]:\n    \"\"\"\n    Generate images using OpenAI's GPT Image 2 model based on a text description.\n\n    Args:\n        query: Natural language description of the desired image\n        output_dir: Directory to save generated images (default: current directory)\n        image_size: Size of generated image (1024x1024, 1024x1536, or 1536x1024)\n\n    Returns:\n        List[str]: Paths to the generated image files\n    \"\"\"\n    # Initialize the OpenAI client\n    client = OpenAI()\n\n    # GPT Image models always return base64-encoded image data.\n    response = client.images.generate(model=\"gpt-image-2\", prompt=query, n=1, size=image_size)\n\n    saved_files = []\n\n    # Process the response\n    if response.data:\n        for image_data in response.data:\n            # Generate a unique filename\n            file_name: str = f\"{uuid.uuid4()}.png\"\n\n            # Use output_dir if provided, otherwise use current directory\n            file_path = Path(output_dir) / file_name if output_dir else Path(file_name)\n\n            base64_str = image_data.b64_json\n            if base64_str:\n                img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, \"utf-8\"))))\n                # Save the image to a file\n                img.save(file_path)\n                saved_files.append(str(file_path))\n\n    return saved_files\n",
           "name": "generate_image",
-          "description": "Generate images using DALL-E based on text descriptions.",
+          "description": "Generate images using GPT Image 2 based on text descriptions.",
           "global_imports": [
             "io",
             "uuid",
