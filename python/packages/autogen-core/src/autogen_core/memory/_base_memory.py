@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Union
 
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
 
 from .._cancellation_token import CancellationToken
 from .._component_config import ComponentBase
@@ -43,6 +43,24 @@ class MemoryContent(BaseModel):
         if isinstance(mime_type, MemoryMimeType):
             return mime_type.value
         return mime_type
+
+    @field_validator("mime_type", mode="before")
+    @classmethod
+    def _coerce_mime_type(cls, v: object) -> object:
+        """Restore a serialized string back to its :class:`MemoryMimeType`.
+
+        ``dump_component()`` serializes an enum member to its string value, so a
+        ``load_component()`` roundtrip used to leave ``mime_type`` as a plain
+        ``str``, changing behaviour for code that dispatches on the enum. A
+        string that matches an enum value is coerced back; other custom MIME
+        type strings stay strings.
+        """
+        if isinstance(v, str):
+            try:
+                return MemoryMimeType(v)
+            except ValueError:
+                return v
+        return v
 
 
 class MemoryQueryResult(BaseModel):

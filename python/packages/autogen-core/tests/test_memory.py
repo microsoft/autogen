@@ -51,6 +51,29 @@ def test_memory_component_dump_config_to_base_model() -> None:
     assert len(config.config["memory_contents"]) == 1
 
 
+def test_memory_mime_type_roundtrip() -> None:
+    """A dump/load roundtrip restores the enum, not a plain str (#8293)."""
+    memory = ListMemory(
+        name="test_memory",
+        memory_contents=[MemoryContent(content="hello", mime_type=MemoryMimeType.MARKDOWN)],
+    )
+    config = memory.dump_component()
+
+    loaded = ListMemory.load_component(config)
+    assert loaded.content[0].mime_type is MemoryMimeType.MARKDOWN
+
+
+def test_memory_mime_type_custom_string_stays_str() -> None:
+    """A custom MIME type that is not an enum value stays a string."""
+    memory = ListMemory(
+        name="test_memory",
+        memory_contents=[MemoryContent(content="hello", mime_type="application/custom")],
+    )
+    loaded = ListMemory.load_component(memory.dump_component())
+    assert loaded.content[0].mime_type == "application/custom"
+    assert not isinstance(loaded.content[0].mime_type, MemoryMimeType)
+
+
 def test_memory_abc_implementation() -> None:
     """Test that Memory ABC is properly implemented."""
 
