@@ -61,7 +61,7 @@ Navigate to HumanEval
 ```bash
 cd autogen/python/packages/agbench/benchmarks/HumanEval
 ```
-**Note:** The following instructions are specific to the HumanEval benchmark. For other benchmarks, please refer to the README in the respective benchmark folder, e.g.,: [AssistantBench](benchmarks/AssistantBench/README.md).
+**Note:** The following instructions are specific to the HumanEval benchmark. For other benchmarks, please refer to the README in the respective benchmark folder, e.g.,: [AssistantBench](benchmarks/README.md).
 
 
 Create a file called ENV.json with the following (required) contents (If you're using MagenticOne), if using Azure:

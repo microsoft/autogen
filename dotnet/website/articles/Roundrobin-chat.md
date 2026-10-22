@@ -14,19 +14,19 @@ flowchart LR
 
 Step 1: Add required using statements
 
-[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/Example11_Sequential_GroupChat_Example.cs?name=using_statement)]
+[!code-csharp[](../../samples/AgentChat/AutoGen.Basic.Sample/Example11_Sequential_GroupChat_Example.cs?name=using_statement)]
 
 Step 2: Create a `bingSearch` agent using @AutoGen.SemanticKernel.SemanticKernelAgent
 
-[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/Example11_Sequential_GroupChat_Example.cs?name=CreateBingSearchAgent)]
+[!code-csharp[](../../samples/AgentChat/AutoGen.Basic.Sample/Example11_Sequential_GroupChat_Example.cs?name=CreateBingSearchAgent)]
 
 Step 3: Create a `summarization` agent using @AutoGen.SemanticKernel.SemanticKernelAgent
 
-[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/Example11_Sequential_GroupChat_Example.cs?name=CreateSummarizerAgent)]
+[!code-csharp[](../../samples/AgentChat/AutoGen.Basic.Sample/Example11_Sequential_GroupChat_Example.cs?name=CreateSummarizerAgent)]
 
 Step 4: Create a @AutoGen.Core.RoundRobinGroupChat and add `bingSearch` and `summarization` agents to it
 
-[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/Example11_Sequential_GroupChat_Example.cs?name=Sequential_GroupChat_Example)]
+[!code-csharp[](../../samples/AgentChat/AutoGen.Basic.Sample/Example11_Sequential_GroupChat_Example.cs?name=Sequential_GroupChat_Example)]
 
 Output:
 

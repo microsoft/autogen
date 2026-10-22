@@ -64,16 +64,16 @@ And in your project file, enable structural xml document support by setting the 
 
 Create a `public partial` class to host the methods you want to use in AutoGen agents. The method has to be a `public` instance method and its return type must be `Task<string>`. After the methods are defined, mark them with `AutoGen.Core.FunctionAttribute` attribute.
 
-[!code-csharp[Define WeatherReport function](../../samples/AutoGen.OpenAI.Sample/Tool_Call_With_Ollama_And_LiteLLM.cs?name=Function)]
+[!code-csharp[Define WeatherReport function](../../samples/AgentChat/AutoGen.OpenAI.Sample/Tool_Call_With_Ollama_And_LiteLLM.cs?name=Function)]
 
 Then create a @AutoGen.Core.FunctionCallMiddleware and add the `WeatherReport` function to the middleware. The middleware will pass the `FunctionContract` to the agent when generating a response, and process the tool call response when receiving a `ToolCallMessage`.
-[!code-csharp[Define WeatherReport function](../../samples/AutoGen.OpenAI.Sample/Tool_Call_With_Ollama_And_LiteLLM.cs?name=Create_tools)]
+[!code-csharp[Define WeatherReport function](../../samples/AgentChat/AutoGen.OpenAI.Sample/Tool_Call_With_Ollama_And_LiteLLM.cs?name=Create_tools)]
 
 ## Create @AutoGen.OpenAI.OpenAIChatAgent with `GetWeatherReport` tool and chat with it
 
 Because LiteLLM proxy server is openai-api compatible, we can use @AutoGen.OpenAI.OpenAIChatAgent to connect to it as a third-party openai-api provider. The agent is also registered with a @AutoGen.Core.FunctionCallMiddleware which contains the `WeatherReport` tool. Therefore, the agent can call the `WeatherReport` tool when generating a response.
 
-[!code-csharp[Create an agent with tools](../../samples/AutoGen.OpenAI.Sample/Tool_Call_With_Ollama_And_LiteLLM.cs?name=Create_Agent)]
+[!code-csharp[Create an agent with tools](../../samples/AgentChat/AutoGen.OpenAI.Sample/Tool_Call_With_Ollama_And_LiteLLM.cs?name=Create_Agent)]
 
 The reply from the agent will similar to the following:
 ```bash

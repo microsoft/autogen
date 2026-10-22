@@ -17,11 +17,11 @@ For how to install from nightly build, please refer to [Installation](../Install
 
 ### Step 2: Add using statement
 
-[!code-csharp[](../../../samples/AutoGen.Ollama.Sample/Chat_With_LLaMA.cs?name=Using)]
+[!code-csharp[](../../../samples/AgentChat/AutoGen.Ollama.Sample/Chat_With_LLaMA.cs?name=Using)]
 
 ### Step 3: Create and chat @AutoGen.Ollama.OllamaAgent
 
 In this step, we create an @AutoGen.Ollama.OllamaAgent and connect it to the Ollama server.
 
-[!code-csharp[](../../../samples/AutoGen.Ollama.Sample/Chat_With_LLaMA.cs?name=Create_Ollama_Agent)]
+[!code-csharp[](../../../samples/AgentChat/AutoGen.Ollama.Sample/Chat_With_LLaMA.cs?name=Create_Ollama_Agent)]
 
