@@ -4,13 +4,13 @@ from typing import Dict
 from fastapi import APIRouter, Depends, HTTPException
 
 from ...datamodel import Settings, SettingsConfig
-from ..deps import get_db
+from ..deps import get_current_user, get_db
 
 router = APIRouter()
 
 
 @router.get("/")
-async def get_settings(user_id: str, db=Depends(get_db)) -> Dict:
+async def get_settings(user_id: str = Depends(get_current_user), db=Depends(get_db)) -> Dict:
     try:
         response = db.get(Settings, filters={"user_id": user_id})
         if not response.status or not response.data:
