@@ -38,6 +38,7 @@ from azure.ai.inference.models import (
     ImageContentItem,
     ImageDetailLevel,
     ImageUrl,
+    JsonSchemaFormat,
     StreamingChatChoiceUpdate,
     StreamingChatCompletionsUpdate,
     TextContentItem,
@@ -345,8 +346,12 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 raise ValueError("Model does not support JSON output")
 
             if isinstance(json_output, type):
-                # TODO: we should support this in the future.
-                raise ValueError("Structured output is not currently supported for AzureAIChatCompletionClient")
+                if self.model_info["structured_output"] is False:
+                    raise ValueError("Model does not support structured output")
+                schema_name = re.sub(r"[^a-zA-Z0-9_-]", "_", json_output.__name__)[:64]
+                create_args["response_format"] = JsonSchemaFormat(
+                    name=schema_name, schema=json_output.model_json_schema(), strict=False
+                )
 
             if json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = "json_object"
