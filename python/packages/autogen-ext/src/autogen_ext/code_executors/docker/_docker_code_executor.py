@@ -80,6 +80,7 @@ class DockerCommandLineCodeExecutorConfig(BaseModel):
     extra_hosts: Dict[str, str] = {}
     init_command: Optional[str] = None
     delete_tmp_files: bool = False
+    device_requests: Optional[List[Dict[str, Any]]] = None
 
 
 class DockerCommandLineCodeExecutor(CodeExecutor, Component[DockerCommandLineCodeExecutorConfig]):
@@ -588,6 +589,9 @@ $functions"""
             extra_hosts=self._extra_hosts,
             init_command=self._init_command,
             delete_tmp_files=self._delete_tmp_files,
+            device_requests=[dict(device_request) for device_request in self._device_requests]
+            if self._device_requests is not None
+            else None,
         )
 
     @classmethod
@@ -608,4 +612,7 @@ $functions"""
             extra_hosts=config.extra_hosts,
             init_command=config.init_command,
             delete_tmp_files=config.delete_tmp_files,
+            device_requests=[DeviceRequest(**device_request) for device_request in config.device_requests]
+            if config.device_requests is not None
+            else None,
         )
