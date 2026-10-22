@@ -1,0 +1,8 @@
+{% extends "!sections/sidebar-primary.html" %}
+
+{% block docs_sidebar %}
+<button type="button" class="sidebar-close-button pst-js-only" aria-label="{{ _('Close site navigation') }}">
+  <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+</button>
+{{ super() }}
+{% endblock docs_sidebar %}
