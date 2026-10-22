@@ -57,6 +57,7 @@ class CodeExecutorAgentConfig(BaseModel):
     sources: List[str] | None = None
     system_message: str | None = None
     model_client_stream: bool = False
+    max_retries_on_error: int = 0
     model_context: ComponentModel | None = None
     supported_languages: List[str] | None = None
 
@@ -758,6 +759,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 else None
             ),
             model_client_stream=self._model_client_stream,
+            max_retries_on_error=self._max_retries_on_error,
             model_context=self._model_context.dump_component(),
             supported_languages=self._supported_languages,
         )
@@ -774,6 +776,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
             sources=config.sources,
             system_message=config.system_message,
             model_client_stream=config.model_client_stream,
+            max_retries_on_error=config.max_retries_on_error,
             model_context=ChatCompletionContext.load_component(config.model_context) if config.model_context else None,
             supported_languages=config.supported_languages,
             approval_func=None,  # approval_func cannot be serialized, so it's always None when loading from config
