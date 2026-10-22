@@ -177,6 +177,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
+        tool_choice: Tool | str | None,
         json_output: Optional[bool | type[BaseModel]],
         extra_create_args: Mapping[str, Any],
     ) -> tuple[Optional[Union[CreateResult, List[Union[str, CreateResult]]]], str]:
@@ -195,6 +196,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         data = {
             "messages": [message.model_dump() for message in messages],
             "tools": [(tool.schema if isinstance(tool, Tool) else tool) for tool in tools],
+            "tool_choice": tool_choice.schema if isinstance(tool_choice, Tool) else tool_choice,
             "json_output": json_output_data,
             "extra_create_args": extra_create_args,
         }
@@ -270,7 +272,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
 
         NOTE: cancellation_token is ignored for cached results.
         """
-        cached_result, cache_key = self._check_cache(messages, tools, json_output, extra_create_args)
+        cached_result, cache_key = self._check_cache(messages, tools, tool_choice, json_output, extra_create_args)
         if cached_result is not None:
             if isinstance(cached_result, CreateResult):
                 # Cache hit from previous non-streaming call
