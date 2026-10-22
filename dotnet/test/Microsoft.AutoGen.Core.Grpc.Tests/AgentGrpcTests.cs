@@ -76,6 +76,46 @@ public class AgentGrpcTests : TestBase
     }
 
     [Fact]
+    public async Task AgentShouldNotReceiveItsOwnPublishedMessageTest()
+    {
+        var fixture = new GrpcAgentRuntimeFixture();
+        var runtime = (GrpcAgentRuntime)await fixture.StartAsync();
+
+        Logger<BaseAgent> logger = new(new LoggerFactory());
+        TestProtobufAgent senderAgent = null!;
+        TestProtobufAgent receivingAgent = null!;
+
+        await runtime.RegisterAgentFactoryAsync("SenderAgent", async (id, runtime) =>
+        {
+            senderAgent = new TestProtobufAgent(id, runtime, logger);
+            return await ValueTask.FromResult(senderAgent);
+        });
+
+        await runtime.RegisterAgentFactoryAsync("ReceivingAgent", async (id, runtime) =>
+        {
+            receivingAgent = new TestProtobufAgent(id, runtime, logger);
+            return await ValueTask.FromResult(receivingAgent);
+        });
+
+        var topicType = "TestTopic";
+        AgentId senderId = await runtime.GetAgentAsync("SenderAgent", lazy: false);
+        await runtime.GetAgentAsync("ReceivingAgent", lazy: false);
+        await runtime.AddSubscriptionAsync(new TypeSubscription(topicType, "SenderAgent"));
+        await runtime.AddSubscriptionAsync(new TypeSubscription(topicType, "ReceivingAgent"));
+
+        await runtime.PublishMessageAsync(
+            new TextMessage { Source = topicType, Content = "test" },
+            new TopicId(topicType),
+            sender: senderId).ConfigureAwait(true);
+
+        await Task.Delay(100);
+
+        senderAgent.ReceivedMessages.Any().Should().BeFalse("an agent should not receive its own published message.");
+        receivingAgent.ReceivedMessages.Any().Should().BeTrue("other subscribed agents should still receive the published message.");
+        fixture.Dispose();
+    }
+
+    [Fact]
     public async Task SendMessageAsyncShouldReturnResponseTest()
     {
         // Arrange

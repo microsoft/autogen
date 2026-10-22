@@ -257,6 +257,11 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
             if (subscription.Matches(topic))
             {
                 var recipient = subscription.MapToAgent(topic);
+                if (sender.HasValue && sender == recipient)
+                {
+                    continue;
+                }
+
                 var agent = await this._agentsContainer.EnsureAgentAsync(recipient);
 
                 // give the serializer a second chance to have been registered
@@ -488,4 +493,3 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         }
     }
 }
-
