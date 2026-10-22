@@ -83,6 +83,35 @@ async def test_replay_chat_completion_client_create_stream() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "response, expected_tokens",
+    [
+        ("Hello world", 2),
+        ("Hello  world", 2),
+        ("  padded text  ", 2),
+        ('if ok:\n    print("hello")\n', 3),
+        ("first\r\n\tsecond\u00a0third", 3),
+        (" \t\r\n", 0),
+        ("", 0),
+    ],
+)
+async def test_replay_stream_preserves_whitespace(response: str, expected_tokens: int) -> None:
+    client = ReplayChatCompletionClient([response])
+    chunks: List[str] = []
+    result: CreateResult | None = None
+    async for completion in client.create_stream([UserMessage(content="dummy", source="user")]):
+        if isinstance(completion, CreateResult):
+            result = completion
+        else:
+            chunks.append(completion)
+
+    assert result is not None
+    assert "".join(chunks) == response == result.content
+    assert result.usage.completion_tokens == expected_tokens
+    assert client.total_usage().completion_tokens == expected_tokens
+
+
+@pytest.mark.asyncio
 async def test_register_receives_publish_llm() -> None:
     runtime = SingleThreadedAgentRuntime()
     runtime.start()

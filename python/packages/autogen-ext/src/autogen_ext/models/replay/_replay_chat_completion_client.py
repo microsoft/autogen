@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import warnings
 from typing import Any, AsyncGenerator, Dict, List, Literal, Mapping, Optional, Sequence, Union
 
@@ -222,14 +223,11 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         response = self.chat_completions[self._current_index]
         _, prompt_token_count = self._tokenize(messages)
         if isinstance(response, str):
-            output_tokens, output_token_count = self._tokenize(response)
+            _, output_token_count = self._tokenize(response)
             self._cur_usage = RequestUsage(prompt_tokens=prompt_token_count, completion_tokens=output_token_count)
 
-            for i, token in enumerate(output_tokens):
-                if i < len(output_tokens) - 1:
-                    yield token + " "
-                else:
-                    yield token
+            for chunk in re.findall(r"\S+\s*|\s+", response):
+                yield chunk
             yield CreateResult(
                 finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value
             )
