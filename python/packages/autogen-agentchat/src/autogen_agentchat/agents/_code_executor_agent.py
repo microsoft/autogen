@@ -43,6 +43,7 @@ from ..messages import (
 )
 from ..utils import remove_images
 from ._base_chat_agent import BaseChatAgent
+from ..guardrails import GuardrailInterceptor, SecurityGuardrailException
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -687,6 +688,16 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     async def execute_code_block(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
     ) -> CodeResult:
+        # [NEW] Check Deterministic Guardrail Interceptor before ANY execution
+        interceptor = GuardrailInterceptor()
+        combined_code_for_guardrail = "\n\n".join([f"```{block.language}\n{block.code}\n```" for block in code_blocks])
+        try:
+            interceptor.analyze_and_gate(self.name, combined_code_for_guardrail)
+        except SecurityGuardrailException as e:
+            return CodeResult(
+                exit_code=1, output=f"SYSTEM WARNING: ACTION BLOCKED BY HARD GATE.\nReason: {str(e)}"
+            )
+
         # Check for approval before executing code blocks
         if self._approval_func is not None:
             # Combine all code blocks into a single string for approval
