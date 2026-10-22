@@ -119,9 +119,18 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             model_schema = cast(Dict[str, Any], jsonref.replace_refs(obj=model_schema, proxies=False))  # type: ignore
             del model_schema["$defs"]
 
+        properties: Dict[str, Any] = model_schema.get("properties", {})
+        for prop_schema in properties.values():
+            if isinstance(prop_schema, dict) and "type" not in prop_schema and "anyOf" in prop_schema:
+                non_null = [
+                    o for o in prop_schema["anyOf"] if isinstance(o, dict) and o.get("type") != "null"
+                ]
+                if len(non_null) == 1 and "type" in non_null[0]:
+                    prop_schema["type"] = non_null[0]["type"]
+
         parameters = ParametersSchema(
             type="object",
-            properties=model_schema["properties"],
+            properties=properties,
             required=model_schema.get("required", []),
             additionalProperties=model_schema.get("additionalProperties", False),
         )
