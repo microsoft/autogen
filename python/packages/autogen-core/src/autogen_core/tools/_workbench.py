@@ -175,7 +175,7 @@ class Workbench(ABC, ComponentBase[BaseModel]):
         Enter the workbench context manager.
 
         This method is called when the workbench is used in a `with` statement.
-        It calls the :meth:`~autogen_core.tools.WorkBench.start` method to start the workbench.
+        It calls the :meth:`~autogen_core.tools.Workbench.start` method to start the workbench.
         """
         await self.start()
         return self
@@ -186,7 +186,7 @@ class Workbench(ABC, ComponentBase[BaseModel]):
         """
         Exit the workbench context manager.
         This method is called when the workbench is used in a `with` statement.
-        It calls the :meth:`~autogen_core.tools.WorkBench.stop` method to stop the workbench.
+        It calls the :meth:`~autogen_core.tools.Workbench.stop` method to stop the workbench.
         """
         await self.stop()
 
