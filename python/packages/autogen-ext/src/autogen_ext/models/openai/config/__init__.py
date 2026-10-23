@@ -74,6 +74,10 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     include_name_in_message: bool
     """Whether to include the 'name' field in user message parameters. Defaults to True. Set to False for providers that don't support the 'name' field."""
     default_headers: Dict[str, str] | None
+    retry_max_attempts: int
+    """Maximum number of retry attempts for transient API errors. Defaults to 3."""
+    retry_on_error_codes: List[int]
+    """HTTP status codes that trigger a retry. Defaults to [429, 500, 502, 503, 504, 424]."""
 
 
 # See OpenAI docs for explanation of these parameters
@@ -120,6 +124,10 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     add_name_prefixes: bool | None = None
     include_name_in_message: bool | None = None
     default_headers: Dict[str, str] | None = None
+    retry_max_attempts: int | None = None
+    """Maximum number of retry attempts for transient API errors. Defaults to 3."""
+    retry_on_error_codes: List[int] | None = None
+    """HTTP status codes that trigger a retry. Defaults to [429, 500, 502, 503, 504, 424]."""
 
 
 # See OpenAI docs for explanation of these parameters
