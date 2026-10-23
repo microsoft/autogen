@@ -78,6 +78,19 @@ class GroupChatMessage(BaseModel):
     """The message that was published."""
 
 
+class GroupChatGetThread(BaseModel):
+    """A request to get the current group chat message thread."""
+
+    ...
+
+
+class GroupChatThread(BaseModel):
+    """The current group chat message thread."""
+
+    messages: List[SerializeAsAny[BaseAgentEvent | BaseChatMessage]]
+    """The messages that have happened so far in the group chat."""
+
+
 class GroupChatTermination(BaseModel):
     """A message indicating that a group chat has terminated."""
 
