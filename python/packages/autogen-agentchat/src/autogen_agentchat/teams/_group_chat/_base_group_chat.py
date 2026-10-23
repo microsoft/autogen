@@ -27,6 +27,8 @@ from ...messages import (
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
+    GroupChatGetThreadResponse,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
@@ -699,6 +701,38 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             GroupChatPause(),
             recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
         )
+
+    async def get_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get the current message thread recorded by the team.
+
+        Returns:
+            A copy of the messages recorded in the group chat thread so far.
+            Returns an empty list if the team has not started yet.
+        """
+        if not self._initialized:
+            return []
+
+        should_stop_runtime = False
+        if self._embedded_runtime and not self._is_running:
+            assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+            self._runtime.start()
+            should_stop_runtime = True
+
+        try:
+            response = await self._runtime.send_message(
+                GroupChatGetThread(),
+                recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            )
+            if not isinstance(response, GroupChatGetThreadResponse):
+                raise RuntimeError(
+                    "Expected GroupChatGetThreadResponse from group chat manager, "
+                    f"got {type(response).__name__}."
+                )
+            return list(response.messages)
+        finally:
+            if should_stop_runtime:
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                await self._runtime.stop_when_idle()
 
     async def resume(self) -> None:
         """Resume its participants when the team is running and paused by calling their
