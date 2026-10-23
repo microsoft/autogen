@@ -50,6 +50,13 @@ class ModelFamily:
     MISTRAL = "mistral"
     MINISTRAL = "ministral"
     PIXTRAL = "pixtral"
+    GROK_CODE_FAST_1 = "grok-code-fast-1"
+    GROK_4_FAST_REASONING = "grok-4-fast-reasoning"
+    GROK_4_FAST_NON_REASONING = "grok-4-fast-non-reasoning"
+    GROK_4 = "grok-4"
+    GROK_3_MINI = "grok-3-mini"
+    GROK_3 = "grok-3"
+
     UNKNOWN = "unknown"
 
     ANY: TypeAlias = Literal[
@@ -90,6 +97,13 @@ class ModelFamily:
         "mistral",
         "ministral",
         "pixtral",
+        # grok_models
+        "grok-code-fast-1",
+        "grok-4-fast-reasoning",
+        "grok-4-fast-non-reasoning",
+        "grok-4",
+        "grok-3-mini",
+        "grok-3",
         # unknown
         "unknown",
     ]
@@ -151,6 +165,17 @@ class ModelFamily:
             ModelFamily.MISTRAL,
             ModelFamily.MINISTRAL,
             ModelFamily.PIXTRAL,
+        )
+    
+    @staticmethod
+    def is_grok(family: str) -> bool:
+        return family in (
+            ModelFamily.GROK_CODE_FAST_1,
+            ModelFamily.GROK_4_FAST_REASONING,
+            ModelFamily.GROK_4_FAST_NON_REASONING,
+            ModelFamily.GROK_4,
+            ModelFamily.GROK_3_MINI,
+            ModelFamily.GROK_3,
         )
 
 
