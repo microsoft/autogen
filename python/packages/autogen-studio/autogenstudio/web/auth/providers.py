@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from urllib.parse import urlencode
 
 import httpx
+import msal
 from loguru import logger
 
 from .exceptions import ConfigurationException, ProviderAuthException
@@ -160,23 +161,99 @@ class MSALAuthProvider(AuthProvider):
             raise ConfigurationException("MSAL auth configuration is missing")
 
         self.config = config.msal
-        # MSAL provider implementation would go here
-        # This is a placeholder - full implementation would use msal library
+        self.tenant_id = self.config.tenant_id
+        self.client_id = self.config.client_id
+        self.client_secret = self.config.client_secret
+        self.callback_url = self.config.callback_url
+        self.scopes = self.config.scopes
+
+        # Initialize MSAL Confidential Client Application
+        authority = f"https://login.microsoftonline.com/{self.tenant_id}"
+        self.msal_app = msal.ConfidentialClientApplication(
+            client_id=self.client_id,
+            client_credential=self.client_secret,
+            authority=authority,
+        )
 
     async def get_login_url(self) -> str:
-        """Return the MSAL OAuth login URL."""
-        # Placeholder - would use MSAL library to generate auth URL
-        return "https://login.microsoftonline.com/placeholder"
+        """Return the Microsoft OAuth login URL."""
+        state = secrets.token_urlsafe(32)  # Generate a secure random state
+        auth_url = self.msal_app.get_authorization_request_url(
+            scopes=self.scopes,
+            state=state,
+            redirect_uri=self.callback_url,
+        )
+        return auth_url
 
     async def process_callback(self, code: str, state: str | None = None) -> User:
-        """Process the MSAL callback."""
-        # Placeholder - would use MSAL library to process code and get token/user info
-        return User(id="msal_user_id", name="MSAL User", provider="msal")
+        """Exchange code for access token and get user info."""
+        if not code:
+            raise ProviderAuthException("msal", "Authorization code is missing")
+
+        try:
+            # Exchange code for access token
+            result = self.msal_app.acquire_token_by_authorization_code(
+                code=code,
+                scopes=self.scopes,
+                redirect_uri=self.callback_url,
+            )
+
+            if "error" in result:
+                logger.error(f"MSAL token exchange failed: {result.get('error_description', result.get('error'))}")
+                raise ProviderAuthException("msal", f"Failed to exchange code for access token: {result.get('error')}")
+
+            access_token = result.get("access_token")
+            if not access_token:
+                logger.error(f"No access token in MSAL response: {result}")
+                raise ProviderAuthException("msal", "No access token received")
+
+            # Get user info with the access token
+            async with httpx.AsyncClient() as client:
+                user_response = await client.get(
+                    "https://graph.microsoft.com/v1.0/me",
+                    headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+                )
+
+                if user_response.status_code != 200:
+                    logger.error(f"Microsoft Graph user info fetch failed: {user_response.text}")
+                    raise ProviderAuthException("msal", "Failed to fetch user information")
+
+                user_data = user_response.json()
+
+                # Create User object
+                return User(
+                    id=str(user_data.get("id")),
+                    name=user_data.get("displayName") or user_data.get("userPrincipalName"),
+                    email=user_data.get("mail") or user_data.get("userPrincipalName"),
+                    avatar_url=None,  # Microsoft Graph doesn't provide avatar URL in basic profile
+                    provider="msal",
+                    metadata={
+                        "user_principal_name": user_data.get("userPrincipalName"),
+                        "tenant_id": self.tenant_id,
+                        "object_id": user_data.get("id"),
+                        "access_token": access_token,
+                        "id_token": result.get("id_token"),
+                    },
+                )
+
+        except Exception as e:
+            if isinstance(e, ProviderAuthException):
+                raise
+            logger.error(f"MSAL authentication error: {str(e)}")
+            raise ProviderAuthException("msal", f"Authentication failed: {str(e)}")
 
     async def validate_token(self, token: str) -> bool:
-        """Validate an MSAL token."""
-        # Placeholder - would validate token with MSAL library
-        return False
+        """Validate a Microsoft access token."""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "https://graph.microsoft.com/v1.0/me",
+                    headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+                )
+                return response.status_code == 200
+        except Exception as e:
+            logger.error(f"Token validation error: {str(e)}")
+            return False
 
 
 class FirebaseAuthProvider(AuthProvider):

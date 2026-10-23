@@ -6,6 +6,7 @@ import { GithubOutlined } from "@ant-design/icons";
 import Layout from "../components/layout";
 import { graphql } from "gatsby";
 import Icon from "../components/icons";
+import { getAuthProviderInfo, getPopupWindowName } from "../auth/utils";
 
 const { Title, Text } = Typography;
 
@@ -15,6 +16,9 @@ const TOKEN_KEY = "auth_token";
 const LoginPage = ({ data }: any) => {
   const { isAuthenticated, isLoading, login, authType } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  
+  // Get provider-specific UI information
+  const providerInfo = getAuthProviderInfo(authType);
 
   useEffect(() => {
     // If user is already authenticated, redirect to home
@@ -49,7 +53,7 @@ const LoginPage = ({ data }: any) => {
 
       const popup = window.open(
         loginUrl,
-        "github-auth",
+        getPopupWindowName(authType),
         `width=${width},height=${height},top=${top},left=${left}`
       );
 
@@ -113,12 +117,16 @@ const LoginPage = ({ data }: any) => {
             <Button
               type="primary"
               size="large"
-              icon={<GithubOutlined />}
+              icon={providerInfo.icon}
               onClick={handleLogin}
               loading={isLoggingIn}
               block
+              style={{ 
+                backgroundColor: isLoggingIn ? undefined : providerInfo.color,
+                borderColor: isLoggingIn ? undefined : providerInfo.color
+              }}
             >
-              {isLoggingIn ? "Connecting to GitHub..." : "Sign in with GitHub"}
+              {isLoggingIn ? providerInfo.connectingText : providerInfo.buttonText}
             </Button>
           </Space>
         </div>
