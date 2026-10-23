@@ -511,16 +511,14 @@ def get_info(model: str) -> ModelInfo:
         resolved_model,
         {
             "vision": False,
-            "function_calling": False,
-            "json_output": False,
-            "family": "FAILED",
+            "function_calling": True,
+            "json_output": True,
+            "family": ModelFamily.UNKNOWN,
             "structured_output": False,
         },
     )
-    if model_info.get("family") == "FAILED":
-        raise ValueError("model_info is required when model name is not a valid OpenAI model")
     if model_info.get("family") == ModelFamily.UNKNOWN:
-        trace_logger.warning(f"Model info not found for model: {model}")
+        trace_logger.warning(f"Model info not found for model: {model}. Defaulting to basic capabilities (function_calling=True, json_output=True).")
 
     return model_info
 
