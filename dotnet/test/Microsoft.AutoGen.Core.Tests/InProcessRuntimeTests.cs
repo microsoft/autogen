@@ -77,7 +77,7 @@ public class InProcessRuntimeTests()
 
         await runtime.RunUntilIdleAsync();
 
-        // Agent sucessfully published to self
+        // Agent successfully published to self
         agent.Text.Source.Should().Be("TestTopic");
         agent.Text.Content.Should().Be("SelfMessage");
     }
