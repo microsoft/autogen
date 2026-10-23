@@ -4,11 +4,11 @@
 
 Agents might be distributed across multiple machines, so the underlying agent instance is intentionally discouraged from being accessed. If the agent is definitely running on the same machine, you can access the agent instance by calling {py:meth}`autogen_core.AgentRuntime.try_get_underlying_agent_instance` on the `AgentRuntime`. If the agent is not available this will throw an exception.
 
-## How do I call call a function on an agent?
+## How do I call a function on an agent?
 
 Since the instance itself is not accessible, you can't call a function on an agent directly. Instead, you should create a type to represent the function call and its arguments, and then send that message to the agent. Then in the agent, create a handler for that message type and implement the required logic. This also supports returning a response to the caller.
 
-This allows your agent to work in a distributed environment a well as a local one.
+This allows your agent to work in a distributed environment as well as a local one.
 
 ## Why do I need to use a factory to register an agent?
 
@@ -37,7 +37,7 @@ worker1 = GrpcWorkerAgentRuntime(host_address=host_address, extra_grpc_config=ex
 
 ## What are model capabilities and how do I specify them?
 
-Model capabilites are additional capabilities an LLM may have beyond the standard natural language features. There are currently 3 additional capabilities that can be specified within Autogen
+Model capabilities are additional capabilities an LLM may have beyond the standard natural language features. There are currently 3 additional capabilities that can be specified within Autogen
 
 - vision: The model is capable of processing and interpreting image data.
 - function_calling: The model has the capacity to accept function descriptions; such as the function name, purpose, input parameters, etc; and can respond with an appropriate function to call including any necessary parameters.

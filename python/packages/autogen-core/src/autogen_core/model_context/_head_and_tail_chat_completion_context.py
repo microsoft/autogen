@@ -39,7 +39,7 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext, Component[HeadAndT
         self._tail_size = tail_size
 
     async def get_messages(self) -> List[LLMMessage]:
-        """Get at most `head_size` recent messages and `tail_size` oldest messages."""
+        """Get at most `head_size` oldest messages and `tail_size` most recent messages."""
         head_messages = self._messages[: self._head_size]
         # Handle the last message is a function call message.
         if (

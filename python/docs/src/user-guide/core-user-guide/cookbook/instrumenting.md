@@ -1,4 +1,4 @@
-# Instrumentating your code locally
+# Instrumenting your code locally
 
 AutoGen supports instrumenting your code using [OpenTelemetry](https://opentelemetry.io). This allows you to collect traces and logs from your code and send them to a backend of your choice.
 
