@@ -299,6 +299,15 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                     trace_logger.debug(f"Model selected a valid name: {agent_name} (attempt {num_attempts})")
                     return agent_name
 
+        if self._previous_speaker is not None and not self._allow_repeated_speaker:
+            # Repeated speaker is not allowed; pick randomly from the already-filtered
+            # participants list (which already excludes the previous speaker).
+            trace_logger.warning(
+                f"Model failed to select a speaker after {max_attempts}, "
+                f"falling back to a random participant (excluding previous speaker '{self._previous_speaker}')."
+            )
+            import random
+            return random.choice(participants)
         if self._previous_speaker is not None:
             trace_logger.warning(f"Model failed to select a speaker after {max_attempts}, using the previous speaker.")
             return self._previous_speaker
