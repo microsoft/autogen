@@ -9,8 +9,6 @@ import pytest
 from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import CreateResult, ModelFamily, UserMessage
 from autogen_core.tools import FunctionTool
-from autogen_ext.models.azure import AzureAIChatCompletionClient
-from autogen_ext.models.azure.config import GITHUB_MODELS_ENDPOINT
 from azure.ai.inference.aio import (
     ChatCompletionsClient,
 )
@@ -29,6 +27,9 @@ from azure.ai.inference.models import (
     FunctionCall as AzureFunctionCall,
 )
 from azure.core.credentials import AzureKeyCredential
+
+from autogen_ext.models.azure import AzureAIChatCompletionClient
+from autogen_ext.models.azure.config import GITHUB_MODELS_ENDPOINT
 
 
 async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
@@ -973,3 +974,114 @@ async def test_azure_ai_tool_choice_specific_tool_streaming(
     assert final_result.content[0].name == "process_text"
     assert final_result.content[0].arguments == '{"input": "hello"}'
     assert final_result.thought == "Let me process this for you."
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_dump_component_and_load(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that AzureAIChatCompletionClient supports dump_component and load_component round-trip."""
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    client = AzureAIChatCompletionClient(
+        endpoint="https://test.azure.com",
+        credential=AzureKeyCredential("test-api-key"),
+        model="test-model",
+        model_info={
+            "json_output": True,
+            "function_calling": True,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": False,
+        },
+        temperature=0.7,
+        max_tokens=100,
+    )
+
+    config = client.dump_component()
+    assert config is not None
+    # API key should not appear in plain text
+    assert "test-api-key" not in str(config)
+    serialized = config.model_dump_json()
+    assert "test-api-key" not in serialized
+
+    # Round-trip: load from dumped config
+
+    client2 = AzureAIChatCompletionClient.load_component(config)
+    assert client2 is not None
+    assert client2.model_info["json_output"] is True
+    assert client2.model_info["function_calling"] is True
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_dump_component_preserves_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that dump_component preserves all configuration fields."""
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    client = AzureAIChatCompletionClient(
+        endpoint="https://test.azure.com",
+        credential=AzureKeyCredential("my-key"),
+        model="phi-4",
+        model_info={
+            "json_output": False,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": False,
+        },
+        temperature=0.5,
+        seed=42,
+        stop=["END"],
+    )
+
+    config = client.dump_component()
+    config_dict = config.model_dump()
+    inner = config_dict["config"]
+    assert inner["endpoint"] == "https://test.azure.com"
+    assert inner["model"] == "phi-4"
+    assert inner["temperature"] == 0.5
+    assert inner["seed"] == 42
+    assert inner["stop"] == ["END"]
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_load_component_via_chat_completion_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that AzureAIChatCompletionClient can be loaded via ChatCompletionClient.load_component()."""
+    from autogen_core.models import ChatCompletionClient
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    config = {
+        "provider": "autogen_ext.models.azure.AzureAIChatCompletionClient",
+        "config": {
+            "endpoint": "https://test.azure.com",
+            "api_key": "test-key",
+            "model": "phi-4",
+            "model_info": {
+                "json_output": False,
+                "function_calling": False,
+                "vision": False,
+                "family": "unknown",
+                "structured_output": False,
+            },
+        },
+    }
+
+    client = ChatCompletionClient.load_component(config)
+    assert isinstance(client, AzureAIChatCompletionClient)
