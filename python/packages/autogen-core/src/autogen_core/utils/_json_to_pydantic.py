@@ -297,6 +297,30 @@ class _JSONSchemaToPydantic:
     def _json_schema_to_model(
         self, schema: Dict[str, Any], model_name: str, root_schema: Dict[str, Any]
     ) -> Type[BaseModel]:
+        # Process any $defs in this schema that haven't been processed yet.
+        # This handles nested schemas (e.g., a property with its own $defs)
+        # by merging them into the root schema's $defs so that _resolve_ref
+        # and get_ref can find them.
+        if "$defs" in schema and schema is not root_schema:
+            if "$defs" not in root_schema:
+                root_schema["$defs"] = {}
+            for def_name, def_schema in schema["$defs"].items():
+                if def_name not in root_schema["$defs"]:
+                    root_schema["$defs"][def_name] = def_schema
+            # Process object-type definitions into the model cache
+            for def_name in schema["$defs"]:
+                if def_name not in self._model_cache:
+                    def_schema = root_schema["$defs"][def_name]
+                    # Only cache object-type definitions as models;
+                    # enum and primitive types are resolved inline via _resolve_ref.
+                    if def_schema.get("type") == "object" and "properties" in def_schema:
+                        self._model_cache[def_name] = None
+            for def_name in list(self._model_cache):
+                if self._model_cache[def_name] is None and def_name in root_schema.get("$defs", {}):
+                    def_schema = root_schema["$defs"][def_name]
+                    if def_schema.get("type") == "object" and "properties" in def_schema:
+                        self._model_cache[def_name] = self.json_schema_to_pydantic(def_schema, def_name, root_schema)
+
         if "allOf" in schema:
             merged: Dict[str, Any] = {"type": "object", "properties": {}, "required": []}
             for s in schema["allOf"]:
@@ -315,7 +339,18 @@ class _JSONSchemaToPydantic:
         for key, value in schema.get("properties", {}).items():
             if "$ref" in value:
                 ref_name = value["$ref"].split("/")[-1]
-                field_type = self.get_ref(ref_name)
+                if ref_name in self._model_cache:
+                    field_type = self.get_ref(ref_name)
+                else:
+                    # Resolve inline for non-model definitions (enums, primitives, etc.)
+                    resolved = self._resolve_ref(value["$ref"], root_schema)
+                    merged_value = {**resolved, **{k: v for k, v in value.items() if k != "$ref"}}
+                    if "enum" in merged_value:
+                        field_type = Literal[tuple(merged_value["enum"])]
+                    elif merged_value.get("type") == "object" and "properties" in merged_value:
+                        field_type = self._json_schema_to_model(merged_value, f"{model_name}_{key}", root_schema)
+                    else:
+                        field_type = self._extract_field_type(key, merged_value, model_name, root_schema)
             elif "anyOf" in value:
                 sub_models = self._resolve_union_types(value["anyOf"])
                 field_type = Union[tuple(sub_models)]
