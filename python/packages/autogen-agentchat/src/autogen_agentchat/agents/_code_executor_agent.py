@@ -647,9 +647,9 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
             response = await model_client.create(messages=chat_context, json_output=RetryDecision)
 
-            assert isinstance(
-                response.content, str
-            ), "Expected structured response for retry decision to be of type str."
+            assert isinstance(response.content, str), (
+                "Expected structured response for retry decision to be of type str."
+            )
             should_retry_generation = RetryDecision.model_validate_json(str(response.content))
 
             # Exit if no-retry is needed
@@ -663,8 +663,13 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
                 source=agent_name,
             )
 
-        # Always reflect on the execution result
-        async for reflection_response in CodeExecutorAgent._reflect_on_code_block_results_flow(
+        # Always reflect on the execution result.
+        # Dispatch through ``self.__class__`` so subclasses overriding
+        # ``_reflect_on_code_block_results_flow`` are honored. Calling via
+        # the concrete ``CodeExecutorAgent.`` static-binds to the parent
+        # implementation and breaks polymorphism (#7205, mirroring the
+        # AssistantAgent fix in #5953).
+        async for reflection_response in self.__class__._reflect_on_code_block_results_flow(
             system_messages=system_messages,
             model_client=model_client,
             model_client_stream=model_client_stream,
