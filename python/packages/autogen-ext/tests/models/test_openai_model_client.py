@@ -3378,3 +3378,46 @@ async def test_reasoning_effort_validation() -> None:
         }
 
         ChatCompletionClient.load_component(config)
+
+
+@pytest.mark.asyncio
+async def test_extra_body_parameter() -> None:
+    """Test that extra_body is preserved through load_component round-trip (fixes #7418)."""
+
+    from autogen_core.models import ChatCompletionClient
+
+    # Test OpenAI client with extra_body via constructor
+    openai_client = OpenAIChatCompletionClient(
+        model="gpt-5",
+        api_key="fake_key",
+        extra_body={"enable_thinking": False},
+    )
+    assert openai_client._create_args["extra_body"] == {"enable_thinking": False}  # pyright: ignore[reportPrivateUsage]
+
+    # Test that extra_body survives load_component round-trip (was silently dropped before)
+    config = {
+        "provider": "OpenAIChatCompletionClient",
+        "config": {
+            "model": "gpt-5",
+            "api_key": "fake_key",
+            "extra_body": {"enable_thinking": False},
+        },
+    }
+    loaded_client = ChatCompletionClient.load_component(config)
+    assert loaded_client._create_args["extra_body"] == {"enable_thinking": False}  # type: ignore[attr-defined] # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportAttributeAccessIssue]
+
+    # Test Azure OpenAI client with extra_body via constructor
+    azure_client = AzureOpenAIChatCompletionClient(
+        model="gpt-5",
+        azure_endpoint="fake_endpoint",
+        azure_deployment="gpt-5-2025-08-07",
+        api_version="2025-02-01-preview",
+        api_key="fake_key",
+        extra_body={"reasoning": {"effort": "high"}},
+    )
+    assert azure_client._create_args["extra_body"] == {"reasoning": {"effort": "high"}}  # pyright: ignore[reportPrivateUsage]
+
+    # Test that extra_body survives dump/load cycle
+    dumped = openai_client.dump_component()
+    reloaded = OpenAIChatCompletionClient.load_component(dumped)
+    assert reloaded._create_args["extra_body"] == {"enable_thinking": False}  # pyright: ignore[reportPrivateUsage]
