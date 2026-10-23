@@ -1,4 +1,5 @@
 import asyncio
+import math
 import os
 import sys
 import time
@@ -85,6 +86,7 @@ async def Console(
     no_inline_images: bool = False,
     output_stats: bool = False,
     user_input_manager: UserInputManager | None = None,
+    input_output_token_cost_per_million: tuple[float, float] | None = None,
 ) -> T:
     """
     Consumes the message stream from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
@@ -101,7 +103,8 @@ async def Console(
             This can be from :meth:`~autogen_agentchat.base.TaskRunner.run_stream` or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
         no_inline_images (bool, optional): If terminal is iTerm2 will render images inline. Use this to disable this behavior. Defaults to False.
         output_stats (bool, optional): (Experimental) If True, will output a summary of the messages and inline token usage info. Defaults to False.
-
+        input_output_token_cost_per_million (tuple, optional): (Experimental — requires output_stats=True) A two-element tuple specifying token costs per million tokens. The first element represents the cost for prompt (input) tokens, and the second represents the cost for completion (output) tokens. Defaults to None unless a tuple is provided.
+    
     Returns:
         last_processed: A :class:`~autogen_agentchat.base.TaskResult` if the stream is from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
             or a :class:`~autogen_agentchat.base.Response` if the stream is from :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
@@ -118,6 +121,13 @@ async def Console(
         if isinstance(message, TaskResult):
             duration = time.time() - start_time
             if output_stats:
+                cost_output_str = ""
+                if input_output_token_cost_per_million is not None:
+                    input_cost = (total_usage.prompt_tokens / 1_000_000) * input_output_token_cost_per_million[0]
+                    output_cost = (total_usage.completion_tokens / 1_000_000) * input_output_token_cost_per_million[1]
+                    total_cost = math.ceil((input_cost + output_cost) * 100) / 100
+                    cost_output_str = f"Total Cost: ${total_cost}\n"
+
                 output = (
                     f"{'-' * 10} Summary {'-' * 10}\n"
                     f"Number of messages: {len(message.messages)}\n"
@@ -126,6 +136,7 @@ async def Console(
                     f"Total completion tokens: {total_usage.completion_tokens}\n"
                     f"Duration: {duration:.2f} seconds\n"
                 )
+                output += cost_output_str
                 await aprint(output, end="", flush=True)
 
             # mypy ignore
