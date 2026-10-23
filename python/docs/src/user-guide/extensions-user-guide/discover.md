@@ -48,6 +48,16 @@ Find community samples and examples of how to use AutoGen
 | [autogen-ext-yepcode](https://github.com/yepcode/autogen-ext-yepcode)  | [PyPi](https://pypi.org/project/autogen-ext-yepcode/) | Enables agents to securely execute code in isolated remote sandboxes using [YepCode](https://yepcode.io)’s serverless runtime. |
 
 
+
+## Community MCP Servers
+
+The following MCP servers are compatible with AutoGen's built-in MCP tool support (via `autogen-ext`).
+
+| Name | Endpoint | Description |
+|---|---|---|
+| [HiveAgent](https://hiveagentiq.com) | [https://hiveagentiq.com/mcp](https://hiveagentiq.com/mcp) | 1,221 MCP tools for the agentic economy — payments (Visa ICC, Mastercard Agent Pay, Stripe MPP, x402, BVNK, Circle CPN), agent identity (DID, KYA), security (injection scanning, circuit breaker), yield (4–12% APY), and 45 industry verticals. Install: `npx @smithery/cli install @hiveagentiq/hiveagent` |
+
+
 <!-- Example -->
 <!-- | [My Model Client](https://github.com/example)  | [PyPi](https://pypi.org/project/example) | Model client for my custom model service | -->
 <!-- - Name should link to the project page or repo
