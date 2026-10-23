@@ -117,7 +117,7 @@ class PageLogger:
         # Write the hash and other details to a file.
         hash_str, num_files, num_subdirs = hash_directory(self.log_dir)
         hash_path = os.path.join(self.log_dir, "hash.txt")
-        with open(hash_path, "w") as f:
+        with open(hash_path, "w", encoding="utf-8") as f:
             f.write(hash_str)
             f.write("\n")
             f.write("{} files\n".format(num_files))
@@ -386,7 +386,7 @@ class PageLogger:
             return
         # Create a call tree of the log.
         call_tree_path = os.path.join(self.log_dir, self.name + ".html")
-        with open(call_tree_path, "w") as f:
+        with open(call_tree_path, "w", encoding="utf-8") as f:
             f.write(_html_opening("0 Call Tree", finished=finished))
             f.write(f"<h3>{self.name}</h3>")
             f.write("\n")
@@ -498,7 +498,7 @@ class Page:
         Writes the HTML page to disk.
         """
         page_path = os.path.join(self.page_logger.log_dir, self.index_str + ".html")
-        with open(page_path, "w") as f:
+        with open(page_path, "w", encoding="utf-8") as f:
             f.write(_html_opening(self.file_title, finished=self.finished))
             f.write(f"<h3>{self.file_title}</h3>\n")
             for line in self.lines:
