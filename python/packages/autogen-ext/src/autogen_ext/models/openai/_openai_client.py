@@ -711,6 +711,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # TODO backup token counting
             prompt_tokens=getattr(result.usage, "prompt_tokens", 0) if result.usage is not None else 0,
             completion_tokens=getattr(result.usage, "completion_tokens", 0) if result.usage is not None else 0,
+            cached_tokens=getattr(result.usage.prompt_tokens_details, "cached_tokens", 0) if result.usage is not None else 0,
         )
 
         logger.info(

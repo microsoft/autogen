@@ -86,6 +86,7 @@ LLMMessage = Annotated[
 class RequestUsage:
     prompt_tokens: int
     completion_tokens: int
+    cached_tokens: int
 
 
 FinishReasons = Literal["stop", "length", "function_calls", "content_filter", "unknown"]
