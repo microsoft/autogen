@@ -4,7 +4,7 @@ This directory provides ability to benchmarks agents (e.g., built using Autogen)
 
 ## Setup on WSL
 
-1. Install Docker Desktop. After installation, restart is needed, then open Docker Desktop, in Settings, Ressources, WSL Integration, Enable integration with additional distros – Ubuntu
+1. Install Docker Desktop. After installation, restart is needed, then open Docker Desktop, in Settings, Resources, WSL Integration, Enable integration with additional distros – Ubuntu
 2. Clone autogen and export `AUTOGEN_REPO_BASE`. This environment variable enables the Docker containers to use the correct version agents.
     ```bash
     git clone git@github.com:microsoft/autogen.git

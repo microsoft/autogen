@@ -15,7 +15,7 @@ A: You can specify the directory where files are stored by setting the `--appdir
 
 Yes. AutoGen standardizes on the openai model api format, and you can use any api server that offers an openai compliant endpoint.
 
-AutoGen Studio is based on declaritive specifications which applies to models as well. Agents can include a model_client field which specifies the model endpoint details including `model`, `api_key`, `base_url`, `model type`. Note, you can define your [model client](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/components/model-clients.html) in python and dump it to a json file for use in AutoGen Studio.
+AutoGen Studio is based on declarative specifications which applies to models as well. Agents can include a model_client field which specifies the model endpoint details including `model`, `api_key`, `base_url`, `model type`. Note, you can define your [model client](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/components/model-clients.html) in python and dump it to a json file for use in AutoGen Studio.
 
 In the following sample, we will define an OpenAI, AzureOpenAI and a local model client in python and dump them to a json file.
 
