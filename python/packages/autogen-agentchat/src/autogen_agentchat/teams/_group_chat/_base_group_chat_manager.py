@@ -9,6 +9,7 @@ from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectS
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
+    GroupChatGetThread,
     GroupChatMessage,
     GroupChatPause,
     GroupChatRequestPublish,
@@ -17,6 +18,7 @@ from ._events import (
     GroupChatStart,
     GroupChatTeamResponse,
     GroupChatTermination,
+    GroupChatThread,
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -136,7 +138,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self, message: GroupChatAgentResponse | GroupChatTeamResponse, ctx: MessageContext
     ) -> None:
         try:
-            # Construct the detla from the agent response.
+            # Construct the delta from the agent response.
             delta: List[BaseAgentEvent | BaseChatMessage] = []
             if isinstance(message, GroupChatAgentResponse):
                 if message.response.inner_messages is not None:
@@ -168,6 +170,11 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             await self._signal_termination_with_error(error)
             # Raise the exception to the runtime.
             raise
+
+    @rpc
+    async def handle_get_thread(self, message: GroupChatGetThread, ctx: MessageContext) -> GroupChatThread:
+        """Get the current message thread from the group chat."""
+        return GroupChatThread(messages=self._message_thread.copy())
 
     async def _transition_to_next_speakers(self, cancellation_token: CancellationToken) -> None:
         speaker_names_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
