@@ -8,8 +8,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from mcp import types as mcp_types
-from mcp.client.session import ClientSession
-from mcp.shared.context import RequestContext
+from mcp.client.session import ClientRequestContext
 
 from ._config import McpServerParams
 from ._host import McpSessionHost
@@ -139,7 +138,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
 
     async def _sampling_callback(
         self,
-        context: RequestContext[ClientSession, Any],
+        context: ClientRequestContext,
         params: mcp_types.CreateMessageRequestParams,
     ) -> mcp_types.CreateMessageResult | mcp_types.ErrorData:
         """Handle sampling requests using the provided model client."""
@@ -155,8 +154,8 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
 
     async def _elicitation_callback(
         self,
-        context: RequestContext["ClientSession", Any],
-        params: mcp_types.ElicitRequestParams,
+        context: ClientRequestContext,
+        params: mcp_types.ElicitRequestFormParams,
     ) -> mcp_types.ElicitResult | mcp_types.ErrorData:
         """Handle elicitation requests using the provided input_func."""
         if self._host is None:
@@ -170,7 +169,7 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
         return await self._host.handle_elicit_request(params)
 
     async def _list_roots(
-        self, context: RequestContext["ClientSession", Any]
+        self, context: ClientRequestContext
     ) -> mcp_types.ListRootsResult | mcp_types.ErrorData:
         """Handle list_roots requests"""
         if self._host is None:

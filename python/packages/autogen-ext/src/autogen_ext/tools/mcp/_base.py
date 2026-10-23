@@ -47,7 +47,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         description = tool.description or ""
 
         # Create the input model from the tool's schema
-        input_model = schema_to_pydantic_model(tool.inputSchema)
+        input_model = schema_to_pydantic_model(tool.input_schema)
 
         # Use Any as return type since MCP tool returns can vary
         return_type: Type[Any] = object
@@ -119,7 +119,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
             normalized_content_list = self._normalize_payload_to_content_list(result.content)
 
-            if result.isError:
+            if result.is_error:
                 serialized_error_message = self.return_value_as_string(normalized_content_list)
                 raise Exception(serialized_error_message)
             return normalized_content_list
@@ -160,33 +160,33 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         """Return a string representation of the result."""
 
         def serialize_item(item: Any) -> dict[str, Any]:
+            # mcp-types 2.x uses snake_case field names (e.g. `mime_type`) with
+            # camelCase aliases on the wire; keep the serialized output in camelCase
+            # to match the MCP JSON schema and previous behavior.
             if isinstance(item, (TextContent, ImageContent, AudioContent)):
-                dumped = item.model_dump()
-                # Remove the 'meta' field if it exists and is None (for backward compatibility)
-                if dumped.get("meta") is None:
-                    dumped.pop("meta", None)
+                dumped = item.model_dump(by_alias=True)
+                # Remove the '_meta' field if it exists and is None (for backward compatibility)
+                if dumped.get("_meta") is None:
+                    dumped.pop("_meta", None)
                 return dumped
             elif isinstance(item, EmbeddedResource):
                 type = item.type
                 resource = {}
-                for key, val in item.resource.model_dump().items():
-                    # Skip 'meta' field if it's None (for backward compatibility)
-                    if key == "meta" and val is None:
+                for key, val in item.resource.model_dump(by_alias=True).items():
+                    # Skip '_meta' field if it's None (for backward compatibility)
+                    if key == "_meta" and val is None:
                         continue
                     if isinstance(val, AnyUrl):
                         resource[key] = str(val)
                     else:
                         resource[key] = val
-                dumped_annotations = item.annotations.model_dump() if item.annotations else None
-                # Remove 'meta' from annotations if it exists and is None
-                if dumped_annotations and dumped_annotations.get("meta") is None:
-                    dumped_annotations.pop("meta", None)
+                dumped_annotations = item.annotations.model_dump(by_alias=True) if item.annotations else None
                 return {"type": type, "resource": resource, "annotations": dumped_annotations}
             elif isinstance(item, ResourceLink):
-                dumped = item.model_dump()
-                # Remove the 'meta' field if it exists and is None (for backward compatibility)
-                if dumped.get("meta") is None:
-                    dumped.pop("meta", None)
+                dumped = item.model_dump(by_alias=True)
+                # Remove the '_meta' field if it exists and is None (for backward compatibility)
+                if dumped.get("_meta") is None:
+                    dumped.pop("_meta", None)
                 # Convert AnyUrl to string for JSON serialization
                 if "uri" in dumped and isinstance(dumped["uri"], AnyUrl):
                     dumped["uri"] = str(dumped["uri"])

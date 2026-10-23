@@ -5,15 +5,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Literal, Optional
 
-from mcp import PromptsCapability, ResourcesCapability, ServerCapabilities, ToolsCapability
 from mcp.server import Server
-from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import (
+    CallToolRequestParams,
+    CallToolResult,
+    GetPromptRequestParams,
     GetPromptResult,
+    PaginatedRequestParams,
     Prompt,
     PromptArgument,
     PromptMessage,
+    ReadResourceRequestParams,
     Resource,
     SamplingMessage,
     TextContent,
@@ -44,7 +47,7 @@ class SimpleMcpServer:
     """A simple MCP server demonstrating basic functionality."""
 
     def __init__(self) -> None:
-        self.server: Server[object] = Server("simple-mcp-server")
+        self.server: Server[object] = Server("simple-mcp-server", version="1.0.0")
         self.register_handlers()  # type: ignore[no-untyped-call]
 
     async def list_prompts(self) -> list[Prompt]:
@@ -124,20 +127,20 @@ class SimpleMcpServer:
         """List available resources."""
         return [
             Resource(
-                uri=AnyUrl("file:///company/users.json"),
+                uri="file:///company/users.json",
                 name="Company Users",
                 description="List of all company users",
                 mimeType="application/json",
             ),
             Resource(
-                uri=AnyUrl("file:///company/projects.json"),
+                uri="file:///company/projects.json",
                 name="Active Projects",
                 description="Current projects",
                 mimeType="application/json",
             ),
         ]
 
-    async def read_resource(self, uri: AnyUrl) -> str:
+    async def read_resource(self, uri: str) -> str:
         """Read a specific resource."""
         uri_str = str(uri)
 
@@ -252,7 +255,7 @@ class SimpleMcpServer:
 
             result = await self.server.request_context.session.elicit(
                 f"{dish} is sold out. Please pick another option.",
-                requestedSchema=Order.model_json_schema(),
+                requested_schema=Order.model_json_schema(),
             )
 
             if result.action == "accept":
@@ -299,9 +302,7 @@ class SimpleMcpServer:
 
             is_allowed = False
             for root in roots.roots:
-                if root.uri.path is None:
-                    continue
-                root_path = Path(root.uri.path).resolve()
+                root_path = Path(str(root.uri).removeprefix("file://")).resolve()
                 try:
                     target_path.relative_to(root_path)
                     is_allowed = True
@@ -329,45 +330,40 @@ class SimpleMcpServer:
     def register_handlers(self) -> None:
         """Register all MCP handlers."""
 
-        @self.server.list_prompts()  # type: ignore[no-untyped-call,misc]
-        async def list_prompts() -> list[Prompt]:  # pyright: ignore[reportUnusedFunction]
-            return await self.list_prompts()
+        async def list_prompts(ctx: Any, params: PaginatedRequestParams) -> Dict[str, Any]:
+            return {"prompts": [p.model_dump(by_alias=True) for p in await self.list_prompts()]}
 
-        @self.server.get_prompt()  # type: ignore[no-untyped-call,misc]
-        async def get_prompt(name: str, arguments: Optional[Dict[str, str]] = None) -> GetPromptResult:  # pyright: ignore[reportUnusedFunction]
-            return await self.get_prompt(name, arguments)
+        async def get_prompt(ctx: Any, params: GetPromptRequestParams) -> GetPromptResult:
+            return await self.get_prompt(params.name, params.arguments)
 
-        @self.server.list_resources()  # type: ignore[no-untyped-call,misc]
-        async def list_resources() -> list[Resource]:  # pyright: ignore[reportUnusedFunction]
-            return await self.list_resources()
+        async def list_resources(ctx: Any, params: PaginatedRequestParams) -> Dict[str, Any]:
+            return {"resources": [r.model_dump(by_alias=True) for r in await self.list_resources()]}
 
-        @self.server.read_resource()  # type: ignore[no-untyped-call,misc]
-        async def read_resource(uri: AnyUrl) -> str:  # pyright: ignore[reportUnusedFunction]
-            return await self.read_resource(uri)
+        async def read_resource(ctx: Any, params: ReadResourceRequestParams) -> Dict[str, Any]:
+            content = await self.read_resource(params.uri)
+            return {"contents": [{"uri": params.uri, "mimeType": "application/json", "text": content}]}
 
-        @self.server.list_tools()  # type: ignore[no-untyped-call,misc]
-        async def list_tools() -> list[Tool]:  # pyright: ignore[reportUnusedFunction]
-            return await self.list_tools()
+        async def list_tools(ctx: Any, params: PaginatedRequestParams) -> Dict[str, Any]:
+            return {"tools": [t.model_dump(by_alias=True) for t in await self.list_tools()]}
 
-        @self.server.call_tool()  # type: ignore[no-untyped-call,misc]
-        async def call_tool(name: str, arguments: Optional[Dict[str, Any]] = None) -> list[TextContent]:  # pyright: ignore[reportUnusedFunction]
-            return await self.call_tool(name, arguments)
+        async def call_tool(ctx: Any, params: CallToolRequestParams) -> CallToolResult:
+            try:
+                content = await self.call_tool(params.name, params.arguments)
+                return CallToolResult(content=content, isError=False)
+            except Exception as e:
+                return CallToolResult(content=[TextContent(type="text", text=str(e))], isError=True)
+
+        self.server.add_request_handler("prompts/list", PaginatedRequestParams, list_prompts)
+        self.server.add_request_handler("prompts/get", GetPromptRequestParams, get_prompt)
+        self.server.add_request_handler("resources/list", PaginatedRequestParams, list_resources)
+        self.server.add_request_handler("resources/read", ReadResourceRequestParams, read_resource)
+        self.server.add_request_handler("tools/list", PaginatedRequestParams, list_tools)
+        self.server.add_request_handler("tools/call", CallToolRequestParams, call_tool)
 
     async def run(self) -> None:
         """Run the MCP server."""
-        # Server capabilities
-        init_options = InitializationOptions(
-            server_name="simple-mcp-server",
-            server_version="1.0.0",
-            capabilities=ServerCapabilities(
-                prompts=PromptsCapability(listChanged=True),
-                resources=ResourcesCapability(
-                    subscribe=True,
-                    listChanged=True,
-                ),
-                tools=ToolsCapability(listChanged=True),
-            ),
-        )
+        # Capabilities are derived from the registered handlers.
+        init_options = self.server.create_initialization_options()
 
         # Run the server
         async with stdio_server() as (read_stream, write_stream):
