@@ -104,7 +104,7 @@ class AndTerminationCondition(TerminationCondition, Component[AndTerminationCond
 
     async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
         if self.terminated:
-            raise TerminatedException("Termination condition has already been reached.")
+            raise TerminatedException("Termination condition has already been reached")
         # Check all remaining conditions.
         stop_messages = await asyncio.gather(
             *[condition(messages) for condition in self._conditions if not condition.terminated]
@@ -155,7 +155,7 @@ class OrTerminationCondition(TerminationCondition, Component[OrTerminationCondit
 
     async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
         if self.terminated:
-            raise RuntimeError("Termination condition has already been reached")
+            raise TerminatedException("Termination condition has already been reached")
         stop_messages = await asyncio.gather(*[condition(messages) for condition in self._conditions])
         stop_messages_filter = [stop_message for stop_message in stop_messages if stop_message is not None]
         if len(stop_messages_filter) > 0:
