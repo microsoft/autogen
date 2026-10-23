@@ -1,7 +1,7 @@
 import asyncio
 import builtins
 import warnings
-from typing import Any, Dict, List, Literal, Mapping, Optional
+from typing import Any, Dict, List, Literal, Mapping, Optional, cast
 
 from autogen_core import CancellationToken, Component, ComponentModel, Image, trace_tool_span
 from autogen_core.tools import (
@@ -297,12 +297,17 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                 if override.description is not None:
                     description = override.description
 
-            parameters = ParametersSchema(
-                type="object",
-                properties=tool.inputSchema.get("properties", {}),
-                required=tool.inputSchema.get("required", []),
-                additionalProperties=tool.inputSchema.get("additionalProperties", False),
-            )
+            # Build the parameters schema, preserving $defs so that $ref entries
+            # in properties remain resolvable by the model client.
+            schema_dict: Dict[str, Any] = {
+                "type": "object",
+                "properties": tool.inputSchema.get("properties", {}),
+                "required": tool.inputSchema.get("required", []),
+                "additionalProperties": tool.inputSchema.get("additionalProperties", False),
+            }
+            if "$defs" in tool.inputSchema:
+                schema_dict["$defs"] = tool.inputSchema["$defs"]
+            parameters = cast(ParametersSchema, schema_dict)
             tool_schema = ToolSchema(
                 name=name,
                 description=description,
