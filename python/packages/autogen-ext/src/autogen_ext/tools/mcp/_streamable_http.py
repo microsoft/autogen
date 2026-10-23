@@ -13,6 +13,9 @@ class StreamableHttpMcpToolAdapterConfig(BaseModel):
 
     server_params: StreamableHttpServerParams
     tool: Tool
+    max_retries: int = 0
+    retry_delay: float = 1.0
+    raise_on_error: bool = False
 
 
 class StreamableHttpMcpToolAdapter(
@@ -42,6 +45,9 @@ class StreamableHttpMcpToolAdapter(
         session (ClientSession, optional): The MCP client session to use. If not provided,
             it will create a new session. This is useful for testing or when you want to
             manage the session lifecycle yourself.
+        max_retries (int, optional): The maximum number of retries for tool execution. Defaults to 0.
+        retry_delay (float, optional): The delay in seconds between retries. Defaults to 1.0.
+        raise_on_error (bool, optional): Whether to raise an exception on tool error. Defaults to False.
 
     Examples:
         Use a remote translation service that implements MCP over Streamable HTTP to
@@ -50,11 +56,12 @@ class StreamableHttpMcpToolAdapter(
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_ext.tools.mcp import StreamableHttpMcpToolAdapter, StreamableHttpServerParams
+
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.ui import Console
             from autogen_core import CancellationToken
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.tools.mcp import StreamableHttpMcpToolAdapter, StreamableHttpServerParams
 
 
             async def main() -> None:
@@ -94,9 +101,22 @@ class StreamableHttpMcpToolAdapter(
     component_provider_override = "autogen_ext.tools.mcp.StreamableHttpMcpToolAdapter"
 
     def __init__(
-        self, server_params: StreamableHttpServerParams, tool: Tool, session: ClientSession | None = None
+        self,
+        server_params: StreamableHttpServerParams,
+        tool: Tool,
+        session: ClientSession | None = None,
+        max_retries: int = 0,
+        retry_delay: float = 1.0,
+        raise_on_error: bool = False,
     ) -> None:
-        super().__init__(server_params=server_params, tool=tool, session=session)
+        super().__init__(
+            server_params=server_params,
+            tool=tool,
+            session=session,
+            max_retries=max_retries,
+            retry_delay=retry_delay,
+            raise_on_error=raise_on_error,
+        )
 
     def _to_config(self) -> StreamableHttpMcpToolAdapterConfig:
         """
@@ -105,7 +125,13 @@ class StreamableHttpMcpToolAdapter(
         Returns:
             StreamableHttpMcpToolAdapterConfig: The configuration of the adapter.
         """
-        return StreamableHttpMcpToolAdapterConfig(server_params=self._server_params, tool=self._tool)
+        return StreamableHttpMcpToolAdapterConfig(
+            server_params=self._server_params,
+            tool=self._tool,
+            max_retries=self._max_retries,
+            retry_delay=self._retry_delay,
+            raise_on_error=self._raise_on_error,
+        )
 
     @classmethod
     def _from_config(cls, config: StreamableHttpMcpToolAdapterConfig) -> Self:
@@ -118,4 +144,10 @@ class StreamableHttpMcpToolAdapter(
         Returns:
             StreamableHttpMcpToolAdapter: An instance of StreamableHttpMcpToolAdapter.
         """
-        return cls(server_params=config.server_params, tool=config.tool)
+        return cls(
+            server_params=config.server_params,
+            tool=config.tool,
+            max_retries=config.max_retries,
+            retry_delay=config.retry_delay,
+            raise_on_error=config.raise_on_error,
+        )

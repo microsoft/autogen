@@ -10,6 +10,9 @@ from ._streamable_http import StreamableHttpMcpToolAdapter
 async def mcp_server_tools(
     server_params: McpServerParams,
     session: ClientSession | None = None,
+    max_retries: int = 0,
+    retry_delay: float = 1.0,
+    raise_on_error: bool = False,
 ) -> list[StdioMcpToolAdapter | SseMcpToolAdapter | StreamableHttpMcpToolAdapter]:
     """Creates a list of MCP tool adapters that can be used with AutoGen agents.
 
@@ -36,6 +39,9 @@ async def mcp_server_tools(
         session (ClientSession | None): Optional existing session to use. This is used
             when you want to reuse an existing connection to the MCP server. The session
             will be reused when creating the MCP tool adapters.
+        max_retries (int, optional): The maximum number of retries for tool execution. Defaults to 0.
+        retry_delay (float, optional): The delay in seconds between retries. Defaults to 1.0.
+        raise_on_error (bool, optional): Whether to raise an exception on tool error. Defaults to False.
 
     Returns:
         list[StdioMcpToolAdapter | SseMcpToolAdapter | StreamableHttpMcpToolAdapter]:
@@ -203,12 +209,39 @@ async def mcp_server_tools(
         tools = await session.list_tools()
 
     if isinstance(server_params, StdioServerParams):
-        return [StdioMcpToolAdapter(server_params=server_params, tool=tool, session=session) for tool in tools.tools]
+        return [
+            StdioMcpToolAdapter(
+                server_params=server_params,
+                tool=tool,
+                session=session,
+                max_retries=max_retries,
+                retry_delay=retry_delay,
+                raise_on_error=raise_on_error,
+            )
+            for tool in tools.tools
+        ]
     elif isinstance(server_params, SseServerParams):
-        return [SseMcpToolAdapter(server_params=server_params, tool=tool, session=session) for tool in tools.tools]
+        return [
+            SseMcpToolAdapter(
+                server_params=server_params,
+                tool=tool,
+                session=session,
+                max_retries=max_retries,
+                retry_delay=retry_delay,
+                raise_on_error=raise_on_error,
+            )
+            for tool in tools.tools
+        ]
     elif isinstance(server_params, StreamableHttpServerParams):
         return [
-            StreamableHttpMcpToolAdapter(server_params=server_params, tool=tool, session=session)
+            StreamableHttpMcpToolAdapter(
+                server_params=server_params,
+                tool=tool,
+                session=session,
+                max_retries=max_retries,
+                retry_delay=retry_delay,
+                raise_on_error=raise_on_error,
+            )
             for tool in tools.tools
         ]
     raise ValueError(f"Unsupported server params type: {type(server_params)}")
