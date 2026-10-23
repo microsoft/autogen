@@ -5,6 +5,7 @@ import pytest
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import BaseChatMessage, HandoffMessage, TextMessage
+from autogen_agentchat.ui import Console, UserInputManager
 from autogen_core import CancellationToken
 
 
@@ -118,3 +119,17 @@ async def test_error_handling() -> None:
     with pytest.raises(RuntimeError) as exc_info:
         await agent.on_messages(messages, CancellationToken())
     assert "Failed to get user input" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_console_user_input_manager_handles_event_before_input_waiter() -> None:
+    manager = UserInputManager(lambda _: "console response")
+    agent = UserProxyAgent(name="test_user", input_func=manager.get_wrapped_callback())
+
+    response = await asyncio.wait_for(
+        Console(agent.on_messages_stream([], CancellationToken()), user_input_manager=manager),
+        timeout=1,
+    )
+
+    assert isinstance(response.chat_message, TextMessage)
+    assert response.chat_message.content == "console response"
