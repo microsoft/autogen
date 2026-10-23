@@ -42,7 +42,7 @@ def create_jsonl(name, tasks, files_dir, template):
     if not os.path.isdir(TASKS_DIR):
         os.mkdir(TASKS_DIR)
 
-    with open(os.path.join(TASKS_DIR, name + ".jsonl"), "wt") as fh:
+    with open(os.path.join(TASKS_DIR, name + ".jsonl"), "wt", encoding="utf-8") as fh:
         for task in tasks:
             print(f"Converting: [{name}] {task['task_id']}")
 
