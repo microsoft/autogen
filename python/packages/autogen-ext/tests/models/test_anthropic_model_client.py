@@ -800,8 +800,8 @@ async def test_anthropic_empty_assistant_content_string() -> None:
 
 
 @pytest.mark.asyncio
-async def test_anthropic_trailing_whitespace_at_last_assistant_content() -> None:
-    """Test that an empty assistant content string is handled correctly."""
+async def test_anthropic_trailing_assistant_message() -> None:
+    """Test that a trailing assistant message is handled correctly."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
@@ -821,19 +821,35 @@ async def test_anthropic_trailing_whitespace_at_last_assistant_content() -> None
     assert isinstance(result.content, str)
 
 
-def test_mock_rstrip_trailing_whitespace_at_last_assistant_content() -> None:
+def test_mock_rstrip_removes_trailing_assistant_messages() -> None:
     messages: list[LLMMessage] = [
         UserMessage(content="foo", source="user"),
         UserMessage(content="bar", source="user"),
         AssistantMessage(content="foobar ", source="assistant"),
+        AssistantMessage(content="baz", source="assistant"),
     ]
 
-    # This will crash if _rstrip_railing_whitespace_at_last_assistant_content is not applied to "content"
     dummy_client = AnthropicChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
     result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
 
-    assert isinstance(result[-1].content, str)
-    assert result[-1].content == "foobar"
+    assert result == messages[:2]
+    assert len(messages) == 4
+    assert messages[-1].content == "baz"
+
+
+def test_mock_rstrip_preserves_non_trailing_assistant_messages() -> None:
+    messages: list[LLMMessage] = [
+        UserMessage(content="foo", source="user"),
+        AssistantMessage(content="bar", source="assistant"),
+        UserMessage(content="baz", source="user"),
+    ]
+
+    dummy_client = AnthropicChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
+    result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
+
+    assert list(result) == messages
+    assert result[-1].content == "baz"
+    assert result[-2].content == "bar"
 
 
 @pytest.mark.asyncio
