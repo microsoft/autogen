@@ -1,0 +1,19 @@
+experiment_name: "upload-data-1" # name of the experiment
+run_name: "situations-prompt-1" # name of the run
+
+formatting:
+  base_input_path: "./output/gen-data-1"
+  skip_runs: ["run-12"] # which run directories to skip in the base input path
+  base_output_path: "./output/" # base path for saving the generated data
+  format: "csv" # format of the generated data
+  format_params:
+    delimiter: "\t" # delimiter for the tsv output
+  write_partition_size: 1000
+
+# The following section is optional if you would like to upload your data to azure
+upload_to_azure:
+  azure_account_name: "<accountName>" # account name for the container
+  azure_container: "<containerName>" # container to upload the generated data
+  azure_blob_path: "<blobPath>" # path to upload the generated data
+  local_data_path: "./output/" # local path to the generated data
+  file_extensions: [ "tsv" ] # extension of the data files that we need to upload
