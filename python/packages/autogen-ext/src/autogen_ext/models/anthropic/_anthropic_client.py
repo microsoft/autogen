@@ -294,6 +294,7 @@ def tool_message_to_anthropic(message: FunctionExecutionResultMessage) -> List[M
                 type="tool_result",
                 tool_use_id=result.call_id,
                 content=result.content,
+                is_error=result.is_error or False,
             )
         )
 
