@@ -104,7 +104,7 @@ def _make_field(
 
 class _JSONSchemaToPydantic:
     def __init__(self) -> None:
-        self._model_cache: Dict[str, Optional[Union[Type[BaseModel], ForwardRef]]] = {}
+        self._model_cache: Dict[str, Optional[Union[Type[BaseModel], ForwardRef, Any]]] = {}
 
     def _resolve_ref(self, ref: str, schema: Dict[str, Any]) -> Dict[str, Any]:
         ref_key = ref.split("/")[-1]
@@ -139,6 +139,19 @@ class _JSONSchemaToPydantic:
         # Use field name as-is with hash suffix
         return f"{array_field_name}_{hash_suffix}"
 
+    def _resolve_non_object_def(self, schema: Dict[str, Any], model_name: str, root_schema: Dict[str, Any]) -> Any:
+        """Resolve a $defs entry that is not an object type (e.g. array, string, integer).
+
+        Returns the resolved Python type, or None if this is an object schema
+        that should be handled by json_schema_to_pydantic.
+        """
+        schema_type = schema.get("type")
+        # Object types with properties should be handled as Pydantic models
+        if schema_type == "object" or schema_type is None:
+            return None
+        # Use _extract_field_type which already handles arrays, strings, etc.
+        return self._extract_field_type(model_name, schema, model_name, root_schema)
+
     def _process_definitions(self, root_schema: Dict[str, Any]) -> None:
         if "$defs" in root_schema:
             for model_name in root_schema["$defs"]:
@@ -147,7 +160,14 @@ class _JSONSchemaToPydantic:
 
             for model_name, model_schema in root_schema["$defs"].items():
                 if self._model_cache[model_name] is None:
-                    self._model_cache[model_name] = self.json_schema_to_pydantic(model_schema, model_name, root_schema)
+                    # Check if this is a non-object type (e.g. array, string).
+                    # These should be resolved to Python types directly, not
+                    # wrapped in a Pydantic BaseModel.
+                    non_object_type = self._resolve_non_object_def(model_schema, model_name, root_schema)
+                    if non_object_type is not None:
+                        self._model_cache[model_name] = non_object_type
+                    else:
+                        self._model_cache[model_name] = self.json_schema_to_pydantic(model_schema, model_name, root_schema)
 
     def json_schema_to_pydantic(
         self, schema: Dict[str, Any], model_name: str = "GeneratedModel", root_schema: Optional[Dict[str, Any]] = None
