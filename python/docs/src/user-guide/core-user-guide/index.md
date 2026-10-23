@@ -50,6 +50,7 @@ components/model-context
 components/tools
 components/workbench
 components/command-line-code-executors
+distributed-deployment-tls
 ```
 
 ```{toctree}

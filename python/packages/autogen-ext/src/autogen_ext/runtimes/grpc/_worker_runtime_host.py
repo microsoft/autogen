@@ -1,7 +1,8 @@
+from __future__ import annotations
 import asyncio
 import logging
 import signal
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 from ._constants import GRPC_IMPORT_ERROR_STR
 from ._type_helpers import ChannelArgumentType
@@ -17,11 +18,33 @@ logger = logging.getLogger("autogen_core")
 
 
 class GrpcWorkerAgentRuntimeHost:
-    def __init__(self, address: str, extra_grpc_config: Optional[ChannelArgumentType] = None) -> None:
+    """A host for the gRPC worker agent runtime.
+
+    This host listens for connections from :class:`~autogen_ext.runtimes.grpc.GrpcWorkerAgentRuntime`
+    and routes messages between them.
+
+    Args:
+        address (str): The address to listen on, e.g., 'localhost:50051'.
+        extra_grpc_config (Optional[ChannelArgumentType]): Extra gRPC configuration options.
+        server_credentials (Optional[grpc.ServerCredentials]): Server credentials for TLS.
+            If provided, the server will use a secure port.
+
+    .. versionadded:: v0.7.6
+    """
+
+    def __init__(
+        self,
+        address: str,
+        extra_grpc_config: Optional[ChannelArgumentType] = None,
+        server_credentials: Any | None = None,
+    ) -> None:
         self._server = grpc.aio.server(options=extra_grpc_config)
         self._servicer = GrpcWorkerAgentRuntimeHostServicer()
         agent_worker_pb2_grpc.add_AgentRpcServicer_to_server(self._servicer, self._server)
-        self._server.add_insecure_port(address)
+        if server_credentials is not None:
+            self._server.add_secure_port(address, server_credentials)
+        else:
+            self._server.add_insecure_port(address)
         self._address = address
         self._serve_task: asyncio.Task[None] | None = None
 
