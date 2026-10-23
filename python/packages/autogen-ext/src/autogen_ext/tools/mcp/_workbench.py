@@ -53,6 +53,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
         Only connect to trusted MCP servers, especially when using
         `StdioServerParams` as it executes commands in the local environment.
 
+        MCP tool descriptions are sent directly to the LLM. A compromised or
+        malicious MCP server could embed injected instructions in tool descriptions
+        (tool poisoning). Always verify MCP server trustworthiness before connecting.
+
     This workbench should be used as a context manager to ensure proper
     initialization and cleanup of the underlying MCP session.
 
@@ -299,9 +303,9 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
 
             parameters = ParametersSchema(
                 type="object",
-                properties=tool.inputSchema.get("properties", {}),
-                required=tool.inputSchema.get("required", []),
-                additionalProperties=tool.inputSchema.get("additionalProperties", False),
+                properties=tool.input_schema.get("properties", {}),
+                required=tool.input_schema.get("required", []),
+                additionalProperties=tool.input_schema.get("additionalProperties", False),
             )
             tool_schema = ToolSchema(
                 name=name,
@@ -344,7 +348,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                     result, CallToolResult
                 ), f"call_tool must return a CallToolResult, instead of : {str(type(result))}"
                 result_parts: List[TextResultContent | ImageResultContent] = []
-                is_error = result.isError
+                is_error = result.is_error
                 for content in result.content:
                     if isinstance(content, TextContent):
                         result_parts.append(TextResultContent(content=content.text))
