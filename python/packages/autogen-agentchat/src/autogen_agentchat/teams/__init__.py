@@ -12,6 +12,7 @@ from ._group_chat._graph import (
     GraphFlow,
 )
 from ._group_chat._magentic_one import MagenticOneGroupChat
+from ._group_chat._message_store import InMemoryMessageStore, MessageStore
 from ._group_chat._round_robin_group_chat import RoundRobinGroupChat
 from ._group_chat._selector_group_chat import SelectorGroupChat
 from ._group_chat._swarm_group_chat import Swarm
@@ -27,4 +28,6 @@ __all__ = [
     "DiGraphNode",
     "DiGraphEdge",
     "GraphFlow",
+    "MessageStore",
+    "InMemoryMessageStore",
 ]
