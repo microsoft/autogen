@@ -1,4 +1,5 @@
 import pytest
+
 from autogen_core.utils import extract_json_from_str
 
 
@@ -71,6 +72,10 @@ def test_extract_json_from_str_codeblock() -> None:
     assert no_lang_resp == code_block_resp
     multi_resp = extract_json_from_str(multi_json_str)
     assert multi_resp == multi_json_resp
+
+    crlf_code_block_str = '```json\r\n{"name": "Alice", "age": 28, "city": "Seattle"}\r\n```'
+    crlf_resp = extract_json_from_str(crlf_code_block_str)
+    assert crlf_resp == code_block_resp
 
     invalid_lang_code_block_str = """
   ```notjson
