@@ -906,6 +906,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # Process the stream of chunks.
         async for chunk in chunks:
+            # Guard against None chunks which can be yielded by some endpoints.
+            # https://github.com/microsoft/autogen/issues/7130
+            if chunk is None:
+                continue
+
             if first_chunk:
                 first_chunk = False
                 # Emit the start event.
@@ -946,7 +951,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # for liteLLM chunk usage, do the following hack keeping the pervious chunk.stop_reason (if set).
             # set the stop_reason for the usage chunk to the prior stop_reason
             stop_reason = choice.finish_reason if chunk.usage is None and stop_reason is None else stop_reason
-            maybe_model = chunk.model
 
             reasoning_content: str | None = None
             if choice.delta.model_extra is not None and "reasoning_content" in choice.delta.model_extra:
