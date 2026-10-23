@@ -62,7 +62,7 @@ class UserInputManager:
             else:
                 # Cast to SyncInputFunc for proper typing
                 sync_func = cast(SyncInputFunc, self.callback)
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 return await loop.run_in_executor(None, sync_func, prompt)
 
         return user_input_func_wrapper
