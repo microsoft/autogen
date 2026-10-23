@@ -10,7 +10,7 @@ from ._worker_runtime_host_servicer import GrpcWorkerAgentRuntimeHostServicer
 try:
     import grpc
 except ImportError as e:
-    raise ImportError(GRPC_IMPORT_ERROR_STR) from e
+    raise ImportError(f"{GRPC_IMPORT_ERROR_STR} Original error: {e}") from e
 from .protos import agent_worker_pb2_grpc
 
 logger = logging.getLogger("autogen_core")

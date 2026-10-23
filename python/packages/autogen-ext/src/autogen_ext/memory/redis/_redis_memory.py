@@ -15,7 +15,10 @@ try:
     from redisvl.utils.utils import deserialize, serialize
     from redisvl.utils.vectorize import HFTextVectorizer
 except ImportError as e:
-    raise ImportError("To use Redis Memory RedisVL must be installed. Run `pip install autogen-ext[redisvl]`") from e
+    raise ImportError(
+        f"To use Redis Memory RedisVL must be installed. Original error: {e}\n"
+        "Run `pip install autogen-ext[redisvl]`"
+    ) from e
 
 
 class RedisMemoryConfig(BaseModel):

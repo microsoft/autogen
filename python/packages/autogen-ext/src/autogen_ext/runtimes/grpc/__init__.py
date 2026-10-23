@@ -6,7 +6,8 @@ try:
     import grpc  # type: ignore
 except ImportError as e:
     raise ImportError(
-        "To use the GRPC runtime the grpc extra must be installed. Run `pip install autogen-ext[grpc]`"
+        f"To use the GRPC runtime the grpc extra must be installed. Original error: {e}\n"
+        "Run `pip install autogen-ext[grpc]`"
     ) from e
 
 __all__ = [

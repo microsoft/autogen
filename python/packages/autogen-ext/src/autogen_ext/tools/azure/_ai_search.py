@@ -154,11 +154,11 @@ class EmbeddingProviderMixin:
                 from openai import AsyncAzureOpenAI
 
                 from azure.identity import DefaultAzureCredential
-            except ImportError:
+            except ImportError as e:
                 raise ImportError(
-                    "Azure OpenAI SDK is required for client-side embedding generation. "
+                    f"Azure OpenAI SDK is required for client-side embedding generation. Original error: {e}\n"
                     "Please install it with: uv add openai azure-identity"
-                ) from None
+                ) from e
 
             api_key = getattr(search_config, "openai_api_key", None)
             api_version = getattr(search_config, "openai_api_version", "2023-11-01")
@@ -193,11 +193,11 @@ class EmbeddingProviderMixin:
         elif embedding_provider.lower() == "openai":
             try:
                 from openai import AsyncOpenAI
-            except ImportError:
+            except ImportError as e:
                 raise ImportError(
-                    "OpenAI SDK is required for client-side embedding generation. "
+                    f"OpenAI SDK is required for client-side embedding generation. Original error: {e}\n"
                     "Please install it with: uv add openai"
-                ) from None
+                ) from e
 
             api_key = getattr(search_config, "openai_api_key", None)
             openai_client = AsyncOpenAI(api_key=api_key)

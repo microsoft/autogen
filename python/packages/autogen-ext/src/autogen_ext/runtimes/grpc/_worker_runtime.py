@@ -66,7 +66,7 @@ from .protos import agent_worker_pb2, agent_worker_pb2_grpc, cloudevent_pb2
 try:
     import grpc.aio
 except ImportError as e:
-    raise ImportError(GRPC_IMPORT_ERROR_STR) from e
+    raise ImportError(f"{GRPC_IMPORT_ERROR_STR} Original error: {e}") from e
 
 if TYPE_CHECKING:
     from .protos.agent_worker_pb2_grpc import AgentRpcAsyncStub
