@@ -4,7 +4,7 @@
 
 Agents might be distributed across multiple machines, so the underlying agent instance is intentionally discouraged from being accessed. If the agent is definitely running on the same machine, you can access the agent instance by calling {py:meth}`autogen_core.AgentRuntime.try_get_underlying_agent_instance` on the `AgentRuntime`. If the agent is not available this will throw an exception.
 
-## How do I call call a function on an agent?
+## How do I call a function on an agent?
 
 Since the instance itself is not accessible, you can't call a function on an agent directly. Instead, you should create a type to represent the function call and its arguments, and then send that message to the agent. Then in the agent, create a handler for that message type and implement the required logic. This also supports returning a response to the caller.
 
