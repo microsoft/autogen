@@ -12,6 +12,7 @@ from pydantic import (
     EmailStr,
     Field,
     Json,
+    RootModel,
     conbytes,
     confloat,
     conint,
@@ -138,6 +139,88 @@ class _JSONSchemaToPydantic:
 
         # Use field name as-is with hash suffix
         return f"{array_field_name}_{hash_suffix}"
+
+    def _resolve_non_object_type(self, schema: Dict[str, Any], model_name: str, root_schema: Dict[str, Any]) -> Any:
+        """Resolve the Python type for a non-object JSON schema (array, string, integer, etc.).
+
+        This handles $defs entries that define type aliases rather than object models,
+        e.g. ``{"type": "array", "items": {"type": "string"}}`` for ``list[str]``.
+        """
+        json_type = schema.get("type")
+        if json_type not in TYPE_MAPPING:
+            raise UnsupportedKeywordError(
+                f"Unsupported or missing type `{json_type}` for definition `{model_name}`"
+            )
+
+        base_type = TYPE_MAPPING[json_type]
+        constraints: Dict[str, Any] = {}
+
+        if json_type == "array":
+            if "minItems" in schema:
+                constraints["min_length"] = schema["minItems"]
+            if "maxItems" in schema:
+                constraints["max_length"] = schema["maxItems"]
+            item_schema = schema.get("items", {"type": "string"})
+            if "$ref" in item_schema:
+                item_type = self.get_ref(item_schema["$ref"].split("/")[-1])
+            elif item_schema.get("type") == "object" and "properties" in item_schema:
+                item_model_name = self._get_item_model_name("item", model_name)
+                item_type = self._json_schema_to_model(item_schema, item_model_name, root_schema)
+            else:
+                item_type_name = item_schema.get("type")
+                if item_type_name is None:
+                    item_type = str
+                elif item_type_name not in TYPE_MAPPING:
+                    raise UnsupportedKeywordError(
+                        f"Unsupported item type `{item_type_name}` for array definition `{model_name}`"
+                    )
+                else:
+                    item_type = TYPE_MAPPING[item_type_name]
+            base_type = conlist(item_type, **constraints) if constraints else List[item_type]  # type: ignore[valid-type]
+
+        elif json_type == "string":
+            if "minLength" in schema:
+                constraints["min_length"] = schema["minLength"]
+            if "maxLength" in schema:
+                constraints["max_length"] = schema["maxLength"]
+            if "pattern" in schema:
+                constraints["pattern"] = schema["pattern"]
+            if constraints:
+                base_type = constr(**constraints)
+            if "format" in schema:
+                format_type = FORMAT_MAPPING.get(schema["format"])
+                if format_type is not None:
+                    base_type = format_type
+
+        elif json_type == "integer":
+            if "minimum" in schema:
+                constraints["ge"] = schema["minimum"]
+            if "maximum" in schema:
+                constraints["le"] = schema["maximum"]
+            if "exclusiveMinimum" in schema:
+                constraints["gt"] = schema["exclusiveMinimum"]
+            if "exclusiveMaximum" in schema:
+                constraints["lt"] = schema["exclusiveMaximum"]
+            if constraints:
+                base_type = conint(**constraints)
+
+        elif json_type == "number":
+            if "minimum" in schema:
+                constraints["ge"] = schema["minimum"]
+            if "maximum" in schema:
+                constraints["le"] = schema["maximum"]
+            if "exclusiveMinimum" in schema:
+                constraints["gt"] = schema["exclusiveMinimum"]
+            if "exclusiveMaximum" in schema:
+                constraints["lt"] = schema["exclusiveMaximum"]
+            if constraints:
+                base_type = confloat(**constraints)
+
+        # Handle enum within a typed schema
+        if "enum" in schema:
+            base_type = Literal[tuple(schema["enum"])]  # type: ignore[valid-type]
+
+        return base_type
 
     def _process_definitions(self, root_schema: Dict[str, Any]) -> None:
         if "$defs" in root_schema:
@@ -308,6 +391,19 @@ class _JSONSchemaToPydantic:
                     merged[k] = v
             merged["required"] = list(set(merged["required"]))
             schema = merged
+
+        # Handle non-object schemas (e.g., array, string, integer type aliases in $defs)
+        schema_type = schema.get("type")
+        if schema_type is not None and schema_type != "object" and "properties" not in schema:
+            root_type = self._resolve_non_object_type(schema, model_name, root_schema)
+            model = type(model_name, (RootModel[root_type],), {})  # type: ignore[valid-type]
+            return cast(Type[BaseModel], model)
+
+        # Handle enum-only schemas without a type field
+        if "enum" in schema and "properties" not in schema and schema_type is None:
+            enum_type = Literal[tuple(schema["enum"])]  # type: ignore[valid-type]
+            model = type(model_name, (RootModel[enum_type],), {})  # type: ignore[valid-type]
+            return cast(Type[BaseModel], model)
 
         fields: Dict[str, tuple[Any, FieldInfo]] = {}
         required_fields = set(schema.get("required", []))
