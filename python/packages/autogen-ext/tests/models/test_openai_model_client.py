@@ -12,6 +12,7 @@ from autogen_agentchat.messages import MultiModalMessage
 from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import (
     AssistantMessage,
+    ChatCompletionClient,
     CreateResult,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
@@ -203,6 +204,32 @@ async def test_openai_chat_completion_client_serialization() -> None:
     assert "sk-password" not in serialized_config
     client2 = OpenAIChatCompletionClient.load_component(config)
     assert client2
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_config_preserves_extra_body() -> None:
+    extra_body = {"enable_thinking": False, "chat_template_kwargs": {"reasoning": False}}
+
+    client = OpenAIChatCompletionClient(model="gpt-4.1-nano", api_key="sk-password", extra_body=extra_body)
+    config = client.dump_component()
+
+    assert config.config["extra_body"] == extra_body
+    loaded_client = OpenAIChatCompletionClient.load_component(config)
+    assert loaded_client._create_args["extra_body"] == extra_body  # pyright: ignore[reportPrivateUsage]
+    assert loaded_client._raw_config["extra_body"] == extra_body  # pyright: ignore[reportPrivateUsage]
+
+    studio_config = {
+        "provider": "autogen_ext.models.openai.OpenAIChatCompletionClient",
+        "config": {
+            "model": "gpt-4.1-nano",
+            "api_key": "sk-password",
+            "extra_body": extra_body,
+        },
+    }
+    loaded_from_json = ChatCompletionClient.load_component(studio_config)
+    assert isinstance(loaded_from_json, OpenAIChatCompletionClient)
+    assert loaded_from_json._create_args["extra_body"] == extra_body  # pyright: ignore[reportPrivateUsage]
+    assert loaded_from_json._raw_config["extra_body"] == extra_body  # pyright: ignore[reportPrivateUsage]
 
 
 @pytest.mark.asyncio
