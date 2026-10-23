@@ -89,6 +89,13 @@ Add memory capabilities to your agents
 Log traces and internal messages
 :::
 
+:::{grid-item-card} {fas}`shield-halved;pst-color-primary` Runtime Security (Vaultak)
+:link: ./vaultak-security.html
+:link-alt: Runtime Security: Risk-score and block dangerous tool calls before they execute
+
+Risk-score and block dangerous tool calls before they execute
+:::
+
 :::{grid-item-card} {fas}`save;pst-color-primary` Serialize Components
 :link: ./serialize-components.html
 :link-alt: Serialize Components: Serialize and deserialize components
@@ -150,6 +157,7 @@ memory
 logging
 serialize-components
 tracing
+vaultak-security
 
 ```
 
