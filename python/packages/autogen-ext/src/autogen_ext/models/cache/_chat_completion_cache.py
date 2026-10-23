@@ -65,7 +65,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                 # from autogen_ext.cache_store.redis import RedisStore
                 # import redis
                 # redis_instance = redis.Redis()
-                # cache_store = RedisCacheStore[CHAT_CACHE_VALUE_TYPE](redis_instance)
+                # cache_store = RedisStore[CHAT_CACHE_VALUE_TYPE](redis_instance)
                 cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
                 cache_client = ChatCompletionCache(openai_model_client, cache_store)
 
