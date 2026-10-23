@@ -3,8 +3,11 @@ from typing import Any, Dict, List, Union
 
 try:  # pragma: no cover
     from unidiff import PatchSet
-except ModuleNotFoundError:  # pragma: no cover
+
+    _unidiff_import_error: Exception | None = None
+except ModuleNotFoundError as e:  # pragma: no cover
     PatchSet = None  # type: ignore
+    _unidiff_import_error = e
 
 from ._canvas import BaseCanvas
 
@@ -150,7 +153,7 @@ class TextCanvas(BaseCanvas):
         if PatchSet is None:
             raise ImportError(
                 "The 'unidiff' package is required for patch application. Install with 'pip install unidiff'."
-            )
+            ) from _unidiff_import_error
 
         patch = PatchSet(patch_data)
         # Our canvas stores exactly one file per patch operation so we
