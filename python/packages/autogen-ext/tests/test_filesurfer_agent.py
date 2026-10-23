@@ -167,3 +167,55 @@ async def test_file_surfer_serialization() -> None:
 
     # Check that the deserialized agent has the same attributes as the original agent
     assert isinstance(deserialized_agent, FileSurfer)
+
+
+@pytest.mark.asyncio
+async def test_open_path_valid_directory(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Create a test directory
+    test_dir = os.path.abspath("test_filesurfer_agent_dir")
+    os.makedirs(test_dir, exist_ok=True)
+
+    # Mock the API calls
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="tool_calls",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content=None,
+                        tool_calls=[
+                            ChatCompletionMessageToolCall(
+                                id="1",
+                                type="function",
+                                function=Function(
+                                    name="open_path",
+                                    arguments=json.dumps({"path": test_dir}),
+                                ),
+                            )
+                        ],
+                        role="assistant",
+                    ),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+    agent = FileSurfer(
+        "FileSurfer",
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+    )
+
+    # Get the FileSurfer to read the directory
+    assert agent._name == "FileSurfer"  # pyright: ignore[reportPrivateUsage]
+    result = await agent.run(task="Please read the test directory")
+    assert isinstance(result.messages[1], TextMessage)
+    assert "# Index of " in result.messages[1].content
+    assert "test_filesurfer_agent_dir" in result.messages[1].content
