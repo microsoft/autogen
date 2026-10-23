@@ -16,6 +16,7 @@ from autogen_core import (
     type_subscription,
 )
 from autogen_core._default_subscription import default_subscription
+from autogen_core.exceptions import RecipientNotFoundError
 from autogen_test_utils import (
     CascadingAgent,
     CascadingMessageType,
@@ -348,6 +349,18 @@ async def test_event_handler_exception_propogates() -> None:
         await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
         await runtime.stop_when_idle()
 
+    await runtime.close()
+
+
+@pytest.mark.asyncio
+async def test_recipient_not_found() -> None:
+    runtime = SingleThreadedAgentRuntime()
+    runtime.start()
+
+    with pytest.raises(RecipientNotFoundError, match="Recipient not found"):
+        await runtime.send_message(MessageType(), recipient=AgentId("nonexistent_agent", "default"))
+
+    await runtime.stop()
     await runtime.close()
 
 
