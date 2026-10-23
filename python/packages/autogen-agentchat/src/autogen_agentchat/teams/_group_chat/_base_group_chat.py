@@ -27,6 +27,7 @@ from ...messages import (
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
@@ -744,6 +745,37 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             GroupChatResume(),
             recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
         )
+
+    async def get_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get the message thread of the group chat.
+
+        The team must be initialized before its thread can be retrieved.
+
+        Returns:
+            A list of messages representing the current conversation thread.
+
+        Raises:
+            RuntimeError: If the team has not been initialized.
+        """
+        if not self._initialized:
+            raise RuntimeError(
+                "The group chat has not been initialized. It must be run before its thread can be retrieved."
+            )
+
+        if self._embedded_runtime:
+            assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+            self._runtime.start()
+
+        try:
+            response = await self._runtime.send_message(
+                GroupChatGetThread(),
+                recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            )
+            return response.messages  # type: ignore
+        finally:
+            if self._embedded_runtime:
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                await self._runtime.stop_when_idle()
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the group chat team.
