@@ -55,6 +55,10 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
     - Selecting the first N or last N messages from each source
     - If position is `None`, all messages from that source are included
 
+    Regardless of the order of the filters in the config, the filtered
+    messages are handed to the wrapped agent in chronological order -- the
+    order in which they appear in the input message sequence.
+
     This agent is compatible with both direct message passing and team-based execution
     such as :class:`~autogen_agentchat.teams.GraphFlow`.
 
@@ -163,6 +167,21 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
                 msgs = msgs[-source_filter.count :]
 
             result.extend(msgs)
+
+        # Restore chronological order: the loop above emits messages grouped
+        # by filter, in per_source config order, which generally differs from
+        # the order the messages appear in `messages`.
+        # The index map is keyed by object identity on purpose. Using
+        # `messages.index(m)` here would be O(n^2) and, worse, incorrect:
+        # BaseChatMessage.__eq__ is pydantic value equality, so two distinct
+        # message objects carrying the same id (e.g. one produced via
+        # model_copy(), or a message restored from a checkpoint) compare
+        # equal, and index() would return the first duplicate's position for
+        # both. The stable sort would then silently keep them in config order
+        # instead of chronological order. id(m) is unique per live object, so
+        # every message maps to its true position in O(n) total.
+        order = {id(m): i for i, m in enumerate(messages)}
+        result.sort(key=lambda m: order[id(m)])
 
         return result
 
