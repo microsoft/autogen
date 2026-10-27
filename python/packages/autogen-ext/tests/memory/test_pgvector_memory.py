@@ -16,7 +16,6 @@ import pytest
 from autogen_core.memory import MemoryContent, MemoryMimeType
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import SystemMessage, UserMessage
-
 from autogen_ext.memory.pgvector import PgvectorMemory, PgvectorMemoryConfig
 
 _MODULE = "autogen_ext.memory.pgvector._pgvector_memory"
@@ -58,8 +57,9 @@ class _FakeCursor:
 
 
 class _FakeConnection:
-    def __init__(self, store: Dict[str, Tuple[Any, ...]]) -> None:
+    def __init__(self, store: Dict[str, Tuple[Any, ...]], statements: List[str]) -> None:
         self._store = store
+        self._statements = statements
 
     async def __aenter__(self) -> "_FakeConnection":
         return self
@@ -67,8 +67,12 @@ class _FakeConnection:
     async def __aexit__(self, *exc: Any) -> bool:
         return False
 
-    async def execute(self, sql: str, params: Tuple[Any, ...] | None = None) -> _FakeCursor:
-        keyword = sql.strip().split(None, 1)[0].upper()
+    async def execute(self, query: Any, params: Tuple[Any, ...] | None = None) -> _FakeCursor:
+        # Production code composes statements with psycopg.sql; render them to text here so the
+        # fake can route on the leading keyword exactly as a real driver would execute them.
+        text = query if isinstance(query, str) else query.as_string(None)
+        self._statements.append(text)
+        keyword = text.strip().split(None, 1)[0].upper()
         if keyword == "CREATE":
             return _FakeCursor([])
         if keyword == "INSERT":
@@ -96,6 +100,7 @@ class _FakeConnection:
 class _FakePool:
     def __init__(self) -> None:
         self.store: Dict[str, Tuple[Any, ...]] = {}
+        self.statements: List[str] = []
         self.open_count = 0
         self.closed = False
 
@@ -106,7 +111,7 @@ class _FakePool:
         self.closed = True
 
     def connection(self) -> _FakeConnection:
-        return _FakeConnection(self.store)
+        return _FakeConnection(self.store, self.statements)
 
 
 def _make_memory(pool: _FakePool, **config_kwargs: Any) -> PgvectorMemory:
@@ -243,3 +248,31 @@ def test_component_config_roundtrip() -> None:
     assert isinstance(loaded, PgvectorMemory)
     assert loaded.config.table_name == "custom_mem"
     assert loaded.config.top_k == 5
+
+
+@pytest.mark.asyncio
+async def test_create_extension_runs_by_default() -> None:
+    pool = _FakePool()
+    memory = _make_memory(pool)
+    await memory.add(_text("billing invoice"))
+    assert any(s.strip().upper().startswith("CREATE EXTENSION") for s in pool.statements)
+
+
+@pytest.mark.asyncio
+async def test_create_extension_skipped_when_disabled() -> None:
+    pool = _FakePool()
+    memory = _make_memory(pool, create_extension=False)
+    await memory.add(_text("billing invoice"))
+    assert not any(s.strip().upper().startswith("CREATE EXTENSION") for s in pool.statements)
+    # The table is still created; only the extension step is skipped.
+    assert any("CREATE TABLE" in s.upper() for s in pool.statements)
+
+
+@pytest.mark.asyncio
+async def test_table_name_rendered_as_quoted_identifier() -> None:
+    pool = _FakePool()
+    memory = _make_memory(pool, table_name="my_mem")
+    await memory.add(_text("billing invoice"))
+    insert = next(s for s in pool.statements if s.strip().upper().startswith("INSERT"))
+    # Composed with psycopg.sql.Identifier, so the table name is a quoted identifier, not interpolated text.
+    assert '"my_mem"' in insert

@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from pgvector.psycopg import register_vector_async
+    from psycopg import sql
     from psycopg_pool import AsyncConnectionPool
 except ImportError as e:
     raise ImportError(
@@ -46,6 +47,11 @@ class PgvectorMemoryConfig(BaseModel):
         description="PostgreSQL connection string, e.g. postgresql://user:password@host:5432/dbname.",
     )
     table_name: str = Field(default="autogen_memory", description="Name of the table that stores memory entries.")
+    create_extension: bool = Field(
+        default=True,
+        description="Run CREATE EXTENSION IF NOT EXISTS vector on first use. Set False on managed PostgreSQL where the "
+        "extension is pre-provisioned and the application role lacks the privilege to create it.",
+    )
     model_name: str = Field(
         default="all-MiniLM-L6-v2",
         description="SentenceTransformers model used by the default embedder.",
@@ -81,8 +87,11 @@ class PgvectorMemory(Memory, Component[PgvectorMemoryConfig]):
 
         pip install "autogen-ext[pgvector]"
 
-    You also need a PostgreSQL database with the ``vector`` extension available;
-    the extension, table, and indexes are created on first use.
+    You also need a PostgreSQL database with the ``vector`` extension available.
+    The table and indexes are created on first use. The ``vector`` extension is
+    also created then by default; on managed PostgreSQL where it is already
+    provisioned and the application role cannot create extensions, set
+    ``create_extension=False``.
 
     Args:
         config (PgvectorMemoryConfig | None): Configuration for the memory. If
@@ -165,8 +174,10 @@ class PgvectorMemory(Memory, Component[PgvectorMemoryConfig]):
         async with pool.connection() as conn:
             await self._prepare_connection(conn)
             await conn.execute(
-                f"INSERT INTO {self._table} (id, content, mime_type, metadata, embedding)"
-                " VALUES (%s, %s, %s, %s::jsonb, %s::vector)",
+                sql.SQL(
+                    "INSERT INTO {table} (id, content, mime_type, metadata, embedding)"
+                    " VALUES (%s, %s, %s, %s::jsonb, %s::vector)"
+                ).format(table=sql.Identifier(self._table)),
                 (uuid.uuid4().hex, text, mime_type, json.dumps(metadata), list(embedding)),
             )
 
@@ -193,8 +204,10 @@ class PgvectorMemory(Memory, Component[PgvectorMemoryConfig]):
         async with pool.connection() as conn:
             await self._prepare_connection(conn)
             cursor = await conn.execute(
-                f"SELECT content, mime_type, metadata, embedding <=> %s::vector AS distance"
-                f" FROM {self._table} ORDER BY distance LIMIT %s",
+                sql.SQL(
+                    "SELECT content, mime_type, metadata, embedding <=> %s::vector AS distance"
+                    " FROM {table} ORDER BY distance LIMIT %s"
+                ).format(table=sql.Identifier(self._table)),
                 (list(embedding), top_k),
             )
             rows = await cursor.fetchall()
@@ -211,7 +224,7 @@ class PgvectorMemory(Memory, Component[PgvectorMemoryConfig]):
         pool = await self._ensure_pool()
         async with pool.connection() as conn:
             await self._prepare_connection(conn)
-            await conn.execute(f"DELETE FROM {self._table}")
+            await conn.execute(sql.SQL("DELETE FROM {table}").format(table=sql.Identifier(self._table)))
 
     async def close(self) -> None:
         """Close the connection pool if this instance created it."""
@@ -305,21 +318,32 @@ class PgvectorMemory(Memory, Component[PgvectorMemoryConfig]):
             self._schema_ready = True
 
     async def _ensure_schema(self, conn: Any) -> None:
-        await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        if self.config.create_extension:
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        table = sql.Identifier(self._table)
         await conn.execute(
-            f"CREATE TABLE IF NOT EXISTS {self._table} ("
-            " id text PRIMARY KEY,"
-            " content text NOT NULL,"
-            " mime_type text NOT NULL,"
-            " metadata jsonb NOT NULL DEFAULT '{}'::jsonb,"
-            f" embedding vector({self.config.embedding_dimension}) NOT NULL,"
-            " created_at timestamptz NOT NULL DEFAULT now()"
-            ")"
+            sql.SQL(
+                "CREATE TABLE IF NOT EXISTS {table} ("
+                " id text PRIMARY KEY,"
+                " content text NOT NULL,"
+                " mime_type text NOT NULL,"
+                " metadata jsonb NOT NULL DEFAULT '{{}}'::jsonb,"
+                " embedding vector({dim}) NOT NULL,"
+                " created_at timestamptz NOT NULL DEFAULT now()"
+                ")"
+            ).format(table=table, dim=sql.Literal(self.config.embedding_dimension))
         )
         await conn.execute(
-            f"CREATE INDEX IF NOT EXISTS {self._table}_embedding_idx ON {self._table}"
-            f" USING hnsw (embedding vector_cosine_ops)"
-            f" WITH (m = {self.config.hnsw_m}, ef_construction = {self.config.hnsw_ef_construction})"
+            sql.SQL(
+                "CREATE INDEX IF NOT EXISTS {index} ON {table}"
+                " USING hnsw (embedding vector_cosine_ops)"
+                " WITH (m = {m}, ef_construction = {ef})"
+            ).format(
+                index=sql.Identifier(f"{self._table}_embedding_idx"),
+                table=table,
+                m=sql.Literal(self.config.hnsw_m),
+                ef=sql.Literal(self.config.hnsw_ef_construction),
+            )
         )
 
 
