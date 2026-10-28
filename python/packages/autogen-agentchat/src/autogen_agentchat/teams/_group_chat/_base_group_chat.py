@@ -547,6 +547,8 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                     cancellation_token.link_future(message_future)
                 # Wait for the next message, this will raise an exception if the task is cancelled.
                 message = await message_future
+                if cancellation_token is not None and cancellation_token.is_cancelled():
+                    break
                 if isinstance(message, GroupChatTermination):
                     # If the message contains an error, we need to raise it here.
                     # This will stop the team and propagate the error.
