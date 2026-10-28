@@ -1671,6 +1671,58 @@ async def test_tool_calling_with_stream(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 @pytest.mark.asyncio
+async def test_tool_calling_with_stream_normalizes_tool_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
+        model = resolve_model(kwargs.get("model", "gpt-4o"))
+        chunk = MockChunkDefinition(
+            chunk_choice=ChunkChoice(
+                finish_reason="tool_calls",
+                index=0,
+                delta=ChoiceDelta(
+                    content=None,
+                    role="assistant",
+                    tool_calls=[
+                        ChoiceDeltaToolCall(
+                            index=0,
+                            id="call_1",
+                            type="function",
+                            function=ChoiceDeltaToolCallFunction(
+                                name="functions.get_weather!",
+                                arguments=json.dumps({"city": "Seattle"}),
+                            ),
+                        )
+                    ],
+                ),
+            ),
+            usage=None,
+        )
+        yield ChatCompletionChunk(
+            id="id",
+            choices=[chunk.chunk_choice],
+            created=0,
+            model=model,
+            object="chat.completion.chunk",
+            usage=chunk.usage,
+        )
+
+    async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
+        return _mock_create_stream(*args, **kwargs)
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
+
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", api_key="placeholder")
+    stream = model_client.create_stream(messages=[UserMessage(content="What is the weather?", source="user")])
+    chunks: List[str | CreateResult] = []
+    async for chunk in stream:
+        chunks.append(chunk)
+
+    assert isinstance(chunks[-1], CreateResult)
+    assert isinstance(chunks[-1].content, list)
+    assert len(chunks[-1].content) == 1
+    assert chunks[-1].content[0].name == "functions_get_weather_"
+
+
+@pytest.mark.asyncio
 async def test_tool_calls_assistant_message_content_field(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that AssistantMessage with tool calls includes required content field.
 
