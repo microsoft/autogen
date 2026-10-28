@@ -228,12 +228,15 @@ def _set_multimodal_content(
 
     for idx, part in enumerate(message.content):
         if isinstance(part, str):
-            # If prepend, Append the name to the first text part
-            text = f"{message.source} said:\n" + part if prepend and idx == 0 else part
-            parts.append(ChatCompletionContentPartTextParam(type="text", text=text))
+            if part.startswith("http://") or part.startswith("https://"):
+                parts.append(
+                    cast(ChatCompletionContentPartImageParam, {"type": "image_url", "image_url": {"url": part}})
+                )
+            else:
+                # If prepend, Append the name to the first text part
+                text = f"{message.source} said:\n" + part if prepend and idx == 0 else part
+                parts.append(ChatCompletionContentPartTextParam(type="text", text=text))
         elif isinstance(part, Image):
-            # TODO: support url based images
-            # TODO: support specifying details
             parts.append(cast(ChatCompletionContentPartImageParam, part.to_openai_format()))
         else:
             raise ValueError(f"Unknown content part: {part}")
