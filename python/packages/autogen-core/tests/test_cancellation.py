@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from dataclasses import dataclass
 
 import pytest
@@ -158,3 +159,19 @@ async def test_nested_cancellation_inner_called() -> None:
     long_running_agent = await runtime.try_get_underlying_agent_instance(long_running_id, type=LongRunningAgent)
     assert long_running_agent.called
     assert long_running_agent.cancelled
+
+
+@pytest.mark.asyncio
+async def test_cancellation_token_threadsafe_link_future() -> None:
+    loop = asyncio.get_running_loop()
+    token = CancellationToken()
+    future = token.link_future(loop.create_future())
+    future.add_done_callback(lambda _: None)
+
+    worker = threading.Thread(target=token.cancel)
+    worker.start()
+    worker.join(timeout=2)
+
+    await asyncio.sleep(0.01)
+    assert future.cancelled()
+
