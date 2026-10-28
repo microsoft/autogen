@@ -1,8 +1,8 @@
-from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel, Field, SecretStr
 from typing_extensions import Required, TypedDict
 
 
@@ -74,6 +74,8 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     include_name_in_message: bool
     """Whether to include the 'name' field in user message parameters. Defaults to True. Set to False for providers that don't support the 'name' field."""
     default_headers: Dict[str, str] | None
+    http_client: Any | None = None
+    """Optional HTTP client to use for requests. Useful for custom TLS settings, proxies, or other httpx configuration."""
 
 
 # See OpenAI docs for explanation of these parameters
@@ -120,6 +122,8 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     add_name_prefixes: bool | None = None
     include_name_in_message: bool | None = None
     default_headers: Dict[str, str] | None = None
+    http_client: Any | None = Field(default=None, exclude=True)
+    """Optional HTTP client to use for requests. Not serialized."""
 
 
 # See OpenAI docs for explanation of these parameters
