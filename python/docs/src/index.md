@@ -43,6 +43,15 @@ A framework for building AI agents and applications
 
 <div style="margin-top: 2rem;">
 
+:::{caution} Project archived and no longer maintained
+
+This project has been archived and is no longer actively maintained by Microsoft. Microsoft is not providing bug fixes, security fixes, new features, or support for this project. The repository remains available for historical and reference purposes.
+
+Use archived repositories with caution. Without ongoing maintenance or security fixes, vulnerabilities in this project and its dependencies may remain unaddressed. Carefully assess these risks before using AutoGen, particularly when handling sensitive data. AutoGen was developed for research and experimentation; we continue to advise against production use.
+
+New users should start with [Microsoft Agent Framework](https://github.com/microsoft/agent-framework). Existing users are encouraged to migrate using the [AutoGen to Microsoft Agent Framework migration guide](https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen/).
+:::
+
 ::::{grid}
 :gutter: 2
 
