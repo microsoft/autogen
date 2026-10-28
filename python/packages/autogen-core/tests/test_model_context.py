@@ -86,6 +86,36 @@ async def test_head_and_tail_model_context() -> None:
 
 
 @pytest.mark.asyncio
+async def test_head_and_tail_skipped_messages_count_with_trimmed_boundary_tool_messages() -> None:
+    from autogen_core import FunctionCall
+    from autogen_core.models import FunctionExecutionResult
+
+    messages: List[LLMMessage] = []
+    for i in range(2):
+        messages.extend(
+            [
+                UserMessage(content=f"question {i}", source="user"),
+                AssistantMessage(
+                    content=[FunctionCall(id=str(i), name="lookup", arguments="{}")],
+                    source="assistant",
+                ),
+                FunctionExecutionResultMessage(
+                    content=[FunctionExecutionResult(content="result", name="lookup", call_id=str(i))]
+                ),
+                AssistantMessage(content=f"answer {i}", source="assistant"),
+            ]
+        )
+
+    context = HeadAndTailChatCompletionContext(head_size=2, tail_size=2, initial_messages=messages)
+    retrieved = await context.get_messages()
+
+    assert len(retrieved) == 3
+    assert retrieved[0] == messages[0]
+    assert retrieved[1] == UserMessage(content="Skipped 6 messages.", source="System")
+    assert retrieved[2] == messages[-1]
+
+
+@pytest.mark.asyncio
 async def test_unbounded_model_context() -> None:
     model_context = UnboundedChatCompletionContext()
     messages: List[LLMMessage] = [
