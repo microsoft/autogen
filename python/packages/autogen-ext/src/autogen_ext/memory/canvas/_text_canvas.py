@@ -164,14 +164,21 @@ class TextCanvas(BaseCanvas):
             # Calculate the slice boundaries in the *current* working copy.
             start = hunk.source_start - 1 + line_offset
             end = start + hunk.source_length
-            # Build the replacement block for this hunk.
+            expected_source: List[str] = []
             replacement: List[str] = []
             for line in hunk:
+                if line.is_removed or line.is_context:
+                    expected_source.append(line.value)
                 if line.is_added or line.is_context:
                     replacement.append(line.value)
                 # removed lines (line.is_removed) are *not* added.
+                
+            if working_lines[start:end] != expected_source:
+                raise ValueError("Patch rejected: Hunk source context does not match the target file.")
+                
             # Replace the slice with the hunk‑result.
             working_lines[start:end] = replacement
+
             line_offset += len(replacement) - (end - start)
         new_content = "".join(working_lines)
 
