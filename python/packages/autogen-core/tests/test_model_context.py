@@ -1,6 +1,8 @@
-from typing import List
+from typing import List, Sequence
+from unittest.mock import MagicMock
 
 import pytest
+from autogen_core import FunctionCall
 from autogen_core.model_context import (
     BufferedChatCompletionContext,
     HeadAndTailChatCompletionContext,
@@ -10,6 +12,7 @@ from autogen_core.model_context import (
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
+    FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     UserMessage,
@@ -208,3 +211,95 @@ async def test_token_limited_model_context_openai_with_function_result(
     assert type(retrieved[0]) == UserMessage  # Function result should be removed
     assert type(retrieved[1]) == AssistantMessage
     assert type(retrieved[2]) == UserMessage
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("pair_start", [2, 3], ids=["result-at-middle", "call-at-middle"])
+@pytest.mark.parametrize("token_limit", [6, None], ids=["count-tokens", "remaining-tokens"])
+async def test_token_limited_model_context_keeps_function_call_result_pairs(
+    pair_start: int, token_limit: int | None
+) -> None:
+    def count_tokens(messages: Sequence[LLMMessage], **_: object) -> int:
+        return len(messages)
+
+    def remaining_tokens(messages: Sequence[LLMMessage], **_: object) -> int:
+        return 6 - len(messages)
+
+    model_client = MagicMock(spec=ChatCompletionClient)
+    model_client.count_tokens.side_effect = count_tokens
+    model_client.remaining_tokens.side_effect = remaining_tokens
+    model_context = TokenLimitedChatCompletionContext(model_client=model_client, token_limit=token_limit)
+
+    function_call = AssistantMessage(
+        content=[FunctionCall(id="call_1", arguments="{}", name="tool")], source="assistant"
+    )
+    function_result = FunctionExecutionResultMessage(
+        content=[FunctionExecutionResult(content="ok", name="tool", call_id="call_1")]
+    )
+    messages: List[LLMMessage] = [
+        UserMessage(content="m0", source="user"),
+        UserMessage(content="m1", source="user"),
+        UserMessage(content="m2", source="user"),
+        UserMessage(content="m3", source="user"),
+        UserMessage(content="m4", source="user"),
+    ]
+    messages[pair_start:pair_start] = [function_call, function_result]
+    for message in messages:
+        await model_context.add_message(message)
+
+    retrieved = await model_context.get_messages()
+
+    assert function_call not in retrieved
+    assert function_result not in retrieved
+    assert len(retrieved) == 5
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("unpaired", ["call", "result"])
+@pytest.mark.parametrize("token_limit", [6, None], ids=["count-tokens", "remaining-tokens"])
+async def test_token_limited_model_context_removes_unpaired_tool_message(
+    unpaired: str, token_limit: int | None
+) -> None:
+    """A tool call or result with no adjacent counterpart is removed on its own.
+
+    This pins the documented fallback in ``_remove_middle_message``: there is no pair
+    to keep together, so dropping the single unmatched message is intended behaviour.
+    """
+
+    def count_tokens(messages: Sequence[LLMMessage], **_: object) -> int:
+        return len(messages)
+
+    def remaining_tokens(messages: Sequence[LLMMessage], **_: object) -> int:
+        return 6 - len(messages)
+
+    model_client = MagicMock(spec=ChatCompletionClient)
+    model_client.count_tokens.side_effect = count_tokens
+    model_client.remaining_tokens.side_effect = remaining_tokens
+    model_context = TokenLimitedChatCompletionContext(model_client=model_client, token_limit=token_limit)
+
+    orphan: LLMMessage
+    if unpaired == "call":
+        orphan = AssistantMessage(content=[FunctionCall(id="call_1", arguments="{}", name="tool")], source="assistant")
+    else:
+        orphan = FunctionExecutionResultMessage(
+            content=[FunctionExecutionResult(content="ok", name="tool", call_id="call_1")]
+        )
+    # The orphan sits at the midpoint of a seven message history, so a single
+    # truncation step lands on it with no counterpart on either side.
+    messages: List[LLMMessage] = [
+        UserMessage(content="m0", source="user"),
+        UserMessage(content="m1", source="user"),
+        UserMessage(content="m2", source="user"),
+        orphan,
+        UserMessage(content="m4", source="user"),
+        UserMessage(content="m5", source="user"),
+        UserMessage(content="m6", source="user"),
+    ]
+    for message in messages:
+        await model_context.add_message(message)
+
+    retrieved = await model_context.get_messages()
+
+    # Only the unpaired message is dropped; its neighbours are untouched.
+    assert orphan not in retrieved
+    assert retrieved == [message for message in messages if message is not orphan]
