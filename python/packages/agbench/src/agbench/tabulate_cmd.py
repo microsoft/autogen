@@ -219,9 +219,9 @@ def default_tabulate(
         # Count the number of failures when the value is False.
         failures: pd.Series = df[score_columns].apply(_check_false).sum(axis=0)  # type: ignore
         # Count the number of missing
-        missings = df[score_columns].isna().sum(axis=0)  # type: ignore
+        missing = df[score_columns].isna().sum(axis=0)  # type: ignore
         # Count the total number of instances
-        totals = successes + failures + missings  # type: ignore
+        totals = successes + failures + missing  # type: ignore
         # Calculate the average success rates
         avg_success_rates = successes / (successes + failures)  # type: ignore
         time_columns = ["Trial " + str(i) + " Time" for i in range(num_instances)]  # type: ignore
@@ -243,7 +243,7 @@ def default_tabulate(
             {
                 "Successes": _list(successes),  # type: ignore
                 "Failures": _list(failures),  # type: ignore
-                "Missing": _list(missings),  # type: ignore
+                "Missing": _list(missing),  # type: ignore
                 "Total": _list(totals),  # type: ignore
                 "Average Success Rate": _list(avg_success_rates),  # type: ignore
                 "Average Time": _list(avg_times),  # type: ignore

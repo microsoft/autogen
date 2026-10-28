@@ -467,7 +467,7 @@ public class HandoffMessage : ChatMessage
 public class FunctionCall
 {
     // TODO: Should this be part of the Autogen "Core" (and what does that even mean on the .NET side?)
-    // It is unfortuante that we have to duplicate this type, but in order to be compatible with Python, it is necessary for
+    // It is unfortunate that we have to duplicate this type, but in order to be compatible with Python, it is necessary for
     // us to be able to process incoming FunctionCalls with parameters in the form of a JSON string. This means that without
     // knowing the target function, and unless the types are specified inline in the JSON, we cannot deserialize them in a
     // generic manner (or we need to have a central registry of function calls, which is undesirable).

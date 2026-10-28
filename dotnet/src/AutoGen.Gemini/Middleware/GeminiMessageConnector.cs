@@ -21,7 +21,7 @@ namespace AutoGen.Gemini;
 public class GeminiMessageConnector : IStreamingMiddleware
 {
     /// <summary>
-    /// if true, the connector will throw an exception if it encounters an unsupport message type.
+    /// if true, the connector will throw an exception if it encounters an unsupported message type.
     /// Otherwise, it will ignore processing the message and return the message as is.
     /// </summary>
     private readonly bool strictMode;
@@ -29,8 +29,8 @@ public class GeminiMessageConnector : IStreamingMiddleware
     /// <summary>
     /// Initializes a new instance of the <see cref="GeminiMessageConnector"/> class.
     /// </summary>
-    /// <param name="strictMode">whether to throw an exception if it encounters an unsupport message type.
-    /// If true, the connector will throw an exception if it encounters an unsupport message type.
+    /// <param name="strictMode">whether to throw an exception if it encounters an unsupported message type.
+    /// If true, the connector will throw an exception if it encounters an unsupported message type.
     /// If false, it will ignore processing the message and return the message as is.</param>
     public GeminiMessageConnector(bool strictMode = false)
     {

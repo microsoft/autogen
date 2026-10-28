@@ -92,9 +92,9 @@ public abstract class BaseAgent : IHostableAgent, ISaveState
         return null;
     }
 
-    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, string? messageId = null, CancellationToken cancellationToken = default)
+    public ValueTask<object?> SendMessageAsync(object message, AgentId recipient, string? messageId = null, CancellationToken cancellationToken = default)
     {
-        return this.Runtime.SendMessageAsync(message, recepient, sender: this.Id, messageId: messageId, cancellationToken: cancellationToken);
+        return this.Runtime.SendMessageAsync(message, recipient, sender: this.Id, messageId: messageId, cancellationToken: cancellationToken);
 
     }
 
