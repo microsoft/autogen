@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Type, cast
 
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, ConfigDict, Field, create_model
 
 if TYPE_CHECKING:
     from langchain_core.tools import BaseTool as LangChainTool
@@ -171,7 +171,7 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
                 for k, v in sig.parameters.items()
                 if k != "self" and v.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
             }
-            args_type = create_model(f"{name}Args", **fields)  # type: ignore
+            args_type = create_model(f"{name}Args", __config__=ConfigDict(arbitrary_types_allowed=True), **fields)  # type: ignore
             # Note: type ignore is used due to a LangChain typing limitation
 
         # Ensure args_type is a subclass of BaseModel
