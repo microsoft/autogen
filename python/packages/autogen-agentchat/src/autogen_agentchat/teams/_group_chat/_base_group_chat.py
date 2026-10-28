@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
+from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence, Tuple
 
 from autogen_core import (
     AgentId,
@@ -67,7 +67,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self,
         name: str,
         description: str,
-        participants: List[ChatAgent | Team],
+        participants: List[ChatAgent | Team] | Tuple[ChatAgent | Team, ...],
         group_chat_manager_name: str,
         group_chat_manager_class: type[SequentialRoutedAgent],
         termination_condition: TerminationCondition | None = None,
@@ -78,8 +78,19 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     ):
         self._name = name
         self._description = description
+        if participants is None:
+            raise TypeError("participants must be a list or tuple of ChatAgent or Team instances, got None")
+        if not isinstance(participants, (list, tuple)):
+            raise TypeError(
+                f"participants must be a list or tuple of ChatAgent or Team instances, got {type(participants).__name__}"
+            )
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
+        for i, participant in enumerate(participants):
+            if not isinstance(participant, (ChatAgent, Team)):
+                raise TypeError(
+                    f"participants[{i}] must be a ChatAgent or Team instance, got {type(participant).__name__}"
+                )
         if len(participants) != len(set(participant.name for participant in participants)):
             raise ValueError("The participant names must be unique.")
         self._participants = participants
