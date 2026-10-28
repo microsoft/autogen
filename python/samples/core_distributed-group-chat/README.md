@@ -114,3 +114,187 @@ graph TD;
 
 - [ ] Properly handle chat restarts. It complains about group chat manager being already registered
 - [ ] Add streaming to the UI like [this example](https://docs.chainlit.io/advanced-features/streaming) when [this bug](https://github.com/microsoft/autogen/issues/4213) is resolved
+
+## Production Deployment with TLS
+
+The distributed runtime uses gRPC for communication between the host and workers. By default, gRPC communication is unencrypted. For production deployments, you should encrypt traffic between all nodes using TLS.
+
+### Option 1: Reverse Proxy with TLS Termination
+
+The simplest approach is to place a reverse proxy (e.g., nginx, Caddy, or Envoy) in front of the gRPC host and configure it to terminate TLS:
+
+```nginx
+# nginx.conf example
+stream {
+    upstream grpc_backend {
+        server 127.0.0.1:50051;
+    }
+
+    server {
+        listen 50051 ssl;
+        ssl_certificate /etc/nginx/ssl/cert.pem;
+        ssl_certificate_key /etc/nginx/ssl/key.pem;
+
+        proxy_pass grpc_backend;
+        proxy_ssl_preread on;
+    }
+}
+```
+
+Then point your workers at the proxy address:
+
+```python
+host = GrpcWorkerAgentRuntimeHost(address="https://your-proxy:50051")
+```
+
+### Option 2: gRPC TLS with mTLS
+
+For end-to-end encryption without a proxy, you can configure gRPC with mutual TLS (mTLS). This requires modifying the runtime to use `grpc.aio.secure_channel` on the worker side and `server.add_secure_port` on the host side.
+
+Generate certificates:
+
+```bash
+# CA
+openssl req -x509 -newkey rsa:4096 -keyout ca.key -out ca.crt -days 365 -nodes -subj "/CN=autogen-ca"
+
+# Server cert
+openssl req -newkey rsa:4096 -keyout server.key -out server.csr -nodes -subj "/CN=autogen-host"
+openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 365
+
+# Client cert
+openssl req -newkey rsa:4096 -keyout client.key -out client.csr -nodes -subj "/CN=autogen-worker"
+openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 365
+```
+
+Host configuration:
+
+```python
+import grpc
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntimeHost
+
+host = GrpcWorkerAgentRuntimeHost(address="[::]:50051")
+# Replace the insecure server with a secure one:
+server = grpc.server(extra_grpc_config)
+server_credentials = grpc.ssl_server_credentials([(open("server.key", "rb").read(), open("server.crt", "rb").read())])
+server.add_secure_port("[::]:50051", server_credentials)
+server.start()
+```
+
+Worker configuration:
+
+```python
+import grpc
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
+
+channel = grpc.aio.secure_channel(
+    "host:50051",
+    grpc.ssl_channel_credentials(
+        root_certificates=open("ca.crt", "rb").read(),
+        private_key=open("client.key", "rb").read(),
+        certificate_chain=open("client.crt", "rb").read(),
+    ),
+)
+runtime = GrpcWorkerAgentRuntime(host_address="host:50051")
+# Inject the secure channel into the runtime's host connection.
+```
+
+### Bicep / Infrastructure as Code
+
+For Azure deployments, you can use the [Azure gRPC Gateway](https://learn.microsoft.com/en-us/azure/api-management/grpc-api-management) or an [Application Gateway with gRPC support](https://learn.microsoft.com/en-us/azure/application-gateway/grpc-overview) to terminate TLS and route traffic to the host.
+
+Example Bicep snippet for an Application Gateway with gRPC:
+
+```bicep
+resource agw 'Microsoft.Network/applicationGateways@2023-11-01' = {
+  name: 'autogen-agw'
+  location: resourceGroup().location
+  sku: {
+    name: 'Standard_v2'
+    tier: 'Standard_v2'
+  }
+  properties: {
+    frontendIPConfigurations: [
+      {
+        name: 'frontend1'
+        properties: {
+          PublicIPAddress: {
+            id: publicIp.id
+          }
+        }
+      }
+    ]
+    frontendPorts: [
+      {
+        name: 'grpcPort'
+        properties: {
+          Port: 50051
+        }
+      }
+    ]
+    backendAddressPools: [
+      {
+        name: 'hostPool'
+        properties: {
+          backendAddresses: [
+            {
+              ipAddress: '10.0.1.4'
+            }
+          ]
+        }
+      }
+    ]
+    backendHttpSettingsCollection: [
+      {
+        name: 'grpcSettings'
+        properties: {
+          Port: 50051
+          Protocol: 'Tcp'
+          PickHostNameFromBackendAddress: true
+        }
+      }
+    ]
+    httpListeners: [
+      {
+        name: 'grpcListener'
+        properties: {
+          FrontendIPConfiguration: {
+            id: agw.properties.frontendIPConfigurations[0].id
+          }
+          FrontendPort: {
+            id: agw.properties.frontendPorts[0].id
+          }
+          Protocol: 'Tcp'
+        }
+      }
+    ]
+    backendHttpSettingsCollection: [
+      {
+        name: 'grpcSettings'
+        properties: {
+          Port: 50051
+          Protocol: 'Tcp'
+        }
+      }
+    ]
+    requestRoutingRules: [
+      {
+        name: 'grpcRule'
+        properties: {
+          RuleType: 'Basic'
+          HttpListener: {
+            id: agw.properties.httpListeners[0].id
+          }
+          BackendAddressPool: {
+            id: agw.properties.backendAddressPools[0].id
+          }
+          BackendHttpSettings: {
+            id: agw.properties.backendHttpSettingsCollection[0].id
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+This ensures all gRPC traffic between clients and the host is encrypted in transit.
