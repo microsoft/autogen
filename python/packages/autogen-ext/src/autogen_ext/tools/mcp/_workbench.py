@@ -337,9 +337,10 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             tool_call_id=call_id,
         ):
             try:
-                result_future = await self._actor.call("call_tool", {"name": original_name, "kargs": arguments})
-                cancellation_token.link_future(result_future)
-                result = await result_future
+                result_coro = await self._actor.call("call_tool", {"name": original_name, "kargs": arguments})
+                task = asyncio.ensure_future(result_coro)
+                cancellation_token.link_future(task)
+                result = await task
                 assert isinstance(
                     result, CallToolResult
                 ), f"call_tool must return a CallToolResult, instead of : {str(type(result))}"
