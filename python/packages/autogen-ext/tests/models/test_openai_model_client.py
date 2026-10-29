@@ -1671,6 +1671,113 @@ async def test_tool_calling_with_stream(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_create_stream_normalizes_tool_call_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # LLMs sometimes emit tool call names with characters that violate the format
+    # required by the API. The streaming path must normalize such names the same way
+    # as the non-streaming path, otherwise replaying the same conversation fails.
+    raw_tool_name = "get weather!"
+    arguments = json.dumps({"city": "Paris"})
+
+    async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion:
+        return ChatCompletion(
+            id="id",
+            choices=[
+                Choice(
+                    finish_reason="tool_calls",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        role="assistant",
+                        content=None,
+                        tool_calls=[
+                            ChatCompletionMessageToolCall(
+                                id="1",
+                                type="function",
+                                function=Function(name=raw_tool_name, arguments=arguments),
+                            )
+                        ],
+                    ),
+                )
+            ],
+            created=0,
+            model=resolve_model(kwargs.get("model", "gpt-4o")),
+            object="chat.completion",
+            usage=None,
+        )
+
+    async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
+        model = resolve_model(kwargs.get("model", "gpt-4o"))
+        mock_chunks = [
+            # the tool call chunk
+            ChatCompletionChunk(
+                id="id",
+                choices=[
+                    ChunkChoice(
+                        finish_reason=None,
+                        index=0,
+                        delta=ChoiceDelta(
+                            content=None,
+                            role="assistant",
+                            tool_calls=[
+                                ChoiceDeltaToolCall(
+                                    index=0,
+                                    id="1",
+                                    type="function",
+                                    function=ChoiceDeltaToolCallFunction(name=raw_tool_name, arguments=arguments),
+                                )
+                            ],
+                        ),
+                    )
+                ],
+                created=0,
+                model=model,
+                object="chat.completion.chunk",
+                usage=None,
+            ),
+            # the stop chunk
+            ChatCompletionChunk(
+                id="id",
+                choices=[
+                    ChunkChoice(
+                        finish_reason="tool_calls",
+                        index=0,
+                        delta=ChoiceDelta(content=None, role="assistant"),
+                    )
+                ],
+                created=0,
+                model=model,
+                object="chat.completion.chunk",
+                usage=None,
+            ),
+        ]
+        for mock_chunk in mock_chunks:
+            yield mock_chunk
+
+    async def _mock_create_dispatch(
+        *args: Any, **kwargs: Any
+    ) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
+        if kwargs.get("stream", False):
+            return _mock_create_stream(*args, **kwargs)
+        return await _mock_create(*args, **kwargs)
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create_dispatch)
+
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", api_key="")
+    create_result = await model_client.create(messages=[UserMessage(content="Hello", source="user")])
+    stream = model_client.create_stream(messages=[UserMessage(content="Hello", source="user")])
+    chunks: List[str | CreateResult] = []
+    async for chunk in stream:
+        chunks.append(chunk)
+
+    assert isinstance(chunks[-1], CreateResult)
+    # The same model output must produce the same tool call name in streaming and non-streaming mode.
+    assert chunks[-1].content == create_result.content
+    assert chunks[-1].content == [FunctionCall(id="1", arguments=arguments, name="get_weather_")]
+    assert chunks[-1].finish_reason == "function_calls"
+
+
+@pytest.mark.asyncio
 async def test_tool_calls_assistant_message_content_field(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that AssistantMessage with tool calls includes required content field.
 
