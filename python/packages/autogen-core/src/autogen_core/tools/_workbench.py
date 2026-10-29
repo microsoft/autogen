@@ -33,7 +33,21 @@ class ImageResultContent(BaseModel):
     """The image content of the result."""
 
 
-ResultContent = Annotated[TextResultContent | ImageResultContent, Field(discriminator="type")]
+class AudioResultContent(BaseModel):
+    """
+    Audio result content of a tool execution.
+    """
+
+    type: Literal["AudioResultContent"] = "AudioResultContent"
+
+    content: bytes
+    """The raw audio bytes of the result."""
+
+    mime_type: str = "application/octet-stream"
+    """The MIME type of the audio, e.g. `audio/wav`."""
+
+
+ResultContent = Annotated[TextResultContent | ImageResultContent | AudioResultContent, Field(discriminator="type")]
 
 
 class ToolResult(BaseModel):
@@ -72,6 +86,8 @@ class ToolResult(BaseModel):
                     parts.append(replace_image)
                 else:
                     parts.append(f"[Image: {content.content.to_base64()}]")
+            elif isinstance(content, AudioResultContent):
+                parts.append(f"[Audio: {content.mime_type}, {len(content.content)} bytes]")
         return "\n".join(parts)
 
 

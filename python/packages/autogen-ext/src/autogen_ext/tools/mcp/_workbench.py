@@ -1,10 +1,13 @@
 import asyncio
+import base64
+import binascii
 import builtins
 import warnings
 from typing import Any, Dict, List, Literal, Mapping, Optional
 
 from autogen_core import CancellationToken, Component, ComponentModel, Image, trace_tool_span
 from autogen_core.tools import (
+    AudioResultContent,
     ImageResultContent,
     ParametersSchema,
     TextResultContent,
@@ -17,6 +20,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 from mcp.types import (
+    AudioContent,
     CallToolResult,
     EmbeddedResource,
     GetPromptResult,
@@ -26,6 +30,7 @@ from mcp.types import (
     ListResourceTemplatesResult,
     ListToolsResult,
     ReadResourceResult,
+    ResourceLink,
     TextContent,
 )
 
@@ -343,13 +348,25 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                 assert isinstance(
                     result, CallToolResult
                 ), f"call_tool must return a CallToolResult, instead of : {str(type(result))}"
-                result_parts: List[TextResultContent | ImageResultContent] = []
+                result_parts: List[TextResultContent | ImageResultContent | AudioResultContent] = []
                 is_error = result.isError
                 for content in result.content:
                     if isinstance(content, TextContent):
                         result_parts.append(TextResultContent(content=content.text))
                     elif isinstance(content, ImageContent):
                         result_parts.append(ImageResultContent(content=Image.from_base64(content.data)))
+                    elif isinstance(content, AudioContent):
+                        # Audio has no dedicated message content type, so keep the bytes on
+                        # the result and let to_text() describe them.
+                        try:
+                            audio_bytes = base64.b64decode(content.data, validate=True)
+                        except (binascii.Error, ValueError) as e:
+                            raise ValueError(f"Audio content is not valid base64: {e}") from e
+                        result_parts.append(AudioResultContent(content=audio_bytes, mime_type=content.mimeType))
+                    elif isinstance(content, ResourceLink):
+                        # A pointer to a resource rather than its contents. There is nothing
+                        # to fetch here, so hand the model the link itself.
+                        result_parts.append(TextResultContent(content=content.model_dump_json(exclude_none=True)))
                     elif isinstance(content, EmbeddedResource):
                         # TODO: how to handle embedded resources?
                         # For now we just use text representation.

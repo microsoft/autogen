@@ -10,7 +10,7 @@ from ._base import (
 )
 from ._function_tool import FunctionTool
 from ._static_workbench import StaticStreamWorkbench, StaticWorkbench
-from ._workbench import ImageResultContent, TextResultContent, ToolResult, Workbench
+from ._workbench import AudioResultContent, ImageResultContent, TextResultContent, ToolResult, Workbench
 
 __all__ = [
     "Tool",
@@ -25,6 +25,7 @@ __all__ = [
     "ToolResult",
     "TextResultContent",
     "ImageResultContent",
+    "AudioResultContent",
     "StaticWorkbench",
     "StaticStreamWorkbench",
     "ToolOverride",
