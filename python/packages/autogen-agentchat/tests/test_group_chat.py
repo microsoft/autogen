@@ -1199,6 +1199,47 @@ async def test_selector_group_chat_custom_selector(runtime: AgentRuntime | None)
 
 
 @pytest.mark.asyncio
+async def test_selector_group_chat_concurrent_speakers_via_selector_func(runtime: AgentRuntime | None) -> None:
+    """selector_func returning multiple names should request concurrent speakers (#5395)."""
+    model_client = ReplayChatCompletionClient(["agent3"])  # unused when selector_func returns names
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+
+    call_count = {"n": 0}
+
+    def _select_concurrent(messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> list[str] | str | None:
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            return ["agent1", "agent2"]
+        return "agent3"
+
+    # After concurrent agent1+agent2 the message count is 3; agent3 brings it to 4 and stops.
+    termination = MaxMessageTermination(4)
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        selector_func=_select_concurrent,
+        termination_condition=termination,
+        runtime=runtime,
+    )
+    result = await team.run(task="task")
+    # task + agent1 + agent2 (concurrent first round) + agent3
+    assert len(result.messages) == 4
+    sources = [m.source for m in result.messages[1:]]
+    assert set(sources[:2]) == {"agent1", "agent2"}
+    assert sources[2] == "agent3"
+    assert agent1.total_messages == 1
+    assert agent2.total_messages == 1
+    assert agent3.total_messages == 1
+    assert call_count["n"] == 2
+    assert (
+        result.stop_reason is not None
+        and result.stop_reason == "Maximum number of messages 4 reached, current message count: 4"
+    )
+
+
+@pytest.mark.asyncio
 async def test_selector_group_chat_custom_candidate_func(runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient(["agent3"])
     agent1 = _EchoAgent("agent1", description="echo agent 1")

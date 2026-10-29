@@ -82,6 +82,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         self._message_factory = message_factory
         self._emit_team_events = emit_team_events
         self._active_speakers: List[str] = []
+        # Accumulate responses from concurrent speakers so termination conditions
+        # see the full turn delta, not only the last speaker to finish.
+        self._turn_response_delta: List[BaseAgentEvent | BaseChatMessage] = []
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -148,6 +151,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
 
             # Append the messages to the message thread.
             await self.update_message_thread(delta)
+            self._turn_response_delta.extend(delta)
 
             # Remove the agent from the active speakers list.
             self._active_speakers.remove(message.name)
@@ -155,14 +159,18 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 # If there are still active speakers, return without doing anything.
                 return
 
-            # Check if the conversation should be terminated.
-            if await self._apply_termination_condition(delta, increment_turn_count=True):
+            # Apply termination to the full concurrent-turn delta (all speakers).
+            turn_delta = self._turn_response_delta
+            self._turn_response_delta = []
+            if await self._apply_termination_condition(turn_delta, increment_turn_count=True):
                 # Stop the group chat.
                 return
 
             # Select speakers to continue the conversation.
             await self._transition_to_next_speakers(ctx.cancellation_token)
         except Exception as e:
+            # Drop any partial concurrent-turn buffer before signaling failure.
+            self._turn_response_delta = []
             # Handle the exception and signal termination with an error.
             error = SerializableException.from_exception(e)
             await self._signal_termination_with_error(error)
