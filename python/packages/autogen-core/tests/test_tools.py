@@ -214,6 +214,61 @@ async def test_run_func_call_tool_with_kwargs_and_args() -> None:
 
 
 @pytest.mark.asyncio
+async def test_func_tool_with_sync_positional_only_argument() -> None:
+    def scale(value: int, /, *, factor: int = 2) -> int:
+        return value * factor
+
+    tool = FunctionTool(scale, description="Scale a value.")
+    result = await tool.run_json({"value": 3, "factor": 4}, CancellationToken())
+
+    assert result == 12
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_async_positional_only_argument() -> None:
+    async def scale(value: int, /, *, factor: int = 2) -> int:
+        return value * factor
+
+    tool = FunctionTool(scale, description="Scale a value.")
+    result = await tool.run_json({"value": 3, "factor": 4}, CancellationToken())
+
+    assert result == 12
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_positional_only_default() -> None:
+    def scale(value: int = 3, /) -> int:
+        return value * 2
+
+    tool = FunctionTool(scale, description="Scale a value.")
+    result = await tool.run_json({}, CancellationToken())
+
+    assert result == 6
+
+
+@pytest.mark.asyncio
+async def test_func_tool_partial_with_positional_only_argument() -> None:
+    def add(offset: int, value: int, /) -> int:
+        return offset + value
+
+    tool = FunctionTool(partial(add, 5), description="Add an offset.")
+    result = await tool.run_json({"value": 3}, CancellationToken())
+
+    assert result == 8
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_positional_only_cancellation_token() -> None:
+    def check_token(cancellation_token: CancellationToken, /) -> bool:
+        return isinstance(cancellation_token, CancellationToken)
+
+    tool = FunctionTool(check_token, description="Check cancellation token.")
+    result = await tool.run_json({}, CancellationToken())
+
+    assert result is True
+
+
+@pytest.mark.asyncio
 async def test_tool_run() -> None:
     tool = MyTool()
     result = await tool.run_json({"query": "test"}, CancellationToken())
