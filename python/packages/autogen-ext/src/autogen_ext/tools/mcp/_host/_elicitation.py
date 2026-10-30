@@ -82,7 +82,7 @@ class StreamElicitor(Elicitor):
                 prompt = "\n".join(
                     [
                         "Input Schema:",
-                        json.dumps(params.requestedSchema, indent=2),
+                        json.dumps(params.requestedSchema, indent=2, ensure_ascii=False),
                         "Please enter a JSON string following the above schema: ",
                     ]
                 )
