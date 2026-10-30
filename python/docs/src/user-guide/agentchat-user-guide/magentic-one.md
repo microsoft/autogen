@@ -180,3 +180,33 @@ While the default multimodal LLM we use for all agents is GPT-4o, Magentic-One i
 }
 
 ```
+
+## Agent Safety and Guardrails
+
+When deploying AutoGen agents in production, consider the following safety best practices:
+
+### Code Execution Safety
+
+1. **Use sandboxed executors**: Always use `DockerCommandLineCodeExecutor` for untrusted code
+2. **Set resource limits**: Limit memory, CPU, and disk usage
+3. **Validate inputs**: Sanitize any user-provided inputs before passing to code execution
+4. **Enable code approval**: Use the `approval_func` to require human approval for code execution
+
+### MCP Server Safety
+
+1. **Connect to trusted servers only**: Verify MCP server trustworthiness before connecting
+2. **Beware of tool poisoning**: MCP tool descriptions are sent directly to the LLM - a compromised server could embed injected instructions
+3. **Use network restrictions**: Apply firewalls or network policies to restrict outbound connections
+4. **Monitor tool usage**: Log and audit tool calls for suspicious activity
+
+### Prompt Injection Prevention
+
+1. **Validate external data**: Sanitize any external data before passing to the LLM
+2. **Use system messages carefully**: Avoid including untrusted content in system messages
+3. **Monitor agent behavior**: Watch for unexpected or suspicious agent actions
+
+### Resource Protection
+
+1. **Set timeouts**: Configure appropriate timeouts for agent operations
+2. **Limit iterations**: Use `MaxMessageTermination` to prevent infinite loops
+3. **Monitor token usage**: Track and limit token consumption to prevent unexpected costs
