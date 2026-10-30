@@ -345,6 +345,87 @@ async def test_openai_chat_completion_client_create_stream_no_usage_default(monk
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_create_stream_skips_none_chunks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _mock_create_stream_chunks(
+        self: BaseOpenAIChatCompletionClient, *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[ChatCompletionChunk | None, None]:
+        yield None
+        yield ChatCompletionChunk(
+            id="id",
+            choices=[
+                ChunkChoice(
+                    finish_reason=None,
+                    index=0,
+                    delta=ChoiceDelta(
+                        content="Hello",
+                        role="assistant",
+                    ),
+                )
+            ],
+            created=0,
+            model="gpt-4o",
+            object="chat.completion.chunk",
+            usage=None,
+        )
+        yield None
+        yield ChatCompletionChunk(
+            id="id",
+            choices=[
+                ChunkChoice(
+                    finish_reason="stop",
+                    index=0,
+                    delta=ChoiceDelta(
+                        content=None,
+                        role="assistant",
+                    ),
+                )
+            ],
+            created=0,
+            model="gpt-4o",
+            object="chat.completion.chunk",
+            usage=None,
+        )
+        yield ChatCompletionChunk(
+            id="id",
+            choices=[],
+            created=0,
+            model="gpt-4o",
+            object="chat.completion.chunk",
+            usage=CompletionUsage(prompt_tokens=3, completion_tokens=2, total_tokens=5),
+        )
+        yield None
+
+    monkeypatch.setattr(
+        BaseOpenAIChatCompletionClient,
+        "_create_stream_chunks",
+        _mock_create_stream_chunks,
+    )
+
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+    chunks: List[str | CreateResult] = []
+
+    async for chunk in client.create_stream(
+        messages=[UserMessage(content="Hello", source="user")],
+        include_usage=True,
+    ):
+        chunks.append(chunk)
+
+    assert chunks == [
+        "Hello",
+        CreateResult(
+            finish_reason="stop",
+            content="Hello",
+            usage=RequestUsage(prompt_tokens=3, completion_tokens=2),
+            cached=False,
+            logprobs=None,
+            thought=None,
+        ),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_openai_chat_completion_client_create_stream_no_usage_explicit(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
     client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
