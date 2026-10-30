@@ -375,6 +375,130 @@ async def test_sk_chat_completion_with_prompt_tools(sk_client: AzureChatCompleti
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("plugin_name", "function_name"),
+    [
+        ("autogen_tools", "get_weather"),
+        ("autogen_tools", "get-weather"),
+        (None, "get-weather"),
+        (None, "autogen-tools_get_weather"),
+    ],
+)
+async def test_sk_chat_completion_resolves_autogen_tool_names(plugin_name: str | None, function_name: str) -> None:
+    async def mock_get_chat_message_contents(
+        chat_history: ChatHistory,
+        settings: PromptExecutionSettings,
+        **kwargs: Any,
+    ) -> list[ChatMessageContent]:
+        return [
+            ChatMessageContent(
+                ai_model_id="test-model",
+                role=AuthorRole.ASSISTANT,
+                items=[
+                    FunctionCallContent(
+                        id="call_1",
+                        plugin_name=plugin_name,
+                        function_name=function_name,
+                        arguments='{"city": "London"}',
+                    )
+                ],
+                finish_reason=FinishReason.TOOL_CALLS,
+            )
+        ]
+
+    mock_client = AsyncMock(spec=AzureChatCompletion)
+    mock_client.get_chat_message_contents = mock_get_chat_message_contents
+
+    tool = ToolSchema(
+        name="get_weather",
+        description="Get the current weather for a city",
+        parameters=ParametersSchema(
+            type="object",
+            properties={"city": {"type": "string", "description": "City name"}},
+            required=["city"],
+        ),
+    )
+    adapter = SKChatCompletionAdapter(mock_client, kernel=Kernel(memory=NullMemory()))
+
+    result = await adapter.create(
+        messages=[UserMessage(content="What is the weather in London?", source="user")],
+        tools=[tool],
+    )
+
+    assert isinstance(result.content, list)
+    assert result.content[0].name == "get_weather"
+    assert result.content[0].arguments == '{"city": "London"}'
+
+
+@pytest.mark.asyncio
+async def test_sk_chat_completion_stream_resolves_autogen_tool_names() -> None:
+    async def mock_get_streaming_chat_message_contents(
+        chat_history: ChatHistory,
+        settings: PromptExecutionSettings,
+        **kwargs: Any,
+    ) -> AsyncGenerator[list["StreamingChatMessageContent"], Any]:
+        yield [
+            StreamingChatMessageContent(
+                choice_index=0,
+                ai_model_id="test-model",
+                role=AuthorRole.ASSISTANT,
+                items=[
+                    FunctionCallContent(
+                        id="call_1",
+                        plugin_name="autogen_tools",
+                        function_name="get-weather",
+                        arguments='{"city": ',
+                    )
+                ],
+            )
+        ]
+        yield [
+            StreamingChatMessageContent(
+                choice_index=0,
+                ai_model_id="test-model",
+                role=AuthorRole.ASSISTANT,
+                items=[FunctionCallContent(function_name="get-weather", arguments='"London"}')],
+            )
+        ]
+        yield [
+            StreamingChatMessageContent(  # type: ignore
+                choice_index=0,
+                ai_model_id="test-model",
+                role=AuthorRole.ASSISTANT,
+                finish_reason=FinishReason.TOOL_CALLS,
+                metadata={"usage": {"prompt_tokens": 10, "completion_tokens": 5}},
+            )
+        ]
+
+    mock_client = AsyncMock(spec=AzureChatCompletion)
+    mock_client.get_streaming_chat_message_contents = mock_get_streaming_chat_message_contents
+
+    tool = ToolSchema(
+        name="get_weather",
+        description="Get the current weather for a city",
+        parameters=ParametersSchema(
+            type="object",
+            properties={"city": {"type": "string", "description": "City name"}},
+            required=["city"],
+        ),
+    )
+    adapter = SKChatCompletionAdapter(mock_client, kernel=Kernel(memory=NullMemory()))
+
+    response_chunks: list[CreateResult | str] = []
+    async for chunk in adapter.create_stream(
+        messages=[UserMessage(content="What is the weather in London?", source="user")],
+        tools=[tool],
+    ):
+        response_chunks.append(chunk)
+
+    final_chunk = response_chunks[-1]
+    assert isinstance(final_chunk, CreateResult)
+    assert isinstance(final_chunk.content, list)
+    assert final_chunk.content[0].name == "get_weather"
+    assert final_chunk.content[0].arguments == '{"city": "London"}'
+
+
+@pytest.mark.asyncio
 async def test_sk_chat_completion_without_tools(
     sk_client: AzureChatCompletion, caplog: pytest.LogCaptureFixture
 ) -> None:

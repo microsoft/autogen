@@ -402,7 +402,52 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
         kernel.add_plugin(self._tools_plugin)
 
-    def _process_tool_calls(self, result: ChatMessageContent) -> list[FunctionCall]:
+    @staticmethod
+    def _get_tool_name(tool: Tool | ToolSchema) -> str:
+        return tool.schema["name"] if isinstance(tool, Tool) else tool["name"]
+
+    @staticmethod
+    def _normalized_tool_lookup(tool_names: set[str]) -> dict[str, str | None]:
+        lookup: dict[str, str | None] = {}
+        for tool_name in tool_names:
+            normalized_name = tool_name.replace("-", "_")
+            if normalized_name in lookup:
+                lookup[normalized_name] = None
+            else:
+                lookup[normalized_name] = tool_name
+        return lookup
+
+    def _resolve_tool_call_name(self, plugin_name: str, function_name: str, tool_names: set[str]) -> str:
+        if plugin_name:
+            full_name = f"{plugin_name}-{function_name}"
+            candidates = [function_name, full_name, f"{plugin_name}_{function_name}"]
+        else:
+            full_name = function_name
+            candidates = [function_name]
+
+        if not tool_names:
+            return full_name
+
+        for candidate in candidates:
+            if candidate in tool_names:
+                return candidate
+
+        normalized_tool_lookup = self._normalized_tool_lookup(tool_names)
+        autogen_plugin_prefix = f"{self._tools_plugin.name}_"
+        for candidate in candidates:
+            normalized_candidate = candidate.replace("-", "_")
+            normalized_candidates = [normalized_candidate]
+            if normalized_candidate.startswith(autogen_plugin_prefix):
+                normalized_candidates.append(normalized_candidate[len(autogen_plugin_prefix) :])
+
+            for normalized_name in normalized_candidates:
+                resolved_name = normalized_tool_lookup.get(normalized_name)
+                if resolved_name is not None:
+                    return resolved_name
+
+        return full_name
+
+    def _process_tool_calls(self, result: ChatMessageContent, tool_names: set[str]) -> list[FunctionCall]:
         """Process tool calls from SK ChatMessageContent"""
         function_calls: list[FunctionCall] = []
         for item in result.items:
@@ -410,10 +455,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 # Extract plugin name and function name
                 plugin_name = item.plugin_name or ""
                 function_name = item.function_name
-                if plugin_name:
-                    full_name = f"{plugin_name}-{function_name}"
-                else:
-                    full_name = function_name
+                full_name = self._resolve_tool_call_name(plugin_name, function_name, tool_names)
 
                 if item.id is None:
                     raise ValueError("Function call ID is required")
@@ -486,6 +528,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         chat_history = self._convert_to_chat_history(messages)
         user_settings = self._get_prompt_settings(extra_create_args)
         settings = self._build_execution_settings(user_settings, tools)
+        tool_names = {self._get_tool_name(tool) for tool in tools}
 
         # Sync tools with kernel
         self._sync_tools_with_kernel(kernel, tools)
@@ -515,7 +558,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         # Process content based on whether there are tool calls
         content: Union[str, list[FunctionCall]]
         if any(isinstance(item, FunctionCallContent) for item in result[0].items):
-            content = self._process_tool_calls(result[0])
+            content = self._process_tool_calls(result[0], tool_names)
             finish_reason: Literal["function_calls", "stop"] = "function_calls"
         else:
             content = result[0].content
@@ -605,6 +648,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         chat_history = self._convert_to_chat_history(messages)
         user_settings = self._get_prompt_settings(extra_create_args)
         settings = self._build_execution_settings(user_settings, tools)
+        tool_names = {self._get_tool_name(tool) for tool in tools}
         self._sync_tools_with_kernel(kernel, tools)
 
         prompt_tokens = 0
@@ -671,10 +715,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                     for _, call_content in function_calls_in_progress.items():
                         plugin_name = call_content.plugin_name or ""
                         function_name = call_content.function_name
-                        if plugin_name:
-                            full_name = f"{plugin_name}-{function_name}"
-                        else:
-                            full_name = function_name
+                        full_name = self._resolve_tool_call_name(plugin_name, function_name, tool_names)
 
                         if isinstance(call_content.arguments, dict):
                             arguments = json.dumps(call_content.arguments)
