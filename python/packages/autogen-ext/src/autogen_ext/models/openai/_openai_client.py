@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import os
+import random
 import re
 import warnings
 from asyncio import Task
@@ -51,7 +52,7 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
-from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
+from openai import NOT_GIVEN, APIStatusError, AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionChunk,
@@ -99,6 +100,9 @@ create_kwargs = set(completion_create_params.CompletionCreateParamsBase.__annota
 # Only single choice allowed
 disallowed_create_args = set(["stream", "messages", "function_call", "functions", "n"])
 required_create_args: Set[str] = set(["model"])
+
+DEFAULT_RETRY_MAX_ATTEMPTS = 3
+DEFAULT_RETRY_ON_ERROR_CODES = [429, 500, 502, 503, 504, 424]
 
 USER_AGENT_HEADER_NAME = "User-Agent"
 
@@ -439,6 +443,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model_info: Optional[ModelInfo] = None,
         add_name_prefixes: bool = False,
         include_name_in_message: bool = True,
+        retry_max_attempts: Optional[int] = None,
+        retry_on_error_codes: Optional[List[int]] = None,
     ):
         self._client = client
         self._add_name_prefixes = add_name_prefixes
@@ -482,6 +488,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         self._create_args = create_args
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+        self._retry_max_attempts = retry_max_attempts if retry_max_attempts is not None else DEFAULT_RETRY_MAX_ATTEMPTS
+        self._retry_on_error_codes = (
+            retry_on_error_codes if retry_on_error_codes is not None else list(DEFAULT_RETRY_ON_ERROR_CODES)
+        )
 
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
@@ -677,31 +687,43 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output,
             extra_create_args,
         )
-        future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
-        if create_params.response_format is not None:
-            # Use beta client if response_format is not None
-            future = asyncio.ensure_future(
-                self._client.beta.chat.completions.parse(
-                    messages=create_params.messages,
-                    tools=(create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN),
-                    response_format=create_params.response_format,
-                    **create_params.create_args,
-                )
-            )
-        else:
-            # Use the regular client
-            future = asyncio.ensure_future(
-                self._client.chat.completions.create(
-                    messages=create_params.messages,
-                    stream=False,
-                    tools=(create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN),
-                    **create_params.create_args,
-                )
-            )
 
-        if cancellation_token is not None:
-            cancellation_token.link_future(future)
-        result: Union[ParsedChatCompletion[BaseModel], ChatCompletion] = await future
+        result: Union[ParsedChatCompletion[BaseModel], ChatCompletion]
+        for _retry_attempt in range(self._retry_max_attempts):
+            try:
+                future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
+                if create_params.response_format is not None:
+                    future = asyncio.ensure_future(
+                        self._client.beta.chat.completions.parse(
+                            messages=create_params.messages,
+                            tools=(create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN),
+                            response_format=create_params.response_format,
+                            **create_params.create_args,
+                        )
+                    )
+                else:
+                    future = asyncio.ensure_future(
+                        self._client.chat.completions.create(
+                            messages=create_params.messages,
+                            stream=False,
+                            tools=(create_params.tools if len(create_params.tools) > 0 else NOT_GIVEN),
+                            **create_params.create_args,
+                        )
+                    )
+
+                if cancellation_token is not None:
+                    cancellation_token.link_future(future)
+                result = await future
+                break
+            except APIStatusError as e:
+                if e.status_code not in self._retry_on_error_codes or _retry_attempt == self._retry_max_attempts - 1:
+                    raise
+                wait = (2**_retry_attempt) + random.uniform(0, 1)
+                trace_logger.warning(
+                    f"API call failed with status {e.status_code}, retrying "
+                    f"(attempt {_retry_attempt + 1}/{self._retry_max_attempts}) after {wait:.1f}s"
+                )
+                await asyncio.sleep(wait)
         if create_params.response_format is not None:
             result = cast(ParsedChatCompletion[Any], result)
 
@@ -1086,17 +1108,32 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_args: Dict[str, Any],
         cancellation_token: Optional[CancellationToken],
     ) -> AsyncGenerator[ChatCompletionChunk, None]:
-        stream_future = asyncio.ensure_future(
-            self._client.chat.completions.create(
-                messages=oai_messages,
-                stream=True,
-                tools=tool_params if len(tool_params) > 0 else NOT_GIVEN,
-                **create_args,
-            )
-        )
-        if cancellation_token is not None:
-            cancellation_token.link_future(stream_future)
-        stream = await stream_future
+        # Retry only the initial stream creation, not individual chunk reads.
+        stream = None
+        for _retry_attempt in range(self._retry_max_attempts):
+            try:
+                stream_future = asyncio.ensure_future(
+                    self._client.chat.completions.create(
+                        messages=oai_messages,
+                        stream=True,
+                        tools=tool_params if len(tool_params) > 0 else NOT_GIVEN,
+                        **create_args,
+                    )
+                )
+                if cancellation_token is not None:
+                    cancellation_token.link_future(stream_future)
+                stream = await stream_future
+                break
+            except APIStatusError as e:
+                if e.status_code not in self._retry_on_error_codes or _retry_attempt == self._retry_max_attempts - 1:
+                    raise
+                wait = (2**_retry_attempt) + random.uniform(0, 1)
+                trace_logger.warning(
+                    f"Stream API call failed with status {e.status_code}, retrying "
+                    f"(attempt {_retry_attempt + 1}/{self._retry_max_attempts}) after {wait:.1f}s"
+                )
+                await asyncio.sleep(wait)
+        assert stream is not None
         while True:
             try:
                 chunk_future = asyncio.ensure_future(anext(stream))
@@ -1115,29 +1152,48 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         response_format: Optional[Type[BaseModel]],
         cancellation_token: Optional[CancellationToken],
     ) -> AsyncGenerator[ChatCompletionChunk, None]:
-        async with self._client.beta.chat.completions.stream(
-            messages=oai_messages,
-            tools=tool_params if len(tool_params) > 0 else NOT_GIVEN,
-            response_format=(response_format if response_format is not None else NOT_GIVEN),
-            **create_args_no_response_format,
-        ) as stream:
-            while True:
-                try:
-                    event_future = asyncio.ensure_future(anext(stream))
-                    if cancellation_token is not None:
-                        cancellation_token.link_future(event_future)
-                    event = await event_future
+        for _retry_attempt in range(self._retry_max_attempts):
+            chunks_yielded = False
+            try:
+                async with self._client.beta.chat.completions.stream(
+                    messages=oai_messages,
+                    tools=tool_params if len(tool_params) > 0 else NOT_GIVEN,
+                    response_format=(response_format if response_format is not None else NOT_GIVEN),
+                    **create_args_no_response_format,
+                ) as stream:
+                    while True:
+                        try:
+                            event_future = asyncio.ensure_future(anext(stream))
+                            if cancellation_token is not None:
+                                cancellation_token.link_future(event_future)
+                            event = await event_future
 
-                    if event.type == "chunk":
-                        chunk = event.chunk
-                        yield chunk
-                    # We don't handle other event types from the beta client stream.
-                    # As the other event types are auxiliary to the chunk event.
-                    # See: https://github.com/openai/openai-python/blob/main/helpers.md#chat-completions-events.
-                    # Once the beta client is stable, we can move all the logic to the beta client.
-                    # Then we can consider handling other event types which may simplify the code overall.
-                except StopAsyncIteration:
-                    break
+                            if event.type == "chunk":
+                                chunk = event.chunk
+                                chunks_yielded = True
+                                yield chunk
+                            # We don't handle other event types from the beta client stream.
+                            # As the other event types are auxiliary to the chunk event.
+                            # See: https://github.com/openai/openai-python/blob/main/helpers.md#chat-completions-events.
+                            # Once the beta client is stable, we can move all the logic to the beta client.
+                            # Then we can consider handling other event types which may simplify the code overall.
+                        except StopAsyncIteration:
+                            break
+                return  # Stream completed successfully
+            except APIStatusError as e:
+                # Don't retry if we've already yielded chunks (partial data sent to consumer).
+                if (
+                    chunks_yielded
+                    or e.status_code not in self._retry_on_error_codes
+                    or _retry_attempt == self._retry_max_attempts - 1
+                ):
+                    raise
+                wait = (2**_retry_attempt) + random.uniform(0, 1)
+                trace_logger.warning(
+                    f"Beta stream API call failed with status {e.status_code}, retrying "
+                    f"(attempt {_retry_attempt + 1}/{self._retry_max_attempts}) after {wait:.1f}s"
+                )
+                await asyncio.sleep(wait)
 
     async def close(self) -> None:
         await self._client.close()
@@ -1261,6 +1317,10 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             in user message parameters sent to the OpenAI API. Defaults to True. Set to False
             for model providers that don't support the `name` field (e.g., Groq).
         stream_options (optional, dict): Additional options for streaming. Currently only `include_usage` is supported.
+        retry_max_attempts (optional, int): Maximum number of retry attempts for transient API errors.
+            Uses exponential backoff with jitter between retries. Defaults to 3.
+        retry_on_error_codes (optional, list[int]): HTTP status codes that trigger an automatic retry.
+            Defaults to [429, 500, 502, 503, 504, 424].
 
     Examples:
 
@@ -1463,6 +1523,9 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         if "include_name_in_message" in kwargs:
             include_name_in_message = kwargs["include_name_in_message"]
 
+        retry_max_attempts: Optional[int] = kwargs.get("retry_max_attempts")  # type: ignore[assignment]
+        retry_on_error_codes: Optional[List[int]] = kwargs.get("retry_on_error_codes")  # type: ignore[assignment]
+
         # Special handling for Gemini model.
         assert "model" in copied_args and isinstance(copied_args["model"], str)
         if copied_args["model"].startswith("gemini-"):
@@ -1491,6 +1554,8 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             model_info=model_info,
             add_name_prefixes=add_name_prefixes,
             include_name_in_message=include_name_in_message,
+            retry_max_attempts=retry_max_attempts,
+            retry_on_error_codes=retry_on_error_codes,
         )
 
     def __getstate__(self) -> Dict[str, Any]:
@@ -1602,6 +1667,10 @@ class AzureOpenAIChatCompletionClient(
             in user message parameters sent to the OpenAI API. Defaults to True. Set to False
             for model providers that don't support the `name` field (e.g., Groq).
         stream_options (optional, dict): Additional options for streaming. Currently only `include_usage` is supported.
+        retry_max_attempts (optional, int): Maximum number of retry attempts for transient API errors.
+            Uses exponential backoff with jitter between retries. Defaults to 3.
+        retry_on_error_codes (optional, list[int]): HTTP status codes that trigger an automatic retry.
+            Defaults to [429, 500, 502, 503, 504, 424].
 
 
     To use the client, you need to provide your deployment name, Azure Cognitive Services endpoint, and api version.
@@ -1697,6 +1766,9 @@ class AzureOpenAIChatCompletionClient(
         if "include_name_in_message" in kwargs:
             include_name_in_message = kwargs["include_name_in_message"]
 
+        retry_max_attempts: Optional[int] = kwargs.get("retry_max_attempts")  # type: ignore[assignment]
+        retry_on_error_codes: Optional[List[int]] = kwargs.get("retry_on_error_codes")  # type: ignore[assignment]
+
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
@@ -1707,6 +1779,8 @@ class AzureOpenAIChatCompletionClient(
             model_info=model_info,
             add_name_prefixes=add_name_prefixes,
             include_name_in_message=include_name_in_message,
+            retry_max_attempts=retry_max_attempts,
+            retry_on_error_codes=retry_on_error_codes,
         )
 
     def __getstate__(self) -> Dict[str, Any]:
