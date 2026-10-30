@@ -1,0 +1,43 @@
+/* Base styles matching .NET docs */
+:root {
+  --theme-foreground: #171717;
+  --theme-background: #ffffff;
+  --theme-link: #0065b3;
+  --theme-link-hover: #004580;
+  --theme-code-background: #f6f8fa;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  line-height: 1.6;
+  color: var(--theme-foreground);
+  background-color: var(--theme-background);
+}
+
+/* Code block styling */
+pre {
+  background-color: var(--theme-code-background);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+code {
+  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 85%;
+}
+
+/* Navigation and layout */
+.nav-bar {
+  background-color: #212121;
+  color: white;
+  padding: 1rem;
+}
+
+/* API documentation specific */
+.api-section {
+  margin: 2rem 0;
+  padding: 1rem;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+}
