@@ -1,0 +1,4018 @@
+{
+  "properties": {
+    "helpUri": "https://eng.ms/docs/microsoft-security/security/azure-security/cloudai-security-fundamentals-engineering/security-integration/guardian-wiki/microsoft-guardian/general/baselines"
+  },
+  "version": "1.0.0",
+  "baselines": {
+    "default": {
+      "name": "default",
+      "createdDate": "2025-06-05 00:11:05Z",
+      "lastUpdatedDate": "2025-06-05 00:11:05Z"
+    }
+  },
+  "results": {
+    "7298fdfa695baab3675fe15572c9bf65241013a5b70b3b31d0febcf08ff0f0c9": {
+      "signature": "7298fdfa695baab3675fe15572c9bf65241013a5b70b3b31d0febcf08ff0f0c9",
+      "alternativeSignatures": [],
+      "target": "python/packages/autogen-core/docs/src/user-guide/agentchat-user-guide/examples/company-research.ipynb",
+      "line": 76,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0130",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7f79ed90840c66e2526e967979338099cfde11a0bc924fd14bcaa017412f88dd": {
+      "signature": "7f79ed90840c66e2526e967979338099cfde11a0bc924fd14bcaa017412f88dd",
+      "alternativeSignatures": [],
+      "target": "python/packages/autogen-core/docs/src/user-guide/agentchat-user-guide/examples/literature-review.ipynb",
+      "line": 68,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0130",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "fcc61e30dd90ba726ff2b830f8e0207ef2bf0f3c2086cbe702fd55eb40ce717a": {
+      "signature": "fcc61e30dd90ba726ff2b830f8e0207ef2bf0f3c2086cbe702fd55eb40ce717a",
+      "alternativeSignatures": [],
+      "target": "python/packages/autogen-core/docs/src/user-guide/core-user-guide/cookbook/llamaindex-agent.ipynb",
+      "line": 179,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0130",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "e42a747dab83af34ae3f908e8a8ff864c538e9aa1ed904a0f06d8f9b58e5f82e": {
+      "signature": "e42a747dab83af34ae3f908e8a8ff864c538e9aa1ed904a0f06d8f9b58e5f82e",
+      "alternativeSignatures": [],
+      "target": "python/packages/autogen-studio/frontend/src/components/views/gallery/default_gallery.json",
+      "line": 364,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0130",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "58c9890e1ee423e650fb59846c626d525d6e4ed9ce627ef0de538b329d29d992": {
+      "signature": "58c9890e1ee423e650fb59846c626d525d6e4ed9ce627ef0de538b329d29d992",
+      "alternativeSignatures": [],
+      "target": "python/packages/autogen-studio/frontend/src/components/views/gallery/default_gallery.json",
+      "line": 879,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0130",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d85173cc1b1ca5066576ca7695d9e41d4cb6783b8f0da1f5198fd125dd4089c8": {
+      "signature": "d85173cc1b1ca5066576ca7695d9e41d4cb6783b8f0da1f5198fd125dd4089c8",
+      "alternativeSignatures": [
+        "697c1a577d3f00acaf97dcb6380062372d4564940cdf33071b6391511ee1caad"
+      ],
+      "target": "python/.venv/Scripts/accelerate-config.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "9352909d74334704f82adb1360198aed11740ac3fd063113316865ee1a28a2a5": {
+      "signature": "9352909d74334704f82adb1360198aed11740ac3fd063113316865ee1a28a2a5",
+      "alternativeSignatures": [
+        "9381e80d4e600e4ec37db3fe331fa3f1e3dd5bdc40ce223bd6324245fe22443b"
+      ],
+      "target": "python/.venv/Scripts/accelerate-estimate-memory.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1ebd697ea8d58a8149211460fae7be6b754cc397638090882172a8d39eba4b9d": {
+      "signature": "1ebd697ea8d58a8149211460fae7be6b754cc397638090882172a8d39eba4b9d",
+      "alternativeSignatures": [
+        "03893ef371b863180c4d56baaa01bba1c781bf7596ac479bff7cf9a1103262ca"
+      ],
+      "target": "python/.venv/Scripts/accelerate-launch.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "2e8f809aba4d0843e5aa05764cb93b5d2adfa059c34c03d4580f03f8c7eea4c9": {
+      "signature": "2e8f809aba4d0843e5aa05764cb93b5d2adfa059c34c03d4580f03f8c7eea4c9",
+      "alternativeSignatures": [
+        "8640f2688f3b1f6480a22062937ebd7addabba125b40dc01fc7c36ef868adde2"
+      ],
+      "target": "python/.venv/Scripts/accelerate-merge-weights.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "f6186a4d90efaa749f6285e94f638b5bb6016281f4d3a54b97cc92fea23b2976": {
+      "signature": "f6186a4d90efaa749f6285e94f638b5bb6016281f4d3a54b97cc92fea23b2976",
+      "alternativeSignatures": [
+        "fe2f310f6aee5de6a87ec2be751b8a01b42e64a9b7a6380417b9b98c4721219f"
+      ],
+      "target": "python/.venv/Scripts/accelerate.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "f5dd22b3963e5fdeb3ede148ea24a523aba8038fca30fe09664740d9f1047d33": {
+      "signature": "f5dd22b3963e5fdeb3ede148ea24a523aba8038fca30fe09664740d9f1047d33",
+      "alternativeSignatures": [
+        "fe11ffb8936624d2a5e193c7ac02fc18f4d5e924e505e4bb17213a63f92e84d6"
+      ],
+      "target": "python/.venv/Scripts/agbench.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "448f65ca625d953ab893b4689e4fbf6702a91ddddc05e9b6b38c015ba62c8c83": {
+      "signature": "448f65ca625d953ab893b4689e4fbf6702a91ddddc05e9b6b38c015ba62c8c83",
+      "alternativeSignatures": [
+        "8f5f83b9d832f151997ca5d7c7cccbf01daf18dd278da745ff87261a23377ccc"
+      ],
+      "target": "python/.venv/Scripts/alembic.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a46b87f5ddafd118c8b7a7629e93b468841fd67563da6d69ed3c7af42e4011b9": {
+      "signature": "a46b87f5ddafd118c8b7a7629e93b468841fd67563da6d69ed3c7af42e4011b9",
+      "alternativeSignatures": [
+        "ae9c3c7c8184b11bd0c972c0fadebbbca9f866eff1c47886ce40c5e8829f5eaf"
+      ],
+      "target": "python/.venv/Scripts/autogenstudio.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "05ee7c28e665301c9b6a05e035029331f3589a2c2acd0ba1fd54ebb003e319e0": {
+      "signature": "05ee7c28e665301c9b6a05e035029331f3589a2c2acd0ba1fd54ebb003e319e0",
+      "alternativeSignatures": [
+        "46b53b5c4f9e4ee9ea2f19cebebffb39ed50b82517445747096d831050c2b0c9"
+      ],
+      "target": "python/.venv/Scripts/autopep8.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d0df2f5b388f475d79b09fe7775560cf583cadf0f5af8b066ab8df72c1393d21": {
+      "signature": "d0df2f5b388f475d79b09fe7775560cf583cadf0f5af8b066ab8df72c1393d21",
+      "alternativeSignatures": [
+        "7ae7e0f7045eb106c150c297dfa9491a33d0d99fb5f8266e423fcd33ea8b5505"
+      ],
+      "target": "python/.venv/Scripts/chainlit.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1a5409cee2b055a1f5b693ff0b6437bdf8641ae229b6b85808bd86e8ac2875cf": {
+      "signature": "1a5409cee2b055a1f5b693ff0b6437bdf8641ae229b6b85808bd86e8ac2875cf",
+      "alternativeSignatures": [
+        "a18f17dac25c65487384a2c5c1a6f95d3d65ca8eb718cdd494f8603ec6043003"
+      ],
+      "target": "python/.venv/Scripts/chardetect.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "6d855a65cd811956bf064e0408cccc8896530e4a14e022424ba6482974ab15cf": {
+      "signature": "6d855a65cd811956bf064e0408cccc8896530e4a14e022424ba6482974ab15cf",
+      "alternativeSignatures": [
+        "b92dc448402261a0ae42a385169ca231ac057451a7edcf14f55f48e66cb57dfb"
+      ],
+      "target": "python/.venv/Scripts/chevron.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "17df8000b20116abadbb72e54210256faafdedc0b4a6bdaf878bff5f301598d2": {
+      "signature": "17df8000b20116abadbb72e54210256faafdedc0b4a6bdaf878bff5f301598d2",
+      "alternativeSignatures": [
+        "bc4a6e2e0803c9c91c855d6d811ffaa12117576a6ce1e7354a17f4ff846a50fa"
+      ],
+      "target": "python/.venv/Scripts/chroma.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "088b216db55e1c48700ab39ce44707c282e31122fba940c1cc9fa88c605f8706": {
+      "signature": "088b216db55e1c48700ab39ce44707c282e31122fba940c1cc9fa88c605f8706",
+      "alternativeSignatures": [
+        "722a715f65269f9189dac4bef7172f0b355e1d0806c1d91eafd9260514b8dc86"
+      ],
+      "target": "python/.venv/Scripts/chromedriver-path.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0faa56c99d1bb95719f2d141aecd83a07680be36450d830fbb69d785e61b4551": {
+      "signature": "0faa56c99d1bb95719f2d141aecd83a07680be36450d830fbb69d785e61b4551",
+      "alternativeSignatures": [
+        "5762e54b376d7330607a221535ee45f716abf36a4e75e6228709d38cc8b8e558"
+      ],
+      "target": "python/.venv/Scripts/coloredlogs.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "518e2818736b72a773a9d9e3e1de560c4f5268fdcab8c7c2da01eff8d9c1d8c2": {
+      "signature": "518e2818736b72a773a9d9e3e1de560c4f5268fdcab8c7c2da01eff8d9c1d8c2",
+      "alternativeSignatures": [
+        "01ed10127b4b23eb7533fe23790ad9f5ffe3a177eb1ffb4bd3221176664e3dc8"
+      ],
+      "target": "python/.venv/Scripts/convert-caffe2-to-onnx.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "cfd865c6006079ac21142e4f10d098e41e265852a93abb911fdd22a34b842895": {
+      "signature": "cfd865c6006079ac21142e4f10d098e41e265852a93abb911fdd22a34b842895",
+      "alternativeSignatures": [
+        "9ffef639a00fb65bc9611521046742d81d03a28e3c76ee650b3e257df2d8f1e2"
+      ],
+      "target": "python/.venv/Scripts/convert-onnx-to-caffe2.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "feb8b12318c85436d4ac8572b0b4c004d3d7e1cf7cc35e92bd566218112effb1": {
+      "signature": "feb8b12318c85436d4ac8572b0b4c004d3d7e1cf7cc35e92bd566218112effb1",
+      "alternativeSignatures": [
+        "965b16f4532b77a8703a0778ce0b469f6a0f98273a791c7982cf836947a3ac5e"
+      ],
+      "target": "python/.venv/Scripts/cookiecutter.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d8383e1a995a2203944f2fa099a0acc5139c1f252d726e4cb900b51e8fade930": {
+      "signature": "d8383e1a995a2203944f2fa099a0acc5139c1f252d726e4cb900b51e8fade930",
+      "alternativeSignatures": [
+        "a149e743233636fa526547888feb1e0469f4558a918b7ee4b6e740d87eae88cd"
+      ],
+      "target": "python/.venv/Scripts/coverage-3.12.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "c61715ee48c81a294edcf42436d2f7dc2ab12863e958d6645f80c30b20126c5b": {
+      "signature": "c61715ee48c81a294edcf42436d2f7dc2ab12863e958d6645f80c30b20126c5b",
+      "alternativeSignatures": [
+        "ac7a1cd2206a6f8feb041b64e89c3124cd9008d5744f3b7c62ade29c7a1541b7"
+      ],
+      "target": "python/.venv/Scripts/coverage.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "9da5771490c32d959d777bf7feb30f58206c9aa3503ceeb6f508d0e2e54a8d9d": {
+      "signature": "9da5771490c32d959d777bf7feb30f58206c9aa3503ceeb6f508d0e2e54a8d9d",
+      "alternativeSignatures": [
+        "376853bf0f7f1a1c50a91ed5803a19fac6fd02f9c0168f67dd706befc1e11cdb"
+      ],
+      "target": "python/.venv/Scripts/coverage3.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "871a1c1df56f7a1275cb18c252ea076a755fcfbd54ad7f5141148102cacb51f7": {
+      "signature": "871a1c1df56f7a1275cb18c252ea076a755fcfbd54ad7f5141148102cacb51f7",
+      "alternativeSignatures": [
+        "e2629be1e78df50e28c774f004da55e76b76273333dd5d5d2ff97a004ac49733"
+      ],
+      "target": "python/.venv/Scripts/debugpy.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "556ae6bc2e32aeae89f211115a7dadc86e2450a64330e4e70fb4fc982afeb62f": {
+      "signature": "556ae6bc2e32aeae89f211115a7dadc86e2450a64330e4e70fb4fc982afeb62f",
+      "alternativeSignatures": [
+        "3b3cd7b702184a03fd6e09adb7c2e26bf6d15d69c676ce27128b128e01f88b57"
+      ],
+      "target": "python/.venv/Scripts/distro.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "4f82ef942494722fe95b49f472e4cde063754a8bd0e3abff6522899a805d420d": {
+      "signature": "4f82ef942494722fe95b49f472e4cde063754a8bd0e3abff6522899a805d420d",
+      "alternativeSignatures": [
+        "965fdc802d91d98cb6dda23041819b83f4fbdc217da68ee3cd5ed81cb2c6c519"
+      ],
+      "target": "python/.venv/Scripts/dmypy.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a5b1c29012686e1088be32fcd71cbc7a7cf40660acd09fc91d9302e93dc3c949": {
+      "signature": "a5b1c29012686e1088be32fcd71cbc7a7cf40660acd09fc91d9302e93dc3c949",
+      "alternativeSignatures": [
+        "f696c50872ba5530eff126a09516205835a9df7f32783f7acd45c09b3eda9185"
+      ],
+      "target": "python/.venv/Scripts/docutils.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d0538dd5942a805fe9d7176335b48938493a1005de1361173563d9546a7da522": {
+      "signature": "d0538dd5942a805fe9d7176335b48938493a1005de1361173563d9546a7da522",
+      "alternativeSignatures": [
+        "7c64fc0693217823d79c555b10aa74ecfeb272004ff07b4d16ebdd0a3010d3bd"
+      ],
+      "target": "python/.venv/Scripts/dotenv.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "f79aeeb659c3b804c58bf34d4e91759f2e50dc795c46843799915d2170069c1a": {
+      "signature": "f79aeeb659c3b804c58bf34d4e91759f2e50dc795c46843799915d2170069c1a",
+      "alternativeSignatures": [
+        "7d0b66e678ee706a4a2bbe736711b8634efd7e59d16940bde613d3cef307809c"
+      ],
+      "target": "python/.venv/Scripts/email_validator.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d5a358717204fa2a8d6a7ef201264847ed092d50dbb38f2b4a1bce1f41506fb7": {
+      "signature": "d5a358717204fa2a8d6a7ef201264847ed092d50dbb38f2b4a1bce1f41506fb7",
+      "alternativeSignatures": [
+        "a590a89a2260cd888373717f07a1db2ce8953d0b64acbbb2173db9489a640909"
+      ],
+      "target": "python/.venv/Scripts/f2py.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a6c474c9dbef27864b03c7e5767b44fbea4ec19ee5e1de6687e5da04f1889028": {
+      "signature": "a6c474c9dbef27864b03c7e5767b44fbea4ec19ee5e1de6687e5da04f1889028",
+      "alternativeSignatures": [
+        "5adb3a8ffbdd6a665fb74b407ca62a005512ac714ebc1b3439e665a1e4f66824"
+      ],
+      "target": "python/.venv/Scripts/fastapi.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "2c5ab22b4a2808dba428385e9b430258f4909b62051057241048052477517399": {
+      "signature": "2c5ab22b4a2808dba428385e9b430258f4909b62051057241048052477517399",
+      "alternativeSignatures": [
+        "d3f74a9da6887d41ba7a23b5c9081bb679b97fffa192a3f0d9c97c2c335fc546"
+      ],
+      "target": "python/.venv/Scripts/filetype.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7fc5c900edd2074330bf14fde1c1a12840b73a8f68c46879b252c1ee3d2740d2": {
+      "signature": "7fc5c900edd2074330bf14fde1c1a12840b73a8f68c46879b252c1ee3d2740d2",
+      "alternativeSignatures": [
+        "bb8464d2920e09bc83f8e954e0774d12f9d49edd853b18aaa8897c1ab7eb7e1a"
+      ],
+      "target": "python/.venv/Scripts/flask.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "965098dc4df567ffc92a7825fba939514d4aca0f873fe52fe6e98d70e7d8bcfb": {
+      "signature": "965098dc4df567ffc92a7825fba939514d4aca0f873fe52fe6e98d70e7d8bcfb",
+      "alternativeSignatures": [
+        "6dbe1ea699ced8eaeb71f40c2b2dafa6c9a6d53c0001937c6405ec9d38616660"
+      ],
+      "target": "python/.venv/Scripts/fonttools.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "bce4aba89948f585ddf7252b085e262edbe1c9aacc75642673bd9cf6eccdb437": {
+      "signature": "bce4aba89948f585ddf7252b085e262edbe1c9aacc75642673bd9cf6eccdb437",
+      "alternativeSignatures": [
+        "7814515e061b2ee0704fdeb0f517a3db07f4764333a7b8bdb78ab5d20e884da2"
+      ],
+      "target": "python/.venv/Scripts/futurize.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "91c3111e7c5c8f9438a81318a9b33d777d44df1f6cbddba0f0d72f4d5b6effac": {
+      "signature": "91c3111e7c5c8f9438a81318a9b33d777d44df1f6cbddba0f0d72f4d5b6effac",
+      "alternativeSignatures": [
+        "4fa3e7fc6c8d6b98b26448db086751467970c869aeae7e53b33387daa71f4316"
+      ],
+      "target": "python/.venv/Scripts/gen-component-schema.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a8b14e2d71eeb68882500e4d3d40ca00e3aa168b9feb2dd4fd187064184c9f81": {
+      "signature": "a8b14e2d71eeb68882500e4d3d40ca00e3aa168b9feb2dd4fd187064184c9f81",
+      "alternativeSignatures": [
+        "a38ae34bd2e4150610ec5646af7a6d718380ce88ee033b7e1a042f15f2ac7805"
+      ],
+      "target": "python/.venv/Scripts/graphrag.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8d8bd7045885da81fbe620c1a605d629c7edf8df3a571d52c77d9a6a8d8601c8": {
+      "signature": "8d8bd7045885da81fbe620c1a605d629c7edf8df3a571d52c77d9a6a8d8601c8",
+      "alternativeSignatures": [
+        "c4ad3fd90f37f18adb8251259443485db2b7997bfaf38a9753fb794a80f41034"
+      ],
+      "target": "python/.venv/Scripts/html2text.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "9bf50988ba966d61809a638ea9030676176dfc8a94f393958b0fb2933e44ddbb": {
+      "signature": "9bf50988ba966d61809a638ea9030676176dfc8a94f393958b0fb2933e44ddbb",
+      "alternativeSignatures": [
+        "150303441c9ce382a20920aeeafe759b873b0ae8ccdb2283033f7bbe5b31d09a"
+      ],
+      "target": "python/.venv/Scripts/httpx.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "44024d3d17126518d5244f54c0b2ec679edf77e664e2c049b11765595fe0b9d1": {
+      "signature": "44024d3d17126518d5244f54c0b2ec679edf77e664e2c049b11765595fe0b9d1",
+      "alternativeSignatures": [
+        "007916904e1692ad2ec1f782522de17cb0dfdf8929d99177beca94c496783869"
+      ],
+      "target": "python/.venv/Scripts/huggingface-cli.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "9a87bc8f8c27eaee473dfc3c6f5ba76c71baaf16d0a3f679e509f7dac82b88c0": {
+      "signature": "9a87bc8f8c27eaee473dfc3c6f5ba76c71baaf16d0a3f679e509f7dac82b88c0",
+      "alternativeSignatures": [
+        "7201d976a0526219a105ec5124d62e7e6019dc60dffe234a0f388a287b524776"
+      ],
+      "target": "python/.venv/Scripts/humanfriendly.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7c6b90b62c5806a414bcb57aa5786454d8ddaa26813b638459d6f6b1ba6169e0": {
+      "signature": "7c6b90b62c5806a414bcb57aa5786454d8ddaa26813b638459d6f6b1ba6169e0",
+      "alternativeSignatures": [
+        "331b3b8d033efc84754c4d79d2d4ba5869c1a17297bce41c0ca7dffa1d174ca2"
+      ],
+      "target": "python/.venv/Scripts/ipython.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "2ff7ab3526af374c86397b5d5c9d980a0990378ca46f70975135d5380709191b": {
+      "signature": "2ff7ab3526af374c86397b5d5c9d980a0990378ca46f70975135d5380709191b",
+      "alternativeSignatures": [
+        "b65249e05e3bd5fe67cc36990f61aea71ec042e19ab1de72dfffb717ce272aca"
+      ],
+      "target": "python/.venv/Scripts/ipython3.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "632fb4dcde38a73421f8531f395efa9e1d1eec463987d62fb86cc25ef34393d2": {
+      "signature": "632fb4dcde38a73421f8531f395efa9e1d1eec463987d62fb86cc25ef34393d2",
+      "alternativeSignatures": [
+        "c647bea53905f1433db96cc237b1fd3f381fb1cea8bb3f2a3c7ae283f945ea65"
+      ],
+      "target": "python/.venv/Scripts/isympy.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "423f4dff41bbeec2f317a05b46f792accde4501b68817cef0434d325ae1e79bc": {
+      "signature": "423f4dff41bbeec2f317a05b46f792accde4501b68817cef0434d325ae1e79bc",
+      "alternativeSignatures": [
+        "fbf73e192f5ab43e6d87bb98ec4931ea7a47e09d92190c37c384b3aa13eb332b"
+      ],
+      "target": "python/.venv/Scripts/jcache.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a0bb2463e6d3fa5cc7438528858f25eaa1e6bac2206b1bdc1b5aae6aa2f228bc": {
+      "signature": "a0bb2463e6d3fa5cc7438528858f25eaa1e6bac2206b1bdc1b5aae6aa2f228bc",
+      "alternativeSignatures": [
+        "e9f9bff32537ec54991b70b74e0531da6c256013284c20590a591097326547b6"
+      ],
+      "target": "python/.venv/Scripts/jsonschema.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "6f338d1fce1dab791daa88cf5084c4b195534ab337562d86d05c4aa28292ac0f": {
+      "signature": "6f338d1fce1dab791daa88cf5084c4b195534ab337562d86d05c4aa28292ac0f",
+      "alternativeSignatures": [
+        "4b32c2f11919535d1a45692b468ffc621818cd32381ef4678efc5f14197025de"
+      ],
+      "target": "python/.venv/Scripts/json_repair.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "115cb1d38fee07665aa1f1d7aad56fc705e052459114bb1039f772d47f67ff06": {
+      "signature": "115cb1d38fee07665aa1f1d7aad56fc705e052459114bb1039f772d47f67ff06",
+      "alternativeSignatures": [
+        "155aa06326771793c884b006301e851d312bbe8aefbf4b01dd6e5c189a77f84f"
+      ],
+      "target": "python/.venv/Scripts/jupyter-execute.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1682c4d1acaac67651d9f13dbb88543dbd6da116b5f4b04757672d2804f7580d": {
+      "signature": "1682c4d1acaac67651d9f13dbb88543dbd6da116b5f4b04757672d2804f7580d",
+      "alternativeSignatures": [
+        "165b3fd0dc4e7220481a3f2d92d9439c447c23cb95fe2fe571d98562b8394894"
+      ],
+      "target": "python/.venv/Scripts/jupyter-kernel.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "22bfc4c264f44dece376abcf95de4f0b5006fe70a94dcf825586d9dfa1e6848a": {
+      "signature": "22bfc4c264f44dece376abcf95de4f0b5006fe70a94dcf825586d9dfa1e6848a",
+      "alternativeSignatures": [
+        "557f29c246183733e609fd2c144afdded7dacb00baf69264967e54a0117b132d"
+      ],
+      "target": "python/.venv/Scripts/jupyter-kernelspec.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d3b1bb2bed91a9bb72b6242d6a1fbea64df9a7347ed181fbda39e2c91951ff4f": {
+      "signature": "d3b1bb2bed91a9bb72b6242d6a1fbea64df9a7347ed181fbda39e2c91951ff4f",
+      "alternativeSignatures": [
+        "e1564ed450fd4fe1057a868ce3321335b4cc3e665b21ff4a7fd0d16630be4de2"
+      ],
+      "target": "python/.venv/Scripts/jupyter-migrate.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "052e3a40e704630ac179b95d3de68acb7cf67d52e6df4ef326c7df85eca78fc9": {
+      "signature": "052e3a40e704630ac179b95d3de68acb7cf67d52e6df4ef326c7df85eca78fc9",
+      "alternativeSignatures": [
+        "310e6efbbd1ec95a24c753af29b9aeac607eb205bd1972867af1a544c2cdd5de"
+      ],
+      "target": "python/.venv/Scripts/jupyter-run.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "900b284a9a5e28c484f6112a0914e32d588b3ae9d278b90a2fddfa7767e1c567": {
+      "signature": "900b284a9a5e28c484f6112a0914e32d588b3ae9d278b90a2fddfa7767e1c567",
+      "alternativeSignatures": [
+        "628113bf5f6997546a7e2e57ab25ea178c6c2ef4511b8f08ea3f906d7aedb960"
+      ],
+      "target": "python/.venv/Scripts/jupyter-troubleshoot.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b7d616f784fd071be809a4c36e903cca5f91ffd36e9ab9c3bda3de387f0b42e2": {
+      "signature": "b7d616f784fd071be809a4c36e903cca5f91ffd36e9ab9c3bda3de387f0b42e2",
+      "alternativeSignatures": [
+        "875deb68d1bb112b36c34a5e2d60b72a3143d0a63375160623b61c416cc7b9a2"
+      ],
+      "target": "python/.venv/Scripts/jupyter-trust.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "e9751a6a9454e05d66db166b7604fc80f2af74860ba5bbb1f5397f646469617e": {
+      "signature": "e9751a6a9454e05d66db166b7604fc80f2af74860ba5bbb1f5397f646469617e",
+      "alternativeSignatures": [
+        "777c108b078923fb2ac6dd6ad264c760405167b29d98d7b6e6e29f7732e62858"
+      ],
+      "target": "python/.venv/Scripts/jupyter.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1752dbc47384be34c52692e0a80d86a228115734bd2b87cd85ccb812b5d2696b": {
+      "signature": "1752dbc47384be34c52692e0a80d86a228115734bd2b87cd85ccb812b5d2696b",
+      "alternativeSignatures": [
+        "80d958cc5a9f45302255c9d34d79b36693d9acd3573180138cb49d9c16976543"
+      ],
+      "target": "python/.venv/Scripts/langchain-server.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "41ef4f5ddc1fa4bdca357c27904c5c72feee34233b052b3f7ab0c3922f673be6": {
+      "signature": "41ef4f5ddc1fa4bdca357c27904c5c72feee34233b052b3f7ab0c3922f673be6",
+      "alternativeSignatures": [
+        "d41917069a5f05031be49c3df58fcc4113a536fef7e0c88c2508521a5c54246c"
+      ],
+      "target": "python/.venv/Scripts/llama-parse.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "5aea5c9e7eb4ca9440ca801fc8916b55900c8849ee253f57b189c1c701c30725": {
+      "signature": "5aea5c9e7eb4ca9440ca801fc8916b55900c8849ee253f57b189c1c701c30725",
+      "alternativeSignatures": [
+        "8d977d20943c08f8c2d231fac4dc126237df6db4f4e0fabd3d5238065b623ae6"
+      ],
+      "target": "python/.venv/Scripts/llamaindex-cli.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ccfc18228ca254ecea2f537470cfea63d57676f28d51741d18ff2133e9a3dec4": {
+      "signature": "ccfc18228ca254ecea2f537470cfea63d57676f28d51741d18ff2133e9a3dec4",
+      "alternativeSignatures": [
+        "4a5c2a8c75a618ea8a5248dbc3e1effd5c85340d46674e94e295d01350f1c51f"
+      ],
+      "target": "python/.venv/Scripts/m1.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "beb3fba5dcc150eb3ac83c66fcc20532643966f87179d7030b1577bb57576adf": {
+      "signature": "beb3fba5dcc150eb3ac83c66fcc20532643966f87179d7030b1577bb57576adf",
+      "alternativeSignatures": [
+        "65bdd05d8cf9ef04353f15374c853ea37889f2c73202fac7b42169053805f526"
+      ],
+      "target": "python/.venv/Scripts/magika.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1259edf978358347714758b53d0ac7621dc7fe57b4efc75e5fea13815aeabb8b": {
+      "signature": "1259edf978358347714758b53d0ac7621dc7fe57b4efc75e5fea13815aeabb8b",
+      "alternativeSignatures": [
+        "f56bfc2ec155667fa4c9e50e9941f3be14d5133de4c1f87c988fbd1feb1ea79c"
+      ],
+      "target": "python/.venv/Scripts/mako-render.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ce1d6db1fcaf09677c5b6a7038d953a78bbc5324846bdae7ea3b6aa0c0d3fab5": {
+      "signature": "ce1d6db1fcaf09677c5b6a7038d953a78bbc5324846bdae7ea3b6aa0c0d3fab5",
+      "alternativeSignatures": [
+        "eff8bacf8ff5fadd48faf2f287769c8c79c564f289031041c35363271182c8d4"
+      ],
+      "target": "python/.venv/Scripts/mammoth.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "924e21246f3c02efe9153d71bd0014d09593abec3722b6c9fd5dc4f5929fd9f5": {
+      "signature": "924e21246f3c02efe9153d71bd0014d09593abec3722b6c9fd5dc4f5929fd9f5",
+      "alternativeSignatures": [
+        "25c87e14545acc1c1d902235249ccf526aa46880655abf0ff9875e100a82b31f"
+      ],
+      "target": "python/.venv/Scripts/markdown-it.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "94448bfe442ba4a8f1706ea11b82e4ca67186cfd06c0db8d583cf5e4392e8f6f": {
+      "signature": "94448bfe442ba4a8f1706ea11b82e4ca67186cfd06c0db8d583cf5e4392e8f6f",
+      "alternativeSignatures": [
+        "dc4729ab0ed88f49d790c772ff8a947e483e47b30dd1b484faea72d154207ac0"
+      ],
+      "target": "python/.venv/Scripts/markdownify.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7ae3824d38c360c90011b985a63f616c33658b1b8e3f7c1433c0cd4ef69bb036": {
+      "signature": "7ae3824d38c360c90011b985a63f616c33658b1b8e3f7c1433c0cd4ef69bb036",
+      "alternativeSignatures": [
+        "875785b44b831e0fb1f5bc6dc7b9f96d0124f7f5103057d95b96df04ad09db42"
+      ],
+      "target": "python/.venv/Scripts/markitdown.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "80bc18dcd288c119578e1eb45f0b8df48b31bd543d5082969d58d5a0a2cdc1f9": {
+      "signature": "80bc18dcd288c119578e1eb45f0b8df48b31bd543d5082969d58d5a0a2cdc1f9",
+      "alternativeSignatures": [
+        "e838731be72e8fdde02ad552de5fcd38b67fd7d833708c815abace329e4e0185"
+      ],
+      "target": "python/.venv/Scripts/mcp.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "5252f80af1cc2a25be2318b25b6575ad5fa2e2eedf942e86db9ae6e487b718d0": {
+      "signature": "5252f80af1cc2a25be2318b25b6575ad5fa2e2eedf942e86db9ae6e487b718d0",
+      "alternativeSignatures": [
+        "e3217a73fbe1750967f53e1ce93812b0b63b067e91f20dd1e788d689a4fa755b"
+      ],
+      "target": "python/.venv/Scripts/mypy.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "9484f9e1302ba6aeec8e6731cdc0870637c8bcf5b498c0994465a5071b86ea89": {
+      "signature": "9484f9e1302ba6aeec8e6731cdc0870637c8bcf5b498c0994465a5071b86ea89",
+      "alternativeSignatures": [
+        "a77b466f1cb3c3123e86ab0ed53d23b0a92a6ec135f9ca4348a3dac2cbcae884"
+      ],
+      "target": "python/.venv/Scripts/mypyc.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "14d10e1c8c8b0d6435802db7c5179a1443b0dd06c3b48ebfc81b328a54c479f0": {
+      "signature": "14d10e1c8c8b0d6435802db7c5179a1443b0dd06c3b48ebfc81b328a54c479f0",
+      "alternativeSignatures": [
+        "19d9cfa165fc8540aa4b1f1ced9d0ba1cc2084bb369460e219bbd13f728a6c15"
+      ],
+      "target": "python/.venv/Scripts/myst-anchors.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d15ce49fc60aee8615deb49d18828264ca41f3c567ddf8961373be926f3cd79e": {
+      "signature": "d15ce49fc60aee8615deb49d18828264ca41f3c567ddf8961373be926f3cd79e",
+      "alternativeSignatures": [
+        "52ff06f999790dba0b0720c9602af2ebf43115c53a9d31453b37f05a98579da1"
+      ],
+      "target": "python/.venv/Scripts/myst-docutils-demo.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "effeb5aa307c8cf2eee3f0775c65cfb16e1c0ab8a044f013968f8301d27080b4": {
+      "signature": "effeb5aa307c8cf2eee3f0775c65cfb16e1c0ab8a044f013968f8301d27080b4",
+      "alternativeSignatures": [
+        "74523dc692f211ed9951bb8be41bc1c464ee8c08781bbed730b18c107efa3180"
+      ],
+      "target": "python/.venv/Scripts/myst-docutils-html.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "e0bd0c306b6f56e966c927d784510220869869c8f855ce1b0f33956789689632": {
+      "signature": "e0bd0c306b6f56e966c927d784510220869869c8f855ce1b0f33956789689632",
+      "alternativeSignatures": [
+        "6a77bcefe6ca2b62e9957603138bfa2f231919b86bb6a22d4b7129bfcd6e8b17"
+      ],
+      "target": "python/.venv/Scripts/myst-docutils-html5.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "bcf68abe4b2602443450e687966b942515b2703ecb14f80e31f502b39e1c944a": {
+      "signature": "bcf68abe4b2602443450e687966b942515b2703ecb14f80e31f502b39e1c944a",
+      "alternativeSignatures": [
+        "f6152eb2fc3df2a74f1498c4734625ca975f0c23024c166f82cb6af08d7c05a9"
+      ],
+      "target": "python/.venv/Scripts/myst-docutils-latex.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "47492b330c46d3b0a5d722d5e335e734d4eb01f2e5b94aec4ed6827ef9b63475": {
+      "signature": "47492b330c46d3b0a5d722d5e335e734d4eb01f2e5b94aec4ed6827ef9b63475",
+      "alternativeSignatures": [
+        "a8a9b89a1f9b05522c679cbcda311d68c768da0dc0f9b7c1806b747e7a10b757"
+      ],
+      "target": "python/.venv/Scripts/myst-docutils-pseudoxml.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "76e9a06dce88b6425ba548b4e8d3f16459ce4942b4943a6115d7ecfd1a8987fa": {
+      "signature": "76e9a06dce88b6425ba548b4e8d3f16459ce4942b4943a6115d7ecfd1a8987fa",
+      "alternativeSignatures": [
+        "4a75dc73e9131a8073b3dd6abd50f886f09c3a8f43e8205d7e9712eb5e9263df"
+      ],
+      "target": "python/.venv/Scripts/myst-docutils-xml.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "efbc6c6ab88b855a0e8e198143ef9dc6d1af272e3697302ae5b590fd64949fa0": {
+      "signature": "efbc6c6ab88b855a0e8e198143ef9dc6d1af272e3697302ae5b590fd64949fa0",
+      "alternativeSignatures": [
+        "1587f5b9cef702b70f037e49fa8345bcf663a57f88f57e226b18caaeb1668b9f"
+      ],
+      "target": "python/.venv/Scripts/myst-inv.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ca0ded90aa46893e5f43999011e6ac828575851f5a96afe57701091b74e5c107": {
+      "signature": "ca0ded90aa46893e5f43999011e6ac828575851f5a96afe57701091b74e5c107",
+      "alternativeSignatures": [
+        "1f6e3330e95b62694ce3eff80862fa4e8c55238def98ec66b48994cf5dfe6924"
+      ],
+      "target": "python/.venv/Scripts/mystnb-docutils-html.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "c0e6ffbe225fe7fabdbbf443c19b1dcd0fde54619841cba9f0a3c7401a56ac2a": {
+      "signature": "c0e6ffbe225fe7fabdbbf443c19b1dcd0fde54619841cba9f0a3c7401a56ac2a",
+      "alternativeSignatures": [
+        "07850ef5cba47ec4fd42c75aff3fbedcb999db5ea993da0fb00f2d94268fff64"
+      ],
+      "target": "python/.venv/Scripts/mystnb-docutils-html5.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b4dcc32e452b5aa81cbb68906af0124cf59dde70a2f1b24e293d13e46983b35e": {
+      "signature": "b4dcc32e452b5aa81cbb68906af0124cf59dde70a2f1b24e293d13e46983b35e",
+      "alternativeSignatures": [
+        "ae14c7394094ffac406c58d177ea3e37c56f93159705227fd18b21d894312d74"
+      ],
+      "target": "python/.venv/Scripts/mystnb-docutils-latex.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ae1ef13245d71684a5879b132b267f5b66bbf230631005b2b6e0774231bdf965": {
+      "signature": "ae1ef13245d71684a5879b132b267f5b66bbf230631005b2b6e0774231bdf965",
+      "alternativeSignatures": [
+        "433f3f0836d69be74655dbd35e19b4832778b5cbace805e428f644b9f5b492b0"
+      ],
+      "target": "python/.venv/Scripts/mystnb-docutils-pseudoxml.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0fead58726790c55644e5a0685580dc5f22d782647501543bf2e8872e39b244b": {
+      "signature": "0fead58726790c55644e5a0685580dc5f22d782647501543bf2e8872e39b244b",
+      "alternativeSignatures": [
+        "a7c457f061f9b04a7fd046659f152207bc36424a552350a09369815304324641"
+      ],
+      "target": "python/.venv/Scripts/mystnb-docutils-xml.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "6f4d73b631a32d317c337aac8c458aea9d621cf343c34fe15041be7f052394e3": {
+      "signature": "6f4d73b631a32d317c337aac8c458aea9d621cf343c34fe15041be7f052394e3",
+      "alternativeSignatures": [
+        "2f935b9dc1146a16b282b8accde6c7bd2879332231fef5f8fd0a8799f82dbc16"
+      ],
+      "target": "python/.venv/Scripts/mystnb-quickstart.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "63f154b674f5bf6713187c03ae9c98eb809080f79352fdb9319b990f8c000257": {
+      "signature": "63f154b674f5bf6713187c03ae9c98eb809080f79352fdb9319b990f8c000257",
+      "alternativeSignatures": [
+        "bd61a9d820b0395b5d5846de4a98e0f58941c5c96c8ea1697e69d9baa0dc0d83"
+      ],
+      "target": "python/.venv/Scripts/mystnb-to-jupyter.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "9309fc663a03a5fe2704cae029455896a9b6415e585daae0590f3cd3cb4625de": {
+      "signature": "9309fc663a03a5fe2704cae029455896a9b6415e585daae0590f3cd3cb4625de",
+      "alternativeSignatures": [
+        "d77f05f14805d619db1ed49c90d5ec51f150638a652dc9a52c5a850acd039dbc"
+      ],
+      "target": "python/.venv/Scripts/nbqa.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "bc2e588cdcdb3a1ea5a3fe775ba820bef38f798aff3facd49e93cfd138a7b582": {
+      "signature": "bc2e588cdcdb3a1ea5a3fe775ba820bef38f798aff3facd49e93cfd138a7b582",
+      "alternativeSignatures": [
+        "3d568218e6687b868098f67aa2021824fd7b487bb8166267ee008e2a02b880c3"
+      ],
+      "target": "python/.venv/Scripts/nltk.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8dc861a1295f04528c77fa2c7090ab9c34f3aa11d8e25e3e829f6f8679dc1ba1": {
+      "signature": "8dc861a1295f04528c77fa2c7090ab9c34f3aa11d8e25e3e829f6f8679dc1ba1",
+      "alternativeSignatures": [
+        "7d41180ee74df408009d100414d9b12715e62225201562d058ed2a59b891f804"
+      ],
+      "target": "python/.venv/Scripts/nodeenv.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "bbac1c7bf14c6f33072ada4e0843fa38c0a15c5a19005d86674bc00a0385756c": {
+      "signature": "bbac1c7bf14c6f33072ada4e0843fa38c0a15c5a19005d86674bc00a0385756c",
+      "alternativeSignatures": [
+        "51c3f91b4f3eae7497681c3601c8e6c6edb5b212011f233c5a211023a8ab18be"
+      ],
+      "target": "python/.venv/Scripts/normalizer.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "603d0bac9fdcedf788c1b0818a002a19b1d31e18b1d273f10656e32d12580c95": {
+      "signature": "603d0bac9fdcedf788c1b0818a002a19b1d31e18b1d273f10656e32d12580c95",
+      "alternativeSignatures": [
+        "f480b527328f4273d194f906b2ab85f06dd94eb0d9d66c9139706f36e9b18643"
+      ],
+      "target": "python/.venv/Scripts/onnxruntime_test.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0af45749133a0fb16eb7a4a1c0995eb05b955883073752b041a95bd6a6b2ed02": {
+      "signature": "0af45749133a0fb16eb7a4a1c0995eb05b955883073752b041a95bd6a6b2ed02",
+      "alternativeSignatures": [
+        "030288c2d9e681c5d53172ef75e9fa6c85203809f0593593e54dab4dec028ca8"
+      ],
+      "target": "python/.venv/Scripts/openai.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ee010adf9b0c960b529265da230b31c73126225812fb8ec55180ae47b1215484": {
+      "signature": "ee010adf9b0c960b529265da230b31c73126225812fb8ec55180ae47b1215484",
+      "alternativeSignatures": [
+        "5a7fd3be7e6ae21d432f5da62a4d37a986ac7d37a09c8d0481030e6d6a35a6ef"
+      ],
+      "target": "python/.venv/Scripts/openapi-spec-validator.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "bfa58c29208d11ba5bdb66e2fcd3047fa3ef952a64d8064aa55dfedc2176135e": {
+      "signature": "bfa58c29208d11ba5bdb66e2fcd3047fa3ef952a64d8064aa55dfedc2176135e",
+      "alternativeSignatures": [
+        "d6d016a0cbc47f3861cd0f60c65d58b8dd3760a200b85e0cbf908acb37675d7d"
+      ],
+      "target": "python/.venv/Scripts/opentelemetry-bootstrap.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d95011352fd947706e9c63acd84945709c47f25e8810cd866c41fe4f1b9e0668": {
+      "signature": "d95011352fd947706e9c63acd84945709c47f25e8810cd866c41fe4f1b9e0668",
+      "alternativeSignatures": [
+        "acde9536d832525d27ddd9d4e104a14e027dde2587f28b7cd7249ff7d8be6ebe"
+      ],
+      "target": "python/.venv/Scripts/opentelemetry-instrument.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b7c2b540566f1e9e26fc2f20903808235e25c7c8f460e2a7e34171886c361b79": {
+      "signature": "b7c2b540566f1e9e26fc2f20903808235e25c7c8f460e2a7e34171886c361b79",
+      "alternativeSignatures": [
+        "a098845db73e93f062254f6d351fd5bd1335fe4890e9bd18cd00ca990731762d"
+      ],
+      "target": "python/.venv/Scripts/pasteurize.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "16d326dcde99fa0bf3921c5d0d96f30c59b79c960135ee5a436a0bf8b41635f2": {
+      "signature": "16d326dcde99fa0bf3921c5d0d96f30c59b79c960135ee5a436a0bf8b41635f2",
+      "alternativeSignatures": [
+        "a8ad77f9ff71ff377005b80c4a19ffebb5f85a27c96a1443feb2028cd3a98d7c"
+      ],
+      "target": "python/.venv/Scripts/pbr.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ddd93d42b121d576933e1228c98ab137b007f7f236f8ff1536240c153068dc4c": {
+      "signature": "ddd93d42b121d576933e1228c98ab137b007f7f236f8ff1536240c153068dc4c",
+      "alternativeSignatures": [
+        "94263ed0d17c0f43071c0f0218764272e18f656505ce8c1cde6a55d0a34b56ae"
+      ],
+      "target": "python/.venv/Scripts/pip.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "08e8cb4c38ba88a8b1e4f6c03d20c35d0da07123203dfbe6726aea1855e5d2c9": {
+      "signature": "08e8cb4c38ba88a8b1e4f6c03d20c35d0da07123203dfbe6726aea1855e5d2c9",
+      "alternativeSignatures": [
+        "bc8da770778fc64e6eacafb1547a767d9cb6a819dd2f8b6427501e385dd934dc"
+      ],
+      "target": "python/.venv/Scripts/pip3.12.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7e95b6eead5547b8156e55b5d3cadb599e37ee6681b16e97250bc785358a7288": {
+      "signature": "7e95b6eead5547b8156e55b5d3cadb599e37ee6681b16e97250bc785358a7288",
+      "alternativeSignatures": [
+        "3d78dcc116aed89dee46548f9fcfb748b527124c299766e719547f2df50afa7e"
+      ],
+      "target": "python/.venv/Scripts/pip3.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0a2e55a6bba0f6c52943c5ddc25df9e8e740e437941532edd33f4de4e709ef49": {
+      "signature": "0a2e55a6bba0f6c52943c5ddc25df9e8e740e437941532edd33f4de4e709ef49",
+      "alternativeSignatures": [
+        "a615f599813f9d83e344b44c47291c35afea2da071576ddcb02d443727cb8590"
+      ],
+      "target": "python/.venv/Scripts/playwright.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d1c8c8961370244d21038d2d0603a75d47f9bcfe05f7d75ade6c4b718f3635ef": {
+      "signature": "d1c8c8961370244d21038d2d0603a75d47f9bcfe05f7d75ade6c4b718f3635ef",
+      "alternativeSignatures": [
+        "0bbf3e5c0a9ebbf607965a4d21ca5cf5a427efaffba26c6d5d1b8361360bca91"
+      ],
+      "target": "python/.venv/Scripts/poe.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b60f4aaff33e7b0b33b00a5741b40b0cb91c3b563b56f8b87d4305aa418fdf41": {
+      "signature": "b60f4aaff33e7b0b33b00a5741b40b0cb91c3b563b56f8b87d4305aa418fdf41",
+      "alternativeSignatures": [
+        "e246be5f8fc1af4392e5728b54a27825c6737900f291775cd5dab1e454b24967"
+      ],
+      "target": "python/.venv/Scripts/prance.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a6d61b6bf3bef20ed261478f08457ca5b48d39c7bc9487c4c87e8a14c28978e9": {
+      "signature": "a6d61b6bf3bef20ed261478f08457ca5b48d39c7bc9487c4c87e8a14c28978e9",
+      "alternativeSignatures": [
+        "f7f70c6860103a52feea19832317bbfde981f9ec67260fc0322c376dd6db2b04"
+      ],
+      "target": "python/.venv/Scripts/protoc-gen-mypy.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "86e8d8954e913d9fa3373368684ae97890ac61bbeb79478e5895ba7efd2a564f": {
+      "signature": "86e8d8954e913d9fa3373368684ae97890ac61bbeb79478e5895ba7efd2a564f",
+      "alternativeSignatures": [
+        "e5a7c0ee698bbbe66223777c73bd8f88532b7a65841c3b74c0eda353fd1acb60"
+      ],
+      "target": "python/.venv/Scripts/protoc-gen-mypy_grpc.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a72ade6440d5e06ae4fe5c66a24b52e1247867ba5a1411ae8735f031209fcf74": {
+      "signature": "a72ade6440d5e06ae4fe5c66a24b52e1247867ba5a1411ae8735f031209fcf74",
+      "alternativeSignatures": [
+        "73861355322667eb65ada35464279bc76f512415c4ae00ade0236f66a731e6f3"
+      ],
+      "target": "python/.venv/Scripts/py.test.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "3d5ebf1ebd72322f88d9e226ac6b0d34c9b924cdb12b1ce9bbfe8a765beb9e8c": {
+      "signature": "3d5ebf1ebd72322f88d9e226ac6b0d34c9b924cdb12b1ce9bbfe8a765beb9e8c",
+      "alternativeSignatures": [
+        "4a7ab282136407aa4a5e7d14399394d2fc03a47a41674847e89c85036d4080c8"
+      ],
+      "target": "python/.venv/Scripts/pybabel.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8e80b46d9e3e8ff8ef19563297743aadb23a5cec218a4986f2303dc941077a2e": {
+      "signature": "8e80b46d9e3e8ff8ef19563297743aadb23a5cec218a4986f2303dc941077a2e",
+      "alternativeSignatures": [
+        "00bd20d65003a6f7bf0073066c93c30979e291037712ceae1f444dfb7f030e64"
+      ],
+      "target": "python/.venv/Scripts/pycodestyle.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ad6d7bbaa03edf66933117c23a06a3d3d88be6c34399e4e1a0834815046f2407": {
+      "signature": "ad6d7bbaa03edf66933117c23a06a3d3d88be6c34399e4e1a0834815046f2407",
+      "alternativeSignatures": [
+        "211325d793dbdb75683c88ddbde86ea3da1bca100943636f8bdef263119c10b7"
+      ],
+      "target": "python/.venv/Scripts/pyftmerge.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8a8c7dd4fbb2eb53287f4dcab8a5d5eb18cb68eedaac7aa219e3b63004bba94e": {
+      "signature": "8a8c7dd4fbb2eb53287f4dcab8a5d5eb18cb68eedaac7aa219e3b63004bba94e",
+      "alternativeSignatures": [
+        "d7b27de70266104178678a1e276f507a235ff0f14616dab04ef6a95610c3541f"
+      ],
+      "target": "python/.venv/Scripts/pyftsubset.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0bba7c8bfad6f581437cf73c4c3473c86a67910676050cc2f190bd83c59084f2": {
+      "signature": "0bba7c8bfad6f581437cf73c4c3473c86a67910676050cc2f190bd83c59084f2",
+      "alternativeSignatures": [
+        "c33b4d79285effd9d2c3ca0faab4a97e2ef779fcbe3a49774f53815998c2cfde"
+      ],
+      "target": "python/.venv/Scripts/pygmentize.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "9be212052559486fc14202a42eab84ebaecaff4771c92077a064a8cb3390529a": {
+      "signature": "9be212052559486fc14202a42eab84ebaecaff4771c92077a064a8cb3390529a",
+      "alternativeSignatures": [
+        "aa35f6ccfb63c0deef1c267a3a7a24310fea2b08a7bdf190885e984855ac6640"
+      ],
+      "target": "python/.venv/Scripts/pyproject-build.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "74221fcd27751e725686d3debf28b07726be3f4ca98abf2b09d8185eafa20352": {
+      "signature": "74221fcd27751e725686d3debf28b07726be3f4ca98abf2b09d8185eafa20352",
+      "alternativeSignatures": [
+        "246c575fa36e661fa8d20b10c7b6777a3584141ae094329db7fc5a0ec3437c9c"
+      ],
+      "target": "python/.venv/Scripts/pyright-langserver.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "e6976f8499197a85fae10280925773da09c32de869d241d96ecca77f65c2c002": {
+      "signature": "e6976f8499197a85fae10280925773da09c32de869d241d96ecca77f65c2c002",
+      "alternativeSignatures": [
+        "3c2097965917e875f9fdc63ead632098b4f6e7c4edf165fbfbdd12f2ae63b5c4"
+      ],
+      "target": "python/.venv/Scripts/pyright-python-langserver.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "6c9ed5605f4fa5e2f2dcb029ffa1c40831271729fc1e3e5a5ce3cc1ef6fa0c90": {
+      "signature": "6c9ed5605f4fa5e2f2dcb029ffa1c40831271729fc1e3e5a5ce3cc1ef6fa0c90",
+      "alternativeSignatures": [
+        "c32ce1c6eb237ef8235dd60ac9f7e8f5340b2b2b804cfe6f8d6c456ba4f69cf4"
+      ],
+      "target": "python/.venv/Scripts/pyright-python.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7a6669b562fcd5a5ccece1e842d53ad1f47177b9eef454473bdc76b519a85b3b": {
+      "signature": "7a6669b562fcd5a5ccece1e842d53ad1f47177b9eef454473bdc76b519a85b3b",
+      "alternativeSignatures": [
+        "a69d04994865d2bc3c9ce15ea653ea52429703dd68ba5f7befc37c3ab0e62469"
+      ],
+      "target": "python/.venv/Scripts/pyright.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7b25ce438d1ca9fcf1ee8eba7eb9869a7e0817a1b5087551b6ee7767bfc95946": {
+      "signature": "7b25ce438d1ca9fcf1ee8eba7eb9869a7e0817a1b5087551b6ee7767bfc95946",
+      "alternativeSignatures": [
+        "fe420204caba0b84fcf10dbf89ddc03645f33f39c356cbdd182b9d84f72014b7"
+      ],
+      "target": "python/.venv/Scripts/pyrsa-decrypt.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "856e5486e953cd8e28d5b3d7bb15b8c4111dc907cb7cd90c545383ee061e5421": {
+      "signature": "856e5486e953cd8e28d5b3d7bb15b8c4111dc907cb7cd90c545383ee061e5421",
+      "alternativeSignatures": [
+        "906fe0017d42ff66b70898b699ece9e41b5b43ec391b2da7c96ac9c1673daed1"
+      ],
+      "target": "python/.venv/Scripts/pyrsa-encrypt.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "e21776cd955dc3bdf5b9d29bddff246d27dd258a58c34ac2ab1d84f5c144de13": {
+      "signature": "e21776cd955dc3bdf5b9d29bddff246d27dd258a58c34ac2ab1d84f5c144de13",
+      "alternativeSignatures": [
+        "38ebed77fda11de78e66d907e4ec055a396723c3d1f3efdd0eb07ad9e2323e2b"
+      ],
+      "target": "python/.venv/Scripts/pyrsa-keygen.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7fb7c22219a3d3a647bde17102c02000652125bd87af5126fdef8523e15a9306": {
+      "signature": "7fb7c22219a3d3a647bde17102c02000652125bd87af5126fdef8523e15a9306",
+      "alternativeSignatures": [
+        "6b27bad49131b6017247faa4443c1df73a504c58a79b0ef60a82fe0ebcb3817a"
+      ],
+      "target": "python/.venv/Scripts/pyrsa-priv2pub.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "4f6de87e6ce678603c650355dcf3b14cba0b1d75e8f614f3950129e129cbdcde": {
+      "signature": "4f6de87e6ce678603c650355dcf3b14cba0b1d75e8f614f3950129e129cbdcde",
+      "alternativeSignatures": [
+        "3ad9f880b7eb87b875446456abe10a00062050b6db3ac713f344ba6142d4b766"
+      ],
+      "target": "python/.venv/Scripts/pyrsa-sign.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "e99900784039200f739477c4ed410af03068210f5867c8e7ea01322f38b5a7bc": {
+      "signature": "e99900784039200f739477c4ed410af03068210f5867c8e7ea01322f38b5a7bc",
+      "alternativeSignatures": [
+        "cbaa75c4282768777eba359aaef46e8f858f9e2ffc1e1669c01c3550260667b6"
+      ],
+      "target": "python/.venv/Scripts/pyrsa-verify.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b71ca621da4afa60251549a7805e2f4757252e8c85527e81656bb45735419c47": {
+      "signature": "b71ca621da4afa60251549a7805e2f4757252e8c85527e81656bb45735419c47",
+      "alternativeSignatures": [
+        "d9ae1ed66b40192cb1cb0cc2c3eeda93f99c0c4cd19f5edae265bf252254897d"
+      ],
+      "target": "python/.venv/Scripts/pytest.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "6d662cbde6b670ac28c42b096d8b57794c4dc882ccffca31ba9ffd0f75f1aa14": {
+      "signature": "6d662cbde6b670ac28c42b096d8b57794c4dc882ccffca31ba9ffd0f75f1aa14",
+      "alternativeSignatures": [
+        "3aa3f7270f9228cf8b35b5e94cf14e6596abdb7c0d9df31f420eefd0111f6d43"
+      ],
+      "target": "python/.venv/Scripts/python.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "4bd6f1688cb3ff7b9b4e0faf66ad37ee62a9153de725608270f63452a40b2f7a": {
+      "signature": "4bd6f1688cb3ff7b9b4e0faf66ad37ee62a9153de725608270f63452a40b2f7a",
+      "alternativeSignatures": [
+        "76bfb36e96c283c0f46635231173dca43ffa435514322f607977d4b5cb64f8c5"
+      ],
+      "target": "python/.venv/Scripts/pythonw.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "3f1055cb09bc0a4a737593cde64bd5a34af5414b541c27c90f1fe10fd662b219": {
+      "signature": "3f1055cb09bc0a4a737593cde64bd5a34af5414b541c27c90f1fe10fd662b219",
+      "alternativeSignatures": [
+        "2434fbfaf73217e9a30123dac1eb4d3c5e5d971ca337b1cb89f0e2374f2b01d6"
+      ],
+      "target": "python/.venv/Scripts/rst2html.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0d3dccef1e55b627966d40818d22f6a619052ab367b480a939a10fa4e2f6e168": {
+      "signature": "0d3dccef1e55b627966d40818d22f6a619052ab367b480a939a10fa4e2f6e168",
+      "alternativeSignatures": [
+        "f09ba185879ed350e344b4457218a81f7719ea571058810a2ec61e75cc778425"
+      ],
+      "target": "python/.venv/Scripts/rst2html4.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "bea0246d99daa2d0c8eb61403ee6739a893487c2df672a616989d948ad0e6fc5": {
+      "signature": "bea0246d99daa2d0c8eb61403ee6739a893487c2df672a616989d948ad0e6fc5",
+      "alternativeSignatures": [
+        "8468ab90b4bb8ddd3670c45332e0adfcda4950e0d79f970953c8ee1f78da319c"
+      ],
+      "target": "python/.venv/Scripts/rst2html5.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "e4f0418d356ceec140ccfe055b72e108f9296fa3b443df84edccf6af9f02e90d": {
+      "signature": "e4f0418d356ceec140ccfe055b72e108f9296fa3b443df84edccf6af9f02e90d",
+      "alternativeSignatures": [
+        "a65033165f0b77400abbfc9cc4ae5eb83ace2f7806aac663ba65a853c67e2faf"
+      ],
+      "target": "python/.venv/Scripts/rst2latex.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "313139cb82b998504e64a0072429e210bd3555967720dc41a549c2233efffbc0": {
+      "signature": "313139cb82b998504e64a0072429e210bd3555967720dc41a549c2233efffbc0",
+      "alternativeSignatures": [
+        "8b90759582d6863add8645b448435820d29ef5c31c4de9d414760371413c6b3d"
+      ],
+      "target": "python/.venv/Scripts/rst2man.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "058c66a2f5aba97befe90dfee334a05fd0a343239455d2abcf281d3f2f1f20fa": {
+      "signature": "058c66a2f5aba97befe90dfee334a05fd0a343239455d2abcf281d3f2f1f20fa",
+      "alternativeSignatures": [
+        "577000ba25034e8051a6b5b2ef3de7aa6f0b60454b074e603f9d4879e05633b3"
+      ],
+      "target": "python/.venv/Scripts/rst2odt.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "eac1d9f2b03c87ce772358dbd8774bb0804b319f1bce244ef60e0860d3a20d77": {
+      "signature": "eac1d9f2b03c87ce772358dbd8774bb0804b319f1bce244ef60e0860d3a20d77",
+      "alternativeSignatures": [
+        "25d0d449f1f8ccf14c2f4b08ed96268b2d6733955c7f795dd547f89359b7dfd0"
+      ],
+      "target": "python/.venv/Scripts/rst2pseudoxml.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0e91e843d479d11279cf7068a079668950a8bd48cc479533aff2bb31f6826d2f": {
+      "signature": "0e91e843d479d11279cf7068a079668950a8bd48cc479533aff2bb31f6826d2f",
+      "alternativeSignatures": [
+        "4fb57e6355a6d503f34da5c3bcbc557a054c224f6f658a4b819cb5a82a4c47c1"
+      ],
+      "target": "python/.venv/Scripts/rst2s5.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0e9d44ea197f2eac588b7b8690773a231966ab3942ffd2e9798f8a624047c175": {
+      "signature": "0e9d44ea197f2eac588b7b8690773a231966ab3942ffd2e9798f8a624047c175",
+      "alternativeSignatures": [
+        "e762677e7d26abf4e0b71583943ab7ac6dd1515d969d2813e5fb230de2cdfe92"
+      ],
+      "target": "python/.venv/Scripts/rst2xetex.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "71e24147a7b9d2aee7e46a7db315adad757e70804aedbf1ed5bd5b75d479f9cf": {
+      "signature": "71e24147a7b9d2aee7e46a7db315adad757e70804aedbf1ed5bd5b75d479f9cf",
+      "alternativeSignatures": [
+        "b8757b57a47b66f9611d81de101b59ce4a0ed9010e549618b70282e1e6a97733"
+      ],
+      "target": "python/.venv/Scripts/rst2xml.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "6286c8f869eaaea8fbcc1d52b6af1c504941a79a89c29342c5dee4347992f8e1": {
+      "signature": "6286c8f869eaaea8fbcc1d52b6af1c504941a79a89c29342c5dee4347992f8e1",
+      "alternativeSignatures": [
+        "aef2b6c3674521fa092799126f65759d5c6e17e5c122eadd5ca6b90f323dc91e"
+      ],
+      "target": "python/.venv/Scripts/ruff.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "5afffd952b5daf3aaf86d23faab1c62838b744a17b03d2bbb989183a32a69a1b": {
+      "signature": "5afffd952b5daf3aaf86d23faab1c62838b744a17b03d2bbb989183a32a69a1b",
+      "alternativeSignatures": [
+        "31ac844c7c345677b946683b51ef832e420689d35ec500493f84ee347fb8ce9a"
+      ],
+      "target": "python/.venv/Scripts/slugify.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "5f27ff382a05a92fe4407f5d64f039fd47c6ad6625d62a7003b14084a543d23e": {
+      "signature": "5f27ff382a05a92fe4407f5d64f039fd47c6ad6625d62a7003b14084a543d23e",
+      "alternativeSignatures": [
+        "25354b3a82d9dd118be47897bd98fde42651529f5221ecaf203494bf1bf16bdb"
+      ],
+      "target": "python/.venv/Scripts/sphinx-apidoc.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "6156025faa0e4ded2dc9ce72c324e014037423bb56a3ae9a3323859302f25ab8": {
+      "signature": "6156025faa0e4ded2dc9ce72c324e014037423bb56a3ae9a3323859302f25ab8",
+      "alternativeSignatures": [
+        "0dd03fe66f97045dfce958e458e73cdde7fbe8ae1edc2cdf3f6f5f1d190227d4"
+      ],
+      "target": "python/.venv/Scripts/sphinx-autobuild.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8ccb9b0b88bcea8ccfdab07a9a10ae7fc5eaf2db80c5910fb52be1502b125207": {
+      "signature": "8ccb9b0b88bcea8ccfdab07a9a10ae7fc5eaf2db80c5910fb52be1502b125207",
+      "alternativeSignatures": [
+        "8956a609376a75c0c75223b351739dcda276a48f004ff1e4ece6254024d41b7e"
+      ],
+      "target": "python/.venv/Scripts/sphinx-autogen.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "567e52a66db15d2e4c2cc91727336e0c34e9e184615982b99b7d6927a67f270c": {
+      "signature": "567e52a66db15d2e4c2cc91727336e0c34e9e184615982b99b7d6927a67f270c",
+      "alternativeSignatures": [
+        "25a29b75bca31378b1aba18349ed1cd3a7e41e8f066d3899dd9a39257ed050f9"
+      ],
+      "target": "python/.venv/Scripts/sphinx-build.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1034ba20105e5603d4559758a67e5577c411056964d5757957a0fdfa23f6c045": {
+      "signature": "1034ba20105e5603d4559758a67e5577c411056964d5757957a0fdfa23f6c045",
+      "alternativeSignatures": [
+        "16ed810797e34fed7a3a35068d9962bd4e4f62afa4e2fa5f7c177caf5cc13d0f"
+      ],
+      "target": "python/.venv/Scripts/sphinx-quickstart.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "01a69fe5bfcc006b16ff0e8b5081bfcdc94d0afe063326042083da9676b28e33": {
+      "signature": "01a69fe5bfcc006b16ff0e8b5081bfcdc94d0afe063326042083da9676b28e33",
+      "alternativeSignatures": [
+        "62ec7fb6b7f7ef0176274328755748a2f7ce836f1cf51daa00205915c27b12a8"
+      ],
+      "target": "python/.venv/Scripts/streamlit.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8643ffd864cb8b1faf971cb3783edf15b2de0e01edc51fd055950c7fd7814dcb": {
+      "signature": "8643ffd864cb8b1faf971cb3783edf15b2de0e01edc51fd055950c7fd7814dcb",
+      "alternativeSignatures": [
+        "d64fcf7aa54f82529a71d77031a55193db11cf5d386f28138b85a7293c3767bd"
+      ],
+      "target": "python/.venv/Scripts/stubgen.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "745a7362a9a3f2d60c8457984b6f2a464eb05b77ca0447d4773535dccaac29bd": {
+      "signature": "745a7362a9a3f2d60c8457984b6f2a464eb05b77ca0447d4773535dccaac29bd",
+      "alternativeSignatures": [
+        "64724157ce2ebb9074583cebee76d3a2adc46624e24154b3529d316fb22d8aa6"
+      ],
+      "target": "python/.venv/Scripts/stubtest.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "c9e28530eb99e371caf68b1577939db0db46c4552016ced347702ead79a03624": {
+      "signature": "c9e28530eb99e371caf68b1577939db0db46c4552016ced347702ead79a03624",
+      "alternativeSignatures": [
+        "25b6dfef0c38faa0d93884592c71595ada0e7015fe3ce0013dc2ea16ea0931b4"
+      ],
+      "target": "python/.venv/Scripts/tabulate.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "26910d9009b62e8495051aa680baa4362f84942ff0956b141f603b2491693240": {
+      "signature": "26910d9009b62e8495051aa680baa4362f84942ff0956b141f603b2491693240",
+      "alternativeSignatures": [
+        "80347040e4e7919b24591ba6d462bc3a1a9f3f460408576cd7c4d4d2bfce1733"
+      ],
+      "target": "python/.venv/Scripts/tb-gcp-uploader.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "feea1e41b556ebf40d0a9b05c47b993e53aebbc62256e3d0c6c5773d8f06bd2f": {
+      "signature": "feea1e41b556ebf40d0a9b05c47b993e53aebbc62256e3d0c6c5773d8f06bd2f",
+      "alternativeSignatures": [
+        "88b528b810e108e28980c61543c248e4457c046701ff5002d6ebaaeed028e96a"
+      ],
+      "target": "python/.venv/Scripts/textual.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "2b4762986b8a8e740593e0acf6e36c21bc859880e927cdc5f2540728b46c13b2": {
+      "signature": "2b4762986b8a8e740593e0acf6e36c21bc859880e927cdc5f2540728b46c13b2",
+      "alternativeSignatures": [
+        "ac95f69f2da5a9e596664b54644873628d1abb97ff73165210fa04f072c16800"
+      ],
+      "target": "python/.venv/Scripts/tldextract.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "cdf04e45e9249031886b3c24431029341c310fc18d168224106d0fefa0a263e2": {
+      "signature": "cdf04e45e9249031886b3c24431029341c310fc18d168224106d0fefa0a263e2",
+      "alternativeSignatures": [
+        "50d11796c7e970f9ddf2697fde719416db1188294dcce7881c8da43a7ba5aa54"
+      ],
+      "target": "python/.venv/Scripts/tokenize-rt.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ee623209d155ed5b1aa81ddbf105b510b14c3338ec1b985a3ebbcb2a03e3ce4b": {
+      "signature": "ee623209d155ed5b1aa81ddbf105b510b14c3338ec1b985a3ebbcb2a03e3ce4b",
+      "alternativeSignatures": [
+        "f0b6e659fa430d971ec4935603a6b87ab30d4cef172e0d9fb6ab081bc77b8be5"
+      ],
+      "target": "python/.venv/Scripts/torchfrtrace.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "31a093d9d6dd940117f2a186146477168dba4257e624e8fb743919ede3a7b798": {
+      "signature": "31a093d9d6dd940117f2a186146477168dba4257e624e8fb743919ede3a7b798",
+      "alternativeSignatures": [
+        "0527c58c53132626096296a34e82aa6ff49c50e2c9c87da8a871a9a157d8dd41"
+      ],
+      "target": "python/.venv/Scripts/torchrun.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "14b864f833906c1338b40d625a8082bae0577d9575e97b033abc3ca44b6a9a1c": {
+      "signature": "14b864f833906c1338b40d625a8082bae0577d9575e97b033abc3ca44b6a9a1c",
+      "alternativeSignatures": [
+        "7583dbfd571b50897056569eb8168f461f2d2dc0b78939dee6f39b8bdc03cf67"
+      ],
+      "target": "python/.venv/Scripts/tqdm.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "6c84f69d73b9b12ad109b6fc2adb19859c02160b7695c1c0066ab81f533f1c97": {
+      "signature": "6c84f69d73b9b12ad109b6fc2adb19859c02160b7695c1c0066ab81f533f1c97",
+      "alternativeSignatures": [
+        "89ad68a92e164ac3202084c8ff0d54694cf90f56014a3433fbb6becbe5029940"
+      ],
+      "target": "python/.venv/Scripts/transformers-cli.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "cac6e62988dbfc1f5d3ee55f6b595a3d2b1148f0475ff5b420c87109709e63b5": {
+      "signature": "cac6e62988dbfc1f5d3ee55f6b595a3d2b1148f0475ff5b420c87109709e63b5",
+      "alternativeSignatures": [
+        "c7fbdf97d9388c846717a344d23bd44a98c5a32e778c8ed32453cd9858898bfc"
+      ],
+      "target": "python/.venv/Scripts/ttx.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1ec2cd34f6f1b97971f16f4bcca0486468d2a37542bf176d4ceb3ace9b70b778": {
+      "signature": "1ec2cd34f6f1b97971f16f4bcca0486468d2a37542bf176d4ceb3ace9b70b778",
+      "alternativeSignatures": [
+        "474e3e5079373c2bcafb408828336bb0b1fc3877ad59f725ae95f9af3234eb01"
+      ],
+      "target": "python/.venv/Scripts/typer.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d49e762246ee9aefd051bcc0e393b620d361d1d251fa99ccc1bb5d0a86d69aa3": {
+      "signature": "d49e762246ee9aefd051bcc0e393b620d361d1d251fa99ccc1bb5d0a86d69aa3",
+      "alternativeSignatures": [
+        "99a626e841768d9c158354f198704ccc3388c712a1393b19acf82247e2b96ea0"
+      ],
+      "target": "python/.venv/Scripts/uvicorn.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "f099b7975d28db4c8bf6f4d4c8323e0acc12a377c65ced24a4bc28b0e249f297": {
+      "signature": "f099b7975d28db4c8bf6f4d4c8323e0acc12a377c65ced24a4bc28b0e249f297",
+      "alternativeSignatures": [
+        "be1ac99f5c2a92b29ab2a53d048df3a9bdd72896d667cdcc205353a398a24923"
+      ],
+      "target": "python/.venv/Scripts/vimg.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "aef34cb672f0af1a50b26ec559bc5b7b3786afb42e75e38e1235dbfb1abaebce": {
+      "signature": "aef34cb672f0af1a50b26ec559bc5b7b3786afb42e75e38e1235dbfb1abaebce",
+      "alternativeSignatures": [
+        "61e71e996baa89a2d1f690e75a771122a37f74c203230a70f88f8111192ba5be"
+      ],
+      "target": "python/.venv/Scripts/watchfiles.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "490bce43870cc6af454a94de8c0a7e8b9569e474cfb7d4c9fb1ad7dff6c490bd": {
+      "signature": "490bce43870cc6af454a94de8c0a7e8b9569e474cfb7d4c9fb1ad7dff6c490bd",
+      "alternativeSignatures": [
+        "8c050be046a682fe7a79bf6bdadc574f9f81d9fd4c37bf71924132ed216b3ed8"
+      ],
+      "target": "python/.venv/Scripts/watchmedo.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "56f8356839604cb559a68ab6cf94caa26f22f3192d36706fb888c5b0186cb1a0": {
+      "signature": "56f8356839604cb559a68ab6cf94caa26f22f3192d36706fb888c5b0186cb1a0",
+      "alternativeSignatures": [
+        "9b7491b0ae8627768ec7815699ca0545c44c4bcafcfeb67f8b728a999ede41f6"
+      ],
+      "target": "python/.venv/Scripts/websockets.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "35188d1f31049ca8e8ac1724cd8c7c3eb472a24928352c53e46fb40bef71b899": {
+      "signature": "35188d1f31049ca8e8ac1724cd8c7c3eb472a24928352c53e46fb40bef71b899",
+      "alternativeSignatures": [
+        "f1f98e832fb050bd9fde42899a7aef9468706acf74aee8e91b4ea6dccb63ad6f"
+      ],
+      "target": "python/.venv/Scripts/whisper.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "3c32bfd609ad2e6786e5285e21ec3a6433a14e0eff8bbf4cf6d84401d8a3d1b5": {
+      "signature": "3c32bfd609ad2e6786e5285e21ec3a6433a14e0eff8bbf4cf6d84401d8a3d1b5",
+      "alternativeSignatures": [
+        "7c4855f24b253c644bda9b4bf0513e1e4fc8a07b8a37d428faa1a0e440749c25"
+      ],
+      "target": "python/.venv/Scripts/wsdump.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a29c2809533ec49655ae9a54765e708b3ca1294321a84dfc87182b37e9bc914b": {
+      "signature": "a29c2809533ec49655ae9a54765e708b3ca1294321a84dfc87182b37e9bc914b",
+      "alternativeSignatures": [
+        "d9193875e682da7d8dd1898af9bc72b16f28a27a55b841bb1d0005ffd9103b75"
+      ],
+      "target": "python/.venv/Scripts/youtube_transcript_api.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b8d382ef5bf44e12251c236dab678325b1fbd1a675ba4e67bd16e4267116370b": {
+      "signature": "b8d382ef5bf44e12251c236dab678325b1fbd1a675ba4e67bd16e4267116370b",
+      "alternativeSignatures": [
+        "0468c98c1595e9ec0be9282947ca7ffb4b7f1fa2d0f5e949bb9f2958d68523db"
+      ],
+      "target": "python/.venv/Lib/site-packages/cv2/opencv_videoio_ffmpeg4110_64.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2009",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "4adafa5c5b6a620f3c3e91064ca39fd88323ca6d374ca3345a5d4e3da8137403": {
+      "signature": "4adafa5c5b6a620f3c3e91064ca39fd88323ca6d374ca3345a5d4e3da8137403",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/fsspec/fuse.py",
+      "line": 228,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "5c4da372609ca789a2bca55741b76c518271d780aabd196c3ee62f6103639321": {
+      "signature": "5c4da372609ca789a2bca55741b76c518271d780aabd196c3ee62f6103639321",
+      "alternativeSignatures": [
+        "b33ce9671b5d5f16f0dcc146f6ae24fef261cc220635f35ca80c938535c24e48"
+      ],
+      "target": "python/.venv/Lib/site-packages/isapi/PyISAPI_loader.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "4cc5fefd7be9b7f0a2811564e0d4d0129635e38442d04fb7a08ed6cf4d88bb7b": {
+      "signature": "4cc5fefd7be9b7f0a2811564e0d4d0129635e38442d04fb7a08ed6cf4d88bb7b",
+      "alternativeSignatures": [
+        "66d6f8673c634ba9f168f2d313682b563c4376f58e0ce04e6361a3eb5cf1e0bb"
+      ],
+      "target": "python/.venv/Lib/site-packages/pyarrow/arrow.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "f400b4733259eb20563b446095fb741e134c1d9000dbfde8177435b4a2fe9290": {
+      "signature": "f400b4733259eb20563b446095fb741e134c1d9000dbfde8177435b4a2fe9290",
+      "alternativeSignatures": [
+        "21592784374621a4dda1545eb6fa2d40467aafb3a04656dce2d971d798c9f9e9"
+      ],
+      "target": "python/.venv/Lib/site-packages/pyarrow/arrow_acero.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "6ff7feeb36d7275dfca424c2562cebafa16a2d9abb5d14685572e001115a0d6b": {
+      "signature": "6ff7feeb36d7275dfca424c2562cebafa16a2d9abb5d14685572e001115a0d6b",
+      "alternativeSignatures": [
+        "396c0164a225d46bff8f6774fe0abcc013d3613fe6fc51235df9639a6bc9b86b"
+      ],
+      "target": "python/.venv/Lib/site-packages/pyarrow/arrow_dataset.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0e8a4b89d840801f7c571d2c5b23c4d1d128e8e1b949a516f02e0f903ec112af": {
+      "signature": "0e8a4b89d840801f7c571d2c5b23c4d1d128e8e1b949a516f02e0f903ec112af",
+      "alternativeSignatures": [
+        "beef48b32e6a5a916e0bcab0c561cb028c5e8851ad5c35a77b60346f9a0f3ebc"
+      ],
+      "target": "python/.venv/Lib/site-packages/pyarrow/arrow_flight.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "602e184d7de869d425e7db82c5454fd716551baaedc2b9ec0ee5944b0674c308": {
+      "signature": "602e184d7de869d425e7db82c5454fd716551baaedc2b9ec0ee5944b0674c308",
+      "alternativeSignatures": [
+        "cda7abeb05b479885e0c19b3cd4b5daa69a92da81d4a1b035f456852f236cded"
+      ],
+      "target": "python/.venv/Lib/site-packages/pyarrow/arrow_python.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a5cfbf28691de74bf3ed1196169a7f400acd18363f876368afca241317a984ff": {
+      "signature": "a5cfbf28691de74bf3ed1196169a7f400acd18363f876368afca241317a984ff",
+      "alternativeSignatures": [
+        "d29379f4c8fa7a5cbf4103f02cda6265b704f06974ac0ea008acf07ecd3e7b53"
+      ],
+      "target": "python/.venv/Lib/site-packages/pyarrow/arrow_python_flight.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "4fdbd7c6ceb2dac9994a6b8b7aa048aa9dd872e89655959a48fa4360e0d9bd19": {
+      "signature": "4fdbd7c6ceb2dac9994a6b8b7aa048aa9dd872e89655959a48fa4360e0d9bd19",
+      "alternativeSignatures": [
+        "6b6c79bfa37b05a336048b84a9c85cf84a0aeac127335e0873e4e7909609843a"
+      ],
+      "target": "python/.venv/Lib/site-packages/pyarrow/arrow_python_parquet_encryption.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "2804bdeb1ecd218fb1d6c115ac7a2caa03948cb186ce488b277c14468cadf3fb": {
+      "signature": "2804bdeb1ecd218fb1d6c115ac7a2caa03948cb186ce488b277c14468cadf3fb",
+      "alternativeSignatures": [
+        "9d6c71aaa02f9fff5fc10696551f0b290cb32021d54e998f9e96c6ed5c28b52c"
+      ],
+      "target": "python/.venv/Lib/site-packages/pyarrow/arrow_substrait.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b7ab53ecc65887cb706dbee816d232794953dfb34d369c4e0f30942dd587b35d": {
+      "signature": "b7ab53ecc65887cb706dbee816d232794953dfb34d369c4e0f30942dd587b35d",
+      "alternativeSignatures": [
+        "e5f2c8aff870d8414c29521bf1b9d9459a02020e72f22722a6df4dfb1b803767"
+      ],
+      "target": "python/.venv/Lib/site-packages/pyarrow/parquet.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ef9f642e6c8326d25df59fc5fe30244817e80a4813caeaf2a8b640578b064fa1": {
+      "signature": "ef9f642e6c8326d25df59fc5fe30244817e80a4813caeaf2a8b640578b064fa1",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/pydantic/types.py",
+      "line": 1842,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "4bb605e41b6bebfc6f99ba1855f2fdaa5bc585b840f2f49488017acdc58c48ea": {
+      "signature": "4bb605e41b6bebfc6f99ba1855f2fdaa5bc585b840f2f49488017acdc58c48ea",
+      "alternativeSignatures": [
+        "8ee68c2cc9df304f776c846a8f6291778954ebf861b2335830a8f304a081dbac"
+      ],
+      "target": "python/.venv/Lib/site-packages/pythonwin/Pythonwin.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1e9df30e506af2648bcc4f234aaab893950c60d0d849ad08915bd38a94b4f2bd": {
+      "signature": "1e9df30e506af2648bcc4f234aaab893950c60d0d849ad08915bd38a94b4f2bd",
+      "alternativeSignatures": [
+        "807017c208c23d9714daf7d11ac21a8d23ae18a117e3f88b6f634adf7c317b7d"
+      ],
+      "target": "python/.venv/Lib/site-packages/pythonwin/scintilla.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "bbd5e372f53e937d558001cd1b96badcf3b941af20817288206d0a9b19e2bec2": {
+      "signature": "bbd5e372f53e937d558001cd1b96badcf3b941af20817288206d0a9b19e2bec2",
+      "alternativeSignatures": [
+        "3d77453cbde444b504b25b73ffef01ffdc21b5dc697b6a8e0343ee6563863afd"
+      ],
+      "target": "python/.venv/Lib/site-packages/pywin32_system32/pythoncom312.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "35186b8ebf706296d2c1e7ded62686a745a35e6cf3be8210d2fb449bb9ecf2c6": {
+      "signature": "35186b8ebf706296d2c1e7ded62686a745a35e6cf3be8210d2fb449bb9ecf2c6",
+      "alternativeSignatures": [
+        "7db6f2ec4ce1b03fbc7445c41b26c6a6a8d8af2694650774f00225d4e2d94c81"
+      ],
+      "target": "python/.venv/Lib/site-packages/pywin32_system32/pywintypes312.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0cead443f950ab1f758fcff7ef6974ba48f35d2661a1756c5a86a17fd8959a77": {
+      "signature": "0cead443f950ab1f758fcff7ef6974ba48f35d2661a1756c5a86a17fd8959a77",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/requests_oauthlib/oauth1_session.py",
+      "line": 75,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "3ad5dd61da59b4d560133d610f137cc97ee7dfd055bd0b20549e846858e734a4": {
+      "signature": "3ad5dd61da59b4d560133d610f137cc97ee7dfd055bd0b20549e846858e734a4",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/requests_oauthlib/oauth1_session.py",
+      "line": 87,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "295d10ae1e30c38fb1ba13db34295db6d8e6eb2afff8878cb58c22737a5d4cb6": {
+      "signature": "295d10ae1e30c38fb1ba13db34295db6d8e6eb2afff8878cb58c22737a5d4cb6",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/requests_oauthlib/oauth1_session.py",
+      "line": 93,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "44bbda64e0d2aac605c316d09d7442d5281fc32520ce0b16ebad61a6de8ef475": {
+      "signature": "44bbda64e0d2aac605c316d09d7442d5281fc32520ce0b16ebad61a6de8ef475",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/requests_oauthlib/oauth1_session.py",
+      "line": 311,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b6013a4d76c453da4de3c5120ec6f4a652916f4a31d62daa5bbfcc99cc14e559": {
+      "signature": "b6013a4d76c453da4de3c5120ec6f4a652916f4a31d62daa5bbfcc99cc14e559",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/requests_oauthlib/oauth1_session.py",
+      "line": 335,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "314690d70e99db4ff5d25b39ea2c52862b51bf03195b688afdac8a25c49cca19": {
+      "signature": "314690d70e99db4ff5d25b39ea2c52862b51bf03195b688afdac8a25c49cca19",
+      "alternativeSignatures": [
+        "f3c0dea822f940ef8cbefe19edd8f76c1c3fd46ac52dbe1c56f7784d3ed1e8ba"
+      ],
+      "target": "python/.venv/Lib/site-packages/setuptools/cli-32.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a1d258b84460f78278829819d1cee9e7772784112c8c5814084d8ee8ccae373e": {
+      "signature": "a1d258b84460f78278829819d1cee9e7772784112c8c5814084d8ee8ccae373e",
+      "alternativeSignatures": [
+        "8887fb79845b724f88c40519b43c68752fac31270d7a2a373abfe19e06eac503"
+      ],
+      "target": "python/.venv/Lib/site-packages/setuptools/cli-64.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "150b7b385819bfd303f6082a87027a7c01c4ba764201b51a737a514d1ef8d24e": {
+      "signature": "150b7b385819bfd303f6082a87027a7c01c4ba764201b51a737a514d1ef8d24e",
+      "alternativeSignatures": [
+        "296bde65d3f5b7dbded766609960130e0bdd3b173dd68276b42e914138f4d30e"
+      ],
+      "target": "python/.venv/Lib/site-packages/setuptools/cli-arm64.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "dc7bd0a7fc184a4a8b982d6c05f7b8b38fd561ac769890e6461ab5ef7c6bb10a": {
+      "signature": "dc7bd0a7fc184a4a8b982d6c05f7b8b38fd561ac769890e6461ab5ef7c6bb10a",
+      "alternativeSignatures": [
+        "5a85b56f45f790888db502912ef2bdad336c100f07780af5f1596f558740f140"
+      ],
+      "target": "python/.venv/Lib/site-packages/setuptools/cli.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "de98320cb952aef1cf939e99b382294396ef7af4e5659dbd019301119b89b774": {
+      "signature": "de98320cb952aef1cf939e99b382294396ef7af4e5659dbd019301119b89b774",
+      "alternativeSignatures": [
+        "f4d8c5195e50635f2815f44c9742c678c5eef40a72ef84532135a35940f749f3"
+      ],
+      "target": "python/.venv/Lib/site-packages/setuptools/gui-32.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "f9d74085547ff8dd00533728aed7991ca7d51975480f06e9dd43d415f21b4196": {
+      "signature": "f9d74085547ff8dd00533728aed7991ca7d51975480f06e9dd43d415f21b4196",
+      "alternativeSignatures": [
+        "2e24830203b7a0ddfef9e344ac33ac2351354fd4d413a6d0666c7b411c268400"
+      ],
+      "target": "python/.venv/Lib/site-packages/setuptools/gui-64.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "01a7f4f55b1f562339e6135f76d0f9678684c65e36da896ed46848de80cf1dcd": {
+      "signature": "01a7f4f55b1f562339e6135f76d0f9678684c65e36da896ed46848de80cf1dcd",
+      "alternativeSignatures": [
+        "97bf5c82bc39b5610d8d44caba68d17e530b096279e660d7fdca053d8eacaf87"
+      ],
+      "target": "python/.venv/Lib/site-packages/setuptools/gui-arm64.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1e7a56bcdb1f66e53bc7b7f62a2e56d2521b4690e5e422d5439712201e7026d2": {
+      "signature": "1e7a56bcdb1f66e53bc7b7f62a2e56d2521b4690e5e422d5439712201e7026d2",
+      "alternativeSignatures": [
+        "cbeb66f820619fe971ae936ea50c4e595574500ae1ab446a587825416c6a2908"
+      ],
+      "target": "python/.venv/Lib/site-packages/setuptools/gui.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "2a6d65430f7c264c133cc6a2ada39699be439ee5abe55f6540023bb981e1ce1e": {
+      "signature": "2a6d65430f7c264c133cc6a2ada39699be439ee5abe55f6540023bb981e1ce1e",
+      "alternativeSignatures": [
+        "2003a714308198171ed6ef46a622527a9923b4a0cdbf1a680d13153daf84e02f"
+      ],
+      "target": "python/.venv/Lib/site-packages/shapely.libs/geos-23a442ac2dc21ec50035b705fec97a5a.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8c1a490826cc10daed2c64771d0059491fa1451b16b2caa081a206e2a72c2de6": {
+      "signature": "8c1a490826cc10daed2c64771d0059491fa1451b16b2caa081a206e2a72c2de6",
+      "alternativeSignatures": [
+        "c37683528d7d2b34d2cd9745319b1aba421b76614ca8577b0dabd7e2b4fc5535"
+      ],
+      "target": "python/.venv/Lib/site-packages/shapely.libs/geos_c-b1ae1e27c3e522f9b7836b33163a0f55.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8e2cda4ab1fb1f2b95fdf205abbe083c9c9c9aa2f07ac166267c79672428b09b": {
+      "signature": "8e2cda4ab1fb1f2b95fdf205abbe083c9c9c9aa2f07ac166267c79672428b09b",
+      "alternativeSignatures": [
+        "3bd7b8d4fe6875506b3923f08b9ee4b05f27bb7265a9334e1a024f604f35de4b"
+      ],
+      "target": "python/.venv/Lib/site-packages/speech_recognition/flac-win32.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2009",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "fdc74e56c50dd6ed37a375b32b74a62db41fa07907eba1479f787b4c0476f14e": {
+      "signature": "fdc74e56c50dd6ed37a375b32b74a62db41fa07907eba1479f787b4c0476f14e",
+      "alternativeSignatures": [
+        "911c7916206a214e3831273fba23c00102173284cf90ee113333654088943106"
+      ],
+      "target": "python/.venv/Lib/site-packages/speech_recognition/flac-win32.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2018",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "93426d9f13aa39a1cf6e0314caf8ec3c8507fdf2a5e46095647c99027796d047": {
+      "signature": "93426d9f13aa39a1cf6e0314caf8ec3c8507fdf2a5e46095647c99027796d047",
+      "alternativeSignatures": [
+        "6c6fab201c9553f6c28e1d4fba70d9ce68c83eb24fec22077364e064a1a68c6f"
+      ],
+      "target": "python/.venv/Lib/site-packages/win32/perfmondata.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b4f2399db48f934ee70eae3a681c62856c4b6c70523e82945b0979c15cb90184": {
+      "signature": "b4f2399db48f934ee70eae3a681c62856c4b6c70523e82945b0979c15cb90184",
+      "alternativeSignatures": [
+        "9da2b95d20968f01261dd7bf5f4b2b57cb87cd6cc8491e2dd315728b667eb587"
+      ],
+      "target": "python/.venv/Lib/site-packages/win32/pythonservice.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "87eb77bda8f7cc32d8e3356eab9c3ec22a35bd8ecd58574336e173e631ab01cd": {
+      "signature": "87eb77bda8f7cc32d8e3356eab9c3ec22a35bd8ecd58574336e173e631ab01cd",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/adodbapi/test/adodbapitestconfig.py",
+      "line": 122,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "72da01ad6c59f0d01ef43b9d71cd623841d6614e85fd702f833353fb3fab4b4c": {
+      "signature": "72da01ad6c59f0d01ef43b9d71cd623841d6614e85fd702f833353fb3fab4b4c",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/adodbapi/test/test_adodbapi_dbapi20.py",
+      "line": 45,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "2277078e9199909698278222bb25ef924aa4f1fca5e2aff286da97279e7b1227": {
+      "signature": "2277078e9199909698278222bb25ef924aa4f1fca5e2aff286da97279e7b1227",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/fastapi/security/http.py",
+      "line": 42,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0120",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0da3e63a6c57c1cb9223d9363a99c9d2edcc73b36404affb77d6a7eb02907e91": {
+      "signature": "0da3e63a6c57c1cb9223d9363a99c9d2edcc73b36404affb77d6a7eb02907e91",
+      "alternativeSignatures": [
+        "7209b2a29a19ab922fd2053635bf2827a523bbb3d160e23d7516aa7963c529ee"
+      ],
+      "target": "python/.venv/Lib/site-packages/google_crc32c/extra-dll/crc32c.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a52b5f4d4155cf4704b0c3cb53e7e7a2adee5473511b7ca3b1c91c4c5d6c155d": {
+      "signature": "a52b5f4d4155cf4704b0c3cb53e7e7a2adee5473511b7ca3b1c91c4c5d6c155d",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/langchain_community/embeddings/elasticsearch.py",
+      "line": 89,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a403dfd937df48dcb17fff144c00ea2cb058c5c55bdd890f55b2475657fcbd5f": {
+      "signature": "a403dfd937df48dcb17fff144c00ea2cb058c5c55bdd890f55b2475657fcbd5f",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/langchain_community/vectorstores/neo4j_vector.py",
+      "line": 501,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8210ae45d93c1b41f276cb38ab7a383b32082636e9aae7bef48bbdb3e6117d7e": {
+      "signature": "8210ae45d93c1b41f276cb38ab7a383b32082636e9aae7bef48bbdb3e6117d7e",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/langchain_community/vectorstores/neo4j_vector.py",
+      "line": 530,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b7ad0b8fb5f3a344baaaf0887e14d5acc9117ee803da84bc0a06617af0ba8a6e": {
+      "signature": "b7ad0b8fb5f3a344baaaf0887e14d5acc9117ee803da84bc0a06617af0ba8a6e",
+      "alternativeSignatures": [
+        "b646e00a58fa817e13e959884fc80f07c2d82eea604c6c2fa6b20e8c655da2d1"
+      ],
+      "target": "python/.venv/Lib/site-packages/llvmlite/binding/llvmlite.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7a3efa855e92aed644e2a4c9ac65804af619a0e2326898fa49866a703901e948": {
+      "signature": "7a3efa855e92aed644e2a4c9ac65804af619a0e2326898fa49866a703901e948",
+      "alternativeSignatures": [
+        "cf26ffd6b55671d3ee140b2137db35877f3704924c58b8fd33bcc043f8cde40d"
+      ],
+      "target": "python/.venv/Lib/site-packages/playwright/driver/node.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "bdd842287659b7367e706ce4d911cf653dfdaaab0739e661f532bd764d00210e": {
+      "signature": "bdd842287659b7367e706ce4d911cf653dfdaaab0739e661f532bd764d00210e",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/posthog/test/test_utils.py",
+      "line": 14,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0130",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "5250bdb614ef22ef683f59b9cd7fc50add3a8b374cf43cc9c2050c1a5dd906f4": {
+      "signature": "5250bdb614ef22ef683f59b9cd7fc50add3a8b374cf43cc9c2050c1a5dd906f4",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/pyarrow/tests/test_dataset.py",
+      "line": 4933,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0b99acb70107c2353eb0c026bd7fe0cddf95a0e4c346c4f428a543d1dbaaf921": {
+      "signature": "0b99acb70107c2353eb0c026bd7fe0cddf95a0e4c346c4f428a543d1dbaaf921",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/pyarrow/tests/test_fs.py",
+      "line": 478,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b74d667226b85112d7420cfc30f8825cd759d516516a29dbee5c029db99e23c0": {
+      "signature": "b74d667226b85112d7420cfc30f8825cd759d516516a29dbee5c029db99e23c0",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/setuptools/tests/test_packageindex.py",
+      "line": 250,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "eb7517cf01e025ac96b92beb219975b4625a05f3c80b04bde97fa39e1cb8ae32": {
+      "signature": "eb7517cf01e025ac96b92beb219975b4625a05f3c80b04bde97fa39e1cb8ae32",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/setuptools/tests/test_packageindex.py",
+      "line": 259,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "4c08c057d606be230ffe1a331640dcad278e1cebe298c370ecb12f2b36f9dfdb": {
+      "signature": "4c08c057d606be230ffe1a331640dcad278e1cebe298c370ecb12f2b36f9dfdb",
+      "alternativeSignatures": [
+        "db77bdc2b202419e78d833de94adfb610340bcd6742e9152de58ccb89bf2d06c"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/bin/asmjit.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "f3e0b4066be442b7c7a8eac02f3f74c4979632cbd94bca604dbddbe55123aebd": {
+      "signature": "f3e0b4066be442b7c7a8eac02f3f74c4979632cbd94bca604dbddbe55123aebd",
+      "alternativeSignatures": [
+        "1a519f77b4e0f207c7917110a2cbb16ec7db5c3b6aab49368fcbf3bd16649143"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/bin/fbgemm.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d3edfffc61bba8f242f356ecba91e4093d34a32b509d579409b404cedbc61597": {
+      "signature": "d3edfffc61bba8f242f356ecba91e4093d34a32b509d579409b404cedbc61597",
+      "alternativeSignatures": [
+        "eadca91e5a679ab732a42bb6a81b13188f0c4c343b8079214958d374a6337e06"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/bin/protoc.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "6c949b80b2340e80227e4a76aec1f6781b4ab71bae99d2c0e9857e2512afd257": {
+      "signature": "6c949b80b2340e80227e4a76aec1f6781b4ab71bae99d2c0e9857e2512afd257",
+      "alternativeSignatures": [
+        "abb7a1683ed88ff15092e18154e5b764c7bfb2144028ccc35a15c769168380a9"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/asmjit.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "c9f9f1c1a2fa5fe42fea523065f0a31840c0c88b4a0e76e9e0cbd5c3a3094cdf": {
+      "signature": "c9f9f1c1a2fa5fe42fea523065f0a31840c0c88b4a0e76e9e0cbd5c3a3094cdf",
+      "alternativeSignatures": [
+        "d6944b67295b88d9a4746e955eb8b9c3221982eca5f5ae6400b3be1c6b8e9185"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/c10.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b30370bc1d445d017f1ae4772732083f951c634480c44735ecc7835fdb3c497e": {
+      "signature": "b30370bc1d445d017f1ae4772732083f951c634480c44735ecc7835fdb3c497e",
+      "alternativeSignatures": [
+        "f2290f83da9c5e8998573966ed979f6458107b69d138dc29b5ca183df186e68c"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/fbgemm.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0691a445e6f3e18d91fd7c667fbc080739317f39098e0c5c4f4750fef2848370": {
+      "signature": "0691a445e6f3e18d91fd7c667fbc080739317f39098e0c5c4f4750fef2848370",
+      "alternativeSignatures": [
+        "7dead552a7e7cefbaf16847742ba95ab606938cb849c3f48f4a26737a6211f86"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/libiomp5md.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a9aa93d96029455ce1ba13104a69ce535c983fee25802e04be4e4b4806db2012": {
+      "signature": "a9aa93d96029455ce1ba13104a69ce535c983fee25802e04be4e4b4806db2012",
+      "alternativeSignatures": [
+        "740a8a449b3bb0e76dce321ec4cbe93e5c2aba5cd3405235c97155ae4320cb79"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/libiompstubs5md.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1ac0fef3b9a8223a21684a8bed11e3850ed99fa957e3385f40a15aa2744c43fa": {
+      "signature": "1ac0fef3b9a8223a21684a8bed11e3850ed99fa957e3385f40a15aa2744c43fa",
+      "alternativeSignatures": [
+        "45b153f8886bca6036bb1386f162eb60e583f964c3522664a02287f2438f77b7"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/shm.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a63443166c3a86275a26cf97f1a008eb1a99333bdd084dff52452dbada8308a0": {
+      "signature": "a63443166c3a86275a26cf97f1a008eb1a99333bdd084dff52452dbada8308a0",
+      "alternativeSignatures": [
+        "43deebedcfdcd27c3d2b65927a99bc1ba5b8440734781f8aa5e90dfba749f5b6"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/torch.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "f29026c3cb88829be36c42ba9b8b1d088eb2100c0882e69c5e43b90887890e7a": {
+      "signature": "f29026c3cb88829be36c42ba9b8b1d088eb2100c0882e69c5e43b90887890e7a",
+      "alternativeSignatures": [
+        "c62d7401131f2ca9c673c099f9e7b8b1466032323a49dfa75130694cf5e1f0c1"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/torch_cpu.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "753fcdbd040bb7b577684899e68a075612fd032f3fa27790f205c4cccced6ba7": {
+      "signature": "753fcdbd040bb7b577684899e68a075612fd032f3fa27790f205c4cccced6ba7",
+      "alternativeSignatures": [
+        "f88085571ba61eb355ff451cceeac3c6d7d50b894723f09a05ea4e0dbc0dcc49"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/torch_global_deps.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "163355370c50aac1b2e6900275bbe450441e245647c0e47a29e1cc21abb06dc2": {
+      "signature": "163355370c50aac1b2e6900275bbe450441e245647c0e47a29e1cc21abb06dc2",
+      "alternativeSignatures": [
+        "aca4ba0857dcf6d4dd9775f5f0782464e6abc9ec190a394366ef7eb6a5ab39f1"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/torch_python.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "4101f05e0d6ec9fc1d68081a091c724515d99e0db9ce5a4e1f4bb74b4c3b24f3": {
+      "signature": "4101f05e0d6ec9fc1d68081a091c724515d99e0db9ce5a4e1f4bb74b4c3b24f3",
+      "alternativeSignatures": [
+        "a7ffd4838ae029768f75d11ad5acf523298edd9792b4eb8cc6aa3e88d15e78fc"
+      ],
+      "target": "python/.venv/Lib/site-packages/torch/lib/uv.dll",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "aa864a87ff853c8775e49e12b2c2f97d89d3b51b056e5d983cf00c8f574349b9": {
+      "signature": "aa864a87ff853c8775e49e12b2c2f97d89d3b51b056e5d983cf00c8f574349b9",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/tornado/test/curl_httpclient_test.py",
+      "line": 96,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "9ca35ae30063594f2f46cb4c20da14db81ff69bd3ad13e8c6f698da8e39b46e1": {
+      "signature": "9ca35ae30063594f2f46cb4c20da14db81ff69bd3ad13e8c6f698da8e39b46e1",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/tornado/test/curl_httpclient_test.py",
+      "line": 127,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "dd2403d2ee2678e56a865705df105e8c515c09b72ff016ef682473117be969fb": {
+      "signature": "dd2403d2ee2678e56a865705df105e8c515c09b72ff016ef682473117be969fb",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/tornado/test/httpclient_test.py",
+      "line": 288,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b6a97f9f18126a843f38ebb89f56694d7616c87feb588f61b3969e0b4c30ddae": {
+      "signature": "b6a97f9f18126a843f38ebb89f56694d7616c87feb588f61b3969e0b4c30ddae",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/tornado/test/httpclient_test.py",
+      "line": 296,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8375cbfc7bf1a0d7b9daafbe634bf2732ac6f6a67fcf097414c6bbf89d4e3579": {
+      "signature": "8375cbfc7bf1a0d7b9daafbe634bf2732ac6f6a67fcf097414c6bbf89d4e3579",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/tornado/test/test.key",
+      "line": 1,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0020",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "65d30456cd577a67cbee7c8b6e494f9cf1b479e152f01c1f89832ee8e8776eca": {
+      "signature": "65d30456cd577a67cbee7c8b6e494f9cf1b479e152f01c1f89832ee8e8776eca",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/tornado/test/web_test.py",
+      "line": 102,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "5cb65102c52f5b53c64dee98608b8f57630afe58f9743e743f30ba35089ab433": {
+      "signature": "5cb65102c52f5b53c64dee98608b8f57630afe58f9743e743f30ba35089ab433",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/websocket/tests/test_url.py",
+      "line": 438,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-MSFT0090",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "1dff08ec1243fe88d5a0b4d7e8da2b8cd89c5897488e2f9e94dc0670eb272884": {
+      "signature": "1dff08ec1243fe88d5a0b4d7e8da2b8cd89c5897488e2f9e94dc0670eb272884",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/future/backports/test/badcert.pem",
+      "line": 19,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0020",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "08edd7d1262a6e67daac0d9c5599ba69244d2d28c4102878bc4c487cab2d3b17": {
+      "signature": "08edd7d1262a6e67daac0d9c5599ba69244d2d28c4102878bc4c487cab2d3b17",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/future/backports/test/keycert.passwd.pem",
+      "line": 1,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0020",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "50405aa1630df84e908609686cd3a141efb13185af3075c2d60d7372f6e7bf9f": {
+      "signature": "50405aa1630df84e908609686cd3a141efb13185af3075c2d60d7372f6e7bf9f",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/future/backports/test/keycert.pem",
+      "line": 1,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0020",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "bed4eb86305cd215e7ac8cea8138fa589aa3c10c289e83570cf9d8df4fe26f3b": {
+      "signature": "bed4eb86305cd215e7ac8cea8138fa589aa3c10c289e83570cf9d8df4fe26f3b",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/future/backports/test/keycert2.pem",
+      "line": 1,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0020",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "f8f69260bb2478ff142a624dcb81bcfe19f84098a1a8e608302e4b5643508098": {
+      "signature": "f8f69260bb2478ff142a624dcb81bcfe19f84098a1a8e608302e4b5643508098",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/future/backports/test/ssl_key.passwd.pem",
+      "line": 1,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0020",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "3dffb9716dfa311f153a68644f7de91c2e6470f3a3aec8d960c94e237249aa16": {
+      "signature": "3dffb9716dfa311f153a68644f7de91c2e6470f3a3aec8d960c94e237249aa16",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/future/backports/test/ssl_key.pem",
+      "line": 1,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0020",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "d25da3984ff25186cea96d62490a1ac48ad69cb31e01cc2cbb010941a3bfbace": {
+      "signature": "d25da3984ff25186cea96d62490a1ac48ad69cb31e01cc2cbb010941a3bfbace",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/future/backports/urllib/request.py",
+      "line": 58,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ef573a880ec1dcc2ee9c2f5d4ad4d777b5708c0a0922c668c785296a4ec5f9b8": {
+      "signature": "ef573a880ec1dcc2ee9c2f5d4ad4d777b5708c0a0922c668c785296a4ec5f9b8",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/future/backports/urllib/request.py",
+      "line": 1485,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "e06f2177d28894087418462d2e2d936d82d8dd2eb2d59872c886770bae2eacd3": {
+      "signature": "e06f2177d28894087418462d2e2d936d82d8dd2eb2d59872c886770bae2eacd3",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/future/backports/urllib/request.py",
+      "line": 1965,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0dd32ad977d2a55a8fed45eb8ec861d423cd5c303f14ce6a892235013ab3e8b8": {
+      "signature": "0dd32ad977d2a55a8fed45eb8ec861d423cd5c303f14ce6a892235013ab3e8b8",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/googleapiclient/discovery_cache/documents/batch.v1.json",
+      "line": 1133,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "5afe0e2a6402adfc3d5fa23584c4f48309858192fbb5972746464aa25f5e99d7": {
+      "signature": "5afe0e2a6402adfc3d5fa23584c4f48309858192fbb5972746464aa25f5e99d7",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/googleapiclient/discovery_cache/documents/batch.v1.json",
+      "line": 1137,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "0e1d9bea741100659f3e3c3012b058c77c601c33d6d2a15476e66ef30d99a1a6": {
+      "signature": "0e1d9bea741100659f3e3c3012b058c77c601c33d6d2a15476e66ef30d99a1a6",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/googleapiclient/discovery_cache/documents/compute.alpha.json",
+      "line": 54411,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0140",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "870324b040e332c5cb8bd465445dce224bc641053c9115fa8797f4a9b997c9c7": {
+      "signature": "870324b040e332c5cb8bd465445dce224bc641053c9115fa8797f4a9b997c9c7",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/googleapiclient/discovery_cache/documents/compute.beta.json",
+      "line": 48827,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0140",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "da51abb3a725b67d20cc9e2843e045b1603e8134853e7fbe9fbaee7adf3fb8c8": {
+      "signature": "da51abb3a725b67d20cc9e2843e045b1603e8134853e7fbe9fbaee7adf3fb8c8",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/googleapiclient/discovery_cache/documents/compute.v1.json",
+      "line": 43640,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0140",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "81f4c4ba6f367c04357db1d442cec3e1e4cee86eb3e753cdaf909cdab25be60c": {
+      "signature": "81f4c4ba6f367c04357db1d442cec3e1e4cee86eb3e753cdaf909cdab25be60c",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/IPython/core/tests/test_magic.py",
+      "line": 879,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0130",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7fd1cd95ff91a95b8eb1d88da1070ce56002eda24236889ea7bb156ade3fcb40": {
+      "signature": "7fd1cd95ff91a95b8eb1d88da1070ce56002eda24236889ea7bb156ade3fcb40",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/kubernetes/client/models/v1_volume.py",
+      "line": 64,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "efe31be1605340a0a049148e7d3a38a75723d497012a2681e3ab2b57dfc229b9": {
+      "signature": "efe31be1605340a0a049148e7d3a38a75723d497012a2681e3ab2b57dfc229b9",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/kubernetes/client/models/v1_volume_projection.py",
+      "line": 39,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "a28444a8720661bb8d36e5be9b6ae36ab3c2d1f2841fb7071921d20897166eb8": {
+      "signature": "a28444a8720661bb8d36e5be9b6ae36ab3c2d1f2841fb7071921d20897166eb8",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/oauthlib/oauth2/rfc6749/parameters.py",
+      "line": 409,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-AZURE0140",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8c7397a0b017b0e88068148d6df2ee44e3af7e16a54ad1500b982cf1b603e68b": {
+      "signature": "8c7397a0b017b0e88068148d6df2ee44e3af7e16a54ad1500b982cf1b603e68b",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/oauthlib/oauth2/rfc6749/request_validator.py",
+      "line": 569,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "bbe36be47f38fe28b6ae3f581ae59e7002bdc4ecc5016b0122561de5475ab328": {
+      "signature": "bbe36be47f38fe28b6ae3f581ae59e7002bdc4ecc5016b0122561de5475ab328",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/oauthlib/oauth2/rfc6749/request_validator.py",
+      "line": 335,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-AZURE0140",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8376b0ea7bf83d692268abd99e6503007f162518e664ecb5698422764963c243": {
+      "signature": "8376b0ea7bf83d692268abd99e6503007f162518e664ecb5698422764963c243",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/oauthlib/oauth2/rfc6749/tokens.py",
+      "line": 194,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0120",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "681b0009cd4ccb3d5e9cb047143cb8b2cee06a195ba6398fee8f88652eba4220": {
+      "signature": "681b0009cd4ccb3d5e9cb047143cb8b2cee06a195ba6398fee8f88652eba4220",
+      "alternativeSignatures": [
+        "25c537e758bdb308d5b6d4fbc6eaa5fdf863bfebb0ba7fa2f1acb84b3ec2e5e7"
+      ],
+      "target": "python/.venv/Lib/site-packages/pip/_vendor/distlib/t64-arm.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8d65110b86af42b97a2b9e61e0dd88a7cc22e99278cf6b3c4bf50f814f2ec7ed": {
+      "signature": "8d65110b86af42b97a2b9e61e0dd88a7cc22e99278cf6b3c4bf50f814f2ec7ed",
+      "alternativeSignatures": [
+        "43fec9ac882ab050c5e715643447dd5511afa56d32d514c793eae8c53938a645"
+      ],
+      "target": "python/.venv/Lib/site-packages/pip/_vendor/distlib/w64-arm.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "27a766a4874e285d2e4ab95846a37f6b7760bc182f9aa85fa0f58767309dffea": {
+      "signature": "27a766a4874e285d2e4ab95846a37f6b7760bc182f9aa85fa0f58767309dffea",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/sqlalchemy/dialects/mysql/mysqldb.py",
+      "line": 206,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "ba7afce4481645e591ea14a0784064de97848e45110edaed80403a7bab57589a": {
+      "signature": "ba7afce4481645e591ea14a0784064de97848e45110edaed80403a7bab57589a",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/botocore/data/iam/2010-05-08/examples-1.json",
+      "line": 109,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "5ad1a2bc42efe088c9146158beeae282c408a93e761d93c27c40a0196458f815": {
+      "signature": "5ad1a2bc42efe088c9146158beeae282c408a93e761d93c27c40a0196458f815",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/botocore/data/iam/2010-05-08/examples-1.json",
+      "line": 110,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "741d9971f8a97937cbf9d283657255dd597cade54475043639e4e4421023268e": {
+      "signature": "741d9971f8a97937cbf9d283657255dd597cade54475043639e4e4421023268e",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/botocore/data/iam/2010-05-08/examples-1.json",
+      "line": 220,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "2aa678e1ef80b45765395f7de0da9905d83a91b7ab9888f2b1e39b39743ea608": {
+      "signature": "2aa678e1ef80b45765395f7de0da9905d83a91b7ab9888f2b1e39b39743ea608",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/botocore/data/iam/2010-05-08/examples-1.json",
+      "line": 1472,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "b239a625ba52f060000796849fd279fbc27b0339d05bf0d5ce67b2bfa21ec5ee": {
+      "signature": "b239a625ba52f060000796849fd279fbc27b0339d05bf0d5ce67b2bfa21ec5ee",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/botocore/data/ses/2010-12-01/examples-1.json",
+      "line": 441,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0140",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "5d079042590a19047f726ee626f789f35d43712405b01ab1fbba99d77740560e": {
+      "signature": "5d079042590a19047f726ee626f789f35d43712405b01ab1fbba99d77740560e",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/botocore/data/storagegateway/2013-06-30/examples-1.json",
+      "line": 1177,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "8ce970a7ba32901e5d3620314878d19ffe626328e41bc458cb8643bf2d45b86a": {
+      "signature": "8ce970a7ba32901e5d3620314878d19ffe626328e41bc458cb8643bf2d45b86a",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/oauthlib/oauth2/rfc6749/clients/base.py",
+      "line": 359,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0120",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "eda09917b08be234e080b47ce09f2ae91a8a98b553602dd4c77e3f1eef18dfaf": {
+      "signature": "eda09917b08be234e080b47ce09f2ae91a8a98b553602dd4c77e3f1eef18dfaf",
+      "alternativeSignatures": [
+        "7c968527c3a4423e58b8e6c37b4ec972e081e724e71b83dafa4d6b484082fe6f"
+      ],
+      "target": "python/.venv/Lib/site-packages/playwright/driver/package/bin/PrintDeps.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "7e81df836dcb2f2f361196ead82417ba8d29ee76e207daf09c7e3118b8394738": {
+      "signature": "7e81df836dcb2f2f361196ead82417ba8d29ee76e207daf09c7e3118b8394738",
+      "alternativeSignatures": [
+        "8eced458ffda9d72c88e67ec7b8e3cccea0414b69fb6887dbe7ed958099f2cb6"
+      ],
+      "target": "python/.venv/Lib/site-packages/selenium/webdriver/common/windows/selenium-manager.exe",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "binskim",
+      "ruleId": "BA2008",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "91ce21ca323876ac06db4b4e45bce22559f9c54bf3ebf4f391e7a36fd1d89b6c": {
+      "signature": "91ce21ca323876ac06db4b4e45bce22559f9c54bf3ebf4f391e7a36fd1d89b6c",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/semantic_kernel/connectors/memory/postgres/postgres_settings.py",
+      "line": 67,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0030",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "c0e0b3cda3f7c3b366f1df6d2e2e67064fe8449914d83580ab95bb93ab97cebe": {
+      "signature": "c0e0b3cda3f7c3b366f1df6d2e2e67064fe8449914d83580ab95bb93ab97cebe",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/streamlit/static/static/js/index.Phesr84n.js",
+      "line": 408,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    },
+    "400ac76ebba958b0ae5889ecfd0c110b4857d9bf5966e40422a1826448e4abe6": {
+      "signature": "400ac76ebba958b0ae5889ecfd0c110b4857d9bf5966e40422a1826448e4abe6",
+      "alternativeSignatures": [],
+      "target": "python/.venv/Lib/site-packages/pydata_sphinx_theme/theme/pydata_sphinx_theme/static/styles/pydata-sphinx-theme.css.map",
+      "line": 1,
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0060",
+      "createdDate": "2025-06-05 00:59:52Z",
+      "expirationDate": "2025-11-22 01:03:24Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2025-06-05 01:03:24Z"
+    }
+  }
+}
