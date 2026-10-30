@@ -29,6 +29,7 @@ from azure.ai.inference.models import (
     FunctionCall as AzureFunctionCall,
 )
 from azure.core.credentials import AzureKeyCredential
+from pydantic import BaseModel
 
 
 async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
@@ -973,3 +974,186 @@ async def test_azure_ai_tool_choice_specific_tool_streaming(
     assert final_result.content[0].name == "process_text"
     assert final_result.content[0].arguments == '{"input": "hello"}'
     assert final_result.thought == "Let me process this for you."
+
+
+async def _mock_create_structured_output(
+    *args: Any, **kwargs: Any
+) -> ChatCompletions | AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+    stream = kwargs.get("stream", False)
+    json_content = '{"name": "Paris", "population": 2161000}'
+
+    if not stream:
+        await asyncio.sleep(0.1)
+        return ChatCompletions(
+            id="id",
+            created=datetime.now(),
+            model="model",
+            choices=[
+                ChatChoice(
+                    index=0, finish_reason="stop", message=ChatResponseMessage(content=json_content, role="assistant")
+                )
+            ],
+            usage=CompletionsUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
+        )
+    else:
+        # Stream the JSON content in chunks
+        chunks = ['{"name":', ' "Paris",', ' "population":', " 2161000}"]
+
+        async def _gen() -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+            for chunk_content in chunks:
+                await asyncio.sleep(0.1)
+                yield StreamingChatCompletionsUpdate(
+                    id="id",
+                    choices=[
+                        StreamingChatChoiceUpdate(
+                            index=0,
+                            finish_reason="stop" if chunk_content == chunks[-1] else None,
+                            delta=StreamingChatResponseMessageUpdate(role="assistant", content=chunk_content),
+                        )
+                    ],
+                    created=datetime.now(),
+                    model="model",
+                    usage=CompletionsUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
+                )
+
+        return _gen()
+
+
+class CityInfo(BaseModel):
+    name: str
+    population: int
+
+
+def _create_mock_client(monkeypatch: pytest.MonkeyPatch, mock_complete: Any) -> None:
+    """Helper to mock ChatCompletionsClient using __new__ to avoid test isolation issues."""
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+
+@pytest.mark.asyncio
+async def test_structured_output_create(monkeypatch: pytest.MonkeyPatch) -> None:
+    _create_mock_client(monkeypatch, _mock_create_structured_output)
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": True,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": True,
+        },
+        model="model",
+    )
+
+    messages = [UserMessage(content="What is the capital of France?", source="user")]
+    result = await client.create(messages, json_output=CityInfo)
+
+    assert isinstance(result.content, str)
+    parsed = CityInfo.model_validate_json(result.content)
+    assert parsed.name == "Paris"
+    assert parsed.population == 2161000
+
+
+@pytest.mark.asyncio
+async def test_structured_output_create_stream(monkeypatch: pytest.MonkeyPatch) -> None:
+    _create_mock_client(monkeypatch, _mock_create_structured_output)
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": True,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": True,
+        },
+        model="model",
+    )
+
+    messages = [UserMessage(content="What is the capital of France?", source="user")]
+    chunks: list[str | CreateResult] = []
+    async for chunk in client.create_stream(messages, json_output=CityInfo):
+        chunks.append(chunk)
+
+    final_result = chunks[-1]
+    assert isinstance(final_result, CreateResult)
+    assert isinstance(final_result.content, str)
+    parsed = CityInfo.model_validate_json(final_result.content)
+    assert parsed.name == "Paris"
+    assert parsed.population == 2161000
+
+
+@pytest.mark.asyncio
+async def test_structured_output_not_supported(monkeypatch: pytest.MonkeyPatch) -> None:
+    _create_mock_client(monkeypatch, _mock_create)
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+    messages = [UserMessage(content="What is the capital of France?", source="user")]
+    with pytest.raises(ValueError, match="Model does not support structured output"):
+        await client.create(messages, json_output=CityInfo)
+
+
+@pytest.mark.asyncio
+async def test_structured_output_response_format_kwarg(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify that structured output sets the response_format to JsonSchemaFormat."""
+    from azure.ai.inference.models import JsonSchemaFormat
+
+    captured_kwargs: dict[str, Any] = {}
+
+    async def _capture_create(*args: Any, **kwargs: Any) -> ChatCompletions:
+        captured_kwargs.update(kwargs)
+        return ChatCompletions(
+            id="id",
+            created=datetime.now(),
+            model="model",
+            choices=[
+                ChatChoice(
+                    index=0,
+                    finish_reason="stop",
+                    message=ChatResponseMessage(content='{"name": "Paris", "population": 2161000}', role="assistant"),
+                )
+            ],
+            usage=CompletionsUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
+        )
+
+    _create_mock_client(monkeypatch, _capture_create)
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": True,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": True,
+        },
+        model="model",
+    )
+
+    messages = [UserMessage(content="What is the capital of France?", source="user")]
+    await client.create(messages, json_output=CityInfo)
+
+    assert "response_format" in captured_kwargs
+    rf = captured_kwargs["response_format"]
+    assert isinstance(rf, JsonSchemaFormat)
+    assert rf["name"] == "CityInfo"
+    assert rf["strict"] is True
+    assert "properties" in rf["schema"]
