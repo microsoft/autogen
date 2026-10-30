@@ -126,6 +126,7 @@ docs-build = "sphinx-build docs/src docs/build"
 docs-serve = "sphinx-autobuild docs/src docs/build --watch packages/ --port 8000 --jobs auto"
 docs-check = "sphinx-build --fail-on-warning docs/src docs/build"
 docs-check-examples = "sphinx-build -b code_lint docs/src docs/build"
+generate-llms-txt = "python scripts/generate_llms_txt.py"
 
 gen-proto = [
     { cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto" },
