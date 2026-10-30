@@ -510,10 +510,19 @@ export interface UISettings {
   // You can add more UI settings here as needed
 }
 
+export interface RedactionConfig {
+  enabled: boolean;
+  redact_env_vars?: boolean;
+  redact_api_keys?: boolean;
+  custom_patterns?: string[];
+  replacement?: string;
+}
+
 export interface SettingsConfig {
   environment: EnvironmentVariable[];
   default_model_client?: Component<ModelConfig>;
   ui: UISettings;
+  redaction?: RedactionConfig;
 }
 
 export interface Settings extends DBModel {
