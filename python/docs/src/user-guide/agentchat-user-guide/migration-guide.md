@@ -1369,3 +1369,67 @@ in the Core API documentation.
 We also added `ACADynamicSessionsCodeExecutor` that can use Azure Container Apps (ACA)
 dynamic sessions for code execution.
 See [ACA Dynamic Sessions Code Executor Docs](../extensions-user-guide/azure-container-code-executor.ipynb).
+
+## Code Execution Sandboxing
+
+AutoGen provides multiple code execution options with different levels of isolation:
+
+### Executor Hierarchy
+
+```
+LocalCommandLineCodeExecutor  →  DockerCommandLineCodeExecutor  →  AzureContainerCodeExecutor
+      (unsandboxed)                  (container isolation)            (cloud isolation)
+```
+
+### LocalCommandLineCodeExecutor
+
+.. warning::
+
+    This executor runs code directly on the host machine without any sandboxing.
+    Only use this for trusted code in development environments.
+
+```python
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+
+executor = LocalCommandLineCodeExecutor(work_dir="coding")
+```
+
+### DockerCommandLineCodeExecutor
+
+Provides container isolation using Docker. Recommended for production use with untrusted code.
+
+```python
+from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+
+executor = DockerCommandLineCodeExecutor(work_dir="coding")
+```
+
+### AzureContainerCodeExecutor
+
+Provides cloud-based isolation using Azure Container Instances.
+
+```python
+from autogen_ext.code_executors.azure import AzureContainerCodeExecutor
+
+executor = AzureContainerCodeExecutor(
+    acs_endpoint="https://your-acs-endpoint.acs.azure.com",
+    acs_credentials=DefaultAzureCredential(),
+    work_dir="coding",
+)
+```
+
+### Choosing the Right Executor
+
+| Executor | Isolation | Use Case |
+|----------|-----------|----------|
+| LocalCommandLineCodeExecutor | None | Development, trusted code |
+| DockerCommandLineCodeExecutor | Container | Production, untrusted code |
+| AzureContainerCodeExecutor | Cloud | Enterprise, scalable workloads |
+
+### Sandboxing Best Practices
+
+1. **Use Docker for production**: Always use `DockerCommandLineCodeExecutor` for untrusted code
+2. **Set resource limits**: Limit memory, CPU, and disk usage
+3. **Network restrictions**: Use firewalls or network policies to restrict outbound connections
+4. **Read-only filesystem**: Mount the filesystem read-only where possible
+5. **Drop capabilities**: Remove unnecessary Linux capabilities
