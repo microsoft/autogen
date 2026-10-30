@@ -279,6 +279,13 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         Dictionary<Guid, Task> pendingTasks = new();
         while (!cancellation.IsCancellationRequested && shouldContinue())
         {
+            if (this.messageDeliveryQueue.IsEmpty)
+            {
+                //wait a bit before checking again to avoid hot loop
+                await Task.Delay(100, cancellation);
+                continue;
+            }
+
             // Get a unique task id
             Guid taskId;
             do
