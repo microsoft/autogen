@@ -39,7 +39,7 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext, Component[HeadAndT
         self._tail_size = tail_size
 
     async def get_messages(self) -> List[LLMMessage]:
-        """Get at most `head_size` recent messages and `tail_size` oldest messages."""
+        """Get at most `head_size` oldest messages and `tail_size` recent messages."""
         head_messages = self._messages[: self._head_size]
         # Handle the last message is a function call message.
         if (
@@ -57,12 +57,12 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext, Component[HeadAndT
             # Remove the first message from the tail.
             tail_messages = tail_messages[1:]
 
-        num_skipped = len(self._messages) - self._head_size - self._tail_size
-        if num_skipped <= 0:
+        if len(self._messages) <= self._head_size + self._tail_size:
             # If there are not enough messages to fill the head and tail,
             # return all messages.
             return self._messages
 
+        num_skipped = len(self._messages) - len(head_messages) - len(tail_messages)
         placeholder_messages = [UserMessage(content=f"Skipped {num_skipped} messages.", source="System")]
         return head_messages + placeholder_messages + tail_messages
 
