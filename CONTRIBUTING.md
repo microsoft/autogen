@@ -34,7 +34,7 @@ For common tasks that are helpful during development and run in CI, see [here](.
 
 ## Roadmap
 
-We use GitHub issues and milestones to track our roadmap. You can view the upcoming milestones [here]([Roadmap Issues](https://aka.ms/autogen-roadmap)).
+We use GitHub issues and milestones to track our roadmap. You can view the upcoming milestones at the [Roadmap Issues](https://aka.ms/autogen-roadmap).
 
 ## Versioning
 
