@@ -1544,7 +1544,11 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         """Execute a single tool call and return the result."""
         # Load the arguments from the tool call.
         try:
-            arguments = json.loads(tool_call.arguments)
+            # Handle empty string as empty dict to support tools with no parameters
+            if not tool_call.arguments or tool_call.arguments.strip() == "":
+                arguments = {}
+            else:
+                arguments = json.loads(tool_call.arguments)
         except json.JSONDecodeError as e:
             return (
                 tool_call,
