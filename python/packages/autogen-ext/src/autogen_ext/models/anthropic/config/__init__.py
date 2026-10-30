@@ -44,6 +44,18 @@ class BedrockInfo(TypedDict):
     """aws region for the aws account to gain bedrock model access"""
 
 
+class VertexInfo(TypedDict):
+    """VertexInfo is a dictionary that contains information about Vertex AI configuration.
+    It is expected to be used in the vertex_info property of a model client.
+
+    """
+
+    project_id: Required[str]
+    """GCP project ID for Vertex AI access"""
+    region: Required[str]
+    """GCP region for Vertex AI access"""
+
+
 class BaseAnthropicClientConfiguration(CreateArguments, total=False):
     api_key: str
     base_url: Optional[str]
@@ -62,6 +74,10 @@ class AnthropicClientConfiguration(BaseAnthropicClientConfiguration, total=False
 
 class AnthropicBedrockClientConfiguration(AnthropicClientConfiguration, total=False):
     bedrock_info: BedrockInfo
+
+
+class AnthropicVertexClientConfiguration(AnthropicClientConfiguration, total=False):
+    vertex_info: VertexInfo
 
 
 # Pydantic equivalents of the above TypedDicts
@@ -111,3 +127,14 @@ class BedrockInfoConfigModel(TypedDict):
 
 class AnthropicBedrockClientConfigurationConfigModel(AnthropicClientConfigurationConfigModel):
     bedrock_info: BedrockInfoConfigModel | None = None
+
+
+class VertexInfoConfigModel(TypedDict):
+    project_id: Required[str]
+    """GCP project ID for Vertex AI access"""
+    region: Required[str]
+    """GCP region for Vertex AI access"""
+
+
+class AnthropicVertexClientConfigurationConfigModel(AnthropicClientConfigurationConfigModel):
+    vertex_info: VertexInfoConfigModel | None = None
