@@ -42,7 +42,7 @@ class HttpToolConfig(BaseModel):
     """
     The HTTP method to use, will default to POST if not provided.
     """
-    headers: Optional[dict[str, Any]]
+    headers: Optional[dict[str, Any]] = None
     """
     A dictionary of headers to send with the request.
     """
