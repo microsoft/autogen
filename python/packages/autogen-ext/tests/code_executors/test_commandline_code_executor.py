@@ -187,7 +187,7 @@ async def test_commandline_code_executor_cancellation() -> None:
         # to a file.
         code = """import time
 time.sleep(10)
-with open("hello.txt", "w") as f:
+with open("hello.txt", "w", encoding="utf-8") as f:
     f.write("hello world!")
 """
         code_blocks = [CodeBlock(code=code, language="python")]

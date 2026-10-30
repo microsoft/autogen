@@ -68,7 +68,7 @@ def find_tabulate_module(search_dir: str, stop_dir: Optional[str] = None) -> Opt
 def default_scorer(instance_dir: str, success_strings: List[str] = SUCCESS_STRINGS) -> Optional[bool]:
     console_log = os.path.join(instance_dir, "console_log.txt")
     if os.path.isfile(console_log):
-        with open(console_log, "rt") as fh:
+        with open(console_log, "rt", encoding="utf-8") as fh:
             content = fh.read()
 
             # It succeeded
@@ -90,7 +90,7 @@ def default_scorer(instance_dir: str, success_strings: List[str] = SUCCESS_STRIN
 def default_timer(instance_dir: str, timer_regex: str = TIMER_REGEX) -> Optional[float]:
     console_log = os.path.join(instance_dir, "console_log.txt")
     if os.path.isfile(console_log):
-        with open(console_log, "rt") as fh:
+        with open(console_log, "rt", encoding="utf-8") as fh:
             content = fh.read()
 
             # It succeeded

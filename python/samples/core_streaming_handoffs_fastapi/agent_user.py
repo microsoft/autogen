@@ -36,7 +36,7 @@ class UserAgent(RoutedAgent):
         if ctx.topic_id is None:
             raise ValueError("MessageContext.topic_id is None, cannot save chat history")
         file_path = os.path.join(chat_history_dir, f"history-{ctx.topic_id.source}.json")
-        with open(file_path, 'w') as f:
+        with open(file_path, 'w', encoding="utf-8") as f:
             json.dump(save_context, f, indent=4)
         
         #End stream
