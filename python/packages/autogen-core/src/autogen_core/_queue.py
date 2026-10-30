@@ -122,7 +122,7 @@ class Queue(_LoopBoundMixin, Generic[T]):
             self._putters.append(putter)
             try:
                 await putter
-            except:
+            except Exception:
                 putter.cancel()  # Just in case putter is not done yet.
                 try:
                     # Clean self._putters from canceled putters.
@@ -169,7 +169,7 @@ class Queue(_LoopBoundMixin, Generic[T]):
             self._getters.append(getter)
             try:
                 await getter
-            except:
+            except Exception:
                 getter.cancel()  # Just in case getter is not done yet.
                 try:
                     # Clean self._getters from canceled getters.
