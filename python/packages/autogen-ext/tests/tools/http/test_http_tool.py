@@ -4,6 +4,7 @@ import logging
 import httpx
 import pytest
 from autogen_core import CancellationToken, Component, ComponentModel
+from autogen_core.tools import StaticStreamWorkbench
 from autogen_ext.tools.http import HttpTool
 from pydantic import ValidationError
 
@@ -205,3 +206,32 @@ def test_config_deserialization(test_config: ComponentModel) -> None:
     assert tool.server_params.scheme == test_config.config["scheme"]
     assert tool.server_params.method == test_config.config["method"]
     assert tool.server_params.headers == test_config.config["headers"]
+
+
+@pytest.mark.asyncio
+async def test_workbench_from_config_with_missing_headers_field() -> None:
+    tool = HttpTool(
+        name="base64_decode",
+        description="base64 decode a value",
+        scheme="https",
+        host="httpbin.org",
+        port=443,
+        path="/base64/{value}",
+        method="GET",
+        headers=None,
+        json_schema={
+            "type": "object",
+            "properties": {
+                "value": {"type": "string", "description": "The base64 value to decode"},
+            },
+            "required": ["value"],
+        },
+    )
+
+    workbench = StaticStreamWorkbench(tools=[tool])
+    config = workbench.dump_component()
+    new_workbench = StaticStreamWorkbench.load_component(config, StaticStreamWorkbench)
+
+    tools = await new_workbench.list_tools()
+    assert len(tools) == 1
+    assert tools[0]["name"] == "base64_decode"
