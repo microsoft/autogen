@@ -37,6 +37,7 @@ from ._constants import (
 from ._default_subscription import DefaultSubscription, default_subscription, type_subscription
 from ._default_topic import DefaultTopicId
 from ._image import Image
+from ._cost_intervention import CostInterventionHandler
 from ._intervention import (
     DefaultInterventionHandler,
     DropMessage,
@@ -137,6 +138,7 @@ __all__ = [
     "DropMessage",
     "InterventionHandler",
     "DefaultInterventionHandler",
+    "CostInterventionHandler",
     "trace_create_agent_span",
     "trace_invoke_agent_span",
     "trace_tool_span",
