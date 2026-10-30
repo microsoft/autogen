@@ -1,0 +1,356 @@
+kcp_version: "0.3"
+id: autogen
+description: "Microsoft AutoGen — a programming framework for agentic AI with two APIs: Core (low-level actor model) and AgentChat (high-level multi-agent teams)"
+
+entry_points:
+  primary: README.md
+  architecture: python/docs/src/user-guide/core-user-guide/core-concepts/architecture-tldr.md
+
+units:
+
+  # ── Entry points (eager) ────────────────────────────────────────────────────
+
+  - id: overview
+    path: README.md
+    kind: reference
+    intent: "What is AutoGen, what can it do, and how is the repo organised?"
+    scope: overview
+    audience: [beginner, developer, advanced]
+    triggers:
+      - what is autogen
+      - autogen overview
+      - repo structure
+      - getting started with autogen
+      - autogen introduction
+    hints:
+      token_estimate: 800
+      load_strategy: eager
+      priority: high
+
+  - id: architecture-tldr
+    path: python/docs/src/user-guide/core-user-guide/core-concepts/architecture-tldr.md
+    kind: reference
+    intent: "Quick answer: Core vs AgentChat, standalone vs distributed runtime, actor model basics, key components"
+    scope: focused
+    audience: [beginner, developer, advanced]
+    triggers:
+      - Core vs AgentChat difference
+      - which API to use
+      - actor model
+      - standalone vs distributed
+      - runtime types
+      - autogen architecture
+      - what is the difference between autogen core and agentchat
+    hints:
+      token_estimate: 500
+      load_strategy: eager
+      priority: high
+      summary_available: false
+      summary_of: core-architecture
+
+  - id: agentchat-tldr
+    path: python/docs/src/user-guide/agentchat-user-guide/agentchat-tldr.md
+    kind: guide
+    intent: "Quick answer: what AgentChat is, main agent types, minimal code example, team types, termination conditions"
+    scope: focused
+    audience: [beginner, developer]
+    triggers:
+      - how do I build my first agent
+      - getting started
+      - quickstart
+      - first multi-agent chat
+      - agentchat overview
+      - assistantagent example
+      - roundrobin group chat
+      - team types
+    hints:
+      token_estimate: 500
+      load_strategy: eager
+      priority: high
+      summary_available: false
+      summary_of: agentchat-quickstart
+
+  # ── Core concepts (lazy) ────────────────────────────────────────────────────
+
+  - id: core-architecture
+    path: python/docs/src/user-guide/core-user-guide/core-concepts/architecture.md
+    kind: architecture
+    intent: "Full explanation of standalone and distributed runtimes with diagrams"
+    scope: focused
+    audience: [developer, advanced]
+    triggers:
+      - standalone agent runtime
+      - distributed agent runtime
+      - multi-process agents
+      - gRPC agents
+      - runtime architecture details
+    hints:
+      token_estimate: 400
+      load_strategy: lazy
+      priority: medium
+      summary_available: true
+      summary_unit: architecture-tldr
+
+  - id: application-stack
+    path: python/docs/src/user-guide/core-user-guide/core-concepts/application-stack.md
+    kind: architecture
+    intent: "How the application stack layers (messaging, routing, message protocols, patterns) fit together"
+    scope: focused
+    audience: [developer, advanced]
+    triggers:
+      - application stack
+      - message protocol
+      - behavior contract
+      - how agents communicate
+      - core framework layers
+    hints:
+      token_estimate: 400
+      load_strategy: lazy
+      priority: medium
+
+  - id: agent-identity-lifecycle
+    path: python/docs/src/user-guide/core-user-guide/core-concepts/agent-identity-and-lifecycle.md
+    kind: reference
+    intent: "Agent identity (AgentId, AgentType, AgentKey) and lifecycle management"
+    scope: focused
+    audience: [developer, advanced]
+    triggers:
+      - agent identity
+      - agent lifecycle
+      - agentid
+      - agenttype
+      - agent registration
+      - agent key
+    hints:
+      token_estimate: 600
+      load_strategy: lazy
+      priority: medium
+
+  - id: topic-subscription
+    path: python/docs/src/user-guide/core-user-guide/core-concepts/topic-and-subscription.md
+    kind: reference
+    intent: "Pub/sub model: topics, subscriptions, broadcast vs direct messaging"
+    scope: focused
+    audience: [developer, advanced]
+    triggers:
+      - subscriptions
+      - topics
+      - pub sub
+      - publish subscribe
+      - events
+      - broadcast message
+      - topic subscription
+    hints:
+      token_estimate: 700
+      load_strategy: lazy
+      priority: medium
+
+  # ── AgentChat (lazy) ────────────────────────────────────────────────────────
+
+  - id: agentchat-quickstart
+    path: python/docs/src/user-guide/agentchat-user-guide/quickstart.ipynb
+    kind: tutorial
+    intent: "Complete first AgentChat app: AssistantAgent with a tool, streaming to console"
+    scope: focused
+    audience: [beginner, developer]
+    triggers:
+      - agentchat quickstart
+      - first agentchat agent
+      - assistantagent with tools quickstart
+      - build first agent agentchat
+    hints:
+      token_estimate: 1200
+      load_strategy: lazy
+      priority: high
+      summary_available: true
+      summary_unit: agentchat-tldr
+
+  - id: agentchat-agents
+    path: python/docs/src/user-guide/agentchat-user-guide/tutorial/agents.ipynb
+    kind: tutorial
+    intent: "Deep dive: AssistantAgent, tools, workbench, MCP, structured output, streaming, model context, preset agents"
+    scope: comprehensive
+    audience: [developer, advanced]
+    triggers:
+      - how to add tools to an agent
+      - tool calling agentchat
+      - function calling agent
+      - mcp workbench
+      - structured output agent
+      - model context buffer
+      - preset agents list
+      - assistantagent tools tutorial
+    hints:
+      token_estimate: 8000
+      load_strategy: lazy
+      priority: high
+
+  - id: agentchat-teams
+    path: python/docs/src/user-guide/agentchat-user-guide/tutorial/teams.ipynb
+    kind: tutorial
+    intent: "Building multi-agent teams: RoundRobinGroupChat, SelectorGroupChat, termination, state"
+    scope: comprehensive
+    audience: [developer, advanced]
+    triggers:
+      - agentchat teams tutorial
+      - roundrobingroupchat
+      - selectorgroupchat tutorial
+      - multi-agent team agentchat
+      - team termination
+    hints:
+      token_estimate: 5000
+      load_strategy: lazy
+      priority: high
+
+  - id: agentchat-memory
+    path: python/docs/src/user-guide/agentchat-user-guide/memory.ipynb
+    kind: tutorial
+    intent: "How to add memory capabilities to agents: in-memory store, vector memory, custom memory"
+    scope: focused
+    audience: [developer, advanced]
+    triggers:
+      - memory
+      - conversation history
+      - add memory to agent
+      - agent remember
+      - vector memory
+      - memory store
+    hints:
+      token_estimate: 3000
+      load_strategy: lazy
+      priority: medium
+
+  - id: agentchat-human-in-loop
+    path: python/docs/src/user-guide/agentchat-user-guide/tutorial/human-in-the-loop.ipynb
+    kind: tutorial
+    intent: "Human-in-the-loop patterns: UserProxyAgent, HandoffTermination, injecting human input mid-run"
+    scope: focused
+    audience: [developer, advanced]
+    triggers:
+      - human in the loop
+      - user approval
+      - interrupt agent
+      - human feedback
+      - userproxyagent
+      - handoff termination
+      - human input agent
+    hints:
+      token_estimate: 3000
+      load_strategy: lazy
+      priority: medium
+
+  # ── Design patterns (lazy) ──────────────────────────────────────────────────
+
+  - id: design-patterns-tldr
+    path: python/docs/src/user-guide/core-user-guide/design-patterns/design-patterns-tldr.md
+    kind: reference
+    intent: "Quick summary of all AutoGen design patterns with one-line descriptions"
+    scope: overview
+    audience: [developer, advanced]
+    triggers:
+      - design patterns overview
+      - what patterns does autogen support
+      - multi-agent orchestration patterns
+      - reflection pattern
+      - sequential workflow pattern
+      - mixture of agents
+      - concurrent agents
+    hints:
+      token_estimate: 500
+      load_strategy: lazy
+      priority: high
+      summary_available: false
+      summary_of: design-patterns-intro
+
+  - id: design-patterns-intro
+    path: python/docs/src/user-guide/core-user-guide/design-patterns/intro.md
+    kind: architecture
+    intent: "Introduction to multi-agent design patterns and how they emerge from message protocols"
+    scope: overview
+    audience: [developer, advanced]
+    triggers:
+      - design patterns introduction
+      - multi-agent patterns intro
+      - group chat and reflection intro
+    hints:
+      token_estimate: 200
+      load_strategy: lazy
+      priority: low
+      summary_available: true
+      summary_unit: design-patterns-tldr
+
+  - id: group-chat
+    path: python/docs/src/user-guide/core-user-guide/design-patterns/group-chat.ipynb
+    kind: example
+    intent: "Implement group chat pattern with a coordinator selecting the next speaker"
+    scope: focused
+    audience: [developer, advanced]
+    triggers:
+      - group chat pattern
+      - implement group chat
+      - how do I implement group chat with multiple agents
+      - coordinator agent
+      - multi-agent group chat code
+    hints:
+      token_estimate: 4000
+      load_strategy: lazy
+      priority: medium
+
+  - id: handoffs
+    path: python/docs/src/user-guide/core-user-guide/design-patterns/handoffs.ipynb
+    kind: example
+    intent: "Implement agent handoffs — passing control from one agent to another"
+    scope: focused
+    audience: [developer, advanced]
+    triggers:
+      - handoffs
+      - agent handoff
+      - delegation
+      - hand off to another agent
+      - swarm pattern core
+    hints:
+      token_estimate: 4000
+      load_strategy: lazy
+      priority: medium
+
+  # ── Components (lazy) ───────────────────────────────────────────────────────
+
+  - id: model-clients
+    path: python/docs/src/user-guide/core-user-guide/components/model-clients.ipynb
+    kind: reference
+    intent: "Supported LLM providers and how to configure model clients (OpenAI, Azure, Gemini, local models)"
+    scope: comprehensive
+    audience: [developer, advanced]
+    triggers:
+      - LLM providers
+      - model clients
+      - what LLM providers does autogen support
+      - openai client
+      - azure openai
+      - configure model
+      - anthropic client
+      - gemini client
+      - ollama autogen
+    hints:
+      token_estimate: 5000
+      load_strategy: lazy
+      priority: medium
+
+  - id: tools
+    path: python/docs/src/user-guide/core-user-guide/components/tools.ipynb
+    kind: reference
+    intent: "Core tools API: FunctionTool, built-in tools, calling tools with model clients, tool-equipped agent"
+    scope: comprehensive
+    audience: [developer, advanced]
+    triggers:
+      - tools core api
+      - functiontool
+      - how to add tools core
+      - tool calling core
+      - built-in tools
+      - python code execution tool
+      - tool equipped agent
+    hints:
+      token_estimate: 5000
+      load_strategy: lazy
+      priority: medium
