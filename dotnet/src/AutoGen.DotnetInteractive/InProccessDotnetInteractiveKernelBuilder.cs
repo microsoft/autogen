@@ -33,7 +33,7 @@ public class InProccessDotnetInteractiveKernelBuilder
 
     public InProccessDotnetInteractiveKernelBuilder AddCSharpKernel(IEnumerable<string>? aliases = null)
     {
-        aliases ??= ["c#", "C#", "csharp"];
+        aliases ??= ["c#", "C#"];
         // create csharp kernel
         var csharpKernel = new CSharpKernel()
             .UseNugetDirective((k, resolvedPackageReference) =>
@@ -55,7 +55,7 @@ public class InProccessDotnetInteractiveKernelBuilder
 
     public InProccessDotnetInteractiveKernelBuilder AddFSharpKernel(IEnumerable<string>? aliases = null)
     {
-        aliases ??= ["f#", "F#", "fsharp"];
+        aliases ??= ["f#", "F#"];
         // create fsharp kernel
         var fsharpKernel = new FSharpKernel()
             .UseDefaultFormatting()
