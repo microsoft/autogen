@@ -144,7 +144,14 @@ class AuthManager:
                 "callback_url": os.environ.get("AUTOGENSTUDIO_GITHUB_CALLBACK_URL", ""),
                 "scopes": os.environ.get("AUTOGENSTUDIO_GITHUB_SCOPES", "user:email").split(","),
             }
-        # Add other provider config parsing here
+        elif auth_type == "msal":
+            config_dict["msal"] = {
+                "tenant_id": os.environ.get("AUTOGENSTUDIO_MSAL_TENANT_ID", ""),
+                "client_id": os.environ.get("AUTOGENSTUDIO_MSAL_CLIENT_ID", ""),
+                "client_secret": os.environ.get("AUTOGENSTUDIO_MSAL_CLIENT_SECRET", ""),
+                "callback_url": os.environ.get("AUTOGENSTUDIO_MSAL_CALLBACK_URL", ""),
+                "scopes": os.environ.get("AUTOGENSTUDIO_MSAL_SCOPES", "User.Read").split(","),
+            }
 
         config = AuthConfig(**config_dict)
         return cls(config)
