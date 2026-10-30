@@ -46,6 +46,13 @@ _MODEL_POINTERS = {
     "llama-3.3-70b": "Llama-3.3-70B-Instruct",
     "llama-4-scout": "Llama-4-Scout-17B-16E-Instruct-FP8",
     "llama-4-maverick": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+    # Grok models
+    "grok-code-fast-1": "grok-code-fast-1",
+    "grok-4-fast-reasoning": "grok-4-fast-reasoning",
+    "grok-4-fast-non-reasoning": "grok-4-fast-non-reasoning",
+    "grok-4": "grok-4",
+    "grok-3-mini": "grok-3-mini",
+    "grok-3": "grok-3",
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
@@ -441,6 +448,48 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": True,
         "multiple_system_messages": True,
     },
+    "grok-code-fast-1": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GROK_CODE_FAST_1,
+        "structured_output": True
+    },
+    "grok-4-fast-reasoning": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GROK_4_FAST_REASONING,
+        "structured_output": True
+    },
+    "grok-4-fast-non-reasoning": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GROK_4_FAST_NON_REASONING,
+        "structured_output": True
+    },
+    "grok-4": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GROK_4,
+        "structured_output": True
+    },
+    "grok-3-mini": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GROK_3_MINI,
+        "structured_output": True
+    },
+    "grok-3": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GROK_3,
+        "structured_output": True
+    },
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
@@ -491,11 +540,18 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "Llama-3.3-70B-Instruct": 128000,
     "Llama-4-Scout-17B-16E-Instruct-FP8": 128000,
     "Llama-4-Maverick-17B-128E-Instruct-FP8": 128000,
+    "grok-code-fast-1": 256000,
+    "grok-4-fast-reasoning": 2000000,
+    "grok-4-fast-non-reasoning": 2000000,
+    "grok-4": 256000,
+    "grok-3-mini": 131072,
+    "grok-3": 131072,
 }
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1/"
 LLAMA_API_BASE_URL = "https://api.llama.com/compat/v1/"
+GROK_API_BASE_URL = "https://api.x.ai/v1"
 
 
 def resolve_model(model: str) -> str:
