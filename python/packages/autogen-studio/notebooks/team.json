@@ -27,8 +27,7 @@
               "model": "gpt-4o-mini"
             }
           },
-          "workbench": [
-            {
+          "workbench": {
               "provider": "autogen_core.tools.StaticStreamWorkbench",
               "component_type": "workbench",
               "version": 1,
@@ -54,8 +53,7 @@
                   }
                 ]
               }
-            }
-          ],
+          },
           "model_context": {
             "provider": "autogen_core.model_context.UnboundedChatCompletionContext",
             "component_type": "chat_completion_context",
