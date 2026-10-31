@@ -38,6 +38,7 @@ from azure.ai.inference.models import (
     ImageContentItem,
     ImageDetailLevel,
     ImageUrl,
+    JsonSchemaFormat,
     StreamingChatChoiceUpdate,
     StreamingChatCompletionsUpdate,
     TextContentItem,
@@ -193,7 +194,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         temperature: (optional,float)
         top_p: (optional,float)
         max_tokens: (optional,int)
-        response_format: (optional, literal["text", "json_object"])
+        response_format: (optional, Union[literal["text", "json_object"], JsonSchemaFormat])
         stop: (optional,List[str])
         tools: (optional,List[ChatCompletionsToolDefinition])
         tool_choice: (optional,Union[str, ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice]])
@@ -284,6 +285,57 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if __name__ == "__main__":
             asyncio.run(main())
 
+    To use structured output, set the `json_output` parameter to a Pydantic model class.
+    The model must support structured output, which is indicated by the `structured_output`
+    field of the `model_info`. The response content is a JSON string that conforms to the
+    schema of the model class:
+
+    .. code-block:: python
+
+        import asyncio
+        import os
+
+        from autogen_core.models import UserMessage
+        from autogen_ext.models.azure import AzureAIChatCompletionClient
+        from azure.core.credentials import AzureKeyCredential
+        from pydantic import BaseModel
+
+
+        class CityInfo(BaseModel):
+            name: str
+            country: str
+            population: int
+
+
+        async def main():
+            client = AzureAIChatCompletionClient(
+                model="gpt-4o",
+                endpoint="https://models.github.ai/inference",
+                credential=AzureKeyCredential(os.environ["GITHUB_TOKEN"]),
+                model_info={
+                    "json_output": True,
+                    "function_calling": True,
+                    "vision": True,
+                    "family": "unknown",
+                    "structured_output": True,
+                },
+            )
+
+            result = await client.create(
+                [UserMessage(content="Give me info about Paris", source="user")],
+                json_output=CityInfo,
+            )
+            assert isinstance(result.content, str)
+            city = CityInfo.model_validate_json(result.content)
+            print(city.name)  # "Paris"
+
+            # Close the client.
+            await client.close()
+
+
+        if __name__ == "__main__":
+            asyncio.run(main())
+
 
     """
 
@@ -341,15 +393,26 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                         raise ValueError("Model does not support vision and image was provided")
 
         if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output")
-
-            if isinstance(json_output, type):
-                # TODO: we should support this in the future.
-                raise ValueError("Structured output is not currently supported for AzureAIChatCompletionClient")
-
-            if json_output is True and "response_format" not in create_args:
-                create_args["response_format"] = "json_object"
+            if json_output is True:
+                # JSON mode.
+                if self.model_info["json_output"] is False:
+                    raise ValueError("Model does not support JSON output")
+                if "response_format" not in create_args:
+                    create_args["response_format"] = "json_object"
+            elif json_output is False:
+                # Text mode, nothing to do.
+                pass
+            elif isinstance(json_output, type) and issubclass(json_output, BaseModel):
+                # Structured output mode with a Pydantic model class.
+                if self.model_info.get("structured_output") is False:
+                    raise ValueError("Model does not support structured output")
+                create_args["response_format"] = JsonSchemaFormat(
+                    name=json_output.__name__,
+                    schema=json_output.model_json_schema(),
+                    strict=True,
+                )
+            else:
+                raise ValueError(f"json_output must be a boolean or a Pydantic model class, got {type(json_output)}")
 
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
@@ -446,6 +509,13 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
             thought, content = parse_r1_content(content)
 
+        if isinstance(json_output, type) and issubclass(json_output, BaseModel) and isinstance(content, str):
+            # Validate the structured output, the content is kept as the raw JSON string.
+            try:
+                json_output.model_validate_json(content)
+            except Exception as e:
+                raise ValueError(f"Failed to parse structured output: {e}. Raw content: {content}") from e
+
         response = CreateResult(
             finish_reason=finish_reason,  # type: ignore
             content=content,
@@ -520,7 +590,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 )
             assert isinstance(chunk, StreamingChatCompletionsUpdate)
             choice = chunk.choices[0] if len(chunk.choices) > 0 else None
-            if choice and choice.finish_reason is not None:
+            # The SDK types finish_reason as required, but the service omits it on
+            # intermediate chunks, so use a truthiness check instead of a None check.
+            if choice and choice.finish_reason:
                 if isinstance(choice.finish_reason, CompletionsFinishReason):
                     finish_reason = cast(FinishReasons, choice.finish_reason.value)
                     # Handle special case for TOOL_CALLS finish reason
@@ -578,6 +650,13 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
             thought, content = parse_r1_content(content)
+
+        if isinstance(json_output, type) and issubclass(json_output, BaseModel) and isinstance(content, str):
+            # Validate the structured output, the content is kept as the raw JSON string.
+            try:
+                json_output.model_validate_json(content)
+            except Exception as e:
+                raise ValueError(f"Failed to parse structured output: {e}. Raw content: {content}") from e
 
         result = CreateResult(
             finish_reason=finish_reason,
