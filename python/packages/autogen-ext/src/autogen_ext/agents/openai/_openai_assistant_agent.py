@@ -302,6 +302,8 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._top_p = top_p
         self._vector_store_id: Optional[str] = None
         self._uploaded_file_ids: List[str] = []
+        self._owned_vector_store_id: Optional[str] = None
+        self._owned_uploaded_file_ids: List[str] = []
 
         # Variables to track initial state
         self._initial_message_ids: Set[str] = set()
@@ -590,6 +592,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
             )
             file_ids.append(file.id)
             self._uploaded_file_ids.append(file.id)
+            self._owned_uploaded_file_ids.append(file.id)
 
         return file_ids
 
@@ -640,6 +643,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 asyncio.ensure_future(self._client.vector_stores.create())
             )
             self._vector_store_id = vector_store.id
+            self._owned_vector_store_id = vector_store.id
 
             # Update assistant with vector store ID
             await cancellation_token.link_future(
@@ -665,12 +669,15 @@ class OpenAIAssistantAgent(BaseChatAgent):
     async def delete_uploaded_files(self, cancellation_token: CancellationToken) -> None:
         """Delete all files that were uploaded by this agent instance."""
         await self._ensure_initialized()
-        for file_id in self._uploaded_file_ids:
+        for file_id in self._owned_uploaded_file_ids:
             try:
                 await cancellation_token.link_future(asyncio.ensure_future(self._client.files.delete(file_id=file_id)))
             except Exception as e:
                 event_logger.error(f"Failed to delete file {file_id}: {str(e)}")
-        self._uploaded_file_ids = []
+        self._uploaded_file_ids = [
+            file_id for file_id in self._uploaded_file_ids if file_id not in self._owned_uploaded_file_ids
+        ]
+        self._owned_uploaded_file_ids = []
 
     async def delete_assistant(self, cancellation_token: CancellationToken) -> None:
         """Delete the assistant if it was created by this instance."""
@@ -687,12 +694,16 @@ class OpenAIAssistantAgent(BaseChatAgent):
     async def delete_vector_store(self, cancellation_token: CancellationToken) -> None:
         """Delete the vector store if it was created by this instance."""
         await self._ensure_initialized()
-        if self._vector_store_id is not None:
+        if self._owned_vector_store_id is not None:
             try:
                 await cancellation_token.link_future(
-                    asyncio.ensure_future(self._client.vector_stores.delete(vector_store_id=self._vector_store_id))
+                    asyncio.ensure_future(
+                        self._client.vector_stores.delete(vector_store_id=self._owned_vector_store_id)
+                    )
                 )
-                self._vector_store_id = None
+                if self._vector_store_id == self._owned_vector_store_id:
+                    self._vector_store_id = None
+                self._owned_vector_store_id = None
             except Exception as e:
                 event_logger.error(f"Failed to delete vector store: {str(e)}")
 
