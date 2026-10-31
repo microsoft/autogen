@@ -296,3 +296,93 @@ def test_mcp_workbench_conflict_detection() -> None:
     }
     with pytest.raises(ValueError):
         McpWorkbench(server_params=server_params, tool_overrides=overrides_duplicate)
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_list_tools_preserves_defs(
+    mock_mcp_actor: AsyncMock, sample_server_params: StdioServerParams
+) -> None:
+    """Test that list_tools preserves $defs from inputSchema for $ref resolution."""
+    tools_with_defs = [
+        Tool(
+            name="create_customer",
+            description="Creates a customer record",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "first_name": {"$ref": "#/$defs/Name"},
+                    "last_name": {"$ref": "#/$defs/Name"},
+                    "status": {"$ref": "#/$defs/Status"},
+                },
+                "required": ["first_name", "last_name"],
+                "$defs": {
+                    "Name": {"type": "string", "minLength": 1},
+                    "Status": {"type": "string", "enum": ["active", "inactive"]},
+                },
+            },
+        )
+    ]
+
+    workbench = McpWorkbench(server_params=sample_server_params)
+    workbench._actor = mock_mcp_actor  # type: ignore[reportPrivateUsage]
+
+    list_tools_result = ListToolsResult(tools=tools_with_defs)
+    future_result: asyncio.Future[ListToolsResult] = asyncio.Future()
+    future_result.set_result(list_tools_result)
+    mock_mcp_actor.call.return_value = future_result
+
+    try:
+        tools = await workbench.list_tools()
+        assert len(tools) == 1
+
+        params = tools[0].get("parameters", {})
+        assert params.get("type") == "object"
+
+        # $defs must be forwarded so model clients can resolve $ref entries in properties
+        assert "$defs" in params, "ParametersSchema should include $defs when present in inputSchema"
+        assert "Name" in params["$defs"]
+        assert "Status" in params["$defs"]
+
+        # Properties should still reference $defs via $ref
+        assert params["properties"]["first_name"] == {"$ref": "#/$defs/Name"}
+        assert params["properties"]["status"] == {"$ref": "#/$defs/Status"}
+    finally:
+        workbench._actor = None  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_mcp_workbench_list_tools_without_defs(
+    mock_mcp_actor: AsyncMock, sample_server_params: StdioServerParams
+) -> None:
+    """Test that list_tools works correctly when inputSchema has no $defs (unchanged behavior)."""
+    tools_without_defs = [
+        Tool(
+            name="simple_tool",
+            description="A simple tool",
+            inputSchema={
+                "type": "object",
+                "properties": {"value": {"type": "integer"}},
+                "required": ["value"],
+            },
+        )
+    ]
+
+    workbench = McpWorkbench(server_params=sample_server_params)
+    workbench._actor = mock_mcp_actor  # type: ignore[reportPrivateUsage]
+
+    list_tools_result = ListToolsResult(tools=tools_without_defs)
+    future_result: asyncio.Future[ListToolsResult] = asyncio.Future()
+    future_result.set_result(list_tools_result)
+    mock_mcp_actor.call.return_value = future_result
+
+    try:
+        tools = await workbench.list_tools()
+        assert len(tools) == 1
+
+        params = tools[0].get("parameters", {})
+        assert params.get("type") == "object"
+        assert "$defs" not in params
+        assert params["properties"] == {"value": {"type": "integer"}}
+    finally:
+        workbench._actor = None  # type: ignore[reportPrivateUsage]
+
