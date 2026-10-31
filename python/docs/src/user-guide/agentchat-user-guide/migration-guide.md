@@ -88,7 +88,7 @@ config_list = [
 model_client = OpenAIWrapper(config_list=config_list)
 ```
 
-> **Note**: In AutoGen 0.2, the OpenAI client would try configs in the list until one worked. 0.4 instead expects a specfic model configuration to be chosen.
+> **Note**: In AutoGen 0.2, the OpenAI client would try configs in the list until one worked. 0.4 instead expects a specific model configuration to be chosen.
 
 In `v0.4`, we offer two ways to create a model client.
 
@@ -160,7 +160,7 @@ custom_model_client = OpenAIChatCompletionClient(
 ```
 
 > **Note**: We don't test all the OpenAI-Compatible APIs, and many of them
-> works differently from the OpenAI API even though they may claim to suppor it.
+> works differently from the OpenAI API even though they may claim to support it.
 > Please test them before using them.
 
 Read about [Model Clients](./tutorial/models.ipynb)
@@ -1272,7 +1272,7 @@ for more details.
 Base on the feedback from the community, the `initiate_chats` function
 is too opinionated and not flexible enough to support the diverse set of scenarios that
 users want to implement. We often find users struggling to get the `initiate_chats` function
-to work when they can easily glue the steps together usign basic Python code.
+to work when they can easily glue the steps together using basic Python code.
 Therefore, in `v0.4`, we do not provide a built-in function for sequential chat in the AgentChat API.
 
 Instead, you can create an event-driven sequential workflow using the Core API,
@@ -1295,7 +1295,7 @@ See {py:class}`~autogen_ext.agents.openai.OpenAIAssistantAgent` for more details
 
 In `v0.2`, long context that overflows the model's context window can be handled
 by using the `transforms` capability that is added to an `ConversableAgent`
-after which is contructed.
+after which is constructed.
 
 The feedbacks from our community has led us to believe this feature is essential
 and should be a built-in component of {py:class}`~autogen_agentchat.agents.AssistantAgent`, and can be used for
