@@ -250,6 +250,34 @@ async def test_azure_openai_chat_completion_client() -> None:
     assert client
 
 
+def test_azure_openai_chat_completion_client_serializes_model_info() -> None:
+    model_info: ModelInfo = {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.UNKNOWN,
+        "structured_output": True,
+    }
+    client = AzureOpenAIChatCompletionClient(
+        model="contoso-chat",
+        azure_endpoint="https://dummy.com",
+        azure_deployment="contoso-chat",
+        api_version="2020-08-04",
+        api_key="api_key",
+        model_info=model_info,
+    )
+
+    config = client.dump_component()
+
+    assert config.config["model_info"] == model_info
+
+    serialized_config = config.model_dump_json()
+    assert '"model_info"' in serialized_config
+
+    reloaded_client = AzureOpenAIChatCompletionClient.load_component(json.loads(serialized_config))
+    assert reloaded_client.model_info == model_info
+
+
 @pytest.mark.asyncio
 async def test_openai_chat_completion_client_create(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture

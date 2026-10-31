@@ -1679,6 +1679,7 @@ class AzureOpenAIChatCompletionClient(
 
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
         model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
+        self._raw_config: Dict[str, Any] = dict(kwargs).copy()
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:
             model_capabilities = kwargs["model_capabilities"]
@@ -1699,7 +1700,6 @@ class AzureOpenAIChatCompletionClient(
 
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
-        self._raw_config: Dict[str, Any] = copied_args
         super().__init__(
             client=client,
             create_args=create_args,
