@@ -106,6 +106,19 @@ class GroupChatResume(BaseModel):
     ...
 
 
+class GroupChatGetThread(BaseModel):
+    """A request to retrieve the current group chat thread."""
+
+    ...
+
+
+class GroupChatGetThreadResponse(BaseModel):
+    """The current group chat thread."""
+
+    messages: List[SerializeAsAny[BaseAgentEvent | BaseChatMessage]]
+    """All messages recorded in the group chat thread so far."""
+
+
 class GroupChatError(BaseModel):
     """A message indicating that an error occurred in the group chat."""
 

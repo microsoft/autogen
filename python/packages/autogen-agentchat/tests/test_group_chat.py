@@ -338,7 +338,6 @@ async def test_round_robin_group_chat_output_task_messages_false(runtime: AgentR
             assert isinstance(produced_message, TextMessage)
             content = produced_message.content.replace("\r\n", "\n").rstrip("\n")
             assert content == expected_messages[i]
-
         assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
         # Test streaming with output_task_messages=False.
@@ -398,6 +397,26 @@ async def test_round_robin_group_chat_output_task_messages_false(runtime: AgentR
         assert len(streamed_messages_3) == len(final_stream_result_3.messages)
         for streamed_msg, expected_msg in zip(streamed_messages_3, final_stream_result_3.messages, strict=False):
             assert compare_messages(streamed_msg, expected_msg)
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_get_thread(runtime: AgentRuntime | None) -> None:
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _StopAgent("agent2", description="stop agent 2", stop_at=1)
+    termination = TextMentionTermination("TERMINATE")
+    team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination, runtime=runtime)
+
+    assert await team.get_thread() == []
+
+    result = await team.run(task="task")
+    thread = await team.get_thread()
+
+    assert len(thread) == len(result.messages)
+    for message, expected_message in zip(thread, result.messages, strict=True):
+        assert compare_messages(message, expected_message)
+
+    await team.reset()
+    assert await team.get_thread() == []
 
 
 @pytest.mark.asyncio
