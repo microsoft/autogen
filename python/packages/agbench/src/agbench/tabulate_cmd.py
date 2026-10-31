@@ -172,7 +172,8 @@ def default_tabulate(
             results[f"Trial {instance} Success"] = scorer(instance_dir)
             results[f"Trial {instance} Time"] = timer(instance_dir)
 
-        max_instances = max(instances)
+        if instances:
+            max_instances = max(instances)
 
         # Buffer the results
         all_results.append(results)
