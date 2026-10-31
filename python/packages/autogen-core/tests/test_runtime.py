@@ -7,6 +7,7 @@ from autogen_core import (
     AgentType,
     DefaultTopicId,
     MessageContext,
+    RecipientNotFoundError,
     RoutedAgent,
     SingleThreadedAgentRuntime,
     TopicId,
@@ -362,5 +363,16 @@ async def test_event_handler_exception_multi_message() -> None:
         await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
         await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
         await runtime.stop_when_idle()
+
+    await runtime.close()
+
+
+@pytest.mark.asyncio
+async def test_send_message_to_unregistered_agent_raises_recipient_not_found() -> None:
+    runtime = SingleThreadedAgentRuntime()
+    runtime.start()
+    with pytest.raises(RecipientNotFoundError):
+        await runtime.send_message(MessageType(), AgentId("nonexistent_agent", "default"))
+    await runtime.stop_when_idle()
 
     await runtime.close()
