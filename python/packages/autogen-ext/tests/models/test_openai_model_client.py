@@ -2643,6 +2643,37 @@ def test_rstrip_railing_whitespace_at_last_assistant_content() -> None:
     assert result[-1].content == "foobar"
 
 
+def test_rstrip_drops_empty_last_assistant_message() -> None:
+    """A trailing assistant message that is only whitespace is dropped, not sent empty.
+
+    Regression test for https://github.com/microsoft/autogen/issues/7768.
+    """
+    messages: list[LLMMessage] = [
+        UserMessage(content="foo", source="user"),
+        AssistantMessage(content="   \n  ", source="assistant"),
+    ]
+
+    dummy_client = OpenAIChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
+    result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
+
+    assert len(result) == 1
+    assert isinstance(result[-1], UserMessage)
+
+
+def test_rstrip_does_not_mutate_input_messages() -> None:
+    """Stripping the trailing assistant message must not mutate the caller's objects."""
+    original = AssistantMessage(content="foobar ", source="assistant")
+    messages: list[LLMMessage] = [UserMessage(content="foo", source="user"), original]
+
+    dummy_client = OpenAIChatCompletionClient(model="claude-3-5-haiku-20241022", api_key="dummy-key")
+    result = dummy_client._rstrip_last_assistant_message(messages)  # pyright: ignore[reportPrivateUsage]
+
+    assert result[-1].content == "foobar"
+    # The caller's original message object and list are left untouched.
+    assert original.content == "foobar "
+    assert messages[-1] is original
+
+
 def test_find_model_family() -> None:
     assert _find_model_family("openai", "gpt-4") == ModelFamily.GPT_4
     assert _find_model_family("openai", "gpt-4-latest") == ModelFamily.GPT_4
