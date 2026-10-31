@@ -1,7 +1,7 @@
 # api/ws.py
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.websockets import WebSocketState
@@ -55,7 +55,7 @@ async def run_websocket(
                     {
                         "type": "error",
                         "error": "Authentication failed",
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                 )
                 # Close the connection with a specific code
@@ -67,7 +67,7 @@ async def run_websocket(
                     {
                         "type": "error",
                         "error": "Authentication failed",
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                 )
                 logger.warning(f"User {user.id} not authorized to access run {run_id}")
@@ -97,7 +97,7 @@ async def run_websocket(
                             {
                                 "type": "error",
                                 "error": "Invalid start message format",
-                                "timestamp": datetime.utcnow().isoformat(),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
                             }
                         )
 
@@ -108,7 +108,7 @@ async def run_websocket(
                     break
 
                 elif message.get("type") == "ping":
-                    await websocket.send_json({"type": "pong", "timestamp": datetime.utcnow().isoformat()})
+                    await websocket.send_json({"type": "pong", "timestamp": datetime.now(timezone.utc).isoformat()})
 
                 elif message.get("type") == "input_response":
                     # Handle input response from client
@@ -121,7 +121,7 @@ async def run_websocket(
             except json.JSONDecodeError:
                 logger.warning(f"Invalid JSON received: {raw_message}")
                 await websocket.send_json(
-                    {"type": "error", "error": "Invalid message format", "timestamp": datetime.utcnow().isoformat()}
+                    {"type": "error", "error": "Invalid message format", "timestamp": datetime.now(timezone.utc).isoformat()}
                 )
 
     except WebSocketDisconnect:
