@@ -200,8 +200,13 @@ class McpSessionActor(ComponentBase[BaseModel], Component[McpSessionActorConfig]
                         break
                     elif cmd["type"] == "call_tool":
                         try:
-                            result = session.call_tool(name=cmd["name"], arguments=cmd["args"])
-                            cmd["future"].set_result(result)
+                            # Wrap in a Task so callers can link a CancellationToken to it via
+                            # `CancellationToken.link_future`, which requires a Future/Task and
+                            # cannot cancel a bare coroutine.
+                            call_tool_task = asyncio.ensure_future(
+                                session.call_tool(name=cmd["name"], arguments=cmd["args"])
+                            )
+                            cmd["future"].set_result(call_tool_task)
                         except Exception as e:
                             cmd["future"].set_exception(e)
                     elif cmd["type"] == "read_resource":
