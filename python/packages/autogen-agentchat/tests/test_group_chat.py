@@ -1732,6 +1732,23 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
         await team.run(task=[])
 
 
+def test_round_robin_group_chat_rejects_non_sequence_participants() -> None:
+    with pytest.raises(TypeError, match="participants must be a non-empty sequence of ChatAgent or Team instances"):
+        RoundRobinGroupChat(participants=None)  # type: ignore[arg-type]
+
+
+def test_round_robin_group_chat_rejects_string_participants() -> None:
+    with pytest.raises(TypeError, match="participants must be a non-empty sequence of ChatAgent or Team instances"):
+        RoundRobinGroupChat(participants="not a list")  # type: ignore[arg-type]
+
+
+def test_round_robin_group_chat_rejects_non_agent_participants() -> None:
+    agent = _EchoAgent("Agent1", "First agent")
+
+    with pytest.raises(TypeError, match="participants must be a non-empty sequence of ChatAgent or Team instances"):
+        RoundRobinGroupChat(participants=[agent, "bad"])  # type: ignore[list-item]
+
+
 @pytest.mark.asyncio
 async def test_declarative_groupchats_with_config(runtime: AgentRuntime | None) -> None:
     # Create basic agents and components for testing
