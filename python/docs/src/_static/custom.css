@@ -46,6 +46,15 @@ html[data-theme="dark"] {
 nav.bd-links .current>a  {
   box-shadow: inset 1px 0 0 var(--pst-color-primary);
 }
+
+nav.bd-links .navbar-nav a:hover,
+nav.bd-links .navbar-nav a:focus-visible {
+  color: var(--pst-color-secondary) !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
 @media (forced-colors: active) {
   /* Top breadcrumbs navigation (ie: Home > Core > ...) */
   .bd-breadcrumbs .breadcrumb-item > a:focus-visible{
@@ -53,7 +62,7 @@ nav.bd-links .current>a  {
   }
 
   /* Left sidebar */
-  nav.bd-links .navbar-nav .toctree-l1>a:focus-visible {
+  nav.bd-links .navbar-nav a:focus-visible {
     border: 2px solid var(--pst-color-primary);
   }
   nav.bd-links .current>a  {
