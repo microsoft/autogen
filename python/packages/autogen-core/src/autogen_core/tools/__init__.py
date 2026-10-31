@@ -10,7 +10,7 @@ from ._base import (
 )
 from ._function_tool import FunctionTool
 from ._static_workbench import StaticStreamWorkbench, StaticWorkbench
-from ._workbench import ImageResultContent, TextResultContent, ToolResult, Workbench
+from ._workbench import ImageResultContent, StreamWorkbench, TextResultContent, ToolResult, Workbench
 
 __all__ = [
     "Tool",
@@ -22,6 +22,7 @@ __all__ = [
     "BaseStreamTool",
     "FunctionTool",
     "Workbench",
+    "StreamWorkbench",
     "ToolResult",
     "TextResultContent",
     "ImageResultContent",
