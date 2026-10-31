@@ -651,8 +651,12 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         if name == "visit_url":
             url = args.get("url")
             action_description = f"I typed '{url}' into the browser address bar."
-            # Check if the argument starts with a known protocol
-            if url.startswith(("https://", "http://", "file://", "about:")):
+            # Check if the argument starts with a known protocol.
+            # Security: file:// is intentionally excluded — it allows the agent
+            # to read arbitrary local files (file:///etc/passwd), which the agent
+            # then sends back to the LLM. A web-browsing agent should only
+            # navigate to web protocols.
+            if url.startswith(("https://", "http://", "about:")):
                 reset_prior_metadata, reset_last_download = await self._playwright_controller.visit_page(
                     self._page, url
                 )
