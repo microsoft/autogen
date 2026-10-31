@@ -1029,6 +1029,33 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         thought: str | None = None
         # Determine the content and thought based on what was collected
         if full_tool_calls:
+            # Some providers (e.g. Gemini) send a complete JSON object per streaming
+            # chunk rather than incremental argument deltas.  Simple concatenation then
+            # produces invalid JSON such as ``{}{"stock":"MSFT"}``.  Detect and fix by
+            # keeping only the last valid complete JSON object in the arguments string.
+            for fc in full_tool_calls.values():
+                if fc.arguments:
+                    try:
+                        json.loads(fc.arguments)
+                    except json.JSONDecodeError:
+                        last_brace = fc.arguments.rfind("}")
+                        if last_brace != -1:
+                            depth = 0
+                            for i in range(last_brace, -1, -1):
+                                ch = fc.arguments[i]
+                                if ch == "}":
+                                    depth += 1
+                                elif ch == "{":
+                                    depth -= 1
+                                    if depth == 0:
+                                        candidate = fc.arguments[i : last_brace + 1]
+                                        try:
+                                            json.loads(candidate)
+                                            fc.arguments = candidate
+                                        except json.JSONDecodeError:
+                                            pass
+                                        break
+
             # This is a tool call response
             content = list(full_tool_calls.values())
             if content_deltas:
