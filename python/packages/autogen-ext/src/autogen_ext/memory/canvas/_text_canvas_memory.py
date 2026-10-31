@@ -209,9 +209,8 @@ class TextCanvasMemory(Memory):
         pass
 
     async def clear(self) -> None:
-        """Clear the entire canvas by replacing it with a new empty instance."""
-        # Create a new TextCanvas instance instead of calling __init__ directly
-        self.canvas = TextCanvas()
+        """Clear files and revision history while preserving existing canvas tools."""
+        self.canvas.clear()
 
     async def close(self) -> None:
         pass
