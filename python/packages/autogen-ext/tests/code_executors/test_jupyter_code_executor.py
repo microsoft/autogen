@@ -225,3 +225,29 @@ async def test_runtime_error_not_started() -> None:
     code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
     with pytest.raises(RuntimeError, match="Executor must be started before executing cells"):
         await executor.execute_code_blocks(code_blocks, CancellationToken())
+
+
+@pytest.mark.asyncio
+async def test_temp_dir_cleanup_on_stop() -> None:
+    """Test that temp directory is cleaned up when output_dir is not specified."""
+    executor = JupyterCodeExecutor()
+    temp_dir_path = executor.output_dir
+    assert temp_dir_path.exists()
+
+    await executor.start()
+    code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
+    await executor.execute_code_blocks(code_blocks, CancellationToken())
+    await executor.stop()
+
+    assert not temp_dir_path.exists(), "Temp directory should be cleaned up after stop()"
+
+
+@pytest.mark.asyncio
+async def test_explicit_output_dir_not_cleaned_up(tmp_path: Path) -> None:
+    """Test that explicitly provided output_dir is NOT cleaned up after stop()."""
+    async with JupyterCodeExecutor(output_dir=tmp_path) as executor:
+        await executor.start()
+        code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
+        await executor.execute_code_blocks(code_blocks, CancellationToken())
+
+    assert tmp_path.exists(), "Explicit output_dir should NOT be cleaned up after stop()"
