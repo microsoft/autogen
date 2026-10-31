@@ -5,13 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from ...datamodel import Team
 from ...gallery.builder import create_default_gallery
-from ..deps import get_db
+from ..deps import get_current_user, get_db
 
 router = APIRouter()
 
 
 @router.get("/")
-async def list_teams(user_id: str, db=Depends(get_db)) -> Dict:
+async def list_teams(user_id: str = Depends(get_current_user), db=Depends(get_db)) -> Dict:
     """List all teams for a user"""
     response = db.get(Team, filters={"user_id": user_id})
 
@@ -26,7 +26,7 @@ async def list_teams(user_id: str, db=Depends(get_db)) -> Dict:
 
 
 @router.get("/{team_id}")
-async def get_team(team_id: int, user_id: str, db=Depends(get_db)) -> Dict:
+async def get_team(team_id: int, user_id: str = Depends(get_current_user), db=Depends(get_db)) -> Dict:
     """Get a specific team"""
     response = db.get(Team, filters={"id": team_id, "user_id": user_id})
     if not response.status or not response.data:
@@ -44,7 +44,7 @@ async def create_team(team: Team, db=Depends(get_db)) -> Dict:
 
 
 @router.delete("/{team_id}")
-async def delete_team(team_id: int, user_id: str, db=Depends(get_db)) -> Dict:
+async def delete_team(team_id: int, user_id: str = Depends(get_current_user), db=Depends(get_db)) -> Dict:
     """Delete a team"""
     db.delete(filters={"id": team_id, "user_id": user_id}, model_class=Team)
     return {"status": True, "message": "Team deleted successfully"}
