@@ -24,7 +24,7 @@ To run this sample, you will need to install the following packages:
 pip install -U autogen-agentchat pyyaml
 ```
 
-Create a new file named `model_config.yaml` in the the same directory as the script
+Create a new file named `model_config.yaml` in the same directory as the script
 to configure the model you want to use.
 
 For example, to use `gpt-4o` model from OpenAI, you can use the following configuration:
