@@ -1,0 +1,3 @@
+model: gpt-4o-mini
+api_type: openai
+# Set your API key via environment variable: export OPENAI_API_KEY=sk-...

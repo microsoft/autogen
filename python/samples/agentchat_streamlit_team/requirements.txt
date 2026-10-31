@@ -1,0 +1,4 @@
+autogen-agentchat>=0.4
+autogen-ext[openai]>=0.4
+streamlit>=1.30
+pyyaml
