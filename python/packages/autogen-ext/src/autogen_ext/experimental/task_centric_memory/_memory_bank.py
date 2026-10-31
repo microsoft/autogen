@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple, TypedDict
 
 from ._string_similarity_map import StringSimilarityMap
 from .utils.page_logger import PageLogger
+from .utils.restricted_pickle import BASE_ALLOWED_PICKLE_GLOBALS, restricted_pickle_load
 
 
 @dataclass
@@ -79,7 +80,10 @@ class MemoryBank:
         if (not reset) and os.path.exists(self.path_to_dict):
             self.logger.info("\nLOADING MEMOS FROM DISK  at {}".format(self.path_to_dict))
             with open(self.path_to_dict, "rb") as f:
-                self.uid_memo_dict = pickle.load(f)
+                allowed = BASE_ALLOWED_PICKLE_GLOBALS | {
+                    ("autogen_ext.experimental.task_centric_memory._memory_bank", "Memo"),
+                }
+                self.uid_memo_dict = restricted_pickle_load(f, allowed_globals=allowed)
                 self.last_memo_id = len(self.uid_memo_dict)
                 self.logger.info("\n{} MEMOS LOADED".format(len(self.uid_memo_dict)))
 
