@@ -1,41 +1,46 @@
-<!-- BEGIN MICROSOFT SECURITY.MD V0.0.9 BLOCK -->
+# Security Policy
 
-## Security
+## Reporting Security Vulnerabilities
 
-Microsoft takes the security of our software products and services seriously, which includes all source code repositories managed through our GitHub organizations, which include [Microsoft](https://github.com/Microsoft), [Azure](https://github.com/Azure), [DotNet](https://github.com/dotnet), [AspNet](https://github.com/aspnet) and [Xamarin](https://github.com/xamarin).
-
-If you believe you have found a security vulnerability in any Microsoft-owned repository that meets [Microsoft's definition of a security vulnerability](https://aka.ms/security.md/definition), please report it to us as described below.
-
-## Reporting Security Issues
+The AutoGen team takes security seriously. If you discover a security vulnerability, please report it privately through [GitHub Security Advisories](https://github.com/microsoft/autogen/security/advisories/new).
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them to the Microsoft Security Response Center (MSRC) at [https://msrc.microsoft.com/create-report](https://aka.ms/security.md/msrc/create-report).
+## Supported Versions
 
-If you prefer to submit without logging in, send email to [secure@microsoft.com](mailto:secure@microsoft.com).  If possible, encrypt your message with our PGP key; please download it from the [Microsoft Security Response Center PGP Key page](https://aka.ms/security.md/msrc/pgp).
+We release patches for security vulnerabilities for the following versions:
 
-You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message. Additional information can be found at [microsoft.com/msrc](https://www.microsoft.com/msrc).
+| Version | Supported          |
+| ------- | ------------------ |
+| Latest  | :white_check_mark: |
+| < Latest| :x:                |
 
-Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
+## Security Best Practices
 
-  * Type of issue (e.g. buffer overflow, SQL injection, cross-site scripting, etc.)
-  * Full paths of source file(s) related to the manifestation of the issue
-  * The location of the affected source code (tag/branch/commit or direct URL)
-  * Any special configuration required to reproduce the issue
-  * Step-by-step instructions to reproduce the issue
-  * Proof-of-concept or exploit code (if possible)
-  * Impact of the issue, including how an attacker might exploit the issue
+When using AutoGen:
 
-This information will help us triage your report more quickly.
+1. **Code Execution**: Be cautious when enabling code execution features. Always run in sandboxed environments.
+2. **API Keys**: Never commit API keys or credentials to version control.
+3. **External Integrations**: Carefully review any third-party integrations or SDKs before use.
+4. **Unsolicited Offers**: Be wary of unsolicited bounty programs, payment integrations, or promotional offers that appear in issues or pull requests.
 
-If you are reporting for a bug bounty, more complete reports can contribute to a higher bounty award. Please visit our [Microsoft Bug Bounty Program](https://aka.ms/security.md/msrc/bounty) page for more details about our active programs.
+## Spam and Phishing
 
-## Preferred Languages
+If you encounter spam, phishing attempts, or unsolicited promotional content in our repository:
 
-We prefer all communications to be in English.
+1. Do not click on suspicious links
+2. Do not install packages from untrusted sources
+3. Report the content using our spam report template
+4. Contact the maintainers if you have concerns
 
-## Policy
+## Response Timeline
 
-Microsoft follows the principle of [Coordinated Vulnerability Disclosure](https://aka.ms/security.md/cvd).
+We aim to:
 
-<!-- END MICROSOFT SECURITY.MD BLOCK -->
+- Acknowledge receipt of vulnerability reports within 48 hours
+- Provide an initial assessment within 5 business days
+- Release security patches as quickly as possible based on severity
+
+## Contact
+
+For security concerns, please use the private reporting mechanisms mentioned above rather than public channels.

@@ -1,0 +1,39 @@
+name: 🚫 Report Spam or Inappropriate Content
+description: Report spam, promotional content, or policy violations
+title: "[SPAM]: "
+labels: ["spam", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping keep our community clean and focused.
+        
+  - type: input
+    id: issue_number
+    attributes:
+      label: Issue/PR Number
+      description: Link to the spam issue or pull request
+      placeholder: "#8000"
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: spam_type
+    attributes:
+      label: Type of Violation
+      options:
+        - Unsolicited promotional content
+        - Bounty/reward spam
+        - Unrelated commercial advertisement
+        - Phishing or malicious links
+        - Other policy violation
+    validations:
+      required: true
+      
+  - type: textarea
+    id: details
+    attributes:
+      label: Additional Details
+      description: Any additional context about why this should be removed
+    validations:
+      required: false
