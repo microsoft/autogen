@@ -11,15 +11,17 @@ from PIL import Image
 
 
 async def generate_image(
-    query: str, output_dir: Optional[Path] = None, image_size: Literal["1024x1024", "512x512", "256x256"] = "1024x1024"
+    query: str,
+    output_dir: Optional[Path] = None,
+    image_size: Literal["1024x1024", "1024x1536", "1536x1024"] = "1024x1024",
 ) -> List[str]:
     """
-    Generate images using OpenAI's DALL-E model based on a text description.
+    Generate images using OpenAI's GPT Image 2 model based on a text description.
 
     Args:
         query: Natural language description of the desired image
         output_dir: Directory to save generated images (default: current directory)
-        image_size: Size of generated image (1024x1024, 512x512, or 256x256)
+        image_size: Size of generated image (1024x1024, 1024x1536, or 1536x1024)
 
     Returns:
         List[str]: Paths to the generated image files
@@ -27,8 +29,8 @@ async def generate_image(
     # Initialize the OpenAI client
     client = OpenAI()
 
-    # Generate images using DALL-E 3
-    response = client.images.generate(model="dall-e-3", prompt=query, n=1, response_format="b64_json", size=image_size)
+    # GPT Image models always return base64-encoded image data.
+    response = client.images.generate(model="gpt-image-2", prompt=query, n=1, size=image_size)
 
     saved_files = []
 
@@ -54,7 +56,7 @@ async def generate_image(
 # Create the image generation tool
 generate_image_tool = FunctionTool(
     func=generate_image,
-    description="Generate images using DALL-E based on text descriptions.",
+    description="Generate images using GPT Image 2 based on text descriptions.",
     global_imports=[
         "io",
         "uuid",
