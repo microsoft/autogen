@@ -248,7 +248,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         while num_attempts < max_attempts:
             num_attempts += 1
             if self._model_client_streaming:
-                chunk: CreateResult | str = ""
+                chunk: Optional[CreateResult | str] = None
                 async for _chunk in self._model_client.create_stream(messages=select_speaker_messages):
                     chunk = _chunk
                     if self._emit_team_events:
@@ -262,8 +262,8 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                             await self._output_message_queue.put(
                                 SelectorEvent(content=chunk.content, source=self._name)
                             )
-                # The last chunk must be CreateResult.
-                assert isinstance(chunk, CreateResult)
+                if not isinstance(chunk, CreateResult):
+                    raise RuntimeError("No final model result in streaming mode while selecting the next speaker.")
                 response = chunk
             else:
                 response = await self._model_client.create(messages=select_speaker_messages)
