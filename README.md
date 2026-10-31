@@ -9,6 +9,10 @@
 [![Documentation](https://img.shields.io/badge/Documentation-AutoGen-blue?logo=read-the-docs)](https://microsoft.github.io/autogen/)
 [![Blog](https://img.shields.io/badge/Blog-AutoGen-blue?logo=blogger)](https://devblogs.microsoft.com/autogen/)
 
+<p align="center">
+  <b>English</b> · <a href="README.zh.md">简体中文</a>
+</p>
+
 </div>
 
 # AutoGen [![Archived](https://img.shields.io/badge/status-archived-red)](https://github.com/microsoft/agent-framework)
