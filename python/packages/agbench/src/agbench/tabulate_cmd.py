@@ -256,10 +256,15 @@ def default_tabulate(
         print(tb.tabulate(trial_df, headers="keys", tablefmt="simple"))  # type: ignore
 
         # Aggregate statistics across tasks for all trials.
+        # Tasks without any recorded trial cannot be scored, so leave them out
+        # of the task-level rates instead of counting them as failures or as
+        # vacuous successes.
+        scored_rows = df[score_columns].notna().any(axis=1)
+        scored = df.loc[scored_rows, score_columns]
         # At least one success for each trial, averaged across tasks.
-        average_at_least_one_success = df[score_columns].any(axis=1).mean(skipna=True)  # type: ignore
+        average_at_least_one_success = scored.any(axis=1).mean(skipna=True)  # type: ignore
         # All successes for each trial
-        average_all_successes = df[score_columns].all(axis=1).mean(skipna=True)  # type: ignore
+        average_all_successes = scored.all(axis=1).mean(skipna=True)  # type: ignore
 
         # Create a dataframe
         trial_aggregated_df = pd.DataFrame(

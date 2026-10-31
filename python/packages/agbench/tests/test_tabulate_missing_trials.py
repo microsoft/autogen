@@ -74,3 +74,42 @@ def test_trial_directories_not_numbered_are_ignored(tmp_path, capsys):
 
     captured = capsys.readouterr()
     assert _rows(captured.out)["alpha"] == ["True", "1.5"]
+
+
+def _add_trial(task_dir, index, log):
+    trial_dir = os.path.join(task_dir, str(index))
+    os.makedirs(trial_dir)
+    with open(os.path.join(trial_dir, "console_log.txt"), "wt") as fh:
+        fh.write(log)
+
+
+def _aggregated(stdout):
+    """Return the (at least one success, all successes) pair from the summary."""
+    for line in stdout.splitlines():
+        cells = line.split()
+        if cells[:2] == ["Trial", "Aggregated"]:
+            return float(cells[2]), float(cells[3])
+    raise AssertionError("task-level aggregate table not found")
+
+
+def test_task_level_aggregates_ignore_tasks_without_trials(tmp_path, capsys):
+    task_dir = _make_task(tmp_path, "alpha", [])
+    _add_trial(task_dir, 0, SUCCESS_LOG)
+    _add_trial(task_dir, 1, "SCENARIO.PY COMPLETE !#!#\nRUNTIME: 0.5 !#!#\n")
+    _make_task(tmp_path, "beta", [])
+
+    default_tabulate(["agbench", str(tmp_path)])
+
+    captured = capsys.readouterr()
+    assert _aggregated(captured.out) == (1.0, 0.0)
+
+
+def test_task_level_aggregates_ignore_tasks_without_trials_on_full_success(tmp_path, capsys):
+    task_dir = _make_task(tmp_path, "alpha", [])
+    _add_trial(task_dir, 0, SUCCESS_LOG)
+    _make_task(tmp_path, "beta", [])
+
+    default_tabulate(["agbench", str(tmp_path)])
+
+    captured = capsys.readouterr()
+    assert _aggregated(captured.out) == (1.0, 1.0)
