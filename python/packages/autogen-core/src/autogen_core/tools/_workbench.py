@@ -119,7 +119,11 @@ class Workbench(ABC, ComponentBase[BaseModel]):
             arguments (Mapping[str, Any] | None): The arguments to pass to the tool.
                 If None, the tool will be called with no arguments.
             cancellation_token (CancellationToken | None): An optional cancellation token
-                to cancel the tool execution.
+                to cancel the tool execution. Pass the same token from the enclosing
+                message handler (``ctx.cancellation_token``) or parent tool. If omitted,
+                :class:`~autogen_core.tools.StaticWorkbench` creates a new
+                :class:`~autogen_core.CancellationToken`, which is outside the caller's
+                cancellation boundary.
             call_id (str | None): An optional identifier for the tool call, used for tracing.
         Returns:
             ToolResult: The result of the tool execution.
@@ -210,7 +214,11 @@ class StreamWorkbench(Workbench, ABC):
             arguments (Mapping[str, Any] | None): The arguments to pass to the tool
                 If None, the tool will be called with no arguments.
             cancellation_token (CancellationToken | None): An optional cancellation token
-                to cancel the tool execution.
+                to cancel the tool execution. Pass the same token from the enclosing
+                message handler (``ctx.cancellation_token``) or parent tool. If omitted,
+                :class:`~autogen_core.tools.StaticWorkbench` creates a new
+                :class:`~autogen_core.CancellationToken`, which is outside the caller's
+                cancellation boundary.
             call_id (str | None): An optional identifier for the tool call, used for tracing.
         """
         ...
