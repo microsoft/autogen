@@ -1254,3 +1254,36 @@ async def test_anthropic_thinking_mode_with_tools() -> None:
     # Should have thinking content even with tool calls
     assert result.thought is not None
     assert len(result.thought) > 10
+
+
+def test_tool_message_to_anthropic_passes_is_error_true() -> None:
+    """Tool results with is_error=True should pass is_error to the Anthropic API."""
+    from autogen_ext.models.anthropic._anthropic_client import tool_message_to_anthropic
+
+    msg = FunctionExecutionResultMessage(
+        content=[FunctionExecutionResult(content="Error: not found", call_id="call_1", is_error=True, name="my_tool")]
+    )
+    result = tool_message_to_anthropic(msg)
+    assert result[0]["content"][0]["is_error"] is True
+
+
+def test_tool_message_to_anthropic_passes_is_error_false() -> None:
+    """Tool results with is_error=False should pass is_error=False to the Anthropic API."""
+    from autogen_ext.models.anthropic._anthropic_client import tool_message_to_anthropic
+
+    msg = FunctionExecutionResultMessage(
+        content=[FunctionExecutionResult(content="success", call_id="call_1", is_error=False, name="my_tool")]
+    )
+    result = tool_message_to_anthropic(msg)
+    assert result[0]["content"][0]["is_error"] is False
+
+
+def test_tool_message_to_anthropic_none_defaults_to_false() -> None:
+    """Tool results with is_error=None (default) should pass is_error=False to the Anthropic API."""
+    from autogen_ext.models.anthropic._anthropic_client import tool_message_to_anthropic
+
+    msg = FunctionExecutionResultMessage(
+        content=[FunctionExecutionResult(content="success", call_id="call_1", is_error=None, name="my_tool")]
+    )
+    result = tool_message_to_anthropic(msg)
+    assert result[0]["content"][0]["is_error"] is False
