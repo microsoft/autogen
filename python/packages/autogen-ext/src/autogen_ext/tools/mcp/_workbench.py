@@ -478,8 +478,6 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             # Close the actor
             await self._actor.close()
             self._actor = None
-        else:
-            raise RuntimeError("McpWorkbench is not started. Call start() first.")
 
     async def reset(self) -> None:
         pass
