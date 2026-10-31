@@ -134,3 +134,18 @@ Now that 0.4.0 is out, we should ensure the docs between versions are easy to na
 ```
 
 See [here](https://pydata-sphinx-theme.readthedocs.io/en/stable/examples/kitchen-sink/admonitions.html#versionadded) for how they are rendered.
+
+## Enterprise deployment readiness docs (contribution opportunity)
+
+When proposing documentation updates for production-oriented use cases, include
+practical deployment readiness guidance where applicable.
+
+Suggested checklist themes:
+
+- secret handling and credential boundaries
+- tool-execution safety boundaries and sandbox assumptions
+- tracing/observability for debugging and auditability
+- rollback strategy for configuration and prompt changes
+
+Contributors proposing docs updates in these areas should link related issues and
+include concrete examples so maintainers can evaluate operational clarity.
