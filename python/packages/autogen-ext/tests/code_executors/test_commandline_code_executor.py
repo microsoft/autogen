@@ -25,29 +25,23 @@ HAS_POWERSHELL: bool = platform.system() == "Windows" and (
     shutil.which("powershell") is not None or shutil.which("pwsh") is not None
 )
 IS_MACOS: bool = platform.system() == "Darwin"
-IS_UV_VENV: bool = (
-    lambda: (
-        (
-            lambda venv_path: (
-                False
-                if not venv_path
-                else (
-                    False
-                    if not os.path.isfile(os.path.join(venv_path, "pyvenv.cfg"))
-                    else (
-                        subprocess.run(
-                            ["grep", "-q", "^uv = ", os.path.join(venv_path, "pyvenv.cfg")],
-                            check=False,
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                        ).returncode
-                        == 0
-                    )
-                )
-            )
-        )(os.environ.get("VIRTUAL_ENV"))
-    )
-)()
+
+
+def _check_is_uv_venv() -> bool:
+    venv_path = os.environ.get("VIRTUAL_ENV")
+    if not venv_path:
+        return False
+    cfg_path = Path(venv_path) / "pyvenv.cfg"
+    if not cfg_path.is_file():
+        return False
+    try:
+        content = cfg_path.read_text(encoding="utf-8", errors="ignore")
+        return any(line.startswith("uv = ") for line in content.splitlines())
+    except OSError:
+        return False
+
+
+IS_UV_VENV: bool = _check_is_uv_venv()
 HAS_UV: bool = shutil.which("uv") is not None
 
 
