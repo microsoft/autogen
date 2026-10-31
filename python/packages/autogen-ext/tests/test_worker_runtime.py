@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from dataclasses import dataclass
 from typing import Any, List
 
 import pytest
@@ -17,6 +18,7 @@ from autogen_core import (
     TypeSubscription,
     default_subscription,
     event,
+    message_handler,
     try_get_known_serializers_for_type,
     type_subscription,
 )
@@ -709,6 +711,78 @@ async def test_instance_factory_messaging() -> None:
 
 #     await worker.stop()
 #     await host.stop()
+
+@pytest.mark.grpc
+@pytest.mark.asyncio
+async def test_cross_runtime_rpc_no_request_id_collision() -> None:
+    """Regression test for https://github.com/microsoft/autogen/issues/7016.
+
+    When two different runtimes both start their request_id counter from "1" and
+    send RPC requests whose target agent lives on the same third runtime, the host
+    used to key _pending_responses by (target_client_id, request_id).  Both
+    requests would share the same key, causing the second pop() to raise KeyError.
+
+    The fix replaces each forwarded request_id with a host-generated UUID so keys
+    are globally unique inside the host.
+    """
+    host_address = "localhost:50062"
+
+    @dataclass
+    class PingMessage:
+        content: str
+
+    class InnerAgent(RoutedAgent):
+        """Echoes every PingMessage it receives."""
+
+        def __init__(self) -> None:
+            super().__init__("Inner echo agent.")
+
+        @message_handler
+        async def on_ping(self, message: PingMessage, ctx: MessageContext) -> PingMessage:
+            return PingMessage(content=f"inner:{message.content}")
+
+    class RelayAgent(RoutedAgent):
+        """Forwards a PingMessage to InnerAgent and returns its response."""
+
+        def __init__(self) -> None:
+            super().__init__("Relay agent.")
+
+        @message_handler
+        async def on_ping(self, message: PingMessage, ctx: MessageContext) -> PingMessage:
+            inner_response: PingMessage = await self.send_message(
+                PingMessage(content=message.content),
+                AgentId("inner_agent", "default"),
+            )
+            return PingMessage(content=f"relay:{inner_response.content}")
+
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
+    host.start()
+
+    # runtime1 hosts both agents — intra-runtime forwarding produces a second
+    # RPC at the host level with request_id == "1", colliding with the one from
+    # runtime2 (which also starts its counter at "1").
+    runtime1 = GrpcWorkerAgentRuntime(host_address=host_address)
+    runtime1.add_message_serializer(try_get_known_serializers_for_type(PingMessage))
+    await runtime1.start()
+    await RelayAgent.register(runtime1, "relay_agent", lambda: RelayAgent())
+    await InnerAgent.register(runtime1, "inner_agent", lambda: InnerAgent())
+
+    # runtime2 is the external sender — no agents, only used to initiate the RPC.
+    runtime2 = GrpcWorkerAgentRuntime(host_address=host_address)
+    runtime2.add_message_serializer(try_get_known_serializers_for_type(PingMessage))
+    await runtime2.start()
+
+    result: PingMessage = await runtime2.send_message(
+        PingMessage(content="hello"),
+        AgentId("relay_agent", "default"),
+    )
+
+    assert result == PingMessage(content="relay:inner:hello")
+
+    await runtime2.stop()
+    await runtime1.stop()
+    await host.stop()
+
 
 if __name__ == "__main__":
     os.environ["GRPC_VERBOSITY"] = "DEBUG"
