@@ -295,7 +295,7 @@ def get_scenario_env(token_provider: Optional[Callable[[], str]] = None, env_fil
     if env_file is None:
         # Env file was not specified, so read the default, or warn if the default file is missing.
         if os.path.isfile(DEFAULT_ENV_FILE_YAML):
-            with open(DEFAULT_ENV_FILE_YAML, "r") as fh:
+            with open(DEFAULT_ENV_FILE_YAML, "r", encoding="utf-8")) as fh:
                 env_file_contents = yaml.safe_load(fh)
         elif os.path.isfile(DEFAULT_ENV_FILE_JSON):
             with open(DEFAULT_ENV_FILE_JSON, "rt") as fh:
@@ -737,7 +737,7 @@ def split_jsonl(file_path: str, num_parts: int) -> List[List[Dict[str, Any]]]:
     """
     Split a JSONL file into num_parts approximately equal parts.
     """
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8")) as f:
         data = [json.loads(line) for line in f]
 
     random.shuffle(data)  # Shuffle the data for better distribution
@@ -942,7 +942,7 @@ def run_cli(args: Sequence[str]) -> None:
 
     if parsed_args.config is not None:
         # Make sure the config file is readable, so that we fail early
-        with open(parsed_args.config, "r"):
+        with open(parsed_args.config, "r", encoding="utf-8")):
             pass
 
     # don't support parallel and subsample together
