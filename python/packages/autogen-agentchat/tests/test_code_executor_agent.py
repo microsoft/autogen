@@ -418,6 +418,33 @@ async def test_code_execution_agent_serialization() -> None:
     assert deserialized_agent.name == "code_executor"
 
 
+def test_code_executor_agent_serialization_preserves_max_retries_on_error() -> None:
+    """Configured code-execution retries survive a component round-trip."""
+
+    model_client = ReplayChatCompletionClient(
+        [],
+        model_info=ModelInfo(
+            vision=False,
+            function_calling=False,
+            json_output=True,
+            family=ModelFamily.UNKNOWN,
+            structured_output=True,
+        ),
+    )
+    agent = CodeExecutorAgent(
+        name="code_executor",
+        code_executor=LocalCommandLineCodeExecutor(),
+        model_client=model_client,
+        max_retries_on_error=2,
+    )
+
+    serialized_agent = agent.dump_component()
+    assert serialized_agent.config["max_retries_on_error"] == 2
+
+    deserialized_agent = CodeExecutorAgent.load_component(serialized_agent)
+    assert deserialized_agent._max_retries_on_error == 2  # type: ignore[attr-defined]
+
+
 @pytest.mark.asyncio
 async def test_code_execution_agent_serialization_with_model_client() -> None:
     """Test agent config serialization"""
