@@ -46,6 +46,14 @@ _MODEL_POINTERS = {
     "llama-3.3-70b": "Llama-3.3-70B-Instruct",
     "llama-4-scout": "Llama-4-Scout-17B-16E-Instruct-FP8",
     "llama-4-maverick": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+    # Mistral models
+    "mistral-large-latest": "mistral-large-2411",
+    "mistral-small-latest": "mistral-small-2503",
+    "codestral-latest": "codestral-2501",
+    "ministral-8b-latest": "ministral-8b-2410",
+    "ministral-3b-latest": "ministral-3b-2410",
+    "pixtral-large-latest": "pixtral-large-2411",
+    "pixtral-12b-latest": "pixtral-12b-2409",
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
@@ -441,6 +449,94 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "structured_output": True,
         "multiple_system_messages": True,
     },
+    "mistral-large-2411": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "mistral-small-2503": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "codestral-2501": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.CODESRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "ministral-8b-2410": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MINISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "ministral-3b-2410": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MINISTRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "pixtral-large-2411": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.PIXTRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "pixtral-12b-2409": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.PIXTRAL,
+        "structured_output": True,
+        "multiple_system_messages": False,
+    },
+    "open-mistral-7b": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
+    "open-mixtral-8x7b": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
+    "open-mixtral-8x22b": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.MISTRAL,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
+    "open-codestral-mamba": {
+        "vision": False,
+        "function_calling": False,
+        "json_output": True,
+        "family": ModelFamily.OPEN_CODESRAL_MAMBA,
+        "structured_output": False,
+        "multiple_system_messages": False,
+    },
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
@@ -491,11 +587,23 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "Llama-3.3-70B-Instruct": 128000,
     "Llama-4-Scout-17B-16E-Instruct-FP8": 128000,
     "Llama-4-Maverick-17B-128E-Instruct-FP8": 128000,
+    "mistral-large-2411": 131072,
+    "mistral-small-2503": 131072,
+    "codestral-2501": 262144,
+    "ministral-8b-2410": 131072,
+    "ministral-3b-2410": 131072,
+    "pixtral-large-2411": 131072,
+    "pixtral-12b-2409": 131072,
+    "open-mistral-7b": 32768,
+    "open-mixtral-8x7b": 32768,
+    "open-mixtral-8x22b": 65536,
+    "open-codestral-mamba": 262144,
 }
 
 GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 ANTHROPIC_OPENAI_BASE_URL = "https://api.anthropic.com/v1/"
 LLAMA_API_BASE_URL = "https://api.llama.com/compat/v1/"
+MISTRAL_API_BASE_URL = "https://api.mistral.ai/v1/"
 
 
 def resolve_model(model: str) -> str:
