@@ -79,7 +79,7 @@ class GalleryGridDirective(SphinxDirective):
                 logger.info(f"Could not find grid data at {path_data}.")
                 nodes.text("No grid data found at {path_data}.")
                 return
-            yaml_string = path_data.read_text()
+            yaml_string = path_data.read_text(encoding="utf-8")
         else:
             yaml_string = "\n".join(self.content)
 
