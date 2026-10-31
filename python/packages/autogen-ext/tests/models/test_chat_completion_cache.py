@@ -956,3 +956,34 @@ async def test_create_stream_with_cached_non_streaming_result_non_string_content
     assert stream_results[0].content == [expected_function_call]
     assert stream_results[0].finish_reason == "function_calls"
     assert stream_results[0].cached is True
+
+
+def test_check_cache_key_includes_tool_choice() -> None:
+    """Different ``tool_choice`` values must produce different cache keys.
+
+    Regression test: ``tool_choice`` is forwarded to the underlying client and changes the
+    model output, but it was omitted from the cache key, so calls that differed only in
+    ``tool_choice`` collided and returned each other's cached results.
+    """
+    from autogen_core.tools import FunctionTool
+
+    def _dummy_tool(value: str) -> str:
+        return value
+
+    tool = FunctionTool(_dummy_tool, description="dummy", name="my_tool")
+
+    replay_client = ReplayChatCompletionClient(["response"])
+    cached_client = ChatCompletionCache(replay_client)
+    messages: List[LLMMessage] = [UserMessage(content="hello", source="user")]
+
+    _, key_auto = cached_client._check_cache(messages, [tool], None, {}, "auto")  # type: ignore[reportPrivateUsage]
+    _, key_required = cached_client._check_cache(messages, [tool], None, {}, "required")  # type: ignore[reportPrivateUsage]
+    _, key_none = cached_client._check_cache(messages, [tool], None, {}, "none")  # type: ignore[reportPrivateUsage]
+    _, key_tool = cached_client._check_cache(messages, [tool], None, {}, tool)  # type: ignore[reportPrivateUsage]
+
+    # All four tool_choice values must yield distinct cache keys.
+    assert len({key_auto, key_required, key_none, key_tool}) == 4
+
+    # The default (no tool_choice passed) matches the explicit "auto" default.
+    _, key_default = cached_client._check_cache(messages, [tool], None, {})  # type: ignore[reportPrivateUsage]
+    assert key_default == key_auto
