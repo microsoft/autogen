@@ -667,6 +667,32 @@ async def test_round_robin_group_chat_with_resume_and_reset(runtime: AgentRuntim
 
 
 @pytest.mark.asyncio
+async def test_round_robin_group_chat_get_thread(runtime: AgentRuntime | None) -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _EchoAgent("agent_2", description="echo agent 2")
+    termination = MaxMessageTermination(2)
+    team = RoundRobinGroupChat(
+        participants=[agent_1, agent_2], termination_condition=termination, runtime=runtime
+    )
+
+    assert await team.get_thread() == []
+
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    thread = await team.get_thread()
+    assert list(thread) == result.messages
+
+    thread_list = list(thread)
+    thread_list.append(TextMessage(content="local mutation", source="test"))
+    assert list(await team.get_thread()) == result.messages
+
+    result = await team.run()
+    assert list(await team.get_thread())[-len(result.messages) :] == result.messages
+
+    await team.reset()
+    assert await team.get_thread() == []
+
+
+@pytest.mark.asyncio
 async def test_round_robin_group_chat_with_exception_raised_from_agent(runtime: AgentRuntime | None) -> None:
     agent_1 = _EchoAgent("agent_1", description="echo agent 1")
     agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
