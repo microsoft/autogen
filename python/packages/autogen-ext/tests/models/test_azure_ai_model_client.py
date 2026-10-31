@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import datetime
 from typing import Any, AsyncGenerator, List, Type, Union
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from autogen_core import CancellationToken, FunctionCall, Image
@@ -973,3 +973,29 @@ async def test_azure_ai_tool_choice_specific_tool_streaming(
     assert final_result.content[0].name == "process_text"
     assert final_result.content[0].arguments == '{"input": "hello"}'
     assert final_result.thought == "Let me process this for you."
+
+
+def test_api_version_is_forwarded_to_underlying_client() -> None:
+    """api_version passed to AzureAIChatCompletionClient must reach ChatCompletionsClient.
+
+    Regression test for #6705: the typed kwargs accept ``api_version`` so users can
+    target newer Azure AI Inference API versions without bypassing the type contract.
+    """
+    custom_api_version = "2024-08-01-preview"
+    with patch("autogen_ext.models.azure._azure_ai_client.ChatCompletionsClient") as mock_client_cls:
+        mock_client_cls.return_value = MagicMock()
+        AzureAIChatCompletionClient(
+            endpoint="https://example.test/inference",
+            credential=AzureKeyCredential("k"),
+            model="model",
+            model_info={
+                "json_output": False,
+                "function_calling": False,
+                "vision": False,
+                "family": "unknown",
+                "structured_output": False,
+            },
+            api_version=custom_api_version,
+        )
+        mock_client_cls.assert_called_once()
+        assert mock_client_cls.call_args.kwargs.get("api_version") == custom_api_version
