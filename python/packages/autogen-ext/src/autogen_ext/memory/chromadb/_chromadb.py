@@ -58,6 +58,13 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
             * PersistentChromaDBVectorMemoryConfig: For local storage
             * HttpChromaDBVectorMemoryConfig: For connecting to a remote ChromaDB server
 
+    .. note::
+
+        The configured distance metric applies when creating a collection. ChromaDB retains
+        the metric of an existing collection; use a new collection to change its metric.
+        With the ``ip`` metric, scores are raw inner products and can be negative or greater
+        than one. The score threshold is applied to those scores.
+
     Example:
 
         .. code-block:: python
@@ -274,7 +281,7 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
                 # Create or get collection with embedding function
                 self._collection = self._client.get_or_create_collection(
                     name=self._config.collection_name,
-                    metadata={"distance_metric": self._config.distance_metric},
+                    metadata={"hnsw:space": self._config.distance_metric},
                     embedding_function=embedding_function,
                 )
             except Exception as e:
@@ -305,6 +312,8 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         """Convert ChromaDB distance to a similarity score."""
         if self._config.distance_metric == "cosine":
             return 1.0 - (distance / 2.0)
+        if self._config.distance_metric == "ip":
+            return 1.0 - distance
         return 1.0 / (1.0 + distance)
 
     async def update_context(
