@@ -174,7 +174,9 @@ class _JSONSchemaToPydantic:
 
         return self._json_schema_to_model(schema, model_name, root_schema)
 
-    def _resolve_union_types(self, schemas: List[Dict[str, Any]]) -> List[Any]:
+    def _resolve_union_types(
+        self, schemas: List[Dict[str, Any]], key: str, model_name: str, root_schema: Dict[str, Any]
+    ) -> List[Any]:
         types: List[Any] = []
         for s in schemas:
             if "$ref" in s:
@@ -208,6 +210,8 @@ class _JSONSchemaToPydantic:
 
                     array_type = conlist(item_type, **constraints) if constraints else List[item_type]  # type: ignore[valid-type]
                     types.append(array_type)
+                elif json_type in {"string", "integer", "number"}:
+                    types.append(self._extract_field_type(key, s, model_name, root_schema))
                 else:
                     types.append(TYPE_MAPPING[json_type])
         return types
@@ -317,10 +321,10 @@ class _JSONSchemaToPydantic:
                 ref_name = value["$ref"].split("/")[-1]
                 field_type = self.get_ref(ref_name)
             elif "anyOf" in value:
-                sub_models = self._resolve_union_types(value["anyOf"])
+                sub_models = self._resolve_union_types(value["anyOf"], key, model_name, root_schema)
                 field_type = Union[tuple(sub_models)]
             elif "oneOf" in value:
-                sub_models = self._resolve_union_types(value["oneOf"])
+                sub_models = self._resolve_union_types(value["oneOf"], key, model_name, root_schema)
                 field_type = Union[tuple(sub_models)]
                 if "discriminator" in value:
                     discriminator = value["discriminator"]["propertyName"]
