@@ -42,6 +42,7 @@ from autogen_core.models import (
 )
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.openai._openai_client import convert_tools
 from autogen_ext.models.replay import ReplayChatCompletionClient
 from autogen_ext.tools.mcp import McpWorkbench, SseServerParams
 from pydantic import BaseModel, ValidationError
@@ -860,6 +861,15 @@ class TestAssistantAgentInitialization:
         assert len(agent._handoffs) == 2  # type: ignore[reportPrivateUsage]
         assert "transfer_to_agent1" in agent._handoffs  # type: ignore[reportPrivateUsage]
         assert "transfer_to_agent2" in agent._handoffs  # type: ignore[reportPrivateUsage]
+
+    def test_handoff_default_name_is_valid_tool_name(self) -> None:
+        """Test that the auto-generated handoff name replaces invalid characters."""
+        handoff = Handoff(target="Support Desk")
+        assert handoff.name == "transfer_to_support_desk"
+        assert handoff.target == "Support Desk"
+        assert Handoff(target="agent-1").name == "transfer_to_agent-1"
+        # The handoff tool must be accepted by the OpenAI client's tool conversion.
+        convert_tools([handoff.handoff_tool])
 
     @pytest.mark.asyncio
     async def test_initialization_with_custom_model_context(self) -> None:
