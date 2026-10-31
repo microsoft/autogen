@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 from abc import ABC, abstractmethod
 from asyncio import Future, Task
 from typing import Any, AsyncIterator, Awaitable, Callable, Dict, Generic, Sequence, Set, Tuple, TypeVar
@@ -106,7 +107,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         ] = {}
         self._agent_type_to_client_id_lock = asyncio.Lock()
         self._agent_type_to_client_id: Dict[str, ClientConnectionId] = {}
-        self._pending_responses: Dict[ClientConnectionId, Dict[str, Future[Any]]] = {}
+        self._pending_responses: Dict[ClientConnectionId, Dict[str, Tuple[Future[Any], str]]] = {}
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
         self._client_id_to_subscription_id_mapping: Dict[ClientConnectionId, set[str]] = {}
@@ -134,7 +135,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
             # Clean up the client connection.
             del self._data_connections[client_id]
             # Cancel pending requests sent to this client.
-            for future in self._pending_responses.pop(client_id, {}).values():
+            for future, _ in self._pending_responses.pop(client_id, {}).values():
                 future.cancel()
             # Remove the client id from the agent type to client id mapping.
             await self._on_client_disconnect(client_id)
@@ -240,11 +241,27 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         if target_send_queue is None:
             logger.error(f"Client {target_client_id} not found, failed to deliver message.")
             return
-        await target_send_queue.send(agent_worker_pb2.Message(request=request))
+        # request_id is only unique within a worker runtime. Replace it while the
+        # request is routed through the host so requests from different workers
+        # cannot overwrite each other in _pending_responses.
+        host_request_id = str(uuid.uuid4())
+        forwarded_request = agent_worker_pb2.RpcRequest()
+        forwarded_request.CopyFrom(request)
+        forwarded_request.request_id = host_request_id
 
-        # Create a future to wait for the response from the target.
-        future = asyncio.get_event_loop().create_future()
-        self._pending_responses.setdefault(target_client_id, {})[request.request_id] = future
+        # Register the response future before forwarding the request. A fast target
+        # may otherwise respond before the host has recorded how to route the reply.
+        future: Future[agent_worker_pb2.RpcResponse] = asyncio.get_running_loop().create_future()
+        pending_responses = self._pending_responses.setdefault(target_client_id, {})
+        pending_responses[host_request_id] = (future, request.request_id)
+        try:
+            await target_send_queue.send(agent_worker_pb2.Message(request=forwarded_request))
+        except BaseException:
+            pending_responses.pop(host_request_id, None)
+            if not pending_responses:
+                self._pending_responses.pop(target_client_id, None)
+            future.cancel()
+            raise
 
         # Create a task to wait for the response and send it back to the client.
         send_response_task = asyncio.create_task(self._wait_and_send_response(future, client_id))
@@ -265,8 +282,23 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
 
     async def _process_response(self, response: agent_worker_pb2.RpcResponse, client_id: ClientConnectionId) -> None:
         # Setting the result of the future will send the response back to the original sender.
-        future = self._pending_responses[client_id].pop(response.request_id)
-        future.set_result(response)
+        pending_responses = self._pending_responses.get(client_id)
+        if pending_responses is None:
+            logger.warning(f"Received response from client {client_id} with no pending requests.")
+            return
+
+        pending_response = pending_responses.pop(response.request_id, None)
+        if not pending_responses:
+            self._pending_responses.pop(client_id, None)
+        if pending_response is None:
+            logger.warning(f"Received response from client {client_id} with unknown request_id {response.request_id}.")
+            return
+
+        future, original_request_id = pending_response
+        restored_response = agent_worker_pb2.RpcResponse()
+        restored_response.CopyFrom(response)
+        restored_response.request_id = original_request_id
+        future.set_result(restored_response)
 
     async def _process_event(self, event: cloudevent_pb2.CloudEvent) -> None:
         topic_id = TopicId(type=event.type, source=event.source)

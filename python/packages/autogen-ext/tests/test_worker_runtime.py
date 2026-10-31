@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from dataclasses import dataclass
 from typing import Any, List
 
 import pytest
@@ -17,6 +18,7 @@ from autogen_core import (
     TypeSubscription,
     default_subscription,
     event,
+    message_handler,
     try_get_known_serializers_for_type,
     type_subscription,
 )
@@ -709,6 +711,67 @@ async def test_instance_factory_messaging() -> None:
 
 #     await worker.stop()
 #     await host.stop()
+
+
+@pytest.mark.grpc
+@pytest.mark.asyncio
+async def test_cross_runtime_rpc_request_ids_do_not_collide() -> None:
+    """Requests from different workers must not share host correlation IDs."""
+    host_address = "localhost:50062"
+
+    @dataclass
+    class PingMessage:
+        content: str
+
+    class InnerAgent(RoutedAgent):
+        def __init__(self) -> None:
+            super().__init__("Inner echo agent")
+
+        @message_handler
+        async def on_ping(self, message: PingMessage, ctx: MessageContext) -> PingMessage:
+            return PingMessage(content=f"inner:{message.content}")
+
+    class RelayAgent(RoutedAgent):
+        def __init__(self) -> None:
+            super().__init__("Relay agent")
+
+        @message_handler
+        async def on_ping(self, message: PingMessage, ctx: MessageContext) -> PingMessage:
+            inner_response = await self.send_message(
+                PingMessage(content=message.content), AgentId("inner_agent", "default")
+            )
+            assert isinstance(inner_response, PingMessage)
+            return PingMessage(content=f"relay:{inner_response.content}")
+
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
+    host.start()
+    agent_runtime = GrpcWorkerAgentRuntime(host_address=host_address)
+    sender_runtime = GrpcWorkerAgentRuntime(host_address=host_address)
+
+    try:
+        agent_runtime.add_message_serializer(try_get_known_serializers_for_type(PingMessage))
+        await agent_runtime.start()
+        await RelayAgent.register(agent_runtime, "relay_agent", lambda: RelayAgent())
+        await InnerAgent.register(agent_runtime, "inner_agent", lambda: InnerAgent())
+
+        sender_runtime.add_message_serializer(try_get_known_serializers_for_type(PingMessage))
+        await sender_runtime.start()
+
+        # Both runtimes issue their first request to agent_runtime. Before the fix,
+        # both were stored as (agent_runtime_client_id, "1"), so the nested call
+        # overwrote the outer call's Future and the second response raised KeyError.
+        result = await asyncio.wait_for(
+            sender_runtime.send_message(PingMessage(content="hello"), AgentId("relay_agent", "default")),
+            timeout=10,
+        )
+
+        assert result == PingMessage(content="relay:inner:hello")
+        assert host._servicer._pending_responses == {}  # type: ignore[reportPrivateUsage]
+    finally:
+        await sender_runtime.stop()
+        await agent_runtime.stop()
+        await host.stop()
+
 
 if __name__ == "__main__":
     os.environ["GRPC_VERBOSITY"] = "DEBUG"
