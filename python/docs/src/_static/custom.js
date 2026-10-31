@@ -58,6 +58,20 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  const primarySidebarDialog = document.querySelector('#pst-primary-sidebar-modal');
+  const primarySidebarToggle = document.querySelector('.primary-toggle');
+  const primarySidebarCloseButton = document.querySelector('.sidebar-close-button');
+
+  if (primarySidebarDialog && primarySidebarToggle && primarySidebarCloseButton) {
+    primarySidebarCloseButton.addEventListener('click', function () {
+      primarySidebarDialog.close();
+    });
+
+    primarySidebarDialog.addEventListener('close', function () {
+      primarySidebarToggle.focus();
+    });
+  }
+
   // Enhance TOC sections for accessibility
   document.querySelectorAll('.caption-text').forEach(caption => {
     const sectionTitle = caption.textContent.trim();
