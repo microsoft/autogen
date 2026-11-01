@@ -5,6 +5,11 @@ from typing import AsyncGenerator, Sequence
 
 import pytest
 import pytest_asyncio
+from autogen_core import AgentId, AgentRuntime, CancellationToken, SingleThreadedAgentRuntime
+from autogen_core.models import ModelFamily, ModelInfo
+from autogen_ext.models.replay import ReplayChatCompletionClient
+from utils import FileLogHandler
+
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import (
     BaseChatAgent,
@@ -18,9 +23,6 @@ from autogen_agentchat.teams import (
     MagenticOneGroupChat,
 )
 from autogen_agentchat.teams._group_chat._magentic_one._magentic_one_orchestrator import MagenticOneOrchestrator
-from autogen_core import AgentId, AgentRuntime, CancellationToken, SingleThreadedAgentRuntime
-from autogen_ext.models.replay import ReplayChatCompletionClient
-from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
@@ -94,6 +96,46 @@ async def test_magentic_one_group_chat_cancellation(runtime: AgentRuntime | None
     cancellation_token.cancel()
     with pytest.raises(asyncio.CancelledError):
         await run_task
+
+
+@pytest.mark.asyncio
+async def test_magentic_one_group_chat_structured_output_cancellation_token(runtime: AgentRuntime | None) -> None:
+    """Regression test: the progress ledger call in the structured_output branch must receive the cancellation token."""
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+
+    model_client = ReplayChatCompletionClient(
+        chat_completions=[
+            "No facts",
+            "No plan",
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": True, "reason": "test"},
+                    "is_progress_being_made": {"answer": True, "reason": "test"},
+                    "is_in_loop": {"answer": False, "reason": "test"},
+                    "instruction_or_question": {"answer": "Task completed", "reason": "test"},
+                    "next_speaker": {"answer": "agent_1", "reason": "test"},
+                }
+            ),
+            "print('Hello, world!')",
+        ],
+        model_info=ModelInfo(
+            vision=False, function_calling=False, json_output=True, family=ModelFamily.UNKNOWN, structured_output=True
+        ),
+    )
+
+    team = MagenticOneGroupChat(participants=[agent_1], model_client=model_client, runtime=runtime)
+    cancellation_token = CancellationToken()
+    result = await team.run(
+        task="Write a program that prints 'Hello, world!'",
+        cancellation_token=cancellation_token,
+    )
+    assert result.stop_reason is not None and result.stop_reason == "test"
+
+    # Every model call made by the orchestrator, including the structured_output ledger call, must receive
+    # the cancellation token so that a cancelled run interrupts in-flight LLM requests.
+    assert len(model_client.create_calls) == 4
+    for call in model_client.create_calls:
+        assert call["cancellation_token"] is cancellation_token
 
 
 @pytest.mark.asyncio
