@@ -1,5 +1,5 @@
 import threading
-from asyncio import Future
+from asyncio import Future, get_running_loop
 from typing import Any, Callable, List
 
 
@@ -34,19 +34,18 @@ class CancellationToken:
 
     @staticmethod
     def _cancel_future(future: Future[Any]) -> None:
+        if future.done():
+            return
+
+        loop = future.get_loop()
         try:
-            loop = future.get_loop()
-        except (AttributeError, RuntimeError):
-            loop = None
+            same_loop = get_running_loop() is loop
+        except RuntimeError:
+            same_loop = False
 
-        if loop is not None and loop.is_running():
-            try:
-                loop.call_soon_threadsafe(future.cancel)
-                return
-            except RuntimeError:
-                pass
-
-        if not future.done():
+        if loop.is_running() and not same_loop:
+            loop.call_soon_threadsafe(future.cancel)
+        else:
             future.cancel()
 
     def link_future(self, future: Future[Any]) -> Future[Any]:
