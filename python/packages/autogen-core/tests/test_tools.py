@@ -589,3 +589,59 @@ async def test_func_tool_with_dataclass_conversion_failure() -> None:
 
     with pytest.raises(ValidationError, match="Field required"):
         await tool.run_json(test_input, CancellationToken())
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_positional_only_parameters() -> None:
+    def scale(value: int, /, *, factor: int = 2) -> int:
+        return value * factor
+
+    tool = FunctionTool(scale, description="Scale a value.")
+
+    assert set(tool.schema["parameters"]["properties"].keys()) == {"value", "factor"}
+    assert await tool.run_json({"value": 3}, CancellationToken()) == 6
+    assert await tool.run_json({"value": 3, "factor": 5}, CancellationToken()) == 15
+
+
+@pytest.mark.asyncio
+async def test_async_func_tool_with_positional_only_parameters() -> None:
+    async def scale(value: int, /, *, factor: int = 2) -> int:
+        return value * factor
+
+    tool = FunctionTool(scale, description="Scale a value.")
+
+    assert await tool.run_json({"value": 4}, CancellationToken()) == 8
+    assert await tool.run_json({"value": 4, "factor": 3}, CancellationToken()) == 12
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_positional_only_default_value() -> None:
+    def identity(value: int = 7, /) -> int:
+        return value
+
+    tool = FunctionTool(identity, description="Identity.")
+
+    assert await tool.run_json({}, CancellationToken()) == 7
+    assert await tool.run_json({"value": 9}, CancellationToken()) == 9
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_positional_only_cancellation_token() -> None:
+    def record(value: int, cancellation_token: CancellationToken, /) -> int:
+        return value
+
+    tool = FunctionTool(record, description="Record a value.")
+
+    assert set(tool.schema["parameters"]["properties"].keys()) == {"value"}
+    assert await tool.run_json({"value": 5}, CancellationToken()) == 5
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_mixed_positional_only_and_keyword_arguments() -> None:
+    def combine(value: int, /, label: str, factor: int = 2) -> str:
+        return f"{label}:{value * factor}"
+
+    tool = FunctionTool(combine, description="Combine values.")
+
+    result = await tool.run_json({"value": 3, "label": "total"}, CancellationToken())
+    assert result == "total:6"
