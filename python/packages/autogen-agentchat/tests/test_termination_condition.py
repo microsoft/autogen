@@ -6,6 +6,7 @@ from autogen_agentchat.base import TerminatedException
 from autogen_agentchat.conditions import (
     ExternalTermination,
     FunctionalTermination,
+    GoldenDirectiveTermination,
     FunctionCallTermination,
     HandoffTermination,
     MaxMessageTermination,
@@ -431,3 +432,60 @@ async def test_functional_termination() -> None:
     assert termination.terminated
     await termination.reset()
     assert await termination([TextMessage(content="Hello", source="user")]) is None
+
+
+@pytest.mark.asyncio
+async def test_golden_directive_termination() -> None:
+    # Canonical numeric checks from the Golden Directive spec:
+    # healthy 8, 8 gives 8; E about 7, A 8 gives about 7.5;
+    # parasitic E about 3, A 2 gives 2.4; E to 0 gives Y to 0.
+    score = GoldenDirectiveTermination.relationship_score
+    assert score(8, 8) == 8.0
+    assert score(8, 7) == pytest.approx(7.4667, abs=1e-4)
+    assert score(2, 3) == pytest.approx(2.4)
+    assert score(8, 0) == 0.0
+    assert score(0, 8) == 0.0
+    # A rising enough can still raise Y while E falls.
+    assert score(1, 10) == pytest.approx(1.8182, abs=1e-4)
+    assert score(10, 9) == pytest.approx(9.4737, abs=1e-4)
+    # Negative inputs are floored at 0.
+    assert score(-5, 8) == 0.0
+
+    state = {"A": 8.0, "E": 8.0}
+    termination = GoldenDirectiveTermination(
+        agent_health=lambda: state["A"],
+        environment_health=lambda: state["E"],
+        min_score=1.0,
+    )
+    assert await termination([TextMessage(content="Hello", source="user")]) is None
+    assert termination.last_score == 8.0
+    assert not termination.terminated
+
+    state["E"] = 0.0
+    result = await termination([TextMessage(content="Hello", source="user")])
+    assert result is not None
+    assert termination.terminated
+    assert termination.last_score == 0.0
+
+    await termination.reset()
+    assert not termination.terminated
+    state["E"] = 8.0
+    assert await termination([TextMessage(content="Hello", source="user")]) is None
+
+
+@pytest.mark.asyncio
+async def test_golden_directive_termination_async_providers() -> None:
+    async def agent_health() -> float:
+        return 2.0
+
+    async def environment_health() -> float:
+        return 3.0
+
+    termination = GoldenDirectiveTermination(
+        agent_health=agent_health,
+        environment_health=environment_health,
+        min_score=3.0,
+    )
+    # Y = 2.4, below the minimum of 3.0.
+    assert await termination([]) is not None
+    assert termination.last_score == pytest.approx(2.4)

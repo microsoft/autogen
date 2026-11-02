@@ -612,3 +612,122 @@ class FunctionCallTermination(TerminationCondition, Component[FunctionCallTermin
         return cls(
             function_name=config.function_name,
         )
+
+
+class GoldenDirectiveTermination(TerminationCondition):
+    """Terminate the conversation when a relationship score falls below a threshold.
+
+    Implements the Golden Directive relationship score
+    (https://thegoldendirective.pages.dev/):
+
+        Y = 2(A x E) / (A + E)
+
+    where A is an agent's net contribution-health score and E is the
+    health of everything not-A, both floored at 0. If either A or E
+    reaches 0, Y reaches 0.
+
+    The two health values are supplied by callables, so the caller
+    decides how A and E are measured. This condition does not measure
+    A or E itself, and it does not implement the full-versus-cropped
+    reporting rule or the proposed fence-patch guardrail from the
+    Golden Directive spec; it only stops a run whose current
+    relationship score is below ``min_score``.
+
+    This is a candidate design from a proposal, not a deployed or
+    validated training method.
+
+    Args:
+        agent_health: A callable returning the current A value, or an
+            awaitable returning it.
+        environment_health: A callable returning the current E value,
+            or an awaitable returning it.
+        min_score: Terminate when Y falls below this threshold.
+
+    Example:
+
+        .. code-block:: python
+
+            import asyncio
+
+            from autogen_agentchat.conditions import GoldenDirectiveTermination
+
+            state = {"A": 8.0, "E": 8.0}
+            termination = GoldenDirectiveTermination(
+                agent_health=lambda: state["A"],
+                environment_health=lambda: state["E"],
+                min_score=1.0,
+            )
+
+            async def run() -> None:
+                # Y = 8.0, above the threshold: no termination.
+                print(await termination([]))
+                state["E"] = 0.0
+                # Y = 0.0, below the threshold: termination.
+                print(await termination([]))
+
+            asyncio.run(run())
+
+        .. code-block:: text
+
+            None
+            StopMessage(content='Relationship score Y=0.0000 fell below minimum 1.0 (A=8.0, E=0.0)', source='GoldenDirectiveTermination')
+
+    """
+
+    def __init__(
+        self,
+        agent_health: Callable[[], float] | Callable[[], Awaitable[float]],
+        environment_health: Callable[[], float] | Callable[[], Awaitable[float]],
+        min_score: float,
+    ) -> None:
+        self._agent_health = agent_health
+        self._environment_health = environment_health
+        self._min_score = float(min_score)
+        self._terminated = False
+        self._last_score: float | None = None
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    @property
+    def last_score(self) -> float | None:
+        """The most recently computed relationship score Y, if any."""
+        return self._last_score
+
+    @staticmethod
+    def relationship_score(A: float, E: float) -> float:
+        """Y = 2(A x E) / (A + E), with A and E floored at 0."""
+        A = max(0.0, float(A))
+        E = max(0.0, float(E))
+        if A == 0.0 or E == 0.0:
+            return 0.0
+        return (2.0 * (A * E)) / (A + E)
+
+    async def __call__(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+        if asyncio.iscoroutinefunction(self._agent_health):
+            A = await self._agent_health()  # type: ignore[operator]
+        else:
+            A = self._agent_health()  # type: ignore[operator]
+        if asyncio.iscoroutinefunction(self._environment_health):
+            E = await self._environment_health()  # type: ignore[operator]
+        else:
+            E = self._environment_health()  # type: ignore[operator]
+        Y = self.relationship_score(A, E)
+        self._last_score = Y
+        if Y < self._min_score:
+            self._terminated = True
+            return StopMessage(
+                content=(
+                    f"Relationship score Y={Y:.4f} fell below minimum {self._min_score} "
+                    f"(A={max(0.0, float(A))}, E={max(0.0, float(E))})"
+                ),
+                source="GoldenDirectiveTermination",
+            )
+        return None
+
+    async def reset(self) -> None:
+        self._terminated = False
+        self._last_score = None
