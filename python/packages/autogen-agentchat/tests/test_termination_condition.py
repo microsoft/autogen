@@ -203,6 +203,23 @@ async def test_token_usage_termination() -> None:
 
 
 @pytest.mark.asyncio
+async def test_token_usage_termination_component_roundtrip() -> None:
+    """A TokenUsageTermination with only some limits set must survive a dump/load roundtrip."""
+    termination = TokenUsageTermination(max_total_token=10)
+    config = termination.dump_component()
+    loaded = TokenUsageTermination.load_component(config)
+    assert isinstance(loaded, TokenUsageTermination)
+    # The loaded condition is not terminated and keeps the original limits.
+    assert not loaded.terminated
+    assert await loaded([]) is None
+    stop = await loaded(
+        [TextMessage(content="Hello", source="user", models_usage=RequestUsage(prompt_tokens=10, completion_tokens=10))]
+    )
+    assert stop is not None
+    assert loaded.terminated
+
+
+@pytest.mark.asyncio
 async def test_and_termination() -> None:
     termination = MaxMessageTermination(2) & TextMentionTermination("stop")
     assert await termination([]) is None
