@@ -1030,7 +1030,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         # Determine the content and thought based on what was collected
         if full_tool_calls:
             # This is a tool call response
-            content = list(full_tool_calls.values())
+            content = [
+                FunctionCall(
+                    id=tool_call.id,
+                    arguments=tool_call.arguments,
+                    name=normalize_name(tool_call.name),
+                )
+                for tool_call in full_tool_calls.values()
+            ]
             if content_deltas:
                 # Store any text alongside tool calls as thoughts
                 thought = "".join(content_deltas)
