@@ -5,6 +5,14 @@ from typing_extensions import Self
 
 
 def is_valid_topic_type(value: str) -> bool:
+    """Whether ``value`` is a CloudEvents type string.
+
+    A value that is not a string is not a valid type either: matching it against
+    the pattern raised TypeError from inside ``re``, hiding the argument that
+    was wrong.
+    """
+    if not isinstance(value, str):
+        return False
     return bool(re.match(r"^[\w\-\.\:\=]+\Z", value))
 
 
