@@ -117,16 +117,15 @@ class ToolFunction(BaseModel):
     function: Annotated[Function, Field(description="Function under tool")]
 
 
-def type2description(k: str, v: Union[Annotated[Type[Any], str], Type[Any]]) -> str:
-    # handles Annotated
+def type2description(k: str, v: Any) -> str:
     if hasattr(v, "__metadata__"):
-        retval = v.__metadata__[0]
-        if isinstance(retval, str):
-            return retval
-        else:
-            raise ValueError(f"Invalid description {retval} for parameter {k}, should be a string.")
-    else:
-        return k
+        for metadata in v.__metadata__:
+            if isinstance(metadata, str):
+                return metadata
+            description = getattr(metadata, "description", None)
+            if isinstance(description, str):
+                return description
+    return k
 
 
 def get_parameter_json_schema(k: str, v: Any, default_values: Dict[str, Any]) -> Dict[str, Any]:
