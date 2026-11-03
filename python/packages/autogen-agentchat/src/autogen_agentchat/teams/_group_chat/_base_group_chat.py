@@ -256,7 +256,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         Once the team is stopped, the termination condition is reset.
 
         Args:
-            task (str | BaseChatMessage | Sequence[BaseChatMessage] | None): The task to run the team with. Can be a string, a single :class:`BaseChatMessage` , or a list of :class:`BaseChatMessage`.
+            task (str | BaseChatMessage | Sequence[BaseChatMessage] | None): The task to run the team with. Can be a string, a single :class:`BaseChatMessage` , or a sequence of :class:`BaseChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -366,7 +366,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             :attr:`~autogen_agentchat.base.TaskResult.messages`.
 
         Args:
-            task (str | BaseChatMessage | Sequence[BaseChatMessage] | None): The task to run the team with. Can be a string, a single :class:`BaseChatMessage` , or a list of :class:`BaseChatMessage`.
+            task (str | BaseChatMessage | Sequence[BaseChatMessage] | None): The task to run the team with. Can be a string, a single :class:`BaseChatMessage` , or a sequence of :class:`BaseChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -460,7 +460,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             messages = [TextMessage(content=task, source="user")]
         elif isinstance(task, BaseChatMessage):
             messages = [task]
-        elif isinstance(task, list):
+        elif isinstance(task, Sequence):
             if not task:
                 raise ValueError("Task list cannot be empty.")
             messages = []
