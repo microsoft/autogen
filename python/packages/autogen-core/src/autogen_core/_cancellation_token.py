@@ -1,3 +1,4 @@
+import asyncio
 import threading
 from asyncio import Future
 from typing import Any, Callable, List
@@ -40,7 +41,19 @@ class CancellationToken:
             else:
 
                 def _cancel() -> None:
-                    future.cancel()
+                    # asyncio.Future.cancel() is not thread-safe. Tokens may be
+                    # cancelled by a worker thread, so dispatch cancellation
+                    # through the event loop that owns the future.
+                    loop = future.get_loop()
+                    try:
+                        running_loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        running_loop = None
+
+                    if running_loop is loop:
+                        future.cancel()
+                    elif not loop.is_closed():
+                        loop.call_soon_threadsafe(future.cancel)
 
                 self._callbacks.append(_cancel)
         return future
