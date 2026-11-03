@@ -216,7 +216,7 @@ $functions"""
         if self._available_packages is not None:
             return self._available_packages
         avail_pkgs = """
-import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
+from importlib.metadata import distributions\n[d.metadata['Name'] for d in distributions()]
 """
         ret = await self._execute_code_dont_check_setup(
             [CodeBlock(code=avail_pkgs, language="python")], cancellation_token
