@@ -1,8 +1,25 @@
+import asyncio
+
 from autogen_core._subscription import Subscription
 from autogen_core._type_prefix_subscription import TypePrefixSubscription
 from autogen_core._type_subscription import TypeSubscription
 
 from .protos import agent_worker_pb2
+
+
+async def await_cleanup(task: asyncio.Task[None]) -> None:
+    """Finish owned cleanup before propagating cancellation of its caller."""
+    cancelled = False
+    while not task.done():
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError:
+            cancelled = True
+    if cancelled:
+        if not task.cancelled():
+            task.exception()
+        raise asyncio.CancelledError
+    await task
 
 
 def subscription_to_proto(subscription: Subscription) -> agent_worker_pb2.Subscription:
