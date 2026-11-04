@@ -1731,6 +1731,42 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
     with pytest.raises(ValueError, match="Task list cannot be empty"):
         await team.run(task=[])
 
+    # Test with tuple of messages (Sequence[BaseChatMessage])
+    await team.reset()
+    tuple_messages = (
+        TextMessage(content="Message 1", source="user"),
+        TextMessage(content="Message 2", source="user"),
+        TextMessage(content="Message 3", source="user"),
+    )
+    result_tuple = await team.run(task=tuple_messages)
+    assert len(result_tuple.messages) == 4
+    assert result_tuple.messages[0].content == "Message 1"
+    assert result_tuple.messages[1].content == "Message 2"
+    assert result_tuple.messages[2].content == "Message 3"
+    assert result_tuple.messages[3].content == "Message 1"
+
+    # Test tuple with streaming
+    await team.reset()
+    result_index = 0
+    async for message in team.run_stream(task=tuple_messages):
+        if isinstance(message, TaskResult):
+            assert compare_task_results(message, result_tuple)
+        else:
+            assert compare_messages(message, result_tuple.messages[result_index])
+            result_index += 1
+
+    # Test with empty tuple
+    with pytest.raises(ValueError, match="Task list cannot be empty"):
+        await team.run(task=())
+
+    # Test with invalid type in tuple
+    with pytest.raises(ValueError, match="All messages in task list must be valid BaseChatMessage types"):
+        await team.run(task=("not a message",))  # type: ignore[arg-type]
+
+    # Test with non-sequence / non-string invalid task type
+    with pytest.raises(ValueError, match="Task must be a string, a BaseChatMessage, or a sequence of BaseChatMessage"):
+        await team.run(task=12345)  # type: ignore[arg-type]
+
 
 @pytest.mark.asyncio
 async def test_declarative_groupchats_with_config(runtime: AgentRuntime | None) -> None:
