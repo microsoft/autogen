@@ -103,6 +103,7 @@ def test_func_tool_schema_generation_with_annotated_metadata() -> None:
         return "result"
 
     schema = FunctionTool(my_function, description="Function tool.").schema
+    assert "parameters" in schema
     properties = schema["parameters"]["properties"]
 
     assert properties["query"]["description"] == "SQL search term"
