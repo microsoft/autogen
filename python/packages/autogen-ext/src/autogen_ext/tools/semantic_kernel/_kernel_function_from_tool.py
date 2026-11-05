@@ -72,8 +72,9 @@ class KernelFunctionFromTool(KernelFunctionFromMethod):
 
 class KernelFunctionFromToolSchema(KernelFunctionFromPrompt):
     def __init__(self, tool_schema: ToolSchema, plugin_name: str | None = None):
-        properties = tool_schema.get("parameters", {}).get("properties", {})
-        required = properties.get("required", [])
+        parameters = tool_schema.get("parameters", {})
+        properties = parameters.get("properties", {})
+        required = parameters.get("required", [])
 
         prompt_template_config = PromptTemplateConfig(
             name=tool_schema.get("name", ""),
