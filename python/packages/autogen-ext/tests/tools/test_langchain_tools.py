@@ -100,3 +100,65 @@ async def test_langchain_tool_adapter(caplog: pytest.LogCaptureFixture) -> None:
     # Test run method for CustomCalculatorTool
     custom_result = await custom_adapter.run_json({"a": 3, "b": 4}, CancellationToken())
     assert custom_result == 12
+
+
+class ToolWithoutSchema(LangChainTool):
+    """A LangChain tool with no ``args_schema``.
+
+    The adapter must infer the args model from the ``_run`` signature.
+    The signature includes ``run_manager`` (type ``CallbackManagerForToolRun``),
+    which previously caused a ``pydantic-core`` schema error because
+    ``arbitrary_types_allowed`` was not set and the callback parameter
+    was not filtered out.
+    """
+
+    name: str = "no_schema_calc"
+    description: str = "multiplies two numbers"
+    args_schema: Optional[Type[BaseModel]] = None  # type: ignore
+    return_direct: bool = True
+
+    def _run(self, a: int, b: int, run_manager: Optional[CallbackManagerForToolRun] = None) -> int:
+        """Use the tool."""
+        return a * b
+
+    async def _arun(
+        self,
+        a: int,
+        b: int,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> int:
+        """Use the tool asynchronously."""
+        return self._run(a, b)
+
+
+def test_langchain_tool_adapter_without_args_schema() -> None:
+    """Adapter must not crash when a tool has no ``args_schema`` and its
+    ``_run`` signature contains a ``CallbackManagerForToolRun`` parameter.
+
+    Regression test for GitHub issue #6385.
+    """
+    tool_instance = ToolWithoutSchema()
+    adapter = LangChainToolAdapter(tool_instance)  # type: ignore
+
+    schema = adapter.schema
+    assert schema["name"] == "no_schema_calc"
+    assert "parameters" in schema
+    properties = schema["parameters"].get("properties", {})
+    # run_manager must NOT appear in the schema — it is a framework-injected
+    # parameter, not a user-supplied argument.
+    assert "run_manager" not in properties, (
+        "run_manager should be filtered out of the inferred args schema"
+    )
+    assert "a" in properties
+    assert "b" in properties
+    assert set(schema["parameters"].get("required", [])) == {"a", "b"}
+
+
+@pytest.mark.asyncio
+async def test_langchain_tool_adapter_without_args_schema_run() -> None:
+    """The adapter created from a schema-less tool must be runnable."""
+    tool_instance = ToolWithoutSchema()
+    adapter = LangChainToolAdapter(tool_instance)  # type: ignore
+
+    result = await adapter.run_json({"a": 6, "b": 7}, CancellationToken())
+    assert result == 42
