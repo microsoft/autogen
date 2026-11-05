@@ -166,7 +166,7 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
 
     def return_value_as_string(self, value: Any) -> str:
         if isinstance(value, BaseModel):
-            dumped = value.model_dump()
+            dumped = value.model_dump(mode="json")
             if isinstance(dumped, dict):
                 return json.dumps(dumped)
             return str(dumped)

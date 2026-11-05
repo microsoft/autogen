@@ -1,7 +1,11 @@
 import inspect
+import json
 from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
 from functools import partial
 from typing import Annotated, List
+from uuid import UUID
 
 import pytest
 from autogen_core import CancellationToken
@@ -439,6 +443,51 @@ async def test_func_base_model_res() -> None:
     tool = FunctionTool(my_function, description="Function tool.")
     result = await tool.run_json({"arg": "test"}, CancellationToken())
     assert tool.return_value_as_string(result) == '{"result": "test"}'
+
+
+@pytest.mark.asyncio
+async def test_func_base_model_res_json_types() -> None:
+    class StructuredResult(BaseModel):
+        timestamps: List[datetime]
+        amount: Decimal
+        record_id: UUID
+
+    def my_function() -> StructuredResult:
+        return StructuredResult(
+            timestamps=[datetime(2026, 11, 5, 12)],
+            amount=Decimal("12.50"),
+            record_id=UUID("12345678-1234-5678-1234-567812345678"),
+        )
+
+    tool = FunctionTool(my_function, description="Return a structured result.")
+    result = await tool.run_json({}, CancellationToken())
+
+    assert isinstance(result, StructuredResult)
+    assert result == my_function()
+    assert json.loads(tool.return_value_as_string(result)) == {
+        "timestamps": ["2026-11-05T12:00:00"],
+        "amount": "12.50",
+        "record_id": "12345678-1234-5678-1234-567812345678",
+    }
+
+
+@pytest.mark.asyncio
+async def test_func_base_model_json_serializer_res() -> None:
+    class JsonSerializedResult(BaseModel):
+        result: str
+
+        @model_serializer(when_used="json")
+        def serialize_result(self) -> str:
+            return "serialized: " + self.result
+
+    def my_function() -> JsonSerializedResult:
+        return JsonSerializedResult(result="test")
+
+    tool = FunctionTool(my_function, description="Return a JSON-serialized result.")
+    result = await tool.run_json({}, CancellationToken())
+
+    assert isinstance(result, JsonSerializedResult)
+    assert tool.return_value_as_string(result) == "serialized: test"
 
 
 @pytest.mark.asyncio
