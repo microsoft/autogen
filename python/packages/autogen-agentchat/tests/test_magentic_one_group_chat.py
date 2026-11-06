@@ -219,3 +219,41 @@ async def test_magentic_one_group_chat_with_stalls(runtime: AgentRuntime | None)
     assert isinstance(result.messages[4], TextMessage)
     assert result.messages[4].content.startswith("\nWe are working to address the following user request:")
     assert result.stop_reason is not None and result.stop_reason == "test"
+
+
+@pytest.mark.asyncio
+async def test_magentic_one_group_chat_respects_max_turns(runtime: AgentRuntime | None) -> None:
+    """The orchestrator must not dispatch more participant turns than `max_turns`."""
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+
+    model_client = ReplayChatCompletionClient(
+        chat_completions=[
+            "No facts",
+            "No plan",
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": False, "reason": "test"},
+                    "is_progress_being_made": {"answer": True, "reason": "test"},
+                    "is_in_loop": {"answer": False, "reason": "test"},
+                    "instruction_or_question": {"answer": "Continue task", "reason": "test"},
+                    "next_speaker": {"answer": "agent_1", "reason": "test"},
+                }
+            ),
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": False, "reason": "test"},
+                    "is_progress_being_made": {"answer": True, "reason": "test"},
+                    "is_in_loop": {"answer": False, "reason": "test"},
+                    "instruction_or_question": {"answer": "Continue task", "reason": "test"},
+                    "next_speaker": {"answer": "agent_1", "reason": "test"},
+                }
+            ),
+            "final answer",
+        ],
+    )
+
+    team = MagenticOneGroupChat(participants=[agent_1], model_client=model_client, max_turns=1, runtime=runtime)
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+
+    assert agent_1.total_messages == 1
+    assert result.stop_reason is not None and result.stop_reason == "Max rounds reached."

@@ -300,7 +300,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
     async def _orchestrate_step(self, cancellation_token: CancellationToken) -> None:
         """Implements the inner loop of the orchestrator and selects next speaker."""
         # Check if we reached the maximum number of rounds
-        if self._max_turns is not None and self._n_rounds > self._max_turns:
+        if self._max_turns is not None and self._n_rounds >= self._max_turns:
             await self._prepare_final_answer("Max rounds reached.", cancellation_token)
             return
         self._n_rounds += 1
