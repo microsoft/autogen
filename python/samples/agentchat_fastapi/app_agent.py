@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from typing import Any
@@ -35,6 +36,19 @@ async def root():
 model_config_path = "model_config.yaml"
 state_path = "agent_state.json"
 history_path = "agent_history.json"
+
+# /chat requests share these files, so their read-modify-write cycles must not
+# interleave. The lock serializes them and the atomic replace below keeps a
+# killed writer from leaving a truncated JSON document behind.
+_state_lock = asyncio.Lock()
+
+
+async def write_json_atomic(path: str, data: Any) -> None:
+    """Write JSON next to the target, then replace it in one step."""
+    tmp_path = f"{path}.tmp"
+    async with aiofiles.open(tmp_path, "w") as file:
+        await file.write(json.dumps(data))
+    os.replace(tmp_path, path)
 
 
 async def get_agent() -> AssistantAgent:
@@ -77,24 +91,25 @@ async def history() -> list[dict[str, Any]]:
 @app.post("/chat", response_model=TextMessage)
 async def chat(request: TextMessage) -> TextMessage:
     try:
-        # Get the agent and respond to the message.
-        agent = await get_agent()
-        response = await agent.on_messages(messages=[request], cancellation_token=CancellationToken())
+        # Serialize the whole read-modify-write cycle: the agent state and the
+        # history file are shared by every request.
+        async with _state_lock:
+            # Get the agent and respond to the message.
+            agent = await get_agent()
+            response = await agent.on_messages(messages=[request], cancellation_token=CancellationToken())
 
-        # Save agent state to file.
-        state = await agent.save_state()
-        async with aiofiles.open(state_path, "w") as file:
-            await file.write(json.dumps(state))
+            # Save agent state to file.
+            state = await agent.save_state()
+            await write_json_atomic(state_path, state)
 
-        # Save chat history to file.
-        history = await get_history()
-        history.append(request.model_dump())
-        history.append(response.chat_message.model_dump())
-        async with aiofiles.open(history_path, "w") as file:
-            await file.write(json.dumps(history))
+            # Save chat history to file.
+            history = await get_history()
+            history.append(request.model_dump(mode="json"))
+            history.append(response.chat_message.model_dump(mode="json"))
+            await write_json_atomic(history_path, history)
 
-        assert isinstance(response.chat_message, TextMessage)
-        return response.chat_message
+            assert isinstance(response.chat_message, TextMessage)
+            return response.chat_message
     except Exception as e:
         error_message = {
             "type": "error",
