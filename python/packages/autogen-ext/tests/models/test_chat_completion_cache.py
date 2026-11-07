@@ -956,3 +956,26 @@ async def test_create_stream_with_cached_non_streaming_result_non_string_content
     assert stream_results[0].content == [expected_function_call]
     assert stream_results[0].finish_reason == "function_calls"
     assert stream_results[0].cached is True
+
+
+@pytest.mark.asyncio
+async def test_cache_distinguishes_tool_choice() -> None:
+    responses, prompts, system_prompt, _, cached_client = get_test_data(num_messages=2)
+
+    messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
+
+    response0 = await cached_client.create(messages, tool_choice="auto")
+    assert isinstance(response0, CreateResult)
+    assert not response0.cached
+    assert response0.content == responses[0]
+
+    # A different tool_choice must not share the cache entry.
+    response1 = await cached_client.create(messages, tool_choice="none")
+    assert isinstance(response1, CreateResult)
+    assert not response1.cached
+    assert response1.content == responses[1]
+
+    # The same tool_choice still hits the cache.
+    response0_cached = await cached_client.create(messages, tool_choice="auto")
+    assert response0_cached.cached
+    assert response0_cached.content == responses[0]
