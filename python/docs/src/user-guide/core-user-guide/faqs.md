@@ -33,7 +33,7 @@ host = GrpcWorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_
 worker1 = GrpcWorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
 ```
 
-**Note**: When `GrpcWorkerAgentRuntime` creates a host connection for the clients, it uses `DEFAULT_GRPC_CONFIG` from `HostConnection` class as default set of values which will can be overriden if you pass parameters with the same name using `extra_grpc_config`.
+**Note**: When `GrpcWorkerAgentRuntime` creates a host connection for the clients, it uses `DEFAULT_GRPC_CONFIG` from `HostConnection` class as default set of values which will can be overridden if you pass parameters with the same name using `extra_grpc_config`.
 
 ## What are model capabilities and how do I specify them?
 
