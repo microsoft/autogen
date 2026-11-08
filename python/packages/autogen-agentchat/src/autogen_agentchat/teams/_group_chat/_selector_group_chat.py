@@ -124,6 +124,9 @@ class SelectorGroupChatManager(BaseGroupChatManager):
     async def load_state(self, state: Mapping[str, Any]) -> None:
         selector_state = SelectorManagerState.model_validate(state)
         self._message_thread = [self._message_factory.create(msg) for msg in selector_state.message_thread]
+        # Loading overwrites the current state, so start from an empty context instead of
+        # appending to the messages of the run being rolled back.  Mirrors reset().
+        await self._model_context.clear()
         await self._add_messages_to_context(
             self._model_context, [msg for msg in self._message_thread if isinstance(msg, BaseChatMessage)]
         )

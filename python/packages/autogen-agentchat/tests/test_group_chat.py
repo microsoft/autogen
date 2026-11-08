@@ -999,6 +999,36 @@ async def test_selector_group_chat_state(task: TaskType, runtime: AgentRuntime |
 
 
 @pytest.mark.asyncio
+async def test_selector_group_chat_load_state_into_same_team_replaces_context(
+    runtime: AgentRuntime | None,
+) -> None:
+    """Rolling a team back to a saved state replaces the selection context instead of extending it."""
+    model_client = ReplayChatCompletionClient(
+        ["agent1", "No facts", "agent2", "No plan", "agent1", "print('Hello, world!')", "agent2", "TERMINATE"],
+    )
+    agent1 = AssistantAgent("agent1", model_client=model_client)
+    agent2 = AssistantAgent("agent2", model_client=model_client)
+    team = SelectorGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=TextMentionTermination("TERMINATE"),
+        model_client=model_client,
+        runtime=runtime,
+    )
+    await team.run(task="Write a program that prints 'Hello, world!'")
+    state = await team.save_state()
+
+    manager = await team._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId(f"{team._group_chat_manager_name}_{team._team_id}", team._team_id),  # pyright: ignore
+        SelectorGroupChatManager,  # pyright: ignore
+    )
+    context_before_rollback = list(await manager._model_context.get_messages())  # pyright: ignore
+
+    await team.load_state(state)
+
+    assert await manager._model_context.get_messages() == context_before_rollback  # pyright: ignore
+
+
+@pytest.mark.asyncio
 async def test_selector_group_chat_two_speakers(runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient(["agent2"])
 
