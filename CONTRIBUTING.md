@@ -24,6 +24,38 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
+## New to AutoGen?
+
+If AutoGen is new to you, work through this path before the contribution sections below:
+
+1. **Set up a development environment** — follow [Python setup](./python/README.md#setup) (the project uses [`uv`](https://docs.astral.sh/uv/)); [common tasks](./python/README.md#common-tasks) lists the test, lint and docs commands used in CI.
+2. **Run a quickstart** — the [AgentChat quickstart](./python/docs/src/user-guide/agentchat-user-guide/quickstart.ipynb) builds a conversational agent end to end; the [Core quickstart](./python/docs/src/user-guide/core-user-guide/quickstart.ipynb) shows the runtime underneath it.
+3. **Read working examples** — [`python/samples/`](./python/samples) contains runnable samples (chat apps, chess, distributed group chat, FastAPI and Chainlit integrations).
+4. **Browse the guides** — [AgentChat](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html) for application code, [Core](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/index.html) for the framework runtime, [Extensions](https://microsoft.github.io/autogen/stable/user-guide/extensions-user-guide/index.html) for reusable integrations, and [AutoGen Studio](https://microsoft.github.io/autogen/stable/user-guide/autogenstudio-user-guide/index.html) for the visual builder.
+5. **Pick a scoped task** — issues labeled [`good first issue`](https://github.com/microsoft/autogen/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22) are meant for newcomers; comment on the issue before starting so nobody duplicates the work.
+
+> **Maintenance mode:** AutoGen is in maintenance mode — contributions are limited to bug fixes, security patches and documentation improvements (see the [README](./README.md)). Feature development happens in [Microsoft Agent Framework](https://github.com/microsoft/agent-framework).
+
+Questions are welcome in [GitHub Discussions](https://github.com/microsoft/autogen/discussions) or the [Discord server](https://aka.ms/autogen-discord); response times may vary.
+
+## Build an app or extension
+
+You do not have to change this repository to contribute. Two common ways to add value to the ecosystem:
+
+- **An app** — a chatbot, retrieval-augmented assistant, tool-using agent, multi-agent workflow, or AutoGen Studio scenario that solves a real problem. Publish it as its own repository, then share it in [Discussions](https://github.com/microsoft/autogen/discussions) or [Discord](https://aka.ms/autogen-discord).
+- **An extension** — a reusable tool, model client, memory/store, or UI component built on `autogen-core`. The [extension authoring guide](./python/docs/src/user-guide/extensions-user-guide/create-your-own.md) covers naming (the `autogen-` package prefix), implementing the shared interfaces, and pinning your `autogen-core` dependency.
+
+**Get discovered:** add the GitHub topics [`autogen`](https://github.com/topics/autogen) plus [`autogen-sample`](https://github.com/topics/autogen-sample) for apps and samples or [`autogen-extension`](https://github.com/topics/autogen-extension) for extensions to your repository — the [discovery page](./python/docs/src/user-guide/extensions-user-guide/discover.md) explains how topic-tagged projects are surfaced.
+
+## How a contribution lands
+
+1. Describe the change in an issue first — for anything beyond a small fix, get maintainer agreement before investing in code; the [triage process](#triage-process) below is how issues get picked up.
+2. Fork the repository, create a branch, and keep one logical change per pull request. Open the PR as a draft while it is still evolving.
+3. Ship tests and documentation with the change: [writing tests](./python/README.md#writing-tests), [writing documentation](./python/README.md#writing-documentation), and the [local CI checks](#running-ci-checks-locally) above.
+4. Address review feedback; maintainers merge once CI is green. Reviewers are drawn from active contributors — see [Becoming a Reviewer](#becoming-a-reviewer).
+
+Release versioning, the release process, triage duties and code-style conventions are documented in the sections below.
+
 ## Running CI checks locally
 
 It is important to use `uv` when running CI checks locally as it ensures that the correct dependencies and versions are used.
