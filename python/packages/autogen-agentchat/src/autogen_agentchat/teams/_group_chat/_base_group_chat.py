@@ -27,6 +27,7 @@ from ...messages import (
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
@@ -744,6 +745,42 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             GroupChatResume(),
             recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
         )
+
+    async def get_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get the message thread of the group chat.
+
+        The message thread contains the messages produced by the team so far.
+        The thread is retrieved by sending a :class:`GroupChatGetThread` RPC request
+        to the group chat manager.
+
+        If the team uses an embedded runtime and is not currently running, the runtime
+        is started for the duration of the call and stopped again afterwards.
+
+        Returns:
+            A list of :class:`~autogen_agentchat.messages.BaseAgentEvent` and
+            :class:`~autogen_agentchat.messages.BaseChatMessage` in the thread.
+            Empty if the team has not been run yet.
+        """
+        if not self._initialized:
+            await self._init(self._runtime)
+
+        # The RPC request needs the runtime message loop to be running. For an embedded
+        # runtime that is not currently running (e.g. after :meth:`run` has finished),
+        # start it for the duration of the call and stop it again afterwards.
+        started_here = False
+        if self._embedded_runtime and not self._is_running:
+            assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+            self._runtime.start()
+            started_here = True
+
+        try:
+            # Send a get thread message to the group chat manager via RPC.
+            agent_id = AgentId(type=self._group_chat_manager_topic_type, key=self._team_id)
+            return await self._runtime.send_message(GroupChatGetThread(), recipient=agent_id)
+        finally:
+            if started_here:
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                await self._runtime.stop_when_idle()
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the group chat team.

@@ -106,6 +106,12 @@ class GroupChatResume(BaseModel):
     ...
 
 
+class GroupChatGetThread(BaseModel):
+    """A request to get the message thread of the group chat."""
+
+    ...
+
+
 class GroupChatError(BaseModel):
     """A message indicating that an error occurred in the group chat."""
 
