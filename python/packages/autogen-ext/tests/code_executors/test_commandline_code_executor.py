@@ -19,6 +19,7 @@ import pytest_asyncio
 from aiofiles import open
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock
+from autogen_ext.code_executors._common import get_file_name_from_content
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 HAS_POWERSHELL: bool = platform.system() == "Windows" and (
@@ -248,6 +249,35 @@ print("hello world")
     assert "test.py" in result.code_file
     assert (temp_dir / Path("test.py")).resolve() == Path(result.code_file).resolve()
     assert (temp_dir / Path("test.py")).exists()
+
+
+def test_get_file_name_from_content_preserves_colons(tmp_path: Path) -> None:
+    """The filename directive must not be truncated at colons inside the filename."""
+    code = """# filename: part:two.py
+
+print("hello world")
+"""
+    assert get_file_name_from_content(code, tmp_path) == str(Path("part:two.py"))
+
+
+def test_get_file_name_from_content_ignores_empty_directive(tmp_path: Path) -> None:
+    """An empty filename directive must fall back to an auto-generated file name."""
+    code = """# filename:
+
+print("hello world")
+"""
+    assert get_file_name_from_content(code, tmp_path) is None
+
+
+@pytest.mark.skipif(platform.system() != "Windows", reason="Drive-letter paths only exist on Windows.")
+def test_get_file_name_from_content_windows_absolute_path(tmp_path: Path) -> None:
+    """A Windows absolute path must be resolved in full, not truncated to its drive letter."""
+    code = """# filename: C:\\work\\app.py
+
+print("hello world")
+"""
+    with pytest.raises(ValueError):
+        get_file_name_from_content(code, tmp_path)
 
 
 @pytest.mark.asyncio
