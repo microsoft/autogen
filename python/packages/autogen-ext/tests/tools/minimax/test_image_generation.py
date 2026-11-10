@@ -6,9 +6,8 @@ from typing import Any
 import httpx
 import pytest
 from autogen_core import CancellationToken
-from pydantic import ValidationError
-
 from autogen_ext.tools.minimax import MiniMaxImageGenerationTool
+from pydantic import ValidationError
 
 
 def _mock_client(monkeypatch: pytest.MonkeyPatch, response_body: dict[str, Any]) -> list[httpx.Request]:
