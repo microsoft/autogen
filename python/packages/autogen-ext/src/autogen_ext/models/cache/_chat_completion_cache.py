@@ -193,21 +193,20 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         elif isinstance(json_output, bool):
             json_output_data = json_output
 
-        # tool_choice is forwarded to the underlying client, so it must also
-        # take part in the cache key: calls that differ only in tool_choice
-        # (e.g. "auto" vs a forced tool or "none") must not share an entry.
-        if isinstance(tool_choice, Tool):
-            tool_choice_data: str | bool | dict[str, Any] | None = tool_choice.schema
-        else:
-            tool_choice_data = tool_choice
-
-        data = {
+        data: dict[str, Any] = {
             "messages": [message.model_dump() for message in messages],
             "tools": [(tool.schema if isinstance(tool, Tool) else tool) for tool in tools],
             "json_output": json_output_data,
-            "tool_choice": tool_choice_data,
             "extra_create_args": extra_create_args,
         }
+
+        # tool_choice is forwarded to the underlying client, so a non-default
+        # value must take part in the cache key: calls that differ only in
+        # tool_choice (e.g. "auto" vs a forced tool or "none") must not share
+        # an entry. The default "auto" is left out of the key so that entries
+        # written before tool_choice was keyed remain valid after an upgrade.
+        if not (isinstance(tool_choice, str) and tool_choice == "auto"):
+            data["tool_choice"] = tool_choice.schema if isinstance(tool_choice, Tool) else tool_choice
         serialized_data = json.dumps(data, sort_keys=True)
         cache_key = hashlib.sha256(serialized_data.encode()).hexdigest()
 

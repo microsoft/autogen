@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
@@ -979,3 +980,33 @@ async def test_cache_distinguishes_tool_choice() -> None:
     response0_cached = await cached_client.create(messages, tool_choice="auto")
     assert response0_cached.cached
     assert response0_cached.content == responses[0]
+
+
+@pytest.mark.asyncio
+async def test_cache_default_tool_choice_keeps_legacy_keys() -> None:
+    responses, prompts, system_prompt, _, cached_client = get_test_data(num_messages=1)
+
+    messages = [system_prompt, UserMessage(content=prompts[0], source="user")]
+
+    # Entries written before tool_choice was keyed used exactly this payload.
+    legacy_data = {
+        "messages": [message.model_dump() for message in messages],
+        "tools": [],
+        "json_output": None,
+        "extra_create_args": {},
+    }
+    legacy_key = hashlib.sha256(json.dumps(legacy_data, sort_keys=True).encode()).hexdigest()
+    legacy_result = CreateResult(
+        finish_reason="stop",
+        content=responses[0],
+        usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
+        cached=False,
+    )
+    cached_client.store.set(legacy_key, legacy_result)
+
+    # The default "auto" must keep hitting the legacy entry instead of
+    # deriving a new key that would miss it after an upgrade.
+    response = await cached_client.create(messages)
+    assert isinstance(response, CreateResult)
+    assert response.cached
+    assert response.content == responses[0]
