@@ -150,7 +150,9 @@ def get_mime_type_from_image(image: Image) -> Literal["image/jpeg", "image/png",
         return "image/jpeg"
 
 
-def convert_tool_choice_anthropic(tool_choice: Tool | Literal["auto", "required", "none"]) -> Any:
+def convert_tool_choice_anthropic(
+    tool_choice: Tool | Literal["auto", "required", "any", "none"] | Mapping[str, Any]
+) -> Any:
     """Convert tool_choice parameter to Anthropic API format.
 
     Args:
@@ -167,6 +169,14 @@ def convert_tool_choice_anthropic(tool_choice: Tool | Literal["auto", "required"
 
     if tool_choice == "required":
         return {"type": "any"}  # Anthropic uses "any" for required
+
+    if tool_choice == "any":
+        return {"type": "any"}
+
+    if isinstance(tool_choice, Mapping):
+        if tool_choice.get("type") not in {"auto", "any", "none", "tool"}:
+            raise ValueError(f"Unsupported Anthropic tool_choice type: {tool_choice.get('type')!r}")
+        return dict(tool_choice)
 
     # Must be a Tool object
     if isinstance(tool_choice, Tool):
@@ -345,13 +355,18 @@ def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[ToolParam]:
             else:
                 tool_params["type"] = "object"
 
-        result.append(
-            ToolParam(
-                name=tool_schema["name"],
-                input_schema=tool_params,
-                description=tool_schema.get("description", ""),
-            )
-        )
+            # Preserve schema constraints needed by strict tool validation.
+            if "additionalProperties" in params:
+                tool_params["additionalProperties"] = params["additionalProperties"]
+
+        tool_param: Dict[str, Any] = {
+            "name": tool_schema["name"],
+            "input_schema": tool_params,
+            "description": tool_schema.get("description", ""),
+        }
+        if "strict" in tool_schema:
+            tool_param["strict"] = tool_schema["strict"]
+        result.append(ToolParam(**tool_param))
 
         # Check if the tool has a valid name
         assert_valid_name(tool_schema["name"])
@@ -554,7 +569,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
+        tool_choice: Tool | Literal["auto", "required", "any", "none"] | Mapping[str, Any] | None = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -562,6 +577,8 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         # Copy create args and update with extra args
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
+        if tool_choice is None:
+            tool_choice = create_args.get("tool_choice", "auto")
 
         # Check for vision capability if images are present
         if self.model_info["vision"] is False:
@@ -767,7 +784,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
+        tool_choice: Tool | Literal["auto", "required", "any", "none"] | Mapping[str, Any] | None = None,
         json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -779,6 +796,8 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         # Copy create args and update with extra args
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
+        if tool_choice is None:
+            tool_choice = create_args.get("tool_choice", "auto")
 
         # Check for vision capability if images are present
         if self.model_info["vision"] is False:
