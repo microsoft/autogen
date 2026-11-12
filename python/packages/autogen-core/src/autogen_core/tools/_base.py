@@ -2,6 +2,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from dataclasses import asdict, is_dataclass
 from typing import (
     Any,
     AsyncGenerator,
@@ -170,6 +171,15 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             if isinstance(dumped, dict):
                 return json.dumps(dumped)
             return str(dumped)
+
+        if is_dataclass(value) and not isinstance(value, type):
+            value = asdict(value)
+
+        if isinstance(value, (dict, list)):
+            try:
+                return json.dumps(value)
+            except (TypeError, ValueError):
+                return str(value)
 
         return str(value)
 
