@@ -2,7 +2,8 @@ import asyncio
 import json
 import logging
 import tempfile
-from typing import Any, AsyncGenerator, Dict, List, Mapping, Sequence
+from collections import UserList
+from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
 
 import pytest
 import pytest_asyncio
@@ -1684,21 +1685,28 @@ async def test_swarm_with_handoff_termination(runtime: AgentRuntime | None) -> N
 
 
 @pytest.mark.asyncio
-async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | None) -> None:
+@pytest.mark.parametrize("message_container", [list, tuple, UserList], ids=["list", "tuple", "user_list"])
+async def test_round_robin_group_chat_with_message_sequence(
+    runtime: AgentRuntime | None,
+    message_container: Callable[[Sequence[BaseChatMessage]], Sequence[BaseChatMessage]],
+) -> None:
     # Create a simple team with echo agents
     agent1 = _EchoAgent("Agent1", "First agent")
     agent2 = _EchoAgent("Agent2", "Second agent")
     termination = MaxMessageTermination(4)  # Stop after 4 messages
     team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination, runtime=runtime)
 
-    # Create a list of messages
-    messages: List[BaseChatMessage] = [
-        TextMessage(content="Message 1", source="user"),
-        TextMessage(content="Message 2", source="user"),
-        TextMessage(content="Message 3", source="user"),
-    ]
+    # Create a sequence of messages.
+    messages = message_container(
+        [
+            TextMessage(content="Message 1", source="user"),
+            TextMessage(content="Message 2", source="user"),
+            TextMessage(content="Message 3", source="user"),
+        ]
+    )
+    original_messages = list(messages)
 
-    # Run the team with the message list
+    # Run the team with the message sequence.
     result = await team.run(task=messages)
 
     # Verify the messages were processed in order
@@ -1723,13 +1731,14 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
             assert compare_messages(message, result.messages[result_index])
             result_index += 1
 
-    # Test with invalid message list
-    with pytest.raises(ValueError, match="All messages in task list must be valid BaseChatMessage types"):
-        await team.run(task=["not a message"])  # type: ignore[list-item, arg-type]  # intentionally testing invalid input
+    assert list(messages) == original_messages
 
-    # Test with empty message list
+    # Invalid and empty sequences are still rejected.
+    with pytest.raises(ValueError, match="All messages in task list must be valid BaseChatMessage types"):
+        await team.run(task=message_container(["not a message"]))  # type: ignore[list-item]
+
     with pytest.raises(ValueError, match="Task list cannot be empty"):
-        await team.run(task=[])
+        await team.run(task=message_container([]))
 
 
 @pytest.mark.asyncio
