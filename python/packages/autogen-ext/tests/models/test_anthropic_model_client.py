@@ -24,6 +24,7 @@ from autogen_ext.models.anthropic import (
     BaseAnthropicChatCompletionClient,
     BedrockInfo,
 )
+from autogen_ext.models.anthropic._anthropic_client import convert_tools
 
 
 def _pass_function(input: str) -> str:
@@ -123,6 +124,46 @@ async def test_mock_tool_choice_auto() -> None:
     # Check that tool_choice was set correctly
     assert "tool_choice" in call_args.kwargs
     assert call_args.kwargs["tool_choice"] == {"type": "auto"}
+
+
+@pytest.mark.asyncio
+async def test_configured_tool_choice_and_schema_constraints_are_preserved() -> None:
+    """Configured tool policy and strict schema fields reach Anthropic."""
+    mock_client = AsyncMock()
+    mock_message = MagicMock()
+    mock_message.content = [MagicMock(type="text", text="ok")]
+    mock_message.usage.input_tokens = 1
+    mock_message.usage.output_tokens = 1
+    mock_client.messages.create.return_value = mock_message
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key="test-key",
+        tool_choice="none",
+    )
+    schema = {
+        "name": "lookup",
+        "description": "Look up a value",
+        "strict": True,
+        "parameters": {
+            "type": "object",
+            "properties": {"key": {"type": "string"}},
+            "required": ["key"],
+            "additionalProperties": False,
+        },
+    }
+
+    converted = convert_tools([schema])
+    assert converted[0]["strict"] is True
+    assert converted[0]["input_schema"]["additionalProperties"] is False
+
+    with patch.object(client, "_client", mock_client):
+        await client.create(
+            messages=[UserMessage(content="hello", source="user")],
+            tools=[schema],
+        )
+
+    assert mock_client.messages.create.call_args.kwargs["tool_choice"] == {"type": "none"}
 
 
 @pytest.mark.asyncio
