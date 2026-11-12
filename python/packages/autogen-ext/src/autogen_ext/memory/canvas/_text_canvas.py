@@ -139,6 +139,9 @@ class TextCanvas(BaseCanvas):
         """Apply *patch_text* (unified diff) to the latest revision and save a new revision.
 
         Uses the *unidiff* library to accurately apply hunks and validate context lines.
+        Hunks whose removed or context lines do not match the latest revision (e.g. a
+        patch prepared against an older revision) are rejected with a ``ValueError``
+        and no new revision is created.
         """
         if isinstance(patch_data, bytes):
             patch_data = patch_data.decode("utf-8")
@@ -162,14 +165,38 @@ class TextCanvas(BaseCanvas):
         line_offset = 0
         for hunk in patched_file:
             # Calculate the slice boundaries in the *current* working copy.
-            start = hunk.source_start - 1 + line_offset
+            # A hunk with no source lines (source_length == 0) inserts after
+            # original line *source_start*, so the 0-based insertion index is
+            # *source_start* itself rather than *source_start* - 1.
+            if hunk.source_length > 0:
+                start = hunk.source_start - 1 + line_offset
+            else:
+                start = hunk.source_start + line_offset
             end = start + hunk.source_length
-            # Build the replacement block for this hunk.
+            # Build the replacement block for this hunk and the source block
+            # (removed + context lines) it expects to replace.
             replacement: List[str] = []
+            expected_source: List[str] = []
             for line in hunk:
-                if line.is_added or line.is_context:
+                if line.is_added:
                     replacement.append(line.value)
+                else:
+                    # context and removed lines make up the hunk's source block.
+                    expected_source.append(line.value)
+                    if line.is_context:
+                        replacement.append(line.value)
                 # removed lines (line.is_removed) are *not* added.
+            # Reject hunks whose removed/context lines do not match the current
+            # content (e.g. a patch prepared against an older revision), as well
+            # as hunks that fall outside the current content.
+            if start < 0 or end > len(working_lines) or working_lines[start:end] != expected_source:
+                raise ValueError(
+                    f"Patch for '{filename}' does not match the latest revision "
+                    f"(revision {self._files[filename][-1].revision}): hunk at source "
+                    f"line {hunk.source_start} expects source/context lines that differ "
+                    "from the current content. Regenerate the patch from the latest "
+                    "content and reapply."
+                )
             # Replace the slice with the hunk‑result.
             working_lines[start:end] = replacement
             line_offset += len(replacement) - (end - start)
