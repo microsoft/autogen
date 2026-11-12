@@ -1,10 +1,13 @@
 import logging
 import os
+from types import SimpleNamespace
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock
 
 import pytest
-from autogen_core import CancellationToken, FunctionCall
+from anthropic.types import Usage
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent
 from autogen_core.models import (
     AssistantMessage,
     CreateResult,
@@ -13,6 +16,7 @@ from autogen_core.models import (
     LLMMessage,
     ModelFamily,
     ModelInfo,
+    RequestUsage,
     SystemMessage,
     UserMessage,
 )
@@ -39,6 +43,130 @@ from semantic_kernel.contents.utils.author_role import AuthorRole
 from semantic_kernel.contents.utils.finish_reason import FinishReason
 from semantic_kernel.kernel import Kernel
 from semantic_kernel.memory.null_memory import NullMemory
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("stream", [False, True], ids=["create", "create_stream"])
+@pytest.mark.parametrize(
+    "metadata, expected_usage",
+    [
+        pytest.param(
+            {"usage": Usage(input_tokens=147, output_tokens=1024)},
+            RequestUsage(prompt_tokens=147, completion_tokens=1024),
+            id="anthropic",
+        ),
+        pytest.param(
+            {"usage": CompletionUsage(prompt_tokens=20, completion_tokens=9, total_tokens=29)},
+            RequestUsage(prompt_tokens=20, completion_tokens=9),
+            id="openai",
+        ),
+        pytest.param(
+            {"usage": {"input_tokens": 147, "output_tokens": 1024}},
+            RequestUsage(prompt_tokens=147, completion_tokens=1024),
+            id="anthropic-dict",
+        ),
+        pytest.param(
+            {"usage": {"prompt_tokens": 20, "completion_tokens": 9}},
+            RequestUsage(prompt_tokens=20, completion_tokens=9),
+            id="openai-dict",
+        ),
+        pytest.param(
+            {"usage": SimpleNamespace(prompt_tokens=0, completion_tokens=0, input_tokens=147, output_tokens=1024)},
+            RequestUsage(prompt_tokens=0, completion_tokens=0),
+            id="openai-fields-take-precedence",
+        ),
+        pytest.param(
+            {"usage": {"prompt_tokens": 0, "completion_tokens": 0, "input_tokens": 147, "output_tokens": 1024}},
+            RequestUsage(prompt_tokens=0, completion_tokens=0),
+            id="openai-dict-fields-take-precedence",
+        ),
+        pytest.param({}, RequestUsage(prompt_tokens=0, completion_tokens=0), id="missing-usage"),
+        pytest.param({"usage": None}, RequestUsage(prompt_tokens=0, completion_tokens=0), id="null-usage"),
+    ],
+)
+async def test_sk_chat_completion_token_usage(
+    stream: bool,
+    metadata: dict[str, Any],
+    expected_usage: RequestUsage,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mock_client = AsyncMock(spec=AzureChatCompletion)
+    mock_client.get_chat_message_contents.return_value = [
+        ChatMessageContent(role=AuthorRole.ASSISTANT, content="Hello!", metadata=metadata)
+    ]
+
+    async def mock_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[list[StreamingChatMessageContent], None]:
+        yield [StreamingChatMessageContent(choice_index=0, role=AuthorRole.ASSISTANT, content="Hello!")]
+        yield [StreamingChatMessageContent(choice_index=0, role=AuthorRole.ASSISTANT, items=[], metadata=metadata)]
+
+    mock_client.get_streaming_chat_message_contents = mock_stream
+    adapter = SKChatCompletionAdapter(mock_client, kernel=Kernel(memory=NullMemory()))
+    messages = [UserMessage(content="Say hello!", source="user")]
+
+    with caplog.at_level(logging.INFO, logger=EVENT_LOGGER_NAME):
+        for call_count in (1, 2):
+            if stream:
+                chunks = [chunk async for chunk in adapter.create_stream(messages)]
+                assert chunks[:-1] == ["Hello!"]
+                result = chunks[-1]
+                assert isinstance(result, CreateResult)
+            else:
+                result = await adapter.create(messages)
+
+            assert result.content == "Hello!"
+            assert result.usage == expected_usage
+            total_usage = RequestUsage(
+                prompt_tokens=expected_usage.prompt_tokens * call_count,
+                completion_tokens=expected_usage.completion_tokens * call_count,
+            )
+            assert adapter.actual_usage() == total_usage
+            assert adapter.total_usage() == total_usage
+
+    events = [record.msg for record in caplog.records if isinstance(record.msg, (LLMCallEvent, LLMStreamEndEvent))]
+    assert len(events) == 2
+    assert all(event.prompt_tokens == expected_usage.prompt_tokens for event in events)
+    assert all(event.completion_tokens == expected_usage.completion_tokens for event in events)
+
+
+@pytest.mark.asyncio
+async def test_sk_chat_completion_stream_shared_usage_metadata(caplog: pytest.LogCaptureFixture) -> None:
+    mock_client = AsyncMock(spec=AzureChatCompletion)
+
+    async def mock_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[list[StreamingChatMessageContent], None]:
+        # Anthropic's SK connector reuses this dictionary and adds output usage at the end.
+        metadata = {"usage": {"input_tokens": 147}}
+        for text in ("Hello", "!"):
+            chunk = StreamingChatMessageContent(choice_index=0, role=AuthorRole.ASSISTANT, content=text)
+            chunk.metadata = metadata
+            yield [chunk]
+
+        metadata["usage"]["output_tokens"] = 1024
+        final_chunk = StreamingChatMessageContent(
+            choice_index=0, role=AuthorRole.ASSISTANT, items=[], finish_reason=FinishReason.STOP
+        )
+        final_chunk.metadata = metadata
+        yield [final_chunk]
+
+    mock_client.get_streaming_chat_message_contents = mock_stream
+    adapter = SKChatCompletionAdapter(mock_client, kernel=Kernel(memory=NullMemory()))
+
+    with caplog.at_level(logging.INFO, logger=EVENT_LOGGER_NAME):
+        chunks = [chunk async for chunk in adapter.create_stream([UserMessage(content="Say hello!", source="user")])]
+
+    assert chunks[:-1] == ["Hello", "!"]
+    result = chunks[-1]
+    assert isinstance(result, CreateResult)
+    assert result.content == "Hello!"
+    assert result.finish_reason == "stop"
+    expected_usage = RequestUsage(prompt_tokens=147, completion_tokens=1024)
+    assert result.usage == expected_usage
+    assert adapter.actual_usage() == expected_usage
+    assert adapter.total_usage() == expected_usage
+
+    events = [record.msg for record in caplog.records if isinstance(record.msg, LLMStreamEndEvent)]
+    assert len(events) == 1
+    assert events[0].prompt_tokens == 147
+    assert events[0].completion_tokens == 1024
 
 
 class CalculatorArgs(BaseModel):
