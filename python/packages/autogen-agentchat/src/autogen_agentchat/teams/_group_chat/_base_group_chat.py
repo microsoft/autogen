@@ -832,3 +832,25 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         finally:
             # Indicate that the team is no longer running.
             self._is_running = False
+
+    async def get_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get the current message thread of the group chat.
+
+        This method retrieves the message thread from the group chat manager.
+
+        Returns:
+            A list of messages in the current thread.
+
+        Raises:
+            RuntimeError: If the team has not been initialized.
+        """
+        if not self._initialized:
+            raise RuntimeError("The group chat has not been initialized. It must be run before getting the thread.")
+
+        # Call the get_thread method on the group chat manager via RPC.
+        result = await self._runtime.call_rpc(
+            target=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            method="get_thread",
+            params=(),
+        )
+        return result
