@@ -124,6 +124,10 @@ class SelectorGroupChatManager(BaseGroupChatManager):
     async def load_state(self, state: Mapping[str, Any]) -> None:
         selector_state = SelectorManagerState.model_validate(state)
         self._message_thread = [self._message_factory.create(msg) for msg in selector_state.message_thread]
+        # Overwrite (not append to) the selector's model context so that
+        # loading state into an already-run team does not leave stale or
+        # duplicated messages in the speaker-selection history.
+        await self._model_context.clear()
         await self._add_messages_to_context(
             self._model_context, [msg for msg in self._message_thread if isinstance(msg, BaseChatMessage)]
         )
