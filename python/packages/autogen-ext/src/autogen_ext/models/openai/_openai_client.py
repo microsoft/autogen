@@ -906,6 +906,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # Process the stream of chunks.
         async for chunk in chunks:
+            if chunk is None:  # pyright: ignore[reportUnnecessaryComparison]
+                continue
+
             if first_chunk:
                 first_chunk = False
                 # Emit the start event.
@@ -949,6 +952,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             maybe_model = chunk.model
 
             reasoning_content: str | None = None
+
             if choice.delta.model_extra is not None and "reasoning_content" in choice.delta.model_extra:
                 # If there is a reasoning_content field, then we populate the thought field. This is for models such as R1.
                 reasoning_content = choice.delta.model_extra.get("reasoning_content")
