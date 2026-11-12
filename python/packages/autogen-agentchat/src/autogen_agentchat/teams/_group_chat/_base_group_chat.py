@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
+from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence, cast
 
 from autogen_core import (
     AgentId,
@@ -27,6 +27,8 @@ from ...messages import (
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
+    GroupChatGetThreadResponse,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
@@ -576,6 +578,39 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
                 # Indicate that the team is no longer running.
                 self._is_running = False
+
+    async def get_thread(
+        self, cancellation_token: CancellationToken | None = None
+    ) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get all messages that have happened so far in the group chat.
+
+        Returns:
+            The current message thread maintained by the group chat manager.
+        """
+
+        if not self._initialized:
+            await self._init(self._runtime)
+
+        started_runtime = False
+        if self._embedded_runtime and not self._is_running:
+            assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+            self._runtime.start()
+            started_runtime = True
+
+        try:
+            response = cast(
+                GroupChatGetThreadResponse,
+                await self._runtime.send_message(
+                    GroupChatGetThread(),
+                    recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+                    cancellation_token=cancellation_token,
+                ),
+            )
+            return response.messages
+        finally:
+            if started_runtime:
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                await self._runtime.stop_when_idle()
 
     async def reset(self) -> None:
         """Reset the team and its participants to their initial state.
