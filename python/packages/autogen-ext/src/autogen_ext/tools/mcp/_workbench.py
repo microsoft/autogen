@@ -299,9 +299,9 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
 
             parameters = ParametersSchema(
                 type="object",
-                properties=tool.inputSchema.get("properties", {}),
-                required=tool.inputSchema.get("required", []),
-                additionalProperties=tool.inputSchema.get("additionalProperties", False),
+                properties=(tool.input_schema if hasattr(tool, 'input_schema') else tool.inputSchema).get("properties", {}),
+                required=(tool.input_schema if hasattr(tool, 'input_schema') else tool.inputSchema).get("required", []),
+                additionalProperties=(tool.input_schema if hasattr(tool, 'input_schema') else tool.inputSchema).get("additionalProperties", False),
             )
             tool_schema = ToolSchema(
                 name=name,
@@ -337,14 +337,15 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             tool_call_id=call_id,
         ):
             try:
-                result_future = await self._actor.call("call_tool", {"name": original_name, "kargs": arguments})
-                cancellation_token.link_future(result_future)
-                result = await result_future
+                mcp_coro = await self._actor.call("call_tool", {"name": original_name, "kargs": arguments})
+                task = asyncio.ensure_future(mcp_coro)
+                cancellation_token.link_future(task)
+                result = await task
                 assert isinstance(
                     result, CallToolResult
                 ), f"call_tool must return a CallToolResult, instead of : {str(type(result))}"
                 result_parts: List[TextResultContent | ImageResultContent] = []
-                is_error = result.isError
+                is_error = (result.is_error if hasattr(result, 'is_error') else result.isError)
                 for content in result.content:
                     if isinstance(content, TextContent):
                         result_parts.append(TextResultContent(content=content.text))
