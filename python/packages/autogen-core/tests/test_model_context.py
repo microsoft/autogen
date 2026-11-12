@@ -7,9 +7,11 @@ from autogen_core.model_context import (
     TokenLimitedChatCompletionContext,
     UnboundedChatCompletionContext,
 )
+from autogen_core import FunctionCall
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
+    FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     UserMessage,
@@ -208,3 +210,50 @@ async def test_token_limited_model_context_openai_with_function_result(
     assert type(retrieved[0]) == UserMessage  # Function result should be removed
     assert type(retrieved[1]) == AssistantMessage
     assert type(retrieved[2]) == UserMessage
+
+
+class _CountByMessage:
+    """Fake model client: each message costs 1 token, ignores tools."""
+
+    def count_tokens(self, messages: List[LLMMessage], tools=None) -> int:  # type: ignore[override]
+        return len(messages)
+
+    def remaining_tokens(self, messages: List[LLMMessage], tools=None) -> int:  # type: ignore[override]
+        return 100 - len(messages)
+
+
+@pytest.mark.asyncio
+async def test_token_limited_mid_list_orphaned_function_result_is_removed() -> None:
+    """Regression #7955: orphaned FunctionExecutionResultMessage not at index 0 must be removed.
+
+    With token_limit=6 and 7 messages, middle_index=3 removes the AssistantMessage
+    that carries call_1.  The post-loop cleanup previously only checked index 0;
+    the paired FunctionExecutionResultMessage at index 4 was left in place.
+    """
+    ctx = TokenLimitedChatCompletionContext(
+        model_client=_CountByMessage(),  # type: ignore[arg-type]
+        token_limit=6,
+    )
+    messages: List[LLMMessage] = [
+        UserMessage(content="m0", source="user"),
+        UserMessage(content="m1", source="user"),
+        UserMessage(content="m2", source="user"),
+        AssistantMessage(
+            content=[FunctionCall(id="call_1", arguments="{}", name="tool")],
+            source="assistant",
+        ),
+        FunctionExecutionResultMessage(
+            content=[FunctionExecutionResult(content="ok", name="tool", call_id="call_1")]
+        ),
+        UserMessage(content="m5", source="user"),
+        UserMessage(content="m6", source="user"),
+    ]
+    for m in messages:
+        await ctx.add_message(m)
+
+    result = await ctx.get_messages()
+
+    orphaned = [m for m in result if isinstance(m, FunctionExecutionResultMessage)]
+    assert orphaned == [], (
+        f"Orphaned FunctionExecutionResultMessage found in result: {orphaned}"
+    )
