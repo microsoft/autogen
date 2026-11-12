@@ -218,6 +218,34 @@ async def test_call_tool_with_none_cancellation_token(
 
 
 @pytest.mark.asyncio
+async def test_call_tool_cancellation(sample_server_params: StdioServerParams, mock_actor: AsyncMock) -> None:
+    """Test call_tool correctly propagates cancellation token to task."""
+    from autogen_core import CancellationToken
+
+    workbench = McpWorkbench(server_params=sample_server_params)
+    workbench._actor = mock_actor  # type: ignore[reportPrivateUsage]
+
+    # Mock the call method to return a coroutine that blocks
+    async def mock_call_tool(*args: Any, **kwargs: Any) -> CallToolResult:
+        await asyncio.sleep(10.0)
+        return CallToolResult(content=[TextContent(type="text", text="Success")], isError=False)
+
+    mock_actor.call.return_value = mock_call_tool()
+
+    token = CancellationToken()
+
+    # Cancel the token shortly after starting
+    async def cancel_soon() -> None:
+        await asyncio.sleep(0.1)
+        token.cancel()
+
+    asyncio.create_task(cancel_soon())
+
+    with pytest.raises(asyncio.CancelledError):
+        await workbench.call_tool("test_tool", cancellation_token=token)
+
+
+@pytest.mark.asyncio
 async def test_initialize_result_property_with_actor(
     sample_server_params: StdioServerParams, mock_actor: AsyncMock
 ) -> None:
