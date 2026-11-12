@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-from typing import TYPE_CHECKING, Any, Callable, Dict, Type, cast
+import types
+from typing import TYPE_CHECKING, Any, Callable, Dict, Type, Union, cast, get_args, get_origin, get_type_hints
 
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
@@ -10,6 +11,32 @@ from pydantic import BaseModel, Field, create_model
 
 if TYPE_CHECKING:
     from langchain_core.tools import BaseTool as LangChainTool
+
+
+def _is_callback_manager_annotation(annotation: Any) -> bool:
+    """Whether *annotation* is a LangChain callback-manager type.
+
+    LangChain injects a ``run_manager`` (``CallbackManagerForToolRun`` or
+    ``AsyncCallbackManagerForToolRun``) into a tool's ``_run``/``_arun``. It is
+    not a real tool input and pydantic cannot generate a schema for it. Unwrap
+    ``Optional[...]`` / ``Union[...]`` so both the bare type and
+    ``Optional[CallbackManagerForToolRun]`` are detected.
+    """
+    if annotation is None or annotation is inspect.Parameter.empty:
+        return False
+    origin = get_origin(annotation)
+    if origin is Union or (hasattr(types, "UnionType") and origin is types.UnionType):
+        return any(_is_callback_manager_annotation(arg) for arg in get_args(annotation))
+    try:
+        from langchain_core.callbacks.manager import (
+            AsyncCallbackManagerForToolRun,
+            CallbackManagerForToolRun,
+        )
+    except ImportError:
+        return False
+    return isinstance(annotation, type) and issubclass(
+        annotation, (CallbackManagerForToolRun, AsyncCallbackManagerForToolRun)
+    )
 
 
 class LangChainToolAdapter(BaseTool[BaseModel, Any]):
@@ -165,12 +192,44 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
             args_type = self._langchain_tool.args_schema  # pyright: ignore
         else:
             # Infer args_type from the callable's signature
-            sig = inspect.signature(cast(Callable[..., Any], self._callable))  # type: ignore
-            fields = {
-                k: (v.annotation, Field(...))
-                for k, v in sig.parameters.items()
-                if k != "self" and v.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
-            }
+            callable_ = cast(Callable[..., Any], self._callable)  # type: ignore
+            sig = inspect.signature(callable_)
+            # Resolve annotations (they may be strings under
+            # ``from __future__ import annotations``) so we can recognize
+            # callback-manager-typed parameters.
+            try:
+                type_hints = get_type_hints(callable_)
+            except Exception:
+                type_hints = {}
+            fields = {}
+            for k, v in sig.parameters.items():
+                if k == "self" or v.kind in (
+                    inspect.Parameter.VAR_POSITIONAL,
+                    inspect.Parameter.VAR_KEYWORD,
+                ):
+                    continue
+                # LangChain injects runtime-only callback arguments into a
+                # tool's ``_run``/``_arun`` that are not user-facing and cannot
+                # be represented in a pydantic schema. LangChain itself excludes
+                # these via ``FILTERED_ARGS = ("run_manager", "callbacks")``:
+                #   * ``run_manager`` (CallbackManagerForToolRun / its async
+                #     variant) — detected by annotation when resolvable, and as
+                #     a fallback for unresolvable (string) annotations, by the
+                #     conventional parameter name.
+                #   * ``callbacks`` (a ``Callbacks`` sequence of handlers) —
+                #     ``_is_callback_manager_annotation`` does not match it, so
+                #     it must be filtered by name.
+                # ``get_type_hints`` resolves annotations to real types when it
+                # can, but this module uses ``from __future__ import annotations``,
+                # so annotations arrive as strings and ``get_type_hints`` can fail
+                # (e.g. for a locally-defined tool), leaving a string annotation
+                # that ``_is_callback_manager_annotation``'s ``issubclass`` check
+                # cannot match. The ``run_manager``/``callbacks`` name check is a
+                # deliberate fallback for exactly that case.
+                annotation = type_hints.get(k, v.annotation)
+                if _is_callback_manager_annotation(annotation) or k in ("run_manager", "callbacks"):
+                    continue
+                fields[k] = (annotation, Field(...))
             args_type = create_model(f"{name}Args", **fields)  # type: ignore
             # Note: type ignore is used due to a LangChain typing limitation
 
