@@ -1733,6 +1733,34 @@ async def test_round_robin_group_chat_with_message_list(runtime: AgentRuntime | 
 
 
 @pytest.mark.asyncio
+async def test_round_robin_group_chat_with_message_sequence(runtime: AgentRuntime | None) -> None:
+    # A tuple is a valid Sequence[BaseChatMessage] and must be accepted like a list.
+    agent1 = _EchoAgent("Agent1", "First agent")
+    agent2 = _EchoAgent("Agent2", "Second agent")
+    termination = MaxMessageTermination(4)
+    team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination, runtime=runtime)
+
+    messages: Sequence[BaseChatMessage] = (
+        TextMessage(content="Message 1", source="user"),
+        TextMessage(content="Message 2", source="user"),
+        TextMessage(content="Message 3", source="user"),
+    )
+
+    result = await team.run(task=messages)
+
+    assert len(result.messages) == 4  # Initial messages + echo until termination
+    assert isinstance(result.messages[0], TextMessage)
+    assert isinstance(result.messages[1], TextMessage)
+    assert isinstance(result.messages[2], TextMessage)
+    assert isinstance(result.messages[3], TextMessage)
+    assert result.messages[0].content == "Message 1"
+    assert result.messages[1].content == "Message 2"
+    assert result.messages[2].content == "Message 3"
+    assert result.messages[3].content == "Message 1"  # Echo from first agent
+    assert result.stop_reason == "Maximum number of messages 4 reached, current message count: 4"
+
+
+@pytest.mark.asyncio
 async def test_declarative_groupchats_with_config(runtime: AgentRuntime | None) -> None:
     # Create basic agents and components for testing
     agent1 = AssistantAgent(
