@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ...datamodel import Message, Run, RunStatus, Session
-from ..deps import get_db
+from ..deps import get_current_user, get_db
 
 router = APIRouter()
 
@@ -18,12 +18,11 @@ class CreateRunRequest(BaseModel):
 @router.post("/")
 async def create_run(
     request: CreateRunRequest,
+    user_id: str = Depends(get_current_user),
     db=Depends(get_db),
 ) -> Dict:
     """Create a new run with initial state"""
-    session_response = db.get(
-        Session, filters={"id": request.session_id, "user_id": request.user_id}, return_json=False
-    )
+    session_response = db.get(Session, filters={"id": request.session_id, "user_id": user_id}, return_json=False)
     if not session_response.status or not session_response.data:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -33,7 +32,7 @@ async def create_run(
             Run(
                 session_id=request.session_id,
                 status=RunStatus.CREATED,
-                user_id=request.user_id,
+                user_id=user_id,
                 task={},  # Will be set when run starts
                 team_result={},
             ),
