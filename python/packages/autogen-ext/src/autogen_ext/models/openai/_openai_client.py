@@ -9,6 +9,7 @@ import warnings
 from asyncio import Task
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
+from types import TracebackType
 from typing import (
     Any,
     AsyncGenerator,
@@ -1141,6 +1142,17 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
     async def close(self) -> None:
         await self._client.close()
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        await self.close()
 
     def actual_usage(self) -> RequestUsage:
         return self._actual_usage
