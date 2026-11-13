@@ -1042,3 +1042,103 @@ def test_nested_arrays_with_object_schemas() -> None:
     assert alice.name == "Alice"  # type: ignore[attr-defined]
     assert alice.role == "Senior Developer"  # type: ignore[attr-defined]
     assert alice.skills == ["Python", "JavaScript", "Docker"]  # type: ignore[attr-defined]
+
+
+def test_defs_with_array_type_preserved() -> None:
+    """Test that $defs entries with non-object types (e.g. array) are preserved correctly.
+
+    Regression test for https://github.com/microsoft/autogen/issues/7203.
+    When a $defs entry has type "array", schema_to_pydantic_model was incorrectly
+    creating an empty object model instead of preserving the array type.
+    """
+    schema: Dict[str, Any] = {
+        "$defs": {
+            "TaskData": {
+                "items": {"type": "string"},
+                "type": "array",
+            }
+        },
+        "properties": {
+            "task_data": {
+                "$ref": "#/$defs/TaskData",
+                "description": "The task Data",
+            }
+        },
+        "required": ["task_data"],
+        "title": "ToolCallSchema",
+        "type": "object",
+    }
+
+    converter = _JSONSchemaToPydantic()  # pyright: ignore[reportPrivateUsage]
+    Model = converter.json_schema_to_pydantic(schema, "ToolCallSchema")
+
+    # The model should accept a list of strings for task_data
+    instance = Model(task_data=["hello", "world"])
+    assert instance.task_data == ["hello", "world"]  # type: ignore[attr-defined]
+
+    # The reconstructed schema should preserve the array type
+    reconstructed = Model.model_json_schema()
+    task_data_schema = reconstructed["properties"]["task_data"]
+    assert task_data_schema["type"] == "array", f"Expected array type, got: {task_data_schema}"
+    assert task_data_schema["items"] == {"type": "string"}, f"Expected string items, got: {task_data_schema}"
+
+
+def test_defs_with_integer_type_preserved() -> None:
+    """Test that $defs entries with primitive types (e.g. integer) are preserved."""
+    schema: Dict[str, Any] = {
+        "$defs": {
+            "PositiveScore": {
+                "type": "integer",
+                "minimum": 0,
+            }
+        },
+        "properties": {
+            "score": {
+                "$ref": "#/$defs/PositiveScore",
+            }
+        },
+        "required": ["score"],
+        "title": "ScoreModel",
+        "type": "object",
+    }
+
+    converter = _JSONSchemaToPydantic()  # pyright: ignore[reportPrivateUsage]
+    Model = converter.json_schema_to_pydantic(schema, "ScoreModel")
+    instance = Model(score=42)
+    assert instance.score == 42  # type: ignore[attr-defined]
+
+    reconstructed = Model.model_json_schema()
+    score_schema = reconstructed["properties"]["score"]
+    assert score_schema.get("type") == "integer", f"Expected integer type, got: {score_schema}"
+
+
+def test_defs_with_mixed_object_and_array_types() -> None:
+    """Test schemas with $defs containing both object and non-object types."""
+    schema: Dict[str, Any] = {
+        "$defs": {
+            "Tags": {
+                "items": {"type": "string"},
+                "type": "array",
+            },
+            "Address": {
+                "type": "object",
+                "properties": {
+                    "city": {"type": "string"},
+                },
+                "required": ["city"],
+            },
+        },
+        "properties": {
+            "tags": {"$ref": "#/$defs/Tags"},
+            "address": {"$ref": "#/$defs/Address"},
+        },
+        "required": ["tags", "address"],
+        "title": "MixedModel",
+        "type": "object",
+    }
+
+    converter = _JSONSchemaToPydantic()  # pyright: ignore[reportPrivateUsage]
+    Model = converter.json_schema_to_pydantic(schema, "MixedModel")
+    instance = Model(tags=["python", "ai"], address={"city": "NYC"})
+    assert instance.tags == ["python", "ai"]  # type: ignore[attr-defined]
+    assert instance.address.city == "NYC"  # type: ignore[attr-defined]
