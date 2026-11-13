@@ -1,5 +1,5 @@
 import pytest
-from autogen_agentchat.base import AndTerminationCondition
+from autogen_agentchat.base import AndTerminationCondition, Handoff
 from autogen_agentchat.conditions import (
     ExternalTermination,
     HandoffTermination,
@@ -144,3 +144,10 @@ async def test_chat_completion_context_declarative() -> None:
 
     loaded_token_limited = ComponentLoader.load_component(token_limited_config, TokenLimitedChatCompletionContext)
     assert isinstance(loaded_token_limited, TokenLimitedChatCompletionContext)
+
+
+def test_handoff_auto_name_is_valid_identifier() -> None:
+    handoff = Handoff(target="Support Desk")
+
+    assert handoff.name == "transfer_to_support_desk"
+    assert handoff.name.isidentifier()
