@@ -66,6 +66,23 @@ public static class GroupChatExtension
     }
 
     /// <summary>
+    /// Run a streaming group chat, yielding partial updates followed by a complete reply for each turn.
+    /// </summary>
+    /// <param name="groupChat">The streaming group chat.</param>
+    /// <param name="chatHistory">The conversation history, excluding introduction messages.</param>
+    /// <param name="maxRound">The maximum number of agent turns.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Partial updates and complete replies, excluding the initial history.</returns>
+    public static IAsyncEnumerable<IMessage> SendStreamingAsync(
+        this IStreamingGroupChat groupChat,
+        IEnumerable<IMessage>? chatHistory = null,
+        int maxRound = 10,
+        CancellationToken cancellationToken = default)
+    {
+        return groupChat.CallStreamingAsync(chatHistory, maxRound, cancellationToken);
+    }
+
+    /// <summary>
     /// Send an instruction message to the group chat.
     /// </summary>
     public static void SendIntroduction(this IAgent agent, string message, IGroupChat groupChat)

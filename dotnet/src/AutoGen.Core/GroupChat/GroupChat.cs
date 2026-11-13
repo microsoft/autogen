@@ -4,12 +4,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
-public class GroupChat : IGroupChat
+public class GroupChat : IStreamingGroupChat
 {
     private IAgent? admin;
     private List<IAgent> agents = new List<IAgent>();
@@ -204,6 +205,101 @@ From {agentNames.First()}:
         }
 
         return conversationHistory;
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<IMessage> CallStreamingAsync(
+        IEnumerable<IMessage>? chatHistory = null,
+        int maxRound = 10,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var conversationHistory = new List<IMessage>(this.initializeMessages);
+        if (chatHistory != null)
+        {
+            conversationHistory.AddRange(chatHistory);
+        }
+
+        while (maxRound-- > 0)
+        {
+            ct.ThrowIfCancellationRequested();
+            var context = new OrchestrationContext
+            {
+                Candidates = this.agents,
+                ChatHistory = conversationHistory,
+            };
+            var nextSpeaker = await this.orchestrator.GetNextSpeakerAsync(context, ct);
+            ct.ThrowIfCancellationRequested();
+            if (nextSpeaker == null)
+            {
+                yield break;
+            }
+
+            IMessage? response = null;
+            if (nextSpeaker is IStreamingAgent streamingAgent)
+            {
+                TextMessage? textMessage = null;
+                ToolCallMessage? toolCallMessage = null;
+                await foreach (var message in streamingAgent.GenerateStreamingReplyAsync(conversationHistory, cancellationToken: ct).WithCancellation(ct))
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (message is TextMessageUpdate textUpdate)
+                    {
+                        if (textMessage == null)
+                        {
+                            textMessage = new TextMessage(textUpdate);
+                        }
+                        else
+                        {
+                            textMessage.Update(textUpdate);
+                        }
+
+                        yield return message;
+                    }
+                    else if (message is ToolCallMessageUpdate toolUpdate)
+                    {
+                        if (toolCallMessage == null)
+                        {
+                            toolCallMessage = new ToolCallMessage(toolUpdate);
+                        }
+                        else
+                        {
+                            toolCallMessage.Update(toolUpdate);
+                        }
+
+                        yield return message;
+                    }
+                    else
+                    {
+                        response = message;
+                    }
+                }
+
+                if (response == null && toolCallMessage != null)
+                {
+                    toolCallMessage.Content = textMessage?.Content;
+                    response = toolCallMessage;
+                }
+
+                response ??= textMessage;
+            }
+            else
+            {
+                response = await nextSpeaker.GenerateReplyAsync(conversationHistory, cancellationToken: ct);
+            }
+
+            ct.ThrowIfCancellationRequested();
+            if (response == null)
+            {
+                throw new InvalidOperationException($"Agent '{nextSpeaker.Name}' completed its stream without a reply.");
+            }
+
+            conversationHistory.Add(response);
+            yield return response;
+            if (response.IsGroupChatTerminateMessage())
+            {
+                yield break;
+            }
+        }
     }
 
     public void SendIntroduction(IMessage message)
