@@ -1,6 +1,8 @@
-from typing import List
+import json
+from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Sequence, Union
 
 import pytest
+from autogen_core import CancellationToken, FunctionCall
 from autogen_core.model_context import (
     BufferedChatCompletionContext,
     HeadAndTailChatCompletionContext,
@@ -10,12 +12,76 @@ from autogen_core.model_context import (
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
+    CreateResult,
+    FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
+    ModelCapabilities,  # type: ignore
+    RequestUsage,
     UserMessage,
 )
+from autogen_core.models._model_client import ModelFamily, ModelInfo
+from autogen_core.tools import Tool, ToolSchema
 from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from pydantic import BaseModel
+
+
+class _MessageCountingChatCompletionClient(ChatCompletionClient):
+    component_type = "model"
+
+    async def create(
+        self,
+        messages: Sequence[LLMMessage],
+        *,
+        tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
+        json_output: Optional[bool | type[BaseModel]] = None,
+        extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
+    ) -> CreateResult:
+        raise NotImplementedError()
+
+    def create_stream(
+        self,
+        messages: Sequence[LLMMessage],
+        *,
+        tools: Sequence[Tool | ToolSchema] = [],
+        tool_choice: Tool | Literal["auto", "required", "none"] = "auto",
+        json_output: Optional[bool | type[BaseModel]] = None,
+        extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
+    ) -> AsyncGenerator[Union[str, CreateResult], None]:
+        raise NotImplementedError()
+
+    async def close(self) -> None:
+        pass
+
+    def actual_usage(self) -> RequestUsage:
+        return RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+    def total_usage(self) -> RequestUsage:
+        return RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
+        return len(messages)
+
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
+        return 4 - len(messages)
+
+    @property
+    def capabilities(self) -> ModelCapabilities:  # type: ignore
+        return ModelCapabilities(vision=False, function_calling=True, json_output=False)  # type: ignore
+
+    @property
+    def model_info(self) -> ModelInfo:
+        return ModelInfo(
+            vision=False,
+            function_calling=True,
+            json_output=False,
+            family=ModelFamily.UNKNOWN,
+            structured_output=False,
+        )
 
 
 @pytest.mark.asyncio
@@ -208,3 +274,36 @@ async def test_token_limited_model_context_openai_with_function_result(
     assert type(retrieved[0]) == UserMessage  # Function result should be removed
     assert type(retrieved[1]) == AssistantMessage
     assert type(retrieved[2]) == UserMessage
+
+
+@pytest.mark.asyncio
+async def test_token_limited_model_context_trims_oldest_without_splitting_tool_result() -> None:
+    model_context = TokenLimitedChatCompletionContext(
+        model_client=_MessageCountingChatCompletionClient(),
+        token_limit=4,
+    )
+    messages: List[LLMMessage] = [
+        UserMessage(content="oldest", source="user"),
+        AssistantMessage(
+            content=[FunctionCall(id="call-1", name="lookup", arguments=json.dumps({"query": "weather"}))],
+            source="assistant",
+        ),
+        FunctionExecutionResultMessage(
+            content=[
+                FunctionExecutionResult(
+                    call_id="call-1",
+                    name="lookup",
+                    content="sunny",
+                    is_error=False,
+                )
+            ]
+        ),
+        UserMessage(content="newer", source="user"),
+        UserMessage(content="latest", source="user"),
+    ]
+    for msg in messages:
+        await model_context.add_message(msg)
+
+    retrieved = await model_context.get_messages()
+
+    assert retrieved == messages[1:]
