@@ -1944,3 +1944,33 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
 
     # Content-based verification instead of index-based
     # Note: The streaming test verifies the streaming behavior, not the final result content
+
+
+@pytest.mark.asyncio
+async def test_get_thread_empty(runtime: AgentRuntime | None) -> None:
+    model_client = ReplayChatCompletionClient(["Hello", "TERMINATE"])
+    agent = AssistantAgent("agent", model_client=model_client)
+    termination = TextMentionTermination("TERMINATE")
+    team = RoundRobinGroupChat(
+        participants=[agent],
+        termination_condition=termination,
+        runtime=runtime,
+    )
+    thread = await team.get_thread()
+    assert thread == []
+
+
+@pytest.mark.asyncio
+async def test_concurrent_get_thread(runtime: AgentRuntime | None) -> None:
+    model_client = ReplayChatCompletionClient(["Hello", "TERMINATE"])
+    agent = AssistantAgent("agent", model_client=model_client)
+    termination = TextMentionTermination("TERMINATE")
+    team = RoundRobinGroupChat(
+        participants=[agent],
+        termination_condition=termination,
+        runtime=runtime,
+    )
+    await team.run(task="Hi")
+    thread1, thread2 = await asyncio.gather(team.get_thread(), team.get_thread())
+    assert len(thread1) == len(thread2)
+    assert len(thread1) > 0
