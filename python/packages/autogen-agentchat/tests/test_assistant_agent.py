@@ -2916,10 +2916,12 @@ class TestAssistantAgentStreamingEdgeCases:
         model_client.model_info = {"function_calling": True, "vision": False, "family": ModelFamily.GPT_4O}
 
         call_count = 0
+        create_stream_calls: List[dict[str, Any]] = []
 
         async def mock_create_stream(*args: Any, **kwargs: Any) -> Any:
             nonlocal call_count
             call_count += 1
+            create_stream_calls.append(kwargs)
 
             if call_count == 1:
                 # First call: tool call
@@ -2968,6 +2970,12 @@ class TestAssistantAgentStreamingEdgeCases:
         assert chunk_events[0].content == "Reflection "
         assert chunk_events[1].content == "response "
         assert chunk_events[2].content == "complete"
+        assert len(create_stream_calls) == 2
+        assert len(create_stream_calls[0]["tools"]) == 1
+        assert create_stream_calls[0]["tools"][0]["name"] == "mock_tool_function"
+        assert len(create_stream_calls[1]["tools"]) == 1
+        assert create_stream_calls[1]["tools"][0]["name"] == "mock_tool_function"
+        assert create_stream_calls[1]["tool_choice"] == "none"
 
     @pytest.mark.asyncio
     async def test_streaming_with_large_chunks(self) -> None:

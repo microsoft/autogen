@@ -1425,6 +1425,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         """
         all_messages = system_messages + await model_context.get_messages()
         llm_messages = cls._get_compatible_context(model_client=model_client, messages=all_messages)
+        tools = [tool for wb in workbench for tool in await wb.list_tools()] + handoff_tools
 
         reflection_result: Optional[CreateResult] = None
 
@@ -1434,6 +1435,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         if model_client_stream:
             async for chunk in model_client.create_stream(
                 llm_messages,
+                tools=tools,
                 json_output=output_content_type,
                 cancellation_token=cancellation_token,
                 tool_choice="none",  # Do not use tools in reflection flow.
@@ -1449,6 +1451,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         else:
             reflection_result = await model_client.create(
                 llm_messages,
+                tools=tools,
                 json_output=output_content_type,
                 cancellation_token=cancellation_token,
                 tool_choice="none",  # Do not use tools in reflection flow.
