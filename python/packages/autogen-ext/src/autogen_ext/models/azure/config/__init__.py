@@ -25,6 +25,7 @@ class AzureAIClientArguments(TypedDict, total=False):
     endpoint: str
     credential: Union[AzureKeyCredential, AsyncTokenCredential]
     model_info: ModelInfo
+    api_version: str
 
 
 class AzureAICreateArguments(TypedDict, total=False):
