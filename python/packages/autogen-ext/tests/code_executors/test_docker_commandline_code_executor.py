@@ -101,7 +101,7 @@ async def test_execute_code(executor_and_temp_dir: ExecutorFixture, cleanup_temp
     )
 
     # Check saved code file.
-    async with open(code_result.code_file) as f:
+    async with open(code_result.code_file, encoding="utf-8") as f:
         code_lines = await f.readlines()
         for file_line, code_line in zip(file_lines, code_lines, strict=False):
             assert file_line.strip() == code_line.strip()
