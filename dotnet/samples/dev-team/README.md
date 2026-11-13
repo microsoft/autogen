@@ -26,13 +26,13 @@ https://github.com/microsoft/azure-openai-dev-skills-orchestrator/assets/1072810
 * User begins with creating an issue and then stateing what they want to accomplish, natural language, as simple or as detailed as needed.
 * Product manager agent will respond with a Readme, which can be iterated upon.
   * User approves the readme or gives feedback via issue comments.
-  * Once the readme is approved, the user closes the issue and the Readme is commited to a PR.
+  * Once the readme is approved, the user closes the issue and the Readme is committed to a PR.
 * Developer lead agent responds with a decomposed plan for development, which also can be iterated upon.
   * User approves the plan or gives feedback via issue comments.
   * Once the readme is approved, the user closes the issue and the plan is used to break down the task to different developer agents.
 * Developer agents respond with code, which can be iterated upon.
   * User approves the code or gives feedback via issue comments.
-  * Once the code is approved, the user closes the issue and the code is commited to a PR.
+  * Once the code is approved, the user closes the issue and the code is committed to a PR.
 
 ```mermaid
 graph TD;
@@ -46,7 +46,7 @@ graph TD;
     RCC -->|ProductManager| RCR([ReadmeCreated event]);
     RCR --> |AzureGenie| RES[Store Readme in blob storage];
     RES --> RES2([ReadmeStored event]);
-    RES2 --> |Hubber| REC[Readme commited to branch and create new PR];
+    RES2 --> |Hubber| REC[Readme committed to branch and create new PR];
 
     DPR([DevPlanRequested event]) -->|DeveloperLead| DPG[Generation of new development plan];
     NEA1 --> DPR;
@@ -65,5 +65,5 @@ graph TD;
     CS --> SRC([SandboxRunCreated event]);
     SRC --> |Sandbox| SRM[Check every minute if the run finished];
     SRM --> SRF([SandboxRunFinished event]);
-    SRF --> |Hubber| SRCC[Code files commited to branch];
+    SRF --> |Hubber| SRCC[Code files committed to branch];
 ```
