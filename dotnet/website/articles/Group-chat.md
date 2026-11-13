@@ -42,6 +42,43 @@ Output:
 
 ![GroupChat](../images/articles/DynamicGroupChat/dynamicChat.gif)
 
+### Stream group-chat replies
+
+@AutoGen.Core.GroupChat and @AutoGen.Core.RoundRobinGroupChat implement
+@AutoGen.Core.IStreamingGroupChat. Use `CallStreamingAsync` or `SendStreamingAsync`
+to receive incremental replies from members that implement @AutoGen.Core.IStreamingAgent.
+Members without streaming support still participate using `GenerateReplyAsync`.
+The existing `CallAsync` and `SendAsync` methods are unchanged.
+
+Each turn yields `TextMessageUpdate` or `ToolCallMessageUpdate` messages as they
+arrive, followed by one complete reply. Keep only complete replies in your
+application's conversation history:
+
+```csharp
+using var cancellation = new CancellationTokenSource();
+
+await foreach (var message in groupChat.SendStreamingAsync(
+    chatHistory,
+    maxRound: 10,
+    cancellationToken: cancellation.Token))
+{
+    if (message is TextMessageUpdate update)
+    {
+        Console.Write(update.Content);
+    }
+    else if (message is not ToolCallMessageUpdate)
+    {
+        chatHistory.Add(message);
+    }
+}
+```
+
+The group chat assembles partial updates before passing a reply to the next
+speaker. When an agent supplies a complete reply, that reply is authoritative,
+including tool-call IDs and tool results. Introduction messages are included
+once, and the turn limit and termination keyword apply to complete replies.
+Cancellation is forwarded to the orchestrator and participating agents.
+
 ### Below are break-down of how agents are created and their roles in the group chat.
 
 - Create admin agent
