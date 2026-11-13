@@ -890,7 +890,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             )
 
         # Prepare data to process streaming chunks.
-        chunk: ChatCompletionChunk | None = None
+        last_valid_chunk: ChatCompletionChunk | None = None
         stop_reason = None
         maybe_model = None
         content_deltas: List[str] = []
@@ -906,6 +906,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # Process the stream of chunks.
         async for chunk in chunks:
+            if chunk is None:
+                continue
+
+            last_valid_chunk = chunk
+
             if first_chunk:
                 first_chunk = False
                 # Emit the start event.
@@ -1013,9 +1018,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
 
         # Because the usage chunk is not guaranteed to be the last chunk, we need to check if it is available.
-        if chunk and chunk.usage:
-            prompt_tokens = chunk.usage.prompt_tokens
-            completion_tokens = chunk.usage.completion_tokens
+        if last_valid_chunk and last_valid_chunk.usage:
+            prompt_tokens = last_valid_chunk.usage.prompt_tokens
+            completion_tokens = last_valid_chunk.usage.completion_tokens
         else:
             prompt_tokens = 0
             completion_tokens = 0
