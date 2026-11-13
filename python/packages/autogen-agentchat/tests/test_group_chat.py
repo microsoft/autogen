@@ -1944,3 +1944,48 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
 
     # Content-based verification instead of index-based
     # Note: The streaming test verifies the streaming behavior, not the final result content
+
+
+@pytest.mark.asyncio
+async def test_base_group_chat_get_thread_before_run(runtime: AgentRuntime | None) -> None:
+    model_client = ReplayChatCompletionClient(["hello", "TERMINATE"])
+    agent1 = AssistantAgent("a1", model_client=model_client)
+    agent2 = AssistantAgent("a2", model_client=model_client)
+    termination = TextMentionTermination("TERMINATE")
+    team = RoundRobinGroupChat(
+        participants=[agent1, agent2],
+        termination_condition=termination,
+        runtime=runtime,
+    )
+    thread = await team.get_thread()
+    assert thread == []
+
+
+@pytest.mark.asyncio
+async def test_base_group_chat_get_thread_after_run(runtime: AgentRuntime | None) -> None:
+    model_client = ReplayChatCompletionClient(
+        [
+            'Here is the program\n ```python\nprint("Hello, world!")\n```',
+            "TERMINATE",
+        ],
+    )
+    with tempfile.TemporaryDirectory() as temp_dir:
+        code_executor_agent = CodeExecutorAgent(
+            "code_executor", code_executor=LocalCommandLineCodeExecutor(work_dir=temp_dir)
+        )
+        coding_assistant_agent = AssistantAgent(
+            "coding_assistant",
+            model_client=model_client,
+        )
+        termination = TextMentionTermination("TERMINATE")
+        team = RoundRobinGroupChat(
+            participants=[coding_assistant_agent, code_executor_agent],
+            termination_condition=termination,
+            runtime=runtime,
+        )
+        result = await team.run(
+            task="Write a program that prints 'Hello, world!'",
+        )
+        thread = await team.get_thread()
+        assert len(thread) >= len(result.messages)
+        assert any(isinstance(m, TextMessage) and "Write a program" in m.content for m in thread)
