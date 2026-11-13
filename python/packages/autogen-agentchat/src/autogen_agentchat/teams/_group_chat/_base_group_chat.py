@@ -27,11 +27,13 @@ from ...messages import (
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
     GroupChatStart,
     GroupChatTermination,
+    GroupChatThread,
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -744,6 +746,36 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             GroupChatResume(),
             recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
         )
+
+    async def get_thread(self) -> Sequence[BaseAgentEvent | BaseChatMessage]:
+        """Get the current message thread for the group chat team.
+
+        The returned sequence is a snapshot of the manager's internal thread and
+        contains the task messages, agent events, and chat messages accumulated
+        so far. Mutating the returned sequence does not mutate the team state.
+        """
+
+        if not self._initialized:
+            await self._init(self._runtime)
+
+        started_runtime = False
+        if self._embedded_runtime and not self._is_running:
+            assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+            self._runtime.start()
+            started_runtime = True
+
+        try:
+            thread = await self._runtime.send_message(
+                GroupChatGetThread(),
+                recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            )
+            if not isinstance(thread, GroupChatThread):
+                raise RuntimeError(f"Expected GroupChatThread response, got {type(thread)}.")
+            return list(thread.messages)
+        finally:
+            if started_runtime:
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                await self._runtime.stop_when_idle()
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the group chat team.
