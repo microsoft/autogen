@@ -9,6 +9,7 @@ from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectS
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
+    GroupChatGetThread,
     GroupChatMessage,
     GroupChatPause,
     GroupChatRequestPublish,
@@ -17,6 +18,7 @@ from ._events import (
     GroupChatStart,
     GroupChatTeamResponse,
     GroupChatTermination,
+    GroupChatThread,
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -55,6 +57,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 GroupChatAgentResponse,
                 GroupChatTeamResponse,
                 GroupChatMessage,
+                GroupChatGetThread,
                 GroupChatReset,
             ],
         )
@@ -268,6 +271,11 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
     async def handle_group_chat_error(self, message: GroupChatError, ctx: MessageContext) -> None:
         """Handle a group chat error by logging the error and signaling termination."""
         await self._signal_termination_with_error(message.error)
+
+    @rpc
+    async def handle_get_thread(self, message: GroupChatGetThread, ctx: MessageContext) -> GroupChatThread:
+        """Return the messages that have happened so far in the group chat."""
+        return GroupChatThread(messages=list(self._message_thread))
 
     @rpc
     async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
