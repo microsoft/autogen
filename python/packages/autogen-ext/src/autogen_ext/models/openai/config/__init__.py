@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
@@ -57,6 +57,10 @@ class CreateArguments(TypedDict, total=False):
     - 'low': Faster responses with less reasoning
     - 'medium': Balanced reasoning and speed
     - 'high': More thorough reasoning, may take longer"""
+    extra_body: Optional[Dict[str, Any]]
+    """Additional JSON properties to include in the request body, passed directly to the API.
+    Useful for provider-specific parameters not covered by the standard OpenAI interface
+    (e.g. ``{"enable_thinking": false}`` for some Qwen-compatible endpoints)."""
 
 
 AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
@@ -108,6 +112,8 @@ class CreateArgumentsConfigModel(BaseModel):
     parallel_tool_calls: bool | None = None
     # Controls the amount of effort the model uses for reasoning (reasoning models only)
     reasoning_effort: Literal["minimal", "low", "medium", "high"] | None = None
+    # Additional JSON properties passed directly to the API request body
+    extra_body: Dict[str, Any] | None = None
 
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
