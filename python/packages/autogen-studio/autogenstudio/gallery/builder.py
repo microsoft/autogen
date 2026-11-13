@@ -187,11 +187,11 @@ def create_default_gallery() -> GalleryConfig:
         description="Local Mistral-7B model client for instruction-based generation (Ollama, LMStudio).",
     )
 
-    anthropic_model = AnthropicChatCompletionClient(model="claude-3-7-sonnet-20250219")
+    anthropic_model = AnthropicChatCompletionClient(model="claude-sonnet-4-6")
     builder.add_model(
         anthropic_model.dump_component(),
-        label="Anthropic Claude-3-7",
-        description="Anthropic Claude-3 model client.",
+        label="Anthropic Claude Sonnet 4.6",
+        description="Anthropic Claude Sonnet 4.6 model client.",
     )
 
     # create an azure mode
@@ -409,7 +409,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     builder.add_tool(
         tools.generate_image_tool.dump_component(),
         label="Image Generation Tool",
-        description="A tool that generates images based on a text description using OpenAI's DALL-E model. Note: Requires OpenAI API key to function.",
+        description="A tool that generates images based on a text description using OpenAI's GPT Image model. Note: Requires OpenAI API key to function.",
     )
 
     builder.add_tool(
