@@ -37,7 +37,7 @@ class ComponentModel(BaseModel):
     """Human readable label for the component. If missing the component assumes the class name of the provider."""
 
     config: dict[str, Any]
-    """The schema validated config field is passed to a given class's implmentation of :py:meth:`autogen_core.ComponentConfigImpl._from_config` to create a new instance of the component class."""
+    """The schema validated config field is passed to a given class's implementation of :py:meth:`autogen_core.ComponentConfigImpl._from_config` to create a new instance of the component class."""
 
 
 def _type_to_provider_str(t: type) -> str:
