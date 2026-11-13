@@ -276,7 +276,11 @@ $functions"""
         func_file.write_text(func_file_content)
 
         # Collect requirements
-        lists_of_packages = [x.python_packages for x in self._functions if isinstance(x, FunctionWithRequirements)]
+        lists_of_packages = [
+            x.python_packages
+            for x in self._functions
+            if isinstance(x, (FunctionWithRequirements, FunctionWithRequirementsStr))
+        ]
         flattened_packages = [item for sublist in lists_of_packages for item in sublist]
         required_packages = list(set(flattened_packages))
         if len(required_packages) > 0:
