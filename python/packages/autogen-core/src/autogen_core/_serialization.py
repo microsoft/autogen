@@ -1,6 +1,19 @@
 import json
 from dataclasses import asdict, dataclass, fields
-from typing import Any, ClassVar, Dict, List, Protocol, Sequence, TypeVar, cast, get_args, get_origin, runtime_checkable
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    List,
+    Protocol,
+    Sequence,
+    TypeVar,
+    cast,
+    get_args,
+    get_origin,
+    get_type_hints,
+    runtime_checkable,
+)
 
 from google.protobuf import any_pb2
 from google.protobuf.message import Message
@@ -35,8 +48,18 @@ def is_dataclass(cls: type[Any]) -> bool:
 
 
 def has_nested_dataclass(cls: type[IsDataclass]) -> bool:
-    # iterate fields and check if any of them are dataclasses
-    return any(is_dataclass(f.type) for f in cls.__dataclass_fields__.values())
+    type_hints = get_type_hints(cls)
+    return any(has_nested_dataclass_in_type(type_hints[field.name]) for field in fields(cls))
+
+
+def has_nested_dataclass_in_type(tp: Any) -> bool:
+    """Return whether a type or its generic arguments contain a dataclass."""
+    if isinstance(tp, type) and is_dataclass(tp):
+        return True
+    origin = get_origin(tp)
+    if isinstance(origin, type) and is_dataclass(origin):
+        return True
+    return any(has_nested_dataclass_in_type(arg) for arg in get_args(tp))
 
 
 def contains_a_union(cls: type[IsDataclass]) -> bool:
