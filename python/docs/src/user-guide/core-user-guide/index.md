@@ -34,6 +34,7 @@ core-concepts/topic-and-subscription
 
 framework/agent-and-agent-runtime
 framework/message-and-communication
+framework/memory-poisoning
 framework/logging
 framework/telemetry
 framework/distributed-agent-runtime
