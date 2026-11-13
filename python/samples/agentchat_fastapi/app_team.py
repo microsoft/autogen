@@ -121,15 +121,15 @@ async def chat(websocket: WebSocket):
                 async for message in stream:
                     if isinstance(message, TaskResult):
                         continue
-                    await websocket.send_json(message.model_dump())
+                    await websocket.send_json(message.model_dump(mode='json'))
                     if not isinstance(message, UserInputRequestedEvent):
                         # Don't save user input events to history.
-                        history.append(message.model_dump())
+                        history.append(message.model_dump(mode='json'))
 
                 # Save team state to file.
                 async with aiofiles.open(state_path, "w") as file:
                     state = await team.save_state()
-                    await file.write(json.dumps(state))
+                    await file.write(json.dumps(state, default=str))
 
                 # Save chat history to file.
                 async with aiofiles.open(history_path, "w") as file:

@@ -23,6 +23,7 @@ class SseServerParams(BaseModel):
     headers: dict[str, Any] | None = None  # Optional headers to include in requests.
     timeout: float = 5  # HTTP timeout for regular operations.
     sse_read_timeout: float = 60 * 5  # Timeout for SSE read operations.
+    ssl_verify: bool = True  # Whether to verify SSL certificates.
 
 
 class StreamableHttpServerParams(BaseModel):
@@ -35,6 +36,7 @@ class StreamableHttpServerParams(BaseModel):
     timeout: float = 30.0  # HTTP timeout for regular operations in seconds.
     sse_read_timeout: float = 300.0  # Timeout for SSE read operations in seconds.
     terminate_on_close: bool = True
+    ssl_verify: bool = True  # Whether to verify SSL certificates.
 
 
 McpServerParams = Annotated[

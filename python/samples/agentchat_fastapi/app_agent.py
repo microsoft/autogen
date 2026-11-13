@@ -84,12 +84,12 @@ async def chat(request: TextMessage) -> TextMessage:
         # Save agent state to file.
         state = await agent.save_state()
         async with aiofiles.open(state_path, "w") as file:
-            await file.write(json.dumps(state))
+            await file.write(json.dumps(state, default=str))
 
         # Save chat history to file.
         history = await get_history()
-        history.append(request.model_dump())
-        history.append(response.chat_message.model_dump())
+        history.append(request.model_dump(mode='json'))
+        history.append(response.chat_message.model_dump(mode='json'))
         async with aiofiles.open(history_path, "w") as file:
             await file.write(json.dumps(history))
 

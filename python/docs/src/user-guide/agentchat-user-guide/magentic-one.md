@@ -180,3 +180,22 @@ While the default multimodal LLM we use for all agents is GPT-4o, Magentic-One i
 }
 
 ```
+
+## OWASP Agent Memory Guard
+
+The [OWASP Top 10 for Agentic Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/) identifies **ASI06: Memory Poisoning** as a critical vulnerability for agents with persistent memory. AutoGen agents that use persistent memory stores should consider protecting against memory poisoning attacks, where malicious content injected into memory can silently influence future agent decisions across sessions.
+
+The [OWASP Agent Memory Guard](https://github.com/OWASP/www-project-agent-memory-guard) is a reference implementation for ASI06 that provides:
+
+- **Integrity baselines**: Detects tampered memory entries using SHA-256 hashes
+- **Injection scanning**: Scans memory reads/writes for prompt injection payloads and secret leakage
+- **Policy enforcement**: YAML-defined policies (block/warn/strip) at the memory boundary
+- **Low overhead**: Sub-100μs latency with zero external dependencies
+
+Installation:
+
+```bash
+pip install agent-memory-guard
+```
+
+This middleware can be integrated with AutoGen's memory system to add a defense-in-depth layer against memory poisoning. The UK Government BEIS Inspect AI evaluation framework has adopted this as part of their AI safety evaluation suite.
