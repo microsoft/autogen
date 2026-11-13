@@ -88,6 +88,19 @@ class GroupChatTermination(BaseModel):
     """The error that occurred, if any."""
 
 
+class GroupChatGetThread(BaseModel):
+    """A request to get the current message thread from the group chat."""
+
+    ...
+
+
+class GroupChatThreadResponse(BaseModel):
+    """A response containing the current message thread from the group chat."""
+
+    messages: List[SerializeAsAny[BaseAgentEvent | BaseChatMessage]]
+    """The messages in the thread."""
+
+
 class GroupChatReset(BaseModel):
     """A request to reset the agents in the group chat."""
 

@@ -150,6 +150,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         # Flag to track if the team events should be emitted.
         self._emit_team_events = emit_team_events
 
+        # Snapshot of the message thread, populated during run_stream.
+        self._thread: List[BaseAgentEvent | BaseChatMessage] = []
+
     @property
     def name(self) -> str:
         """The name of the group chat team."""
@@ -559,6 +562,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                     # Skip the model client streaming chunk events.
                     continue
                 output_messages.append(message)
+                self._thread.append(message)
 
             # Yield the final result.
             yield TaskResult(messages=output_messages, stop_reason=stop_reason)
@@ -623,6 +627,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         if self._is_running:
             raise RuntimeError("The group chat is currently running. It must be stopped before it can be reset.")
         self._is_running = True
+
+        # Clear the local thread snapshot.
+        self._thread.clear()
 
         if self._embedded_runtime:
             # Start the runtime.
@@ -744,6 +751,34 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             GroupChatResume(),
             recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
         )
+
+    async def get_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get the current message thread from the group chat.
+
+        Returns a snapshot of all messages that have been produced so far.
+        The returned list is a shallow copy — mutating it will not affect
+        the team's internal state.
+
+        Can be called during a run (e.g., from another coroutine) or after
+        a run has completed.
+
+        Returns:
+            A list of :class:`~autogen_agentchat.messages.BaseAgentEvent` and
+            :class:`~autogen_agentchat.messages.BaseChatMessage` objects
+            representing the message thread.
+
+        Raises:
+            RuntimeError: If the group chat has not been initialized (i.e.,
+                :meth:`run` or :meth:`run_stream` has not been called yet).
+        """
+        if not self._initialized:
+            raise RuntimeError(
+                "The group chat has not been initialized. "
+                "It must be run before its thread can be retrieved."
+            )
+
+        # Use the shared thread reference maintained by the group chat manager.
+        return list(self._thread)
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the group chat team.
