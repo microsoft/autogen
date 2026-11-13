@@ -15,7 +15,8 @@ from autogen_agentchat.teams import BaseGroupChat
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, ComponentModel
 from autogen_core.logging import LLMCallEvent
 
-from ..datamodel.types import EnvironmentVariable, LLMCallEventMessage, TeamResult
+from ..datamodel.types import EnvironmentVariable, LLMCallEventMessage, RedactionConfig, TeamResult
+from ..utils.redactor import SensitiveDataRedactor
 from ..web.managers.run_context import RunContext
 
 logger = logging.getLogger(__name__)
@@ -113,10 +114,12 @@ class TeamManager:
         input_func: Optional[InputFuncType] = None,
         cancellation_token: Optional[CancellationToken] = None,
         env_vars: Optional[List[EnvironmentVariable]] = None,
+        redaction_config: Optional[RedactionConfig] = None,
     ) -> AsyncGenerator[Union[BaseAgentEvent | BaseChatMessage | LLMCallEvent, BaseChatMessage, TeamResult], None]:
         """Stream team execution results"""
         start_time = time.time()
         team = None
+        redactor = SensitiveDataRedactor(config=redaction_config, env_vars=env_vars) if redaction_config else None
 
         # Setup logger correctly
         logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -132,14 +135,15 @@ class TeamManager:
                     break
 
                 if isinstance(message, TaskResult):
-                    yield TeamResult(task_result=message, usage="", duration=time.time() - start_time)
+                    tr = TeamResult(task_result=message, usage="", duration=time.time() - start_time)
+                    yield redactor.redact_message(tr) if redactor else tr
                 else:
-                    yield message
+                    yield redactor.redact_message(message) if redactor else message
 
                 # Check for any LLM events
                 while not llm_event_logger.events.empty():
                     event = await llm_event_logger.events.get()
-                    yield event
+                    yield redactor.redact_message(event) if redactor else event
         finally:
             # Cleanup - remove our handler
             if llm_event_logger in logger.handlers:
@@ -158,16 +162,19 @@ class TeamManager:
         input_func: Optional[InputFuncType] = None,
         cancellation_token: Optional[CancellationToken] = None,
         env_vars: Optional[List[EnvironmentVariable]] = None,
+        redaction_config: Optional[RedactionConfig] = None,
     ) -> TeamResult:
         """Run team synchronously"""
         start_time = time.time()
         team = None
+        redactor = SensitiveDataRedactor(config=redaction_config, env_vars=env_vars) if redaction_config else None
 
         try:
             team = await self._create_team(team_config, input_func, env_vars)
             result = await team.run(task=task, cancellation_token=cancellation_token)
 
-            return TeamResult(task_result=result, usage="", duration=time.time() - start_time)
+            tr = TeamResult(task_result=result, usage="", duration=time.time() - start_time)
+            return redactor.redact_message(tr) if redactor else tr
 
         finally:
             if team and hasattr(team, "_participants"):
