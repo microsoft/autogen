@@ -579,13 +579,32 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             response_obj = await cancellation_token.link_future(
                 asyncio.ensure_future(client.responses.create(**api_params))
             )
-            content = getattr(response_obj, "output_text", None)
             response_id = getattr(response_obj, "id", None)
             self._last_response_id = response_id
-            # Use a readable placeholder when the API returns no content to aid debugging
-            content_str: str = str(content) if content is not None else "[no content returned]"
-            self._message_history.append({"role": "assistant", "content": content_str})
-            final_message = TextMessage(source=self.name, content=content_str)
+
+            raw_output = getattr(response_obj, "output", None)
+            output_parts = list(raw_output or [])
+            output = getattr(response_obj, "output", None)
+            if output_parts:
+                content = []
+                for part in output:
+                    if isinstance(part, ImageGenerationCall):
+                        content.append(AGImage.from_base64(part.result))
+                    elif isinstance(part, ResponseOutputMessage):
+                        content.append("".join(c.text for c in part.content))
+                content_str = "".join(part for part in content if isinstance(part, str))   
+                self._message_history.append({"role": "assistant", "content": content_str})
+                final_message = (
+                    MultiModalMessage(source=self.name, content=content)
+                    if all(isinstance(part, AGImage) for part in content)
+                    else TextMessage(source=self.name, content=content_str)
+                )
+            else:
+                content = getattr(response_obj, "output_text", None)
+                # Use a readable placeholder when the API returns no content to aid debugging
+                content_str: str = str(content) if content is not None else "[no content returned]"
+                self._message_history.append({"role": "assistant", "content": content_str})
+                final_message = TextMessage(source=self.name, content=content_str)
             response = Response(chat_message=final_message, inner_messages=inner_messages)
             yield response
         except Exception as e:
