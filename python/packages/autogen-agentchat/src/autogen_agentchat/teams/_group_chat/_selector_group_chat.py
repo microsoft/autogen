@@ -138,10 +138,14 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         """
         Add incoming messages to the model context.
         """
+        from autogen_core.models import SystemMessage, UserMessage
         for msg in messages:
             if isinstance(msg, HandoffMessage):
                 for llm_msg in msg.context:
-                    await model_context.add_message(llm_msg)
+                    if isinstance(llm_msg, SystemMessage):
+                        await model_context.add_message(UserMessage(content=llm_msg.content, source=llm_msg.source))
+                    else:
+                        await model_context.add_message(llm_msg)
             await model_context.add_message(msg.to_model_message())
 
     async def update_message_thread(self, messages: Sequence[BaseAgentEvent | BaseChatMessage]) -> None:
