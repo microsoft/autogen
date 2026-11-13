@@ -227,9 +227,9 @@ class FunctionalTermination(TerminationCondition):
 
 
 class TokenUsageTerminationConfig(BaseModel):
-    max_total_token: int | None
-    max_prompt_token: int | None
-    max_completion_token: int | None
+    max_total_token: int | None = None
+    max_prompt_token: int | None = None
+    max_completion_token: int | None = None
 
 
 class TokenUsageTermination(TerminationCondition, Component[TokenUsageTerminationConfig]):
