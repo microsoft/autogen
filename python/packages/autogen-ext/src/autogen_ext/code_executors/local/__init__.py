@@ -4,6 +4,7 @@
 import asyncio
 import logging
 import os
+import re
 import sys
 import tempfile
 import warnings
@@ -11,7 +12,7 @@ from hashlib import sha256
 from pathlib import Path
 from string import Template
 from types import SimpleNamespace
-from typing import Any, Callable, ClassVar, List, Optional, Sequence, Union
+from typing import Any, Callable, ClassVar, List, Optional, Sequence, Tuple, Union
 
 from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import CodeBlock, CodeExecutor, FunctionWithRequirements, FunctionWithRequirementsStr
@@ -136,6 +137,28 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
         "ps1",
         "python",
     ]
+
+    # Dangerous patterns that should be blocked to prevent destructive operations
+    DANGEROUS_SHELL_PATTERNS: ClassVar[List[str]] = [
+        r"rm\s+(-[rfv]+\s+)*(/|~|\$HOME)",  # Recursive delete of root/home
+        r"rm\s+-[rfv]*\s+\*",  # Delete all files
+        r"mkfs\.",  # Format filesystem
+        r"dd\s+if=.*of=/dev/",  # Direct disk write
+        r":\(\)\{\s*:\|:&\s*\};:",  # Fork bomb
+        r"chmod\s+(-R\s+)?777\s+/",  # Dangerous permissions on root
+        r"curl.*\|\s*(ba)?sh",  # Remote code execution
+        r"wget.*\|\s*(ba)?sh",  # Remote code execution
+        r">(>)?\s*/dev/sd[a-z]",  # Direct disk write
+        r"shutdown|reboot|halt|poweroff",  # System control
+    ]
+
+    DANGEROUS_PYTHON_PATTERNS: ClassVar[List[str]] = [
+        r"os\.system\s*\(",  # Shell command execution
+        r"subprocess\.(run|call|Popen)\s*\(.*shell\s*=\s*True",  # Shell subprocess
+        r"shutil\.rmtree\s*\(\s*['\"/]",  # Recursive delete from root
+        r"__import__\s*\(\s*['\"]os['\"]\s*\)",  # Dynamic import of os
+    ]
+
     FUNCTION_PROMPT_TEMPLATE: ClassVar[
         str
     ] = """You have access to the following user defined functions. They can be accessed from the module called `$module_name` by their function names.
@@ -270,6 +293,32 @@ $functions"""
         """(Experimental) Whether to automatically clean up temporary files after execution."""
         return self._cleanup_temp_files
 
+    def _validate_code_safety(self, code: str, language: str) -> Tuple[bool, str]:
+        """Validate code for dangerous patterns before execution.
+
+        Args:
+            code: The code to validate.
+            language: The programming language of the code.
+
+        Returns:
+            A tuple of (is_safe, error_message). If is_safe is False,
+            error_message contains the reason.
+        """
+        # Select patterns based on language
+        if language == "python":
+            patterns = self.DANGEROUS_PYTHON_PATTERNS
+        elif language in ["bash", "shell", "sh"]:
+            patterns = self.DANGEROUS_SHELL_PATTERNS
+        else:
+            # PowerShell - use shell patterns as baseline
+            patterns = self.DANGEROUS_SHELL_PATTERNS
+
+        for pattern in patterns:
+            if re.search(pattern, code, re.IGNORECASE | re.MULTILINE):
+                return False, f"Code contains potentially dangerous pattern: {pattern}"
+
+        return True, ""
+
     async def _setup_functions(self, cancellation_token: CancellationToken) -> None:
         func_file_content = build_python_functions_file(self._functions)
         func_file = self.work_dir / f"{self._functions_module}.py"
@@ -365,6 +414,16 @@ $functions"""
                 exitcode = 1
                 logs_all += "\n" + f"unknown language {lang}"
                 break
+
+            # Validate code safety before execution
+            is_safe, error_msg = self._validate_code_safety(code, lang)
+            if not is_safe:
+                logging.warning(f"Blocked potentially dangerous code: {error_msg}")
+                return CommandLineCodeResult(
+                    exit_code=1,
+                    output=f"Security: Code execution blocked. {error_msg}",
+                    code_file=None,
+                )
 
             # Try extracting a filename (if present)
             try:
