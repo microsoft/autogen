@@ -78,6 +78,7 @@ def register_transformer(api: str, model_family: str, transformer_map: Transform
         .. code-block:: python
 
             register_transformer(
+                "openai",
                 "gpt-4o",
                 {
                     UserMessage: user_message_to_oai,
