@@ -60,6 +60,7 @@ components/command-line-code-executors
 design-patterns/intro
 design-patterns/concurrent-agents
 design-patterns/sequential-workflow
+design-patterns/producer-consumer
 design-patterns/group-chat
 design-patterns/handoffs
 design-patterns/mixture-of-agents
