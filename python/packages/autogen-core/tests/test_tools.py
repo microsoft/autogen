@@ -422,6 +422,58 @@ async def test_func_call_tool_with_arg_base_model() -> None:
 
 
 @pytest.mark.asyncio
+async def test_func_tool_positional_only_argument() -> None:
+    def scale(value: int, /, *, factor: int = 2) -> int:
+        return value * factor
+
+    tool = FunctionTool(scale, description="Scale a value.")
+    result = await tool.run_json({"value": 3, "factor": 4}, CancellationToken())
+    assert result == 12
+
+
+@pytest.mark.asyncio
+async def test_func_tool_async_positional_only_argument() -> None:
+    async def scale(value: int, /, *, factor: int = 2) -> int:
+        return value * factor
+
+    tool = FunctionTool(scale, description="Scale a value.")
+    result = await tool.run_json({"value": 3, "factor": 4}, CancellationToken())
+    assert result == 12
+
+
+@pytest.mark.asyncio
+async def test_func_tool_positional_only_default_before_required_argument() -> None:
+    def combine(prefix: str = "default", /, suffix: str = "!") -> str:
+        return prefix + suffix
+
+    tool = FunctionTool(combine, description="Combine two strings.")
+    result = await tool.run_json({"suffix": "?"}, CancellationToken())
+    assert result == "default?"
+
+
+@pytest.mark.asyncio
+async def test_func_tool_positional_only_cancellation_token() -> None:
+    def use_token(value: str, cancellation_token: CancellationToken, /) -> bool:
+        return value == "ok" and cancellation_token is token
+
+    token = CancellationToken()
+    tool = FunctionTool(use_token, description="Use a cancellation token.")
+    result = await tool.run_json({"value": "ok"}, token)
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_func_tool_async_positional_only_cancellation_token() -> None:
+    async def use_token(value: str, cancellation_token: CancellationToken, /) -> bool:
+        return value == "ok" and cancellation_token is token
+
+    token = CancellationToken()
+    tool = FunctionTool(use_token, description="Use a cancellation token.")
+    result = await tool.run_json({"value": "ok"}, token)
+    assert result is True
+
+
+@pytest.mark.asyncio
 async def test_func_str_res() -> None:
     def my_function(arg: str) -> str:
         return "test"
