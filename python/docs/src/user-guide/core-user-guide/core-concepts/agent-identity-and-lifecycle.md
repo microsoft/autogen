@@ -3,7 +3,7 @@
 
 The agent runtime manages agents' identities
 and lifecycles.
-Application does not create agents directly, rather,
+An application does not create agents directly, rather,
 it registers an agent type with a factory function for
 agent instances.
 In this section, we explain how agents are identified
@@ -11,8 +11,8 @@ and created by the runtime.
 
 ## Agent ID
 
-Agent ID uniquely identifies an agent instance within
-an agent runtime -- including distributed runtime.
+An Agent ID uniquely identifies an agent instance within
+an agent runtime -- including in a distributed runtime.
 It is the "address" of the agent instance for receiving messages.
 It has two components: agent type and agent key.
 
