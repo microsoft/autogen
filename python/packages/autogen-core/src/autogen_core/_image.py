@@ -100,9 +100,9 @@ class Image:
         def serialize(value: Image) -> dict[str, Any]:
             return {"data": value.to_base64()}
 
-        return core_schema.with_info_after_validator_function(
-            validate,
-            core_schema.any_schema(),  # Accept any type; adjust if needed
+        return core_schema.json_or_python_schema(
+            json_schema=core_schema.dict_schema(),
+            python_schema=core_schema.any_schema(),
             serialization=core_schema.plain_serializer_function_ser_schema(serialize),
         )
 
