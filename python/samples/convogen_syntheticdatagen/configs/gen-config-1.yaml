@@ -1,0 +1,37 @@
+experiment_name: "gen-data-1-short" # name of the experiment
+run_name: "run-1" # name of the run
+
+num_conversations: 500 # number of conversations to generate
+num_processes: 1
+num_threads_per_process: 8 # number of threads to use in each process. Each thread in the pool will process a single situation at a time to produce the corresponding group conversation
+
+write_partition_size: 100 # number of examples to write to each partition of the data
+
+Situation_generation:
+  llm_params: # to override any default params for the LLM in situation generation
+    temperature: 0.7 # temperature for generation
+  prompt_config_path: "situations-random-shots-1.yaml"
+  re_use_situations_as_shots: True # if true, will save the situations in the shots path and use them as shots for generating new situations
+  # situations_output_path: "./llm/prompts/situations/shots" # must match the shots path in prompt_config_path if you want to use the situations as shots
+
+Group_chat_generation:
+  base_output_path: "./output-2/" # base path for saving group generation outputs
+  max_turns: 18 # maximum number of turns in the group conversation
+  min_turns: 6 # minimum number of turns in the group conversation
+  ignore_agents_list: [ "User_proxy" ] # list of agents to ignore in the group conversation when saving the output
+
+formatting:
+  # format: "jsonl" # format of the generated data
+  base_output_path: "./output-2/" # base path for saving the generated data
+  format: "csv" # format of the generated data
+  format_params:
+    delimiter: "\t" # delimiter for the tsv output
+
+# The following section is optional if you would like to upload your data to azure
+upload_to_azure:
+  azure_account_name: "<accountName>" # account name for the container
+  azure_container: "<containerName>" # container to upload the generated data
+  azure_blob_path: "<blobPath>" # path to upload the generated data
+  local_data_path: "./output/" # local path to the generated data
+  file_extensions: [ "tsv" ] # extension of the data files that we need to upload
+

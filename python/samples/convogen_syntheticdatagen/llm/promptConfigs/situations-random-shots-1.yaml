@@ -1,0 +1,11 @@
+main_prompt: 
+  path: "./llm/prompts/situations/prompt-v1.md"
+
+additional_sections:
+  shots:
+    path: "./llm/prompts/situations/shots"
+    method: "random"
+    method_params:
+      shot_type: "json"
+      num_shots:  1
+  numGeneratedExamples: 8
