@@ -1,5 +1,8 @@
 import asyncio
+import threading
 from dataclasses import dataclass
+from functools import partial
+from typing import Callable
 
 import pytest
 from autogen_core import (
@@ -15,6 +18,109 @@ from autogen_core import (
 
 @dataclass
 class MessageType: ...
+
+
+def _run_without_deadlock(operation: Callable[[], None]) -> None:
+    errors: list[BaseException] = []
+
+    def run() -> None:
+        try:
+            operation()
+        except BaseException as exc:
+            errors.append(exc)
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    worker.join(timeout=2)
+    assert not worker.is_alive(), "Cancellation callback deadlocked"
+    assert not errors
+
+
+@pytest.mark.parametrize("already_cancelled", [False, True])
+@pytest.mark.parametrize("action", ["query", "cancel", "register"])
+def test_cancellation_callbacks_can_reenter_token(already_cancelled: bool, action: str) -> None:
+    token = CancellationToken()
+    calls: list[str] = []
+
+    def callback() -> None:
+        calls.append("outer")
+        if action == "query":
+            assert token.is_cancelled()
+        elif action == "cancel":
+            token.cancel()
+        else:
+            token.add_callback(lambda: calls.append("inner"))
+
+    def cancel() -> None:
+        if already_cancelled:
+            token.cancel()
+            token.add_callback(callback)
+        else:
+            token.add_callback(callback)
+            token.cancel()
+        token.cancel()
+
+    _run_without_deadlock(cancel)
+    assert calls == (["outer", "inner"] if action == "register" else ["outer"])
+
+
+def test_cancellation_propagation_can_query_parent_token() -> None:
+    parent = CancellationToken()
+    child = CancellationToken()
+    observed: list[bool] = []
+    parent.add_callback(child.cancel)
+    child.add_callback(lambda: observed.append(parent.is_cancelled()))
+
+    _run_without_deadlock(parent.cancel)
+
+    assert parent.is_cancelled()
+    assert child.is_cancelled()
+    assert observed == [True]
+
+
+def test_cancellation_callbacks_keep_registration_order_and_run_once() -> None:
+    token = CancellationToken()
+    calls: list[int] = []
+    for value in range(3):
+        token.add_callback(partial(calls.append, value))
+
+    token.cancel()
+    token.cancel()
+    token.add_callback(lambda: calls.append(3))
+
+    assert calls == [0, 1, 2, 3]
+
+
+def test_callbacks_are_not_lost_when_registration_races_with_cancellation() -> None:
+    token = CancellationToken()
+    barrier = threading.Barrier(10)
+    calls: list[int] = []
+    errors: list[BaseException] = []
+    calls_lock = threading.Lock()
+
+    def record(value: int) -> None:
+        with calls_lock:
+            calls.append(value)
+
+    def register_or_cancel(value: int) -> None:
+        try:
+            barrier.wait(timeout=5)
+            if value < 8:
+                token.add_callback(lambda: record(value))
+            else:
+                token.cancel()
+        except BaseException as exc:
+            errors.append(exc)
+
+    workers = [threading.Thread(target=register_or_cancel, args=(value,), daemon=True) for value in range(10)]
+    for worker in workers:
+        worker.start()
+    for worker in workers:
+        worker.join(timeout=5)
+
+    assert all(not worker.is_alive() for worker in workers)
+    assert not errors
+    assert sorted(calls) == list(range(8))
 
 
 # Note for future reader:

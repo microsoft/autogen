@@ -14,10 +14,13 @@ class CancellationToken:
     def cancel(self) -> None:
         """Cancel pending async calls linked to this cancellation token."""
         with self._lock:
-            if not self._cancelled:
-                self._cancelled = True
-                for callback in self._callbacks:
-                    callback()
+            if self._cancelled:
+                return
+            self._cancelled = True
+            callbacks = self._callbacks.copy()
+        # Callbacks may query or interact with this token themselves.
+        for callback in callbacks:
+            callback()
 
     def is_cancelled(self) -> bool:
         """Check if the CancellationToken has been used"""
@@ -27,10 +30,10 @@ class CancellationToken:
     def add_callback(self, callback: Callable[[], None]) -> None:
         """Attach a callback that will be called when cancel is invoked"""
         with self._lock:
-            if self._cancelled:
-                callback()
-            else:
+            if not self._cancelled:
                 self._callbacks.append(callback)
+                return
+        callback()
 
     def link_future(self, future: Future[Any]) -> Future[Any]:
         """Link a pending async call to a token to allow its cancellation"""
