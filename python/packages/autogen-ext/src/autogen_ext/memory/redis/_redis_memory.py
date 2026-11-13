@@ -6,6 +6,7 @@ from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQue
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
 from pydantic import BaseModel, Field
+from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +171,7 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
     """
 
     component_config_schema = RedisMemoryConfig
-    component_provider_override = "autogen_ext.memory.redis_memory.RedisMemory"
+    component_provider_override = "autogen_ext.memory.redis.RedisMemory"
 
     def __init__(self, config: RedisMemoryConfig | None = None) -> None:
         """Initialize RedisMemory."""
@@ -190,6 +191,17 @@ class RedisMemory(Memory, Component[RedisMemoryConfig]):
                 distance_threshold=self.config.distance_threshold,
                 redis_client=client,
             )
+
+    def _to_config(self) -> RedisMemoryConfig:
+        """Serialize the memory configuration."""
+
+        return self.config
+
+    @classmethod
+    def _from_config(cls, config: RedisMemoryConfig) -> Self:
+        """Deserialize the memory configuration."""
+
+        return cls(config=config)
 
     async def update_context(
         self,

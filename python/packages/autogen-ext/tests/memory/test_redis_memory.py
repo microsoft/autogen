@@ -176,6 +176,32 @@ def test_memory_config() -> None:
         _ = RedisMemoryConfig(algorithm="pythagoras")  # type: ignore[arg-type]
 
 
+def test_redis_memory_component_serialization() -> None:
+    config = RedisMemoryConfig(
+        redis_url="redis://example:6379/2",
+        index_name="component-test",
+        prefix="component",
+        sequential=True,
+        top_k=3,
+    )
+
+    with (
+        patch("autogen_ext.memory.redis._redis_memory.Redis.from_url"),
+        patch("autogen_ext.memory.redis._redis_memory.MessageHistory"),
+    ):
+        memory = RedisMemory(config)
+        dumped = memory.dump_component()
+
+        assert dumped.provider == "autogen_ext.memory.redis.RedisMemory"
+        assert dumped.config["redis_url"] == config.redis_url
+        assert dumped.config["index_name"] == config.index_name
+
+        loaded = RedisMemory.load_component(dumped)
+
+    assert isinstance(loaded, RedisMemory)
+    assert loaded.config == config
+
+
 @pytest.mark.asyncio
 @pytest.mark.skipif(not redis_available(), reason="Redis instance not available locally")
 @pytest.mark.parametrize("sequential", [True, False])
