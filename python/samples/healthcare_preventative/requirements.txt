@@ -1,0 +1,12 @@
+distro
+autogen
+autogen-ext[openai]
+litellm[proxy]
+anyio
+markitdown
+pandas
+aiofiles
+argparse
+openai
+asyncio
+streamlit
