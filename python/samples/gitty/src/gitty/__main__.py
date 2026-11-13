@@ -32,7 +32,7 @@ def check_gh_cli() -> bool:
 
 def edit_config_file(file_path: str) -> None:
     if not os.path.exists(file_path):
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write("# Instructions for gitty agents\n")
             f.write("# Add your configuration below\n")
     editor = os.getenv("EDITOR", "vi")

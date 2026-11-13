@@ -190,7 +190,7 @@ def generate_rst_files(package_roots: List[Path], reference_dir: Path) -> Set[st
 """
                 
                 # Write the .rst file
-                with open(rst_path, 'w') as f:
+                with open(rst_path, 'w', encoding="utf-8") as f:
                     f.write(rst_content)
                 
                 generated_files.add(module_name)
@@ -288,7 +288,7 @@ def main():
     print("✍️  Writing index.md...")
     content = generate_index_content(toctree_sections)
     
-    with open(index_file, 'w') as f:
+    with open(index_file, 'w', encoding="utf-8") as f:
         f.write(content)
     
     print(f"✅ Generated API documentation index at {index_file}")

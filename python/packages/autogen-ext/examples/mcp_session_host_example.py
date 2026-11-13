@@ -63,10 +63,10 @@ def load_model_client_from_config(config_path: str) -> ChatCompletionClient:
 
     # Load config based on file extension
     if config_file.suffix.lower() == ".json":
-        with open(config_file, "r") as f:
+        with open(config_file, "r", encoding="utf-8") as f:
             config_data = json.load(f)
     elif config_file.suffix.lower() in [".yml", ".yaml"]:
-        with open(config_file, "r") as f:
+        with open(config_file, "r", encoding="utf-8") as f:
             config_data = yaml.safe_load(f)
     else:
         raise ValueError(f"Unsupported config file type: {config_file.suffix}. Use .json, .yml, or .yaml")

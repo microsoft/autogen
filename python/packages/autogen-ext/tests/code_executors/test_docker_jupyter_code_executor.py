@@ -115,7 +115,7 @@ async def test_canncellation(executor_and_temp_dir: ExecutorFixture) -> None:
     # to a file.
     code = """import time, os
 time.sleep(10)
-with open("hello.txt", "w") as f:
+with open("hello.txt", "w", encoding="utf-8") as f:
     f.write("hello world!")
     """
     code_blocks = [CodeBlock(code=code, language="python")]

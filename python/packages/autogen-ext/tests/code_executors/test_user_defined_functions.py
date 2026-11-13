@@ -261,7 +261,7 @@ async def test_error_wrong_path() -> None:
 
         code_blocks = [
             CodeBlock(
-                code="""with open("/nonexistent_dir/test.txt", "w") as f:
+                code="""with open("/nonexistent_dir/test.txt", "w", encoding="utf-8") as f:
                 f.write("hello word")""",
                 language="python",
             )

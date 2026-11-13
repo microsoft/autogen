@@ -242,9 +242,9 @@ async def test_download_files() -> None:
         code_blocks = [
             CodeBlock(
                 code=f"""
-with open("{test_file_1}", "w") as f:
+with open("{test_file_1}", "w", encoding="utf-8") as f:
     f.write("{test_file_1_contents}")
-with open("{test_file_2}", "w") as f:
+with open("{test_file_2}", "w", encoding="utf-8") as f:
     f.write("{test_file_2_contents}")
 """,
                 language="python",
