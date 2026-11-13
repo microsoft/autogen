@@ -12,7 +12,7 @@ namespace AutoGen.OpenAI.Extension;
 public static class FunctionContractExtension
 {
     /// <summary>
-    /// Convert a <see cref="FunctionContract"/> to a <see cref="ChatTool"/> that can be used in gpt funciton call.
+    /// Convert a <see cref="FunctionContract"/> to a <see cref="ChatTool"/> that can be used in gpt function call.
     /// </summary>
     /// <param name="functionContract">function contract</param>
     /// <returns><see cref="ChatTool"/></returns>
@@ -60,7 +60,7 @@ public static class FunctionContractExtension
     }
 
     /// <summary>
-    /// Convert a <see cref="FunctionContract"/> to a <see cref="ChatTool"/> that can be used in gpt funciton call.
+    /// Convert a <see cref="FunctionContract"/> to a <see cref="ChatTool"/> that can be used in gpt function call.
     /// </summary>
     /// <param name="functionContract">function contract</param>
     /// <returns><see cref="ChatTool"/></returns>
