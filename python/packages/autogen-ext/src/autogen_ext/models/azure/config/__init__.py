@@ -8,6 +8,7 @@ from azure.ai.inference.models import (
 )
 from azure.core.credentials import AzureKeyCredential
 from azure.core.credentials_async import AsyncTokenCredential
+from pydantic import BaseModel, SecretStr
 
 GITHUB_MODELS_ENDPOINT = "https://models.github.ai/inference"
 
@@ -44,3 +45,21 @@ class AzureAICreateArguments(TypedDict, total=False):
 
 class AzureAIChatCompletionClientConfig(AzureAIClientArguments, AzureAICreateArguments):
     pass
+
+
+class AzureAIChatCompletionClientConfigModel(BaseModel):
+    """Pydantic config model for AzureAIChatCompletionClient serialization."""
+
+    endpoint: str
+    api_key: SecretStr | None = None
+    model_info: ModelInfo
+    model: str | None = None
+    frequency_penalty: float | None = None
+    presence_penalty: float | None = None
+    temperature: float | None = None
+    top_p: float | None = None
+    max_tokens: int | None = None
+    response_format: Literal["text", "json_object"] | None = None
+    stop: List[str] | None = None
+    seed: int | None = None
+    model_extras: Dict[str, Any] | None = None
