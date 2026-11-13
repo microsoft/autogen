@@ -463,7 +463,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             if agent_id.type in self._known_agent_names:
                 await (await self._get_agent(agent_id)).load_state(state[str(agent_id)])
 
-    async def _process_send(self, message_envelope: SendMessageEnvelope) -> None:
+    async def _process_send(
+        self,
+        message_envelope: SendMessageEnvelope,
+        message_queue: Queue[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope],
+    ) -> None:
         with self._tracer_helper.trace_block("send", message_envelope.recipient, parent=message_envelope.metadata):
             recipient = message_envelope.recipient
 
@@ -512,7 +516,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             except CancelledError as e:
                 if not message_envelope.future.cancelled():
                     message_envelope.future.set_exception(e)
-                self._message_queue.task_done()
+                message_queue.task_done()
                 event_logger.info(
                     MessageHandlerExceptionEvent(
                         payload=self._try_serialize(message_envelope.message),
@@ -523,7 +527,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 return
             except BaseException as e:
                 message_envelope.future.set_exception(e)
-                self._message_queue.task_done()
+                message_queue.task_done()
                 event_logger.info(
                     MessageHandlerExceptionEvent(
                         payload=self._try_serialize(message_envelope.message),
@@ -543,18 +547,28 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 )
             )
 
-            await self._message_queue.put(
-                ResponseMessageEnvelope(
-                    message=response,
-                    future=message_envelope.future,
-                    sender=message_envelope.recipient,
-                    recipient=message_envelope.sender,
-                    metadata=get_telemetry_envelope_metadata(),
+            try:
+                await message_queue.put(
+                    ResponseMessageEnvelope(
+                        message=response,
+                        future=message_envelope.future,
+                        sender=message_envelope.recipient,
+                        recipient=message_envelope.sender,
+                        metadata=get_telemetry_envelope_metadata(),
+                    )
                 )
-            )
-            self._message_queue.task_done()
+            except QueueShutDown:
+                # The runtime was stopped while the handler was running.
+                # The response can no longer be delivered.
+                if not message_envelope.future.cancelled():
+                    message_envelope.future.set_exception(CancelledError())
+            message_queue.task_done()
 
-    async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
+    async def _process_publish(
+        self,
+        message_envelope: PublishMessageEnvelope,
+        message_queue: Queue[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope],
+    ) -> None:
         with self._tracer_helper.trace_block("publish", message_envelope.topic_id, parent=message_envelope.metadata):
             try:
                 responses: List[Awaitable[Any]] = []
@@ -626,10 +640,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 if not self._ignore_unhandled_handler_exceptions:
                     self._background_exception = e
             finally:
-                self._message_queue.task_done()
+                message_queue.task_done()
             # TODO if responses are given for a publish
 
-    async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
+    async def _process_response(
+        self,
+        message_envelope: ResponseMessageEnvelope,
+        message_queue: Queue[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope],
+    ) -> None:
         with self._tracer_helper.trace_block(
             "ack",
             message_envelope.recipient,
@@ -659,7 +677,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             )
             if not message_envelope.future.cancelled():
                 message_envelope.future.set_result(message_envelope.message)
-            self._message_queue.task_done()
+            message_queue.task_done()
 
     async def process_next(self) -> None:
         """Process the next message in the queue.
@@ -685,6 +703,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 self._background_exception = None
                 raise e from None
             return
+
+        # Keep a reference to the queue the envelope came from: stop() replaces
+        # self._message_queue with a new queue, and in-flight processing tasks must
+        # call task_done() on the original queue to keep its accounting consistent.
+        message_queue = self._message_queue
 
         match message_envelope:
             case SendMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
@@ -721,7 +744,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                 return
 
                         message_envelope.message = temp_message
-                task = asyncio.create_task(self._process_send(message_envelope))
+                task = asyncio.create_task(self._process_send(message_envelope, message_queue))
                 self._background_tasks.add(task)
                 task.add_done_callback(self._background_tasks.discard)
             case PublishMessageEnvelope(
@@ -761,7 +784,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
                         message_envelope.message = temp_message
 
-                task = asyncio.create_task(self._process_publish(message_envelope))
+                task = asyncio.create_task(self._process_publish(message_envelope, message_queue))
                 self._background_tasks.add(task)
                 task.add_done_callback(self._background_tasks.discard)
             case ResponseMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
@@ -786,7 +809,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                             future.set_exception(MessageDroppedException())
                             return
                         message_envelope.message = temp_message
-                task = asyncio.create_task(self._process_response(message_envelope))
+                task = asyncio.create_task(self._process_response(message_envelope, message_queue))
                 self._background_tasks.add(task)
                 task.add_done_callback(self._background_tasks.discard)
 

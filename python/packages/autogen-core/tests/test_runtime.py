@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from dataclasses import dataclass
 
 import pytest
 from autogen_core import (
@@ -12,6 +14,7 @@ from autogen_core import (
     TopicId,
     TypeSubscription,
     event,
+    message_handler,
     try_get_known_serializers_for_type,
     type_subscription,
 )
@@ -363,4 +366,76 @@ async def test_event_handler_exception_multi_message() -> None:
         await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
         await runtime.stop_when_idle()
 
+    await runtime.close()
+
+
+@dataclass
+class BlockingMessageType: ...
+
+
+@default_subscription
+class BlockingAgent(RoutedAgent):
+    """An agent whose handler blocks until released, to keep a message in flight."""
+
+    def __init__(self, started: asyncio.Event, release: asyncio.Event) -> None:
+        super().__init__("A blocking agent.")
+        self._started = started
+        self._release = release
+
+    @message_handler
+    async def on_new_message(self, message: BlockingMessageType, ctx: MessageContext) -> BlockingMessageType:
+        self._started.set()
+        await self._release.wait()
+        return BlockingMessageType()
+
+
+@pytest.mark.asyncio
+async def test_stop_with_in_flight_publish_keeps_queue_accounting_consistent() -> None:
+    # Regression test for https://github.com/microsoft/autogen/issues/7007.
+    # stop() replaces the runtime's message queue. An in-flight handler task must
+    # call task_done() on the queue its message came from, not on the new queue,
+    # otherwise it raises ValueError("task_done() called too many times").
+    started = asyncio.Event()
+    release = asyncio.Event()
+    runtime = SingleThreadedAgentRuntime()
+    await BlockingAgent.register(runtime, "blocking", lambda: BlockingAgent(started, release))
+    runtime.start()
+    await runtime.publish_message(BlockingMessageType(), topic_id=DefaultTopicId())
+    await started.wait()
+    background_tasks = list(runtime._background_tasks)  # type: ignore[reportPrivateUsage]
+    # Stop while the handler is still running.
+    await runtime.stop()
+    release.set()
+    results = await asyncio.gather(*background_tasks, return_exceptions=True)
+    errors = [result for result in results if isinstance(result, BaseException)]
+    assert not errors, f"in-flight processing task raised: {errors!r}"
+    await runtime.close()
+
+
+@pytest.mark.asyncio
+async def test_stop_with_in_flight_send_resolves_future_and_keeps_queue_clean() -> None:
+    # Companion to the test above for the RPC path: if the runtime is stopped while
+    # an RPC handler is running, the response can no longer be delivered. The sender's
+    # future must not hang forever, and the replaced queue must not receive the stale
+    # response envelope.
+    started = asyncio.Event()
+    release = asyncio.Event()
+    runtime = SingleThreadedAgentRuntime()
+    await BlockingAgent.register(runtime, "blocking", lambda: BlockingAgent(started, release))
+    runtime.start()
+    send_task = asyncio.ensure_future(runtime.send_message(BlockingMessageType(), AgentId("blocking", "default")))
+    await started.wait()
+    background_tasks = list(runtime._background_tasks)  # type: ignore[reportPrivateUsage]
+    # Stop while the handler is still running.
+    await runtime.stop()
+    release.set()
+    results = await asyncio.gather(*background_tasks, return_exceptions=True)
+    errors = [result for result in results if isinstance(result, BaseException)]
+    assert not errors, f"in-flight processing task raised: {errors!r}"
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(send_task, timeout=5)
+    # The new queue must be empty so a restarted runtime is not polluted by stale envelopes.
+    assert runtime.unprocessed_messages_count == 0
+    runtime.start()
+    await asyncio.wait_for(runtime.stop_when_idle(), timeout=5)
     await runtime.close()
