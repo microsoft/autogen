@@ -5,7 +5,7 @@ from typing import Annotated, List
 
 import pytest
 from autogen_core import CancellationToken
-from autogen_core._function_utils import get_typed_signature
+from autogen_core._function_utils import get_typed_signature, type2description
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
 from pydantic import BaseModel, Field, ValidationError, model_serializer
@@ -92,6 +92,32 @@ def test_func_tool_schema_generation() -> None:
     assert "required" in schema["parameters"]
     assert schema["parameters"]["required"] == ["arg", "other"]
     assert len(schema["parameters"]["properties"]) == 3
+
+
+def test_func_tool_schema_generation_with_annotated_metadata() -> None:
+    def my_function(
+        query: Annotated[str, Field(description="SQL search term")],
+        score: Annotated[float, Field(gt=0), "Normalized score"],
+        limit: Annotated[int, Field(ge=0)],
+    ) -> str:
+        return "result"
+
+    schema = FunctionTool(my_function, description="Function tool.").schema
+    assert "parameters" in schema
+    properties = schema["parameters"]["properties"]
+
+    assert properties["query"]["description"] == "SQL search term"
+    assert properties["score"]["description"] == "Normalized score"
+    assert properties["limit"]["description"] == "limit"
+
+
+def test_type2description_uses_description_attribute() -> None:
+    class DescribedMetadata:
+        description = "Custom description"
+
+    annotation = Annotated[int, object(), DescribedMetadata()]
+
+    assert type2description("value", annotation) == "Custom description"
 
 
 def test_func_tool_schema_generation_strict() -> None:
