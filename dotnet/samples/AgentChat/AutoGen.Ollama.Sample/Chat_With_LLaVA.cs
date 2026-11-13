@@ -38,7 +38,7 @@ public class Chat_With_LLaVA
         #region Send_MultiModal_Message
         // You can also use MultiModalMessage to put text and image together in one message
         // In this case, all the messages in the multi-modal message will be put into single piece of message
-        // where the text is the concatenation of all the text messages seperated by \n
+        // where the text is the concatenation of all the text messages separated by \n
         // and the images are all the images in the multi-modal message
         var multiModalMessage = new MultiModalMessage(Role.User, [textMessage, imageMessage]);
 
