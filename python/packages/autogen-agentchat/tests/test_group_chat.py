@@ -222,6 +222,30 @@ async def runtime(request: pytest.FixtureRequest) -> AsyncGenerator[AgentRuntime
         yield None
 
 
+def test_round_robin_group_chat_invalid_participants() -> None:
+    agent = _EchoAgent("agent1", description="echo agent")
+
+    # participants must be a list/tuple, not None
+    with pytest.raises(TypeError, match="participants must be a list"):
+        RoundRobinGroupChat(None)  # type: ignore
+
+    # participants must be a list/tuple, not a plain string
+    with pytest.raises(TypeError, match="participants must be a list"):
+        RoundRobinGroupChat("not_a_list")  # type: ignore
+
+    # participants must be a list/tuple, not an integer
+    with pytest.raises(TypeError, match="participants must be a list"):
+        RoundRobinGroupChat(42)  # type: ignore
+
+    # each element must be a ChatAgent or Team, not a string
+    with pytest.raises(TypeError, match=r"participants\[1\] is str"):
+        RoundRobinGroupChat([agent, "not_an_agent"])  # type: ignore
+
+    # each element must be a ChatAgent or Team, not an integer
+    with pytest.raises(TypeError, match=r"participants\[0\] is int"):
+        RoundRobinGroupChat([123])  # type: ignore
+
+
 @pytest.mark.asyncio
 async def test_round_robin_group_chat(runtime: AgentRuntime | None) -> None:
     model_client = ReplayChatCompletionClient(
