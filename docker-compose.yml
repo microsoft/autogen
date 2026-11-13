@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  autogenstudio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    expose:
+      - "8080"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - autogen-data:/app/data
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.autogen.rule=Host(`autogen.tondomaine.com`)"
+      - "traefik.http.routers.autogen.entrypoints=websecure"
+      - "traefik.http.routers.autogen.tls.certResolver=letsencrypt"
+      - "traefik.http.services.autogen.loadbalancer.server.port=8080"
+
+volumes:
+  autogen-data:
+
+networks:
+  dokploy-network:
+    external: true
