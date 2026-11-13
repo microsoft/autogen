@@ -24,6 +24,7 @@ class ChatCompletionCacheConfig(BaseModel):
 
     client: ComponentModel
     store: Optional[ComponentModel] = None
+    namespace: Optional[str] = None
 
 
 class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheConfig]):
@@ -67,7 +68,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                 # redis_instance = redis.Redis()
                 # cache_store = RedisCacheStore[CHAT_CACHE_VALUE_TYPE](redis_instance)
                 cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
-                cache_client = ChatCompletionCache(openai_model_client, cache_store)
+                cache_client = ChatCompletionCache(openai_model_client, cache_store, namespace="openai:gpt-4o")
 
                 response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
                 print(response)  # Should print response from OpenAI
@@ -154,11 +155,17 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
 
     You can now use the `cached_client` as you would the original client, but with caching enabled.
 
+    When sharing a store across models, deployments, or client configurations, use a different
+    ``namespace`` for each. The namespace is included in cache keys and component configuration.
+    It is not inferred from the wrapped client. Leaving it as ``None`` preserves existing cache keys.
+
     Args:
         client (ChatCompletionClient): The original ChatCompletionClient to wrap.
         store (CacheStore): A store object that implements get and set methods.
             The user is responsible for managing the store's lifecycle & clearing it (if needed).
             Defaults to using in-memory cache.
+        namespace (str | None): An optional namespace to isolate entries in a shared store.
+            Use distinct values for clients whose responses must not be shared. Defaults to None.
     """
 
     component_type = "chat_completion_cache"
@@ -169,9 +176,12 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         self,
         client: ChatCompletionClient,
         store: Optional[CacheStore[CHAT_CACHE_VALUE_TYPE]] = None,
+        *,
+        namespace: Optional[str] = None,
     ):
         self.client = client
         self.store = store or InMemoryStore[CHAT_CACHE_VALUE_TYPE]()
+        self._namespace = namespace
 
     def _check_cache(
         self,
@@ -192,12 +202,14 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         elif isinstance(json_output, bool):
             json_output_data = json_output
 
-        data = {
+        data: dict[str, Any] = {
             "messages": [message.model_dump() for message in messages],
             "tools": [(tool.schema if isinstance(tool, Tool) else tool) for tool in tools],
             "json_output": json_output_data,
             "extra_create_args": extra_create_args,
         }
+        if self._namespace is not None:
+            data["namespace"] = self._namespace
         serialized_data = json.dumps(data, sort_keys=True)
         cache_key = hashlib.sha256(serialized_data.encode()).hexdigest()
 
@@ -387,6 +399,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         return ChatCompletionCacheConfig(
             client=self.client.dump_component(),
             store=self.store.dump_component() if not isinstance(self.store, InMemoryStore) else None,
+            namespace=self._namespace,
         )
 
     @classmethod
@@ -395,4 +408,4 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         store: Optional[CacheStore[CHAT_CACHE_VALUE_TYPE]] = (
             CacheStore.load_component(config.store) if config.store else InMemoryStore()
         )
-        return cls(client=client, store=store)
+        return cls(client=client, store=store, namespace=config.namespace)
