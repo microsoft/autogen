@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Union
 
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
 
 from .._cancellation_token import CancellationToken
 from .._component_config import ComponentBase
@@ -43,6 +43,26 @@ class MemoryContent(BaseModel):
         if isinstance(mime_type, MemoryMimeType):
             return mime_type.value
         return mime_type
+
+    @field_validator("mime_type", mode="before")
+    @classmethod
+    def validate_mime_type(cls, value: Any) -> Any:
+        """Restore a :class:`MemoryMimeType` enum from its string value on load.
+
+        This is the inverse of :meth:`serialize_mime_type`, so that a
+        dump/load roundtrip preserves the enum type instead of degenerating
+        it to a plain string.
+
+        .. versionchanged:: 0.7.6
+            Added validation to restore the enum type after serialization.
+        """
+        if isinstance(value, str):
+            try:
+                return MemoryMimeType(value)
+            except ValueError:
+                # Not a known MemoryMimeType value: keep it as a plain string.
+                return value
+        return value
 
 
 class MemoryQueryResult(BaseModel):
