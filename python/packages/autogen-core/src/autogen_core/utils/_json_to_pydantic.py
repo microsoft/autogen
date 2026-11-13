@@ -87,6 +87,11 @@ FORMAT_MAPPING: Dict[str, Any] = {
 }
 
 
+def _get_ref_name(ref: str) -> str:
+    # Decode once, in JSON Pointer order, so ~01 remains a literal ~1.
+    return ref.split("/")[-1].replace("~1", "/").replace("~0", "~")
+
+
 def _make_field(
     default: Any,
     *,
@@ -107,7 +112,7 @@ class _JSONSchemaToPydantic:
         self._model_cache: Dict[str, Optional[Union[Type[BaseModel], ForwardRef]]] = {}
 
     def _resolve_ref(self, ref: str, schema: Dict[str, Any]) -> Dict[str, Any]:
-        ref_key = ref.split("/")[-1]
+        ref_key = _get_ref_name(ref)
         definitions = cast(dict[str, dict[str, Any]], schema.get("$defs", {}))
 
         if ref_key not in definitions:
@@ -178,7 +183,7 @@ class _JSONSchemaToPydantic:
         types: List[Any] = []
         for s in schemas:
             if "$ref" in s:
-                types.append(self.get_ref(s["$ref"].split("/")[-1]))
+                types.append(self.get_ref(_get_ref_name(s["$ref"])))
             elif "enum" in s:
                 types.append(Literal[tuple(s["enum"])] if len(s["enum"]) > 0 else Any)
             else:
@@ -190,7 +195,7 @@ class _JSONSchemaToPydantic:
                 if json_type == "array" and "items" in s:
                     item_schema = s["items"]
                     if "$ref" in item_schema:
-                        item_type = self.get_ref(item_schema["$ref"].split("/")[-1])
+                        item_type = self.get_ref(_get_ref_name(item_schema["$ref"]))
                     else:
                         item_type_name = item_schema.get("type")
                         if item_type_name is None:
@@ -263,7 +268,7 @@ class _JSONSchemaToPydantic:
                 constraints["max_length"] = value["maxItems"]
             item_schema = value.get("items", {"type": "string"})
             if "$ref" in item_schema:
-                item_type = self.get_ref(item_schema["$ref"].split("/")[-1])
+                item_type = self.get_ref(_get_ref_name(item_schema["$ref"]))
             elif item_schema.get("type") == "object" and "properties" in item_schema:
                 # Handle array items that are objects with properties - create a nested model
                 # Use hash-based naming to keep names short and unique
@@ -314,7 +319,7 @@ class _JSONSchemaToPydantic:
 
         for key, value in schema.get("properties", {}).items():
             if "$ref" in value:
-                ref_name = value["$ref"].split("/")[-1]
+                ref_name = _get_ref_name(value["$ref"])
                 field_type = self.get_ref(ref_name)
             elif "anyOf" in value:
                 sub_models = self._resolve_union_types(value["anyOf"])

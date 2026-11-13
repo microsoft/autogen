@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Literal, Optional, Type, get_args, get_origi
 from uuid import UUID, uuid4
 
 import pytest
+from autogen_core.utils import schema_to_pydantic_model
 from autogen_core.utils._json_to_pydantic import (
     FORMAT_MAPPING,
     TYPE_MAPPING,
@@ -1042,3 +1043,41 @@ def test_nested_arrays_with_object_schemas() -> None:
     assert alice.name == "Alice"  # type: ignore[attr-defined]
     assert alice.role == "Senior Developer"  # type: ignore[attr-defined]
     assert alice.skills == ["Python", "JavaScript", "Docker"]  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize(
+    ("definition_name", "reference_token"),
+    [("a/b", "a~1b"), ("a~b", "a~0b"), ("a~1b", "a~01b")],
+)
+@pytest.mark.parametrize("placement", ["root", "all_of", "property", "array", "union", "union_array"])
+def test_escaped_definition_references(definition_name: str, reference_token: str, placement: str) -> None:
+    reference = {"$ref": f"#/$defs/{reference_token}"}
+    schema: Dict[str, Any] = {
+        "$defs": {
+            definition_name: {
+                "type": "object",
+                "properties": {"value": {"type": "integer", "minimum": 1}},
+                "required": ["value"],
+            }
+        }
+    }
+    data: Dict[str, Any]
+    if placement == "root":
+        schema.update(reference)
+        data = {"value": 1}
+    elif placement == "all_of":
+        schema["allOf"] = [reference]
+        data = {"value": 1}
+    else:
+        field: Dict[str, Any] = reference
+        item: Any = {"value": 1}
+        if placement in ("array", "union_array"):
+            field = {"type": "array", "items": reference}
+            item = [item]
+        if placement in ("union", "union_array"):
+            field = {"anyOf": [field, {"type": "null"}]}
+        schema.update({"type": "object", "properties": {"item": field}, "required": ["item"]})
+        data = {"item": item}
+
+    model = schema_to_pydantic_model(schema)
+    assert model.model_validate(data).model_dump() == data
