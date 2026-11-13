@@ -299,9 +299,9 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
 
             parameters = ParametersSchema(
                 type="object",
-                properties=tool.inputSchema.get("properties", {}),
-                required=tool.inputSchema.get("required", []),
-                additionalProperties=tool.inputSchema.get("additionalProperties", False),
+                properties=tool.input_schema.get("properties", {}),
+                required=tool.input_schema.get("required", []),
+                additionalProperties=tool.input_schema.get("additionalProperties", False),
             )
             tool_schema = ToolSchema(
                 name=name,
@@ -344,7 +344,7 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
                     result, CallToolResult
                 ), f"call_tool must return a CallToolResult, instead of : {str(type(result))}"
                 result_parts: List[TextResultContent | ImageResultContent] = []
-                is_error = result.isError
+                is_error = result.is_error
                 for content in result.content:
                     if isinstance(content, TextContent):
                         result_parts.append(TextResultContent(content=content.text))
