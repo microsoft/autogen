@@ -27,11 +27,13 @@ from ...messages import (
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
     GroupChatStart,
     GroupChatTermination,
+    GroupChatThread,
     SerializableException,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -744,6 +746,59 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             GroupChatResume(),
             recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
         )
+
+    async def get_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get the current message thread from the group chat.
+
+        This method sends an RPC request to the group chat manager to retrieve
+        all messages that have been exchanged in the group chat so far.
+
+        Returns:
+            A list of messages in the current thread.
+
+        Raises:
+            RuntimeError: If the team has not been initialized.
+
+        Example:
+            .. code-block:: python
+
+                from autogen_agentchat.agents import AssistantAgent
+                from autogen_agentchat.conditions import MaxMessageTermination
+                from autogen_agentchat.teams import RoundRobinGroupChat
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+                async def main() -> None:
+                    model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                    agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                    agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                    termination = MaxMessageTermination(5)
+                    team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+                    result = await team.run(task="Count from 1 to 5, respond one at a time.")
+                    print("Result:", result)
+
+                    # Get the full thread
+                    thread = await team.get_thread()
+                    print(f"Thread has {len(thread)} messages")
+                    for msg in thread:
+                        print(f"  {msg.source}: {msg.content}")
+
+                asyncio.run(main())
+        """
+        if not self._initialized:
+            raise RuntimeError("The group chat has not been initialized. It must be run before getting the thread.")
+
+        # Send an RPC request to the group chat manager to get the thread.
+        response = await self._runtime.send_message(
+            GroupChatGetThread(),
+            recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+        )
+
+        if isinstance(response, GroupChatThread):
+            return response.messages
+        else:
+            raise RuntimeError(f"Unexpected response from group chat manager: {type(response)}")
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the group chat team.
