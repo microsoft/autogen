@@ -2,7 +2,7 @@
 
 Understanding your workflow and mapping it to agents is the key to building an agent system in AutoGen.
 
-The programming model is basically publish-subscribe. Agents subscribe to events they care about and also can publish events that other agents may care about. Agents may also have additonal assets such as Memory, prompts, data sources, and skills (external APIs).
+The programming model is basically publish-subscribe. Agents subscribe to events they care about and also can publish events that other agents may care about. Agents may also have additional assets such as Memory, prompts, data sources, and skills (external APIs).
 
 ## Events Delivered as CloudEvents
 
