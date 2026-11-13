@@ -1944,3 +1944,131 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
 
     # Content-based verification instead of index-based
     # Note: The streaming test verifies the streaming behavior, not the final result content
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_get_thread(runtime: AgentRuntime | None) -> None:
+    """Test the get_thread() method to retrieve message history."""
+
+    # Create simple echo agents for testing
+    agent1 = _EchoAgent("agent1", "Echo agent 1")
+    agent2 = _EchoAgent("agent2", "Echo agent 2")
+
+    # Create an agent that will stop at the 3rd turn
+    stop_agent = _StopAgent("stop_agent", "Stop agent", stop_at=3)
+
+    # Create team
+    termination = StopMessageTermination()
+    team = RoundRobinGroupChat(
+        participants=[agent1, agent2, stop_agent],
+        termination_condition=termination,
+        runtime=runtime,
+    )
+
+    # Test that get_thread() raises error before team.reset()
+    with pytest.raises(RuntimeError, match="Team has not been initialized"):
+        await team.get_thread()
+
+    # Run the team
+    result = await team.run(task="Hello, world!")
+
+    # Test new feature: get message thread
+    thread = await team.get_thread()
+
+    # Verify: thread should contain all messages
+    assert thread is not None
+    assert isinstance(thread, list)
+    assert len(thread) > 0
+
+    # Verify: thread messages should match result.messages
+    assert len(thread) == len(result.messages)
+
+    # Verify: message content should match
+    for thread_msg, result_msg in zip(thread, result.messages, strict=True):
+        assert compare_messages(thread_msg, result_msg)
+
+    # Verify: first message should be the task message
+    assert isinstance(thread[0], TextMessage)
+    assert thread[0].content == "Hello, world!"
+
+    # Verify: last message should be a stop message
+    assert isinstance(thread[-1], StopMessage)
+    assert thread[-1].content == "TERMINATE"
+
+    # Test get_thread() after reset - should return empty list
+    await team.reset()
+    thread_after_reset = await team.get_thread()
+    assert thread_after_reset == []
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_get_thread(runtime: AgentRuntime | None) -> None:
+    """Test get_thread() with SelectorGroupChat."""
+
+    # Use ReplayClient to simulate LLM selection
+    model_client = ReplayChatCompletionClient(
+        [
+            "agent1",  # First round: select agent1
+            "agent2",  # Second round: select agent2
+            "agent1",  # Third round: select agent1 (will stop)
+        ]
+    )
+
+    agent1 = _StopAgent("agent1", "Agent 1", stop_at=3)
+    agent2 = _EchoAgent("agent2", "Agent 2")
+
+    termination = StopMessageTermination()
+    team = SelectorGroupChat(
+        participants=[agent1, agent2],
+        model_client=model_client,
+        termination_condition=termination,
+        runtime=runtime,
+    )
+
+    # Run the team
+    result = await team.run(task="Test message")
+
+    # Test get_thread
+    thread = await team.get_thread()
+
+    # Verify
+    assert thread is not None
+    assert len(thread) == len(result.messages)
+    assert isinstance(thread[0], TextMessage)
+    assert thread[0].content == "Test message"
+
+
+@pytest.mark.asyncio
+async def test_swarm_get_thread(runtime: AgentRuntime | None) -> None:
+    """Test get_thread() with Swarm."""
+
+    # Create a simple handoff scenario
+    def transfer_to_agent2() -> Handoff:
+        return Handoff(target="agent2")
+
+    agent1 = _EchoAgent("agent1", "Agent 1")
+    agent2 = _StopAgent("agent2", "Agent 2", stop_at=2)
+
+    # Add handoff to agent1
+    agent1._handoffs = [transfer_to_agent2]  # type: ignore
+
+    termination = HandoffTermination(target="agent2")
+    team = Swarm(
+        participants=[agent1, agent2],
+        termination_condition=termination,
+        runtime=runtime,
+    )
+
+    # Run the team
+    await team.run(task="Start task")
+
+    # Test get_thread
+    thread = await team.get_thread()
+
+    # Verify
+    assert thread is not None
+    assert isinstance(thread, list)
+    assert len(thread) > 0
+    # First message should be the task
+    assert isinstance(thread[0], TextMessage)
+    assert thread[0].content == "Start task"
