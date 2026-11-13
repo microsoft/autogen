@@ -6,6 +6,7 @@ from autogen_core import CancellationToken, DefaultTopicId, MessageContext, even
 
 from ...base import TerminationCondition
 from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectSpeakerEvent, StopMessage
+from ._message_store import ListMessageStore, MessageStore
 from ._events import (
     GroupChatAgentResponse,
     GroupChatError,
@@ -47,6 +48,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         max_turns: int | None,
         message_factory: MessageFactory,
         emit_team_events: bool = False,
+        message_store: MessageStore | None = None,
     ):
         super().__init__(
             description="Group chat manager",
@@ -74,6 +76,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             name: topic_type for name, topic_type in zip(participant_names, participant_topic_types, strict=True)
         }
         self._participant_descriptions = participant_descriptions
+        self._message_store: MessageStore = message_store or ListMessageStore()
         self._message_thread: List[BaseAgentEvent | BaseChatMessage] = []
         self._output_message_queue = output_message_queue
         self._termination_condition = termination_condition
@@ -299,8 +302,12 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         """Update the message thread with the new messages.
         This is called when the group chat receives a GroupChatStart or GroupChatAgentResponse event,
         before calling the select_speakers method.
+
+        Messages are added to both the legacy ``_message_thread`` list (for backward
+        compatibility with subclasses) and the ``_message_store`` abstraction.
         """
         self._message_thread.extend(messages)
+        await self._message_store.add(messages)
 
     @abstractmethod
     async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str] | str:
