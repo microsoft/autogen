@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from dataclasses import dataclass
 
 import pytest
@@ -85,6 +86,20 @@ async def test_cancellation_with_token() -> None:
     long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LongRunningAgent)
     assert long_running_agent.called
     assert long_running_agent.cancelled
+
+
+@pytest.mark.asyncio
+async def test_link_future_can_be_cancelled_from_another_thread() -> None:
+    token = CancellationToken()
+    future = asyncio.get_running_loop().create_future()
+    token.link_future(future)
+
+    cancellation_thread = threading.Thread(target=token.cancel)
+    cancellation_thread.start()
+    cancellation_thread.join()
+
+    with pytest.raises(asyncio.CancelledError):
+        await future
 
 
 @pytest.mark.asyncio
