@@ -360,7 +360,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             parent=None,
             extraAttributes={"message_type": type(message).__name__},
         ):
-            future = asyncio.get_event_loop().create_future()
+            future = asyncio.get_running_loop().create_future()
             if recipient.type not in self._known_agent_names:
                 future.set_exception(Exception("Recipient not found"))
                 return await future
