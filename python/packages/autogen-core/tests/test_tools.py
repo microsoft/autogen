@@ -1,7 +1,7 @@
 import inspect
 from dataclasses import dataclass
 from functools import partial
-from typing import Annotated, List
+from typing import Annotated, List, Any
 
 import pytest
 from autogen_core import CancellationToken
@@ -478,6 +478,34 @@ async def test_func_tool_return_list() -> None:
     assert isinstance(result, list)
     assert result == [1, 2]
     assert tool.return_value_as_string(result) == "[1, 2]"
+
+
+@pytest.mark.asyncio
+async def test_func_tool_return_dict_serializes_to_json() -> None:
+    """Test that dict return values are serialized to valid JSON, not Python repr."""
+
+    def my_function() -> dict[str, Any]:
+        return {"status": "success", "count": 42}
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    result = await tool.run_json({}, CancellationToken())
+    assert isinstance(result, dict)
+    # Should be valid JSON with double quotes, not Python repr with single quotes
+    assert tool.return_value_as_string(result) == '{"status": "success", "count": 42}'
+
+
+@pytest.mark.asyncio
+async def test_func_tool_return_list_serializes_to_json() -> None:
+    """Test that list return values are serialized to valid JSON."""
+
+    def my_function() -> list[str]:
+        return ["a", "b", "c"]
+
+    tool = FunctionTool(my_function, description="Function tool.")
+    result = await tool.run_json({}, CancellationToken())
+    assert isinstance(result, list)
+    # Should be valid JSON
+    assert tool.return_value_as_string(result) == '["a", "b", "c"]'
 
 
 def test_nested_tool_schema_generation() -> None:
