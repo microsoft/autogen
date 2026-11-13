@@ -194,4 +194,4 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
             else:
                 return {}
 
-        return json.dumps([serialize_item(item) for item in value])
+        return json.dumps([serialize_item(item) for item in value], ensure_ascii=False)
