@@ -119,7 +119,10 @@ def gaia_question_scorer(
 
     # if gt is a str
     else:
-        return normalize_str(model_answer) == normalize_str(ground_truth)
+        norm_gt = normalize_str(ground_truth)
+        if not norm_gt:
+            return False
+        return normalize_str(model_answer) == norm_gt
 
 
 ##############
