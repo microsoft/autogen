@@ -72,6 +72,7 @@ class UserInputManager:
             self.input_events[request_id].set()
         else:
             event = asyncio.Event()
+            event.set()
             self.input_events[request_id] = event
 
 
