@@ -522,7 +522,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # Legacy support for getting beta client mode from response_format.
             value = create_args["response_format"]
             if isinstance(value, type) and issubclass(value, BaseModel):
-                if self.model_info["structured_output"] is False:
+                if self.model_info["structured_output"] is False and self.model_info["json_output"] is False:
                     raise ValueError("Model does not support structured output.")
                 warnings.warn(
                     "Using response_format to specify the BaseModel for structured output type will be deprecated. "
@@ -546,7 +546,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 # Text mode.
                 create_args["response_format"] = ResponseFormatText(type="text")
             elif isinstance(json_output, type) and issubclass(json_output, BaseModel):
-                if self.model_info["structured_output"] is False:
+                if self.model_info["structured_output"] is False and self.model_info["json_output"] is False:
                     raise ValueError("Model does not support structured output.")
                 if response_format_value is not None:
                     raise ValueError(
@@ -906,6 +906,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # Process the stream of chunks.
         async for chunk in chunks:
+            if chunk is None:
+                continue
+
             if first_chunk:
                 first_chunk = False
                 # Emit the start event.
@@ -1103,6 +1106,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 if cancellation_token is not None:
                     cancellation_token.link_future(chunk_future)
                 chunk = await chunk_future
+                if chunk is None:
+                    continue
                 yield chunk
             except StopAsyncIteration:
                 break
@@ -1130,7 +1135,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
                     if event.type == "chunk":
                         chunk = event.chunk
-                        yield chunk
+                        if chunk is not None:
+                            yield chunk
                     # We don't handle other event types from the beta client stream.
                     # As the other event types are auxiliary to the chunk event.
                     # See: https://github.com/openai/openai-python/blob/main/helpers.md#chat-completions-events.
