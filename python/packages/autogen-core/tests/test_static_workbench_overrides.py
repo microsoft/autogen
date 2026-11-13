@@ -2,7 +2,14 @@ from typing import Annotated, Dict
 
 import pytest
 from autogen_core.code_executor import ImportFromModule
-from autogen_core.tools import FunctionTool, StaticWorkbench, ToolOverride, Workbench
+from autogen_core.tools import (
+    FunctionTool,
+    StaticStreamWorkbench,
+    StaticWorkbench,
+    ToolOverride,
+    ToolResult,
+    Workbench,
+)
 
 
 @pytest.mark.asyncio
@@ -283,3 +290,31 @@ def test_static_workbench_conflict_detection() -> None:
     }
     workbench_self = StaticWorkbench(tools=[tool1, tool2, tool3], tool_overrides=overrides_self)
     assert "tool1" not in workbench_self._override_name_to_original  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_static_stream_workbench_call_tool_stream_honors_override() -> None:
+    """call_tool_stream must resolve override names like call_tool does."""
+
+    def double(x: Annotated[int, "The number to double."]) -> int:
+        return x * 2
+
+    tool = FunctionTool(
+        double,
+        name="double",
+        description="A test tool that doubles a number.",
+        global_imports=[ImportFromModule(module="typing_extensions", imports=["Annotated"])],
+    )
+    overrides: Dict[str, ToolOverride] = {
+        "double": ToolOverride(name="multiply_by_two", description="Multiplies a number by 2"),
+    }
+
+    async with StaticStreamWorkbench(tools=[tool], tool_overrides=overrides) as workbench:
+        result: ToolResult | None = None
+        async for item in workbench.call_tool_stream("multiply_by_two", {"x": 5}):
+            if isinstance(item, ToolResult):
+                result = item
+
+        assert result is not None
+        assert result.is_error is False
+        assert result.name == "multiply_by_two"
