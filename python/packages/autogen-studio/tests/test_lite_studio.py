@@ -35,7 +35,7 @@ def sample_team_object() -> Dict[str, Union[str, List[Any]]]:
 
 def load_team_from_file(file_path: str) -> Dict[str, Any]:
     """Helper function to load team data from file"""
-    with open(file_path, 'r') as f:
+    with open(file_path, "r", encoding="utf-8")) as f:
         return json.load(f)
 
 
@@ -101,7 +101,7 @@ def test_setup_environment(sample_team_file: str) -> None:
     
     # Read the environment file to verify contents
     env_vars = {}
-    with open(env_file_path, 'r') as f:
+    with open(env_file_path, "r", encoding="utf-8")) as f:
         for line in f:
             if '=' in line:
                 key, value = line.strip().split('=', 1)
