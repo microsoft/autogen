@@ -25,6 +25,7 @@ dependencies = [
     "tabulate",
     "azure-identity",
     "pandas",
+    "openpyxl",
     "scipy"
 ]
 

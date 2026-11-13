@@ -190,6 +190,9 @@ def default_tabulate(
     # Create dataframe from results.
     df = pd.DataFrame(all_results)
 
+    if parsed_args.excel:
+        df.to_excel(parsed_args.excel, index=False, engine="openpyxl")
+
     if parsed_args.csv:
         # Print out the dataframe in CSV format
         print(df.to_csv(index=False))
@@ -286,7 +289,7 @@ def tabulate_cli(args: Sequence[str]) -> None:
     for arg in reversed(args):
         if module_path is not None:
             break
-        if arg.startswith("-"):
+        if arg.startswith("-") or not os.path.isdir(arg):
             continue
         module_path = find_tabulate_module(arg)
 
