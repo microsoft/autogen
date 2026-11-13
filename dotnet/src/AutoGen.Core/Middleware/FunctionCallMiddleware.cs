@@ -29,11 +29,14 @@ namespace AutoGen.Core;
 /// This middleware will update the message accordingly and invoke the function if the tool call is available in this middleware's function map.
 /// If the streaming reply from the inner agent is other types of message, the most recent message will be used to invoke the function.
 /// </para>
+/// <para>Cancellation is checked before each tool invocation. Tools supplied as <see cref="AIFunction"/>
+/// also receive the caller's cancellation token during execution.</para>
 /// </summary>
 public class FunctionCallMiddleware : IStreamingMiddleware
 {
     private readonly IEnumerable<FunctionContract>? functions;
     private readonly IDictionary<string, Func<string, Task<string>>>? functionMap;
+    private readonly IDictionary<string, Func<string, CancellationToken, Task<string>>>? cancellableFunctionMap;
 
     public FunctionCallMiddleware(
         IEnumerable<FunctionContract>? functions = null,
@@ -53,9 +56,10 @@ public class FunctionCallMiddleware : IStreamingMiddleware
     public FunctionCallMiddleware(IEnumerable<AIFunction> functions, string? name = null)
     {
         this.Name = name ?? nameof(FunctionCallMiddleware);
-        this.functions = functions.Select(f => (FunctionContract)f).ToArray();
+        var functionList = functions.ToArray();
+        this.functions = functionList.Select(f => (FunctionContract)f).ToArray();
 
-        this.functionMap = functions.Select(f => (f.Name, this.AIToolInvokeWrapper(f.InvokeAsync))).ToDictionary(f => f.Name, f => f.Item2);
+        this.cancellableFunctionMap = functionList.Select(f => (f.Name, this.AIToolInvokeWrapper(f.InvokeAsync))).ToDictionary(f => f.Name, f => f.Item2);
     }
 
     public string? Name { get; }
@@ -65,7 +69,7 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         var lastMessage = context.Messages.Last();
         if (lastMessage is ToolCallMessage toolCallMessage)
         {
-            return await this.InvokeToolCallMessagesBeforeInvokingAgentAsync(toolCallMessage, agent);
+            return await this.InvokeToolCallMessagesBeforeInvokingAgentAsync(toolCallMessage, agent, cancellationToken);
         }
 
         // combine functions
@@ -78,7 +82,7 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         // if the reply is a function call message plus the function's name is available in function map, invoke the function and return the result instead of sending to the agent.
         if (reply is ToolCallMessage toolCallMsg)
         {
-            return await this.InvokeToolCallMessagesAfterInvokingAgentAsync(toolCallMsg, agent);
+            return await this.InvokeToolCallMessagesAfterInvokingAgentAsync(toolCallMsg, agent, cancellationToken);
         }
 
         // for all other messages, just return the reply from the agent.
@@ -93,7 +97,7 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         var lastMessage = context.Messages.Last();
         if (lastMessage is ToolCallMessage toolCallMessage)
         {
-            yield return await this.InvokeToolCallMessagesBeforeInvokingAgentAsync(toolCallMessage, agent);
+            yield return await this.InvokeToolCallMessagesBeforeInvokingAgentAsync(toolCallMessage, agent, cancellationToken);
         }
 
         // combine functions
@@ -104,7 +108,7 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         IMessage? mergedFunctionCallMessage = default;
         await foreach (var message in agent.GenerateStreamingReplyAsync(context.Messages, options, cancellationToken))
         {
-            if (message is ToolCallMessageUpdate toolCallMessageUpdate && this.functionMap != null)
+            if (message is ToolCallMessageUpdate toolCallMessageUpdate && (this.functionMap != null || this.cancellableFunctionMap != null))
             {
                 if (mergedFunctionCallMessage is null)
                 {
@@ -131,26 +135,27 @@ public class FunctionCallMiddleware : IStreamingMiddleware
 
         if (mergedFunctionCallMessage is ToolCallMessage toolCallMsg)
         {
-            yield return await this.InvokeToolCallMessagesAfterInvokingAgentAsync(toolCallMsg, agent);
+            yield return await this.InvokeToolCallMessagesAfterInvokingAgentAsync(toolCallMsg, agent, cancellationToken);
         }
     }
 
-    private async Task<ToolCallResultMessage> InvokeToolCallMessagesBeforeInvokingAgentAsync(ToolCallMessage toolCallMessage, IAgent agent)
+    private async Task<ToolCallResultMessage> InvokeToolCallMessagesBeforeInvokingAgentAsync(ToolCallMessage toolCallMessage, IAgent agent, CancellationToken cancellationToken)
     {
         var toolCallResult = new List<ToolCall>();
         var toolCalls = toolCallMessage.ToolCalls;
         foreach (var toolCall in toolCalls)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var functionName = toolCall.FunctionName;
             var functionArguments = toolCall.FunctionArguments;
-            if (this.functionMap?.TryGetValue(functionName, out var func) is true)
+            if (this.GetFunction(functionName) is { } func)
             {
-                var result = await func(functionArguments);
+                var result = await func(functionArguments, cancellationToken);
                 toolCallResult.Add(new ToolCall(functionName, functionArguments, result) { ToolCallId = toolCall.ToolCallId });
             }
-            else if (this.functionMap is not null)
+            else if (this.functionMap is not null || this.cancellableFunctionMap is not null)
             {
-                var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
+                var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap?.Keys ?? this.cancellableFunctionMap?.Keys ?? [])}";
 
                 toolCallResult.Add(new ToolCall(functionName, functionArguments, errorMessage) { ToolCallId = toolCall.ToolCallId });
             }
@@ -163,17 +168,18 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         return new ToolCallResultMessage(toolCallResult, from: agent.Name);
     }
 
-    private async Task<IMessage> InvokeToolCallMessagesAfterInvokingAgentAsync(ToolCallMessage toolCallMsg, IAgent agent)
+    private async Task<IMessage> InvokeToolCallMessagesAfterInvokingAgentAsync(ToolCallMessage toolCallMsg, IAgent agent, CancellationToken cancellationToken)
     {
         var toolCallsReply = toolCallMsg.ToolCalls;
         var toolCallResult = new List<ToolCall>();
         foreach (var toolCall in toolCallsReply)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var fName = toolCall.FunctionName;
             var fArgs = toolCall.FunctionArguments;
-            if (this.functionMap?.TryGetValue(fName, out var func) is true)
+            if (this.GetFunction(fName) is { } func)
             {
-                var result = await func(fArgs);
+                var result = await func(fArgs, cancellationToken);
                 toolCallResult.Add(new ToolCall(fName, fArgs, result) { ToolCallId = toolCall.ToolCallId });
             }
         }
@@ -189,12 +195,27 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         }
     }
 
-    private Func<string, Task<string>> AIToolInvokeWrapper(Func<AIFunctionArguments?, CancellationToken, ValueTask<object?>> lambda)
+    private Func<string, CancellationToken, Task<string>>? GetFunction(string name)
     {
-        return async (string args) =>
+        if (this.cancellableFunctionMap?.TryGetValue(name, out var cancellableFunction) is true)
+        {
+            return cancellableFunction;
+        }
+
+        if (this.functionMap?.TryGetValue(name, out var function) is true)
+        {
+            return (arguments, _) => function(arguments);
+        }
+
+        return null;
+    }
+
+    private Func<string, CancellationToken, Task<string>> AIToolInvokeWrapper(Func<AIFunctionArguments?, CancellationToken, ValueTask<object?>> lambda)
+    {
+        return async (string args, CancellationToken cancellationToken) =>
         {
             var arguments = JsonSerializer.Deserialize<Dictionary<string, object?>>(args);
-            var result = await lambda(new(arguments), CancellationToken.None);
+            var result = await lambda(new(arguments), cancellationToken);
 
             return result switch
             {
