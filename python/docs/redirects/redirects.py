@@ -7,12 +7,21 @@ THIS_FILE_DIR = Path(__file__).parent
 
 # Contains single text template $to_url
 HTML_PAGE_TEMPLATE_FILE = THIS_FILE_DIR / "redirect_template.html"
-HTML_REDIRECT_TEMPLATE = HTML_PAGE_TEMPLATE_FILE.open("r").read()
 REDIRECT_URLS_FILE = THIS_FILE_DIR / "redirect_urls.txt"
+
+_html_redirect_template = None
+
+
+def get_redirect_template() -> str:
+    global _html_redirect_template
+    if _html_redirect_template is None:
+        _html_redirect_template = HTML_PAGE_TEMPLATE_FILE.open("r", encoding="utf-8").read()
+    return _html_redirect_template
+
 
 def generate_redirect(file_to_write: str, new_url: str, base_dir: Path):
     # Create a new redirect page
-    redirect_page = Template(HTML_REDIRECT_TEMPLATE).substitute(to_url=new_url)
+    redirect_page = Template(get_redirect_template()).substitute(to_url=new_url)
 
     # If the url ends with /, add index.html
     if file_to_write.endswith("/"):
@@ -30,7 +39,7 @@ def generate_redirect(file_to_write: str, new_url: str, base_dir: Path):
     redirect_page_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write the redirect page
-    with open(redirect_page_path, "w") as f:
+    with open(redirect_page_path, "w", encoding="utf-8") as f:
         f.write(redirect_page)
 
 
@@ -42,7 +51,7 @@ def main():
     base_dir = Path(sys.argv[1])
 
     # Read file
-    with open(REDIRECT_URLS_FILE, "r") as f:
+    with open(REDIRECT_URLS_FILE, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
     for line in lines:
