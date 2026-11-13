@@ -295,10 +295,10 @@ def get_scenario_env(token_provider: Optional[Callable[[], str]] = None, env_fil
     if env_file is None:
         # Env file was not specified, so read the default, or warn if the default file is missing.
         if os.path.isfile(DEFAULT_ENV_FILE_YAML):
-            with open(DEFAULT_ENV_FILE_YAML, "r") as fh:
+            with open(DEFAULT_ENV_FILE_YAML, "r", encoding="utf-8") as fh:
                 env_file_contents = yaml.safe_load(fh)
         elif os.path.isfile(DEFAULT_ENV_FILE_JSON):
-            with open(DEFAULT_ENV_FILE_JSON, "rt") as fh:
+            with open(DEFAULT_ENV_FILE_JSON, "rt", encoding="utf-8") as fh:
                 env_file_contents = json.loads(fh.read())
             logging.warning(f"JSON environment files are deprecated. Migrate to '{DEFAULT_ENV_FILE_YAML}'")
         else:
@@ -307,7 +307,7 @@ def get_scenario_env(token_provider: Optional[Callable[[], str]] = None, env_fil
             )
     else:
         # Env file was specified. Throw an error if the file can't be read.
-        with open(env_file, "rt") as fh:
+        with open(env_file, "rt", encoding="utf-8") as fh:
             if env_file.endswith(".json"):
                 logging.warning("JSON environment files are deprecated. Migrate to YAML")
                 env_file_contents = json.loads(fh.read())
@@ -737,7 +737,7 @@ def split_jsonl(file_path: str, num_parts: int) -> List[List[Dict[str, Any]]]:
     """
     Split a JSONL file into num_parts approximately equal parts.
     """
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         data = [json.loads(line) for line in f]
 
     random.shuffle(data)  # Shuffle the data for better distribution
