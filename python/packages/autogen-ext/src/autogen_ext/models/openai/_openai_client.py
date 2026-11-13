@@ -489,13 +489,28 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
     def _rstrip_last_assistant_message(self, messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
         """
-        Remove the last assistant message if it is empty.
-        """
-        # When Claude models last message is AssistantMessage, It could not end with whitespace
-        if isinstance(messages[-1], AssistantMessage):
-            if isinstance(messages[-1].content, str):
-                messages[-1].content = messages[-1].content.rstrip()
+        Strip trailing whitespace from the last assistant message, dropping it entirely
+        if it becomes empty.
 
+        The Anthropic API rejects a final assistant message whose text content ends with
+        trailing whitespace, and also rejects one whose text content is empty. This
+        normalizes both cases without mutating the caller's messages.
+        """
+        if not messages or not isinstance(messages[-1], AssistantMessage):
+            return messages
+        last_message = messages[-1]
+        if not isinstance(last_message.content, str):
+            return messages
+
+        stripped_content = last_message.content.rstrip()
+        # Copy rather than mutate the caller's message objects in place.
+        messages = list(messages)
+        if stripped_content:
+            messages[-1] = last_message.model_copy(update={"content": stripped_content})
+        else:
+            # Drop the now-empty trailing assistant message instead of sending an empty
+            # one; a preceding non-empty assistant message (prefill) is preserved.
+            messages.pop()
         return messages
 
     def _process_create_args(
