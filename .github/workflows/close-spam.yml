@@ -1,0 +1,60 @@
+name: Close Spam Issues
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+jobs:
+  detect-spam:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Check for spam patterns
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            if (!issue) return;
+            
+            const title = issue.title.toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            const content = title + ' ' + body;
+            
+            const spamPatterns = [
+              /bounty.*\$\d+.*usdc/i,
+              /instant.*reward/i,
+              /zero-gas.*payment/i,
+              /npm install @[a-z]+\/sdk/i,
+              /autonomous.*web3.*economy/i,
+              /paymaster.*sponsor/i,
+              /\$\d+\s+usdc.*bounty/i
+            ];
+            
+            const isSpam = spamPatterns.some(pattern => pattern.test(content));
+            
+            if (isSpam) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'not_planned'
+              });
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: '🚫 This issue has been automatically closed as it appears to be unsolicited promotional content or spam.\n\nIf you believe this was closed in error, please contact the maintainers.\n\nFor legitimate feature requests or bug reports, please use the appropriate issue template.'
+              });
+              
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['spam', 'invalid']
+              });
+            }

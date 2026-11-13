@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 💬 Questions or general help
+  - name: 💬 Discussion Forum
     url: https://github.com/microsoft/autogen/discussions
-    about: Please ask and answer questions here.
-  - name: 💡 Suggest a new feature
-    url: https://github.com/microsoft/autogen/discussions/categories/feature-suggestions
-    about: Please suggest new features here and once the feature is accepted a maintainer will create an issue.
+    about: Ask questions and discuss ideas with the community
+  - name: 📖 Documentation
+    url: https://microsoft.github.io/autogen/
+    about: Read the official documentation
+  - name: 🔒 Security Issues
+    url: https://github.com/microsoft/autogen/security/advisories/new
+    about: Report security vulnerabilities privately
