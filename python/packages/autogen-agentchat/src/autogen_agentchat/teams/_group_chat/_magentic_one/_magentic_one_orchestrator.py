@@ -365,9 +365,13 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                         key_error = True
                         break
 
-                # Validate the next speaker if the task is not yet complete
+                # Validate the next speaker if the task is not yet complete.
+                # Skip this check if a required key is already missing or malformed,
+                # otherwise accessing ``progress_ledger["next_speaker"]`` below would
+                # raise an unhandled ``KeyError`` instead of triggering a retry.
                 if (
-                    not progress_ledger["is_request_satisfied"]["answer"]
+                    not key_error
+                    and not progress_ledger["is_request_satisfied"]["answer"]
                     and progress_ledger["next_speaker"]["answer"] not in self._participant_names
                 ):
                     key_error = True

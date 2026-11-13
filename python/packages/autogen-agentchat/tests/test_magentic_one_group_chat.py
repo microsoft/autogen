@@ -219,3 +219,52 @@ async def test_magentic_one_group_chat_with_stalls(runtime: AgentRuntime | None)
     assert isinstance(result.messages[4], TextMessage)
     assert result.messages[4].content.startswith("\nWe are working to address the following user request:")
     assert result.stop_reason is not None and result.stop_reason == "test"
+
+
+@pytest.mark.asyncio
+async def test_magentic_one_group_chat_ledger_missing_next_speaker_retries(runtime: AgentRuntime | None) -> None:
+    # Regression test: when the model returns a valid progress-ledger JSON object
+    # that is missing the ``next_speaker`` field, the orchestrator should treat it
+    # as a parse failure and retry (up to ``_max_json_retries``), rather than
+    # raising an unhandled ``KeyError`` when the post-loop validation accesses
+    # ``progress_ledger["next_speaker"]``.
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _EchoAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    agent_4 = _EchoAgent("agent_4", description="echo agent 4")
+
+    model_client = ReplayChatCompletionClient(
+        chat_completions=[
+            "No facts",
+            "No plan",
+            # First ledger attempt: valid JSON but missing "next_speaker".
+            # This must trigger a retry instead of crashing with KeyError.
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": False, "reason": "test"},
+                    "is_progress_being_made": {"answer": True, "reason": "test"},
+                    "is_in_loop": {"answer": False, "reason": "test"},
+                    "instruction_or_question": {"answer": "Continue task", "reason": "test"},
+                }
+            ),
+            # Second ledger attempt: complete and well-formed, task is satisfied.
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": True, "reason": "Because"},
+                    "is_progress_being_made": {"answer": True, "reason": "test"},
+                    "is_in_loop": {"answer": False, "reason": "test"},
+                    "instruction_or_question": {"answer": "Task completed", "reason": "Because"},
+                    "next_speaker": {"answer": "agent_1", "reason": "test"},
+                }
+            ),
+            "print('Hello, world!')",
+        ],
+    )
+
+    team = MagenticOneGroupChat(
+        participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client, runtime=runtime
+    )
+    # Before the fix this raised KeyError: 'next_speaker'. After the fix the
+    # missing field is treated as a parse failure and the retry succeeds.
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert result.stop_reason is not None and result.stop_reason == "Because"
