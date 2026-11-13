@@ -9,8 +9,6 @@ import pytest
 from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import CreateResult, ModelFamily, UserMessage
 from autogen_core.tools import FunctionTool
-from autogen_ext.models.azure import AzureAIChatCompletionClient
-from autogen_ext.models.azure.config import GITHUB_MODELS_ENDPOINT
 from azure.ai.inference.aio import (
     ChatCompletionsClient,
 )
@@ -29,6 +27,9 @@ from azure.ai.inference.models import (
     FunctionCall as AzureFunctionCall,
 )
 from azure.core.credentials import AzureKeyCredential
+
+from autogen_ext.models.azure import AzureAIChatCompletionClient
+from autogen_ext.models.azure.config import GITHUB_MODELS_ENDPOINT
 
 
 async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
@@ -624,6 +625,94 @@ async def test_thought_field_with_tool_calls_streaming(
     assert final_result.content[0].arguments == '{"foo": "bar"}'
 
     assert final_result.thought == "Let me think about what function to call."
+
+
+@pytest.mark.asyncio
+async def test_streaming_tool_call_chunks_ignore_none_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Azure AI streaming tool-call deltas can include None for id, name, or arguments.
+    They should be ignored until later chunks provide concrete string fragments.
+    """
+
+    class ToolCallChunk:
+        def __init__(self, index: int, id: str | None, name: str | None, arguments: str | None) -> None:
+            self.index = index
+            self.id = id
+            self.function = MagicMock()
+            self.function.name = name
+            self.function.arguments = arguments
+
+        def __contains__(self, key: str) -> bool:
+            return key == "index"
+
+        def __getitem__(self, key: str) -> int:
+            if key != "index":
+                raise KeyError(key)
+            return self.index
+
+    tool_call_choices = []
+    for tool_call_chunk, finish_reason in [
+        (ToolCallChunk(index=0, id=None, name=None, arguments=None), None),
+        (ToolCallChunk(index=0, id="call_", name="process", arguments='{"input"'), None),
+        (ToolCallChunk(index=0, id="123", name="_text", arguments=': "hello"}'), "function_calls"),
+    ]:
+        choice = MagicMock()
+        choice.delta = MagicMock()
+        choice.delta.content = None
+        choice.delta.tool_calls = [tool_call_chunk]
+        choice.finish_reason = finish_reason
+        tool_call_choices.append(choice)
+
+    async def _mock_tool_call_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        for choice in tool_call_choices:
+            yield StreamingChatCompletionsUpdate(
+                id="id",
+                choices=[choice],
+                created=datetime.now(),
+                model="model",
+                usage=CompletionsUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> Any:
+        if kwargs.get("stream", False):
+            return _mock_tool_call_stream(*args, **kwargs)
+        return None
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": True,
+            "vision": False,
+            "family": "function_calling_model",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+    chunks: List[Union[str, CreateResult]] = []
+    async for chunk in client.create_stream(
+        messages=[UserMessage(content="Please call a function", source="user")],
+        tools=[{"name": "test_tool"}],
+    ):
+        chunks.append(chunk)
+
+    final_result = chunks[-1]
+    assert isinstance(final_result, CreateResult)
+    assert final_result.finish_reason == "function_calls"
+    assert isinstance(final_result.content, list)
+    assert final_result.content == [FunctionCall(id="call_123", name="process_text", arguments='{"input": "hello"}')]
 
 
 def _pass_function(input: str) -> str:
