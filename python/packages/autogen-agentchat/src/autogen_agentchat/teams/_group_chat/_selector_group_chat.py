@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import random
 import re
 from inspect import iscoroutinefunction
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Sequence, Union, cast
@@ -300,6 +301,17 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                     return agent_name
 
         if self._previous_speaker is not None:
+            if not self._allow_repeated_speaker:
+                # When repeated speaker is not allowed, pick a random non-previous participant
+                # to avoid a livelock where the same speaker is selected indefinitely.
+                candidates = [p for p in participants if p != self._previous_speaker]
+                if candidates:
+                    fallback = random.choice(candidates)
+                    trace_logger.warning(
+                        f"Model failed to select a speaker after {max_attempts}, "
+                        f"using a random non-previous participant: {fallback}."
+                    )
+                    return fallback
             trace_logger.warning(f"Model failed to select a speaker after {max_attempts}, using the previous speaker.")
             return self._previous_speaker
         trace_logger.warning(
