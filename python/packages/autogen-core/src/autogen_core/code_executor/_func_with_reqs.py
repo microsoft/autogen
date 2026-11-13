@@ -97,7 +97,7 @@ class FunctionWithRequirementsStr:
     python_packages: Sequence[str] = field(default_factory=list)
     global_imports: Sequence[Import] = field(default_factory=list)
 
-    def __init__(self, func: str, python_packages: Sequence[str] = [], global_imports: Sequence[Import] = []):
+    def __init__(self, func: str, python_packages: Sequence[str] = (), global_imports: Sequence[Import] = ()):
         self.func = func
         self.python_packages = python_packages
         self.global_imports = global_imports
@@ -134,13 +134,13 @@ class FunctionWithRequirements(Generic[T, P]):
 
     @classmethod
     def from_callable(
-        cls, func: Callable[P, T], python_packages: Sequence[str] = [], global_imports: Sequence[Import] = []
+        cls, func: Callable[P, T], python_packages: Sequence[str] = (), global_imports: Sequence[Import] = ()
     ) -> FunctionWithRequirements[T, P]:
         return cls(python_packages=python_packages, global_imports=global_imports, func=func)
 
     @staticmethod
     def from_str(
-        func: str, python_packages: Sequence[str] = [], global_imports: Sequence[Import] = []
+        func: str, python_packages: Sequence[str] = (), global_imports: Sequence[Import] = ()
     ) -> FunctionWithRequirementsStr:
         return FunctionWithRequirementsStr(func=func, python_packages=python_packages, global_imports=global_imports)
 
@@ -150,7 +150,7 @@ class FunctionWithRequirements(Generic[T, P]):
 
 
 def with_requirements(
-    python_packages: Sequence[str] = [], global_imports: Sequence[Import] = []
+    python_packages: Sequence[str] = (), global_imports: Sequence[Import] = ()
 ) -> Callable[[Callable[P, T]], FunctionWithRequirements[T, P]]:
     """
     Decorate a function with package and import requirements for code execution environments.
