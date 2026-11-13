@@ -361,6 +361,23 @@ async def test_function_tool() -> None:
         await loaded_async.run_json({"x": 1.0, "y": 2.0}, cancelled_token)
 
 
+def test_function_tool_serialization_preserves_strict() -> None:
+    def add(x: int, y: int) -> int:
+        return x + y
+
+    tool = FunctionTool(add, description="Add two integers", strict=True)
+
+    config = tool.dump_component()
+    assert config.config["strict"] is True
+
+    loaded = FunctionTool.load_component(config)
+    assert loaded.schema.get("strict") is True
+
+    config.config.pop("strict")
+    loaded_legacy = FunctionTool.load_component(config)
+    assert loaded_legacy.schema.get("strict") is False
+
+
 def test_component_descriptions() -> None:
     """Test different ways of setting component descriptions."""
     assert MyComponent("test").dump_component().description is None
