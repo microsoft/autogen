@@ -49,7 +49,7 @@ def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
             name=param.name,
             kind=param.kind,
             default=param.default,
-            annotation=type_hints[param.name],
+            annotation=type_hints.get(param.name, param.annotation),
         )
         for param in signature.parameters.values()
     ]
