@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import uuid
 from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Sequence, Union
 
 import pytest
@@ -62,10 +63,9 @@ async def test_tool_agent(caplog: pytest.LogCaptureFixture) -> None:
     runtime.start()
 
     # Test pass function
-    result = await runtime.send_message(
-        FunctionCall(id="1", arguments=json.dumps({"input": "pass"}), name="pass"), agent
-    )
-    assert result == FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="pass")
+    call = FunctionCall(id="1", arguments=json.dumps({"input": "pass"}), name="pass")
+    result = await runtime.send_message(call, agent)
+    assert result == FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="pass", uuid=call.uuid)
 
     # Check log.
     assert any(("ToolCall" in record.message and str(agent) in record.message) for record in caplog.records)
@@ -92,6 +92,15 @@ async def test_tool_agent(caplog: pytest.LogCaptureFixture) -> None:
         await result_future
 
     await runtime.stop()
+
+
+def test_function_call_has_unique_uuid() -> None:
+    first = FunctionCall(id="1", arguments="{}", name="test")
+    second = FunctionCall(id="1", arguments="{}", name="test")
+
+    assert first.uuid != second.uuid
+    uuid.UUID(first.uuid)
+    uuid.UUID(second.uuid)
 
 
 @pytest.mark.asyncio

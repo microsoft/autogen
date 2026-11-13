@@ -1,6 +1,7 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
+from uuid import uuid4
 
 from .. import FunctionCall, MessageContext, RoutedAgent, message_handler
 from ..models import FunctionExecutionResult
@@ -20,6 +21,7 @@ class ToolException(BaseException):
     call_id: str
     content: str
     name: str
+    uuid: str = field(default_factory=lambda: str(uuid4()))
 
 
 @dataclass
@@ -78,7 +80,10 @@ class ToolAgent(RoutedAgent):
         tool = next((tool for tool in self._tools if tool.name == message.name), None)
         if tool is None:
             raise ToolNotFoundException(
-                call_id=message.id, content=f"Error: Tool not found: {message.name}", name=message.name
+                call_id=message.id,
+                content=f"Error: Tool not found: {message.name}",
+                name=message.name,
+                uuid=message.uuid,
             )
         else:
             try:
@@ -89,8 +94,15 @@ class ToolAgent(RoutedAgent):
                 result_as_str = tool.return_value_as_string(result)
             except json.JSONDecodeError as e:
                 raise InvalidToolArgumentsException(
-                    call_id=message.id, content=f"Error: Invalid arguments: {message.arguments}", name=message.name
+                    call_id=message.id,
+                    content=f"Error: Invalid arguments: {message.arguments}",
+                    name=message.name,
+                    uuid=message.uuid,
                 ) from e
             except Exception as e:
-                raise ToolExecutionException(call_id=message.id, content=f"Error: {e}", name=message.name) from e
-        return FunctionExecutionResult(content=result_as_str, call_id=message.id, is_error=False, name=message.name)
+                raise ToolExecutionException(
+                    call_id=message.id, content=f"Error: {e}", name=message.name, uuid=message.uuid
+                ) from e
+        return FunctionExecutionResult(
+            content=result_as_str, call_id=message.id, is_error=False, name=message.name, uuid=message.uuid
+        )

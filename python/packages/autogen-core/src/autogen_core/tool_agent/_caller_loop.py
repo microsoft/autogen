@@ -64,7 +64,11 @@ async def tool_agent_caller_loop(
             elif isinstance(result, ToolException):
                 function_results.append(
                     FunctionExecutionResult(
-                        content=f"Error: {result}", call_id=result.call_id, is_error=True, name=result.name
+                        content=f"Error: {result}",
+                        call_id=result.call_id,
+                        is_error=True,
+                        name=result.name,
+                        uuid=result.uuid,
                     )
                 )
             elif isinstance(result, BaseException):

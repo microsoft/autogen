@@ -753,7 +753,11 @@ class AzureAIAgent(BaseChatAgent):
                         is_error = True
                     tool_outputs.append(
                         FunctionExecutionResult(
-                            content=result, call_id=tool_call.id, is_error=is_error, name=tool_call.name
+                            content=result,
+                            call_id=tool_call.id,
+                            uuid=tool_call.uuid,
+                            is_error=is_error,
+                            name=tool_call.name,
                         )
                     )
 

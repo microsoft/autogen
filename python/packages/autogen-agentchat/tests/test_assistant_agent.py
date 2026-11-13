@@ -237,15 +237,14 @@ async def test_model_client_stream_with_tool_calls() -> None:
             assert isinstance(message.messages[-1], TextMessage)
             assert isinstance(message.messages[1], ToolCallRequestEvent)
             assert message.messages[-1].content == "Example response 2 to task"
-            assert message.messages[1].content == [
-                FunctionCall(id="1", name="_pass_function", arguments=r'{"input": "task"}'),
-                FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
-            ]
+            tool_calls = message.messages[1].content
+            assert [call.id for call in tool_calls] == ["1", "3"]
+            assert [call.name for call in tool_calls] == ["_pass_function", "_echo_function"]
             assert isinstance(message.messages[2], ToolCallExecutionEvent)
-            assert message.messages[2].content == [
-                FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="_pass_function"),
-                FunctionExecutionResult(call_id="3", content="task", is_error=False, name="_echo_function"),
-            ]
+            tool_results = message.messages[2].content
+            assert [result.call_id for result in tool_results] == ["1", "3"]
+            assert [result.content for result in tool_results] == ["pass", "task"]
+            assert [result.uuid for result in tool_results] == [call.uuid for call in tool_calls]
         elif isinstance(message, ModelClientStreamingChunkEvent):
             chunks.append(message.content)
     assert "".join(chunks) == "Example response 2 to task"

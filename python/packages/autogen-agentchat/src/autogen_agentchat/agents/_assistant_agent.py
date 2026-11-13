@@ -1551,6 +1551,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 FunctionExecutionResult(
                     content=f"Error: {e}",
                     call_id=tool_call.id,
+                    uuid=tool_call.uuid,
                     is_error=True,
                     name=tool_call.name,
                 ),
@@ -1568,6 +1569,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     FunctionExecutionResult(
                         content=result_as_str,
                         call_id=tool_call.id,
+                        uuid=tool_call.uuid,
                         is_error=False,
                         name=tool_call.name,
                     ),
@@ -1608,6 +1610,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     FunctionExecutionResult(
                         content=tool_result.to_text(),
                         call_id=tool_call.id,
+                        uuid=tool_call.uuid,
                         is_error=tool_result.is_error,
                         name=tool_call.name,
                     ),
@@ -1618,6 +1621,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             FunctionExecutionResult(
                 content=f"Error: tool '{tool_call.name}' not found in any workbench",
                 call_id=tool_call.id,
+                uuid=tool_call.uuid,
                 is_error=True,
                 name=tool_call.name,
             ),
