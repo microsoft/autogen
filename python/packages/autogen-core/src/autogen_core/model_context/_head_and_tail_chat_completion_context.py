@@ -57,7 +57,7 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext, Component[HeadAndT
             # Remove the first message from the tail.
             tail_messages = tail_messages[1:]
 
-        num_skipped = len(self._messages) - self._head_size - self._tail_size
+        num_skipped = len(self._messages) - len(head_messages) - len(tail_messages)
         if num_skipped <= 0:
             # If there are not enough messages to fill the head and tail,
             # return all messages.
