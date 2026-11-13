@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from _pytest.logging import LogCaptureFixture  # type: ignore[import]
 from autogen_core import CancellationToken
-from autogen_core.tools import Workbench
+from autogen_core.tools import ToolResult, Workbench
 from autogen_core.utils import schema_to_pydantic_model
 from autogen_ext.tools.mcp import (
     McpSessionActor,
@@ -186,7 +186,9 @@ async def test_mcp_tool_execution(
             cancellation_token=cancellation_token,
         )
 
-        assert result == mock_tool_response.content
+        assert isinstance(result, ToolResult)
+        assert result.is_error is False
+        assert result.result[0].content == "test_output"
         mock_session.initialize.assert_called_once()
         mock_session.call_tool.assert_called_once()
 
@@ -387,7 +389,9 @@ async def test_sse_tool_execution(
             cancellation_token=CancellationToken(),
         )
 
-        assert result == mock_sse_session.call_tool.return_value.content
+        assert isinstance(result, ToolResult)
+        assert result.is_error is False
+        assert result.result[0].content == "test_output"
         mock_sse_session.initialize.assert_called_once()
         mock_sse_session.call_tool.assert_called_once()
 
@@ -503,7 +507,9 @@ async def test_streamable_http_tool_execution(
             cancellation_token=CancellationToken(),
         )
 
-        assert result == mock_streamable_http_session.call_tool.return_value.content
+        assert isinstance(result, ToolResult)
+        assert result.is_error is False
+        assert result.result[0].content == "test_output"
         mock_streamable_http_session.initialize.assert_called_once()
         mock_streamable_http_session.call_tool.assert_called_once()
 
@@ -750,7 +756,10 @@ async def test_lazy_init_and_finalize_cleanup() -> None:
 
     actor = workbench._actor  # type: ignore[reportPrivateUsage]
     del workbench
-    await asyncio.sleep(0.1)
+    for _ in range(5):
+        import gc
+        gc.collect()
+    await asyncio.sleep(0.5)
     assert actor._active is False
 
 
@@ -776,12 +785,18 @@ async def test_del_to_new_event_loop_when_get_event_loop_fails() -> None:
     def cleanup() -> None:
         nonlocal workbench
         del workbench
+        for _ in range(5):
+            import gc
+            gc.collect()
 
     t = threading.Thread(target=cleanup)
     t.start()
     t.join()
 
-    await asyncio.sleep(0.1)
+    for _ in range(5):
+        import gc
+        gc.collect()
+    await asyncio.sleep(0.5)
     assert actor._active is False  # type: ignore[reportPrivateUsage]
 
 
@@ -869,11 +884,12 @@ async def test_mcp_tool_adapter_run_error(
     mock_session.call_tool.return_value = mock_error_tool_response
 
     args = {"test_param": "test_value"}
-    with pytest.raises(Exception) as excinfo:
-        await adapter._run(args=args, cancellation_token=cancellation_token, session=mock_session)  # type: ignore[reportPrivateUsage]
+    result = await adapter._run(args=args, cancellation_token=cancellation_token, session=mock_session)  # type: ignore[reportPrivateUsage]
 
     mock_session.call_tool.assert_called_once_with(name=sample_tool.name, arguments=args)
-    assert adapter.return_value_as_string([TextContent(text="error output", type="text")]) in str(excinfo.value)
+    assert isinstance(result, ToolResult)
+    assert result.is_error is True
+    assert result.result[0].content == "error output"
 
 
 @pytest.mark.asyncio
@@ -928,3 +944,105 @@ def test_return_value_as_string_with_resource_link(sample_tool: Tool, sample_ser
     assert '"type": "resource_link"' in result
     assert '"name": "test_link"' in result
     assert '"uri": "http://example.com/"' in result  # AnyUrl normalizes with trailing slash
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_adapter_retry_success(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    mock_tool_response: MagicMock,
+    cancellation_token: CancellationToken,
+) -> None:
+    """Test that McpToolAdapter retries and succeeds if subsequent attempt works."""
+    adapter = StdioMcpToolAdapter(
+        server_params=sample_server_params, tool=sample_tool, session=mock_session, max_retries=2, retry_delay=0.01
+    )
+
+    # First call raises an exception, second call succeeds
+    mock_session.call_tool.side_effect = [Exception("Temporary network error"), mock_tool_response]
+
+    args = {"test_param": "test"}
+    result = await adapter.run_json(
+        args=schema_to_pydantic_model(sample_tool.inputSchema)(**args).model_dump(),
+        cancellation_token=cancellation_token,
+    )
+
+    assert isinstance(result, ToolResult)
+    assert result.is_error is False
+    assert result.result[0].content == "test_output"
+    assert mock_session.call_tool.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_adapter_retry_failure(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    cancellation_token: CancellationToken,
+) -> None:
+    """Test that McpToolAdapter retries max_retries times and then returns is_error=True on persistent error."""
+    adapter = StdioMcpToolAdapter(
+        server_params=sample_server_params, tool=sample_tool, session=mock_session, max_retries=2, retry_delay=0.01
+    )
+
+    # Always raise an exception
+    mock_session.call_tool.side_effect = Exception("Persistent network error")
+
+    args = {"test_param": "test"}
+    result = await adapter.run_json(
+        args=schema_to_pydantic_model(sample_tool.inputSchema)(**args).model_dump(),
+        cancellation_token=cancellation_token,
+    )
+
+    assert isinstance(result, ToolResult)
+    assert result.is_error is True
+    assert "Persistent network error" in result.result[0].content
+    assert mock_session.call_tool.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_adapter_workbench_integration_error(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    cancellation_token: CancellationToken,
+) -> None:
+    """Test that McpToolAdapter integrated in StaticWorkbench handles execution error and returns is_error=True."""
+    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool, session=mock_session)
+    mock_session.call_tool.side_effect = Exception("Connection timeout (MCP server at localhost:9000)")
+
+    from autogen_core.tools import StaticWorkbench
+
+    workbench = StaticWorkbench(tools=[adapter])
+
+    result = await workbench.call_tool(
+        name=adapter.name,
+        arguments={"test_param": "test"},
+        cancellation_token=cancellation_token,
+    )
+
+    assert isinstance(result, ToolResult)
+    assert result.is_error is True
+    assert "Connection timeout (MCP server at localhost:9000)" in result.result[0].content
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_adapter_raise_on_error_compatibility(
+    sample_tool: Tool,
+    sample_server_params: StdioServerParams,
+    mock_session: AsyncMock,
+    cancellation_token: CancellationToken,
+) -> None:
+    """Test that McpToolAdapter raises exceptions if raise_on_error is True."""
+    adapter = StdioMcpToolAdapter(
+        server_params=sample_server_params, tool=sample_tool, session=mock_session, raise_on_error=True
+    )
+    mock_session.call_tool.side_effect = Exception("Fatal connection failure")
+
+    args = {"test_param": "test"}
+    with pytest.raises(Exception, match="Fatal connection failure"):
+        await adapter.run_json(
+            args=schema_to_pydantic_model(sample_tool.inputSchema)(**args).model_dump(),
+            cancellation_token=cancellation_token,
+        )
