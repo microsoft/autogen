@@ -101,6 +101,31 @@ async def test_termination_declarative() -> None:
     assert isinstance(loaded_composite, AndTerminationCondition)
 
 
+def test_text_mention_termination_sources_roundtrip() -> None:
+    """Test that TextMentionTermination preserves sources across dump/load (#8282)."""
+    term = TextMentionTermination("APPROVED", sources=["reviewer", "admin"])
+
+    config = term.dump_component()
+    assert config.config.get("text") == "APPROVED"
+    assert config.config.get("sources") == ["reviewer", "admin"]
+
+    loaded = ComponentLoader.load_component(config, TextMentionTermination)
+    assert isinstance(loaded, TextMentionTermination)
+    assert loaded._sources == ["reviewer", "admin"]
+
+
+def test_text_mention_termination_sources_none_roundtrip() -> None:
+    """Test that TextMentionTermination without sources still roundtrips."""
+    term = TextMentionTermination("stop")
+
+    config = term.dump_component()
+    assert config.config.get("sources") is None
+
+    loaded = ComponentLoader.load_component(config, TextMentionTermination)
+    assert isinstance(loaded, TextMentionTermination)
+    assert loaded._sources is None
+
+
 @pytest.mark.asyncio
 async def test_chat_completion_context_declarative() -> None:
     unbounded_context = UnboundedChatCompletionContext()
