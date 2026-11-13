@@ -39,7 +39,7 @@ jobs:
               poe-dir: ".",
             },
             {
-              ref: "python-v0.7.5",
+              ref: "docs/stable-0.7.5-archive-caution",
               dest-dir: stable,
               uv-version: "0.7.13",
               sphinx-release-override: "stable",
@@ -214,7 +214,7 @@ jobs:
               poe-dir: ".",
             },
             {
-              ref: "python-v0.7.5",
+              ref: "docs/stable-0.7.5-archive-caution",
               dest-dir: "0.7.5",
               uv-version: "0.7.13",
               sphinx-release-override: "",
