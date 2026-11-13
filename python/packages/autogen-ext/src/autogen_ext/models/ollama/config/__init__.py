@@ -21,7 +21,7 @@ class BaseOllamaClientConfiguration(CreateArguments, total=False):
     headers: Optional[Mapping[str, str]]
     model_capabilities: ModelCapabilities  # type: ignore
     model_info: ModelInfo
-    """What functionality the model supports, determined by default from model name but is overriden if value passed."""
+    """What functionality the model supports, determined by default from model name but is overridden if value passed."""
     options: Optional[Union[Mapping[str, Any], Options]]
 
 
