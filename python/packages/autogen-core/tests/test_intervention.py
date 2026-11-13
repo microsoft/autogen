@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 import pytest
@@ -12,6 +13,24 @@ from autogen_core import (
 )
 from autogen_core.exceptions import MessageDroppedException
 from autogen_test_utils import LoopbackAgent, MessageType
+
+STOP_WHEN_IDLE_TIMEOUT = 10
+
+
+async def _stop_when_idle_or_fail(runtime: SingleThreadedAgentRuntime) -> None:
+    """Stop the runtime when idle, failing fast if the queue accounting is broken.
+
+    A regression in queue accounting (e.g., a dropped message never calling
+    task_done()) makes Queue.join() hang forever; the timeout turns that hang
+    into a test failure instead of stalling the test suite.
+    """
+    try:
+        await asyncio.wait_for(runtime.stop_when_idle(), timeout=STOP_WHEN_IDLE_TIMEOUT)
+    except asyncio.TimeoutError:
+        pytest.fail(
+            "stop_when_idle() did not return in time: the message queue accounting is "
+            "likely broken (task_done() not called for a dropped or failed message)."
+        )
 
 
 @pytest.mark.asyncio
@@ -77,7 +96,31 @@ async def test_intervention_drop_send() -> None:
     with pytest.raises(MessageDroppedException):
         _response = await runtime.send_message(MessageType(), recipient=loopback)
 
-    await runtime.stop()
+    await _stop_when_idle_or_fail(runtime)
+
+    loopback_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
+    assert loopback_agent.num_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_intervention_drop_publish() -> None:
+    class DropPublishInterventionHandler(DefaultInterventionHandler):
+        async def on_publish(self, message: MessageType, *, message_context: MessageContext) -> Any:
+            return DropMessage
+
+    handler = DropPublishInterventionHandler()
+    runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
+
+    await LoopbackAgent.register(runtime, "name", LoopbackAgent)
+    loopback = AgentId("name", key="default")
+    runtime.start()
+    await runtime.add_subscription(DefaultSubscription(agent_type="name"))
+
+    await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+
+    # Regression test: a dropped published message must release its queue slot,
+    # otherwise stop_when_idle() hangs forever on Queue.join().
+    await _stop_when_idle_or_fail(runtime)
 
     loopback_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert loopback_agent.num_calls == 0
@@ -101,7 +144,7 @@ async def test_intervention_drop_response() -> None:
     with pytest.raises(MessageDroppedException):
         _response = await runtime.send_message(MessageType(), recipient=loopback)
 
-    await runtime.stop()
+    await _stop_when_idle_or_fail(runtime)
 
 
 @pytest.mark.asyncio
@@ -125,10 +168,37 @@ async def test_intervention_raise_exception_on_send() -> None:
     with pytest.raises(InterventionException):
         _response = await runtime.send_message(MessageType(), recipient=loopback)
 
-    await runtime.stop()
+    await _stop_when_idle_or_fail(runtime)
 
     long_running_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert long_running_agent.num_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_intervention_raise_exception_on_publish() -> None:
+    class InterventionException(Exception):
+        pass
+
+    class ExceptionInterventionHandler(DefaultInterventionHandler):  # type: ignore
+        async def on_publish(self, message: MessageType, *, message_context: MessageContext) -> Any:  # type: ignore
+            raise InterventionException
+
+    handler = ExceptionInterventionHandler()
+    runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
+
+    await LoopbackAgent.register(runtime, "name", LoopbackAgent)
+    loopback = AgentId("name", key="default")
+    runtime.start()
+    await runtime.add_subscription(DefaultSubscription(agent_type="name"))
+
+    await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+
+    # Regression test: an intervention handler raising on a published message
+    # must still release the queue slot, otherwise stop_when_idle() hangs forever.
+    await _stop_when_idle_or_fail(runtime)
+
+    loopback_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
+    assert loopback_agent.num_calls == 0
 
 
 @pytest.mark.asyncio
@@ -151,7 +221,7 @@ async def test_intervention_raise_exception_on_respond() -> None:
     with pytest.raises(InterventionException):
         _response = await runtime.send_message(MessageType(), recipient=loopback)
 
-    await runtime.stop()
+    await _stop_when_idle_or_fail(runtime)
 
     long_running_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert long_running_agent.num_calls == 1
