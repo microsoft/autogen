@@ -285,6 +285,11 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         """Resume the group chat manager. This is a no-op in the base class."""
         pass
 
+    @rpc
+    async def handle_get_thread(self, message: GroupChatGetThread, ctx: MessageContext) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get the current message thread from the group chat manager."""
+        return list(self._message_thread)
+
     @abstractmethod
     async def validate_group_state(self, messages: List[BaseChatMessage] | None) -> None:
         """Validate the state of the group chat given the start messages.
