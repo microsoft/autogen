@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 
 import pytest
 from autogen_core.models import (
@@ -12,6 +13,33 @@ from autogen_ext.experimental.task_centric_memory.utils.chat_completion_client_r
 from autogen_ext.models.replay import ReplayChatCompletionClient
 
 session_file_path = str("./session_1.json")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path_kind", ["bare", "explicit_relative", "nested", "absolute"])
+async def test_record_and_replay_session_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, path_kind: str) -> None:
+    """Session recording supports filenames with and without a parent directory."""
+    monkeypatch.chdir(tmp_path)
+    paths = {
+        "bare": "session.json",
+        "explicit_relative": "./session.json",
+        "nested": "sessions/nested/session.json",
+        "absolute": str(tmp_path / "absolute" / "session.json"),
+    }
+    path = paths[path_kind]
+    messages = [UserMessage(content="Message 1", source="User")]
+    recorder = ChatCompletionClientRecorder(
+        ReplayChatCompletionClient(["Recorded response"]), mode="record", session_file_path=path
+    )
+    recorded = await recorder.create(messages)
+    recorder.finalize()
+
+    assert Path(path).is_file()
+    replay = ChatCompletionClientRecorder(
+        ReplayChatCompletionClient(["Unused response"]), mode="replay", session_file_path=path
+    )
+    assert await replay.create(messages) == recorded
+    replay.finalize()
 
 
 @pytest.mark.asyncio
