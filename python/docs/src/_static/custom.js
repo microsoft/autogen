@@ -84,6 +84,28 @@ document.addEventListener('DOMContentLoaded', function () {
   if (targetNode) {
     observer.observe(targetNode, config);
   }
+
+  // Make back-to-top button keyboard accessible (#6090 issue 25)
+  const backToTopButton = document.querySelector('.back-to-top');
+  if (backToTopButton) {
+    // Ensure the button is focusable
+    if (!backToTopButton.hasAttribute('tabindex')) {
+      backToTopButton.setAttribute('tabindex', '0');
+    }
+    // Add accessible label
+    backToTopButton.setAttribute('aria-label', 'Back to top');
+    backToTopButton.setAttribute('role', 'button');
+    
+    // Handle keyboard activation (Enter and Space)
+    backToTopButton.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Announce the action
+        announceMessage(liveRegion, 'Scrolled to top of page');
+      }
+    });
+  }
 });
 
 async function copyToClipboard(button) {
