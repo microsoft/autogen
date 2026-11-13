@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Callable, List, Mapping, Sequence
+from typing import Any, Callable, List, Mapping, Sequence, Tuple
 
 from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
@@ -241,7 +241,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
 
     def __init__(
         self,
-        participants: List[ChatAgent | Team],
+        participants: List[ChatAgent | Team] | Tuple[ChatAgent | Team, ...],
         *,
         name: str | None = None,
         description: str | None = None,
