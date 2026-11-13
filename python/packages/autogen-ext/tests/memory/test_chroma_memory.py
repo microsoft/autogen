@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import pytest
 from autogen_core.memory import MemoryContent, MemoryMimeType
@@ -19,6 +20,77 @@ try:
     import chromadb  # pyright: ignore[reportUnusedImport]
 except ImportError:
     pytest.skip("ChromaDB not available", allow_module_level=True)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "metric, threshold, expected_order, expected_scores",
+    [
+        (None, None, ["aligned", "nearby"], [1.0, (1.0 + 1.0 / (1.01**0.5)) / 2.0]),
+        ("cosine", None, ["aligned", "nearby"], [1.0, (1.0 + 1.0 / (1.01**0.5)) / 2.0]),
+        ("l2", None, ["nearby", "aligned"], [1.0 / 1.01, 1.0 / 1.25]),
+        ("ip", None, ["double", "nearby", "aligned", "opposite"], [2.0, 1.0, 0.5, -1.0]),
+        ("ip", 0.0, ["double", "nearby", "aligned"], [2.0, 1.0, 0.5]),
+    ],
+)
+async def test_distance_metric(
+    tmp_path: Path,
+    metric: str | None,
+    threshold: float | None,
+    expected_order: list[str],
+    expected_scores: list[float],
+) -> None:
+    """Apply the configured metric to retrieval, including after reopening the collection."""
+    import numpy as np
+    from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
+
+    class MetricEmbeddingFunction(EmbeddingFunction[Documents]):
+        def __init__(self) -> None:
+            pass
+
+        def __call__(self, input: Documents) -> Embeddings:
+            vectors = {
+                "query": [1.0, 0.0],
+                "aligned": [0.5, 0.0],
+                "nearby": [1.0, 0.1],
+                "double": [2.0, 0.0],
+                "opposite": [-1.0, 0.0],
+            }
+            return [np.array(vectors[text], dtype=np.float32) for text in input]
+
+        @staticmethod
+        def name() -> str:
+            return "autogen-test-metric"
+
+        def get_config(self) -> dict[str, Any]:
+            return {}
+
+        @staticmethod
+        def build_from_config(config: dict[str, Any]) -> "MetricEmbeddingFunction":
+            return MetricEmbeddingFunction()
+
+    config = PersistentChromaDBVectorMemoryConfig(
+        collection_name="test_distance_metric",
+        persistence_path=str(tmp_path),
+        k=4 if metric == "ip" else 2,
+        score_threshold=threshold,
+        embedding_function_config=CustomEmbeddingFunctionConfig(function=MetricEmbeddingFunction),
+    )
+    if metric is not None:
+        config.distance_metric = metric
+
+    memory = ChromaDBVectorMemory(config=config)
+    try:
+        documents = ("aligned", "nearby", "double", "opposite") if metric == "ip" else ("aligned", "nearby")
+        for text in documents:
+            await memory.add(MemoryContent(content=text, mime_type=MemoryMimeType.TEXT))
+        for _ in range(2):
+            results = (await memory.query("query")).results
+            assert [result.content for result in results] == expected_order
+            assert [result.metadata["score"] for result in results if result.metadata] == pytest.approx(expected_scores)
+            await memory.close()
+    finally:
+        await memory.close()
 
 
 @pytest.fixture
