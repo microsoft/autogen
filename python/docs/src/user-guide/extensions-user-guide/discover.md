@@ -48,6 +48,8 @@ Find community samples and examples of how to use AutoGen
 | [autogen-ext-yepcode](https://github.com/yepcode/autogen-ext-yepcode)  | [PyPi](https://pypi.org/project/autogen-ext-yepcode/) | Enables agents to securely execute code in isolated remote sandboxes using [YepCode](https://yepcode.io)’s serverless runtime. |
 
 
+| [autogen-ext-agentwallet](https://github.com/agentwallet-sdk/autogen-ext-agentwallet) | [PyPI](https://pypi.org/project/autogen-ext-agentwallet/) | Non-custodial wallet for agents — EVM + Solana, x402 payments, 17-chain CCTP bridge, on-chain spend limits |
+
 <!-- Example -->
 <!-- | [My Model Client](https://github.com/example)  | [PyPi](https://pypi.org/project/example) | Model client for my custom model service | -->
 <!-- - Name should link to the project page or repo
