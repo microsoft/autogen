@@ -826,7 +826,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         if workbench is not None:
             if self._tools:
-                raise ValueError("Tools cannot be used with a workbench.")
+                raise ValueError(
+                    "The 'tools' and 'workbench' parameters are mutually exclusive. "
+                    "A workbench provides its own isolated execution environment with built-in tools "
+                    "(e.g., Docker, local exec), while 'tools' registers direct function-call tools. "
+                    "Choose one approach: either pass tools directly via 'tools=[...]' "
+                    "or use a workbench (e.g., DockerWorkbench) which manages tool execution internally. "
+                    "If migrating from v0.2, replace code execution tools with a workbench."
+                )
             if isinstance(workbench, Sequence):
                 self._workbench = workbench
             else:

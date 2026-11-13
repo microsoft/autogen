@@ -1175,7 +1175,7 @@ class TestAssistantAgentValidation:
 
         workbench = MagicMock()
 
-        with pytest.raises(ValueError, match="Tools cannot be used with a workbench"):
+        with pytest.raises(ValueError, match="'tools' and 'workbench' parameters are mutually exclusive"):
             AssistantAgent(
                 name="test_agent",
                 model_client=model_client,
