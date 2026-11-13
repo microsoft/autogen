@@ -41,6 +41,7 @@ from openai.types.chat.chat_completion_chunk import (
     ChoiceDelta,
     ChoiceDeltaToolCall,
     ChoiceDeltaToolCallFunction,
+    ChoiceLogprobs,
 )
 from openai.types.chat.chat_completion_chunk import (
     Choice as ChunkChoice,
@@ -50,6 +51,7 @@ from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall,
     Function,
 )
+from openai.types.chat.chat_completion_token_logprob import ChatCompletionTokenLogprob, TopLogprob
 from openai.types.chat.parsed_chat_completion import ParsedChatCompletion, ParsedChatCompletionMessage, ParsedChoice
 from openai.types.chat.parsed_function_tool_call import ParsedFunction, ParsedFunctionToolCall
 from openai.types.completion_usage import CompletionUsage
@@ -1175,6 +1177,90 @@ async def test_r1_reasoning_content_streaming(monkeypatch: pytest.MonkeyPatch) -
     assert isinstance(chunks[4], CreateResult)
     assert chunks[4].content == "This is the main content"
     assert chunks[4].thought == "This is the reasoning content 1This is the reasoning content 2"
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_create_stream_logprobs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that logprobs carried on streamed content chunks are accumulated into CreateResult.logprobs.
+
+    Regression test: content-bearing chunks used to hit the content fast-path's `continue`
+    before the logprobs collection block, so CreateResult.logprobs was always None for text
+    streams; and the collection block used to overwrite instead of extend across chunks.
+    """
+    stream_tokens = ["Hello", " ", "world"]
+
+    async def _mock_create_stream_logprobs(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
+        for i, token in enumerate(stream_tokens):
+            await asyncio.sleep(0.01)
+            yield ChatCompletionChunk(
+                id="id",
+                choices=[
+                    ChunkChoice(
+                        finish_reason=None,
+                        index=0,
+                        delta=ChoiceDelta(content=token, role="assistant"),
+                        logprobs=ChoiceLogprobs(
+                            content=[
+                                ChatCompletionTokenLogprob(
+                                    token=token,
+                                    logprob=-0.1 * (i + 1),
+                                    bytes=list(token.encode("utf-8")),
+                                    top_logprobs=[
+                                        TopLogprob(
+                                            token=token,
+                                            logprob=-0.1 * (i + 1),
+                                            bytes=list(token.encode("utf-8")),
+                                        )
+                                    ],
+                                )
+                            ]
+                        ),
+                    ),
+                ],
+                created=0,
+                model="gpt-4.1-nano-2025-04-14",
+                object="chat.completion.chunk",
+                usage=None,
+            )
+        yield ChatCompletionChunk(
+            id="id",
+            choices=[
+                ChunkChoice(
+                    finish_reason="stop",
+                    index=0,
+                    delta=ChoiceDelta(content=None, role="assistant"),
+                ),
+            ],
+            created=0,
+            model="gpt-4.1-nano-2025-04-14",
+            object="chat.completion.chunk",
+            usage=CompletionUsage(prompt_tokens=3, completion_tokens=3, total_tokens=6),
+        )
+
+    async def _mock_create_logprobs(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
+        await asyncio.sleep(0.01)
+        return _mock_create_stream_logprobs(*args, **kwargs)
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create_logprobs)
+    client = OpenAIChatCompletionClient(model="gpt-4.1-nano", api_key="api_key")
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(
+        messages=[UserMessage(content="Hello", source="user")],
+        extra_create_args={"logprobs": True, "top_logprobs": 1},
+    ):
+        chunks.append(chunk)
+
+    result = chunks[-1]
+    assert isinstance(result, CreateResult)
+    assert result.content == "Hello world"
+    # The streaming result must carry the logprobs of all streamed tokens,
+    # matching what the non-streaming create() path returns for the same response.
+    assert result.logprobs is not None
+    assert [x.token for x in result.logprobs] == stream_tokens
+    assert [x.logprob for x in result.logprobs] == [pytest.approx(-0.1 * (i + 1)) for i in range(len(stream_tokens))]
+    for x in result.logprobs:
+        assert x.top_logprobs is not None
+        assert len(x.top_logprobs) == 1
 
 
 @pytest.mark.asyncio
