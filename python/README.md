@@ -13,7 +13,7 @@ This directory works as a single `uv` workspace containing all project packages,
 
 ## Migrating from 0.2.x?
 
-Please refer to the [migration guide](./migration_guide.md) for how to migrate your code from 0.2.x to 0.4.x.
+Please refer to the [migration guide](./docs/src/user-guide/agentchat-user-guide/migration-guide.md) for how to migrate your code from 0.2.x to 0.4.x.
 
 ## Quick Start
 
