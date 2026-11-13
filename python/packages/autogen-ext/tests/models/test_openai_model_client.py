@@ -1591,8 +1591,14 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
         assert create_result.finish_reason == "function_calls"
 
 
+@pytest.mark.parametrize(
+    ("raw_tool_name", "expected_tool_name"),
+    [("get weather!", "get_weather_"), ("x" * 70, "x" * 64)],
+)
 @pytest.mark.asyncio
-async def test_tool_calling_with_stream(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_tool_calling_with_stream(
+    monkeypatch: pytest.MonkeyPatch, raw_tool_name: str, expected_tool_name: str
+) -> None:
     async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
         model = resolve_model(kwargs.get("model", "gpt-4o"))
         mock_chunks_content = ["Hello", " Another Hello", " Yet Another Hello"]
@@ -1625,7 +1631,7 @@ async def test_tool_calling_with_stream(monkeypatch: pytest.MonkeyPatch) -> None
                                 id="1",
                                 type="function",
                                 function=ChoiceDeltaToolCallFunction(
-                                    name="_pass_function",
+                                    name=raw_tool_name,
                                     arguments=json.dumps({"input": "task"}),
                                 ),
                             )
@@ -1665,7 +1671,7 @@ async def test_tool_calling_with_stream(monkeypatch: pytest.MonkeyPatch) -> None
     assert chunks[1] == " Another Hello"
     assert chunks[2] == " Yet Another Hello"
     assert isinstance(chunks[-1], CreateResult)
-    assert chunks[-1].content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
+    assert chunks[-1].content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name=expected_tool_name)]
     assert chunks[-1].finish_reason == "function_calls"
     assert chunks[-1].thought == "Hello Another Hello Yet Another Hello"
 
