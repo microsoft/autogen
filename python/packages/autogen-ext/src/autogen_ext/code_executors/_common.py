@@ -97,7 +97,14 @@ def get_file_name_from_content(code: str, workspace_path: Path) -> Optional[str]
     first_line = code.split("\n")[0]
     # TODO - support other languages
     if first_line.startswith("# filename:"):
-        filename = first_line.split(":")[1].strip()
+        # Split only on the first colon of the directive so that filenames that
+        # themselves contain a colon (e.g. "part:two.py", or a Windows path
+        # such as "C:\\work\\a.py") are preserved instead of being truncated.
+        filename = first_line.split(":", 1)[1].strip()
+
+        # An empty directive carries no filename; fall back to an auto-generated one.
+        if not filename:
+            return None
 
         # Handle relative paths in the filename
         path = Path(filename)
