@@ -2591,6 +2591,28 @@ def test_openai_model_registry_find_well() -> None:
     assert get_regitered_transformer(client1) == get_regitered_transformer(client2)
 
 
+def test_unknown_models_excludes_known_families() -> None:
+    from autogen_ext.models.openai._message_transform import (  # pyright: ignore[reportPrivateUsage]
+        __claude_models,
+        __gemini_models,
+        __llama_models,
+        __mistral_models,
+        __openai_models,
+        __unknown_models,
+    )
+
+    for model in __llama_models:
+        assert model not in __unknown_models
+    for model in __mistral_models:
+        assert model not in __unknown_models
+    for model in __openai_models:
+        assert model not in __unknown_models
+    for model in __claude_models:
+        assert model not in __unknown_models
+    for model in __gemini_models:
+        assert model not in __unknown_models
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model",
