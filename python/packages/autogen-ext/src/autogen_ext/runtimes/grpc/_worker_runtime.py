@@ -219,6 +219,16 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
     Cross-language agents will additionally require all agents use shared protobuf schemas for any message types that are sent between agents.
 
+    Args:
+        host_address: The address of the gRPC runtime host.
+        tracer_provider: The tracer provider to use for tracing.
+        extra_grpc_config: Additional gRPC channel configuration.
+        payload_serialization_format: The serialization format for message payloads.
+        ignore_unhandled_exceptions: Whether to log and ignore unhandled exceptions from
+            background tasks and the read loop. When ``False``, the first exception is
+            raised from :meth:`stop` after the runtime has finished cleanup. Defaults to
+            ``True``.
+
     .. _agent_worker.proto: https://github.com/microsoft/autogen/blob/main/protos/agent_worker.proto
 
     .. _cloudevent.proto: https://github.com/microsoft/autogen/blob/main/protos/cloudevent.proto
@@ -232,6 +242,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         tracer_provider: TracerProvider | None = None,
         extra_grpc_config: ChannelArgumentType | None = None,
         payload_serialization_format: str = JSON_DATA_CONTENT_TYPE,
+        ignore_unhandled_exceptions: bool = True,
     ) -> None:
         self._host_address = host_address
         self._trace_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("Worker Runtime"))
@@ -252,6 +263,8 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         self._serialization_registry = SerializationRegistry()
         self._extra_grpc_config = extra_grpc_config or []
         self._agent_instance_types: Dict[str, Type[Agent]] = {}
+        self._ignore_unhandled_exceptions = ignore_unhandled_exceptions
+        self._background_exception: BaseException | None = None
 
         if payload_serialization_format not in {JSON_DATA_CONTENT_TYPE, PROTOBUF_DATA_CONTENT_TYPE}:
             raise ValueError(f"Unsupported payload serialization format: {payload_serialization_format}")
@@ -271,10 +284,17 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             self._read_task = asyncio.create_task(self._run_read_loop())
         self._running = True
 
-    def _raise_on_exception(self, task: Task[Any]) -> None:
+    def _handle_background_task_result(self, task: Task[Any]) -> None:
+        if task.cancelled():
+            return
         exception = task.exception()
         if exception is not None:
-            raise exception
+            self._handle_unhandled_exception(exception, "Error in background task")
+
+    def _handle_unhandled_exception(self, exception: BaseException, message: str) -> None:
+        logger.error(message, exc_info=exception)
+        if not self._ignore_unhandled_exceptions and self._background_exception is None:
+            self._background_exception = exception
 
     async def _run_read_loop(self) -> None:
         logger.info("Starting read loop")
@@ -288,22 +308,24 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                     case "request":
                         task = asyncio.create_task(self._process_request(message.request))
                         self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
+                        task.add_done_callback(self._handle_background_task_result)
                         task.add_done_callback(self._background_tasks.discard)
                     case "response":
                         task = asyncio.create_task(self._process_response(message.response))
                         self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
+                        task.add_done_callback(self._handle_background_task_result)
                         task.add_done_callback(self._background_tasks.discard)
                     case "cloudEvent":
                         task = asyncio.create_task(self._process_event(message.cloudEvent))
                         self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
+                        task.add_done_callback(self._handle_background_task_result)
                         task.add_done_callback(self._background_tasks.discard)
                     case None:
                         logger.warning("No message")
             except Exception as e:
-                logger.error("Error in read loop", exc_info=e)
+                self._handle_unhandled_exception(e, "Error in read loop")
+                if not self._ignore_unhandled_exceptions:
+                    break
 
     async def stop(self) -> None:
         """Stop the runtime immediately."""
@@ -311,16 +333,14 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             raise RuntimeError("Runtime is not running.")
         self._running = False
         # Wait for all background tasks to finish.
-        final_tasks_results = await asyncio.gather(*self._background_tasks, return_exceptions=True)
-        for task_result in final_tasks_results:
-            if isinstance(task_result, Exception):
-                logger.error("Error in background task", exc_info=task_result)
+        await asyncio.gather(*self._background_tasks, return_exceptions=True)
         # Close the host connection.
         if self._host_connection is not None:
             try:
                 await self._host_connection.close()
             except asyncio.CancelledError:
                 pass
+
         # Cancel the read task.
         if self._read_task is not None:
             self._read_task.cancel()
@@ -328,6 +348,11 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 await self._read_task
             except asyncio.CancelledError:
                 pass
+
+        if self._background_exception is not None:
+            exception = self._background_exception
+            self._background_exception = None
+            raise exception
 
     async def stop_when_signal(self, signals: Sequence[signal.Signals] = (signal.SIGTERM, signal.SIGINT)) -> None:
         """Stop the runtime when a signal is received."""
@@ -406,7 +431,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             # TODO: Find a way to handle timeouts/errors
             task = asyncio.create_task(self._send_message(runtime_message, "send", recipient, telemetry_metadata))
             self._background_tasks.add(task)
-            task.add_done_callback(self._raise_on_exception)
+            task.add_done_callback(self._handle_background_task_result)
             task.add_done_callback(self._background_tasks.discard)
             return await future
 
@@ -486,7 +511,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             telemetry_metadata = get_telemetry_grpc_metadata()
             task = asyncio.create_task(self._send_message(runtime_message, "publish", topic_id, telemetry_metadata))
             self._background_tasks.add(task)
-            task.add_done_callback(self._raise_on_exception)
+            task.add_done_callback(self._handle_background_task_result)
             task.add_done_callback(self._background_tasks.discard)
 
     async def save_state(self) -> Mapping[str, Any]:
@@ -700,7 +725,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         try:
             await asyncio.gather(*responses)
         except BaseException as e:
-            logger.error("Error handling event", exc_info=e)
+            self._handle_unhandled_exception(e, "Error handling event")
 
     async def _register_agent_type(self, agent_type: str) -> None:
         if self._host_connection is None:

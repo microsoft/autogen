@@ -5,6 +5,7 @@ from typing import Any, List
 
 import pytest
 from autogen_core import (
+    JSON_DATA_CONTENT_TYPE,
     PROTOBUF_DATA_CONTENT_TYPE,
     AgentId,
     AgentType,
@@ -20,7 +21,8 @@ from autogen_core import (
     try_get_known_serializers_for_type,
     type_subscription,
 )
-from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime, GrpcWorkerAgentRuntimeHost
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime, GrpcWorkerAgentRuntimeHost, _constants
+from autogen_ext.runtimes.grpc.protos import cloudevent_pb2
 from autogen_test_utils import (
     CascadingAgent,
     CascadingMessageType,
@@ -32,6 +34,130 @@ from autogen_test_utils import (
 )
 
 from .protos.serialization_test_pb2 import ProtoMessage
+
+
+@pytest.mark.asyncio
+async def test_background_task_exception_is_logged_by_default(caplog: pytest.LogCaptureFixture) -> None:
+    worker = GrpcWorkerAgentRuntime(host_address="unused")
+
+    async def fail() -> None:
+        raise ValueError("background failure")
+
+    task = asyncio.create_task(fail())
+    task.add_done_callback(worker._handle_background_task_result)  # type: ignore[reportPrivateUsage]
+
+    with caplog.at_level(logging.ERROR, logger="autogen_core"):
+        with pytest.raises(ValueError, match="background failure"):
+            await task
+        await asyncio.sleep(0)
+
+    assert worker._background_exception is None  # type: ignore[reportPrivateUsage]
+    assert any("Error in background task" in record.message for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_background_task_exception_is_raised_from_stop() -> None:
+    worker = GrpcWorkerAgentRuntime(host_address="unused", ignore_unhandled_exceptions=False)
+
+    async def fail() -> None:
+        raise ValueError("background failure")
+
+    task = asyncio.create_task(fail())
+    worker._background_tasks.add(task)  # type: ignore[reportPrivateUsage]
+    task.add_done_callback(worker._handle_background_task_result)  # type: ignore[reportPrivateUsage]
+    task.add_done_callback(worker._background_tasks.discard)  # type: ignore[reportPrivateUsage]
+    worker._running = True  # type: ignore[reportPrivateUsage]
+
+    with pytest.raises(ValueError, match="background failure"):
+        await worker.stop()
+
+    assert worker._background_exception is None  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_read_loop_exception_is_raised_from_stop() -> None:
+    class FailingHostConnection:
+        async def recv(self) -> Any:
+            raise RuntimeError("read failure")
+
+        async def close(self) -> None:
+            pass
+
+    worker = GrpcWorkerAgentRuntime(host_address="unused", ignore_unhandled_exceptions=False)
+    worker._host_connection = FailingHostConnection()  # type: ignore[reportPrivateUsage,assignment]
+    worker._running = True  # type: ignore[reportPrivateUsage]
+    worker._read_task = asyncio.create_task(worker._run_read_loop())  # type: ignore[reportPrivateUsage]
+
+    await worker._read_task  # type: ignore[reportPrivateUsage]
+
+    with pytest.raises(RuntimeError, match="read failure"):
+        await worker.stop()
+
+
+@pytest.mark.asyncio
+async def test_first_background_exception_is_preserved() -> None:
+    worker = GrpcWorkerAgentRuntime(host_address="unused", ignore_unhandled_exceptions=False)
+
+    async def fail(message: str) -> None:
+        raise ValueError(message)
+
+    first = asyncio.create_task(fail("first failure"))
+    second = asyncio.create_task(fail("second failure"))
+    first.add_done_callback(worker._handle_background_task_result)  # type: ignore[reportPrivateUsage]
+    second.add_done_callback(worker._handle_background_task_result)  # type: ignore[reportPrivateUsage]
+
+    for task in (first, second):
+        with pytest.raises(ValueError):
+            await task
+        await asyncio.sleep(0)
+
+    assert isinstance(worker._background_exception, ValueError)  # type: ignore[reportPrivateUsage]
+    assert str(worker._background_exception) == "first failure"  # type: ignore[reportPrivateUsage]
+
+
+@pytest.mark.asyncio
+async def test_event_handler_exception_is_raised_from_stop() -> None:
+    @default_subscription
+    class FailingAgent(RoutedAgent):
+        def __init__(self) -> None:
+            super().__init__("A failing agent.")
+
+        @event
+        async def on_new_message(self, message: MessageType, ctx: MessageContext) -> None:
+            raise ValueError("event failure")
+
+    worker = GrpcWorkerAgentRuntime(host_address="unused", ignore_unhandled_exceptions=False)
+    worker.add_message_serializer(try_get_known_serializers_for_type(MessageType))
+    agent = FailingAgent()
+    agent_id = AgentId("failing", "default")
+    await agent.bind_id_and_runtime(id=agent_id, runtime=worker)
+    worker._instantiated_agents[agent_id] = agent  # type: ignore[reportPrivateUsage]
+    await worker._subscription_manager.add_subscription(DefaultSubscription(agent_type="failing"))  # type: ignore[reportPrivateUsage]
+    event_message = cloudevent_pb2.CloudEvent(
+        id="event-1",
+        spec_version="1.0",
+        type="default",
+        source="default",
+        attributes={
+            _constants.DATA_CONTENT_TYPE_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                ce_string=JSON_DATA_CONTENT_TYPE
+            ),
+            _constants.DATA_SCHEMA_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                ce_string=worker._serialization_registry.type_name(MessageType())  # type: ignore[reportPrivateUsage]
+            ),
+        },
+        binary_data=worker._serialization_registry.serialize(  # type: ignore[reportPrivateUsage]
+            MessageType(),
+            type_name=worker._serialization_registry.type_name(MessageType()),  # type: ignore[reportPrivateUsage]
+            data_content_type=JSON_DATA_CONTENT_TYPE,
+        ),
+    )
+
+    await worker._process_event(event_message)  # type: ignore[reportPrivateUsage]
+    worker._running = True  # type: ignore[reportPrivateUsage]
+
+    with pytest.raises(ValueError, match="event failure"):
+        await worker.stop()
 
 
 @pytest.mark.grpc
