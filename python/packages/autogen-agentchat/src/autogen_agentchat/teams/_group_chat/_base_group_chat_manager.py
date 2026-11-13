@@ -8,7 +8,8 @@ from ...base import TerminationCondition
 from ...messages import BaseAgentEvent, BaseChatMessage, MessageFactory, SelectSpeakerEvent, StopMessage
 from ._events import (
     GroupChatAgentResponse,
-    GroupChatError,
+    GroupChatError,h
+    GroupChatGetThreadEvent,
     GroupChatMessage,
     GroupChatPause,
     GroupChatRequestPublish,
@@ -321,6 +322,18 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
     async def reset(self) -> None:
         """Reset the group chat manager."""
         ...
+    @rpc
+        async def handle_get_thread(
+                    self, message: GroupChatGetThreadEvent, ctx: MessageContext
+        ) -> List[BaseAgentEvent | BaseChatMessage]:
+                    """Return a snapshot of the current message thread.
 
+                            Called when :meth:`~autogen_agentchat.teams.BaseGroupChat.get_thread`
+                                    is invoked on the team. Returns a shallow copy so callers cannot
+                                            accidentally mutate the manager's internal state.
+                                                    """
+                    return list(self._message_thread)
+
+    
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         raise ValueError(f"Unhandled message in group chat manager: {type(message)}")

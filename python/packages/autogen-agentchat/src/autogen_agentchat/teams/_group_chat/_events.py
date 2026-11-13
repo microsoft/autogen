@@ -111,3 +111,10 @@ class GroupChatError(BaseModel):
 
     error: SerializableException
     """The error that occurred."""
+
+
+
+class GroupChatGetThreadEvent(BaseModel):
+        """An RPC request to retrieve the current message thread from the group chat manager."""
+
+    ...
