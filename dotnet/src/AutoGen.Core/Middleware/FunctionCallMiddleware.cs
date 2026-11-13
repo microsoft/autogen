@@ -16,7 +16,7 @@ namespace AutoGen.Core;
 /// The middleware that process function call message that both send to an agent or reply from an agent.
 /// <para>If the last message is <see cref="ToolCallMessage"/> and the tool calls is available in this middleware's function map,
 /// the tools from the last message will be invoked and a <see cref="ToolCallResultMessage"/> will be returned. In this situation,
-/// the inner agent will be short-cut and won't be invoked.</para>
+/// the inner agent will be short-cut and won't be invoked, including when streaming.</para>
 /// <para>Otherwise, the message will be sent to the inner agent. In this situation</para>
 /// <para>if the reply from the inner agent is <see cref="ToolCallMessage"/>,
 /// and the tool calls is available in this middleware's function map, the tools from the reply will be invoked,
@@ -94,6 +94,7 @@ public class FunctionCallMiddleware : IStreamingMiddleware
         if (lastMessage is ToolCallMessage toolCallMessage)
         {
             yield return await this.InvokeToolCallMessagesBeforeInvokingAgentAsync(toolCallMessage, agent);
+            yield break;
         }
 
         // combine functions
