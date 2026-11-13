@@ -1,3 +1,4 @@
+import re
 from typing import Dict
 
 from autogen_core.models import ModelFamily, ModelInfo
@@ -126,20 +127,48 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
 }
 
 # Model token limits (context window size)
+# Keep in sync with the keys of _MODEL_INFO above so that every known model has a limit.
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
+    "claude-opus-4-20250514": 200000,
+    "claude-opus-4-0": 200000,
+    "claude-sonnet-4-20250514": 200000,
+    "claude-sonnet-4-0": 200000,
+    "claude-3-7-sonnet-20250219": 200000,
+    "claude-3-7-sonnet-latest": 200000,
     "claude-3-opus-20240229": 200000,
     "claude-3-sonnet-20240229": 200000,
     "claude-3-haiku-20240307": 200000,
     "claude-3-5-sonnet-20240620": 200000,
-    "claude-3-7-sonnet-20250219": 200000,
     "claude-instant-1.2": 100000,
     "claude-2.0": 100000,
     "claude-2.1": 200000,
 }
 
 
+def _normalize_model(model: str) -> str:
+    """Normalize a model identifier so AWS Bedrock IDs map to first-party model names.
+
+    Bedrock exposes Anthropic models with a provider namespace and a version suffix,
+    optionally prefixed with a cross-region inference code, for example::
+
+        anthropic.claude-3-5-sonnet-20240620-v1:0
+        us.anthropic.claude-3-5-sonnet-20240620-v1:0
+
+    Stripping the ``[<region>.]anthropic.`` prefix and the trailing ``-vN:M`` version
+    suffix yields the first-party model name (``claude-3-5-sonnet-20240620``) used as the
+    key in the lookup tables above. First-party IDs have neither part and are unchanged.
+    """
+    # Strip the (optionally region-prefixed) Bedrock provider namespace.
+    if "anthropic." in model:
+        model = model.split("anthropic.", 1)[1]
+    # Strip the Bedrock version suffix, e.g. "-v1:0".
+    model = re.sub(r"-v\d+:\d+$", "", model)
+    return model
+
+
 def get_info(model: str) -> ModelInfo:
     """Get the model information for a specific model."""
+    model = _normalize_model(model)
     # Check for exact match first
     if model in _MODEL_INFO:
         return _MODEL_INFO[model]
@@ -154,6 +183,7 @@ def get_info(model: str) -> ModelInfo:
 
 def get_token_limit(model: str) -> int:
     """Get the token limit for a specific model."""
+    model = _normalize_model(model)
     # Check for exact match first
     if model in _MODEL_TOKEN_LIMITS:
         return _MODEL_TOKEN_LIMITS[model]
