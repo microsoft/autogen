@@ -819,21 +819,17 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         content: Union[str, List[FunctionCall]]
         thought: Optional[str] = None
 
+        # Ollama reports the completion token usage on the final chunk's eval_count,
+        # regardless of whether the response is text, tool calls, or both.
+        completion_tokens = chunk.eval_count if chunk and chunk.eval_count else 0
+
         if len(content_chunks) > 0 and len(full_tool_calls) > 0:
             content = full_tool_calls
             thought = "".join(content_chunks)
-            if chunk and chunk.eval_count:
-                completion_tokens = chunk.eval_count
-            else:
-                completion_tokens = 0
-        elif len(content_chunks) > 1:
+        elif len(content_chunks) > 0:
+            # Any text content (including a single-chunk response) is the result.
             content = "".join(content_chunks)
-            if chunk and chunk.eval_count:
-                completion_tokens = chunk.eval_count
-            else:
-                completion_tokens = 0
         else:
-            completion_tokens = 0
             content = full_tool_calls
 
         usage = RequestUsage(
