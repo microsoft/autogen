@@ -20,7 +20,7 @@ programming model and better scalability.
 
 We want to reaffirm our commitment to supporting both the original version of AutoGen (0.2) and the redesign (0.4). AutoGen 0.4 is still work-in-progress, and we shared the code now to build with the community. There are no plans to deprecate the original AutoGen anytime soon, and both versions will be actively maintained.
 
-### Who should use it 0.4?
+### Who should use 0.4?
 
 This code is still experimental, so expect changes and bugs while we work towards a stable 0.4 release. We encourage early adopters to
 try it out, give us feedback, and contribute.
