@@ -46,6 +46,7 @@ Find community samples and examples of how to use AutoGen
 | [autogen-oaiapi](https://github.com/SongChiYoung/autogen-oaiapi)  | [PyPi](https://pypi.org/project/autogen-oaiapi/) | an OpenAI-style API server built on top of AutoGen |
 | [autogen-contextplus](https://github.com/SongChiYoung/autogen-contextplus)  | [PyPi](https://pypi.org/project/autogen-contextplus/) | Enhanced model_context implementations, with features such as automatic summarization and truncation of model context. |
 | [autogen-ext-yepcode](https://github.com/yepcode/autogen-ext-yepcode)  | [PyPi](https://pypi.org/project/autogen-ext-yepcode/) | Enables agents to securely execute code in isolated remote sandboxes using [YepCode](https://yepcode.io)’s serverless runtime. |
+| [autogen-haldir](https://github.com/ExposureGuard/haldir/tree/main/integrations/autogen-haldir) | [PyPi](https://pypi.org/project/autogen-haldir/) | Governance layer for AutoGen tools — scoped sessions with spend caps, AES-256-GCM encrypted secrets, hash-chained tamper-evident audit trail, and instant session revocation. |
 
 
 <!-- Example -->
