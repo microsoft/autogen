@@ -85,6 +85,7 @@ html_title = "AutoGen"
 
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
+html_extra_path = ["llms.txt", "llms-full.txt"]
 html_css_files = ["custom.css"]
 
 add_module_names = False
