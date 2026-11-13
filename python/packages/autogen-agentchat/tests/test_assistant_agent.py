@@ -2685,6 +2685,45 @@ class TestAssistantAgentCancellationToken:
         assert chunk_events[1].content == "chunk2"
 
     @pytest.mark.asyncio
+    async def test_streaming_cancellation_closes_model_stream(self) -> None:
+        """Cancelling an AssistantAgent stream must close the underlying model stream."""
+        model_client = MagicMock()
+        model_client.model_info = {"function_calling": False, "vision": False, "family": ModelFamily.GPT_4O}
+        started = asyncio.Event()
+        closed = asyncio.Event()
+        release = asyncio.Event()
+
+        async def mock_create_stream(*args: Any, **kwargs: Any) -> Any:
+            try:
+                started.set()
+                yield "chunk1"
+                await release.wait()
+                yield "late-chunk"
+                yield CreateResult(
+                    finish_reason="stop",
+                    content="chunk1late-chunk",
+                    usage=RequestUsage(prompt_tokens=1, completion_tokens=1),
+                    cached=False,
+                )
+            finally:
+                closed.set()
+
+        model_client.create_stream = mock_create_stream
+        agent = AssistantAgent("test_agent", model_client=model_client, model_client_stream=True)
+        cancellation_token = CancellationToken()
+
+        async def consume() -> None:
+            async for _ in agent.on_messages_stream([TextMessage(content="Test", source="user")], cancellation_token):
+                pass
+
+        task = asyncio.create_task(consume())
+        await started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        await asyncio.wait_for(closed.wait(), timeout=1)
+        release.set()
+
     async def test_cancellation_during_tool_execution(self) -> None:
         """Test cancellation token during tool execution."""
 
