@@ -146,7 +146,7 @@ class McpSessionHost(ComponentBase[BaseModel], Component[McpSessionHostConfig]):
             )
 
     async def handle_elicit_request(
-        self, params: mcp_types.ElicitRequestParams
+        self, params: mcp_types.ElicitRequestFormParams
     ) -> mcp_types.ElicitResult | mcp_types.ErrorData:
         """Handle an elicitation request from MCP servers.
 

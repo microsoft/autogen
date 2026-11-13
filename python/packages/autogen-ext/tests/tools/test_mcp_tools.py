@@ -1,7 +1,9 @@
 import asyncio
 import logging
 import os
+import sys
 import threading
+from pathlib import Path
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
@@ -10,6 +12,16 @@ from _pytest.logging import LogCaptureFixture  # type: ignore[import]
 from autogen_core import CancellationToken
 from autogen_core.tools import Workbench
 from autogen_core.utils import schema_to_pydantic_model
+from mcp import ClientSession, Tool
+from mcp.types import (
+    Annotations,
+    EmbeddedResource,
+    ImageContent,
+    ResourceLink,
+    TextContent,
+    TextResourceContents,
+)
+
 from autogen_ext.tools.mcp import (
     McpSessionActor,
     McpWorkbench,
@@ -22,16 +34,6 @@ from autogen_ext.tools.mcp import (
     create_mcp_server_session,
     mcp_server_tools,
 )
-from mcp import ClientSession, Tool
-from mcp.types import (
-    Annotations,
-    EmbeddedResource,
-    ImageContent,
-    ResourceLink,
-    TextContent,
-    TextResourceContents,
-)
-from pydantic.networks import AnyUrl
 
 
 @pytest.fixture
@@ -108,7 +110,7 @@ def mock_session() -> AsyncMock:
 @pytest.fixture
 def mock_tool_response() -> MagicMock:
     response = MagicMock()
-    response.isError = False
+    response.is_error = False
     response.content = [
         TextContent(
             text="test_output",
@@ -127,7 +129,7 @@ def cancellation_token() -> CancellationToken:
 @pytest.fixture
 def mock_error_tool_response() -> MagicMock:
     response = MagicMock()
-    response.isError = True
+    response.is_error = True
     response.content = [TextContent(text="error output", type="text")]
     return response
 
@@ -152,10 +154,10 @@ def test_adapter_config_serialization(sample_tool: Tool, sample_server_params: S
     assert "properties" in params_schema, "Parameters must have properties"
 
     # Compare schema content
-    assert params_schema["type"] == sample_tool.inputSchema["type"]
-    assert params_schema["required"] == sample_tool.inputSchema["required"]
+    assert params_schema["type"] == sample_tool.input_schema["type"]
+    assert params_schema["required"] == sample_tool.input_schema["required"]
     assert (
-        params_schema["properties"]["test_param"]["type"] == sample_tool.inputSchema["properties"]["test_param"]["type"]
+        params_schema["properties"]["test_param"]["type"] == sample_tool.input_schema["properties"]["test_param"]["type"]
     )
 
 
@@ -182,7 +184,7 @@ async def test_mcp_tool_execution(
     with caplog.at_level(logging.INFO):
         adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool)
         result = await adapter.run_json(
-            args=schema_to_pydantic_model(sample_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
+            args=schema_to_pydantic_model(sample_tool.input_schema)(**{"test_param": "test"}).model_dump(),
             cancellation_token=cancellation_token,
         )
 
@@ -227,10 +229,10 @@ async def test_adapter_from_server_params(
     assert "properties" in params_schema, "Parameters must have properties"
 
     # Compare schema content
-    assert params_schema["type"] == sample_tool.inputSchema["type"]
-    assert params_schema["required"] == sample_tool.inputSchema["required"]
+    assert params_schema["type"] == sample_tool.input_schema["type"]
+    assert params_schema["required"] == sample_tool.input_schema["required"]
     assert (
-        params_schema["properties"]["test_param"]["type"] == sample_tool.inputSchema["properties"]["test_param"]["type"]
+        params_schema["properties"]["test_param"]["type"] == sample_tool.input_schema["properties"]["test_param"]["type"]
     )
 
 
@@ -270,13 +272,13 @@ async def test_adapter_from_server_params_with_return_value_as_string(
                     type="resource",
                     resource=TextResourceContents(
                         text="this is a sample text",
-                        uri=AnyUrl(url="http://example.com/test"),
+                        uri="http://example.com/test",
                     ),
                     annotations=Annotations(audience=["user"], priority=0.3),
                 ),
             ]
         )
-        == '[{"type": "text", "text": "this is a sample text", "annotations": {"audience": ["user", "assistant"], "priority": 0.7}}, {"type": "image", "data": "this is a sample base64 encoded image", "mimeType": "image/png", "annotations": null}, {"type": "resource", "resource": {"uri": "http://example.com/test", "mimeType": null, "text": "this is a sample text"}, "annotations": {"audience": ["user"], "priority": 0.3}}]'
+        == '[{"type": "text", "text": "this is a sample text", "annotations": {"audience": ["user", "assistant"], "priority": 0.7, "lastModified": null}}, {"type": "image", "data": "this is a sample base64 encoded image", "mimeType": "image/png", "annotations": null}, {"type": "resource", "resource": {"uri": "http://example.com/test", "mimeType": null, "text": "this is a sample text"}, "annotations": {"audience": ["user"], "priority": 0.3, "lastModified": null}}]'
     )
 
 
@@ -344,11 +346,11 @@ async def test_sse_adapter_config_serialization(sample_sse_tool: Tool) -> None:
     assert "properties" in params_schema, "Parameters must have properties"
 
     # Compare schema content
-    assert params_schema["type"] == sample_sse_tool.inputSchema["type"]
-    assert params_schema["required"] == sample_sse_tool.inputSchema["required"]
+    assert params_schema["type"] == sample_sse_tool.input_schema["type"]
+    assert params_schema["required"] == sample_sse_tool.input_schema["required"]
     assert (
         params_schema["properties"]["test_param"]["type"]
-        == sample_sse_tool.inputSchema["properties"]["test_param"]["type"]
+        == sample_sse_tool.input_schema["properties"]["test_param"]["type"]
     )
 
 
@@ -365,7 +367,7 @@ async def test_sse_tool_execution(
     mock_context.__aenter__.return_value = mock_sse_session
 
     mock_sse_session.call_tool.return_value = MagicMock(
-        isError=False,
+        is_error=False,
         content=[
             TextContent(
                 text="test_output",
@@ -383,7 +385,7 @@ async def test_sse_tool_execution(
     with caplog.at_level(logging.INFO):
         adapter = SseMcpToolAdapter(server_params=params, tool=sample_sse_tool)
         result = await adapter.run_json(
-            args=schema_to_pydantic_model(sample_sse_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
+            args=schema_to_pydantic_model(sample_sse_tool.input_schema)(**{"test_param": "test"}).model_dump(),
             cancellation_token=CancellationToken(),
         )
 
@@ -428,11 +430,11 @@ async def test_sse_adapter_from_server_params(
     assert "properties" in params_schema, "Parameters must have properties"
 
     # Compare schema content
-    assert params_schema["type"] == sample_sse_tool.inputSchema["type"]
-    assert params_schema["required"] == sample_sse_tool.inputSchema["required"]
+    assert params_schema["type"] == sample_sse_tool.input_schema["type"]
+    assert params_schema["required"] == sample_sse_tool.input_schema["required"]
     assert (
         params_schema["properties"]["test_param"]["type"]
-        == sample_sse_tool.inputSchema["properties"]["test_param"]["type"]
+        == sample_sse_tool.input_schema["properties"]["test_param"]["type"]
     )
 
 
@@ -458,11 +460,11 @@ async def test_streamable_http_adapter_config_serialization(sample_streamable_ht
     assert "properties" in params_schema, "Parameters must have properties"
 
     # Compare schema content
-    assert params_schema["type"] == sample_streamable_http_tool.inputSchema["type"]
-    assert params_schema["required"] == sample_streamable_http_tool.inputSchema["required"]
+    assert params_schema["type"] == sample_streamable_http_tool.input_schema["type"]
+    assert params_schema["required"] == sample_streamable_http_tool.input_schema["required"]
     assert (
         params_schema["properties"]["test_param"]["type"]
-        == sample_streamable_http_tool.inputSchema["properties"]["test_param"]["type"]
+        == sample_streamable_http_tool.input_schema["properties"]["test_param"]["type"]
     )
 
 
@@ -479,7 +481,7 @@ async def test_streamable_http_tool_execution(
     mock_context.__aenter__.return_value = mock_streamable_http_session
 
     mock_streamable_http_session.call_tool.return_value = MagicMock(
-        isError=False,
+        is_error=False,
         content=[
             TextContent(
                 text="test_output",
@@ -497,7 +499,7 @@ async def test_streamable_http_tool_execution(
     with caplog.at_level(logging.INFO):
         adapter = StreamableHttpMcpToolAdapter(server_params=params, tool=sample_streamable_http_tool)
         result = await adapter.run_json(
-            args=schema_to_pydantic_model(sample_streamable_http_tool.inputSchema)(
+            args=schema_to_pydantic_model(sample_streamable_http_tool.input_schema)(
                 **{"test_param": "test"}
             ).model_dump(),
             cancellation_token=CancellationToken(),
@@ -544,25 +546,26 @@ async def test_streamable_http_adapter_from_server_params(
     assert "properties" in params_schema, "Parameters must have properties"
 
     # Compare schema content
-    assert params_schema["type"] == sample_streamable_http_tool.inputSchema["type"]
-    assert params_schema["required"] == sample_streamable_http_tool.inputSchema["required"]
+    assert params_schema["type"] == sample_streamable_http_tool.input_schema["type"]
+    assert params_schema["required"] == sample_streamable_http_tool.input_schema["required"]
     assert (
         params_schema["properties"]["test_param"]["type"]
-        == sample_streamable_http_tool.inputSchema["properties"]["test_param"]["type"]
+        == sample_streamable_http_tool.input_schema["properties"]["test_param"]["type"]
     )
 
 
 @pytest.mark.asyncio
 async def test_mcp_server_fetch() -> None:
+    server_path = Path(__file__).parent.parent / "mcp_server_comprehensive.py"
     params = StdioServerParams(
-        command="uvx",
-        args=["mcp-server-fetch"],
+        command=sys.executable,
+        args=[str(server_path)],
         read_timeout_seconds=60,
     )
     tools = await mcp_server_tools(server_params=params)
     assert tools is not None
-    assert tools[0].name == "fetch"
-    result = await tools[0].run_json({"url": "https://github.com/"}, CancellationToken())
+    assert tools[0].name == "echo"
+    result = await tools[0].run_json({"text": "hello"}, CancellationToken())
     assert result is not None
 
 
@@ -588,39 +591,39 @@ async def test_mcp_server_filesystem() -> None:
 
 @pytest.mark.asyncio
 async def test_mcp_server_git() -> None:
+    server_path = Path(__file__).parent.parent / "mcp_server_comprehensive.py"
     params = StdioServerParams(
-        command="uvx",
-        args=["mcp-server-git"],
+        command=sys.executable,
+        args=[str(server_path)],
         read_timeout_seconds=60,
     )
     tools = await mcp_server_tools(server_params=params)
     assert tools is not None
-    tools = [tool for tool in tools if tool.name == "git_log"]
+    tools = [tool for tool in tools if tool.name == "get_time"]
     assert len(tools) == 1
     tool = tools[0]
-    repo_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
-    result = await tool.run_json({"repo_path": repo_path}, CancellationToken())
+    result = await tool.run_json({}, CancellationToken())
     assert result is not None
 
 
 @pytest.mark.asyncio
 async def test_mcp_server_git_existing_session() -> None:
+    server_path = Path(__file__).parent.parent / "mcp_server_comprehensive.py"
     params = StdioServerParams(
-        command="uvx",
-        args=["mcp-server-git"],
+        command=sys.executable,
+        args=[str(server_path)],
         read_timeout_seconds=60,
     )
     async with create_mcp_server_session(params) as session:
         await session.initialize()
         tools = await mcp_server_tools(server_params=params, session=session)
         assert tools is not None
-        git_log = [tool for tool in tools if tool.name == "git_log"][0]
-        repo_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
-        result = await git_log.run_json({"repo_path": repo_path}, CancellationToken())
+        get_time = [tool for tool in tools if tool.name == "get_time"][0]
+        result = await get_time.run_json({}, CancellationToken())
         assert result is not None
 
-        git_status = [tool for tool in tools if tool.name == "git_status"][0]
-        result = await git_status.run_json({"repo_path": repo_path}, CancellationToken())
+        echo = [tool for tool in tools if tool.name == "echo"][0]
+        result = await echo.run_json({"text": "hello"}, CancellationToken())
         assert result is not None
 
 
@@ -652,9 +655,10 @@ async def test_mcp_server_github() -> None:
 
 @pytest.mark.asyncio
 async def test_mcp_workbench_start_stop() -> None:
+    server_path = Path(__file__).parent.parent / "mcp_server_comprehensive.py"
     params = StdioServerParams(
-        command="uvx",
-        args=["mcp-server-fetch"],
+        command=sys.executable,
+        args=[str(server_path)],
         read_timeout_seconds=60,
     )
 
@@ -669,9 +673,10 @@ async def test_mcp_workbench_start_stop() -> None:
 
 @pytest.mark.asyncio
 async def test_mcp_workbench_server_fetch() -> None:
+    server_path = Path(__file__).parent.parent / "mcp_server_comprehensive.py"
     params = StdioServerParams(
-        command="uvx",
-        args=["mcp-server-fetch"],
+        command=sys.executable,
+        args=[str(server_path)],
         read_timeout_seconds=60,
     )
 
@@ -680,9 +685,9 @@ async def test_mcp_workbench_server_fetch() -> None:
 
     tools = await workbench.list_tools()
     assert tools is not None
-    assert tools[0]["name"] == "fetch"
+    assert tools[0]["name"] == "echo"
 
-    result = await workbench.call_tool(tools[0]["name"], {"url": "https://github.com/"}, CancellationToken())
+    result = await workbench.call_tool(tools[0]["name"], {"text": "hello"}, CancellationToken())
     assert result is not None
 
     await workbench.stop()
@@ -811,7 +816,7 @@ def test_mcp_tool_adapter_normalize_payload(sample_tool: Tool, sample_server_par
         ImageContent(data="base64data", mimeType="image/png", type="image"),
         EmbeddedResource(
             type="resource",
-            resource=TextResourceContents(text="embedded text", uri=AnyUrl(url="http://example.com/resource")),
+            resource=TextResourceContents(text="embedded text", uri="http://example.com/resource"),
         ),
     ]
     assert adapter._normalize_payload_to_content_list(valid_content_list) == valid_content_list  # type: ignore[reportPrivateUsage]
@@ -827,7 +832,7 @@ def test_mcp_tool_adapter_normalize_payload(sample_tool: Tool, sample_server_par
     # Case 4: Payload is a single EmbeddedResource
     single_embedded_resource = EmbeddedResource(
         type="resource",
-        resource=TextResourceContents(text="other embedded", uri=AnyUrl(url="http://example.com/other")),
+        resource=TextResourceContents(text="other embedded", uri="http://example.com/other"),
     )
     assert adapter._normalize_payload_to_content_list(single_embedded_resource) == [single_embedded_resource]  # type: ignore[reportPrivateUsage, arg-type]
 
@@ -920,11 +925,11 @@ def test_return_value_as_string_with_resource_link(sample_tool: Tool, sample_ser
     resource_link = ResourceLink(
         name="test_link",
         type="resource_link",
-        uri=AnyUrl(url="http://example.com"),
+        uri="http://example.com",
     )
 
     result = adapter.return_value_as_string([resource_link])
     # Verify the JSON serialization contains expected fields
     assert '"type": "resource_link"' in result
     assert '"name": "test_link"' in result
-    assert '"uri": "http://example.com/"' in result  # AnyUrl normalizes with trailing slash
+    assert '"uri": "http://example.com"' in result

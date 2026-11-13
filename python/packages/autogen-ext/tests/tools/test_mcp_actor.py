@@ -14,12 +14,13 @@ from autogen_core.models import (
     CreateResult,
     RequestUsage,
 )
+from mcp import types as mcp_types
+from mcp.client.session import ClientRequestContext
+
 from autogen_ext.tools.mcp import StdioServerParams, StreamableHttpServerParams
 from autogen_ext.tools.mcp._actor import (
     McpSessionActor,
 )
-from mcp import types as mcp_types
-from mcp.shared.context import RequestContext
 
 # Monkey patch to prevent atexit handlers from being registered during tests
 # This prevents the test suite from hanging during shutdown
@@ -41,8 +42,8 @@ def mcp_server_params() -> StdioServerParams:
     # Get the path to the simple MCP server
     server_path = Path(__file__).parent.parent / "mcp_server_comprehensive.py"
     return StdioServerParams(
-        command="uv",
-        args=["run", "python", str(server_path)],
+        command=sys.executable,
+        args=[str(server_path)],
         read_timeout_seconds=10,
     )
 
@@ -305,7 +306,7 @@ async def test_sampling_callback_without_host() -> None:
     """Test sampling callback returns error when no host is available (lines 119-127)."""
     actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]))
 
-    mock_context = MagicMock(spec=RequestContext)
+    mock_context = MagicMock(spec=ClientRequestContext)
     params = mcp_types.CreateMessageRequestParams(
         messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
         maxTokens=100,
@@ -323,8 +324,8 @@ async def test_elicitation_callback_without_host() -> None:
     """Test elicitation callback returns error when no host is available (lines 135-143)."""
     actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]))
 
-    mock_context = MagicMock(spec=RequestContext)
-    params = mcp_types.ElicitRequestParams(message="Test elicitation message", requestedSchema={"type": "object"})
+    mock_context = MagicMock(spec=ClientRequestContext)
+    params = mcp_types.ElicitRequestFormParams(message="Test elicitation message", requestedSchema={"type": "object"})
 
     result = await actor._elicitation_callback(mock_context, params)  # type: ignore[reportPrivateUsage]
 
@@ -338,7 +339,7 @@ async def test_list_roots_callback_without_host() -> None:
     """Test list_roots callback returns error when no host is available (lines 149-156)."""
     actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]))
 
-    mock_context = MagicMock(spec=RequestContext)
+    mock_context = MagicMock(spec=ClientRequestContext)
 
     result = await actor._list_roots(mock_context)  # type: ignore[reportPrivateUsage]
 
@@ -362,7 +363,7 @@ async def test_list_roots_callback_without_host() -> None:
 
 #     actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]), model_client=model_client)
 
-#     mock_context = MagicMock(spec=RequestContext)
+#     mock_context = MagicMock(spec=ClientRequestContext)
 
 #     # Create a valid SamplingMessage but with invalid role that will cause parsing error
 #     # We'll patch the message after creation to bypass Pydantic validation
@@ -391,7 +392,7 @@ async def test_list_roots_callback_without_host() -> None:
 
 #     actor = McpSessionActor(StdioServerParams(command="echo", args=["test"]), model_client=failing_model_client)
 
-#     mock_context = MagicMock(spec=RequestContext)
+#     mock_context = MagicMock(spec=ClientRequestContext)
 #     params = mcp_types.CreateMessageRequestParams(
 #         messages=[mcp_types.SamplingMessage(role="user", content=mcp_types.TextContent(type="text", text="Hello"))],
 #         maxTokens=100,
@@ -906,7 +907,7 @@ async def test_actor_tool_failure_handling(mcp_server_params: Any) -> None:
         call_future = await actor.call("call_tool", {"name": "unknown_tool", "kargs": {}})
         call_result: mcp_types.CallToolResult = await call_future  # type: ignore
         # The server returns an error but doesn't raise an exception
-        assert call_result.isError is True  # type: ignore
+        assert call_result.is_error is True  # type: ignore
         assert "Unknown tool" in call_result.content[0].text  # type: ignore
 
     finally:
@@ -924,7 +925,7 @@ async def test_actor_tool_failure_handling(mcp_server_params: Any) -> None:
 #         await asyncio.sleep(0.1)
 
 #         # Test sampling callback functionality
-#         mock_context = MagicMock(spec=RequestContext)
+#         mock_context = MagicMock(spec=ClientRequestContext)
 #         params = mcp_types.CreateMessageRequestParams(
 #             messages=[
 #                 mcp_types.SamplingMessage(
@@ -1051,7 +1052,7 @@ async def test_actor_unknown_tool(mcp_server_params: Any) -> None:
         call_future = await actor.call("call_tool", {"name": "unknown_tool", "kargs": {}})
         call_result: mcp_types.CallToolResult = await call_future  # type: ignore
         # The server returns an error but doesn't raise an exception
-        assert call_result.isError is True  # type: ignore
+        assert call_result.is_error is True  # type: ignore
         assert "Unknown tool" in call_result.content[0].text  # type: ignore
 
     finally:

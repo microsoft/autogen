@@ -8,13 +8,14 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from autogen_core import Image
 from autogen_core.tools import ImageResultContent, TextResultContent
-from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 from mcp.types import (
     CallToolResult,
     EmbeddedResource,
     ImageContent,
     TextContent,
 )
+
+from autogen_ext.tools.mcp import McpWorkbench, StdioServerParams
 
 
 @pytest.fixture
@@ -112,7 +113,7 @@ async def test_call_tool_embedded_resource_handling(
 
     embedded_resource = EmbeddedResource(
         type="resource",
-        resource=TextResourceContents(uri=AnyUrl("test://resource"), text="test content"),
+        resource=TextResourceContents(uri="test://resource", text="test content"),
     )
 
     call_result = CallToolResult(content=[embedded_resource], isError=False)

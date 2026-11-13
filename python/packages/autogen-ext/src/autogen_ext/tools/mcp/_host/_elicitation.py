@@ -25,7 +25,7 @@ class Elicitor(ABC, ComponentBase[BaseModel]):
     component_type = "mcp_elicitor"
 
     @abstractmethod
-    async def elicit(self, params: mcp_types.ElicitRequestParams) -> mcp_types.ElicitResult | mcp_types.ErrorData: ...
+    async def elicit(self, params: mcp_types.ElicitRequestFormParams) -> mcp_types.ElicitResult | mcp_types.ErrorData: ...
 
 
 class StreamElicitor(Elicitor):
@@ -53,7 +53,7 @@ class StreamElicitor(Elicitor):
             coroutine = asyncio.wait_for(coroutine, self._timeout)
         return await coroutine
 
-    async def elicit(self, params: mcp_types.ElicitRequestParams) -> mcp_types.ElicitResult:
+    async def elicit(self, params: mcp_types.ElicitRequestFormParams) -> mcp_types.ElicitResult:
         header = "=== BEGIN MCP ELICITATION REQUEST ==="
         border = "=" * len(header)
         header = f"{border}\n{header}\n{border}"
@@ -78,11 +78,11 @@ class StreamElicitor(Elicitor):
 
             result = mcp_types.ElicitResult.model_validate({"action": action})
 
-            if action == "accept" and params.requestedSchema:
+            if action == "accept" and params.requested_schema:
                 prompt = "\n".join(
                     [
                         "Input Schema:",
-                        json.dumps(params.requestedSchema, indent=2),
+                        json.dumps(params.requested_schema, indent=2),
                         "Please enter a JSON string following the above schema: ",
                     ]
                 )
