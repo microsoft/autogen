@@ -539,6 +539,57 @@ def test_convert_tools_accepts_both_tool_and_schema() -> None:
     assert converted_tool_schema[0] == converted_tool_schema[1]
 
 
+def test_convert_tools_omits_strict_when_not_enabled() -> None:
+    """Regression test for #5814.
+
+    OpenAI-compatible servers (vLLM, Qwen-Tongyi, Mistral via LiteLLM, etc.)
+    reject the ``strict`` field on function tool definitions with
+    ``'type': 'extra_forbidden', 'loc': ('body', 'tools', 0, 'function', 'strict')``.
+    When ``strict`` is not explicitly enabled, ``convert_tools`` must omit the
+    key entirely from the emitted ``function`` payload — sending ``strict: false``
+    breaks these servers and OpenAI's own default is "omitted".
+    """
+
+    def my_function(arg: str, other: Annotated[int, "int arg"]) -> MyResult:
+        return MyResult(result="test")
+
+    tool = FunctionTool(my_function, description="Function tool.")  # strict defaults to False
+    converted = convert_tools([tool])
+
+    assert len(converted) == 1
+    function_def = converted[0]["function"]
+    assert "strict" not in function_def, (
+        "convert_tools must not emit 'strict' on function definitions when the tool "
+        "did not opt into strict mode; some OpenAI-compatible servers reject "
+        "unknown fields. Got: " + repr(dict(function_def))
+    )
+
+    # Passing the raw schema (without 'strict') must also omit the key.
+    schema_only = {
+        "name": "raw_schema_tool",
+        "description": "schema-only",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+    }
+    converted_schema = convert_tools([schema_only])  # type: ignore[list-item]
+    assert "strict" not in converted_schema[0]["function"]
+
+
+def test_convert_tools_includes_strict_when_enabled() -> None:
+    """When a tool explicitly opts in to ``strict`` mode, ``convert_tools``
+    must propagate ``strict=True`` so that OpenAI's structured-output guarantees
+    are preserved."""
+
+    def my_function(arg: str, other: Annotated[int, "int arg"]) -> MyResult:
+        return MyResult(result="test")
+
+    tool = FunctionTool(my_function, description="Strict tool.", strict=True)
+    converted = convert_tools([tool])
+
+    assert len(converted) == 1
+    function_def = converted[0]["function"]
+    assert function_def.get("strict") is True
+
+
 @pytest.mark.asyncio
 async def test_json_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4.1-nano-2025-04-14"
@@ -1535,12 +1586,17 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
     echo_tool = FunctionTool(_echo_function, description="echo tool.")
     model_client = OpenAIChatCompletionClient(model=model, api_key="")
 
+    def _expected_function_payload(tool: FunctionTool) -> Dict[str, Any]:
+        # ``strict`` is intentionally omitted by ``convert_tools`` when the tool
+        # does not opt in (see #5814 and convert_tools tests above).
+        return {k: v for k, v in tool.schema.items() if k != "strict"}
+
     # Single tool call
     create_result = await model_client.create(messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool])
     assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
     # Verify that the tool schema was passed to the model client.
     kwargs = mock.calls[0]
-    assert kwargs["tools"] == [{"function": pass_tool.schema, "type": "function"}]
+    assert kwargs["tools"] == [{"function": _expected_function_payload(pass_tool), "type": "function"}]
     # Verify finish reason
     assert create_result.finish_reason == "function_calls"
 
@@ -1556,9 +1612,9 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
     # Verify that the tool schema was passed to the model client.
     kwargs = mock.calls[1]
     assert kwargs["tools"] == [
-        {"function": pass_tool.schema, "type": "function"},
-        {"function": fail_tool.schema, "type": "function"},
-        {"function": echo_tool.schema, "type": "function"},
+        {"function": _expected_function_payload(pass_tool), "type": "function"},
+        {"function": _expected_function_payload(fail_tool), "type": "function"},
+        {"function": _expected_function_payload(echo_tool), "type": "function"},
     ]
     # Verify finish reason
     assert create_result.finish_reason == "function_calls"
