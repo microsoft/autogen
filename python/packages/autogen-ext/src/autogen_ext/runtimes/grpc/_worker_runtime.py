@@ -60,6 +60,7 @@ from autogen_ext.runtimes.grpc._utils import subscription_to_proto
 
 from . import _constants
 from ._constants import GRPC_IMPORT_ERROR_STR
+from ._signal_utils import wait_for_signal
 from ._type_helpers import ChannelArgumentType
 from .protos import agent_worker_pb2, agent_worker_pb2_grpc, cloudevent_pb2
 
@@ -331,20 +332,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
     async def stop_when_signal(self, signals: Sequence[signal.Signals] = (signal.SIGTERM, signal.SIGINT)) -> None:
         """Stop the runtime when a signal is received."""
-        loop = asyncio.get_running_loop()
-        shutdown_event = asyncio.Event()
-
-        def signal_handler() -> None:
-            logger.info("Received exit signal, shutting down gracefully...")
-            shutdown_event.set()
-
-        for sig in signals:
-            loop.add_signal_handler(sig, signal_handler)
-
-        # Wait for the signal to trigger the shutdown event.
-        await shutdown_event.wait()
-
-        # Stop the runtime.
+        await wait_for_signal(signals)
         await self.stop()
 
     @property

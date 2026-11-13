@@ -4,6 +4,7 @@ import signal
 from typing import Optional, Sequence
 
 from ._constants import GRPC_IMPORT_ERROR_STR
+from ._signal_utils import wait_for_signal
 from ._type_helpers import ChannelArgumentType
 from ._worker_runtime_host_servicer import GrpcWorkerAgentRuntimeHostServicer
 
@@ -56,18 +57,7 @@ class GrpcWorkerAgentRuntimeHost:
         if self._serve_task is None:
             raise RuntimeError("Host runtime is not started.")
         # Set up signal handling for graceful shutdown.
-        loop = asyncio.get_running_loop()
-        shutdown_event = asyncio.Event()
-
-        def signal_handler() -> None:
-            logger.info("Received exit signal, shutting down gracefully...")
-            shutdown_event.set()
-
-        for sig in signals:
-            loop.add_signal_handler(sig, signal_handler)
-
-        # Wait for the signal to trigger the shutdown event.
-        await shutdown_event.wait()
+        await wait_for_signal(signals)
 
         # Shutdown the server.
         await self.stop(grace=grace)
