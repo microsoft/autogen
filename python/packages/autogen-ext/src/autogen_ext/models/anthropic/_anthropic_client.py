@@ -685,6 +685,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         usage = RequestUsage(
             prompt_tokens=result.usage.input_tokens,
             completion_tokens=result.usage.output_tokens,
+            cached_tokens=result.usage.cache_read_input_tokens or 0,
         )
         serializable_messages: List[Dict[str, Any]] = [self._serialize_message(msg) for msg in anthropic_messages]
 
