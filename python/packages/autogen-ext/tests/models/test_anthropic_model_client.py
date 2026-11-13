@@ -12,6 +12,7 @@ from autogen_core.models import (
     CreateResult,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
+    ModelFamily,
     ModelInfo,
     SystemMessage,
     UserMessage,
@@ -24,6 +25,13 @@ from autogen_ext.models.anthropic import (
     BaseAnthropicChatCompletionClient,
     BedrockInfo,
 )
+from autogen_ext.models.anthropic._model_info import get_info, get_token_limit
+
+
+def test_claude_sonnet_4_6_model_info() -> None:
+    assert get_info("claude-sonnet-4-6")["family"] == ModelFamily.CLAUDE_4_SONNET
+    assert get_token_limit("claude-sonnet-4-6") == 1000000
+    AnthropicChatCompletionClient(model="claude-sonnet-4-6", api_key="test-key")
 
 
 def _pass_function(input: str) -> str:
