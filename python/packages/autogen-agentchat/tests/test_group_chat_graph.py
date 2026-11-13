@@ -1766,3 +1766,66 @@ async def test_digraph_group_chat_resume_with_termination_condition(runtime: Age
     assert agent_a.total_messages == 1  # Still only ran once
     assert agent_b.total_messages == 1  # Still only ran once
     assert agent_c.total_messages == 1  # Now ran once
+
+
+@pytest.mark.asyncio
+async def test_graph_flow_cyclic_pause_resume_reaches_exit() -> None:
+    # Regression test for https://github.com/microsoft/autogen/issues/7043
+    #
+    # In a cyclic graph (B can loop back to A), pausing mid-traversal and then
+    # resuming via save_state/load_state used to terminate immediately with
+    # "Digraph execution is complete", never reaching the exit node.
+    #
+    # Root cause: GraphFlowManager.save_state/load_state did not persist
+    # _triggered_activation_groups, which tracks how a re-entry node (A) was
+    # queued. On resume, _reset_triggered_activation_groups became a no-op for
+    # the re-entry target, so its _remaining count was never restored and got
+    # decremented below zero on the next loop iteration, silently draining the
+    # ready queue.
+    graph = DiGraph(
+        nodes={
+            "A": DiGraphNode(name="A", edges=[DiGraphEdge(target="B")]),
+            "B": DiGraphNode(
+                name="B",
+                edges=[
+                    DiGraphEdge(target="C", condition="exit"),
+                    DiGraphEdge(target="A", condition="loop"),
+                ],
+            ),
+            "C": DiGraphNode(name="C", edges=[]),
+        },
+        default_start_node="A",
+    )
+
+    def build_team(max_messages: int) -> GraphFlow:
+        # Fresh agent instances per team — resume must work across independent
+        # processes/objects, just like a real save-to-disk and reload flow.
+        a = AssistantAgent("A", model_client=ReplayChatCompletionClient(["a"] * 10))
+        b = AssistantAgent("B", model_client=ReplayChatCompletionClient(["loop", "exit"]))
+        c = AssistantAgent("C", model_client=ReplayChatCompletionClient(["c"]))
+        return GraphFlow(
+            participants=[a, b, c],
+            graph=graph,
+            runtime=None,
+            termination_condition=MaxMessageTermination(max_messages),
+        )
+
+    # Phase 1: run one loop iteration (user, A, B="loop"), then stop at 3 messages
+    # before A's re-entry is consumed.
+    team = build_team(max_messages=3)
+    result = await team.run(task="Start")
+    assert [m.source for m in result.messages] == ["user", "A", "B"]
+
+    state = await team.save_state()
+
+    # Phase 2: load into a fresh team (fresh agent instances) and resume. Before
+    # the fix this stopped immediately ("Digraph execution is complete") after
+    # just [A, B] and never reached C. After the fix the loop continues and the
+    # exit node C runs: ['A', 'B', 'A', 'B', 'C'].
+    new_team = build_team(max_messages=10)
+    await new_team.load_state(state)
+    resume_result = await new_team.run()
+    resume_sources = [m.source for m in resume_result.messages]
+
+    assert "C" in resume_sources, f"Loop did not reach the exit node; got {resume_sources}"
+    assert len(resume_sources) >= 3, f"Loop terminated prematurely; got {resume_sources}"
