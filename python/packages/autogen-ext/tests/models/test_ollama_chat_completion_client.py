@@ -1,11 +1,12 @@
 import json
 import logging
 from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional
+from unittest.mock import MagicMock
 
 import httpx
 import pytest
 import pytest_asyncio
-from autogen_core import FunctionCall
+from autogen_core import FunctionCall, Image
 from autogen_core.models import (
     AssistantMessage,
     CreateResult,
@@ -18,6 +19,7 @@ from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CREATE_KWARGS_KEYS, convert_tools
 from httpx import Response
 from ollama import AsyncClient, ChatResponse, Message, Tool
+from PIL import Image as PILImage
 from pydantic import BaseModel
 
 
@@ -1356,3 +1358,34 @@ def test_ollama_load_component_via_class() -> None:
     # Verify we got the right type and configuration
     assert isinstance(client, OllamaChatCompletionClient)
     assert client._model_name == "llama3.2"  # type: ignore[reportPrivateUsage]
+
+
+def test_count_tokens_includes_image_tokens(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Image content must contribute to the token count, even though it is not part of the Ollama message content."""
+
+    class _FakeEncoding:
+        def encode(self, text: str) -> List[str]:
+            return text.split()
+
+    class _FakeTiktoken:
+        def encoding_for_model(self, model: str) -> _FakeEncoding:
+            raise KeyError(model)
+
+        def get_encoding(self, name: str) -> _FakeEncoding:
+            return _FakeEncoding()
+
+    # Keep the test offline and deterministic.
+    monkeypatch.setattr("autogen_ext.models.ollama._ollama_client.tiktoken", _FakeTiktoken())
+    mock_vision_tokens = MagicMock(return_value=17)
+    monkeypatch.setattr("autogen_ext.models.ollama._ollama_client.calculate_vision_tokens", mock_vision_tokens)
+
+    client = OllamaChatCompletionClient(model="llama3.1")
+    image = Image.from_pil(PILImage.new("RGB", (2, 2)))
+
+    text_only = client.count_tokens([UserMessage(content=["describe"], source="user")])
+    text_and_image = client.count_tokens([UserMessage(content=["describe", image], source="user")])
+    one_image = client.count_tokens([UserMessage(content=[image], source="user")])
+    two_images = client.count_tokens([UserMessage(content=[image, image], source="user")])
+
+    assert text_and_image == text_only + 17, "image tokens must be counted next to text content"
+    assert one_image == two_images - 17, "each image must add its own tokens"

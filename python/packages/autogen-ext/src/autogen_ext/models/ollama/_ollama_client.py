@@ -400,11 +400,14 @@ def count_tokens_ollama(messages: Sequence[LLMMessage], model: str, *, tools: Se
     # Message tokens.
     for message in messages:
         num_tokens += tokens_per_message
+        # Images are sent alongside the message content, so they are not part of the converted Ollama message content.
+        if isinstance(message.content, list):
+            for content_part in message.content:
+                if isinstance(content_part, Image):
+                    num_tokens += calculate_vision_tokens(content_part)
         ollama_message = to_ollama_type(message)
         for ollama_message_part in ollama_message:
-            if isinstance(message.content, Image):
-                num_tokens += calculate_vision_tokens(message.content)
-            elif ollama_message_part.content is not None:
+            if ollama_message_part.content is not None:
                 num_tokens += len(encoding.encode(ollama_message_part.content))
     # TODO: every model family has its own message sequence.
     num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
