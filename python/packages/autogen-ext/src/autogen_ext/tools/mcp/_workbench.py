@@ -271,6 +271,81 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
     def server_params(self) -> McpServerParams:
         return self._server_params
 
+    def _extract_root_exception(self, error: Exception) -> Exception:
+        """Return the most actionable nested exception."""
+        root_error = error
+        while True:
+            if hasattr(builtins, "ExceptionGroup") and isinstance(root_error, builtins.ExceptionGroup):
+                if len(root_error.exceptions) > 0 and isinstance(root_error.exceptions[0], Exception):
+                    root_error = root_error.exceptions[0]
+                    continue
+                return root_error
+
+            if isinstance(root_error.__cause__, Exception):
+                root_error = root_error.__cause__
+                continue
+
+            if isinstance(root_error.__context__, Exception):
+                root_error = root_error.__context__
+                continue
+
+            for arg in root_error.args:
+                if isinstance(arg, Exception):
+                    root_error = arg
+                    break
+            else:
+                return root_error
+
+            continue
+
+            return root_error
+
+    def _format_startup_hint(self, error: Exception) -> str:
+        if not isinstance(self._server_params, StdioServerParams):
+            return ""
+
+        command = self._server_params.command
+        args = self._server_params.args or []
+        command_preview = " ".join([command, *args]).strip()
+
+        if any("@playwright/mcp" in arg for arg in args):
+            return (
+                "Playwright MCP dependency hint:\n"
+                "  - Install: npm install -g @playwright/mcp@latest\n"
+                f"  - Verify: {command_preview} --help\n"
+                "  - If already installed, ensure Node.js/npm is available in PATH."
+            )
+
+        if isinstance(error, FileNotFoundError):
+            return (
+                f"Command '{command}' was not found in PATH.\n"
+                f"Verify this command works locally before running AutoGen: {command_preview}"
+            )
+
+        return ""
+
+    def _format_startup_error(self, error: Exception) -> str:
+        root_error = self._extract_root_exception(error)
+        root_error_message = self._format_errors(root_error).strip() or str(root_error)
+
+        if isinstance(self._server_params, StdioServerParams):
+            command = self._server_params.command
+            args = self._server_params.args or []
+            command_preview = " ".join([command, *args]).strip()
+            hint = self._format_startup_hint(root_error)
+            message_lines = [
+                f"Failed to connect to MCP stdio server using command: {command_preview}",
+                f"Original error: {root_error_message}",
+            ]
+            if hint:
+                message_lines.append(hint)
+            message_lines.append(
+                "Ensure MCP server dependencies are installed and the server command is runnable locally."
+            )
+            return "\n".join(message_lines)
+
+        return f"Failed to connect to MCP server: {root_error_message}"
+
     async def list_tools(self) -> List[ToolSchema]:
         if not self._actor:
             await self.start()  # fallback to start the actor if not initialized instead of raising an error
@@ -278,8 +353,11 @@ class McpWorkbench(Workbench, Component[McpWorkbenchConfig]):
             # raise RuntimeError("Actor is not initialized. Call start() first.")
         if self._actor is None:
             raise RuntimeError("Actor is not initialized. Please check the server connection.")
-        result_future = await self._actor.call("list_tools", None)
-        list_tool_result = await result_future
+        try:
+            result_future = await self._actor.call("list_tools", None)
+            list_tool_result = await result_future
+        except Exception as e:
+            raise RuntimeError(self._format_startup_error(e)) from e
         assert isinstance(
             list_tool_result, ListToolsResult
         ), f"list_tools must return a CallToolResult, instead of : {str(type(list_tool_result))}"
