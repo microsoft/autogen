@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, List, Literal, Optional, Sequence, Union
+from typing import Any, AsyncGenerator, List, Literal, Mapping, Optional, Sequence, Union
 
 from autogen_core import CancellationToken, Component, ComponentModel
 from pydantic import BaseModel
@@ -185,6 +185,12 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         await self._wrapped_agent.on_reset(cancellation_token)
+
+    async def save_state(self) -> Mapping[str, Any]:
+        return await self._wrapped_agent.save_state()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        await self._wrapped_agent.load_state(state)
 
     def _to_config(self) -> MessageFilterAgentConfig:
         return MessageFilterAgentConfig(
