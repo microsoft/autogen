@@ -164,7 +164,7 @@ $functions"""
             "Using LocalCommandLineCodeExecutor may execute code on the local machine which can be unsafe. "
             "For security, it is recommended to use DockerCommandLineCodeExecutor instead. "
             "To install Docker, visit: https://docs.docker.com/get-docker/",
-            UserWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
 
