@@ -318,7 +318,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         for _ in range(self._max_json_retries):
             if self._model_client.model_info.get("structured_output", False):
                 response = await self._model_client.create(
-                    self._get_compatible_context(context), json_output=LedgerEntry
+                    self._get_compatible_context(context),
+                    json_output=LedgerEntry,
+                    cancellation_token=cancellation_token,
                 )
             elif self._model_client.model_info.get("json_output", False):
                 response = await self._model_client.create(
@@ -334,7 +336,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 output_json = extract_json_from_str(ledger_str)
                 if len(output_json) != 1:
                     raise ValueError(
-                        f"Progress ledger should contain a single JSON object, but found: {len(progress_ledger)}"
+                        f"Progress ledger should contain a single JSON object, but found: {len(output_json)}"
                     )
                 progress_ledger = output_json[0]
 
