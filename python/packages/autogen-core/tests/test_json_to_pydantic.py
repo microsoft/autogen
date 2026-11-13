@@ -1042,3 +1042,128 @@ def test_nested_arrays_with_object_schemas() -> None:
     assert alice.name == "Alice"  # type: ignore[attr-defined]
     assert alice.role == "Senior Developer"  # type: ignore[attr-defined]
     assert alice.skills == ["Python", "JavaScript", "Docker"]  # type: ignore[attr-defined]
+
+
+def test_nested_defs_enum_ref() -> None:
+    """Test that $defs inside a nested property are resolved correctly.
+
+    Reproduces the bug from https://github.com/microsoft/autogen/issues/7129
+    where mcp_server_tools fails with ReferenceNotFoundError when a nested
+    property defines its own $defs with enum types referenced via $ref.
+    """
+    schema = {
+        "type": "object",
+        "properties": {
+            "base": {
+                "properties": {
+                    "query": {"type": "string"},
+                    "max_results": {"default": 100, "type": "integer", "minimum": 1, "maximum": 1000},
+                },
+                "required": ["query"],
+                "type": "object",
+            },
+            "windows_params": {
+                "$defs": {
+                    "WindowsSortOption": {
+                        "enum": [1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14],
+                        "title": "WindowsSortOption",
+                        "type": "integer",
+                    }
+                },
+                "properties": {
+                    "match_path": {"default": False, "type": "boolean"},
+                    "sort_by": {"$ref": "#/$defs/WindowsSortOption", "default": 1},
+                },
+                "title": "WindowsSpecificParams",
+                "type": "object",
+            },
+        },
+        "required": ["base"],
+        "additionalProperties": False,
+    }
+
+    converter = _JSONSchemaToPydantic()
+    Model = converter.json_schema_to_pydantic(schema, "SearchModel")
+
+    assert "base" in Model.model_fields
+    assert "windows_params" in Model.model_fields
+
+    # Test that the model can be instantiated with valid data
+    instance = Model(base={"query": "test"}, windows_params={"sort_by": 3, "match_path": True})
+    assert instance.base.query == "test"  # type: ignore[attr-defined]
+    assert instance.windows_params.sort_by == 3  # type: ignore[attr-defined]
+    assert instance.windows_params.match_path is True  # type: ignore[attr-defined]
+
+    # Test with default values
+    instance2 = Model(base={"query": "test2"})
+    assert instance2.windows_params is None  # type: ignore[attr-defined]
+
+
+def test_nested_defs_object_ref() -> None:
+    """Test that $defs inside a nested property with object-type definitions work."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "config": {
+                "$defs": {
+                    "SubConfig": {
+                        "type": "object",
+                        "properties": {
+                            "enabled": {"type": "boolean", "default": True},
+                            "level": {"type": "integer", "default": 1},
+                        },
+                        "title": "SubConfig",
+                    }
+                },
+                "properties": {
+                    "name": {"type": "string"},
+                    "sub": {"$ref": "#/$defs/SubConfig"},
+                },
+                "required": ["name"],
+                "type": "object",
+            }
+        },
+        "required": ["config"],
+    }
+
+    converter = _JSONSchemaToPydantic()
+    Model = converter.json_schema_to_pydantic(schema, "ConfigModel")
+
+    instance = Model(config={"name": "test", "sub": {"enabled": False, "level": 3}})
+    assert instance.config.name == "test"  # type: ignore[attr-defined]
+    assert instance.config.sub.enabled is False  # type: ignore[attr-defined]
+    assert instance.config.sub.level == 3  # type: ignore[attr-defined]
+
+
+def test_multiple_nested_defs() -> None:
+    """Test multiple properties each having their own $defs."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "param_a": {
+                "$defs": {
+                    "TypeA": {"enum": ["x", "y", "z"], "type": "string"}
+                },
+                "properties": {
+                    "value": {"$ref": "#/$defs/TypeA", "default": "x"}
+                },
+                "type": "object",
+            },
+            "param_b": {
+                "$defs": {
+                    "TypeB": {"enum": [10, 20, 30], "type": "integer"}
+                },
+                "properties": {
+                    "count": {"$ref": "#/$defs/TypeB", "default": 10}
+                },
+                "type": "object",
+            },
+        },
+    }
+
+    converter = _JSONSchemaToPydantic()
+    Model = converter.json_schema_to_pydantic(schema, "MultiDefModel")
+
+    instance = Model(param_a={"value": "y"}, param_b={"count": 20})
+    assert instance.param_a.value == "y"  # type: ignore[attr-defined]
+    assert instance.param_b.count == 20  # type: ignore[attr-defined]
