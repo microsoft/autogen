@@ -4,6 +4,7 @@ from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.teams._group_chat._events import (
     GroupChatAgentResponse,
+    GroupChatGetThreadResponse,
     GroupChatMessage,
     GroupChatStart,
     GroupChatTeamResponse,
@@ -83,3 +84,19 @@ def test_group_chat_team_response_preserves_nested_data() -> None:
     # Verify deeply nested subclass data is preserved
     assert "content" in parsed["result"]["messages"][0]
     assert parsed["result"]["messages"][0]["content"] == "Nested message"
+
+
+def test_group_chat_get_thread_response_preserves_message_list_data() -> None:
+    """Test that GroupChatGetThreadResponse preserves subclass data in message lists."""
+    text_msg1 = TextMessage(content="First message", source="Agent1")
+    text_msg2 = TextMessage(content="Second message", source="Agent2")
+
+    response = GroupChatGetThreadResponse(messages=[text_msg1, text_msg2])
+
+    json_data = response.model_dump_json()
+    parsed = json.loads(json_data)
+
+    assert parsed["messages"][0]["content"] == "First message"
+    assert parsed["messages"][1]["content"] == "Second message"
+    assert parsed["messages"][0]["type"] == "TextMessage"
+    assert parsed["messages"][1]["type"] == "TextMessage"
