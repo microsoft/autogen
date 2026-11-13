@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Any, Literal
 
 import httpx
 import pytest
@@ -205,3 +206,57 @@ def test_config_deserialization(test_config: ComponentModel) -> None:
     assert tool.server_params.scheme == test_config.config["scheme"]
     assert tool.server_params.method == test_config.config["method"]
     assert tool.server_params.headers == test_config.config["headers"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ["POST", "PUT", "PATCH"])
+@pytest.mark.parametrize(
+    ("format_name", "value"),
+    [
+        ("date", "2026-10-15"),
+        ("date-time", "2026-10-15T01:02:03Z"),
+        ("uuid", "00000000-0000-4000-8000-000000000000"),
+    ],
+)
+async def test_json_request_preserves_schema_formats(
+    method: Literal["POST", "PUT", "PATCH"], format_name: str, value: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def handle_request(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        assert request.method == method
+        assert request.url.path == "/items/item-1"
+        assert json.loads(request.content) == {"value": value, "active": True, "count": 3}
+        return httpx.Response(200, json={"ok": True})
+
+    original_client = httpx.AsyncClient
+
+    def client_with_transport(**kwargs: Any) -> httpx.AsyncClient:
+        return original_client(transport=httpx.MockTransport(handle_request), **kwargs)
+
+    monkeypatch.setattr(httpx, "AsyncClient", client_with_transport)
+    tool = HttpTool(
+        name="formatted_request",
+        host="example.com",
+        port=443,
+        scheme="https",
+        method=method,
+        path="/items/{item}",
+        return_type="json",
+        json_schema={
+            "type": "object",
+            "properties": {
+                "item": {"type": "string"},
+                "value": {"type": "string", "format": format_name},
+                "active": {"type": "boolean"},
+                "count": {"type": "integer"},
+            },
+            "required": ["item", "value", "active", "count"],
+        },
+    )
+
+    result = await tool.run_json({"item": "item-1", "value": value, "active": True, "count": 3}, CancellationToken())
+
+    assert result == {"ok": True}
+    assert len(requests) == 1

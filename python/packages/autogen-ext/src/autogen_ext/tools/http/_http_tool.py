@@ -207,7 +207,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
             Exception: If tool execution fails
         """
 
-        model_dump = args.model_dump()
+        model_dump = args.model_dump(mode="json")
         path_params = {k: v for k, v in model_dump.items() if k in self._path_params}
         # Remove path params from the model dump
         for k in self._path_params:
