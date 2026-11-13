@@ -38,6 +38,7 @@ from azure.ai.inference.models import (
     ImageContentItem,
     ImageDetailLevel,
     ImageUrl,
+    JsonSchemaFormat,
     StreamingChatChoiceUpdate,
     StreamingChatCompletionsUpdate,
     TextContentItem,
@@ -284,6 +285,28 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if __name__ == "__main__":
             asyncio.run(main())
 
+    Structured output is supported by passing a Pydantic model class to the ``json_output`` parameter
+    of :meth:`create` or :meth:`create_stream`. The model's JSON schema will be sent to the API,
+    and the response content will be a JSON string conforming to the schema.
+
+    .. code-block:: python
+
+        from pydantic import BaseModel
+
+
+        class CityInfo(BaseModel):
+            name: str
+            population: int
+
+
+        result = await client.create(
+            [UserMessage(content="What is the capital of France?", source="user")],
+            json_output=CityInfo,
+        )
+        city = CityInfo.model_validate_json(result.content)
+
+    .. versionadded:: 0.7.6
+        Structured output support via ``json_output`` parameter with Pydantic model classes.
 
     """
 
@@ -344,11 +367,17 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
-            if isinstance(json_output, type):
-                # TODO: we should support this in the future.
-                raise ValueError("Structured output is not currently supported for AzureAIChatCompletionClient")
-
-            if json_output is True and "response_format" not in create_args:
+            if isinstance(json_output, type) and issubclass(json_output, BaseModel):
+                if self.model_info.get("structured_output") is False:
+                    raise ValueError("Model does not support structured output")
+                # Convert Pydantic model to JsonSchemaFormat for the Azure AI SDK.
+                schema = json_output.model_json_schema()
+                create_args["response_format"] = JsonSchemaFormat(
+                    name=json_output.__name__,
+                    schema=schema,
+                    strict=True,
+                )
+            elif json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = "json_object"
 
         if self.model_info["json_output"] is False and json_output is True:
