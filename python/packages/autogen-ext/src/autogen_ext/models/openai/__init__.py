@@ -1,10 +1,21 @@
 from . import _message_transform
-from ._openai_client import (
-    AZURE_OPENAI_USER_AGENT,
-    AzureOpenAIChatCompletionClient,
-    BaseOpenAIChatCompletionClient,
-    OpenAIChatCompletionClient,
-)
+
+try:
+    from ._openai_client import (
+        AZURE_OPENAI_USER_AGENT,
+        AzureOpenAIChatCompletionClient,
+        BaseOpenAIChatCompletionClient,
+        OpenAIChatCompletionClient,
+    )
+except ImportError as e:  # pragma: no cover - only triggered when optional deps are missing
+    raise ImportError(
+        "Failed to import OpenAI dependencies required for OpenAIChatCompletionClient "
+        "and AzureOpenAIChatCompletionClient.\n"
+        f"Original error: {e}\n"
+        "Required packages (installed via the 'openai' extra):\n"
+        '  pip install "autogen-ext[openai]"'
+    ) from e
+
 from .config import (
     AzureOpenAIClientConfigurationConfigModel,
     BaseOpenAIClientConfigurationConfigModel,
