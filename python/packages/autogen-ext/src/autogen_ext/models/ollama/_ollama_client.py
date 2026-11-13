@@ -675,6 +675,8 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         if result.message.tool_calls is not None:
             if result.message.content is not None and result.message.content != "":
                 thought = result.message.content
+            elif result.message.thinking is not None:
+                thought = result.message.thinking
             # NOTE: If OAI response type changes, this will need to be updated
             content = [
                 FunctionCall(
