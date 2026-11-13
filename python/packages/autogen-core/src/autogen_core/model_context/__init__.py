@@ -5,6 +5,8 @@ from ._token_limited_chat_completion_context import TokenLimitedChatCompletionCo
 from ._unbounded_chat_completion_context import (
     UnboundedChatCompletionContext,
 )
+from ._multi_chat_completion_context import MultiChatCompletionContext
+from ._merge_system_chat_completion_context import MergeSystemChatCompletionContext
 
 __all__ = [
     "ChatCompletionContext",
@@ -13,4 +15,6 @@ __all__ = [
     "BufferedChatCompletionContext",
     "TokenLimitedChatCompletionContext",
     "HeadAndTailChatCompletionContext",
+    "MultiChatCompletionContext",
+    "MergeSystemChatCompletionContext",
 ]
