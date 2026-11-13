@@ -152,19 +152,27 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
         return self._wrapped_agent.produced_message_types
 
     def _apply_filter(self, messages: Sequence[BaseChatMessage]) -> Sequence[BaseChatMessage]:
-        result: List[BaseChatMessage] = []
+        # 1. Map each source to its matching message indices in the original sequence
+        source_indices: dict[str, list[int]] = {}
+        for idx, msg in enumerate(messages):
+            source_indices.setdefault(msg.source, []).append(idx)
 
+        # 2. Identify which indices are selected according to per_source criteria
+        selected_indices: set[int] = set()
         for source_filter in self._filter.per_source:
-            msgs = [m for m in messages if m.source == source_filter.source]
+            matching = source_indices.get(source_filter.source, [])
+            if not matching:
+                continue
 
             if source_filter.position == "first" and source_filter.count:
-                msgs = msgs[: source_filter.count]
+                selected_indices.update(matching[: source_filter.count])
             elif source_filter.position == "last" and source_filter.count:
-                msgs = msgs[-source_filter.count :]
+                selected_indices.update(matching[-source_filter.count :])
+            else:
+                selected_indices.update(matching)
 
-            result.extend(msgs)
-
-        return result
+        # 3. Emit messages preserving strict chronological order
+        return [m for idx, m in enumerate(messages) if idx in selected_indices]
 
     async def on_messages(
         self,
