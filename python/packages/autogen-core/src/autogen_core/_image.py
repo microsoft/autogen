@@ -49,7 +49,9 @@ class Image:
     @classmethod
     def from_uri(cls, uri: str) -> Image:
         if not re.match(r"data:image/(?:png|jpeg);base64,", uri):
-            raise ValueError("Invalid URI format. It should be a base64 encoded image URI.")
+            raise ValueError(
+                "Invalid URI format. It should be a base64 encoded image URI."
+            )
 
         # A URI. Remove the prefix and decode the base64 string.
         base64_data = re.sub(r"data:image/(?:png|jpeg);base64,", "", uri)
@@ -79,11 +81,18 @@ class Image:
 
     # Returns openai.types.chat.ChatCompletionContentPartImageParam, which is a TypedDict
     # We don't use the explicit type annotation so that we can avoid a dependency on the OpenAI Python SDK in this package.
-    def to_openai_format(self, detail: Literal["auto", "low", "high"] = "auto") -> Dict[str, Any]:
-        return {"type": "image_url", "image_url": {"url": self.data_uri, "detail": detail}}
+    def to_openai_format(
+        self, detail: Literal["auto", "low", "high"] = "auto"
+    ) -> Dict[str, Any]:
+        return {
+            "type": "image_url",
+            "image_url": {"url": self.data_uri, "detail": detail},
+        }
 
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
         # Custom validation
         def validate(value: Any, validation_info: ValidationInfo) -> Image:
             if isinstance(value, dict):
@@ -94,7 +103,9 @@ class Image:
             elif isinstance(value, cls):
                 return value
             else:
-                raise TypeError(f"Expected dict or {cls.__name__} instance, got {type(value)}")
+                raise ValueError(
+                    f"Expected dict or {cls.__name__} instance, got {type(value)}"
+                )
 
         # Custom serialization
         def serialize(value: Image) -> dict[str, Any]:
