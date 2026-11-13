@@ -175,3 +175,20 @@ async def test_list_memory_content_types() -> None:
     assert isinstance(results.results[0].content, str)
     assert isinstance(results.results[1].content, dict)
     assert isinstance(results.results[2].content, bytes)
+
+
+@pytest.mark.asyncio
+async def test_memory_content_mime_type_roundtrip() -> None:
+    """Test that MemoryContent.mime_type preserves MemoryMimeType enum across component dump and load."""
+    mem = ListMemory(name="test_roundtrip")
+    await mem.add(MemoryContent(content="hello markdown", mime_type=MemoryMimeType.MARKDOWN))
+    await mem.add(MemoryContent(content="custom text", mime_type="custom/mime"))
+
+    cfg = mem.dump_component()
+    assert cfg.config["memory_contents"][0]["mime_type"] == "text/markdown"
+    assert cfg.config["memory_contents"][1]["mime_type"] == "custom/mime"
+
+    loaded = ListMemory.load_component(cfg)
+    assert loaded._contents[0].mime_type is MemoryMimeType.MARKDOWN
+    assert loaded._contents[0].mime_type == MemoryMimeType.MARKDOWN
+    assert loaded._contents[1].mime_type == "custom/mime"
