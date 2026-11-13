@@ -1,5 +1,5 @@
 import threading
-from asyncio import Future
+from asyncio import Future, get_running_loop
 from typing import Any, Callable, List
 
 
@@ -32,15 +32,27 @@ class CancellationToken:
             else:
                 self._callbacks.append(callback)
 
+    @staticmethod
+    def _cancel_future(future: Future[Any]) -> None:
+        if future.done():
+            return
+
+        loop = future.get_loop()
+        try:
+            same_loop = get_running_loop() is loop
+        except RuntimeError:
+            same_loop = False
+
+        if loop.is_running() and not same_loop:
+            loop.call_soon_threadsafe(future.cancel)
+        else:
+            future.cancel()
+
     def link_future(self, future: Future[Any]) -> Future[Any]:
         """Link a pending async call to a token to allow its cancellation"""
         with self._lock:
             if self._cancelled:
-                future.cancel()
+                self._cancel_future(future)
             else:
-
-                def _cancel() -> None:
-                    future.cancel()
-
-                self._callbacks.append(_cancel)
+                self._callbacks.append(lambda: self._cancel_future(future))
         return future
