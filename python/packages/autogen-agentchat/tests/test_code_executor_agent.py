@@ -83,12 +83,12 @@ async def test_code_generation_and_execution_with_model_client() -> None:
             assert message.to_text().strip() == "6.481", f"Expected '6.481', got: {message.to_text().strip()}"
             code_execution_event = message
         elif isinstance(message, Response):
-            assert isinstance(
-                message.chat_message, TextMessage
-            ), f"Expected TextMessage, got: {type(message.chat_message)}"
-            assert (
-                message.chat_message.source == "code_executor_agent"
-            ), f"Expected source 'code_executor_agent', got: {message.chat_message.source}"
+            assert isinstance(message.chat_message, TextMessage), (
+                f"Expected TextMessage, got: {type(message.chat_message)}"
+            )
+            assert message.chat_message.source == "code_executor_agent", (
+                f"Expected source 'code_executor_agent', got: {message.chat_message.source}"
+            )
             response = message
         else:
             raise AssertionError(f"Unexpected message type: {type(message)}")
@@ -121,15 +121,15 @@ async def test_no_code_response_with_model_client() -> None:
 
     async for message in agent.on_messages_stream(messages, CancellationToken()):
         if isinstance(message, Response):
-            assert isinstance(
-                message.chat_message, TextMessage
-            ), f"Expected TextMessage, got: {type(message.chat_message)}"
-            assert (
-                message.chat_message.source == "code_executor_agent"
-            ), f"Expected source 'code_executor_agent', got: {message.chat_message.source}"
-            assert (
-                message.chat_message.content.strip() == "The capital of France is Paris."
-            ), f"Expected 'The capital of France is Paris.', got: {message.chat_message.content.strip()}"
+            assert isinstance(message.chat_message, TextMessage), (
+                f"Expected TextMessage, got: {type(message.chat_message)}"
+            )
+            assert message.chat_message.source == "code_executor_agent", (
+                f"Expected source 'code_executor_agent', got: {message.chat_message.source}"
+            )
+            assert message.chat_message.content.strip() == "The capital of France is Paris.", (
+                f"Expected 'The capital of France is Paris.', got: {message.chat_message.content.strip()}"
+            )
             response = message
         else:
             raise AssertionError(f"Unexpected message type: {type(message)}")
@@ -222,17 +222,17 @@ Here is the updated code to calculate the mean of 10, 20, 30, 40, 50
 
         elif isinstance(message, CodeExecutionEvent) and message_id == 1:
             # Step 2: First code execution
-            assert (
-                incorrect_code_result in message.to_text().strip()
-            ), f"Expected {incorrect_code_result} in execution result, got: {message.to_text().strip()}"
+            assert incorrect_code_result in message.to_text().strip(), (
+                f"Expected {incorrect_code_result} in execution result, got: {message.to_text().strip()}"
+            )
             incorrect_code_execution_event = message
 
         elif isinstance(message, CodeGenerationEvent) and message_id == 2:
             # Step 3: Retry generation with proposed correction
             retry_response = "Attempt number: 1\nProposed correction: Retry 1: It is a test environment"
-            assert (
-                message.to_text().strip() == retry_response
-            ), f"Expected {retry_response}, got: {message.to_text().strip()}"
+            assert message.to_text().strip() == retry_response, (
+                f"Expected {retry_response}, got: {message.to_text().strip()}"
+            )
             retry_decision_event = message
 
         elif isinstance(message, CodeGenerationEvent) and message_id == 3:
@@ -244,19 +244,19 @@ Here is the updated code to calculate the mean of 10, 20, 30, 40, 50
 
         elif isinstance(message, CodeExecutionEvent) and message_id == 4:
             # Step 5: Second retry code execution
-            assert (
-                message.to_text().strip() == correct_code_result
-            ), f"Expected {correct_code_result} in execution result, got: {message.to_text().strip()}"
+            assert message.to_text().strip() == correct_code_result, (
+                f"Expected {correct_code_result} in execution result, got: {message.to_text().strip()}"
+            )
             correct_code_execution_event = message
 
         elif isinstance(message, Response) and message_id == 5:
             # Step 6: Final response
-            assert isinstance(
-                message.chat_message, TextMessage
-            ), f"Expected TextMessage, got: {type(message.chat_message)}"
-            assert (
-                message.chat_message.source == "code_executor_agent"
-            ), f"Expected source 'code_executor_agent', got: {message.chat_message.source}"
+            assert isinstance(message.chat_message, TextMessage), (
+                f"Expected TextMessage, got: {type(message.chat_message)}"
+            )
+            assert message.chat_message.source == "code_executor_agent", (
+                f"Expected source 'code_executor_agent', got: {message.chat_message.source}"
+            )
             response = message
 
         else:
@@ -632,3 +632,64 @@ async def test_approval_functionality_async(
 
     assert result.exit_code == expected_exit_code
     assert expected_in_output in result.output
+
+
+@pytest.mark.asyncio
+async def test_subclass_overrides_reflect_on_code_block_results_flow() -> None:
+    """
+    Regression test for #7205. ``CodeExecutorAgent.on_messages_stream`` used
+    to call ``CodeExecutorAgent._reflect_on_code_block_results_flow``
+    (static-bound to the parent), which silently bypassed any subclass
+    override. After the fix the reflection step dispatches through
+    ``self.__class__``, so a subclass that overrides the reflection
+    classmethod is honored. Mirrors the assistant-agent fix for #5953.
+    """
+
+    sentinel = "SUBCLASS-REFLECTION-MARKER"
+
+    class CustomCodeExecutorAgent(CodeExecutorAgent):  # type: ignore[misc]
+        @classmethod
+        async def _reflect_on_code_block_results_flow(  # type: ignore[override]
+            cls,
+            system_messages,  # type: ignore[no-untyped-def]
+            model_client,  # type: ignore[no-untyped-def]
+            model_client_stream,  # type: ignore[no-untyped-def]
+            model_context,  # type: ignore[no-untyped-def]
+            agent_name,  # type: ignore[no-untyped-def]
+            inner_messages,  # type: ignore[no-untyped-def]
+        ):
+            yield Response(
+                chat_message=TextMessage(content=sentinel, source=agent_name),
+                inner_messages=list(inner_messages),
+            )
+
+    language = "python"
+    code = "print('hello')"
+
+    model_client = ReplayChatCompletionClient(
+        [f"```{language}\n{code}\n```", "TERMINATE"],
+    )
+
+    agent = CustomCodeExecutorAgent(
+        name="custom_code_executor",
+        code_executor=LocalCommandLineCodeExecutor(),
+        model_client=model_client,
+    )
+
+    messages = [TextMessage(content="run hello", source="user")]
+
+    final_response: Response | None = None
+    async for message in agent.on_messages_stream(messages, CancellationToken()):
+        if isinstance(message, Response):
+            final_response = message
+
+    assert final_response is not None, "agent never produced a Response"
+    assert isinstance(final_response.chat_message, TextMessage)
+    # If the static-binding bug is back, the parent's reflection flow runs
+    # against the replay client and yields its second canned response
+    # (``TERMINATE``); the override never fires and the sentinel is missing.
+    assert final_response.chat_message.content == sentinel, (
+        "Subclass override of _reflect_on_code_block_results_flow was not "
+        "called -- on_messages_stream is static-binding to "
+        "CodeExecutorAgent again (regression of #7205)."
+    )
