@@ -906,6 +906,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # Process the stream of chunks.
         async for chunk in chunks:
+            if chunk is None:
+                continue
+
             if first_chunk:
                 first_chunk = False
                 # Emit the start event.
@@ -1103,6 +1106,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 if cancellation_token is not None:
                     cancellation_token.link_future(chunk_future)
                 chunk = await chunk_future
+                if chunk is None:
+                    continue
                 yield chunk
             except StopAsyncIteration:
                 break
@@ -1130,7 +1135,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
                     if event.type == "chunk":
                         chunk = event.chunk
-                        yield chunk
+                        if chunk is not None:
+                            yield chunk
                     # We don't handle other event types from the beta client stream.
                     # As the other event types are auxiliary to the chunk event.
                     # See: https://github.com/openai/openai-python/blob/main/helpers.md#chat-completions-events.
