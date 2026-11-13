@@ -632,3 +632,39 @@ async def test_approval_functionality_async(
 
     assert result.exit_code == expected_exit_code
     assert expected_in_output in result.output
+
+
+@pytest.mark.asyncio
+async def test_subclass_reflection_override_is_called() -> None:
+    """Regression test: ensures type(self) dispatch so subclass overrides of
+    _reflect_on_code_block_results_flow are honored (issue #7205)."""
+
+    override_called = False
+
+    class _CustomAgent(CodeExecutorAgent):
+        @classmethod
+        async def _reflect_on_code_block_results_flow(cls, **kwargs):  # type: ignore[override]
+            nonlocal override_called
+            override_called = True
+            yield Response(
+                chat_message=TextMessage(content="custom reflection response", source=kwargs["agent_name"])
+            )
+
+    model_client = ReplayChatCompletionClient(["```python\nprint('hello')\n```"])
+
+    agent = _CustomAgent(
+        name="test_agent",
+        code_executor=LocalCommandLineCodeExecutor(),
+        model_client=model_client,
+    )
+
+    async for _ in agent.on_messages_stream(
+        [TextMessage(content="Run something", source="user")],
+        CancellationToken(),
+    ):
+        pass
+
+    assert override_called, (
+        "Subclass _reflect_on_code_block_results_flow was not called; "
+        "base class CodeExecutorAgent._reflect_on_code_block_results_flow was dispatched instead"
+    )
