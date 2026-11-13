@@ -88,8 +88,8 @@ async def chat(request: TextMessage) -> TextMessage:
 
         # Save chat history to file.
         history = await get_history()
-        history.append(request.model_dump())
-        history.append(response.chat_message.model_dump())
+        history.append(request.dump())
+        history.append(response.chat_message.dump())
         async with aiofiles.open(history_path, "w") as file:
             await file.write(json.dumps(history))
 
