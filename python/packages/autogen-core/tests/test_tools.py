@@ -214,6 +214,59 @@ async def test_run_func_call_tool_with_kwargs_and_args() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("is_async", [False, True])
+@pytest.mark.parametrize("arguments, expected", [({"value": 2}, 10), ({"value": 2, "offset": 4, "scale": 3}, 18)])
+async def test_func_tool_positional_only_arguments(is_async: bool, arguments: dict[str, int], expected: int) -> None:
+    def sync_function(value: int, offset: int = 3, /, *, scale: int = 2) -> int:
+        return (value + offset) * scale
+
+    async def async_function(value: int, offset: int = 3, /, *, scale: int = 2) -> int:
+        return (value + offset) * scale
+
+    tool = FunctionTool(async_function if is_async else sync_function, description="Positional-only function tool.")
+    schema = tool.schema
+    assert "parameters" in schema
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["value"]
+    assert schema["parameters"]["properties"].keys() == {"value", "offset", "scale"}
+    assert await tool.run_json(arguments, CancellationToken()) == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("is_async", [False, True])
+async def test_func_tool_positional_only_cancellation_token(is_async: bool) -> None:
+    token = CancellationToken()
+
+    def sync_function(value: int, cancellation_token: CancellationToken, /, *, offset: int = 3) -> int:
+        assert cancellation_token is token
+        return value + offset
+
+    async def async_function(value: int, cancellation_token: CancellationToken, /, *, offset: int = 3) -> int:
+        assert cancellation_token is token
+        return value + offset
+
+    tool = FunctionTool(async_function if is_async else sync_function, description="Cancellable positional-only tool.")
+    schema = tool.schema
+    assert "parameters" in schema
+    assert "cancellation_token" not in schema["parameters"]["properties"]
+    assert await tool.run_json({"value": 2}, token) == 5
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("is_async", [False, True])
+async def test_func_tool_partial_positional_only_arguments(is_async: bool) -> None:
+    def sync_function(prefix: str, value: int, /, *, suffix: str = "!") -> str:
+        return f"{prefix}{value}{suffix}"
+
+    async def async_function(prefix: str, value: int, /, *, suffix: str = "!") -> str:
+        return f"{prefix}{value}{suffix}"
+
+    function = partial(async_function if is_async else sync_function, "value=")
+    tool = FunctionTool(function, description="Partial positional-only tool.")
+    assert await tool.run_json({"value": 2}, CancellationToken()) == "value=2!"
+
+
+@pytest.mark.asyncio
 async def test_tool_run() -> None:
     tool = MyTool()
     result = await tool.run_json({"query": "test"}, CancellationToken())

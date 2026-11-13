@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import inspect
 import warnings
 from textwrap import dedent
 from typing import Any, Callable, Sequence
@@ -103,29 +104,34 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         super().__init__(args_model, return_type, func_name, description, strict)
 
     async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
+        positional_args: list[Any] = []
         kwargs = {}
 
-        for name in self._signature.parameters.keys():
-            if hasattr(args, name):
-                kwargs[name] = getattr(args, name)
+        for name, parameter in self._signature.parameters.items():
+            if name == "cancellation_token":
+                value = cancellation_token
+            elif hasattr(args, name):
+                value = getattr(args, name)
+            else:
+                continue
+
+            if parameter.kind is inspect.Parameter.POSITIONAL_ONLY:
+                positional_args.append(value)
+            else:
+                kwargs[name] = value
 
         if asyncio.iscoroutinefunction(self._func):
-            if self._has_cancellation_support:
-                result = await self._func(**kwargs, cancellation_token=cancellation_token)
-            else:
-                result = await self._func(**kwargs)
+            result = await self._func(*positional_args, **kwargs)
         else:
             if self._has_cancellation_support:
                 result = await asyncio.get_event_loop().run_in_executor(
                     None,
-                    functools.partial(
-                        self._func,
-                        **kwargs,
-                        cancellation_token=cancellation_token,
-                    ),
+                    functools.partial(self._func, *positional_args, **kwargs),
                 )
             else:
-                future = asyncio.get_event_loop().run_in_executor(None, functools.partial(self._func, **kwargs))
+                future = asyncio.get_event_loop().run_in_executor(
+                    None, functools.partial(self._func, *positional_args, **kwargs)
+                )
                 cancellation_token.link_future(future)
                 result = await future
 
