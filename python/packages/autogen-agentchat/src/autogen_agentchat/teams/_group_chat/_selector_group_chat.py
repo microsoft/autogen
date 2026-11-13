@@ -321,6 +321,10 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         Returns:
             Dict: a counter for mentioned agents.
         """
+        # Strip reasoning blocks (like <thinking>, <reflection>, etc.) before counting mentions
+        # This prevents agent mentions in internal reasoning from affecting speaker selection
+        cleaned_content = self._strip_reasoning_blocks(message_content)
+
         mentions: Dict[str, int] = dict()
         for name in agent_names:
             # Finds agent mentions, taking word boundaries into account,
@@ -335,10 +339,49 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 + r")(?=\W)"
             )
             # Pad the message to help with matching
-            count = len(re.findall(regex, f" {message_content} "))
+            count = len(re.findall(regex, f" {cleaned_content} "))
             if count > 0:
                 mentions[name] = count
         return mentions
+
+    def _strip_reasoning_blocks(self, content: str) -> str:
+        """Strip reasoning blocks from message content.
+
+        Removes common reasoning tags like <thinking>, <reflection>, <reasoning>, etc.
+        that models use for internal reasoning, to prevent agent mentions in these
+        blocks from affecting speaker selection.
+
+        Args:
+            content: The message content to clean
+
+        Returns:
+            str: Content with reasoning blocks removed
+        """
+        # Common reasoning tags used by various models
+        reasoning_tags = [
+            "thinking",
+            "thought",
+            "reflection",
+            "reasoning",
+            "analysis",
+            "internal",
+            "scratch",
+            "planning",
+        ]
+
+        # Build regex pattern to match any of these tags (case-insensitive)
+        # Matches both self-closing and paired tags
+        pattern = "|".join(reasoning_tags)
+        # Match opening tag, content, and closing tag (non-greedy)
+        tag_pattern = rf"<({pattern})(?:\s[^>]*)?>.*?</\1>"
+        # Also match self-closing tags
+        self_closing_pattern = rf"<({pattern})(?:\s[^>]*)?/>"
+
+        # Remove all matched reasoning blocks
+        cleaned = re.sub(tag_pattern, "", content, flags=re.IGNORECASE | re.DOTALL)
+        cleaned = re.sub(self_closing_pattern, "", cleaned, flags=re.IGNORECASE)
+
+        return cleaned
 
 
 class SelectorGroupChatConfig(BaseModel):

@@ -1944,3 +1944,53 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
 
     # Content-based verification instead of index-based
     # Note: The streaming test verifies the streaming behavior, not the final result content
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_ignores_thinking_tags(runtime: AgentRuntime | None) -> None:
+    """Test that _mentioned_agents ignores agent mentions inside reasoning tags."""
+    # Model response mentions agent1 and agent2 in thinking, but only agent3 in the actual response
+    model_client = ReplayChatCompletionClient(
+        [
+            "<thinking>Maybe agent1 could help, or agent2 might be better</thinking>I suggest agent3 takes the next step.",
+        ]
+    )
+    agent1 = _StopAgent("agent1", description="agent 1", stop_at=1)
+    agent2 = _EchoAgent("agent2", description="agent 2")
+    agent3 = _EchoAgent("agent3", description="agent 3")
+    termination = MaxMessageTermination(2)
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        termination_condition=termination,
+        runtime=runtime,
+    )
+    result = await team.run(task="task")
+
+    # Should select agent3, not agent1 or agent2 from the thinking block
+    assert len(result.messages) == 2
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].content == "task"
+    assert isinstance(result.messages[1], TextMessage)
+    assert result.messages[1].source == "agent3"
+
+    # Test with multiple reasoning tag types
+    model_client2 = ReplayChatCompletionClient(
+        [
+            "<reflection>agent1 should handle this</reflection><planning>or maybe agent2</planning>Let agent3 proceed.",
+        ]
+    )
+    agent1_2 = _StopAgent("agent1", description="agent 1", stop_at=1)
+    agent2_2 = _EchoAgent("agent2", description="agent 2")
+    agent3_2 = _EchoAgent("agent3", description="agent 3")
+    team2 = SelectorGroupChat(
+        participants=[agent1_2, agent2_2, agent3_2],
+        model_client=model_client2,
+        termination_condition=MaxMessageTermination(2),
+        runtime=runtime,
+    )
+    result2 = await team2.run(task="task")
+
+    # Should still select agent3
+    assert len(result2.messages) == 2
+    assert result2.messages[1].source == "agent3"
