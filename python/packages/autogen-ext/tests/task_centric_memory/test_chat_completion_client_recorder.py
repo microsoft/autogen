@@ -65,6 +65,50 @@ async def test_replay() -> None:
     logger.leave_function()
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "session_path",
+    [
+        pytest.param("session.json", id="bare-relative"),
+        pytest.param("./session.json", id="explicit-relative"),
+        pytest.param("a/b/session.json", id="nested-relative"),
+        pytest.param(None, id="absolute"),
+    ],
+)
+async def test_record_and_replay_path_variants(session_path: str | None, tmp_path, monkeypatch) -> None:
+    """Recorded sessions can be saved and replayed for all common path forms."""
+    monkeypatch.chdir(tmp_path)
+    if session_path is None:
+        session_path = str(tmp_path / "session.json")
+
+    logger = PageLogger(config={"level": "DEBUG", "path": str(tmp_path / "logs")})
+    logger.enter_function()
+
+    messages = [UserMessage(content="Message 1", source="User")]
+    recorder = ChatCompletionClientRecorder(
+        ReplayChatCompletionClient(["Response to message 1"]),
+        mode="record",
+        session_file_path=session_path,
+        logger=logger,
+    )
+    response = await recorder.create(messages)
+    assert isinstance(response, CreateResult)
+    assert response.content == "Response to message 1"
+    recorder.finalize()
+
+    replay_recorder = ChatCompletionClientRecorder(
+        ReplayChatCompletionClient(["Unused response"]),
+        mode="replay",
+        session_file_path=session_path,
+        logger=logger,
+    )
+    replayed_response = await replay_recorder.create(messages)
+    assert isinstance(replayed_response, CreateResult)
+    assert replayed_response.content == "Response to message 1"
+    replay_recorder.finalize()
+    logger.leave_function()
+
+
 if __name__ == "__main__":
     asyncio.run(test_record())
     asyncio.run(test_replay())
