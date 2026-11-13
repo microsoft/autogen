@@ -117,7 +117,7 @@ class AuthManager:
     def from_yaml(cls, yaml_path: str) -> Self:
         """Create AuthManager from YAML config file."""
         try:
-            with open(yaml_path, "r") as f:
+            with open(yaml_path, "r", encoding="utf-8") as f:
                 config_data = yaml.safe_load(f)
             config = AuthConfig(**config_data)
             return cls(config)
