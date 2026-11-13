@@ -300,6 +300,17 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                     return agent_name
 
         if self._previous_speaker is not None:
+            if not self._allow_repeated_speaker:
+                # Select a random participant that is NOT the previous speaker
+                candidates = [p for p in self._participant_names if p != self._previous_speaker]
+                if candidates:
+                    import random
+                    fallback = random.choice(candidates)
+                    trace_logger.warning(
+                        f"Model failed to select a speaker after {max_attempts}, "
+                        f"using random non-previous speaker: {fallback}."
+                    )
+                    return fallback
             trace_logger.warning(f"Model failed to select a speaker after {max_attempts}, using the previous speaker.")
             return self._previous_speaker
         trace_logger.warning(
