@@ -122,11 +122,15 @@ class TextCanvas(BaseCanvas):
         revisions = self._files.get(filename, [])
         if not revisions:
             return ""
+        # Distinguish a revision that does not exist from a revision whose content is
+        # legitimately empty: an empty revision must still be diffed, while an unknown
+        # revision must not be silently treated as an empty file.
+        known_revisions = {rev.revision for rev in revisions}
+        if from_revision not in known_revisions or to_revision not in known_revisions:
+            return ""
         # Fetch the contents for the requested revisions.
         from_content = self.get_revision_content(filename, from_revision)
         to_content = self.get_revision_content(filename, to_revision)
-        if from_content == "" and to_content == "":  # one (or both) revision ids not found
-            return ""
         diff = difflib.unified_diff(
             from_content.splitlines(keepends=True),
             to_content.splitlines(keepends=True),
