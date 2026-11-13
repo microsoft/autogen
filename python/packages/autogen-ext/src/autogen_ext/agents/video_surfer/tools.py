@@ -11,6 +11,8 @@ from autogen_core.models import (
     UserMessage,
 )
 
+from ._path_guards import ensure_output_within_cwd, reject_url_path
+
 
 def extract_audio(video_path: str, audio_output_path: str) -> str:
     """
@@ -20,22 +22,15 @@ def extract_audio(video_path: str, audio_output_path: str) -> str:
     :param audio_output_path: Path to save the extracted audio file (must end with .mp3).
     :return: Confirmation message with the path to the saved audio file.
     """
-    import os
-    import re
-
     # Reject URLs to prevent SSRF via ffmpeg
-    if re.match(r"^[a-zA-Z][a-zA-Z0-9+\-.]*://", video_path):
-        raise ValueError("video_path must be a local file path, not a URL.")
+    reject_url_path(video_path, field_name="video_path")
 
     # Enforce .mp3 extension to prevent writing arbitrary file types
     if not audio_output_path.lower().endswith(".mp3"):
         raise ValueError("audio_output_path must end with .mp3.")
 
-    # Prevent path traversal — output must stay within the current working directory
-    cwd = os.path.realpath(os.getcwd())
-    output_real = os.path.realpath(audio_output_path)
-    if not output_real.startswith(cwd + os.sep) and output_real != cwd:
-        raise ValueError("audio_output_path must be within the current working directory.")
+    # Prevent path traversal - output must stay within the current working directory
+    ensure_output_within_cwd(audio_output_path, field_name="audio_output_path")
 
     (ffmpeg.input(video_path).output(audio_output_path, format="mp3").run(quiet=True, overwrite_output=True))  # type: ignore
     return f"Audio extracted and saved to {audio_output_path}."
@@ -85,10 +80,13 @@ def save_screenshot(video_path: str, timestamp: float, output_path: str) -> None
     """
     Captures a screenshot at the specified timestamp and saves it to the output path.
 
-    :param video_path: Path to the video file.
+    :param video_path: Path to the video file (must be a local file path, not a URL).
     :param timestamp: Timestamp in seconds.
-    :param output_path: Path to save the screenshot. The file format is determined by the extension in the path.
+    :param output_path: Path to save the screenshot. Must stay within the current working directory. The file format is determined by the extension in the path.
     """
+    reject_url_path(video_path, field_name="video_path")
+    ensure_output_within_cwd(output_path, field_name="output_path")
+
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise IOError(f"Cannot open video file {video_path}")
