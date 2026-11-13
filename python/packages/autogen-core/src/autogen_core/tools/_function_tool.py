@@ -41,6 +41,11 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
 
         It is the user's responsibility to verify that the tool's output type matches the expected type.
 
+        If the wrapped function declares a ``cancellation_token`` parameter, this class
+        forwards the :class:`~autogen_core.CancellationToken` passed to :meth:`run`
+        and omits that parameter from the generated tool schema. Nested tools and
+        in-flight I/O should use that same token (see :class:`~autogen_core.CancellationToken`).
+
     Args:
         func (Callable[..., ReturnT | Awaitable[ReturnT]]): The function to wrap and expose as a tool.
         description (str): A description to inform the model of the function's purpose, specifying what
