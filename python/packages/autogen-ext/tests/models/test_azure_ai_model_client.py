@@ -28,7 +28,9 @@ from azure.ai.inference.models import (
 from azure.ai.inference.models import (
     FunctionCall as AzureFunctionCall,
 )
+from azure.ai.inference.models import JsonSchemaFormat
 from azure.core.credentials import AzureKeyCredential
+from pydantic import BaseModel
 
 
 async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
@@ -973,3 +975,33 @@ async def test_azure_ai_tool_choice_specific_tool_streaming(
     assert final_result.content[0].name == "process_text"
     assert final_result.content[0].arguments == '{"input": "hello"}'
     assert final_result.thought == "Let me process this for you."
+
+
+class _Answer(BaseModel):
+    value: int
+
+
+def _make_azure_client(monkeypatch: pytest.MonkeyPatch, structured_output: bool) -> AzureAIChatCompletionClient:
+    mock_client = MagicMock()
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", lambda cls, *a, **kw: mock_client)
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model="model",
+        model_info={"json_output": True, "function_calling": False, "vision": False, "family": "unknown", "structured_output": structured_output},
+    )
+
+
+def test_structured_output_raises_when_not_supported(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = _make_azure_client(monkeypatch, structured_output=False)
+    create_args: dict[str, Any] = {}
+    with pytest.raises(ValueError, match="does not support structured output"):
+        client._validate_model_info([], [], _Answer, create_args)
+
+
+def test_structured_output_sets_json_schema_format(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = _make_azure_client(monkeypatch, structured_output=True)
+    create_args: dict[str, Any] = {}
+    client._validate_model_info([], [], _Answer, create_args)
+    assert isinstance(create_args.get("response_format"), JsonSchemaFormat)
+    assert create_args["response_format"].name == "_Answer"
