@@ -42,7 +42,7 @@ def main():
     base_dir = Path(sys.argv[1])
 
     # Read file
-    with open(REDIRECT_URLS_FILE, "r") as f:
+    with open(REDIRECT_URLS_FILE, "r", encoding="utf-8")) as f:
         lines = f.readlines()
 
     for line in lines:
