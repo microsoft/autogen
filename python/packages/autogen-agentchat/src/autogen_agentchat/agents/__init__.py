@@ -9,6 +9,7 @@ from ._code_executor_agent import ApprovalFuncType, ApprovalRequest, ApprovalRes
 from ._message_filter_agent import MessageFilterAgent, MessageFilterConfig, PerSourceFilter
 from ._society_of_mind_agent import SocietyOfMindAgent
 from ._user_proxy_agent import UserProxyAgent
+from ._planner_agent import HandoffPlannerAgent
 
 __all__ = [
     "BaseChatAgent",
@@ -22,4 +23,5 @@ __all__ = [
     "ApprovalRequest",
     "ApprovalResponse",
     "ApprovalFuncType",
+    "HandoffPlannerAgent",
 ]
