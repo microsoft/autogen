@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+import time
 from asyncio import Task
 from inspect import getfullargspec
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union, cast
@@ -65,7 +66,9 @@ from autogen_ext.models.azure.config import (
 from .._utils.parse_r1_content import parse_r1_content
 
 create_kwargs = set(getfullargspec(ChatCompletionsClient.complete).kwonlyargs)
-AzureMessage = Union[AzureSystemMessage, AzureUserMessage, AzureAssistantMessage, AzureToolMessage]
+AzureMessage = Union[
+    AzureSystemMessage, AzureUserMessage, AzureAssistantMessage, AzureToolMessage
+]
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -74,7 +77,9 @@ def _is_github_model(endpoint: str) -> bool:
     return endpoint == GITHUB_MODELS_ENDPOINT
 
 
-def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[ChatCompletionsToolDefinition]:
+def convert_tools(
+    tools: Sequence[Tool | ToolSchema],
+) -> List[ChatCompletionsToolDefinition]:
     result: List[ChatCompletionsToolDefinition] = []
     for tool in tools:
         if isinstance(tool, Tool):
@@ -125,7 +130,13 @@ def _user_message_to_azure(message: UserMessage) -> AzureUserMessage:
             elif isinstance(part, Image):
                 # TODO: support url based images
                 # TODO: support specifying details
-                parts.append(ImageContentItem(image_url=ImageUrl(url=part.data_uri, detail=ImageDetailLevel.AUTO)))
+                parts.append(
+                    ImageContentItem(
+                        image_url=ImageUrl(
+                            url=part.data_uri, detail=ImageDetailLevel.AUTO
+                        )
+                    )
+                )
             else:
                 raise ValueError(f"Unknown content type: {message.content}")
         return AzureUserMessage(content=parts)
@@ -141,8 +152,13 @@ def _assistant_message_to_azure(message: AssistantMessage) -> AzureAssistantMess
         return AzureAssistantMessage(content=message.content)
 
 
-def _tool_message_to_azure(message: FunctionExecutionResultMessage) -> Sequence[AzureToolMessage]:
-    return [AzureToolMessage(content=x.content, tool_call_id=x.call_id) for x in message.content]
+def _tool_message_to_azure(
+    message: FunctionExecutionResultMessage,
+) -> Sequence[AzureToolMessage]:
+    return [
+        AzureToolMessage(content=x.content, tool_call_id=x.call_id)
+        for x in message.content
+    ]
 
 
 def to_azure_message(message: LLMMessage) -> Sequence[AzureMessage]:
@@ -172,7 +188,9 @@ def assert_valid_name(name: str) -> str:
     For munging LLM responses use _normalize_name to ensure LLM specified names don't break the API.
     """
     if not re.match(r"^[a-zA-Z0-9_-]+$", name):
-        raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
+        raise ValueError(
+            f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed."
+        )
     if len(name) > 64:
         raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
     return name
@@ -306,11 +324,15 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             raise ValueError("model_info is required for AzureAIChatCompletionClient")
         validate_model_info(config["model_info"])
         if _is_github_model(config["endpoint"]) and "model" not in config:
-            raise ValueError("model is required for when using a Github model with AzureAIChatCompletionClient")
+            raise ValueError(
+                "model is required for when using a Github model with AzureAIChatCompletionClient"
+            )
         return cast(AzureAIChatCompletionClientConfig, config)
 
     @staticmethod
-    def _create_client(config: AzureAIChatCompletionClientConfig) -> ChatCompletionsClient:
+    def _create_client(
+        config: AzureAIChatCompletionClientConfig,
+    ) -> ChatCompletionsClient:
         # Only pass the parameters that ChatCompletionsClient accepts
         # Remove 'model_info' and other client-specific parameters
         client_config = {k: v for k, v in config.items() if k not in ("model_info",)}
@@ -337,8 +359,12 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if self.model_info["vision"] is False:
             for message in messages:
                 if isinstance(message, UserMessage):
-                    if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
-                        raise ValueError("Model does not support vision and image was provided")
+                    if isinstance(message.content, list) and any(
+                        isinstance(x, Image) for x in message.content
+                    ):
+                        raise ValueError(
+                            "Model does not support vision and image was provided"
+                        )
 
         if json_output is not None:
             if self.model_info["json_output"] is False and json_output is True:
@@ -346,7 +372,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
             if isinstance(json_output, type):
                 # TODO: we should support this in the future.
-                raise ValueError("Structured output is not currently supported for AzureAIChatCompletionClient")
+                raise ValueError(
+                    "Structured output is not currently supported for AzureAIChatCompletionClient"
+                )
 
             if json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = "json_object"
@@ -368,7 +396,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     ) -> CreateResult:
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
-            raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
+            raise ValueError(
+                f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}"
+            )
 
         # Copy the create args and overwrite anything in extra_create_args
         create_args = self._create_args.copy()
@@ -380,11 +410,14 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         azure_messages = [item for sublist in azure_messages_nested for item in sublist]
 
         task: Task[ChatCompletions]
+        start_time = time.perf_counter()
 
         if len(tools) > 0:
             if isinstance(tool_choice, Tool):
                 create_args["tool_choice"] = ChatCompletionsNamedToolChoice(
-                    function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
+                    function=ChatCompletionsNamedToolChoiceFunction(
+                        name=tool_choice.name
+                    )
                 )
             else:
                 create_args["tool_choice"] = tool_choice
@@ -404,10 +437,20 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             cancellation_token.link_future(task)
 
         result: ChatCompletions = await task
+        end_time = time.perf_counter()
 
         usage = RequestUsage(
             prompt_tokens=result.usage.prompt_tokens if result.usage else 0,
             completion_tokens=result.usage.completion_tokens if result.usage else 0,
+        )
+
+        # Calculate performance metrics
+        latency_seconds = end_time - start_time
+        latency_ms = latency_seconds * 1000
+        tokens_per_second = (
+            usage.completion_tokens / latency_seconds
+            if latency_seconds > 0 and usage.completion_tokens > 0
+            else None
         )
 
         logger.info(
@@ -416,6 +459,8 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 response=result.as_dict(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
+                latency_ms=latency_ms,
+                tokens_per_second=tokens_per_second,
             )
         )
 
@@ -470,7 +515,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
-            raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
+            raise ValueError(
+                f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}"
+            )
 
         create_args: Dict[str, Any] = self._create_args.copy()
         create_args.update(extra_create_args)
@@ -484,16 +531,27 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if len(tools) > 0:
             if isinstance(tool_choice, Tool):
                 create_args["tool_choice"] = ChatCompletionsNamedToolChoice(
-                    function=ChatCompletionsNamedToolChoiceFunction(name=tool_choice.name)
+                    function=ChatCompletionsNamedToolChoiceFunction(
+                        name=tool_choice.name
+                    )
                 )
             else:
                 create_args["tool_choice"] = tool_choice
             converted_tools = convert_tools(tools)
             task = asyncio.create_task(
-                self._client.complete(messages=azure_messages, tools=converted_tools, stream=True, **create_args)
+                self._client.complete(
+                    messages=azure_messages,
+                    tools=converted_tools,
+                    stream=True,
+                    **create_args,
+                )
             )
         else:
-            task = asyncio.create_task(self._client.complete(messages=azure_messages, stream=True, **create_args))
+            task = asyncio.create_task(
+                self._client.complete(
+                    messages=azure_messages, stream=True, **create_args
+                )
+            )
 
         if cancellation_token is not None:
             cancellation_token.link_future(task)
@@ -508,6 +566,10 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         choice: Optional[StreamingChatChoiceUpdate] = None
         first_chunk = True
         thought = None
+
+        # Performance timing variables
+        start_time = time.perf_counter()
+        first_token_time: Optional[float] = None
 
         async for chunk in await task:  # type: ignore
             if first_chunk:
@@ -527,17 +589,29 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                     if choice.finish_reason is CompletionsFinishReason.TOOL_CALLS:
                         finish_reason = "function_calls"
                 else:
-                    if choice.finish_reason in ["stop", "length", "function_calls", "content_filter", "unknown"]:
+                    if choice.finish_reason in [
+                        "stop",
+                        "length",
+                        "function_calls",
+                        "content_filter",
+                        "unknown",
+                    ]:
                         finish_reason = choice.finish_reason  # type: ignore
                     else:
-                        raise ValueError(f"Unexpected finish reason: {choice.finish_reason}")
+                        raise ValueError(
+                            f"Unexpected finish reason: {choice.finish_reason}"
+                        )
 
             # We first try to load the content
             if choice and choice.delta.content is not None:
+                if first_token_time is None:
+                    first_token_time = time.perf_counter()
                 content_deltas.append(choice.delta.content)
                 yield choice.delta.content
             # Otherwise, we try to load the tool calls
             if choice and choice.delta.tool_calls is not None:
+                if first_token_time is None:
+                    first_token_time = time.perf_counter()
                 for tool_call_chunk in choice.delta.tool_calls:
                     # print(tool_call_chunk)
                     if "index" in tool_call_chunk:
@@ -545,7 +619,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                     else:
                         idx = tool_call_chunk.id
                     if idx not in full_tool_calls:
-                        full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
+                        full_tool_calls[idx] = FunctionCall(
+                            id="", arguments="", name=""
+                        )
 
                     full_tool_calls[idx].id += tool_call_chunk.id
                     full_tool_calls[idx].name += tool_call_chunk.function.name
@@ -587,12 +663,30 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             thought=thought,
         )
 
+        # Calculate performance metrics
+        end_time = time.perf_counter()
+        latency_seconds = end_time - start_time
+        latency_ms = latency_seconds * 1000
+        ttft_ms = (
+            (first_token_time - start_time) * 1000
+            if first_token_time is not None
+            else None
+        )
+        tokens_per_second = (
+            usage.completion_tokens / latency_seconds
+            if latency_seconds > 0 and usage.completion_tokens > 0
+            else None
+        )
+
         # Log the end of the stream.
         logger.info(
             LLMStreamEndEvent(
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
+                latency_ms=latency_ms,
+                tokens_per_second=tokens_per_second,
+                ttft_ms=ttft_ms,
             )
         )
 
@@ -609,10 +703,14 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     def total_usage(self) -> RequestUsage:
         return self._total_usage
 
-    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def count_tokens(
+        self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []
+    ) -> int:
         return 0
 
-    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def remaining_tokens(
+        self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []
+    ) -> int:
         return 0
 
     @property
