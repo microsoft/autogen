@@ -408,7 +408,7 @@ def count_tokens_openai(
                             tool_tokens -= 3
                             for o in v["enum"]:  # pyright: ignore
                                 tool_tokens += 3
-                                tool_tokens += len(encoding.encode(o))  # pyright: ignore
+                                tool_tokens += len(encoding.encode(str(o)))  # pyright: ignore
                         else:
                             trace_logger.warning(f"Not supported field {field}")
                 tool_tokens += 11
