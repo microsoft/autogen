@@ -1944,3 +1944,63 @@ async def test_selector_group_chat_streaming(runtime: AgentRuntime | None) -> No
 
     # Content-based verification instead of index-based
     # Note: The streaming test verifies the streaming behavior, not the final result content
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_get_thread(runtime: AgentRuntime | None) -> None:
+    """Test that get_thread() returns the current message thread from the group chat."""
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    termination = MaxMessageTermination(3)
+    team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination, runtime=runtime)
+
+    # get_thread should fail before initialization
+    with pytest.raises(RuntimeError, match="not been initialized"):
+        await team.get_thread()
+
+    # Run the team
+    result = await team.run(task="hello")
+
+    # get_thread should work after the team has run
+    thread = await team.get_thread()
+    assert len(thread) > 0
+    assert isinstance(thread[0], TextMessage)
+    assert thread[0].content == "hello"
+    assert thread[0].source == "user"
+
+    # Verify the thread matches the result messages
+    assert len(thread) == len(result.messages)
+    for t, r in zip(thread, result.messages, strict=False):
+        assert isinstance(t, TextMessage)
+        assert isinstance(r, TextMessage)
+        assert t.content == r.content
+        assert t.source == r.source
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_get_thread_while_running(runtime: AgentRuntime | None) -> None:
+    """Test that get_thread() works while the team is still running."""
+    agent1 = _EchoAgent("agent1", description="echo agent 1")
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+
+    # Use a high max_turns so the team keeps running
+    termination = MaxMessageTermination(100)
+    team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination, runtime=runtime, max_turns=50)
+
+    # Run the team in the background
+    run_task = asyncio.create_task(team.run(task="start"))
+
+    # Wait for some messages to be exchanged
+    await asyncio.sleep(0.5)
+
+    # Get the thread while the team is running
+    thread = await team.get_thread()
+    assert len(thread) > 0
+    first_message = thread[0]
+    assert isinstance(first_message, TextMessage)
+    assert first_message.content == "start"
+    assert first_message.source == "user"
+
+    # Clean up - reset to stop the team
+    await team.reset()
+    await run_task
