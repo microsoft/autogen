@@ -8,7 +8,7 @@ from types import ModuleType
 from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
 from playwright._impl._errors import Error as PlaywrightError
-from playwright._impl._errors import TimeoutError
+from playwright._impl._errors import TimeoutError, TargetClosedError
 from playwright.async_api import Download, Page
 
 from ._types import (
@@ -83,7 +83,11 @@ class PlaywrightController:
             duration (Union[int, float]): The duration to sleep in milliseconds.
         """
         assert page is not None
-        await page.wait_for_timeout(duration * 1000)
+        try:
+            await page.wait_for_timeout(duration * 1000)
+        except TargetClosedError:
+            # Page was closed during wait — skip sleeping
+            pass
 
     async def get_interactive_rects(self, page: Page) -> Dict[str, InteractiveRegion]:
         """
