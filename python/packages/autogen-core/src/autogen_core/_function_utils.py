@@ -41,9 +41,8 @@ def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
         The signature of the function with type annotations
     """
     signature = inspect.signature(call)
-    globalns = getattr(call, "__globals__", {})
     func_call = call.func if isinstance(call, partial) else call
-    type_hints = typing.get_type_hints(func_call, globalns, include_extras=True)
+    type_hints = typing.get_type_hints(func_call, include_extras=True)
     typed_params = [
         inspect.Parameter(
             name=param.name,
@@ -73,8 +72,7 @@ def get_typed_return_annotation(call: Callable[..., Any]) -> Any:
     if annotation is inspect.Signature.empty:
         return None
 
-    globalns = getattr(call, "__globals__", {})
-    type_hints = typing.get_type_hints(call, globalns, include_extras=True)
+    type_hints = typing.get_type_hints(call, include_extras=True)
     return type_hints.get("return", inspect.Signature.empty)
 
 
