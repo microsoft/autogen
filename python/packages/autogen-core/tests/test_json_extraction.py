@@ -83,3 +83,10 @@ def test_extract_json_from_str_codeblock() -> None:
   """
     with pytest.raises(ValueError):
         extract_json_from_str(invalid_lang_code_block_str)
+
+
+def test_extract_json_from_str_crlf() -> None:
+    crlf_json_str = "```json\r\n{\r\n  \"name\": \"Alice\",\r\n  \"age\": 28\r\n}\r\n```"
+    expected = [{"name": "Alice", "age": 28}]
+    assert extract_json_from_str(crlf_json_str) == expected
+
