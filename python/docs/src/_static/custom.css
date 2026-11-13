@@ -2,6 +2,31 @@
   font-size: 0.8rem;
 }
 
+.sidebar-close-button {
+  display: none;
+}
+
+dialog#pst-primary-sidebar-modal .sidebar-close-button {
+  align-items: center;
+  align-self: flex-end;
+  background: transparent;
+  border: 0;
+  color: var(--pst-color-text-base);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  height: 2.75rem;
+  justify-content: center;
+  padding: 0;
+  width: 2.75rem;
+}
+
+dialog#pst-primary-sidebar-modal .sidebar-close-button:focus-visible {
+  outline: 0.1875rem solid var(--pst-color-accent);
+  outline-offset: 0.125rem;
+}
+
 html[data-theme="light"] {
   --pst-color-primary: hsl(222.2 47.4% 11.2%);
   --pst-color-secondary: #1774E5;
