@@ -400,3 +400,60 @@ async def test_save_and_load_state(mock_openai_client: AsyncOpenAI) -> None:
     assert new_agent._initial_message_ids == {"msg1", "msg2"}  # type: ignore
     assert new_agent._vector_store_id == "vector-789"  # type: ignore
     assert new_agent._uploaded_file_ids == ["file-abc", "file-def"]  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_loaded_state_resources_are_not_deleted_as_owned(mock_openai_client: AsyncOpenAI) -> None:
+    agent = OpenAIAssistantAgent(
+        name="assistant",
+        description="Dummy assistant for state testing",
+        client=mock_openai_client,
+        model="dummy-model",
+        instructions="dummy instructions",
+        tools=[],
+    )
+    await agent.load_state(
+        {
+            "type": "OpenAIAssistantAgentState",
+            "assistant_id": "assistant-123",
+            "thread_id": "thread-456",
+            "initial_message_ids": [],
+            "vector_store_id": "vector-restored",
+            "uploaded_file_ids": ["file-restored-a", "file-restored-b"],
+        }
+    )
+
+    await agent.delete_uploaded_files(CancellationToken())
+    await agent.delete_vector_store(CancellationToken())
+
+    mock_openai_client.files.delete.assert_not_awaited()  # type: ignore
+    mock_openai_client.vector_stores.delete.assert_not_awaited()  # type: ignore
+    assert agent._vector_store_id == "vector-restored"  # type: ignore
+    assert agent._uploaded_file_ids == ["file-restored-a", "file-restored-b"]  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_current_instance_resources_are_still_deleted(mock_openai_client: AsyncOpenAI) -> None:
+    agent = OpenAIAssistantAgent(
+        name="assistant",
+        description="Dummy assistant for state testing",
+        client=mock_openai_client,
+        model="dummy-model",
+        instructions="dummy instructions",
+        tools=[],
+    )
+    agent._assistant = MagicMock(id="assistant-current")  # type: ignore
+    agent._thread = MagicMock(id="thread-current")  # type: ignore
+    agent._initial_state_retrieved = True  # type: ignore
+    agent._uploaded_file_ids = ["file-current"]  # type: ignore
+    agent._owned_uploaded_file_ids = ["file-current"]  # type: ignore
+    agent._vector_store_id = "vector-current"  # type: ignore
+    agent._owned_vector_store_id = "vector-current"  # type: ignore
+
+    await agent.delete_uploaded_files(CancellationToken())
+    await agent.delete_vector_store(CancellationToken())
+
+    mock_openai_client.files.delete.assert_awaited_once_with(file_id="file-current")  # type: ignore
+    mock_openai_client.vector_stores.delete.assert_awaited_once_with(vector_store_id="vector-current")  # type: ignore
+    assert agent._vector_store_id is None  # type: ignore
+    assert agent._uploaded_file_ids == []  # type: ignore
