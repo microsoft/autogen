@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
@@ -50,6 +50,7 @@ class CreateArguments(TypedDict, total=False):
     user: str
     stream_options: Optional[StreamOptions]
     parallel_tool_calls: Optional[bool]
+    extra_body: Optional[Dict[str, Any]]
     reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]]
     """Controls the amount of effort the model uses for reasoning.
     Only applicable to reasoning models like o1 and o3-mini.
@@ -106,6 +107,7 @@ class CreateArgumentsConfigModel(BaseModel):
     user: str | None = None
     stream_options: StreamOptions | None = None
     parallel_tool_calls: bool | None = None
+    extra_body: Dict[str, Any] | None = None
     # Controls the amount of effort the model uses for reasoning (reasoning models only)
     reasoning_effort: Literal["minimal", "low", "medium", "high"] | None = None
 

@@ -740,22 +740,20 @@ class AzureAIAgent(BaseChatAgent):
                 yield tool_call_msg
 
                 # Execute tool calls and get results
-                tool_outputs: List[FunctionExecutionResult] = []
-
-                # TODO: Support parallel execution of tool calls
-
-                for tool_call in tool_calls:
+                async def _run_tool(tool_call: FunctionCall) -> FunctionExecutionResult:
                     try:
                         result = await self._execute_tool_call(tool_call, cancellation_token)
                         is_error = False
                     except Exception as e:
                         result = f"Error: {e}"
                         is_error = True
-                    tool_outputs.append(
-                        FunctionExecutionResult(
-                            content=result, call_id=tool_call.id, is_error=is_error, name=tool_call.name
-                        )
+                    return FunctionExecutionResult(
+                        content=result, call_id=tool_call.id, is_error=is_error, name=tool_call.name
                     )
+
+                tool_outputs: List[FunctionExecutionResult] = list(
+                    await asyncio.gather(*(_run_tool(tool_call) for tool_call in tool_calls))
+                )
 
                 # Add tool result message to inner messages
                 tool_result_msg = ToolCallExecutionEvent(source=self.name, content=tool_outputs)
