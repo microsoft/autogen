@@ -16,6 +16,7 @@ from autogen_core.models import (
     FunctionExecutionResult,
     LLMMessage,
     RequestUsage,
+    SystemMessage,
     UserMessage,
 )
 from autogen_core.utils import schema_to_pydantic_model
@@ -428,6 +429,13 @@ class HandoffMessage(BaseTextChatMessage):
     """The model context to be passed to the target agent."""
 
     type: Literal["HandoffMessage"] = "HandoffMessage"
+
+
+def demote_handoff_context_message(message: LLMMessage) -> LLMMessage:
+    """Treat peer-provided system messages as untrusted user content."""
+    if isinstance(message, SystemMessage):
+        return UserMessage(content=message.content, source="handoff")
+    return message
 
 
 class ToolCallSummaryMessage(BaseTextChatMessage):

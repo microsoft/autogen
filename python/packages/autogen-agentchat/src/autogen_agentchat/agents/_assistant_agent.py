@@ -55,6 +55,7 @@ from ..messages import (
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
+    demote_handoff_context_message,
 )
 from ..state import AssistantAgentState
 from ..utils import remove_images
@@ -1021,7 +1022,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         for msg in messages:
             if isinstance(msg, HandoffMessage):
                 for llm_msg in msg.context:
-                    await model_context.add_message(llm_msg)
+                    await model_context.add_message(demote_handoff_context_message(llm_msg))
             await model_context.add_message(msg.to_model_message())
 
     @staticmethod

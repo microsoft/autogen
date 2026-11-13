@@ -40,6 +40,7 @@ from ..messages import (
     ModelClientStreamingChunkEvent,
     TextMessage,
     ThoughtEvent,
+    demote_handoff_context_message,
 )
 from ..utils import remove_images
 from ._base_chat_agent import BaseChatAgent
@@ -832,7 +833,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         for msg in messages:
             if isinstance(msg, HandoffMessage):
                 for llm_msg in msg.context:
-                    await model_context.add_message(llm_msg)
+                    await model_context.add_message(demote_handoff_context_message(llm_msg))
             await model_context.add_message(msg.to_model_message())
 
     @classmethod
