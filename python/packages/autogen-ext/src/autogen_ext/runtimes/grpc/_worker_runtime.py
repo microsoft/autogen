@@ -56,7 +56,7 @@ from google.protobuf import any_pb2
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self
 
-from autogen_ext.runtimes.grpc._utils import subscription_to_proto
+from autogen_ext.runtimes.grpc._utils import await_cleanup, subscription_to_proto
 
 from . import _constants
 from ._constants import GRPC_IMPORT_ERROR_STR
@@ -86,7 +86,10 @@ class QueueAsyncIterable(AsyncIterator[Any], AsyncIterable[Any]):
         self._queue = queue
 
     async def __anext__(self) -> Any:
-        return await self._queue.get()
+        message = await self._queue.get()
+        if message is None:
+            raise StopAsyncIteration
+        return message
 
     def __aiter__(self) -> AsyncIterator[Any]:
         return self
@@ -117,9 +120,12 @@ class HostConnection:
 
     def __init__(self, channel: grpc.aio.Channel, stub: Any) -> None:  # type: ignore
         self._channel = channel
-        self._send_queue = asyncio.Queue[agent_worker_pb2.Message]()
-        self._recv_queue = asyncio.Queue[agent_worker_pb2.Message]()
+        self._send_queue = asyncio.Queue[agent_worker_pb2.Message | None]()
+        self._recv_queue = asyncio.Queue[agent_worker_pb2.Message | None]()
         self._connection_task: Task[None] | None = None
+        self._close_task: Task[None] | None = None
+        self._stream: grpc.aio.StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] | None = None  # type: ignore[no-any-unimported]
+        self._terminal_error: ConnectionError | None = None
         self._stub: AgentRpcAsyncStub = stub
         self._client_id = str(uuid.uuid4())
 
@@ -130,6 +136,10 @@ class HostConnection:
     @property
     def metadata(self) -> Sequence[Tuple[str, str]]:
         return [("client-id", self._client_id)]
+
+    @property
+    def is_closed(self) -> bool:
+        return self._terminal_error is not None
 
     @classmethod
     async def from_host_address(
@@ -148,55 +158,72 @@ class HostConnection:
         stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
         instance = cls(channel, stub)
 
-        instance._connection_task = await instance._connect(
-            stub, instance._send_queue, instance._recv_queue, instance._client_id
-        )
-
+        try:
+            await instance._connect()
+        except BaseException:
+            await instance.close()
+            raise
         return instance
 
     async def close(self) -> None:
-        if self._connection_task is None:
-            raise RuntimeError("Connection is not open.")
-        await self._channel.close()
-        await self._connection_task
+        """Close the stream and join its reader, including partially opened connections."""
+        if self._close_task is None:
+            self._close_task = asyncio.create_task(self._close())
+        await await_cleanup(self._close_task)
 
-    @staticmethod
-    async def _connect(
-        stub: Any,  # AgentRpcAsyncStub
-        send_queue: asyncio.Queue[agent_worker_pb2.Message],
-        receive_queue: asyncio.Queue[agent_worker_pb2.Message],
-        client_id: str,
-    ) -> Task[None]:
-        from grpc.aio import StreamStreamCall
+    async def _close(self) -> None:
+        self._finish(ConnectionError("Host connection is closed."))
+        if self._stream is not None:
+            self._stream.cancel()
+        try:
+            await self._channel.close()
+        finally:
+            if self._connection_task is not None:
+                self._connection_task.cancel()
+                await asyncio.gather(self._connection_task, return_exceptions=True)
 
-        # TODO: where do exceptions from reading the iterable go? How do we recover from those?
-        stream: StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] = stub.OpenChannel(  # type: ignore
-            QueueAsyncIterable(send_queue), metadata=[("client-id", client_id)]
+    def _finish(self, error: ConnectionError) -> None:
+        if self._terminal_error is None:
+            self._terminal_error = error
+            self._send_queue.put_nowait(None)
+            self._recv_queue.put_nowait(None)
+
+    async def _connect(self) -> None:
+        self._stream = self._stub.OpenChannel(  # type: ignore
+            QueueAsyncIterable(self._send_queue), metadata=self.metadata
         )
+        await self._stream.wait_for_connection()
+        self._connection_task = asyncio.create_task(self._read_loop())
 
-        await stream.wait_for_connection()
-
-        async def read_loop() -> None:
+    async def _read_loop(self) -> None:
+        assert self._stream is not None
+        try:
             while True:
-                logger.info("Waiting for message from host")
-                message = cast(agent_worker_pb2.Message, await stream.read())  # type: ignore
+                message = cast(agent_worker_pb2.Message, await self._stream.read())  # type: ignore
                 if message == grpc.aio.EOF:  # type: ignore
-                    logger.info("EOF")
                     break
-                logger.info(f"Received a message from host: {message}")
-                await receive_queue.put(message)
-                logger.info("Put message in receive queue")
-
-        return asyncio.create_task(read_loop())
+                self._recv_queue.put_nowait(message)
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            self._finish(ConnectionError(f"Host connection disconnected: {error}"))
+        finally:
+            self._finish(ConnectionError("Host connection is closed."))
+            self._stream.cancel()
 
     async def send(self, message: agent_worker_pb2.Message) -> None:
+        if self._terminal_error is not None:
+            raise self._terminal_error
         logger.info(f"Send message to host: {message}")
-        await self._send_queue.put(message)
-        logger.info("Put message in send queue")
+        self._send_queue.put_nowait(message)
 
     async def recv(self) -> agent_worker_pb2.Message:
-        logger.info("Getting message from queue")
-        return await self._recv_queue.get()
+        message = await self._recv_queue.get()
+        if message is None:
+            # Preserve the terminal notification for concurrent and future waiters.
+            self._recv_queue.put_nowait(None)
+            raise self._terminal_error or ConnectionError("Host connection is closed.")
+        return message
 
 
 # TODO: Lots of types need to have protobuf equivalents:
@@ -243,6 +270,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         self._known_namespaces: set[str] = set()
         self._read_task: None | Task[None] = None
         self._running = False
+        self._lifecycle_lock = asyncio.Lock()
         self._pending_requests: Dict[str, Future[Any]] = {}
         self._pending_requests_lock = asyncio.Lock()
         self._next_request_id = 0
@@ -259,19 +287,32 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         self._payload_serialization_format = payload_serialization_format
 
     async def start(self) -> None:
-        """Start the runtime in a background task."""
-        if self._running:
-            raise ValueError("Runtime is already running.")
-        logger.info(f"Connecting to host: {self._host_address}")
-        self._host_connection = await HostConnection.from_host_address(
-            self._host_address, extra_grpc_config=self._extra_grpc_config
-        )
-        logger.info("Connection established")
-        if self._read_task is None:
+        """Start the runtime, restoring registrations after an explicit restart."""
+        async with self._lifecycle_lock:
+            if self._running:
+                raise ValueError("Runtime is already running.")
+            connection = await HostConnection.from_host_address(
+                self._host_address, extra_grpc_config=self._extra_grpc_config
+            )
+            self._host_connection = connection
+            try:
+                for agent_type in self._agent_factories:
+                    await self._register_agent_type(agent_type)
+                for subscription in self._subscription_manager.subscriptions:
+                    await connection.stub.AddSubscription(
+                        agent_worker_pb2.AddSubscriptionRequest(subscription=subscription_to_proto(subscription)),
+                        metadata=connection.metadata,
+                    )
+            except BaseException:
+                await connection.close()
+                self._host_connection = None
+                raise
+            self._running = True
             self._read_task = asyncio.create_task(self._run_read_loop())
-        self._running = True
 
     def _raise_on_exception(self, task: Task[Any]) -> None:
+        if task.cancelled():
+            return
         exception = task.exception()
         if exception is not None:
             raise exception
@@ -291,10 +332,9 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
                     case "response":
-                        task = asyncio.create_task(self._process_response(message.response))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
-                        task.add_done_callback(self._background_tasks.discard)
+                        # Settle replies in wire order before a following EOF
+                        # can fail outstanding calls. This path never awaits I/O.
+                        await self._process_response(message.response)
                     case "cloudEvent":
                         task = asyncio.create_task(self._process_event(message.cloudEvent))
                         self._background_tasks.add(task)
@@ -302,32 +342,53 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                         task.add_done_callback(self._background_tasks.discard)
                     case None:
                         logger.warning("No message")
+            except ConnectionError as error:
+                self._fail_pending_requests(error)
+                # stop() may cancel this reader while handlers are already
+                # finalizing. Give that cleanup its own owner to avoid sending
+                # a second cancellation into their asynchronous finalizers.
+                await await_cleanup(asyncio.create_task(self._cancel_background_tasks()))
+                return
             except Exception as e:
                 logger.error("Error in read loop", exc_info=e)
 
+    async def _cancel_background_tasks(self) -> None:
+        tasks = list(self._background_tasks)
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
     async def stop(self) -> None:
-        """Stop the runtime immediately."""
-        if not self._running:
-            raise RuntimeError("Runtime is not running.")
+        """Stop immediately, cancel owned handlers and finish outstanding callers."""
+        async with self._lifecycle_lock:
+            if not self._running:
+                raise RuntimeError("Runtime is not running.")
+            await await_cleanup(asyncio.create_task(self._shutdown()))
+
+    def _fail_pending_requests(self, error: Exception) -> None:
+        pending, self._pending_requests = self._pending_requests, {}
+        for future in pending.values():
+            if not future.done():
+                future.set_exception(error)
+
+    async def _shutdown(self) -> None:
         self._running = False
-        # Wait for all background tasks to finish.
-        final_tasks_results = await asyncio.gather(*self._background_tasks, return_exceptions=True)
-        for task_result in final_tasks_results:
-            if isinstance(task_result, Exception):
-                logger.error("Error in background task", exc_info=task_result)
-        # Close the host connection.
-        if self._host_connection is not None:
-            try:
-                await self._host_connection.close()
-            except asyncio.CancelledError:
-                pass
-        # Cancel the read task.
+        self._fail_pending_requests(ConnectionError("Runtime stopped; host connection is closed."))
+        # Stop dispatch before taking a snapshot of the tasks it owns.
         if self._read_task is not None:
             self._read_task.cancel()
-            try:
-                await self._read_task
-            except asyncio.CancelledError:
-                pass
+            await asyncio.gather(self._read_task, return_exceptions=True)
+            self._read_task = None
+        tasks = list(self._background_tasks)
+        for task in tasks:
+            task.cancel()
+        try:
+            if self._host_connection is not None:
+                await self._host_connection.close()
+        finally:
+            await asyncio.gather(*tasks, return_exceptions=True)
+            self._background_tasks.clear()
+            self._host_connection = None
 
     async def stop_when_signal(self, signals: Sequence[signal.Signals] = (signal.SIGTERM, signal.SIGINT)) -> None:
         """Stop the runtime when a signal is received."""
@@ -381,13 +442,14 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         with self._trace_helper.trace_block(
             "create", recipient, parent=None, extraAttributes={"message_type": data_type}
         ):
-            # create a new future for the result
-            future = asyncio.get_event_loop().create_future()
-            request_id = await self._get_new_request_id()
-            self._pending_requests[request_id] = future
             serialized_message = self._serialization_registry.serialize(
                 message, type_name=data_type, data_content_type=JSON_DATA_CONTENT_TYPE
             )
+            future = asyncio.get_running_loop().create_future()
+            request_id = await self._get_new_request_id()
+            self._pending_requests[request_id] = future
+            if cancellation_token is not None:
+                cancellation_token.link_future(future)
             telemetry_metadata = get_telemetry_grpc_metadata()
             runtime_message = agent_worker_pb2.Message(
                 request=agent_worker_pb2.RpcRequest(
@@ -403,12 +465,14 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 )
             )
 
-            # TODO: Find a way to handle timeouts/errors
-            task = asyncio.create_task(self._send_message(runtime_message, "send", recipient, telemetry_metadata))
-            self._background_tasks.add(task)
-            task.add_done_callback(self._raise_on_exception)
-            task.add_done_callback(self._background_tasks.discard)
-            return await future
+            try:
+                if not future.cancelled():
+                    await self._send_message(runtime_message, "send", recipient, telemetry_metadata)
+                return await future
+            finally:
+                self._pending_requests.pop(request_id, None)
+                if not future.done():
+                    future.cancel()
 
     async def publish_message(
         self,
@@ -519,25 +583,22 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         else:
             logging.info(f"Processing request from unknown source to {recipient}")
 
-        # Deserialize the message.
-        message = self._serialization_registry.deserialize(
-            request.payload.data,
-            type_name=request.payload.data_type,
-            data_content_type=request.payload.data_content_type,
-        )
-
-        # Get the receiving agent and prepare the message context.
-        rec_agent = await self._get_agent(recipient)
-        message_context = MessageContext(
-            sender=sender,
-            topic_id=None,
-            is_rpc=True,
-            cancellation_token=CancellationToken(),
-            message_id=request.request_id,
-        )
-
-        # Call the receiving agent.
+        # Every request stage must produce a terminal response. Decode, factory,
+        # and result-encoding failures are just as terminal as handler failures.
         try:
+            message = self._serialization_registry.deserialize(
+                request.payload.data,
+                type_name=request.payload.data_type,
+                data_content_type=request.payload.data_content_type,
+            )
+            rec_agent = await self._get_agent(recipient)
+            message_context = MessageContext(
+                sender=sender,
+                topic_id=None,
+                is_rpc=True,
+                cancellation_token=CancellationToken(),
+                message_id=request.request_id,
+            )
             with MessageHandlerContext.populate_context(rec_agent.id):
                 with self._trace_helper.trace_block(
                     "process",
@@ -547,23 +608,25 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                     extraAttributes={"message_type": request.payload.data_type},
                 ):
                     result = await rec_agent.on_message(message, ctx=message_context)
-        except BaseException as e:
+            result_type = self._serialization_registry.type_name(result)
+            serialized_result = self._serialization_registry.serialize(
+                result, type_name=result_type, data_content_type=JSON_DATA_CONTENT_TYPE
+            )
+        except (Exception, asyncio.CancelledError) as e:
+            if isinstance(e, asyncio.CancelledError) and (
+                not self._running or self._host_connection.is_closed
+            ):
+                raise
             response_message = agent_worker_pb2.Message(
                 response=agent_worker_pb2.RpcResponse(
                     request_id=request.request_id,
-                    error=str(e),
+                    error=str(e) or type(e).__name__,
                     metadata=get_telemetry_grpc_metadata(),
                 ),
             )
             # Send the error response.
             await self._host_connection.send(response_message)
             return
-
-        # Serialize the result.
-        result_type = self._serialization_registry.type_name(result)
-        serialized_result = self._serialization_registry.serialize(
-            result, type_name=result_type, data_content_type=JSON_DATA_CONTENT_TYPE
-        )
 
         # Create the response message.
         response_message = agent_worker_pb2.Message(
@@ -582,6 +645,9 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         await self._host_connection.send(response_message)
 
     async def _process_response(self, response: agent_worker_pb2.RpcResponse) -> None:
+        future = self._pending_requests.pop(response.request_id, None)
+        if future is None or future.done():
+            return
         with self._trace_helper.trace_block(
             "ack",
             None,
@@ -589,18 +655,19 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             attributes={"request_id": response.request_id},
             extraAttributes={"message_type": response.payload.data_type},
         ):
-            # Deserialize the result.
-            result = self._serialization_registry.deserialize(
-                response.payload.data,
-                type_name=response.payload.data_type,
-                data_content_type=response.payload.data_content_type,
-            )
-            # Get the future and set the result.
-            future = self._pending_requests.pop(response.request_id)
             if len(response.error) > 0:
                 future.set_exception(Exception(response.error))
             else:
-                future.set_result(result)
+                try:
+                    result = self._serialization_registry.deserialize(
+                        response.payload.data,
+                        type_name=response.payload.data_type,
+                        data_content_type=response.payload.data_content_type,
+                    )
+                except Exception as error:
+                    future.set_exception(error)
+                else:
+                    future.set_result(result)
 
     async def _process_event(self, event: cloudevent_pb2.CloudEvent) -> None:
         event_attributes = event.attributes

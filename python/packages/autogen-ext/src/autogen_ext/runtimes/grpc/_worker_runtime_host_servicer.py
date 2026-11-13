@@ -11,7 +11,7 @@ from autogen_core._agent_id import AgentId
 from autogen_core._runtime_impl_helpers import SubscriptionManager
 
 from ._constants import GRPC_IMPORT_ERROR_STR
-from ._utils import subscription_from_proto, subscription_to_proto
+from ._utils import await_cleanup, subscription_from_proto, subscription_to_proto
 
 try:
     import grpc
@@ -49,35 +49,50 @@ class ChannelConnection(ABC, Generic[SendT, ReceiveT]):
     def __init__(self, request_iterator: AsyncIterator[ReceiveT], client_id: str) -> None:
         self._request_iterator = request_iterator
         self._client_id = client_id
-        self._send_queue: asyncio.Queue[SendT] = asyncio.Queue()
+        self._send_queue: asyncio.Queue[SendT | Exception | None] = asyncio.Queue()
+        self._closed = False
+        self._close_task: Task[None] | None = None
         self._receiving_task = asyncio.create_task(self._receive_messages(client_id, request_iterator))
 
     async def _receive_messages(self, client_id: ClientConnectionId, request_iterator: AsyncIterator[ReceiveT]) -> None:
         # Receive messages from the client and process them.
-        async for message in request_iterator:
-            logger.info(f"Received message from client {client_id}: {message}")
-            await self._handle_message(message)
+        try:
+            async for message in request_iterator:
+                logger.info(f"Received message from client {client_id}: {message}")
+                await self._handle_message(message)
+        except Exception as error:
+            self._send_queue.put_nowait(error)
 
     def __aiter__(self) -> AsyncIterator[SendT]:
         return self
 
     async def __anext__(self) -> SendT:
-        try:
-            return await self._send_queue.get()
-        except StopAsyncIteration:
-            await self._receiving_task
-            raise
-        except Exception as e:
-            logger.error(f"Failed to get message from send queue: {e}", exc_info=True)
-            await self._receiving_task
-            raise
+        message = await self._send_queue.get()
+        if message is None:
+            raise StopAsyncIteration
+        if isinstance(message, Exception):
+            raise message
+        return message
+
+    async def close(self) -> None:
+        if self._close_task is None:
+            self._close_task = asyncio.create_task(self._close())
+        await await_cleanup(self._close_task)
+
+    async def _close(self) -> None:
+        self._closed = True
+        self._send_queue.put_nowait(None)
+        self._receiving_task.cancel()
+        await asyncio.gather(self._receiving_task, return_exceptions=True)
 
     @abstractmethod
     async def _handle_message(self, message: ReceiveT) -> None:
         pass
 
     async def send(self, message: SendT) -> None:
-        await self._send_queue.put(message)
+        if self._closed:
+            raise ConnectionError(f"Client {self._client_id} disconnected.")
+        self._send_queue.put_nowait(message)
 
 
 class CallbackChannelConnection(ChannelConnection[SendT, ReceiveT]):
@@ -107,6 +122,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         self._agent_type_to_client_id_lock = asyncio.Lock()
         self._agent_type_to_client_id: Dict[str, ClientConnectionId] = {}
         self._pending_responses: Dict[ClientConnectionId, Dict[str, Future[Any]]] = {}
+        self._response_owners: Dict[Future[Any], Tuple[ClientConnectionId, ClientConnectionId, str]] = {}
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
         self._client_id_to_subscription_id_mapping: Dict[ClientConnectionId, set[str]] = {}
@@ -117,6 +133,8 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         context: grpc.aio.ServicerContext[agent_worker_pb2.Message, agent_worker_pb2.Message],
     ) -> AsyncIterator[agent_worker_pb2.Message]:
         client_id = await get_client_id_or_abort(context)
+        if client_id in self._data_connections:
+            await context.abort(grpc.StatusCode.ALREADY_EXISTS, "Client data channel is already connected.")
 
         async def handle_callback(message: agent_worker_pb2.Message) -> None:
             await self._receive_message(client_id, message)
@@ -132,11 +150,19 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                 yield message
         finally:
             # Clean up the client connection.
-            del self._data_connections[client_id]
-            # Cancel pending requests sent to this client.
-            for future in self._pending_responses.pop(client_id, {}).values():
-                future.cancel()
-            # Remove the client id from the agent type to client id mapping.
+            self._data_connections.pop(client_id, None)
+            await connection.close()
+            for future, (sender_id, target_id, request_id) in list(self._response_owners.items()):
+                if future.done():
+                    continue
+                if sender_id == client_id:
+                    future.cancel()
+                elif target_id == client_id:
+                    future.set_result(
+                        agent_worker_pb2.RpcResponse(
+                            request_id=request_id, error=f"Target client {client_id} disconnected."
+                        )
+                    )
             await self._on_client_disconnect(client_id)
 
     async def OpenControlChannel(  # type: ignore
@@ -145,6 +171,8 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         context: grpc.aio.ServicerContext[agent_worker_pb2.ControlMessage, agent_worker_pb2.ControlMessage],
     ) -> AsyncIterator[agent_worker_pb2.ControlMessage]:
         client_id = await get_client_id_or_abort(context)
+        if client_id in self._control_connections:
+            await context.abort(grpc.StatusCode.ALREADY_EXISTS, "Client control channel is already connected.")
 
         async def handle_callback(message: agent_worker_pb2.ControlMessage) -> None:
             await self._receive_control_message(client_id, message)
@@ -160,7 +188,8 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                 yield message
         finally:
             # Clean up the client connection.
-            del self._control_connections[client_id]
+            self._control_connections.pop(client_id, None)
+            await connection.close()
 
     async def _on_client_disconnect(self, client_id: ClientConnectionId) -> None:
         async with self._agent_type_to_client_id_lock:
@@ -168,7 +197,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
             for agent_type in agent_types:
                 logger.info(f"Removing agent type {agent_type} from agent type to client id mapping")
                 del self._agent_type_to_client_id[agent_type]
-            for sub_id in self._client_id_to_subscription_id_mapping.get(client_id, set()):
+            for sub_id in self._client_id_to_subscription_id_mapping.pop(client_id, set()):
                 logger.info(f"Client id {client_id} disconnected. Removing corresponding subscription with id {id}")
                 try:
                     await self._subscription_manager.remove_subscription(sub_id)
@@ -178,6 +207,8 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         logger.info(f"Client {client_id} disconnected successfully")
 
     def _raise_on_exception(self, task: Task[Any]) -> None:
+        if task.cancelled():
+            return
         exception = task.exception()
         if exception is not None:
             raise exception
@@ -230,43 +261,72 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         await target_send_queue.send(message)
 
     async def _process_request(self, request: agent_worker_pb2.RpcRequest, client_id: ClientConnectionId) -> None:
+        sender = self._data_connections.get(client_id)
+        if sender is None:
+            return
         # Deliver the message to a client given the target agent type.
         async with self._agent_type_to_client_id_lock:
             target_client_id = self._agent_type_to_client_id.get(request.target.type)
         if target_client_id is None:
-            logger.error(f"Agent {request.target.type} not found, failed to deliver message.")
+            await sender.send(
+                agent_worker_pb2.Message(
+                    response=agent_worker_pb2.RpcResponse(
+                        request_id=request.request_id, error=f"Agent {request.target.type} not found."
+                    )
+                )
+            )
             return
         target_send_queue = self._data_connections.get(target_client_id)
         if target_send_queue is None:
-            logger.error(f"Client {target_client_id} not found, failed to deliver message.")
+            await sender.send(
+                agent_worker_pb2.Message(
+                    response=agent_worker_pb2.RpcResponse(
+                        request_id=request.request_id, error=f"Target client {target_client_id} disconnected."
+                    )
+                )
+            )
             return
-        await target_send_queue.send(agent_worker_pb2.Message(request=request))
 
-        # Create a future to wait for the response from the target.
-        future = asyncio.get_event_loop().create_future()
+        # Register correlation and ownership before delivery can produce a reply.
+        future = asyncio.get_running_loop().create_future()
         self._pending_responses.setdefault(target_client_id, {})[request.request_id] = future
+        self._response_owners[future] = (client_id, target_client_id, request.request_id)
 
-        # Create a task to wait for the response and send it back to the client.
-        send_response_task = asyncio.create_task(self._wait_and_send_response(future, client_id))
+        send_response_task = asyncio.create_task(self._wait_and_send_response(future, sender))
         self._background_tasks.add(send_response_task)
         send_response_task.add_done_callback(self._raise_on_exception)
         send_response_task.add_done_callback(self._background_tasks.discard)
+        try:
+            await target_send_queue.send(agent_worker_pb2.Message(request=request))
+        except Exception as error:
+            if not future.done():
+                future.set_result(agent_worker_pb2.RpcResponse(request_id=request.request_id, error=str(error)))
 
     async def _wait_and_send_response(
-        self, future: Future[agent_worker_pb2.RpcResponse], client_id: ClientConnectionId
+        self,
+        future: Future[agent_worker_pb2.RpcResponse],
+        sender: ChannelConnection[agent_worker_pb2.Message, agent_worker_pb2.Message],
     ) -> None:
-        response = await future
-        message = agent_worker_pb2.Message(response=response)
-        send_queue = self._data_connections.get(client_id)
-        if send_queue is None:
-            logger.error(f"Client {client_id} not found, failed to send response message.")
-            return
-        await send_queue.send(message)
+        try:
+            response = await future
+            await sender.send(agent_worker_pb2.Message(response=response))
+        except ConnectionError:
+            logger.debug("Requesting client disconnected before receiving its response.")
+        finally:
+            owner = self._response_owners.pop(future, None)
+            if owner is not None:
+                _, target_id, request_id = owner
+                pending = self._pending_responses.get(target_id)
+                if pending is not None and pending.get(request_id) is future:
+                    pending.pop(request_id)
+                    if not pending:
+                        self._pending_responses.pop(target_id, None)
 
     async def _process_response(self, response: agent_worker_pb2.RpcResponse, client_id: ClientConnectionId) -> None:
         # Setting the result of the future will send the response back to the original sender.
-        future = self._pending_responses[client_id].pop(response.request_id)
-        future.set_result(response)
+        future = self._pending_responses.get(client_id, {}).get(response.request_id)
+        if future is not None and not future.done():
+            future.set_result(response)
 
     async def _process_event(self, event: cloudevent_pb2.CloudEvent) -> None:
         topic_id = TopicId(type=event.type, source=event.source)
@@ -282,7 +342,22 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                     logger.error(f"Agent {recipient.type} and its client not found for topic {topic_id}.")
         # Deliver the event to clients.
         for client_id in client_ids:
-            await self._data_connections[client_id].send(agent_worker_pb2.Message(cloudEvent=event))
+            connection = self._data_connections.get(client_id)
+            if connection is not None:
+                await connection.send(agent_worker_pb2.Message(cloudEvent=event))
+
+    async def close(self) -> None:
+        """Join channel readers and outstanding relay tasks during host shutdown."""
+        closing = [connection.close() for connection in self._data_connections.values()]
+        closing.extend(connection.close() for connection in self._control_connections.values())
+        await asyncio.gather(*closing)
+        tasks = list(self._background_tasks)
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        self._background_tasks.clear()
+        self._pending_responses.clear()
+        self._response_owners.clear()
 
     async def RegisterAgent(  # type: ignore
         self,
