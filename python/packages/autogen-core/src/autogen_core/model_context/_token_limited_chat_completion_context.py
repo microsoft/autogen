@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from .._component_config import Component, ComponentModel
-from ..models import ChatCompletionClient, FunctionExecutionResultMessage, LLMMessage
+from ..models import AssistantMessage, ChatCompletionClient, FunctionExecutionResultMessage, LLMMessage
 from ..tools import ToolSchema
 from ._chat_completion_context import ChatCompletionContext
 
@@ -14,6 +14,41 @@ class TokenLimitedChatCompletionContextConfig(BaseModel):
     token_limit: int | None = None
     tool_schema: List[ToolSchema] | None = None
     initial_messages: List[LLMMessage] | None = None
+
+
+def _is_function_call_message(message: LLMMessage) -> bool:
+    return isinstance(message, AssistantMessage) and isinstance(message.content, list)
+
+
+def _remove_middle_message(messages: List[LLMMessage]) -> None:
+    """Remove the middle message without splitting an adjacent tool call/result pair.
+
+    A tool call and the result that answers it are removed together so the truncated
+    context never keeps one half of the pair. When the middle message is not part of
+    such an adjacent pair, a single message is removed instead; see the comment on the
+    fallback below for why that is safe.
+    """
+    middle_index = len(messages) // 2
+    message = messages[middle_index]
+
+    if _is_function_call_message(message):
+        if middle_index + 1 < len(messages) and isinstance(messages[middle_index + 1], FunctionExecutionResultMessage):
+            del messages[middle_index : middle_index + 2]
+            return
+    elif isinstance(message, FunctionExecutionResultMessage):
+        if middle_index > 0 and _is_function_call_message(messages[middle_index - 1]):
+            del messages[middle_index - 1 : middle_index + 1]
+            return
+
+    # Fallback: the middle message is an ordinary message, a tool call that is not
+    # immediately followed by its result, or a tool result that is not immediately
+    # preceded by its call. Removing the single message here is deliberate, not an
+    # oversight: in the latter two cases the message is already unpaired within this
+    # list, so there is no pair left to keep together, and dropping the unmatched half
+    # moves the context towards a valid request rather than away from one. Keeping it
+    # would leave the model with a call nothing answers or a result nothing asked for,
+    # which is what the pairing above exists to prevent.
+    messages.pop(middle_index)
 
 
 class TokenLimitedChatCompletionContext(ChatCompletionContext, Component[TokenLimitedChatCompletionContextConfig]):
@@ -61,14 +96,12 @@ class TokenLimitedChatCompletionContext(ChatCompletionContext, Component[TokenLi
         if self._token_limit is None:
             remaining_tokens = self._model_client.remaining_tokens(messages, tools=self._tool_schema)
             while remaining_tokens < 0 and len(messages) > 0:
-                middle_index = len(messages) // 2
-                messages.pop(middle_index)
+                _remove_middle_message(messages)
                 remaining_tokens = self._model_client.remaining_tokens(messages, tools=self._tool_schema)
         else:
             token_count = self._model_client.count_tokens(messages, tools=self._tool_schema)
             while token_count > self._token_limit and len(messages) > 0:
-                middle_index = len(messages) // 2
-                messages.pop(middle_index)
+                _remove_middle_message(messages)
                 token_count = self._model_client.count_tokens(messages, tools=self._tool_schema)
         if messages and isinstance(messages[0], FunctionExecutionResultMessage):
             # Handle the first message is a function call result message.
