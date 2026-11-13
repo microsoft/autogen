@@ -5,6 +5,7 @@ from autogen_core import (
     DefaultTopicId,
     SingleThreadedAgentRuntime,
     TopicId,
+    TypePrefixSubscription,
     TypeSubscription,
 )
 from autogen_core.exceptions import CantHandleException
@@ -120,3 +121,51 @@ async def test_subscription_deduplication() -> None:
     default_subscription = DefaultSubscription(agent_type=agent_type)
     with pytest.raises(ValueError, match="Subscription already exists"):
         await runtime.add_subscription(default_subscription)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("exact_match", [False, True])
+async def test_overlapping_subscriptions_deliver_once_per_agent(exact_match: bool) -> None:
+    runtime = SingleThreadedAgentRuntime()
+    for agent_type in ("first", "second"):
+        await LoopbackAgent.register(runtime, agent_type, LoopbackAgent, skip_class_subscriptions=True)
+
+    prefix = TypePrefixSubscription("event", "first")
+    await runtime.add_subscription(prefix)
+    await runtime.add_subscription(TypePrefixSubscription("event", "second"))
+
+    async def publish(source: str) -> None:
+        runtime.start()
+        await runtime.publish_message(MessageType(), topic_id=TopicId("event.created", source))
+        await runtime.stop_when_idle()
+
+    async def call_count(agent_type: str, source: str) -> int:
+        agent = await runtime.try_get_underlying_agent_instance(AgentId(agent_type, source), type=LoopbackAgent)
+        return agent.num_calls
+
+    # Populate the recipient cache before adding an overlapping subscription.
+    await publish("existing")
+    assert await call_count("first", "existing") == 1
+    assert await call_count("second", "existing") == 1
+
+    overlap = TypeSubscription("event.created", "first") if exact_match else TypePrefixSubscription("event.", "first")
+    await runtime.add_subscription(overlap)
+    await publish("existing")
+    assert await call_count("first", "existing") == 2
+    assert await call_count("second", "existing") == 2
+
+    # Newly encountered topics must also deduplicate recipients, while keeping distinct agent keys.
+    await publish("new")
+    assert await call_count("first", "new") == 1
+    assert await call_count("second", "new") == 1
+
+    # Removing one match must retain delivery through the remaining subscription.
+    await runtime.remove_subscription(prefix.id)
+    await publish("existing")
+    assert await call_count("first", "existing") == 3
+    assert await call_count("second", "existing") == 3
+
+    await runtime.remove_subscription(overlap.id)
+    await publish("existing")
+    assert await call_count("first", "existing") == 3
+    assert await call_count("second", "existing") == 4
