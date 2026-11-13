@@ -223,7 +223,7 @@ Here is the updated code to calculate the mean of 10, 20, 30, 40, 50
         elif isinstance(message, CodeExecutionEvent) and message_id == 1:
             # Step 2: First code execution
             assert (
-                incorrect_code_result in message.to_text().strip()
+                incorrect_code_result in message.to_text().replace("\r\n", "\n").strip()
             ), f"Expected {incorrect_code_result} in execution result, got: {message.to_text().strip()}"
             incorrect_code_execution_event = message
 
