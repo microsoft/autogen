@@ -9,8 +9,6 @@ import aiofiles
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.messages import TextMessage
-from autogen_ext.agents.file_surfer import FileSurfer
-from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
@@ -18,6 +16,9 @@ from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 from openai.types.completion_usage import CompletionUsage
 from pydantic import BaseModel
+
+from autogen_ext.agents.file_surfer import FileSurfer
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
 class FileLogHandler(logging.Handler):
@@ -167,3 +168,21 @@ async def test_file_surfer_serialization() -> None:
 
     # Check that the deserialized agent has the same attributes as the original agent
     assert isinstance(deserialized_agent, FileSurfer)
+
+
+def test_file_surfer_default_base_path_uses_current_cwd(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regression: the default ``base_path`` must reflect the cwd at construction time.
+
+    Previously the signature read ``base_path: str = os.getcwd()``, which freezes the
+    default to the cwd at module-import time. After ``os.chdir`` the next ``FileSurfer()``
+    would still browse the original directory, surprising callers who expect it to follow
+    the current cwd.
+    """
+    model = "gpt-4.1-nano-2025-04-14"
+    monkeypatch.chdir(tmp_path)
+    agent = FileSurfer(
+        "FileSurfer",
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+    )
+    # pyright: ignore[reportPrivateUsage]
+    assert os.path.realpath(agent._browser._base_path) == os.path.realpath(str(tmp_path))
