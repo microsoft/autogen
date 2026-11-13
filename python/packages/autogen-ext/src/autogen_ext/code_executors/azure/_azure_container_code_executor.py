@@ -250,7 +250,7 @@ import pkg_resources\n[d.project_name for d in pkg_resources.working_set]
                     raise ValueError(f"Packages unavailable in environment: {missing_pkgs}")
 
         func_file = self.work_dir / f"{self._functions_module}.py"
-        func_file.write_text(self._func_code)
+        func_file.write_text(self._func_code, encoding="utf-8")
 
         # Attempt to load the function file to check for syntax errors, imports etc.
         exec_result = await self._execute_code_dont_check_setup(
