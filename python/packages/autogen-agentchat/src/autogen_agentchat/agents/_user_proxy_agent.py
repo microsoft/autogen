@@ -199,6 +199,10 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
         except asyncio.CancelledError:
             raise
         except Exception as e:
+            # Allow WebSocket-related exceptions to propagate to enable graceful handling
+            # in web frameworks like FastAPI
+            if e.__class__.__name__ in ("WebSocketDisconnect", "ConnectionClosedError", "ConnectionClosedOK"):
+                raise
             raise RuntimeError(f"Failed to get user input: {str(e)}") from e
 
     async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
@@ -234,6 +238,10 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
         except asyncio.CancelledError:
             raise
         except Exception as e:
+            # Allow WebSocket-related exceptions to propagate to enable graceful handling
+            # in web frameworks like FastAPI
+            if e.__class__.__name__ in ("WebSocketDisconnect", "ConnectionClosedError", "ConnectionClosedOK"):
+                raise
             raise RuntimeError(f"Failed to get user input: {str(e)}") from e
 
     async def on_reset(self, cancellation_token: Optional[CancellationToken] = None) -> None:
