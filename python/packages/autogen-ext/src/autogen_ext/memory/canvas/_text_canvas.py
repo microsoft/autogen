@@ -100,6 +100,10 @@ class TextCanvas(BaseCanvas):
         """Return a mapping of *filename → latest revision number*."""
         return {fname: revs[-1].revision for fname, revs in self._files.items() if revs}
 
+    def clear(self) -> None:
+        """Remove all files and revision history without replacing this canvas."""
+        self._files.clear()
+
     def get_latest_content(self, filename: str) -> str:  # noqa: D401 – keep API identical
         """Return the most recent content or an empty string if the file is new."""
         revs = self._files.get(filename, [])
