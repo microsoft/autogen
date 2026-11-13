@@ -29,6 +29,7 @@ class BaseGroupChatManagerState(BaseState):
 
     message_thread: List[Mapping[str, Any]] = Field(default_factory=list)
     current_turn: int = Field(default=0)
+    active_speakers: List[str] = Field(default_factory=list)
     type: str = Field(default="BaseGroupChatManagerState")
 
 
