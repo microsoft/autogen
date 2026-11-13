@@ -517,6 +517,7 @@ class GraphFlowManager(BaseGroupChatManager):
             "remaining": {target: dict(counter) for target, counter in self._remaining.items()},
             "enqueued_any": dict(self._enqueued_any),
             "ready": list(self._ready),
+            "triggered_activation_groups": {target: list(groups) for target, groups in self._triggered_activation_groups.items()},
         }
         return state
 
@@ -527,6 +528,7 @@ class GraphFlowManager(BaseGroupChatManager):
         self._remaining = {target: Counter(groups) for target, groups in state["remaining"].items()}
         self._enqueued_any = state["enqueued_any"]
         self._ready = deque(state["ready"])
+        self._triggered_activation_groups = {target: set(groups) for target, groups in state["triggered_activation_groups"].items()}
 
     async def reset(self) -> None:
         """Reset execution state to the start of the graph."""
