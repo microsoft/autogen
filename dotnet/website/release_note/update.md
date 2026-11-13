@@ -14,7 +14,7 @@
 - [Issue 2649](https://github.com/microsoft/autogen/issues/2649) Deprecate `Workflow` type.
 ###### Bug Fixes
 - [Issue 2735](https://github.com/microsoft/autogen/issues/2735) Fix tool call issue in AutoGen.Mistral package.
-- [Issue 2722](https://github.com/microsoft/autogen/issues/2722) Fix parallel funciton call in function call middleware.
+- [Issue 2722](https://github.com/microsoft/autogen/issues/2722) Fix parallel function call in function call middleware.
 - [Issue 2633](https://github.com/microsoft/autogen/issues/2633) Set up `name` field in `OpenAIChatMessageConnector`
 - [Issue 2660](https://github.com/microsoft/autogen/issues/2660) Fix dotnet interactive restoring issue when system language is Chinese
 - [Issue 2687](https://github.com/microsoft/autogen/issues/2687) Add `global::` prefix to generated code to avoid conflict with user-defined types. 
@@ -55,7 +55,7 @@
 - Graph chat support with conditional transition workflow [#1761](https://github.com/microsoft/autogen/pull/1761)
 - AutoGen.SourceGenerator: Generate `FunctionContract` from `FunctionAttribute` [#1736](https://github.com/microsoft/autogen/pull/1736)
 ##### Update on 0.0.7 (2024-02-11)
-- Add `AutoGen.LMStudio` to support comsume openai-like API from LMStudio local server
+- Add `AutoGen.LMStudio` to support consume openai-like API from LMStudio local server
 ##### Update on 0.0.6 (2024-01-23)
 - Add `MiddlewareAgent`
 - Use `MiddlewareAgent` to implement existing agent hooks (RegisterPreProcess, RegisterPostProcess, RegisterReply)

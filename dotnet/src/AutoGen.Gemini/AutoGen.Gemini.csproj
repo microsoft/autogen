@@ -10,7 +10,7 @@
     <!-- NuGet Package Settings -->
     <Title>AutoGen.Gemini</Title>
     <Description>
-      This package provides the intergration with Gemini.
+      This package provides the integration with Gemini.
     </Description>
   </PropertyGroup>
   <ItemGroup>
