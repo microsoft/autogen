@@ -455,6 +455,57 @@ class GraphFlowManager(BaseGroupChatManager):
         # Clear the triggered activation groups for this speaker
         self._triggered_activation_groups[speaker].clear()
 
+    def _validate_and_repair_state(self) -> None:
+        """Validate and repair the execution state after loading.
+
+        This handles cases where the state was interrupted during agent transitions,
+        which can leave the ready queue empty despite having remaining work.
+        """
+        # If ready queue is not empty, state is likely valid
+        if self._ready:
+            return
+
+        # Check if there's any remaining work
+        has_remaining_work = any(
+            any(count > 0 for count in groups.values()) for groups in self._remaining.values()
+        )
+
+        # If no remaining work and ready queue is empty, we're at a valid completion state
+        if not has_remaining_work:
+            return
+
+        # State is corrupted: work remains but ready queue is empty
+        # Reconstruct the ready queue by finding nodes that should be ready
+        for node_name in self._graph.nodes:
+            if node_name not in self._remaining:
+                # Node with no dependencies should be in start nodes
+                continue
+
+            # Check if this node should be ready
+            should_be_ready = False
+
+            if node_name in self._activation:
+                for activation_group, condition in self._activation[node_name].items():
+                    if condition == "all":
+                        # For "all" activation, node is ready if remaining count is 0
+                        if (
+                            activation_group in self._remaining[node_name]
+                            and self._remaining[node_name][activation_group] == 0
+                        ):
+                            should_be_ready = True
+                            break
+                    elif condition == "any":
+                        # For "any" activation, node is ready if it was enqueued
+                        if (
+                            activation_group in self._enqueued_any.get(node_name, {})
+                            and self._enqueued_any[node_name][activation_group]
+                        ):
+                            should_be_ready = True
+                            break
+
+            if should_be_ready and node_name not in self._ready:
+                self._ready.append(node_name)
+
     async def select_speaker(self, thread: Sequence[BaseAgentEvent | BaseChatMessage]) -> List[str]:
         # Drain the ready queue for the next set of speakers.
         speakers: List[str] = []
@@ -527,6 +578,9 @@ class GraphFlowManager(BaseGroupChatManager):
         self._remaining = {target: Counter(groups) for target, groups in state["remaining"].items()}
         self._enqueued_any = state["enqueued_any"]
         self._ready = deque(state["ready"])
+
+        # Validate and repair state if necessary
+        self._validate_and_repair_state()
 
     async def reset(self) -> None:
         """Reset execution state to the start of the graph."""
