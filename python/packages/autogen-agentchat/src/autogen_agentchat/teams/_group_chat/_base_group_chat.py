@@ -78,8 +78,17 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     ):
         self._name = name
         self._description = description
+        if participants is None:
+            raise TypeError("participants must be a non-empty sequence of ChatAgent or Team instances.")
+        if not isinstance(participants, (list, tuple)):
+            raise TypeError("participants must be a list or tuple of ChatAgent or Team instances.")
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
+        for i, participant in enumerate(participants):
+            if not isinstance(participant, (ChatAgent, Team)):
+                raise TypeError(
+                    f"participants[{i}] must be a ChatAgent or Team instance, got {type(participant).__name__}."
+                )
         if len(participants) != len(set(participant.name for participant in participants)):
             raise ValueError("The participant names must be unique.")
         self._participants = participants
