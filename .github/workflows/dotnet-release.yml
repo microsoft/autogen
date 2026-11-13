@@ -26,11 +26,11 @@ jobs:
       run:
         working-directory: dotnet
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         lfs: true
     - name: Set up Python 3.11
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.11
     - name: Install jupyter and ipykernel
@@ -42,7 +42,7 @@ jobs:
       run: |
         python -m jupyter kernelspec list
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '8.0.x'
     - name: Restore dependencies
