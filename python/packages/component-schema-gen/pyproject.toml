@@ -21,18 +21,22 @@ gen-component-schema="component_schema_gen.__main__:main"
 
 [tool.ruff]
 extend ="../../pyproject.toml"
-include=[ "src/**" ]
+include=[ "src/**", "tests/*.py" ]
 
 [tool.ruff.lint]
 ignore=[ "T201" ]
 
 [tool.pyright]
 extends="../../pyproject.toml"
-include=[ "src" ]
+include=[ "src", "tests" ]
 
 [tool.poe]
 include="../../shared_tasks.toml"
 
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+
 [tool.poe.tasks]
 mypy="mypy --config-file $POE_ROOT/../../pyproject.toml src"
-test="python -c \"import sys; sys.exit(0)\""
+test="pytest -n auto --cov=src --cov-report=term-missing --cov-report=xml"
