@@ -39,6 +39,7 @@ class FileSurferConfig(BaseModel):
     name: str
     model_client: ComponentModel
     description: str | None = None
+    base_path: str | None = None
 
 
 class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
@@ -197,12 +198,23 @@ class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
             name=self.name,
             model_client=self._model_client.dump_component(),
             description=self.description,
+            base_path=self._browser._base_path,  # pyright: ignore[reportPrivateUsage]
         )
 
     @classmethod
     def _from_config(cls, config: FileSurferConfig) -> Self:
+        model_client = ChatCompletionClient.load_component(config.model_client)
+        if config.base_path is None:
+            # Configs saved before ``base_path`` was introduced keep their legacy
+            # constructor behavior when deserialized.
+            return cls(
+                name=config.name,
+                model_client=model_client,
+                description=config.description or cls.DEFAULT_DESCRIPTION,
+            )
         return cls(
             name=config.name,
-            model_client=ChatCompletionClient.load_component(config.model_client),
+            model_client=model_client,
             description=config.description or cls.DEFAULT_DESCRIPTION,
+            base_path=config.base_path,
         )

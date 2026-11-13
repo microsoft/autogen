@@ -10,6 +10,7 @@ import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.messages import TextMessage
 from autogen_ext.agents.file_surfer import FileSurfer
+from autogen_ext.agents.file_surfer._file_surfer import FileSurferConfig
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
@@ -166,4 +167,29 @@ async def test_file_surfer_serialization() -> None:
     deserialized_agent = FileSurfer.load_component(serialized_agent)
 
     # Check that the deserialized agent has the same attributes as the original agent
+    assert isinstance(deserialized_agent, FileSurfer)
+
+
+def test_file_surfer_serialization_preserves_explicit_base_path(tmp_path: Any) -> None:
+    """An explicit FileSurfer root must survive component serialization."""
+    agent = FileSurfer(
+        "FileSurfer",
+        model_client=OpenAIChatCompletionClient(model="gpt-4.1-nano-2025-04-14", api_key=""),
+        base_path=str(tmp_path),
+    )
+
+    deserialized_agent = FileSurfer.load_component(agent.dump_component())
+
+    assert deserialized_agent._browser._base_path == os.path.realpath(str(tmp_path))  # pyright: ignore[reportPrivateUsage]
+
+
+def test_file_surfer_loads_legacy_config_without_base_path() -> None:
+    """Configs written before base-path persistence remain loadable."""
+    config = FileSurferConfig(
+        name="FileSurfer",
+        model_client=OpenAIChatCompletionClient(model="gpt-4.1-nano-2025-04-14", api_key="").dump_component(),
+    )
+
+    deserialized_agent = FileSurfer._from_config(config)  # pyright: ignore[reportPrivateUsage]
+
     assert isinstance(deserialized_agent, FileSurfer)
