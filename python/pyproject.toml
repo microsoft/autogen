@@ -42,6 +42,7 @@ override-dependencies = [
     "tenacity>=9.0.0",
     "aiofiles>=24.1.0",
     "chainlit>=2.0.1",
+    "semantic-kernel[google]<=1.27.0",
     "httpx>=0.27.0",
 ]
 [tool.uv.workspace]
