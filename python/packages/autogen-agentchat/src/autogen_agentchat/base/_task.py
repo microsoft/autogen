@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, Protocol, Sequence
+from typing import AsyncGenerator, Dict, Optional, Protocol, Sequence
 
 from autogen_core import CancellationToken
 from pydantic import BaseModel, SerializeAsAny
@@ -14,6 +14,12 @@ class TaskResult(BaseModel):
 
     stop_reason: str | None = None
     """The reason the task stopped."""
+
+    usage: Optional[Dict[str, int]] = None
+    """Usage statistics for the task."""
+
+    cost_usd: Optional[float] = None
+    """The estimated cost in USD."""
 
 
 class TaskRunner(Protocol):
