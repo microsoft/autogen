@@ -363,6 +363,81 @@ async def test_openai_chat_completion_client_create_stream_no_usage_explicit(mon
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_create_stream_none_chunks(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that None chunks in the stream are skipped without raising an error.
+
+    This test addresses issue #7130 where the stream can yield None chunks
+    (e.g., during keepalives, heartbeats, or under heavy API load), causing
+    AttributeError: 'NoneType' object has no attribute 'model'.
+    """
+
+    async def _mock_create_stream_with_none_chunks(
+        *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[ChatCompletionChunk | None, None]:
+        model = resolve_model(kwargs.get("model", "gpt-4.1-nano"))
+        mock_chunks_content = ["Hello", " Another Hello", " Yet Another Hello"]
+        for mock_chunk_content in mock_chunks_content:
+            # Yield a None chunk before each real chunk (simulates keepalive/heartbeat)
+            yield None  # type: ignore[misc]
+            await asyncio.sleep(0.1)
+            yield ChatCompletionChunk(
+                id="id",
+                choices=[
+                    ChunkChoice(
+                        finish_reason=None,
+                        index=0,
+                        delta=ChoiceDelta(
+                            content=mock_chunk_content,
+                            role="assistant",
+                        ),
+                    )
+                ],
+                created=0,
+                model=model,
+                object="chat.completion.chunk",
+                usage=None,
+            )
+        # Yield the stop chunk
+        yield ChatCompletionChunk(
+            id="id",
+            choices=[
+                ChunkChoice(
+                    finish_reason="stop",
+                    index=0,
+                    delta=ChoiceDelta(
+                        content=None,
+                        role="assistant",
+                    ),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion.chunk",
+            usage=None,
+        )
+
+    async def _mock_create_with_none(*args: Any, **kwargs: Any) -> Any:
+        stream = kwargs.get("stream", False)
+        if stream:
+            return _mock_create_stream_with_none_chunks(*args, **kwargs)
+        raise NotImplementedError("Only stream mode is tested here")
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create_with_none)
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(
+        messages=[UserMessage(content="Hello", source="user")],
+    ):
+        chunks.append(chunk)
+
+    assert chunks[0] == "Hello"
+    assert chunks[1] == " Another Hello"
+    assert chunks[2] == " Yet Another Hello"
+    assert isinstance(chunks[-1], CreateResult)
+    assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+
+
+@pytest.mark.asyncio
 async def test_openai_chat_completion_client_none_usage(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that completion_tokens and prompt_tokens handle None usage correctly.
 
