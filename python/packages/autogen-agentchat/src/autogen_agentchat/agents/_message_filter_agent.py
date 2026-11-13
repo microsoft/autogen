@@ -152,19 +152,16 @@ class MessageFilterAgent(BaseChatAgent, Component[MessageFilterAgentConfig]):
         return self._wrapped_agent.produced_message_types
 
     def _apply_filter(self, messages: Sequence[BaseChatMessage]) -> Sequence[BaseChatMessage]:
-        result: List[BaseChatMessage] = []
-
+        indices_to_keep: set[int] = set()
         for source_filter in self._filter.per_source:
-            msgs = [m for m in messages if m.source == source_filter.source]
-
+            indices = [idx for idx, m in enumerate(messages) if m.source == source_filter.source]
             if source_filter.position == "first" and source_filter.count:
-                msgs = msgs[: source_filter.count]
+                indices_to_keep.update(indices[: source_filter.count])
             elif source_filter.position == "last" and source_filter.count:
-                msgs = msgs[-source_filter.count :]
-
-            result.extend(msgs)
-
-        return result
+                indices_to_keep.update(indices[-source_filter.count :])
+            else:
+                indices_to_keep.update(indices)
+        return [msg for idx, msg in enumerate(messages) if idx in indices_to_keep]
 
     async def on_messages(
         self,
